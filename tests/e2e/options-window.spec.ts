@@ -1,72 +1,68 @@
-/**
- * E2E Test: Options Window
- * 
- * This test validates that:
- * 1. The File menu contains an "Options..." item
- * 2. Clicking Options opens a new window
- * 3. The Options window has a custom titlebar with window controls
- * 4. The Options window can be closed independently
- */
-
 import { browser, $, expect } from '@wdio/globals';
 
-describe('Options Window', () => {
-    describe('Menu Integration', () => {
-        it('should have Options item in File menu', async () => {
-            // Wait for the app to fully load
-            const titlebar = await $('header.titlebar');
-            await titlebar.waitForExist({ timeout: 10000 });
+describe('Options Window Features', () => {
+    it('should open options window with correct window controls', async () => {
+        // 1. Open File menu
+        const menuBar = await $('.titlebar-menu-bar');
+        await menuBar.waitForExist();
 
-            // Find and click the File menu button
-            const menuBar = await $('.titlebar-menu-bar');
-            await expect(menuBar).toBeExisting();
+        const fileButton = await $('[data-testid="menu-button-File"]');
+        await fileButton.click();
 
-            const fileMenu = await menuBar.$('button=File');
-            await expect(fileMenu).toBeExisting();
-        });
-    });
+        // 2. Click "Options"
+        const optionsItem = await $('[data-testid="menu-item-Options"]');
+        await optionsItem.waitForExist();
+        await expect(optionsItem).toBeEnabled();
 
-    describe('Options Window Features', () => {
-        // Note: Full multi-window testing requires specific WebDriver configuration
-        // These tests verify the UI elements exist for options window when opened
+        // Debug: Ensure API exists
+        const hasApi = await browser.execute(() => !!window.electronAPI && typeof window.electronAPI.openOptions === 'function');
+        expect(hasApi).toBe(true);
 
-        it('should have correct structure when options window is accessible', async () => {
-            // This test validates the options window structure
-            // In a full E2E environment, we would:
-            // 1. Click File menu
-            // 2. Click Options item
-            // 3. Switch to new window
-            // 4. Validate titlebar and controls
+        await optionsItem.click();
 
-            // For now, verify the main app structure is intact
-            const menuBar = await $('.titlebar-menu-bar');
-            await expect(menuBar).toBeExisting();
+        // 3. Switch to the new window
+        // Wait for new window to appear
+        await browser.waitUntil(async () => {
+            const handles = await browser.getWindowHandles();
+            return handles.length === 2;
+        }, { timeout: 5000, timeoutMsg: 'Options window did not open' });
 
-            // Verify File menu exists (contains Options)
-            const fileMenu = await menuBar.$('button=File');
-            await expect(fileMenu).toBeExisting();
-        });
-    });
+        const handles = await browser.getWindowHandles();
+        const optionsWindowHandle = handles[1]; // Index 1 is likely the new window
 
-    describe('Integration', () => {
-        it('should not affect main window when options would be opened', async () => {
-            // Verify main window remains functional
-            const titlebar = await $('header.titlebar');
-            await expect(titlebar).toBeExisting();
+        // Pause briefly to allow window to fully initialize
+        await browser.pause(1000);
 
-            // Verify window controls still work
-            const minimizeBtn = await $('button.minimize');
-            await expect(minimizeBtn).toBeExisting();
+        // Switch context
+        await browser.switchToWindow(optionsWindowHandle);
 
-            const maximizeBtn = await $('button.maximize');
-            await expect(maximizeBtn).toBeExisting();
+        // 4. Verify Custom Titlebar Elements
+        const titlebar = await $('.options-titlebar');
+        await expect(titlebar).toExist();
 
-            const closeBtn = await $('button.close');
-            await expect(closeBtn).toBeExisting();
+        // 5. Verify Controls: Minimize and Close should exist, Maximize should NOT
+        // We verify this by counting buttons in the controls container
+        const controlsContainer = await $('.options-window-controls');
+        await expect(controlsContainer).toBeDisplayed();
 
-            // Verify webview container is present
-            const webviewContainer = await $('.webview-container');
-            await expect(webviewContainer).toBeExisting();
-        });
+        const buttons = await controlsContainer.$$('button');
+        // Should only be Minimize and Close
+        expect(buttons.length).toBe(2);
+
+        const minimizeBtn = await $('[data-testid="options-minimize-button"]');
+        const closeBtn = await $('[data-testid="options-close-button"]');
+
+        await expect(minimizeBtn).toBeDisplayed();
+        await expect(closeBtn).toBeDisplayed();
+
+        // Double check no maximize button exists by any reasonable selector
+        const maximizeBtn = await $('[data-testid="options-maximize-button"]');
+        await expect(maximizeBtn).not.toExist();
+
+        // 6. Close the options window
+        await closeBtn.click();
+
+        // Switch back to main window to ensure clean state
+        await browser.switchToWindow(handles[0]);
     });
 });

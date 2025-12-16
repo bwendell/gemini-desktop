@@ -20,9 +20,12 @@ export function useMenuDefinitions(): MenuDefinition[] {
                 },
                 { separator: true },
                 {
-                    label: 'Options...',
+                    label: 'Options',
                     shortcut: 'Ctrl+,',
-                    disabled: true, // Will be implemented later
+                    disabled: false,
+                    action: () => {
+                        window.electronAPI?.openOptions();
+                    },
                 },
                 { separator: true },
                 {

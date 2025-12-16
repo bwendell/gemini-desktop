@@ -1,18 +1,6 @@
 import { useCallback } from 'react';
 
-// Type declaration for the Electron API exposed via preload
-declare global {
-    interface Window {
-        electronAPI?: {
-            minimizeWindow: () => void;
-            maximizeWindow: () => void;
-            closeWindow: () => void;
-            isMaximized: () => Promise<boolean>;
-            platform: string;
-            isElectron: boolean;
-        };
-    }
-}
+
 
 /**
  * Custom hook for window control operations.

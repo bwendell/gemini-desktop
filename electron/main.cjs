@@ -26,6 +26,7 @@ const useProductionBuild = app.isPackaged ||
 const isDev = !useProductionBuild;
 
 let mainWindow = null;
+let optionsWindow = null;
 
 /**
  * Strip security headers that prevent iframe embedding.
@@ -149,6 +150,52 @@ function createWindow() {
         mainWindow = null;
     });
 }
+
+
+
+function createOptionsWindow() {
+    if (optionsWindow) {
+        optionsWindow.focus();
+        return;
+    }
+
+    optionsWindow = new BrowserWindow({
+        width: 600,
+        height: 400,
+        resizable: true,
+        minimizable: true,
+        maximizable: false, // Requirement: no maximize
+        frame: false,
+        titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.cjs'),
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+        backgroundColor: '#1a1a1a',
+        show: true,
+    });
+
+    if (isDev) {
+        optionsWindow.loadURL('http://localhost:1420/options.html');
+    } else {
+        optionsWindow.loadFile(path.join(__dirname, '../dist/options.html'));
+    }
+
+    optionsWindow.once('ready-to-show', () => {
+        optionsWindow.show();
+    });
+
+    optionsWindow.on('closed', () => {
+        optionsWindow = null;
+    });
+}
+
+
+ipcMain.on('open-options-window', () => {
+    createOptionsWindow();
+});
+
 
 // App lifecycle
 app.whenReady().then(() => {
