@@ -1,0 +1,77 @@
+/**
+ * Global Theme Variables
+ * 
+ * Defines CSS variables for the application theme.
+ * Defaults to Dark Mode (matching the default Electron background).
+ * 
+ * Titlebar colors follow industry best practices:
+ * - Dark mode: Slightly lighter than main background for subtle contrast
+ * - Light mode: Slightly darker than main background for subtle contrast
+ */
+
+/* Default (Dark Mode) */
+:root {
+    /* Primary backgrounds */
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #252526;
+
+    /* Text colors */
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a6;
+
+    /* UI elements */
+    --border-color: #3c3c3c;
+    --hover-bg: rgba(255, 255, 255, 0.1);
+    --active-bg: #094771;
+    --accent-color: #8ab4f8;
+    --error-color: #f28b82;
+
+    /* Titlebar - industry standard: same as secondary bg for dark themes */
+    --titlebar-bg: #1f1f1f;
+    --titlebar-text: var(--text-primary);
+    --titlebar-height: 32px;
+}
+
+/* Light Mode Override */
+[data-theme='light'] {
+    /* Primary backgrounds */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+
+    /* Text colors */
+    --text-primary: #202124;
+    --text-secondary: #5f6368;
+
+    /* UI elements */
+    --border-color: #dadce0;
+    --hover-bg: rgba(0, 0, 0, 0.05);
+    --active-bg: #e8f0fe;
+    --accent-color: #1a73e8;
+    --error-color: #d93025;
+
+    /* Titlebar - industry standard: light gray header */
+    --titlebar-bg: #f0f0f0;
+    --titlebar-text: var(--text-primary);
+}
+
+/* Dark Mode Override (Explicit) */
+[data-theme='dark'] {
+    /* Primary backgrounds */
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #252526;
+
+    /* Text colors */
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a6;
+
+    /* UI elements */
+    --border-color: #3c3c3c;
+    --hover-bg: rgba(255, 255, 255, 0.1);
+    --active-bg: #094771;
+    --accent-color: #8ab4f8;
+    --error-color: #f28b82;
+
+    /* Titlebar - industry standard: same as secondary bg for dark themes */
+    --titlebar-bg: #1f1f1f;
+    --titlebar-text: var(--text-primary);
+}

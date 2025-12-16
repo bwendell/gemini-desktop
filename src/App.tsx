@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { MainLayout } from './components/layout';
+import { ThemeProvider } from './context/ThemeContext';
 import './App.css';
 
 /**
@@ -43,31 +44,33 @@ function App() {
   }, []);
 
   return (
-    <MainLayout>
-      <div className="webview-container" data-testid="webview-container">
-        {isLoading && (
-          <div className="webview-loading" data-testid="webview-loading">
-            <div className="webview-loading-spinner" />
-            <span>Loading Gemini...</span>
-          </div>
-        )}
-        {/* c8 ignore next 4 -- JSDOM cannot trigger iframe errors */}
-        {error && (
-          <div className="webview-error" data-testid="webview-error">
-            <span>Failed to load: {error}</span>
-          </div>
-        )}
-        <iframe
-          src={GEMINI_URL}
-          className="gemini-iframe"
-          title="Gemini"
-          onLoad={handleIframeLoad}
-          onError={handleIframeError}
-          data-testid="gemini-iframe"
-        />
+    <ThemeProvider>
+      <MainLayout>
+        <div className="webview-container" data-testid="webview-container">
+          {isLoading && (
+            <div className="webview-loading" data-testid="webview-loading">
+              <div className="webview-loading-spinner" />
+              <span>Loading Gemini...</span>
+            </div>
+          )}
+          {/* c8 ignore next 4 -- JSDOM cannot trigger iframe errors */}
+          {error && (
+            <div className="webview-error" data-testid="webview-error">
+              <span>Failed to load: {error}</span>
+            </div>
+          )}
+          <iframe
+            src={GEMINI_URL}
+            className="gemini-iframe"
+            title="Gemini"
+            onLoad={handleIframeLoad}
+            onError={handleIframeError}
+            data-testid="gemini-iframe"
+          />
 
-      </div>
-    </MainLayout>
+        </div>
+      </MainLayout>
+    </ThemeProvider>
   );
 }
 

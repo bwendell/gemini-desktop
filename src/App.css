@@ -4,6 +4,7 @@
  * This file contains base styles and resets that apply
  * across the entire application.
  */
+@import './theme.css';
 
 /* Reset and base styles */
 *,
@@ -25,8 +26,8 @@ body {
 }
 
 body {
-  background-color: #1a1a1a;
-  color: #e8eaed;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 #root {
@@ -40,7 +41,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  color: #f28b82;
+  color: var(--error-color);
   padding: 24px;
   text-align: center;
 }

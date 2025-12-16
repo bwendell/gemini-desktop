@@ -7,6 +7,12 @@ interface Window {
         closeWindow: () => void;
         isMaximized: () => Promise<boolean>;
         openOptions: () => void;
+
+        // Theme API
+        getTheme: () => Promise<{ preference: 'light' | 'dark' | 'system'; effectiveTheme: 'light' | 'dark' }>;
+        setTheme: (theme: 'light' | 'dark' | 'system') => void;
+        onThemeChanged: (callback: (data: { preference: 'light' | 'dark' | 'system'; effectiveTheme: 'light' | 'dark' }) => void) => () => void;
+
         platform: string;
         isElectron: boolean;
     };

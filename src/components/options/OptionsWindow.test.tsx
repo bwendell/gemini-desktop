@@ -3,8 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { OptionsWindow } from './OptionsWindow';
+import { ThemeProvider } from '../../context/ThemeContext';
 
 // Mock ErrorBoundary to simplify testing
 vi.mock('../ErrorBoundary', () => ({
@@ -18,6 +19,11 @@ vi.mock('./OptionsWindowTitlebar', () => ({
     ),
 }));
 
+// Helper to render with ThemeProvider
+const renderWithTheme = (ui: React.ReactElement) => {
+    return render(<ThemeProvider>{ui}</ThemeProvider>);
+};
+
 describe('OptionsWindow', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -25,37 +31,74 @@ describe('OptionsWindow', () => {
 
     describe('rendering', () => {
         it('should render the options window container', () => {
-            render(<OptionsWindow />);
+            renderWithTheme(<OptionsWindow />);
 
             expect(screen.getByTestId('options-window')).toBeInTheDocument();
         });
 
         it('should render the titlebar with correct title', () => {
-            render(<OptionsWindow />);
+            renderWithTheme(<OptionsWindow />);
 
             expect(screen.getByTestId('mock-options-titlebar')).toBeInTheDocument();
             expect(screen.getByTestId('mock-options-titlebar')).toHaveTextContent('Options');
         });
 
         it('should render the content area', () => {
-            render(<OptionsWindow />);
+            renderWithTheme(<OptionsWindow />);
 
             expect(screen.getByTestId('options-content')).toBeInTheDocument();
         });
 
-        it('should display placeholder message', () => {
-            render(<OptionsWindow />);
+        it('should display Appearance section with theme options', () => {
+            renderWithTheme(<OptionsWindow />);
 
-            expect(screen.getByText(/Options will be available here/)).toBeInTheDocument();
+            expect(screen.getByText('Appearance')).toBeInTheDocument();
+            expect(screen.getByTestId('theme-system')).toBeInTheDocument();
+            expect(screen.getByTestId('theme-light')).toBeInTheDocument();
+            expect(screen.getByTestId('theme-dark')).toBeInTheDocument();
         });
     });
 
     describe('layout structure', () => {
         it('should have correct class names for styling', () => {
-            render(<OptionsWindow />);
+            renderWithTheme(<OptionsWindow />);
 
             expect(screen.getByTestId('options-window')).toHaveClass('options-window');
             expect(screen.getByTestId('options-content')).toHaveClass('options-content');
+        });
+    });
+
+    describe('theme selection', () => {
+        it('should update theme when light radio is clicked', async () => {
+            renderWithTheme(<OptionsWindow />);
+
+            const lightRadio = screen.getByTestId('theme-light');
+            fireEvent.click(lightRadio);
+
+            expect(window.electronAPI.setTheme).toHaveBeenCalledWith('light');
+        });
+
+        it('should update theme when dark radio is clicked', async () => {
+            renderWithTheme(<OptionsWindow />);
+
+            const darkRadio = screen.getByTestId('theme-dark');
+            fireEvent.click(darkRadio);
+
+            expect(window.electronAPI.setTheme).toHaveBeenCalledWith('dark');
+        });
+
+        it('should update theme when system radio is clicked', async () => {
+            renderWithTheme(<OptionsWindow />);
+
+            // First select dark to change from the default 'system'
+            const darkRadio = screen.getByTestId('theme-dark');
+            fireEvent.click(darkRadio);
+
+            // Then select system
+            const systemRadio = screen.getByTestId('theme-system');
+            fireEvent.click(systemRadio);
+
+            expect(window.electronAPI.setTheme).toHaveBeenCalledWith('system');
         });
     });
 });

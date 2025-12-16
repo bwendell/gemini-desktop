@@ -9,6 +9,23 @@ import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
 // ============================================================================
+// Mock: window.matchMedia (JSDOM doesn't have this)
+// ============================================================================
+Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation(query => ({
+        matches: false, // Default to light mode for consistent tests
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+    })),
+});
+
+// ============================================================================
 // Mock: Electron API
 // ============================================================================
 
@@ -17,8 +34,14 @@ const mockElectronAPI = {
     minimizeWindow: vi.fn(),
     maximizeWindow: vi.fn(),
     closeWindow: vi.fn(),
-    openOptions: vi.fn(), // Added for tests
+    openOptions: vi.fn(),
     isMaximized: vi.fn().mockResolvedValue(false),
+
+    // Theme API - returns object with preference and effectiveTheme
+    getTheme: vi.fn().mockResolvedValue({ preference: 'system', effectiveTheme: 'dark' }),
+    setTheme: vi.fn(),
+    onThemeChanged: vi.fn().mockReturnValue(() => { }),
+
     platform: 'win32', // Default to Windows
     isElectron: true,
 };

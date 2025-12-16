@@ -8,19 +8,9 @@
  */
 
 /* ============================================
-   CSS Custom Properties (for easy theming)
+   CSS Custom Properties
    ============================================ */
-:root {
-  --titlebar-height: 32px;
-  --titlebar-bg: #202124;
-  --titlebar-text: #e8eaed;
-  --titlebar-text-secondary: #9aa0a6;
-
-  /* Window control button colors */
-  --control-button-hover-bg: rgba(255, 255, 255, 0.1);
-  --control-button-close-hover-bg: #c42b1c;
-  --control-button-close-hover-color: #ffffff;
-}
+/* Variables are now defined in theme.css */
 
 /* ============================================
    Titlebar Container
@@ -29,7 +19,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: var(--titlebar-height);
+  height: var(--titlebar-height, 32px);
   background-color: var(--titlebar-bg);
   color: var(--titlebar-text);
   user-select: none;
@@ -59,7 +49,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--titlebar-text-secondary);
+  color: var(--text-secondary);
 }
 
 .titlebar-title {
@@ -93,7 +83,7 @@
 }
 
 .window-control-button:hover {
-  background-color: var(--control-button-hover-bg);
+  background-color: var(--hover-bg);
 }
 
 .window-control-button:focus {
@@ -107,8 +97,8 @@
 
 /* Close button special hover state */
 .window-control-button.close:hover {
-  background-color: var(--control-button-close-hover-bg);
-  color: var(--control-button-close-hover-color);
+  background-color: #e81123;
+  color: white;
 }
 
 /* SVG icon sizing */
@@ -145,7 +135,7 @@
 
 .titlebar-menu-button:hover,
 .titlebar-menu-button.active {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--hover-bg);
 }
 
 /* ============================================
@@ -172,9 +162,9 @@
 .titlebar-menu-dropdown {
   position: fixed;
   min-width: 220px;
-  background-color: #252526;
+  background-color: var(--bg-secondary);
   /* VS Code menu background */
-  border: 1px solid #454545;
+  border: 1px solid var(--border-color);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   padding: 4px 0;
   z-index: 9999;
@@ -188,7 +178,7 @@
   padding: 6px 10px;
   border: none;
   background: transparent;
-  color: #cccccc;
+  color: var(--text-primary);
   font-size: 13px;
   font-family: inherit;
   text-align: left;
@@ -197,7 +187,7 @@
 }
 
 .titlebar-menu-item:hover {
-  background-color: #094771;
+  background-color: var(--active-bg);
   /* VS Code blue hover */
   color: white;
 }

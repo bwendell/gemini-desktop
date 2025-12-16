@@ -9,6 +9,7 @@
 
 import { ErrorBoundary } from '../ErrorBoundary';
 import { OptionsWindowTitlebar } from './OptionsWindowTitlebar';
+import { useTheme } from '../../context/ThemeContext';
 import './options-window.css';
 
 /**
@@ -21,14 +22,51 @@ import './options-window.css';
  * The window is designed to be opened from the File menu in the main window.
  */
 export function OptionsWindow() {
+    const { theme, setTheme } = useTheme();
+
     return (
         <ErrorBoundary>
             <div className="options-window" data-testid="options-window">
                 <OptionsWindowTitlebar title="Options" />
                 <main className="options-content" data-testid="options-content">
-                    <div className="options-placeholder">
-                        <p>Options will be available here in a future update.</p>
-                    </div>
+                    <section className="options-section">
+                        <h2>Appearance</h2>
+                        <div className="theme-selector">
+                            <label className="theme-option">
+                                <input
+                                    type="radio"
+                                    name="theme"
+                                    value="system"
+                                    checked={theme === 'system'}
+                                    onChange={() => setTheme('system')}
+                                    data-testid="theme-system"
+                                />
+                                <span>System Default</span>
+                            </label>
+                            <label className="theme-option">
+                                <input
+                                    type="radio"
+                                    name="theme"
+                                    value="light"
+                                    checked={theme === 'light'}
+                                    onChange={() => setTheme('light')}
+                                    data-testid="theme-light"
+                                />
+                                <span>Light</span>
+                            </label>
+                            <label className="theme-option">
+                                <input
+                                    type="radio"
+                                    name="theme"
+                                    value="dark"
+                                    checked={theme === 'dark'}
+                                    onChange={() => setTheme('dark')}
+                                    data-testid="theme-dark"
+                                />
+                                <span>Dark</span>
+                            </label>
+                        </div>
+                    </section>
                 </main>
             </div>
         </ErrorBoundary>

@@ -9,10 +9,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { OptionsWindow } from './components/options';
+import { ThemeProvider } from './context/ThemeContext';
 import './App.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-        <OptionsWindow />
+        <ThemeProvider>
+            <OptionsWindow />
+        </ThemeProvider>
     </React.StrictMode>
 );
