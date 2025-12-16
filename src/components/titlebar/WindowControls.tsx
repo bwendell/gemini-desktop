@@ -1,4 +1,4 @@
-import { type } from '@tauri-apps/plugin-os';
+import { usesCustomWindowControls } from '../../utils';
 import { useWindowControls } from '../../hooks/useWindowControls';
 import './titlebar.css';
 
@@ -14,7 +14,7 @@ export function WindowControls() {
 
     // On macOS, we use the native traffic lights provided by 'titleBarStyle: Overlay'
     // So we hide these custom controls.
-    if (type() === 'macos') {
+    if (!usesCustomWindowControls()) {
         return null;
     }
 

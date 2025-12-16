@@ -1,5 +1,5 @@
-import { type } from '@tauri-apps/plugin-os';
 import { Menu, MenuItem as TauriMenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu';
+import { usesCustomWindowControls } from '../../utils';
 import type { MenuDefinition } from './menuTypes';
 import { isSeparator } from './menuTypes';
 
@@ -14,7 +14,7 @@ interface TitlebarMenuProps {
  */
 export function TitlebarMenu({ menus }: TitlebarMenuProps) {
     // On macOS, we use native menus, so don't render this component
-    if (type() === 'macos') {
+    if (!usesCustomWindowControls()) {
         return null;
     }
 

@@ -1,6 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { MainLayout } from './components/layout';
+import { useWebviewInit } from './hooks/useWebviewInit';
 import './App.css';
 
 /**
@@ -10,37 +9,14 @@ import './App.css';
  * the main layout structure.
  */
 function App() {
-  const [webviewReady, setWebviewReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const hasInitialized = useRef(false);
-
-  useEffect(() => {
-    // Prevent double initialization (e.g. in React Strict Mode)
-    if (hasInitialized.current) {
-      return;
-    }
-    hasInitialized.current = true;
-
-    // Create the Gemini webview on component mount
-    async function initWebview() {
-      try {
-        await invoke('create_gemini_webview');
-        setWebviewReady(true);
-      } catch (err) {
-        console.error('Failed to create webview:', err);
-        setError(err instanceof Error ? err.message : String(err));
-        // Reset initialization flag on error to allow retries if needed
-        hasInitialized.current = false;
-      }
-    }
-
-    initWebview();
-  }, []);
+  // isReady is not destructured because we don't show anything special when ready;
+  // the webview is created by Rust and positioned over the container automatically.
+  const { error, isLoading } = useWebviewInit();
 
   return (
     <MainLayout>
       <div className="webview-container">
-        {!webviewReady && !error && (
+        {isLoading && (
           <div className="webview-loading">
             <div className="webview-loading-spinner" />
             <span>Loading Gemini...</span>
