@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 coverage/
-
+docs/

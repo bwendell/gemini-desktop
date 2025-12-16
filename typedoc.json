@@ -1,0 +1,20 @@
+{
+    "entryPoints": [
+        "src"
+    ],
+    "out": "docs",
+    "plugin": [
+        "typedoc-plugin-markdown"
+    ],
+    "exclude": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/test/**"
+    ],
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "readme": "README.md",
+    "name": "Gemini Desktop API Documentation"
+}

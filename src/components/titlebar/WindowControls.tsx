@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { usesCustomWindowControls } from '../../utils';
 import { useWindowControls } from '../../hooks/useWindowControls';
 import './titlebar.css';
@@ -8,8 +9,10 @@ import './titlebar.css';
  * 
  * The `-webkit-app-region: no-drag` ensures buttons are clickable
  * even when placed within the draggable titlebar region.
+ * 
+ * Memoized to prevent unnecessary re-renders.
  */
-export function WindowControls() {
+export const WindowControls = memo(function WindowControls() {
     const { minimize, maximize, close } = useWindowControls();
 
     // On macOS, we use the native traffic lights provided by 'titleBarStyle: Overlay'
@@ -66,4 +69,4 @@ export function WindowControls() {
             </button>
         </div>
     );
-}
+});
