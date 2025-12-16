@@ -115,6 +115,7 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
                             className="titlebar-menu-item"
                             disabled={item.disabled}
                             onClick={() => handleItemClick(item.action)}
+                            data-testid={`menu-item-${item.label}`}
                         >
                             <span className="menu-item-label">{item.label}</span>
                             {item.shortcut && (
@@ -141,6 +142,7 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
                             onClick={() => handleMenuClick(index)}
                             onMouseEnter={() => handleMouseEnter(index)}
                             aria-expanded={activeMenuIndex === index}
+                            data-testid={`menu-button-${menu.label}`}
                         >
                             {menu.label}
                         </button>

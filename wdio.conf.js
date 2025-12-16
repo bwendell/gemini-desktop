@@ -19,8 +19,13 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const electronMainPath = path.resolve(__dirname, 'electron/main.cjs');
 
 export const config = {
-    // Test specs
-    specs: ['./tests/e2e/**/*.spec.ts'],
+    // Test specs - Explicit order to run sequential tests
+    specs: [
+        './tests/e2e/app-startup.spec.ts',
+        './tests/e2e/menu_bar.spec.ts',
+        './tests/e2e/options-window.spec.ts',
+        './tests/e2e/menu-interactions.spec.ts',
+    ],
     maxInstances: 1,
 
     // Use Electron service with appEntryPoint
