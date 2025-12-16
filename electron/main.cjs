@@ -6,7 +6,7 @@
  * strips X-Frame-Options headers to allow embedding Gemini in an iframe.
  */
 
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -132,6 +132,16 @@ function createWindow() {
     // Show window when ready
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
+    });
+
+    // Handle external links for target="_blank"
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        // Open all external links (starting with http/https) in default browser
+        if (url.startsWith('http:') || url.startsWith('https:')) {
+            shell.openExternal(url);
+            return { action: 'deny' };
+        }
+        return { action: 'allow' };
     });
 
     // Handle window closed
