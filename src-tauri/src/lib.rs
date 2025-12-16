@@ -7,6 +7,7 @@ mod commands;
 mod constants;
 mod errors;
 pub mod utils;
+mod windows;
 
 use commands::create_gemini_webview;
 use constants::TITLEBAR_HEIGHT;
@@ -15,6 +16,7 @@ use log::info;
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
 use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind};
+use windows::create_options_window;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[cfg(not(tarpaulin_include))]
@@ -99,7 +101,10 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![create_gemini_webview])
+        .invoke_handler(tauri::generate_handler![
+            create_gemini_webview,
+            create_options_window
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -1,0 +1,119 @@
+/**
+ * Options Window Styles
+ * 
+ * Styles for the options window layout and titlebar.
+ * Uses consistent theming with the main application.
+ */
+
+/* === Options Window Layout === */
+
+.options-window {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    background-color: #1e1e1e;
+    color: #cccccc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow: hidden;
+}
+
+/* === Options Titlebar === */
+
+.options-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    min-height: 32px;
+    background-color: #252526;
+    border-bottom: 1px solid #3c3c3c;
+    user-select: none;
+    /* Ensure titlebar is always on top */
+    position: relative;
+    z-index: 100;
+}
+
+.options-titlebar-drag-region {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    /* Enable window dragging via Tauri */
+    -webkit-app-region: drag;
+}
+
+.options-titlebar-title {
+    font-size: 12px;
+    font-weight: 400;
+    color: #cccccc;
+    /* Prevent text selection during drag */
+    pointer-events: none;
+}
+
+/* === Window Controls (Windows/Linux only) === */
+
+.options-window-controls {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    /* Disable dragging on window controls so clicks work */
+    -webkit-app-region: no-drag;
+}
+
+.options-window-control-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: #cccccc;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.options-window-control-button:hover {
+    background-color: #3c3c3c;
+}
+
+.options-window-control-button:focus {
+    outline: none;
+}
+
+.options-window-control-button:focus-visible {
+    outline: 1px solid #007acc;
+    outline-offset: -1px;
+}
+
+/* Close button has special hover state */
+.options-window-control-button.close:hover {
+    background-color: #e81123;
+    color: white;
+}
+
+/* === Options Content Area === */
+
+.options-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.options-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #808080;
+    font-size: 14px;
+}
+
+.options-placeholder p {
+    margin: 0;
+    text-align: center;
+}

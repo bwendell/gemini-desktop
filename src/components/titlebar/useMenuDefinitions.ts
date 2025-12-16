@@ -1,4 +1,5 @@
 import { Window } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import { exit } from '@tauri-apps/plugin-process';
 import { message } from '@tauri-apps/plugin-dialog';
 import { useMemo } from 'react';
@@ -24,6 +25,18 @@ export function useMenuDefinitions(): MenuDefinition[] {
                     label: 'New Window',
                     shortcut: 'Ctrl+Shift+N',
                     disabled: true, // Placeholder for future
+                },
+                { separator: true },
+                {
+                    label: 'Options...',
+                    shortcut: 'Ctrl+,',
+                    action: async () => {
+                        try {
+                            await invoke('create_options_window');
+                        } catch (error) {
+                            console.error('Failed to open options window:', error);
+                        }
+                    },
                 },
                 { separator: true },
                 {

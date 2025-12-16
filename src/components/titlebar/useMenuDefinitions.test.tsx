@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { Window } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import { exit } from '@tauri-apps/plugin-process';
 import { message } from '@tauri-apps/plugin-dialog';
 import { useMenuDefinitions } from './useMenuDefinitions';
@@ -19,6 +20,10 @@ vi.mock('@tauri-apps/api/window', () => ({
     Window: {
         getCurrent: vi.fn(() => mockWindow),
     },
+}));
+
+vi.mock('@tauri-apps/api/core', () => ({
+    invoke: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/plugin-process', () => ({
@@ -65,10 +70,61 @@ describe('useMenuDefinitions', () => {
             expect(fileMenu.items[1]).toEqual({ separator: true });
         });
 
+        it('has Options item with correct shortcut', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const fileMenu = result.current[0];
+            const optionsItem = fileMenu.items[2];
+
+            expect(optionsItem).toHaveProperty('label', 'Options...');
+            expect(optionsItem).toHaveProperty('shortcut', 'Ctrl+,');
+            expect(optionsItem).toHaveProperty('action');
+        });
+
+        it('Options action invokes create_options_window command', async () => {
+            const mockInvoke = invoke as ReturnType<typeof vi.fn>;
+            mockInvoke.mockResolvedValueOnce(undefined);
+
+            const { result } = renderHook(() => useMenuDefinitions());
+            const fileMenu = result.current[0];
+            const optionsItem = fileMenu.items[2];
+
+            if ('action' in optionsItem && optionsItem.action) {
+                await optionsItem.action();
+                expect(mockInvoke).toHaveBeenCalledWith('create_options_window');
+            }
+        });
+
+        it('Options action logs error on failure', async () => {
+            const mockInvoke = invoke as ReturnType<typeof vi.fn>;
+            const testError = new Error('Failed to create window');
+            mockInvoke.mockRejectedValueOnce(testError);
+
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+            const { result } = renderHook(() => useMenuDefinitions());
+            const fileMenu = result.current[0];
+            const optionsItem = fileMenu.items[2];
+
+            if ('action' in optionsItem && optionsItem.action) {
+                await optionsItem.action();
+                expect(consoleSpy).toHaveBeenCalledWith('Failed to open options window:', testError);
+            }
+
+            consoleSpy.mockRestore();
+        });
+
+        it('has separator after Options', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const fileMenu = result.current[0];
+
+            expect(fileMenu.items[3]).toEqual({ separator: true });
+        });
+
         it('Exit action calls exit(0)', async () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const fileMenu = result.current[0];
-            const exitItem = fileMenu.items[2];
+            // Exit is now at index 4 (after Options and separator)
+            const exitItem = fileMenu.items[4];
 
             expect(exitItem).toHaveProperty('label', 'Exit');
             expect(exitItem).toHaveProperty('action');
