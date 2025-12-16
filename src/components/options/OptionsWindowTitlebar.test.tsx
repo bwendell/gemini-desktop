@@ -51,8 +51,10 @@ describe('OptionsWindowTitlebar', () => {
 
             expect(screen.getByTestId('options-window-controls')).toBeInTheDocument();
             expect(screen.getByTestId('options-minimize-button')).toBeInTheDocument();
-            expect(screen.getByTestId('options-maximize-button')).toBeInTheDocument();
             expect(screen.getByTestId('options-close-button')).toBeInTheDocument();
+
+            // Maximize button should NOT be present
+            expect(screen.queryByTestId('options-maximize-button')).not.toBeInTheDocument();
         });
 
         it('should NOT render window controls on macOS', () => {
@@ -78,13 +80,6 @@ describe('OptionsWindowTitlebar', () => {
             expect(mockMinimize).toHaveBeenCalledTimes(1);
         });
 
-        it('should call maximize when maximize button is clicked', () => {
-            render(<OptionsWindowTitlebar />);
-
-            fireEvent.click(screen.getByTestId('options-maximize-button'));
-            expect(mockMaximize).toHaveBeenCalledTimes(1);
-        });
-
         it('should call close when close button is clicked', () => {
             render(<OptionsWindowTitlebar />);
 
@@ -98,16 +93,16 @@ describe('OptionsWindowTitlebar', () => {
             render(<OptionsWindowTitlebar />);
 
             expect(screen.getByLabelText('Minimize window')).toBeInTheDocument();
-            expect(screen.getByLabelText('Maximize window')).toBeInTheDocument();
             expect(screen.getByLabelText('Close window')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Maximize window')).not.toBeInTheDocument();
         });
 
         it('should have title attributes for tooltips', () => {
             render(<OptionsWindowTitlebar />);
 
             expect(screen.getByTitle('Minimize')).toBeInTheDocument();
-            expect(screen.getByTitle('Maximize')).toBeInTheDocument();
             expect(screen.getByTitle('Close')).toBeInTheDocument();
+            expect(screen.queryByTitle('Maximize')).not.toBeInTheDocument();
         });
     });
 

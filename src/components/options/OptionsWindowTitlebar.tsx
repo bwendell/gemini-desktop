@@ -31,7 +31,8 @@ interface OptionsWindowTitlebarProps {
  * - macOS uses native traffic light controls
  */
 export function OptionsWindowTitlebar({ title = 'Options' }: OptionsWindowTitlebarProps) {
-    const { minimize, maximize, close } = useWindowControls();
+    const { minimize, close } = useWindowControls();
+
 
     return (
         <header className="options-titlebar" data-testid="options-titlebar">
@@ -54,26 +55,6 @@ export function OptionsWindowTitlebar({ title = 'Options' }: OptionsWindowTitleb
                     >
                         <svg width="10" height="1" viewBox="0 0 10 1">
                             <rect width="10" height="1" fill="currentColor" />
-                        </svg>
-                    </button>
-
-                    <button
-                        className="options-window-control-button maximize"
-                        onClick={maximize}
-                        aria-label="Maximize window"
-                        title="Maximize"
-                        data-testid="options-maximize-button"
-                    >
-                        <svg width="10" height="10" viewBox="0 0 10 10">
-                            <rect
-                                width="9"
-                                height="9"
-                                x="0.5"
-                                y="0.5"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1"
-                            />
                         </svg>
                     </button>
 

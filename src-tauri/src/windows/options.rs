@@ -70,6 +70,7 @@ pub async fn create_options_window(app: AppHandle) -> Result<(), CommandError> {
         .inner_size(OPTIONS_WINDOW_WIDTH, OPTIONS_WINDOW_HEIGHT)
         .min_inner_size(OPTIONS_WINDOW_MIN_WIDTH, OPTIONS_WINDOW_MIN_HEIGHT)
         .resizable(true)
+        .maximizable(false)
         .center()
         // Disable decorations on Windows/Linux for custom titlebar
         // macOS uses native decorations with titleBarStyle overlay
