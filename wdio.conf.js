@@ -1,3 +1,14 @@
+/**
+ * WebdriverIO configuration for Tauri E2E testing.
+ * 
+ * Platform Support:
+ * - Windows: ✅ Fully supported
+ * - Linux: ✅ Fully supported  
+ * - macOS: ❌ Not supported (no WKWebView driver available)
+ * 
+ * @see https://v2.tauri.app/develop/tests/webdriver/
+ */
+
 import os from 'os';
 import path from 'path';
 import { spawn, spawnSync } from 'child_process';
@@ -9,8 +20,17 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 let tauriDriver;
 let exit = false;
 
-// Determine the path to the compiled application
-const isWindows = os.platform() === 'win32';
+// Determine the path to the compiled application (cross-platform)
+const platform = os.platform();
+const isWindows = platform === 'win32';
+const isMacOS = platform === 'darwin';
+
+// macOS is not supported for E2E tests due to missing WKWebView driver
+if (isMacOS) {
+    console.warn('⚠️  E2E tests are not supported on macOS (no WKWebView driver available)');
+    console.warn('   See: https://v2.tauri.app/develop/tests/webdriver/');
+}
+
 const appPath = path.resolve(
     __dirname,
     'src-tauri/target/debug/',
