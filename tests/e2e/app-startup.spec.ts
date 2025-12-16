@@ -11,6 +11,12 @@
 import { browser, $, expect } from '@wdio/globals';
 
 describe('Application Startup', () => {
+    beforeEach(async () => {
+        // Wait for the main layout to be ready
+        const mainLayout = await $('.main-layout');
+        await mainLayout.waitForExist({ timeout: 15000 });
+    });
+
     it('should have a custom titlebar with the correct title', async () => {
         // Wait for the app to fully load
         const titlebar = await $('header.titlebar');

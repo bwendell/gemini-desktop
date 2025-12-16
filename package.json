@@ -40,6 +40,7 @@
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vitest": "^4.0.15",
-    "wait-on": "^9.0.3"
+    "wait-on": "^9.0.3",
+    "wdio-electron-service": "^9.2.1"
   }
 }

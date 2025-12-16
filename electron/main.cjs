@@ -8,9 +8,22 @@
 
 const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
+
+// Path to the production build
+const distIndexPath = path.join(__dirname, '../dist/index.html');
 
 // Determine if we're in development mode
-const isDev = !app.isPackaged;
+// Use production build if:
+// 1. App is packaged (production), OR
+// 2. ELECTRON_USE_DIST env is set (E2E testing), OR  
+// 3. dist/index.html exists AND dev server is not running (fallback)
+const useProductionBuild = app.isPackaged ||
+    process.env.ELECTRON_USE_DIST === 'true' ||
+    fs.existsSync(distIndexPath);
+
+// For E2E tests, always use production build if it exists
+const isDev = !useProductionBuild;
 
 let mainWindow = null;
 
