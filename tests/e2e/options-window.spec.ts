@@ -62,7 +62,25 @@ describe('Options Window Features', () => {
         // 6. Close the options window
         await closeBtn.click();
 
-        // Switch back to main window to ensure clean state
-        await browser.switchToWindow(handles[0]);
+        // 7. Verify correct window closing behavior
+        // Wait for window count to drop to 1
+        await browser.waitUntil(async () => {
+            const currentHandles = await browser.getWindowHandles();
+            return currentHandles.length === 1;
+        }, { timeout: 5000, timeoutMsg: 'Options window did not close, or extra windows remain' });
+
+        const finalHandles = await browser.getWindowHandles();
+        expect(finalHandles.length).toBe(1);
+
+        // Verify the remaining window is the main window
+        // Note: handles[0] is typically the first window opened
+        expect(finalHandles[0]).toBe(handles[0]);
+
+        // Switch back just to be safe and verify state
+        await browser.switchToWindow(finalHandles[0]);
+        const title = await browser.getTitle();
+        // The main window title might be 'Gemini' or empty depending on load state, 
+        // but we just want to ensure we can interact with it.
+        expect(title).toBeDefined();
     });
 });

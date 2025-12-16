@@ -8,8 +8,19 @@ import { useCallback } from 'react';
  * 
  * Works with both Electron (via preload API) and falls back gracefully.
  */
-export function useWindowControls() {
-    const minimize = useCallback(() => {
+/**
+ * Custom hook for window control operations.
+ * Provides minimize, maximize/restore, and close functionality.
+ * 
+ * Works with both Electron (via preload API) and falls back gracefully.
+ * 
+ * @returns {object} Object containing window control functions
+ */
+export function useWindowControls(): { minimize: () => void; maximize: () => void; close: () => void } {
+    /**
+     * Minimizes the current window.
+     */
+    const minimize = useCallback((): void => {
         if (window.electronAPI) {
             window.electronAPI.minimizeWindow();
         } else {
@@ -17,7 +28,10 @@ export function useWindowControls() {
         }
     }, []);
 
-    const maximize = useCallback(() => {
+    /**
+     * Maximizes or restores the current window.
+     */
+    const maximize = useCallback((): void => {
         if (window.electronAPI) {
             window.electronAPI.maximizeWindow();
         } else {
@@ -25,7 +39,10 @@ export function useWindowControls() {
         }
     }, []);
 
-    const close = useCallback(() => {
+    /**
+     * Closes the current window.
+     */
+    const close = useCallback((): void => {
         if (window.electronAPI) {
             window.electronAPI.closeWindow();
         } else {

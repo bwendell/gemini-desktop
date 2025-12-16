@@ -46,9 +46,14 @@ describe('useMenuDefinitions', () => {
             const fileMenu = result.current[0];
             const optionsItem = fileMenu.items[2];
 
-            expect(optionsItem).toHaveProperty('label', 'Options...');
-            expect(optionsItem).toHaveProperty('disabled', true);
+            expect(optionsItem).toHaveProperty('label', 'Options');
+            expect(optionsItem).toHaveProperty('disabled', false);
             expect(optionsItem).toHaveProperty('shortcut', 'Ctrl+,');
+
+            if ('action' in optionsItem && optionsItem.action) {
+                optionsItem.action();
+                expect(mockElectronAPI.openOptions).toHaveBeenCalledTimes(1);
+            }
         });
 
         it('has separator after Options', () => {

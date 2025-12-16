@@ -17,6 +17,7 @@ const mockElectronAPI = {
     minimizeWindow: vi.fn(),
     maximizeWindow: vi.fn(),
     closeWindow: vi.fn(),
+    openOptions: vi.fn(), // Added for tests
     isMaximized: vi.fn().mockResolvedValue(false),
     platform: 'win32', // Default to Windows
     isElectron: true,

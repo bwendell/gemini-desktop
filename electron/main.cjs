@@ -25,188 +25,31 @@ const useProductionBuild = app.isPackaged ||
 // For E2E tests, always use production build if it exists
 const isDev = !useProductionBuild;
 
-let mainWindow = null;
-let optionsWindow = null;
+// mainWindow and optionsWindow are now managed by WindowManager
 
 /**
  * Strip security headers that prevent iframe embedding.
  * This is the key to making custom HTML menus work over external content.
  */
-function setupHeaderStripping() {
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-        const responseHeaders = { ...details.responseHeaders };
+const { setupHeaderStripping } = require('./utils/security.cjs');
 
-        // Remove X-Frame-Options header (case-insensitive)
-        delete responseHeaders['x-frame-options'];
-        delete responseHeaders['X-Frame-Options'];
+const WindowManager = require('./managers/windowManager.cjs');
+const IpcManager = require('./managers/ipcManager.cjs');
 
-        // Remove frame-ancestors from CSP if present
-        if (responseHeaders['content-security-policy']) {
-            responseHeaders['content-security-policy'] = responseHeaders['content-security-policy']
-                .map(csp => csp.replace(/frame-ancestors[^;]*(;|$)/gi, ''));
-        }
-        if (responseHeaders['Content-Security-Policy']) {
-            responseHeaders['Content-Security-Policy'] = responseHeaders['Content-Security-Policy']
-                .map(csp => csp.replace(/frame-ancestors[^;]*(;|$)/gi, ''));
-        }
-
-        callback({ responseHeaders });
-    });
-}
-
-/**
- * Set up IPC handlers for window controls.
- * Provides minimize, maximize, and close functionality from the renderer.
- */
-function setupIpcHandlers() {
-    ipcMain.on('window-minimize', () => {
-        try {
-            if (mainWindow) mainWindow.minimize();
-        } catch (error) {
-            console.error('Error minimizing window:', error);
-        }
-    });
-
-    ipcMain.on('window-maximize', () => {
-        try {
-            if (mainWindow) {
-                if (mainWindow.isMaximized()) {
-                    mainWindow.unmaximize();
-                } else {
-                    mainWindow.maximize();
-                }
-            }
-        } catch (error) {
-            console.error('Error maximizing window:', error);
-        }
-    });
-
-    ipcMain.on('window-close', () => {
-        try {
-            if (mainWindow) mainWindow.close();
-        } catch (error) {
-            console.error('Error closing window:', error);
-        }
-    });
-
-    ipcMain.handle('window-is-maximized', () => {
-        try {
-            return mainWindow ? mainWindow.isMaximized() : false;
-        } catch (error) {
-            console.error('Error checking window state:', error);
-            return false;
-        }
-    });
-}
-
-/**
- * Create the main application window.
- */
-function createWindow() {
-    mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        minWidth: 800,
-        minHeight: 600,
-        frame: false, // Frameless for custom titlebar
-        titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined, // Native traffic lights on macOS
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.cjs'),
-            contextIsolation: true,
-            nodeIntegration: false,
-            // Sandbox is enabled by default in recent Electron versions
-        },
-        backgroundColor: '#1a1a1a',
-        show: false, // Don't show until ready
-        icon: path.join(__dirname, '../build/icon.png'),
-    });
-
-    // Load the app
-    if (isDev) {
-        mainWindow.loadURL('http://localhost:1420');
-        // Open DevTools in development
-        mainWindow.webContents.openDevTools();
-    } else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-    }
-
-    // Show window when ready
-    mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
-    });
-
-    // Handle external links for target="_blank"
-    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        // Open all external links (starting with http/https) in default browser
-        if (url.startsWith('http:') || url.startsWith('https:')) {
-            shell.openExternal(url);
-            return { action: 'deny' };
-        }
-        return { action: 'allow' };
-    });
-
-    // Handle window closed
-    mainWindow.on('closed', () => {
-        mainWindow = null;
-    });
-}
-
-
-
-function createOptionsWindow() {
-    if (optionsWindow) {
-        optionsWindow.focus();
-        return;
-    }
-
-    optionsWindow = new BrowserWindow({
-        width: 600,
-        height: 400,
-        resizable: true,
-        minimizable: true,
-        maximizable: false, // Requirement: no maximize
-        frame: false,
-        titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined,
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.cjs'),
-            contextIsolation: true,
-            nodeIntegration: false,
-        },
-        backgroundColor: '#1a1a1a',
-        show: true,
-    });
-
-    if (isDev) {
-        optionsWindow.loadURL('http://localhost:1420/options.html');
-    } else {
-        optionsWindow.loadFile(path.join(__dirname, '../dist/options.html'));
-    }
-
-    optionsWindow.once('ready-to-show', () => {
-        optionsWindow.show();
-    });
-
-    optionsWindow.on('closed', () => {
-        optionsWindow = null;
-    });
-}
-
-
-ipcMain.on('open-options-window', () => {
-    createOptionsWindow();
-});
-
+// Initialize Managers
+const windowManager = new WindowManager(isDev);
+const ipcManager = new IpcManager(windowManager);
 
 // App lifecycle
 app.whenReady().then(() => {
-    setupHeaderStripping();
-    setupIpcHandlers();
-    createWindow();
+    setupHeaderStripping(session.defaultSession);
+    ipcManager.setupIpcHandlers();
+    windowManager.createMainWindow();
 
     app.on('activate', () => {
         // On macOS, recreate window when dock icon is clicked
         if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
+            windowManager.createMainWindow();
         }
     });
 });

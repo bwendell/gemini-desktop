@@ -28,7 +28,7 @@ describe('Menu Interactions (Sequential)', () => {
 
         // 3. Verify "Options..." item exists
         // Use data-testid selector which is resilient to text content changes (if ID remains stable) or just better practice
-        const optionsItem = await $('button[data-testid="menu-item-Options..."]');
+        const optionsItem = await $('button[data-testid="menu-item-Options"]');
         await expect(optionsItem).toBeExisting();
 
         // 4. Click out (click titlebar) to close
