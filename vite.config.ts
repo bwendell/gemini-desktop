@@ -6,6 +6,17 @@ import { resolve } from "path";
 export default defineConfig(async () => ({
   plugins: [react()],
 
+  // Path aliases matching tsconfig.json
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+      '@components': resolve(__dirname, './src/components'),
+      '@hooks': resolve(__dirname, './src/hooks'),
+      '@context': resolve(__dirname, './src/context'),
+      '@utils': resolve(__dirname, './src/utils'),
+    },
+  },
+
   // Use relative paths for Electron file:// protocol compatibility
   base: './',
 

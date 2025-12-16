@@ -13,13 +13,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "wdio run wdio.conf.js"
+    "test:e2e": "wdio run wdio.conf.js",
+    "docs": "typedoc --out docs src"
   },
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@types/react": "^19.1.8",
@@ -37,6 +39,7 @@
     "electron-builder": "^26.0.12",
     "expect-webdriverio": "^5.5.0",
     "jsdom": "^27.3.0",
+    "typedoc": "^0.28.15",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vitest": "^4.0.15",

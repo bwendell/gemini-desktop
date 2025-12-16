@@ -9,9 +9,12 @@
  * Unlike the main window titlebar, this does NOT include a menu bar.
  * This component is designed to be reusable for other secondary windows.
  * 
+ * Memoized to prevent unnecessary re-renders.
+ * 
  * @module OptionsWindowTitlebar
  */
 
+import { memo } from 'react';
 import { usesCustomWindowControls } from '../../utils';
 import { useWindowControls } from '../../hooks/useWindowControls';
 import './options-window.css';
@@ -30,7 +33,7 @@ interface OptionsWindowTitlebarProps {
  * - Window controls on the right (Windows/Linux only)
  * - macOS uses native traffic light controls
  */
-export function OptionsWindowTitlebar({ title = 'Options' }: OptionsWindowTitlebarProps) {
+export const OptionsWindowTitlebar = memo(function OptionsWindowTitlebar({ title = 'Options' }: OptionsWindowTitlebarProps) {
     const { minimize, close } = useWindowControls();
 
 
@@ -74,4 +77,4 @@ export function OptionsWindowTitlebar({ title = 'Options' }: OptionsWindowTitleb
             )}
         </header>
     );
-}
+});
