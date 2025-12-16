@@ -93,10 +93,57 @@ describe('TitlebarMenu', () => {
 
             expect(screen.getByText('New')).toBeVisible();
 
+            // Verify backdrop exists
+            const backdrop = document.querySelector('.titlebar-menu-backdrop');
+            expect(backdrop).toBeInTheDocument();
+
+            // Click backdrop to close
+            if (backdrop) {
+                fireEvent.click(backdrop);
+            }
+            expect(screen.queryByText('New')).not.toBeInTheDocument();
+
+            vi.useRealTimers();
+        });
+
+        it('closes dropdown on click outside (document body)', () => {
+            vi.useFakeTimers();
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            const fileButton = screen.getByText('File');
+            fireEvent.click(fileButton);
+
+            // Fast-forward so the event listener is attached
+            vi.runAllTimers();
+
+            expect(screen.getByText('New')).toBeVisible();
+
             fireEvent.mouseDown(document.body);
             expect(screen.queryByText('New')).not.toBeInTheDocument();
 
             vi.useRealTimers();
+        });
+
+        it('closes dropdown when Escape key is pressed', () => {
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            const fileButton = screen.getByText('File');
+            fireEvent.click(fileButton);
+            expect(screen.getByText('New')).toBeVisible();
+
+            fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+            expect(screen.queryByText('New')).not.toBeInTheDocument();
+        });
+
+        it('does not close dropdown when other keys are pressed', () => {
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            const fileButton = screen.getByText('File');
+            fireEvent.click(fileButton);
+            expect(screen.getByText('New')).toBeVisible();
+
+            fireEvent.keyDown(document, { key: 'Enter', code: 'Enter' });
+            expect(screen.getByText('New')).toBeVisible();
         });
 
         it('switches menu on hover when active', () => {

@@ -157,6 +157,18 @@
   -webkit-app-region: no-drag;
 }
 
+
+.titlebar-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9998;
+  /* Just below dropdown (9999) */
+  background: transparent;
+}
+
 .titlebar-menu-dropdown {
   position: fixed;
   min-width: 220px;

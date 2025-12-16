@@ -25,6 +25,22 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
         return null;
     }
 
+    // Handle Escape key to close menu
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (activeMenuIndex !== null && event.key === 'Escape') {
+                setActiveMenuIndex(null);
+            }
+        };
+
+        if (activeMenuIndex !== null) {
+            document.addEventListener('keydown', handleKeyDown);
+            return () => {
+                document.removeEventListener('keydown', handleKeyDown);
+            };
+        }
+    }, [activeMenuIndex]);
+
     // Handle clicks outside both the menu bar AND the dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -95,36 +111,44 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
         const menu = menus[activeMenuIndex];
 
         const dropdown = (
-            <div
-                ref={dropdownRef}
-                className="titlebar-menu-dropdown"
-                style={{
-                    top: `${dropdownPosition.top}px`,
-                    left: `${dropdownPosition.left}px`,
-                    zIndex: 2147483647 // Max z-index
-                }}
-            >
-                {menu.items.map((item, itemIndex) => {
-                    if (isSeparator(item)) {
-                        return <div key={itemIndex} className="titlebar-menu-separator" />;
-                    }
+            <>
+                {/* Backdrop to capture clicks outside the menu (over webview/iframe) */}
+                <div
+                    className="titlebar-menu-backdrop"
+                    style={{ top: `${dropdownPosition.top}px` }} // Start from bottom of titlebar
+                    onClick={() => setActiveMenuIndex(null)}
+                />
+                <div
+                    ref={dropdownRef}
+                    className="titlebar-menu-dropdown"
+                    style={{
+                        top: `${dropdownPosition.top}px`,
+                        left: `${dropdownPosition.left}px`,
+                        zIndex: 2147483647 // Max z-index
+                    }}
+                >
+                    {menu.items.map((item, itemIndex) => {
+                        if (isSeparator(item)) {
+                            return <div key={itemIndex} className="titlebar-menu-separator" />;
+                        }
 
-                    return (
-                        <button
-                            key={item.label}
-                            className="titlebar-menu-item"
-                            disabled={item.disabled}
-                            onClick={() => handleItemClick(item.action)}
-                            data-testid={`menu-item-${item.label}`}
-                        >
-                            <span className="menu-item-label">{item.label}</span>
-                            {item.shortcut && (
-                                <span className="menu-item-shortcut">{item.shortcut}</span>
-                            )}
-                        </button>
-                    );
-                })}
-            </div>
+                        return (
+                            <button
+                                key={item.label}
+                                className="titlebar-menu-item"
+                                disabled={item.disabled}
+                                onClick={() => handleItemClick(item.action)}
+                                data-testid={`menu-item-${item.label}`}
+                            >
+                                <span className="menu-item-label">{item.label}</span>
+                                {item.shortcut && (
+                                    <span className="menu-item-shortcut">{item.shortcut}</span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            </>
         );
 
         // Render dropdown as a portal to escape overflow:hidden containers
