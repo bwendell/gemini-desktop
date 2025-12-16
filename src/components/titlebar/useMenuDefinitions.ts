@@ -1,5 +1,6 @@
 import { Window } from '@tauri-apps/api/window';
 import { exit } from '@tauri-apps/plugin-process';
+import { message } from '@tauri-apps/plugin-dialog';
 import type { MenuDefinition } from './menuTypes';
 
 // Re-export types for consumers
@@ -92,9 +93,12 @@ export function useMenuDefinitions(): MenuDefinition[] {
             items: [
                 {
                     label: 'About Gemini Desktop',
-                    action: () => {
-                        // TODO: Open about dialog
-                        alert('Gemini Desktop v0.1.0\nAn unofficial desktop client for Gemini.');
+                    action: async () => {
+                        await message('Gemini Desktop v0.1.0\nAn unofficial desktop client for Gemini.', {
+                            title: 'About Gemini Desktop',
+                            kind: 'info',
+                            okLabel: 'Close'
+                        });
                     },
                 },
             ],

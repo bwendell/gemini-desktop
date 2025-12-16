@@ -17,6 +17,7 @@
     "core:webview:allow-create-webview-window",
     "opener:default",
     "core:menu:default",
-    "process:default"
+    "process:default",
+    "dialog:default"
   ]
 }
