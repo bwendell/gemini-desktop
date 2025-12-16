@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { MainLayout } from './components/layout';
 import './App.css';
@@ -12,8 +12,15 @@ import './App.css';
 function App() {
   const [webviewReady, setWebviewReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
+    // Prevent double initialization (e.g. in React Strict Mode)
+    if (hasInitialized.current) {
+      return;
+    }
+    hasInitialized.current = true;
+
     // Create the Gemini webview on component mount
     async function initWebview() {
       try {
@@ -22,6 +29,8 @@ function App() {
       } catch (err) {
         console.error('Failed to create webview:', err);
         setError(err instanceof Error ? err.message : String(err));
+        // Reset initialization flag on error to allow retries if needed
+        hasInitialized.current = false;
       }
     }
 
