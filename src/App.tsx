@@ -15,9 +15,9 @@ function App() {
 
   return (
     <MainLayout>
-      <div className="webview-container">
+      <div className="webview-container" data-testid="webview-container">
         {isLoading && (
-          <div className="webview-loading">
+          <div className="webview-loading" data-testid="webview-loading">
             <div className="webview-loading-spinner" />
             <span>Loading Gemini...</span>
           </div>

@@ -35,7 +35,7 @@ export function Titlebar({ config = {} }: TitlebarProps) {
     const menus = useMenuDefinitions();
 
     return (
-        <header className="titlebar">
+        <header className="titlebar" data-testid="titlebar">
             <div className="titlebar-left">
                 {mergedConfig.showIcon && (
                     <div className="titlebar-icon">
@@ -50,7 +50,7 @@ export function Titlebar({ config = {} }: TitlebarProps) {
             </div>
             {/* Drag region - allows window dragging without blocking menu clicks */}
             <div className="titlebar-drag-region" data-tauri-drag-region>
-                <span className="titlebar-title">{mergedConfig.title}</span>
+                <span className="titlebar-title" data-testid="titlebar-title">{mergedConfig.title}</span>
             </div>
             <WindowControls />
         </header>

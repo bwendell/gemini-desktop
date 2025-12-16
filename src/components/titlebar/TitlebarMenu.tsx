@@ -44,7 +44,7 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
     };
 
     return (
-        <div className="titlebar-menu-bar">
+        <div className="titlebar-menu-bar" data-testid="titlebar-menu-bar">
             {menus.map((menu) => (
                 <button
                     key={menu.label}

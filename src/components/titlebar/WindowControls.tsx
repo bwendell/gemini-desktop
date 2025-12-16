@@ -25,6 +25,7 @@ export function WindowControls() {
                 onClick={minimize}
                 aria-label="Minimize window"
                 title="Minimize"
+                data-testid="minimize-button"
             >
                 <svg width="10" height="1" viewBox="0 0 10 1">
                     <rect width="10" height="1" fill="currentColor" />
@@ -36,6 +37,7 @@ export function WindowControls() {
                 onClick={maximize}
                 aria-label="Maximize window"
                 title="Maximize"
+                data-testid="maximize-button"
             >
                 <svg width="10" height="10" viewBox="0 0 10 10">
                     <rect
@@ -55,6 +57,7 @@ export function WindowControls() {
                 onClick={close}
                 aria-label="Close window"
                 title="Close"
+                data-testid="close-button"
             >
                 <svg width="10" height="10" viewBox="0 0 10 10">
                     <line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2" />
