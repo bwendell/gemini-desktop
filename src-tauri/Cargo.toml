@@ -28,3 +28,6 @@ thiserror = "2.0.17"
 log = "0.4.29"
 tauri-plugin-process = "2.3.1"
 tauri-plugin-dialog = "2"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }

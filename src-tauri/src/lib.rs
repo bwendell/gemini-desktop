@@ -5,17 +5,19 @@
 
 mod commands;
 mod errors;
+pub mod utils;
 
 use commands::create_gemini_webview;
 use log::info;
 #[cfg(target_os = "macos")]
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
-use tauri::{Manager, PhysicalPosition, PhysicalSize, Position, Size};
+use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind};
 
 const TITLEBAR_HEIGHT: f64 = 32.0;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[cfg(not(tarpaulin_include))]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -71,22 +73,15 @@ pub fn run() {
                         // Update gemini webview bounds if it exists
                         if let Some(webview) = app_handle.get_webview("gemini-webview") {
                             let scale_factor = main_window_clone.scale_factor().unwrap_or(1.0);
-                            let titlebar_height_phys = (TITLEBAR_HEIGHT * scale_factor) as u32;
 
-                            let width = size.width;
-                            let height = if size.height > titlebar_height_phys {
-                                size.height - titlebar_height_phys
-                            } else {
-                                0
-                            };
+                            let bounds = crate::utils::calculate_webview_bounds(
+                                size.width,
+                                size.height,
+                                scale_factor,
+                                TITLEBAR_HEIGHT,
+                            );
 
-                            let _ = webview.set_bounds(tauri::Rect {
-                                position: Position::Physical(PhysicalPosition {
-                                    x: 0,
-                                    y: titlebar_height_phys as i32,
-                                }),
-                                size: Size::Physical(PhysicalSize { width, height }),
-                            });
+                            let _ = webview.set_bounds(bounds);
                         }
                     }
                 });
@@ -107,4 +102,22 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![create_gemini_webview])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_titlebar_height_constant() {
+        assert_eq!(TITLEBAR_HEIGHT, 32.0);
+        assert!(TITLEBAR_HEIGHT > 0.0);
+    }
+
+    #[test]
+    fn test_module_exports() {
+        // Verify that utils module is accessible
+        let bounds = crate::utils::calculate_webview_bounds(800, 600, 1.0, 32.0);
+        assert!(bounds.size.to_logical::<f64>(1.0).width > 0.0);
+    }
 }

@@ -6,7 +6,6 @@
 use log::{error, info};
 use tauri::webview::WebviewBuilder;
 use tauri::{AppHandle, Manager, WebviewUrl};
-use tauri::{PhysicalPosition, PhysicalSize, Position, Size};
 
 use crate::errors::CommandError;
 
@@ -18,6 +17,7 @@ const GEMINI_URL: &str = "https://gemini.google.com";
 
 /// Creates the Gemini webview as a child webview of the main window.
 #[tauri::command]
+#[cfg(not(tarpaulin_include))]
 pub async fn create_gemini_webview(app: AppHandle) -> Result<(), CommandError> {
     info!("Initializing Gemini webview...");
 
@@ -39,16 +39,12 @@ pub async fn create_gemini_webview(app: AppHandle) -> Result<(), CommandError> {
         .map_err(CommandError::TauriError)?;
     let size = main_window.inner_size().map_err(CommandError::TauriError)?;
 
-    let titlebar_height_phys = (TITLEBAR_HEIGHT * scale_factor) as u32;
-
-    // Calculate bounds for the child webview
-    // It should start below the titlebar and fill the rest
-    let width = size.width;
-    let height = if size.height > titlebar_height_phys {
-        size.height - titlebar_height_phys
-    } else {
-        0
-    };
+    let bounds = crate::utils::calculate_webview_bounds(
+        size.width,
+        size.height,
+        scale_factor,
+        TITLEBAR_HEIGHT,
+    );
 
     let builder = WebviewBuilder::new(
         "gemini-webview",
@@ -57,14 +53,7 @@ pub async fn create_gemini_webview(app: AppHandle) -> Result<(), CommandError> {
 
     // Add child webview to the main window
     main_window
-        .add_child(
-            builder,
-            Position::Physical(PhysicalPosition {
-                x: 0,
-                y: titlebar_height_phys as i32,
-            }),
-            Size::Physical(PhysicalSize { width, height }),
-        )
+        .add_child(builder, bounds.position, bounds.size)
         .map_err(|e| {
             error!("Failed to add child webview: {}", e);
             CommandError::TauriError(e)
@@ -72,4 +61,28 @@ pub async fn create_gemini_webview(app: AppHandle) -> Result<(), CommandError> {
 
     info!("Gemini webview created successfully.");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_titlebar_height_constant() {
+        // Verify the titlebar height constant is sensible
+        assert_eq!(TITLEBAR_HEIGHT, 32.0);
+        assert!(TITLEBAR_HEIGHT > 0.0);
+    }
+
+    #[test]
+    fn test_gemini_url_is_valid() {
+        // Verify GEMINI_URL is a valid HTTPS URL string
+        assert!(GEMINI_URL.starts_with("https://"));
+        assert!(GEMINI_URL.contains("gemini.google.com"));
+    }
+
+    #[test]
+    fn test_gemini_url_constant() {
+        assert_eq!(GEMINI_URL, "https://gemini.google.com");
+    }
 }
