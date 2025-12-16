@@ -1,0 +1,109 @@
+/**
+ * Titlebar styles for the custom window chrome.
+ * 
+ * Design Philosophy:
+ * - Modern, clean appearance
+ * - Consistent with Windows 11 design language
+ * - Easy to customize for future theming
+ */
+
+/* ============================================
+   CSS Custom Properties (for easy theming)
+   ============================================ */
+:root {
+  --titlebar-height: 32px;
+  --titlebar-bg: #202124;
+  --titlebar-text: #e8eaed;
+  --titlebar-text-secondary: #9aa0a6;
+  
+  /* Window control button colors */
+  --control-button-hover-bg: rgba(255, 255, 255, 0.1);
+  --control-button-close-hover-bg: #c42b1c;
+  --control-button-close-hover-color: #ffffff;
+}
+
+/* ============================================
+   Titlebar Container
+   ============================================ */
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--titlebar-height);
+  background-color: var(--titlebar-bg);
+  color: var(--titlebar-text);
+  user-select: none;
+  -webkit-app-region: drag;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.titlebar-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  -webkit-app-region: drag;
+}
+
+.titlebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--titlebar-text-secondary);
+}
+
+.titlebar-title {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--titlebar-text);
+  letter-spacing: 0.02em;
+}
+
+/* ============================================
+   Window Control Buttons
+   ============================================ */
+.window-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.window-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--titlebar-text);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.window-control-button:hover {
+  background-color: var(--control-button-hover-bg);
+}
+
+.window-control-button:focus {
+  outline: none;
+}
+
+.window-control-button:focus-visible {
+  outline: 2px solid #8ab4f8;
+  outline-offset: -2px;
+}
+
+/* Close button special hover state */
+.window-control-button.close:hover {
+  background-color: var(--control-button-close-hover-bg);
+  color: var(--control-button-close-hover-color);
+}
+
+/* SVG icon sizing */
+.window-control-button svg {
+  width: 10px;
+  height: 10px;
+}
