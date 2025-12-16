@@ -2,90 +2,41 @@
 /**
  * Test setup file for Vitest.
  * 
- * Configures Jest-DOM matchers and comprehensive mocks for all Tauri APIs
- * to enable unit testing of React components that depend on native functionality.
+ * Configures Jest-DOM matchers and mocks for Electron API.
  */
 
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
 // ============================================================================
-// Mock: @tauri-apps/plugin-os
+// Mock: Electron API
 // ============================================================================
-// Default to Windows for tests; individual tests can override via vi.mocked()
-let mockOsType: string = 'windows';
 
-vi.mock('@tauri-apps/plugin-os', () => ({
-    type: vi.fn(() => mockOsType),
-}));
+// Default mock implementation
+const mockElectronAPI = {
+    minimizeWindow: vi.fn(),
+    maximizeWindow: vi.fn(),
+    closeWindow: vi.fn(),
+    isMaximized: vi.fn().mockResolvedValue(false),
+    platform: 'win32', // Default to Windows
+    isElectron: true,
+};
 
-// Helper to change OS type in tests
-export function setMockOsType(osType: 'windows' | 'linux' | 'macos'): void {
-    mockOsType = osType;
+// Add to window object
+Object.defineProperty(window, 'electronAPI', {
+    value: mockElectronAPI,
+    writable: true,
+    configurable: true,
+});
+
+// Helper to change platform in tests
+export function setMockPlatform(platform: string): void {
+    if (window.electronAPI) {
+        window.electronAPI.platform = platform;
+    }
 }
 
-// ============================================================================
-// Mock: @tauri-apps/api/core
-// ============================================================================
-vi.mock('@tauri-apps/api/core', () => ({
-    invoke: vi.fn().mockResolvedValue(undefined),
-}));
-
-// ============================================================================
-// Mock: @tauri-apps/api/window
-// ============================================================================
-const mockWindow = {
-    minimize: vi.fn().mockResolvedValue(undefined),
-    maximize: vi.fn().mockResolvedValue(undefined),
-    unmaximize: vi.fn().mockResolvedValue(undefined),
-    close: vi.fn().mockResolvedValue(undefined),
-    isMaximized: vi.fn().mockResolvedValue(false),
-    isFullscreen: vi.fn().mockResolvedValue(false),
-    setFullscreen: vi.fn().mockResolvedValue(undefined),
-};
-
-vi.mock('@tauri-apps/api/window', () => ({
-    Window: {
-        getCurrent: vi.fn(() => mockWindow),
-    },
-}));
-
-export { mockWindow };
-
-// ============================================================================
-// Mock: @tauri-apps/api/menu
-// ============================================================================
-const mockMenuInstance = {
-    popup: vi.fn().mockResolvedValue(undefined),
-};
-
-vi.mock('@tauri-apps/api/menu', () => ({
-    Menu: {
-        new: vi.fn().mockResolvedValue(mockMenuInstance),
-    },
-    MenuItem: {
-        new: vi.fn().mockImplementation(async (opts) => ({ ...opts, type: 'menuitem' })),
-    },
-    PredefinedMenuItem: {
-        new: vi.fn().mockImplementation(async (opts) => ({ ...opts, type: 'predefined' })),
-    },
-}));
-
-export { mockMenuInstance };
-
-// ============================================================================
-// Mock: @tauri-apps/plugin-process
-// ============================================================================
-vi.mock('@tauri-apps/plugin-process', () => ({
-    exit: vi.fn().mockResolvedValue(undefined),
-}));
-
-// ============================================================================
-// Mock: @tauri-apps/plugin-dialog
-// ============================================================================
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-    message: vi.fn().mockResolvedValue(undefined),
-}));
+export { mockElectronAPI };
 
 // ============================================================================
 // Mock: document.execCommand (deprecated but used in menus)
@@ -116,5 +67,7 @@ Object.defineProperty(globalThis, 'performance', {
 // ============================================================================
 beforeEach(() => {
     vi.clearAllMocks();
-    mockOsType = 'windows';
+    if (window.electronAPI) {
+        window.electronAPI.platform = 'win32';
+    }
 });

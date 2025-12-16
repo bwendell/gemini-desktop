@@ -4,43 +4,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { type as getOsType } from '@tauri-apps/plugin-os';
 import { Titlebar } from './Titlebar';
-
-// Mock dependencies
-vi.mock('@tauri-apps/plugin-os', () => ({
-    type: vi.fn(() => 'windows'),
-}));
-
-vi.mock('@tauri-apps/api/window', () => ({
-    Window: {
-        getCurrent: vi.fn(() => ({
-            isFullscreen: vi.fn().mockResolvedValue(false),
-            setFullscreen: vi.fn(),
-        })),
-    },
-}));
-
-vi.mock('@tauri-apps/plugin-process', () => ({
-    exit: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-    message: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/menu', () => ({
-    Menu: { new: vi.fn().mockResolvedValue({ popup: vi.fn() }) },
-    MenuItem: { new: vi.fn().mockResolvedValue({}) },
-    PredefinedMenuItem: { new: vi.fn().mockResolvedValue({}) },
-}));
-
-const mockGetOsType = vi.mocked(getOsType);
+import { setMockPlatform } from '../../test/setup';
 
 describe('Titlebar', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockGetOsType.mockReturnValue('windows');
+        setMockPlatform('win32');
     });
 
     describe('default rendering', () => {
@@ -110,7 +80,7 @@ describe('Titlebar', () => {
 
     describe('child components', () => {
         it('renders TitlebarMenu on Windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             render(<Titlebar />);
 
             const menuBar = document.querySelector('.titlebar-menu-bar');
@@ -118,7 +88,7 @@ describe('Titlebar', () => {
         });
 
         it('renders WindowControls on Windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             render(<Titlebar />);
 
             const controls = document.querySelector('.window-controls');
@@ -126,7 +96,7 @@ describe('Titlebar', () => {
         });
 
         it('hides TitlebarMenu on macOS', () => {
-            mockGetOsType.mockReturnValue('macos');
+            setMockPlatform('darwin');
             render(<Titlebar />);
 
             const menuBar = document.querySelector('.titlebar-menu-bar');
@@ -134,7 +104,7 @@ describe('Titlebar', () => {
         });
 
         it('hides WindowControls on macOS', () => {
-            mockGetOsType.mockReturnValue('macos');
+            setMockPlatform('darwin');
             render(<Titlebar />);
 
             const controls = document.querySelector('.window-controls');
@@ -162,7 +132,7 @@ describe('Titlebar', () => {
 
     describe('menu definitions', () => {
         it('passes menu definitions to TitlebarMenu', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             render(<Titlebar />);
 
             // Check that default menus are rendered (Edit menu was removed)

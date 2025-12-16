@@ -2,41 +2,9 @@
  * Unit tests for MainLayout component.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MainLayout } from './MainLayout';
-
-// Mock dependencies for Titlebar
-vi.mock('@tauri-apps/plugin-os', () => ({
-    type: vi.fn(() => 'windows'),
-}));
-
-vi.mock('@tauri-apps/api/window', () => ({
-    Window: {
-        getCurrent: vi.fn(() => ({
-            minimize: vi.fn(),
-            maximize: vi.fn(),
-            close: vi.fn(),
-            isMaximized: vi.fn().mockResolvedValue(false),
-            isFullscreen: vi.fn().mockResolvedValue(false),
-            setFullscreen: vi.fn(),
-        })),
-    },
-}));
-
-vi.mock('@tauri-apps/plugin-process', () => ({
-    exit: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-    message: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/menu', () => ({
-    Menu: { new: vi.fn().mockResolvedValue({ popup: vi.fn() }) },
-    MenuItem: { new: vi.fn().mockResolvedValue({}) },
-    PredefinedMenuItem: { new: vi.fn().mockResolvedValue({}) },
-}));
 
 describe('MainLayout', () => {
     describe('structure', () => {

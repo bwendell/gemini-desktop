@@ -14,20 +14,21 @@
 
 ---
 
-A lightweight, cross-platform desktop wrapper for [Google Gemini](https://gemini.google.com), built with [Tauri](https://tauri.app), [Rust](https://www.rust-lang.org/), and [React](https://react.dev).
+A lightweight, cross-platform desktop wrapper for [Google Gemini](https://gemini.google.com), built with [Electron](https://www.electronjs.org/), [React](https://react.dev), and [TypeScript](https://www.typescriptlang.org/).
 
 ## Features
 
 - 🚀 **Native Experience**: Run Gemini as a standalone desktop application.
 - 🔒 **Privacy Focused**: Direct connection to Google's servers; no middleman or data collection.
 - 💻 **Cross-Platform**: Compatible with Windows, macOS, and Linux.
-- ⚡ **Lightweight**: Built on Tauri for a minimal resource footprint.
+- 🎨 **Customization**: Native-feeling integration with custom title bar and controls.
 
 ### What This App Does
 
 | Action | Description |
 |--------|-------------|
 | ✅ Loads Gemini | Opens `gemini.google.com` in a native window |
+| ✅ Custom UI | Provides a clean, custom window frame and menus |
 
 ### What This App Does NOT Do
 
@@ -42,14 +43,15 @@ A lightweight, cross-platform desktop wrapper for [Google Gemini](https://gemini
 
 - **Authentication**: Handled entirely by Google via their login pages
 - **Chat history**: Stored by Google, not this application
-- **Local cache**: Standard WebView cache (WebView2/WebKit)
+- **Local cache**: Standard Electron/Chromium cache
+- **Cookies**: Encrypted standard session storage
 
 ### Technical Security
 
-- **Remote URL Restriction**: Only `gemini.google.com` can access Tauri APIs
-- **Minimal Permissions**: Only shortcuts and link opening
-- **No IPC Commands**: Zero custom Rust commands exposed
-- **Dependencies**: 0 npm vulnerabilities, minimal Rust crates
+- **Context Isolation**: Enabled by default for security
+- **Sandbox**: Enabled for renderer processes
+- **Minimal Permissions**: Frontend has restricted access to system capabilities
+- **Clean Architecture**: Separation of concerns between Main and Renderer processes
 
 ## Legal & Compliance
 
@@ -63,15 +65,21 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Development
 
-This project uses the standard Tauri + React + Vite stack.
+This project uses the standard Electron + React + Vite stack.
 
 - **Frontend**: Located in `src/` (React, TypeScript, Vite)
-- **Backend**: Located in `src-tauri/` (Rust)
+- **Main Process**: Located in `electron/` (Electron bootstrap logic)
 
 To start the development server:
 
 ```bash
-npm run tauri dev
+npm run electron:dev
+```
+
+To build for production:
+
+```bash
+npm run electron:build
 ```
 
 ## License

@@ -2,103 +2,97 @@
  * Unit tests for platform detection utilities.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { type as getOsType } from '@tauri-apps/plugin-os';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { getPlatform, isMacOS, isWindows, isLinux, usesCustomWindowControls } from './platform';
-
-// Mock the OS plugin
-vi.mock('@tauri-apps/plugin-os', () => ({
-    type: vi.fn(),
-}));
-
-const mockGetOsType = vi.mocked(getOsType);
+import { setMockPlatform } from '../test/setup';
 
 describe('platform utilities', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        // Reset to default (Windows)
+        setMockPlatform('win32');
     });
 
     describe('getPlatform', () => {
-        it('returns windows when OS type is windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+        it('returns windows when platform is win32', () => {
+            setMockPlatform('win32');
             expect(getPlatform()).toBe('windows');
         });
 
-        it('returns linux when OS type is linux', () => {
-            mockGetOsType.mockReturnValue('linux');
+        it('returns linux when platform is linux', () => {
+            setMockPlatform('linux');
             expect(getPlatform()).toBe('linux');
         });
 
-        it('returns macos when OS type is macos', () => {
-            mockGetOsType.mockReturnValue('macos');
+        it('returns macos when platform is darwin', () => {
+            setMockPlatform('darwin');
             expect(getPlatform()).toBe('macos');
         });
     });
 
     describe('isMacOS', () => {
         it('returns true on macOS', () => {
-            mockGetOsType.mockReturnValue('macos');
+            setMockPlatform('darwin');
             expect(isMacOS()).toBe(true);
         });
 
         it('returns false on Windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             expect(isMacOS()).toBe(false);
         });
 
         it('returns false on Linux', () => {
-            mockGetOsType.mockReturnValue('linux');
+            setMockPlatform('linux');
             expect(isMacOS()).toBe(false);
         });
     });
 
     describe('isWindows', () => {
         it('returns true on Windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             expect(isWindows()).toBe(true);
         });
 
         it('returns false on macOS', () => {
-            mockGetOsType.mockReturnValue('macos');
+            setMockPlatform('darwin');
             expect(isWindows()).toBe(false);
         });
 
         it('returns false on Linux', () => {
-            mockGetOsType.mockReturnValue('linux');
+            setMockPlatform('linux');
             expect(isWindows()).toBe(false);
         });
     });
 
     describe('isLinux', () => {
         it('returns true on Linux', () => {
-            mockGetOsType.mockReturnValue('linux');
+            setMockPlatform('linux');
             expect(isLinux()).toBe(true);
         });
 
         it('returns false on Windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             expect(isLinux()).toBe(false);
         });
 
         it('returns false on macOS', () => {
-            mockGetOsType.mockReturnValue('macos');
+            setMockPlatform('darwin');
             expect(isLinux()).toBe(false);
         });
     });
 
     describe('usesCustomWindowControls', () => {
         it('returns true on Windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             expect(usesCustomWindowControls()).toBe(true);
         });
 
         it('returns true on Linux', () => {
-            mockGetOsType.mockReturnValue('linux');
+            setMockPlatform('linux');
             expect(usesCustomWindowControls()).toBe(true);
         });
 
         it('returns false on macOS', () => {
-            mockGetOsType.mockReturnValue('macos');
+            setMockPlatform('darwin');
             expect(usesCustomWindowControls()).toBe(false);
         });
     });

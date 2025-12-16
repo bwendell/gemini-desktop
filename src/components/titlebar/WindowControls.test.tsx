@@ -4,14 +4,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { type as getOsType } from '@tauri-apps/plugin-os';
 import { WindowControls } from './WindowControls';
+import { setMockPlatform } from '../../test/setup';
 
 // Mock dependencies
-vi.mock('@tauri-apps/plugin-os', () => ({
-    type: vi.fn(),
-}));
-
 const mockMinimize = vi.fn();
 const mockMaximize = vi.fn();
 const mockClose = vi.fn();
@@ -24,17 +20,15 @@ vi.mock('../../hooks/useWindowControls', () => ({
     }),
 }));
 
-const mockGetOsType = vi.mocked(getOsType);
-
 describe('WindowControls', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockGetOsType.mockReturnValue('windows');
+        setMockPlatform('win32');
     });
 
     describe('platform behavior', () => {
         it('renders controls on Windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             render(<WindowControls />);
 
             expect(screen.getByRole('button', { name: /minimize/i })).toBeInTheDocument();
@@ -43,7 +37,7 @@ describe('WindowControls', () => {
         });
 
         it('renders controls on Linux', () => {
-            mockGetOsType.mockReturnValue('linux');
+            setMockPlatform('linux');
             render(<WindowControls />);
 
             expect(screen.getByRole('button', { name: /minimize/i })).toBeInTheDocument();
@@ -52,7 +46,7 @@ describe('WindowControls', () => {
         });
 
         it('returns null on macOS', () => {
-            mockGetOsType.mockReturnValue('macos');
+            setMockPlatform('darwin');
             const { container } = render(<WindowControls />);
 
             expect(container.firstChild).toBeNull();

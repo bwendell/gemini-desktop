@@ -2,132 +2,75 @@
  * Unit tests for useWindowControls hook.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { Window } from '@tauri-apps/api/window';
 import { useWindowControls } from './useWindowControls';
-
-// Mock the Window API
-const mockWindow = {
-    minimize: vi.fn(),
-    maximize: vi.fn(),
-    unmaximize: vi.fn(),
-    close: vi.fn(),
-    isMaximized: vi.fn(),
-};
-
-vi.mock('@tauri-apps/api/window', () => ({
-    Window: {
-        getCurrent: vi.fn(() => mockWindow),
-    },
-}));
+import { mockElectronAPI } from '../test/setup';
 
 describe('useWindowControls', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockWindow.minimize.mockResolvedValue(undefined);
-        mockWindow.maximize.mockResolvedValue(undefined);
-        mockWindow.unmaximize.mockResolvedValue(undefined);
-        mockWindow.close.mockResolvedValue(undefined);
-        mockWindow.isMaximized.mockResolvedValue(false);
+    });
+
+    afterEach(() => {
+        vi.clearAllMocks();
     });
 
     describe('minimize', () => {
-        it('calls appWindow.minimize()', async () => {
+        it('calls electronAPI.minimizeWindow()', () => {
             const { result } = renderHook(() => useWindowControls());
 
-            await act(async () => {
-                await result.current.minimize();
+            act(() => {
+                result.current.minimize();
             });
 
-            expect(mockWindow.minimize).toHaveBeenCalledTimes(1);
-        });
-
-        it('logs error when minimize fails', async () => {
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-            const error = new Error('Minimize failed');
-            mockWindow.minimize.mockRejectedValue(error);
-
-            const { result } = renderHook(() => useWindowControls());
-
-            await act(async () => {
-                await result.current.minimize();
-            });
-
-            expect(consoleSpy).toHaveBeenCalledWith('Failed to minimize window:', error);
-            consoleSpy.mockRestore();
+            expect(mockElectronAPI.minimizeWindow).toHaveBeenCalledTimes(1);
         });
     });
 
     describe('maximize', () => {
-        it('calls maximize when window is not maximized', async () => {
-            mockWindow.isMaximized.mockResolvedValue(false);
-
+        it('calls electronAPI.maximizeWindow()', async () => {
             const { result } = renderHook(() => useWindowControls());
 
             await act(async () => {
                 await result.current.maximize();
             });
 
-            expect(mockWindow.isMaximized).toHaveBeenCalledTimes(1);
-            expect(mockWindow.maximize).toHaveBeenCalledTimes(1);
-            expect(mockWindow.unmaximize).not.toHaveBeenCalled();
-        });
-
-        it('calls unmaximize when window is maximized', async () => {
-            mockWindow.isMaximized.mockResolvedValue(true);
-
-            const { result } = renderHook(() => useWindowControls());
-
-            await act(async () => {
-                await result.current.maximize();
-            });
-
-            expect(mockWindow.isMaximized).toHaveBeenCalledTimes(1);
-            expect(mockWindow.unmaximize).toHaveBeenCalledTimes(1);
-            expect(mockWindow.maximize).not.toHaveBeenCalled();
-        });
-
-        it('logs error when maximize/restore fails', async () => {
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-            const error = new Error('Maximize failed');
-            mockWindow.isMaximized.mockRejectedValue(error);
-
-            const { result } = renderHook(() => useWindowControls());
-
-            await act(async () => {
-                await result.current.maximize();
-            });
-
-            expect(consoleSpy).toHaveBeenCalledWith('Failed to maximize/restore window:', error);
-            consoleSpy.mockRestore();
+            expect(mockElectronAPI.maximizeWindow).toHaveBeenCalledTimes(1);
         });
     });
 
     describe('close', () => {
-        it('calls appWindow.close()', async () => {
+        it('calls electronAPI.closeWindow()', () => {
             const { result } = renderHook(() => useWindowControls());
 
-            await act(async () => {
-                await result.current.close();
+            act(() => {
+                result.current.close();
             });
 
-            expect(mockWindow.close).toHaveBeenCalledTimes(1);
+            expect(mockElectronAPI.closeWindow).toHaveBeenCalledTimes(1);
         });
+    });
 
-        it('logs error when close fails', async () => {
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-            const error = new Error('Close failed');
-            mockWindow.close.mockRejectedValue(error);
+    describe('when API is not available', () => {
+        it('logs warning when API is missing', () => {
+            const originalAPI = window.electronAPI;
+            // @ts-ignore
+            delete window.electronAPI;
+
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
             const { result } = renderHook(() => useWindowControls());
 
-            await act(async () => {
-                await result.current.close();
+            act(() => {
+                result.current.minimize();
             });
 
-            expect(consoleSpy).toHaveBeenCalledWith('Failed to close window:', error);
+            expect(consoleSpy).toHaveBeenCalledWith('Window controls not available');
             consoleSpy.mockRestore();
+
+            // Restore API
+            window.electronAPI = originalAPI;
         });
     });
 });

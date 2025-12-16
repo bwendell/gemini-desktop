@@ -4,41 +4,12 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { Window } from '@tauri-apps/api/window';
-import { invoke } from '@tauri-apps/api/core';
-import { exit } from '@tauri-apps/plugin-process';
-import { message } from '@tauri-apps/plugin-dialog';
 import { useMenuDefinitions } from './useMenuDefinitions';
-
-// Mock dependencies
-const mockWindow = {
-    isFullscreen: vi.fn(),
-    setFullscreen: vi.fn(),
-};
-
-vi.mock('@tauri-apps/api/window', () => ({
-    Window: {
-        getCurrent: vi.fn(() => mockWindow),
-    },
-}));
-
-vi.mock('@tauri-apps/api/core', () => ({
-    invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-process', () => ({
-    exit: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-    message: vi.fn(),
-}));
+import { mockElectronAPI } from '../../test/setup';
 
 describe('useMenuDefinitions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockWindow.isFullscreen.mockResolvedValue(false);
-        mockWindow.setFullscreen.mockResolvedValue(undefined);
     });
 
     it('returns correct menu structure', () => {
@@ -70,47 +41,14 @@ describe('useMenuDefinitions', () => {
             expect(fileMenu.items[1]).toEqual({ separator: true });
         });
 
-        it('has Options item with correct shortcut', () => {
+        it('has Options item (disabled placeholder)', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const fileMenu = result.current[0];
             const optionsItem = fileMenu.items[2];
 
             expect(optionsItem).toHaveProperty('label', 'Options...');
+            expect(optionsItem).toHaveProperty('disabled', true);
             expect(optionsItem).toHaveProperty('shortcut', 'Ctrl+,');
-            expect(optionsItem).toHaveProperty('action');
-        });
-
-        it('Options action invokes create_options_window command', async () => {
-            const mockInvoke = invoke as ReturnType<typeof vi.fn>;
-            mockInvoke.mockResolvedValueOnce(undefined);
-
-            const { result } = renderHook(() => useMenuDefinitions());
-            const fileMenu = result.current[0];
-            const optionsItem = fileMenu.items[2];
-
-            if ('action' in optionsItem && optionsItem.action) {
-                await optionsItem.action();
-                expect(mockInvoke).toHaveBeenCalledWith('create_options_window');
-            }
-        });
-
-        it('Options action logs error on failure', async () => {
-            const mockInvoke = invoke as ReturnType<typeof vi.fn>;
-            const testError = new Error('Failed to create window');
-            mockInvoke.mockRejectedValueOnce(testError);
-
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-
-            const { result } = renderHook(() => useMenuDefinitions());
-            const fileMenu = result.current[0];
-            const optionsItem = fileMenu.items[2];
-
-            if ('action' in optionsItem && optionsItem.action) {
-                await optionsItem.action();
-                expect(consoleSpy).toHaveBeenCalledWith('Failed to open options window:', testError);
-            }
-
-            consoleSpy.mockRestore();
         });
 
         it('has separator after Options', () => {
@@ -120,34 +58,31 @@ describe('useMenuDefinitions', () => {
             expect(fileMenu.items[3]).toEqual({ separator: true });
         });
 
-        it('Exit action calls exit(0)', async () => {
+        it('Exit action calls electronAPI.closeWindow()', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const fileMenu = result.current[0];
-            // Exit is now at index 4 (after Options and separator)
             const exitItem = fileMenu.items[4];
 
             expect(exitItem).toHaveProperty('label', 'Exit');
-            expect(exitItem).toHaveProperty('action');
 
             if ('action' in exitItem && exitItem.action) {
-                await exitItem.action();
-                expect(exit).toHaveBeenCalledWith(0);
+                exitItem.action();
+                expect(mockElectronAPI.closeWindow).toHaveBeenCalledTimes(1);
             }
         });
     });
-
-    // Note: Edit menu was removed as it doesn't affect the embedded Gemini webview
 
     describe('View menu', () => {
         it('Reload action calls window.location.reload', () => {
             const reloadSpy = vi.fn();
             const originalLocation = window.location;
-            // @ts-expect-error - mocking location
-            delete window.location;
-            window.location = { ...originalLocation, reload: reloadSpy };
+
+            Object.defineProperty(window, 'location', {
+                value: { ...originalLocation, reload: reloadSpy },
+                writable: true,
+            });
 
             const { result } = renderHook(() => useMenuDefinitions());
-            // View is now at index 1 (was index 2 before Edit menu removal)
             const viewMenu = result.current[1];
             const reloadItem = viewMenu.items[0];
 
@@ -156,59 +91,41 @@ describe('useMenuDefinitions', () => {
                 expect(reloadSpy).toHaveBeenCalled();
             }
 
-            window.location = originalLocation;
+            // Restore original location
+            Object.defineProperty(window, 'location', {
+                value: originalLocation,
+                writable: true,
+            });
         });
 
-        it('Toggle Fullscreen enters fullscreen when not fullscreen', async () => {
-            mockWindow.isFullscreen.mockResolvedValue(false);
-
-            const { result } = renderHook(() => useMenuDefinitions());
-            const viewMenu = result.current[1];
-            // Toggle Fullscreen is after separator, so index 2
-            const toggleItem = viewMenu.items[2];
-
-            if ('action' in toggleItem && toggleItem.action) {
-                await toggleItem.action();
-                expect(mockWindow.isFullscreen).toHaveBeenCalled();
-                expect(mockWindow.setFullscreen).toHaveBeenCalledWith(true);
-            }
-        });
-
-        it('Toggle Fullscreen exits fullscreen when fullscreen', async () => {
-            mockWindow.isFullscreen.mockResolvedValue(true);
-
+        it('Toggle Fullscreen is disabled', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
             const toggleItem = viewMenu.items[2];
 
-            if ('action' in toggleItem && toggleItem.action) {
-                await toggleItem.action();
-                expect(mockWindow.isFullscreen).toHaveBeenCalled();
-                expect(mockWindow.setFullscreen).toHaveBeenCalledWith(false);
-            }
+            expect(toggleItem).toHaveProperty('label', 'Toggle Fullscreen');
+            expect(toggleItem).toHaveProperty('disabled', true);
         });
     });
 
     describe('Help menu', () => {
-        it('About action shows message dialog', async () => {
+        it('About action shows alert dialog', () => {
+            const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
+
             const { result } = renderHook(() => useMenuDefinitions());
-            // Help is now at index 2 (was index 3 before Edit menu removal)
             const helpMenu = result.current[2];
             const aboutItem = helpMenu.items[0];
 
             expect(aboutItem).toHaveProperty('label', 'About Gemini Desktop');
 
             if ('action' in aboutItem && aboutItem.action) {
-                await aboutItem.action();
-                expect(message).toHaveBeenCalledWith(
-                    'Gemini Desktop v0.1.0\nAn unofficial desktop client for Gemini.',
-                    {
-                        title: 'About Gemini Desktop',
-                        kind: 'info',
-                        okLabel: 'Close',
-                    }
+                aboutItem.action();
+                expect(alertSpy).toHaveBeenCalledWith(
+                    expect.stringContaining('Gemini Desktop v0.1.0')
                 );
             }
+
+            alertSpy.mockRestore();
         });
     });
 });

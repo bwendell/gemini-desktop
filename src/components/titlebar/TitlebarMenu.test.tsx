@@ -4,17 +4,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { type as getOsType } from '@tauri-apps/plugin-os';
 import { TitlebarMenu } from './TitlebarMenu';
 import type { MenuDefinition } from './menuTypes';
+import { setMockPlatform } from '../../test/setup';
 import '@testing-library/jest-dom'; // Ensure jest-dom matchers are available
-
-// Mock dependencies
-vi.mock('@tauri-apps/plugin-os', () => ({
-    type: vi.fn(),
-}));
-
-const mockGetOsType = vi.mocked(getOsType);
 
 describe('TitlebarMenu', () => {
     const sampleMenus: MenuDefinition[] = [
@@ -37,12 +30,12 @@ describe('TitlebarMenu', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockGetOsType.mockReturnValue('windows');
+        setMockPlatform('win32');
     });
 
     describe('platform behavior', () => {
         it('renders menu buttons on Windows', () => {
-            mockGetOsType.mockReturnValue('windows');
+            setMockPlatform('win32');
             render(<TitlebarMenu menus={sampleMenus} />);
 
             expect(screen.getByText('File')).toBeInTheDocument();
@@ -50,7 +43,7 @@ describe('TitlebarMenu', () => {
         });
 
         it('renders menu buttons on Linux', () => {
-            mockGetOsType.mockReturnValue('linux');
+            setMockPlatform('linux');
             render(<TitlebarMenu menus={sampleMenus} />);
 
             expect(screen.getByText('File')).toBeInTheDocument();
@@ -58,7 +51,7 @@ describe('TitlebarMenu', () => {
         });
 
         it('returns null on macOS', () => {
-            mockGetOsType.mockReturnValue('macos');
+            setMockPlatform('darwin');
             const { container } = render(<TitlebarMenu menus={sampleMenus} />);
 
             expect(container.firstChild).toBeNull();
@@ -89,14 +82,21 @@ describe('TitlebarMenu', () => {
         });
 
         it('closes dropdown on click outside', () => {
+            vi.useFakeTimers();
             render(<TitlebarMenu menus={sampleMenus} />);
 
             const fileButton = screen.getByText('File');
             fireEvent.click(fileButton);
+
+            // Fast-forward so the event listener is attached
+            vi.runAllTimers();
+
             expect(screen.getByText('New')).toBeVisible();
 
             fireEvent.mouseDown(document.body);
             expect(screen.queryByText('New')).not.toBeInTheDocument();
+
+            vi.useRealTimers();
         });
 
         it('switches menu on hover when active', () => {

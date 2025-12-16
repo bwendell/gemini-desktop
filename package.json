@@ -8,7 +8,6 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:1420 && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "test": "vitest run",
@@ -17,16 +16,10 @@
     "test:e2e": "wdio run wdio.conf.js"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-dialog": "^2.4.2",
-    "@tauri-apps/plugin-opener": "^2",
-    "@tauri-apps/plugin-os": "^2.3.2",
-    "@tauri-apps/plugin-process": "^2.3.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@types/react": "^19.1.8",
