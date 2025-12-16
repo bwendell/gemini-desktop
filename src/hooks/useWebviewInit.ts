@@ -51,6 +51,13 @@ export function useWebviewInit(): UseWebviewInitResult {
             console.debug('[useWebviewInit] Creating Gemini webview...');
             await invoke('create_gemini_webview');
             console.debug('[useWebviewInit] Webview created successfully');
+
+            // Measure startup time
+            performance.mark('webview-ready');
+            performance.measure('startup-time', 'app-start', 'webview-ready');
+            const startupTime = performance.getEntriesByName('startup-time')[0];
+            console.log(`[Performance] Startup time: ${startupTime.duration.toFixed(2)}ms`);
+
             setIsReady(true);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : String(err);

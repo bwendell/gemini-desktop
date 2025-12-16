@@ -40,11 +40,11 @@ describe('useMenuDefinitions', () => {
         const { result } = renderHook(() => useMenuDefinitions());
         const menus = result.current;
 
-        expect(menus).toHaveLength(4);
+        // Edit menu removed - only 3 menus now
+        expect(menus).toHaveLength(3);
         expect(menus[0].label).toBe('File');
-        expect(menus[1].label).toBe('Edit');
-        expect(menus[2].label).toBe('View');
-        expect(menus[3].label).toBe('Help');
+        expect(menus[1].label).toBe('View');
+        expect(menus[2].label).toBe('Help');
     });
 
     describe('File menu', () => {
@@ -80,108 +80,7 @@ describe('useMenuDefinitions', () => {
         });
     });
 
-    describe('Edit menu', () => {
-        it('has all standard edit actions', () => {
-            const { result } = renderHook(() => useMenuDefinitions());
-            const editMenu = result.current[1];
-            const labels = editMenu.items
-                .filter(item => 'label' in item)
-                .map(item => ('label' in item ? item.label : ''));
-
-            expect(labels).toContain('Undo');
-            expect(labels).toContain('Redo');
-            expect(labels).toContain('Cut');
-            expect(labels).toContain('Copy');
-            expect(labels).toContain('Paste');
-            expect(labels).toContain('Select All');
-        });
-
-        it('Undo action calls document.execCommand', () => {
-            const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
-            const { result } = renderHook(() => useMenuDefinitions());
-            const editMenu = result.current[1];
-            const undoItem = editMenu.items[0];
-
-            if ('action' in undoItem && undoItem.action) {
-                undoItem.action();
-                expect(execCommandSpy).toHaveBeenCalledWith('undo');
-            }
-
-            execCommandSpy.mockRestore();
-        });
-
-        it('Redo action calls document.execCommand', () => {
-            const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
-            const { result } = renderHook(() => useMenuDefinitions());
-            const editMenu = result.current[1];
-            const redoItem = editMenu.items[1];
-
-            if ('action' in redoItem && redoItem.action) {
-                redoItem.action();
-                expect(execCommandSpy).toHaveBeenCalledWith('redo');
-            }
-
-            execCommandSpy.mockRestore();
-        });
-
-        it('Cut action calls document.execCommand', () => {
-            const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
-            const { result } = renderHook(() => useMenuDefinitions());
-            const editMenu = result.current[1];
-            // Cut is after separator, so index 3
-            const cutItem = editMenu.items[3];
-
-            if ('action' in cutItem && cutItem.action) {
-                cutItem.action();
-                expect(execCommandSpy).toHaveBeenCalledWith('cut');
-            }
-
-            execCommandSpy.mockRestore();
-        });
-
-        it('Copy action calls document.execCommand', () => {
-            const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
-            const { result } = renderHook(() => useMenuDefinitions());
-            const editMenu = result.current[1];
-            const copyItem = editMenu.items[4];
-
-            if ('action' in copyItem && copyItem.action) {
-                copyItem.action();
-                expect(execCommandSpy).toHaveBeenCalledWith('copy');
-            }
-
-            execCommandSpy.mockRestore();
-        });
-
-        it('Paste action calls document.execCommand', () => {
-            const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
-            const { result } = renderHook(() => useMenuDefinitions());
-            const editMenu = result.current[1];
-            const pasteItem = editMenu.items[5];
-
-            if ('action' in pasteItem && pasteItem.action) {
-                pasteItem.action();
-                expect(execCommandSpy).toHaveBeenCalledWith('paste');
-            }
-
-            execCommandSpy.mockRestore();
-        });
-
-        it('Select All action calls document.execCommand', () => {
-            const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
-            const { result } = renderHook(() => useMenuDefinitions());
-            const editMenu = result.current[1];
-            // Select All is after another separator, so index 7
-            const selectAllItem = editMenu.items[7];
-
-            if ('action' in selectAllItem && selectAllItem.action) {
-                selectAllItem.action();
-                expect(execCommandSpy).toHaveBeenCalledWith('selectAll');
-            }
-
-            execCommandSpy.mockRestore();
-        });
-    });
+    // Note: Edit menu was removed as it doesn't affect the embedded Gemini webview
 
     describe('View menu', () => {
         it('Reload action calls window.location.reload', () => {
@@ -192,7 +91,8 @@ describe('useMenuDefinitions', () => {
             window.location = { ...originalLocation, reload: reloadSpy };
 
             const { result } = renderHook(() => useMenuDefinitions());
-            const viewMenu = result.current[2];
+            // View is now at index 1 (was index 2 before Edit menu removal)
+            const viewMenu = result.current[1];
             const reloadItem = viewMenu.items[0];
 
             if ('action' in reloadItem && reloadItem.action) {
@@ -207,7 +107,7 @@ describe('useMenuDefinitions', () => {
             mockWindow.isFullscreen.mockResolvedValue(false);
 
             const { result } = renderHook(() => useMenuDefinitions());
-            const viewMenu = result.current[2];
+            const viewMenu = result.current[1];
             // Toggle Fullscreen is after separator, so index 2
             const toggleItem = viewMenu.items[2];
 
@@ -222,7 +122,7 @@ describe('useMenuDefinitions', () => {
             mockWindow.isFullscreen.mockResolvedValue(true);
 
             const { result } = renderHook(() => useMenuDefinitions());
-            const viewMenu = result.current[2];
+            const viewMenu = result.current[1];
             const toggleItem = viewMenu.items[2];
 
             if ('action' in toggleItem && toggleItem.action) {
@@ -236,7 +136,8 @@ describe('useMenuDefinitions', () => {
     describe('Help menu', () => {
         it('About action shows message dialog', async () => {
             const { result } = renderHook(() => useMenuDefinitions());
-            const helpMenu = result.current[3];
+            // Help is now at index 2 (was index 3 before Edit menu removal)
+            const helpMenu = result.current[2];
             const aboutItem = helpMenu.items[0];
 
             expect(aboutItem).toHaveProperty('label', 'About Gemini Desktop');

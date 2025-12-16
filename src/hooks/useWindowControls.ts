@@ -1,5 +1,5 @@
 import { Window } from '@tauri-apps/api/window';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 /**
  * Custom hook for window control operations.
@@ -9,7 +9,8 @@ import { useCallback } from 'react';
  * like window state persistence or custom animations.
  */
 export function useWindowControls() {
-    const appWindow = Window.getCurrent();
+    // Memoize window reference to avoid repeated getCurrent() calls
+    const appWindow = useMemo(() => Window.getCurrent(), []);
 
     const minimize = useCallback(async () => {
         try {

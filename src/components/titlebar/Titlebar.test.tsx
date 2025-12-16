@@ -165,11 +165,12 @@ describe('Titlebar', () => {
             mockGetOsType.mockReturnValue('windows');
             render(<Titlebar />);
 
-            // Check that default menus are rendered
+            // Check that default menus are rendered (Edit menu was removed)
             expect(screen.getByText('File')).toBeInTheDocument();
-            expect(screen.getByText('Edit')).toBeInTheDocument();
             expect(screen.getByText('View')).toBeInTheDocument();
             expect(screen.getByText('Help')).toBeInTheDocument();
+            // Edit menu should not exist
+            expect(screen.queryByText('Edit')).not.toBeInTheDocument();
         });
     });
 });

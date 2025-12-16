@@ -7,13 +7,8 @@ use log::{error, info};
 use tauri::webview::WebviewBuilder;
 use tauri::{AppHandle, Manager, WebviewUrl};
 
+use crate::constants::{GEMINI_URL, GEMINI_WEBVIEW_LABEL, MAIN_WINDOW_LABEL, TITLEBAR_HEIGHT};
 use crate::errors::CommandError;
-
-/// Height of the custom titlebar in pixels (logical).
-const TITLEBAR_HEIGHT: f64 = 32.0;
-
-/// URL for the Gemini AI service.
-const GEMINI_URL: &str = "https://gemini.google.com";
 
 /// Creates the Gemini webview as a child webview of the main window.
 #[tauri::command]
@@ -21,14 +16,14 @@ const GEMINI_URL: &str = "https://gemini.google.com";
 pub async fn create_gemini_webview(app: AppHandle) -> Result<(), CommandError> {
     info!("Initializing Gemini webview...");
 
-    let main_window = app.get_window("main").ok_or_else(|| {
+    let main_window = app.get_window(MAIN_WINDOW_LABEL).ok_or_else(|| {
         let msg = "Main window not found".to_string();
         error!("{}", msg);
         CommandError::WindowNotFound(msg)
     })?;
 
     // Check if webview already exists
-    if app.get_webview("gemini-webview").is_some() {
+    if app.get_webview(GEMINI_WEBVIEW_LABEL).is_some() {
         info!("Gemini webview already exists.");
         return Ok(());
     }
@@ -46,10 +41,13 @@ pub async fn create_gemini_webview(app: AppHandle) -> Result<(), CommandError> {
         TITLEBAR_HEIGHT,
     );
 
-    let builder = WebviewBuilder::new(
-        "gemini-webview",
-        WebviewUrl::External(GEMINI_URL.parse().unwrap()),
-    );
+    // Parse URL with proper error handling (no unwrap)
+    let url = GEMINI_URL.parse().map_err(|e| {
+        error!("Failed to parse GEMINI_URL: {}", e);
+        CommandError::Internal(format!("Invalid URL: {}", e))
+    })?;
+
+    let builder = WebviewBuilder::new(GEMINI_WEBVIEW_LABEL, WebviewUrl::External(url));
 
     // Add child webview to the main window
     main_window
@@ -68,21 +66,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_titlebar_height_constant() {
-        // Verify the titlebar height constant is sensible
-        assert_eq!(TITLEBAR_HEIGHT, 32.0);
+    fn test_constants_are_accessible() {
+        // Constants are now imported from crate::constants
+        // Detailed tests for these values are in constants.rs
         assert!(TITLEBAR_HEIGHT > 0.0);
+        assert!(!GEMINI_URL.is_empty());
+        assert!(!GEMINI_WEBVIEW_LABEL.is_empty());
+        assert!(!MAIN_WINDOW_LABEL.is_empty());
     }
 
     #[test]
-    fn test_gemini_url_is_valid() {
-        // Verify GEMINI_URL is a valid HTTPS URL string
+    fn test_gemini_url_is_parseable() {
+        // Verify URL can be parsed as a valid URL
+        // The actual WebviewUrl parsing uses tauri's internal parser
         assert!(GEMINI_URL.starts_with("https://"));
         assert!(GEMINI_URL.contains("gemini.google.com"));
-    }
-
-    #[test]
-    fn test_gemini_url_constant() {
-        assert_eq!(GEMINI_URL, "https://gemini.google.com");
     }
 }

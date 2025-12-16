@@ -97,6 +97,21 @@ Object.defineProperty(document, 'execCommand', {
 });
 
 // ============================================================================
+// Mock: Performance API (for startup time measurement)
+// ============================================================================
+const mockPerformanceEntries = [{ duration: 150.5, startTime: 0 }];
+
+Object.defineProperty(globalThis, 'performance', {
+    value: {
+        mark: vi.fn(),
+        measure: vi.fn(),
+        getEntriesByName: vi.fn().mockReturnValue(mockPerformanceEntries),
+        now: vi.fn().mockReturnValue(Date.now()),
+    },
+    writable: true,
+});
+
+// ============================================================================
 // Reset all mocks before each test
 // ============================================================================
 beforeEach(() => {

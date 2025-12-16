@@ -4,17 +4,17 @@
 //! It configures the Tauri builder with plugins and commands.
 
 mod commands;
+mod constants;
 mod errors;
 pub mod utils;
 
 use commands::create_gemini_webview;
+use constants::TITLEBAR_HEIGHT;
 use log::info;
 #[cfg(target_os = "macos")]
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
 use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind};
-
-const TITLEBAR_HEIGHT: f64 = 32.0;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[cfg(not(tarpaulin_include))]
@@ -109,8 +109,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_titlebar_height_constant() {
-        assert_eq!(TITLEBAR_HEIGHT, 32.0);
+    fn test_titlebar_height_is_accessible() {
+        // Constant is imported from constants module
+        // Detailed tests are in constants.rs
         assert!(TITLEBAR_HEIGHT > 0.0);
     }
 
