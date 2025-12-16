@@ -57,3 +57,14 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/* Gemini iframe styles */
+.gemini-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #0e0e0e;
+}

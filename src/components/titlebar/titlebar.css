@@ -143,6 +143,79 @@
   -webkit-app-region: no-drag;
 }
 
-.titlebar-menu-button:hover {
+.titlebar-menu-button:hover,
+.titlebar-menu-button.active {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   Custom Dropdown Menus
+   ============================================ */
+.titlebar-menu-wrapper {
+  position: relative;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-menu-dropdown {
+  position: fixed;
+  min-width: 220px;
+  background-color: #252526;
+  /* VS Code menu background */
+  border: 1px solid #454545;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  padding: 4px 0;
+  z-index: 9999;
+  border-radius: 4px;
+}
+
+.titlebar-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: #cccccc;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.titlebar-menu-item:hover {
+  background-color: #094771;
+  /* VS Code blue hover */
+  color: white;
+}
+
+.titlebar-menu-item:disabled {
+  color: #6d6d6d;
+  cursor: default;
+}
+
+.titlebar-menu-item:disabled:hover {
+  background-color: transparent;
+  color: #6d6d6d;
+}
+
+.menu-item-label {
+  flex: 1;
+}
+
+.menu-item-shortcut {
+  margin-left: 20px;
+  color: #858585;
+  font-size: 12px;
+}
+
+.titlebar-menu-item:hover .menu-item-shortcut {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.titlebar-menu-separator {
+  height: 1px;
+  background-color: #454545;
+  margin: 4px 10px;
 }

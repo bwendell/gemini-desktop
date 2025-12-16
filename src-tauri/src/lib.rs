@@ -6,6 +6,7 @@
 mod commands;
 mod constants;
 mod errors;
+mod proxy;
 pub mod utils;
 mod windows;
 
@@ -23,6 +24,18 @@ use windows::create_options_window;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // Register custom protocol for proxying Gemini requests (strips X-Frame-Options)
+        .register_asynchronous_uri_scheme_protocol("gemini-proxy", |_ctx, request, responder| {
+            info!(
+                "[GeminiProxy] Protocol handler invoked for: {}",
+                request.uri()
+            );
+            // Handle in a thread to avoid blocking
+            std::thread::spawn(move || {
+                let response = proxy::handle_proxy_request(request);
+                responder.respond(response);
+            });
+        })
         .setup(|app| {
             let app_handle = app.handle().clone();
 

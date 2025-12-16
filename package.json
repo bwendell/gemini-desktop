@@ -3,11 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:1420 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -36,10 +39,14 @@
     "@wdio/mocha-framework": "^9.21.0",
     "@wdio/spec-reporter": "^9.20.0",
     "@wdio/types": "^9.20.0",
+    "concurrently": "^9.2.1",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
     "expect-webdriverio": "^5.5.0",
     "jsdom": "^27.3.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
-    "vitest": "^4.0.15"
+    "vitest": "^4.0.15",
+    "wait-on": "^9.0.3"
   }
 }

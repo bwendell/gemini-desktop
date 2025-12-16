@@ -5,8 +5,6 @@
  * Centralizes platform-specific logic for easier testing and maintenance.
  */
 
-import { type as getOsType } from '@tauri-apps/plugin-os';
-
 /**
  * Supported operating systems.
  */
@@ -15,14 +13,25 @@ export type Platform = 'windows' | 'linux' | 'macos';
 /**
  * Returns the current operating system type.
  * 
- * This is a thin wrapper around the Tauri OS plugin that provides:
- * - Type-safe return value
- * - Centralized platform detection for testing
+ * Uses Electron's preload API if available, otherwise falls back to
+ * navigator.platform detection.
  * 
  * @returns The current platform ('windows', 'linux', or 'macos')
  */
 export function getPlatform(): Platform {
-    return getOsType() as Platform;
+    // Check if Electron API is available (from preload)
+    if (window.electronAPI) {
+        const platform = window.electronAPI.platform;
+        if (platform === 'darwin') return 'macos';
+        if (platform === 'win32') return 'windows';
+        return 'linux';
+    }
+
+    // Fallback to navigator.platform for testing/development
+    const nav = navigator.platform.toLowerCase();
+    if (nav.includes('mac')) return 'macos';
+    if (nav.includes('win')) return 'windows';
+    return 'linux';
 }
 
 /**
@@ -58,7 +67,7 @@ export function isLinux(): boolean {
 /**
  * Checks if the current platform uses custom window controls.
  * 
- * On macOS, we use native traffic light buttons via titleBarStyle: 'overlay'.
+ * On macOS, we use native traffic light buttons via titleBarStyle: 'hidden'.
  * On Windows and Linux, we render custom React-based window controls.
  * 
  * @returns true if custom controls should be rendered

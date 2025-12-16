@@ -1,8 +1,3 @@
-import { Window } from '@tauri-apps/api/window';
-import { invoke } from '@tauri-apps/api/core';
-import { exit } from '@tauri-apps/plugin-process';
-import { message } from '@tauri-apps/plugin-dialog';
-import { useMemo } from 'react';
 import type { MenuDefinition } from './menuTypes';
 
 // Re-export types for consumers
@@ -14,9 +9,6 @@ export type { MenuDefinition, MenuItem } from './menuTypes';
  * Note: Edit menu removed as it doesn't affect the embedded Gemini webview.
  */
 export function useMenuDefinitions(): MenuDefinition[] {
-    // Memoize window reference to avoid repeated getCurrent() calls
-    const appWindow = useMemo(() => Window.getCurrent(), []);
-
     return [
         {
             label: 'File',
@@ -30,20 +22,14 @@ export function useMenuDefinitions(): MenuDefinition[] {
                 {
                     label: 'Options...',
                     shortcut: 'Ctrl+,',
-                    action: async () => {
-                        try {
-                            await invoke('create_options_window');
-                        } catch (error) {
-                            console.error('Failed to open options window:', error);
-                        }
-                    },
+                    disabled: true, // Will be implemented later
                 },
                 { separator: true },
                 {
                     label: 'Exit',
                     shortcut: 'Alt+F4',
-                    action: async () => {
-                        await exit(0);
+                    action: () => {
+                        window.electronAPI?.closeWindow();
                     },
                 },
             ],
@@ -60,10 +46,7 @@ export function useMenuDefinitions(): MenuDefinition[] {
                 {
                     label: 'Toggle Fullscreen',
                     shortcut: 'F11',
-                    action: async () => {
-                        const isFullscreen = await appWindow.isFullscreen();
-                        await appWindow.setFullscreen(!isFullscreen);
-                    },
+                    disabled: true, // Will need IPC for fullscreen toggle
                 },
             ],
         },
@@ -72,12 +55,9 @@ export function useMenuDefinitions(): MenuDefinition[] {
             items: [
                 {
                     label: 'About Gemini Desktop',
-                    action: async () => {
-                        await message('Gemini Desktop v0.1.0\nAn unofficial desktop client for Gemini.', {
-                            title: 'About Gemini Desktop',
-                            kind: 'info',
-                            okLabel: 'Close'
-                        });
+                    action: () => {
+                        // Simple alert for now - can be enhanced later
+                        alert('Gemini Desktop v0.1.0\nAn unofficial desktop client for Gemini.');
                     },
                 },
             ],

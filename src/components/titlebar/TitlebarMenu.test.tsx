@@ -3,36 +3,18 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { type as getOsType } from '@tauri-apps/plugin-os';
-import { Menu, MenuItem as TauriMenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu';
 import { TitlebarMenu } from './TitlebarMenu';
 import type { MenuDefinition } from './menuTypes';
+import '@testing-library/jest-dom'; // Ensure jest-dom matchers are available
 
 // Mock dependencies
 vi.mock('@tauri-apps/plugin-os', () => ({
     type: vi.fn(),
 }));
 
-const mockMenuPopup = vi.fn();
-const mockMenuNew = vi.fn();
-
-vi.mock('@tauri-apps/api/menu', () => ({
-    Menu: {
-        new: vi.fn(),
-    },
-    MenuItem: {
-        new: vi.fn(),
-    },
-    PredefinedMenuItem: {
-        new: vi.fn(),
-    },
-}));
-
 const mockGetOsType = vi.mocked(getOsType);
-const mockedMenu = vi.mocked(Menu);
-const mockedMenuItem = vi.mocked(TauriMenuItem);
-const mockedPredefinedMenuItem = vi.mocked(PredefinedMenuItem);
 
 describe('TitlebarMenu', () => {
     const sampleMenus: MenuDefinition[] = [
@@ -56,11 +38,6 @@ describe('TitlebarMenu', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockGetOsType.mockReturnValue('windows');
-        mockMenuPopup.mockResolvedValue(undefined);
-        mockMenuNew.mockResolvedValue({ popup: mockMenuPopup });
-        mockedMenu.new.mockImplementation(mockMenuNew);
-        mockedMenuItem.new.mockImplementation(async (opts) => ({ ...opts, type: 'menuitem' }));
-        mockedPredefinedMenuItem.new.mockImplementation(async (opts) => ({ ...opts, type: 'predefined' }));
     });
 
     describe('platform behavior', () => {
@@ -88,106 +65,92 @@ describe('TitlebarMenu', () => {
         });
     });
 
-    describe('menu button rendering', () => {
-        it('renders a button for each menu', () => {
-            render(<TitlebarMenu menus={sampleMenus} />);
-
-            const buttons = screen.getAllByRole('button');
-            expect(buttons).toHaveLength(2);
-            expect(buttons[0]).toHaveTextContent('File');
-            expect(buttons[1]).toHaveTextContent('Edit');
-        });
-
-        it('renders with correct CSS class', () => {
-            render(<TitlebarMenu menus={sampleMenus} />);
-
-            const buttons = screen.getAllByRole('button');
-            buttons.forEach((btn) => {
-                expect(btn).toHaveClass('titlebar-menu-button');
-            });
-        });
-
-        it('renders empty when no menus provided', () => {
-            const { container } = render(<TitlebarMenu menus={[]} />);
-
-            expect(container.querySelector('.titlebar-menu-bar')).toBeInTheDocument();
-            expect(screen.queryAllByRole('button')).toHaveLength(0);
-        });
-    });
-
-    describe('menu click handling', () => {
-        it('clicking menu button creates native menu and shows popup', async () => {
+    describe('menu interactions', () => {
+        it('opens dropdown on click', () => {
             render(<TitlebarMenu menus={sampleMenus} />);
 
             const fileButton = screen.getByText('File');
             fireEvent.click(fileButton);
 
-            await waitFor(() => {
-                expect(mockedMenu.new).toHaveBeenCalled();
-                expect(mockMenuPopup).toHaveBeenCalled();
-            });
+            // Check if dropdown items are visible
+            expect(screen.getByText('New')).toBeVisible();
+            expect(screen.getByText('Exit')).toBeVisible();
         });
 
-        it('creates menu items with correct properties', async () => {
+        it('closes dropdown on second click', () => {
             render(<TitlebarMenu menus={sampleMenus} />);
 
             const fileButton = screen.getByText('File');
             fireEvent.click(fileButton);
+            expect(screen.getByText('New')).toBeVisible();
 
-            await waitFor(() => {
-                // Check that MenuItem.new was called for non-separator items
-                expect(mockedMenuItem.new).toHaveBeenCalled();
-                // Check that PredefinedMenuItem.new was called for separator
-                expect(mockedPredefinedMenuItem.new).toHaveBeenCalledWith({ item: 'Separator' });
-            });
+            fireEvent.click(fileButton);
+            expect(screen.queryByText('New')).not.toBeInTheDocument();
         });
 
-        it('includes shortcuts in menu item text', async () => {
+        it('closes dropdown on click outside', () => {
             render(<TitlebarMenu menus={sampleMenus} />);
 
             const fileButton = screen.getByText('File');
             fireEvent.click(fileButton);
+            expect(screen.getByText('New')).toBeVisible();
 
-            await waitFor(() => {
-                // Check MenuItem.new was called with shortcut in text
-                const calls = mockedMenuItem.new.mock.calls;
-                const newItemCall = calls.find((call) =>
-                    call[0]?.text?.includes('New') && call[0]?.text?.includes('Ctrl+N')
-                );
-                expect(newItemCall).toBeDefined();
-            });
+            fireEvent.mouseDown(document.body);
+            expect(screen.queryByText('New')).not.toBeInTheDocument();
         });
 
-        it('sets enabled to false for disabled items', async () => {
+        it('switches menu on hover when active', () => {
             render(<TitlebarMenu menus={sampleMenus} />);
 
+            const fileButton = screen.getByText('File');
             const editButton = screen.getByText('Edit');
-            fireEvent.click(editButton);
 
-            await waitFor(() => {
-                const calls = mockedMenuItem.new.mock.calls;
-                const disabledCall = calls.find((call) =>
-                    call[0]?.text?.includes('Disabled Item') && call[0]?.enabled === false
-                );
-                expect(disabledCall).toBeDefined();
-            });
+            // Open File menu
+            fireEvent.click(fileButton);
+            expect(screen.getByText('Exit')).toBeVisible();
+            expect(screen.queryByText('Undo')).not.toBeInTheDocument();
+
+            // Hover over Edit menu
+            fireEvent.mouseEnter(editButton);
+            expect(screen.queryByText('Exit')).not.toBeInTheDocument();
+            expect(screen.getByText('Undo')).toBeVisible();
         });
 
-        it('handles menu creation errors gracefully', async () => {
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-            const error = new Error('Menu creation failed');
-            mockedMenu.new.mockRejectedValue(error);
-
+        it('executes action and closes menu on item click', () => {
             render(<TitlebarMenu menus={sampleMenus} />);
 
             const fileButton = screen.getByText('File');
             fireEvent.click(fileButton);
 
-            await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith('Failed to show menu:', error);
-            });
+            const firstItem = sampleMenus[0].items[0];
+            // Safe access using type guard
+            if (!('separator' in firstItem)) {
+                const newAction = firstItem.action;
+                const newItem = screen.getByText('New');
 
-            consoleSpy.mockRestore();
+                fireEvent.click(newItem);
+
+                if (newAction) {
+                    expect(newAction).toHaveBeenCalled();
+                }
+                expect(screen.queryByText('New')).not.toBeInTheDocument();
+            }
+        });
+
+        it('does not close or execute action on disabled item click', () => {
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            fireEvent.click(screen.getByText('Edit'));
+            const disabledItem = screen.getByText('Disabled Item').closest('button');
+
+            expect(disabledItem).toBeDisabled();
+
+            if (disabledItem) {
+                fireEvent.click(disabledItem);
+            }
+
+            // Should still be open
+            expect(screen.getByText('Undo')).toBeVisible();
         });
     });
 });

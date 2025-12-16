@@ -1,45 +1,49 @@
-import { Window } from '@tauri-apps/api/window';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
+
+// Type declaration for the Electron API exposed via preload
+declare global {
+    interface Window {
+        electronAPI?: {
+            minimizeWindow: () => void;
+            maximizeWindow: () => void;
+            closeWindow: () => void;
+            isMaximized: () => Promise<boolean>;
+            platform: string;
+            isElectron: boolean;
+        };
+    }
+}
 
 /**
  * Custom hook for window control operations.
  * Provides minimize, maximize/restore, and close functionality.
  * 
- * This hook is designed to be easily extensible for future features
- * like window state persistence or custom animations.
+ * Works with both Electron (via preload API) and falls back gracefully.
  */
 export function useWindowControls() {
-    // Memoize window reference to avoid repeated getCurrent() calls
-    const appWindow = useMemo(() => Window.getCurrent(), []);
-
-    const minimize = useCallback(async () => {
-        try {
-            await appWindow.minimize();
-        } catch (error) {
-            console.error('Failed to minimize window:', error);
+    const minimize = useCallback(() => {
+        if (window.electronAPI) {
+            window.electronAPI.minimizeWindow();
+        } else {
+            console.warn('Window controls not available');
         }
-    }, [appWindow]);
+    }, []);
 
-    const maximize = useCallback(async () => {
-        try {
-            const isMaximized = await appWindow.isMaximized();
-            if (isMaximized) {
-                await appWindow.unmaximize();
-            } else {
-                await appWindow.maximize();
-            }
-        } catch (error) {
-            console.error('Failed to maximize/restore window:', error);
+    const maximize = useCallback(() => {
+        if (window.electronAPI) {
+            window.electronAPI.maximizeWindow();
+        } else {
+            console.warn('Window controls not available');
         }
-    }, [appWindow]);
+    }, []);
 
-    const close = useCallback(async () => {
-        try {
-            await appWindow.close();
-        } catch (error) {
-            console.error('Failed to close window:', error);
+    const close = useCallback(() => {
+        if (window.electronAPI) {
+            window.electronAPI.closeWindow();
+        } else {
+            console.warn('Window controls not available');
         }
-    }, [appWindow]);
+    }, []);
 
     return {
         minimize,
