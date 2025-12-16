@@ -64,11 +64,11 @@ describe('OptionsWindowTitlebar', () => {
             expect(screen.queryByTestId('options-window-controls')).not.toBeInTheDocument();
         });
 
-        it('should have drag region with data-tauri-drag-region attribute', () => {
+        it('should have a draggable region', () => {
             render(<OptionsWindowTitlebar />);
 
             const dragRegion = screen.getByTestId('options-titlebar-title').parentElement;
-            expect(dragRegion).toHaveAttribute('data-tauri-drag-region');
+            expect(dragRegion).toHaveClass('options-titlebar-drag-region');
         });
     });
 

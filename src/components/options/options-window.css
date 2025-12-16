@@ -40,7 +40,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    /* Enable window dragging via Tauri */
+    /* Enable window dragging via CSS -webkit-app-region */
     -webkit-app-region: drag;
 }
 

@@ -37,7 +37,7 @@ export function OptionsWindowTitlebar({ title = 'Options' }: OptionsWindowTitleb
     return (
         <header className="options-titlebar" data-testid="options-titlebar">
             {/* Drag region - covers entire titlebar for easy window dragging */}
-            <div className="options-titlebar-drag-region" data-tauri-drag-region>
+            <div className="options-titlebar-drag-region">
                 <span className="options-titlebar-title" data-testid="options-titlebar-title">
                     {title}
                 </span>
