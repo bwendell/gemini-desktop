@@ -83,4 +83,9 @@ export const config = {
         // Add a short delay to ensure React has time to mount
         await new Promise(resolve => setTimeout(resolve, 2000));
     },
+
+    // Ensure the app quits after tests
+    after: async function () {
+        await browser.electron.execute((electron) => electron.app.quit());
+    },
 };
