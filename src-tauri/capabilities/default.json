@@ -13,7 +13,10 @@
     "core:window:allow-unmaximize",
     "core:window:allow-is-maximized",
     "core:window:allow-inner-size",
+    "core:window:allow-set-fullscreen",
     "core:webview:allow-create-webview-window",
-    "opener:default"
+    "opener:default",
+    "core:menu:default",
+    "process:default"
   ]
 }

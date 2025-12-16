@@ -1,4 +1,6 @@
 import { WindowControls } from './WindowControls';
+import { TitlebarMenu } from './TitlebarMenu';
+import { useMenuDefinitions } from './useMenuDefinitions';
 import type { TitlebarConfig } from '../../types';
 import './titlebar.css';
 
@@ -19,20 +21,22 @@ interface TitlebarProps {
  * 
  * Features:
  * - Draggable region for moving the window
+ * - VS Code-style dropdown menus (Windows/Linux only)
  * - App title display
  * - Window control buttons (minimize, maximize, close)
  * 
- * The titlebar uses `-webkit-app-region: drag` to allow window dragging
- * when the user clicks and drags on the titlebar area.
+ * Note: The drag region is applied to a dedicated element, not the entire header,
+ * to allow menu buttons to receive click events.
  * 
  * @param config - Optional configuration for theming/customization
  */
 export function Titlebar({ config = {} }: TitlebarProps) {
     const mergedConfig = { ...defaultConfig, ...config };
+    const menus = useMenuDefinitions();
 
     return (
-        <header className="titlebar" data-tauri-drag-region>
-            <div className="titlebar-content">
+        <header className="titlebar">
+            <div className="titlebar-left">
                 {mergedConfig.showIcon && (
                     <div className="titlebar-icon">
                         {/* Placeholder for app icon - can be customized later */}
@@ -42,9 +46,15 @@ export function Titlebar({ config = {} }: TitlebarProps) {
                         </svg>
                     </div>
                 )}
+                <TitlebarMenu menus={menus} />
+            </div>
+            {/* Drag region - allows window dragging without blocking menu clicks */}
+            <div className="titlebar-drag-region" data-tauri-drag-region>
                 <span className="titlebar-title">{mergedConfig.title}</span>
             </div>
             <WindowControls />
         </header>
     );
 }
+
+
