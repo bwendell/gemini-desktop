@@ -22,7 +22,8 @@
         "transparent": false,
         "resizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "titleBarStyle": "Overlay"
       }
     ],
     "security": {

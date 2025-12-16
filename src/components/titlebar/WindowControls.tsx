@@ -1,3 +1,4 @@
+import { type } from '@tauri-apps/plugin-os';
 import { useWindowControls } from '../../hooks/useWindowControls';
 import './titlebar.css';
 
@@ -10,6 +11,12 @@ import './titlebar.css';
  */
 export function WindowControls() {
     const { minimize, maximize, close } = useWindowControls();
+
+    // On macOS, we use the native traffic lights provided by 'titleBarStyle: Overlay'
+    // So we hide these custom controls.
+    if (type() === 'macos') {
+        return null;
+    }
 
     return (
         <div className="window-controls">

@@ -12,20 +12,32 @@ export function useWindowControls() {
     const appWindow = Window.getCurrent();
 
     const minimize = useCallback(async () => {
-        await appWindow.minimize();
+        try {
+            await appWindow.minimize();
+        } catch (error) {
+            console.error('Failed to minimize window:', error);
+        }
     }, [appWindow]);
 
     const maximize = useCallback(async () => {
-        const isMaximized = await appWindow.isMaximized();
-        if (isMaximized) {
-            await appWindow.unmaximize();
-        } else {
-            await appWindow.maximize();
+        try {
+            const isMaximized = await appWindow.isMaximized();
+            if (isMaximized) {
+                await appWindow.unmaximize();
+            } else {
+                await appWindow.maximize();
+            }
+        } catch (error) {
+            console.error('Failed to maximize/restore window:', error);
         }
     }, [appWindow]);
 
     const close = useCallback(async () => {
-        await appWindow.close();
+        try {
+            await appWindow.close();
+        } catch (error) {
+            console.error('Failed to close window:', error);
+        }
     }, [appWindow]);
 
     return {

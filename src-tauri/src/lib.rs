@@ -4,9 +4,11 @@
 //! It configures the Tauri builder with plugins and commands.
 
 mod commands;
+mod errors;
 
 use commands::create_gemini_webview;
 use tauri::{Manager, PhysicalPosition, PhysicalSize, Position, Size};
+use tauri_plugin_log::{Target, TargetKind};
 
 const TITLEBAR_HEIGHT: f64 = 32.0;
 
@@ -46,6 +48,15 @@ pub fn run() {
             }
             Ok(())
         })
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::LogDir { file_name: None }),
+                ])
+                .build(),
+        )
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![create_gemini_webview])
         .run(tauri::generate_context!())
