@@ -30,13 +30,14 @@ describe('App', () => {
         });
     });
 
-    /*
     describe('error state', () => {
-        it('shows error message when iframe fails to load', async () => {
-             // Test flaky in JSDOM, manually verified
+        // Note: The iframe onError handler cannot be tested in JSDOM because
+        // fireEvent.error() doesn't trigger React's synthetic onError for iframes.
+        // This has been manually verified to work in the actual Electron environment.
+        it.skip('shows error message when iframe errors (manual test only)', () => {
+            // This test is skipped because JSDOM cannot properly simulate iframe errors
         });
     });
-    */
 
     describe('layout structure', () => {
         it('renders MainLayout container', () => {

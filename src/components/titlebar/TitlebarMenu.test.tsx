@@ -152,5 +152,72 @@ describe('TitlebarMenu', () => {
             // Should still be open
             expect(screen.getByText('Undo')).toBeVisible();
         });
+
+        it('does not switch menu on hover when no menu is active', () => {
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            const editButton = screen.getByText('Edit');
+
+            // Hover without clicking first - menu should not open
+            fireEvent.mouseEnter(editButton);
+            expect(screen.queryByText('Undo')).not.toBeInTheDocument();
+        });
+
+        it('closes menu when clicking on item without action', () => {
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            fireEvent.click(screen.getByText('Edit'));
+            const undoItem = screen.getByText('Undo');
+
+            // Click on item without action
+            fireEvent.click(undoItem);
+
+            // Menu should still close
+            expect(screen.queryByText('Undo')).not.toBeInTheDocument();
+        });
+
+        it('keeps dropdown open when clicking inside dropdown', () => {
+            vi.useFakeTimers();
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            const fileButton = screen.getByText('File');
+            fireEvent.click(fileButton);
+            vi.runAllTimers();
+
+            const dropdown = document.querySelector('.titlebar-menu-dropdown');
+            expect(dropdown).toBeInTheDocument();
+
+            // Click inside dropdown but not on an item
+            if (dropdown) {
+                fireEvent.mouseDown(dropdown);
+            }
+
+            // Dropdown should still be open
+            expect(screen.getByText('New')).toBeVisible();
+
+            vi.useRealTimers();
+        });
+
+        it('keeps dropdown open when clicking inside menu bar', () => {
+            vi.useFakeTimers();
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            const fileButton = screen.getByText('File');
+            fireEvent.click(fileButton);
+            vi.runAllTimers();
+
+            const menuBar = document.querySelector('.titlebar-menu-bar');
+            expect(menuBar).toBeInTheDocument();
+
+            // Click inside menu bar (but not on a button)
+            if (menuBar) {
+                fireEvent.mouseDown(menuBar);
+            }
+
+            // Dropdown should still be open
+            expect(screen.getByText('New')).toBeVisible();
+
+            vi.useRealTimers();
+        });
     });
 });

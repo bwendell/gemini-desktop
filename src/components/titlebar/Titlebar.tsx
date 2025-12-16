@@ -48,8 +48,11 @@ export function Titlebar({ config = {} }: TitlebarProps) {
                 )}
                 <TitlebarMenu menus={menus} />
             </div>
-            {/* Drag region - allows window dragging without blocking menu clicks */}
-            <div className="titlebar-drag-region" data-tauri-drag-region>
+            {/* 
+                Drag region - allows window dragging without blocking menu clicks.
+                Dragging is handled by CSS (-webkit-app-region: drag) in titlebar.css
+            */}
+            <div className="titlebar-drag-region">
                 <span className="titlebar-title" data-testid="titlebar-title">{mergedConfig.title}</span>
             </div>
             <WindowControls />

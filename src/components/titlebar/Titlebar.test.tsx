@@ -42,7 +42,6 @@ describe('Titlebar', () => {
 
             const dragRegion = document.querySelector('.titlebar-drag-region');
             expect(dragRegion).toBeInTheDocument();
-            expect(dragRegion).toHaveAttribute('data-tauri-drag-region');
         });
     });
 

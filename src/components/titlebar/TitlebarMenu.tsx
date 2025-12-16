@@ -55,6 +55,7 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
 
     const openMenu = useCallback((index: number) => {
         const button = buttonRefs.current[index];
+        /* c8 ignore next 5 -- defensive null check, refs always populated */
         if (button) {
             const rect = button.getBoundingClientRect();
             setDropdownPosition({

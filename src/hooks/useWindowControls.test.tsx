@@ -53,9 +53,9 @@ describe('useWindowControls', () => {
     });
 
     describe('when API is not available', () => {
-        it('logs warning when API is missing', () => {
+        it('logs warning when minimize is called without API', () => {
             const originalAPI = window.electronAPI;
-            // @ts-ignore
+            // @ts-ignore - Testing undefined case
             delete window.electronAPI;
 
             const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
@@ -64,6 +64,46 @@ describe('useWindowControls', () => {
 
             act(() => {
                 result.current.minimize();
+            });
+
+            expect(consoleSpy).toHaveBeenCalledWith('Window controls not available');
+            consoleSpy.mockRestore();
+
+            // Restore API
+            window.electronAPI = originalAPI;
+        });
+
+        it('logs warning when maximize is called without API', () => {
+            const originalAPI = window.electronAPI;
+            // @ts-ignore - Testing undefined case
+            delete window.electronAPI;
+
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+
+            const { result } = renderHook(() => useWindowControls());
+
+            act(() => {
+                result.current.maximize();
+            });
+
+            expect(consoleSpy).toHaveBeenCalledWith('Window controls not available');
+            consoleSpy.mockRestore();
+
+            // Restore API
+            window.electronAPI = originalAPI;
+        });
+
+        it('logs warning when close is called without API', () => {
+            const originalAPI = window.electronAPI;
+            // @ts-ignore - Testing undefined case
+            delete window.electronAPI;
+
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+
+            const { result } = renderHook(() => useWindowControls());
+
+            act(() => {
+                result.current.close();
             });
 
             expect(consoleSpy).toHaveBeenCalledWith('Window controls not available');

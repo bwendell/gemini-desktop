@@ -41,6 +41,51 @@ function setupHeaderStripping() {
 }
 
 /**
+ * Set up IPC handlers for window controls.
+ * Provides minimize, maximize, and close functionality from the renderer.
+ */
+function setupIpcHandlers() {
+    ipcMain.on('window-minimize', () => {
+        try {
+            if (mainWindow) mainWindow.minimize();
+        } catch (error) {
+            console.error('Error minimizing window:', error);
+        }
+    });
+
+    ipcMain.on('window-maximize', () => {
+        try {
+            if (mainWindow) {
+                if (mainWindow.isMaximized()) {
+                    mainWindow.unmaximize();
+                } else {
+                    mainWindow.maximize();
+                }
+            }
+        } catch (error) {
+            console.error('Error maximizing window:', error);
+        }
+    });
+
+    ipcMain.on('window-close', () => {
+        try {
+            if (mainWindow) mainWindow.close();
+        } catch (error) {
+            console.error('Error closing window:', error);
+        }
+    });
+
+    ipcMain.handle('window-is-maximized', () => {
+        try {
+            return mainWindow ? mainWindow.isMaximized() : false;
+        } catch (error) {
+            console.error('Error checking window state:', error);
+            return false;
+        }
+    });
+}
+
+/**
  * Create the main application window.
  */
 function createWindow() {
@@ -50,13 +95,16 @@ function createWindow() {
         minWidth: 800,
         minHeight: 600,
         frame: false, // Frameless for custom titlebar
+        titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined, // Native traffic lights on macOS
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             contextIsolation: true,
             nodeIntegration: false,
+            // Sandbox is enabled by default in recent Electron versions
         },
         backgroundColor: '#1a1a1a',
         show: false, // Don't show until ready
+        icon: path.join(__dirname, '../build/icon.png'),
     });
 
     // Load the app
@@ -82,6 +130,7 @@ function createWindow() {
 // App lifecycle
 app.whenReady().then(() => {
     setupHeaderStripping();
+    setupIpcHandlers();
     createWindow();
 
     app.on('activate', () => {
@@ -97,32 +146,4 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
-});
-
-// IPC handlers for window controls
-ipcMain.on('window-minimize', () => {
-    if (mainWindow) {
-        mainWindow.minimize();
-    }
-});
-
-ipcMain.on('window-maximize', () => {
-    if (mainWindow) {
-        if (mainWindow.isMaximized()) {
-            mainWindow.unmaximize();
-        } else {
-            mainWindow.maximize();
-        }
-    }
-});
-
-ipcMain.on('window-close', () => {
-    if (mainWindow) {
-        mainWindow.close();
-    }
-});
-
-// IPC handler for getting window state
-ipcMain.handle('window-is-maximized', () => {
-    return mainWindow ? mainWindow.isMaximized() : false;
 });

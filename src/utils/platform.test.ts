@@ -96,4 +96,55 @@ describe('platform utilities', () => {
             expect(usesCustomWindowControls()).toBe(false);
         });
     });
+
+    describe('navigator.platform fallback', () => {
+        it('detects macOS from navigator.platform when electronAPI is unavailable', () => {
+            const originalAPI = window.electronAPI;
+            // @ts-ignore - Testing undefined case
+            delete window.electronAPI;
+
+            // Mock navigator.platform
+            Object.defineProperty(navigator, 'platform', {
+                value: 'MacIntel',
+                configurable: true,
+            });
+
+            expect(getPlatform()).toBe('macos');
+
+            // Restore
+            window.electronAPI = originalAPI;
+        });
+
+        it('detects Windows from navigator.platform when electronAPI is unavailable', () => {
+            const originalAPI = window.electronAPI;
+            // @ts-ignore - Testing undefined case
+            delete window.electronAPI;
+
+            Object.defineProperty(navigator, 'platform', {
+                value: 'Win32',
+                configurable: true,
+            });
+
+            expect(getPlatform()).toBe('windows');
+
+            // Restore
+            window.electronAPI = originalAPI;
+        });
+
+        it('defaults to Linux from navigator.platform when electronAPI is unavailable', () => {
+            const originalAPI = window.electronAPI;
+            // @ts-ignore - Testing undefined case
+            delete window.electronAPI;
+
+            Object.defineProperty(navigator, 'platform', {
+                value: 'Linux x86_64',
+                configurable: true,
+            });
+
+            expect(getPlatform()).toBe('linux');
+
+            // Restore
+            window.electronAPI = originalAPI;
+        });
+    });
 });
