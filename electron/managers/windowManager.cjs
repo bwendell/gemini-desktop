@@ -63,6 +63,10 @@ class WindowManager {
 
         this.mainWindow.on('closed', () => {
             this.mainWindow = null;
+            // Close options window if it exists to ensure app quits
+            if (this.optionsWindow) {
+                this.optionsWindow.close();
+            }
         });
 
         return this.mainWindow;
