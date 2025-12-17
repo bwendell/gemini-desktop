@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: # Allow manual triggering for testing
+
+# Prevent concurrent releases
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # Required for creating releases
+
+env:
+  NODE_VERSION: '20'
+  # Skip Electron install cache for faster builds
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+jobs:
+  # ===========================================================================
+  # Quality Gate: Tests
+  # ===========================================================================
+  # Ensure strict quality control before attempting a release.
+  # We run Unit Tests and E2E tests.
+  
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: Build Electron Backend
+        run: npm run build:electron
+      
+      - name: Run All Tests
+        run: npm run test:all
+        env:
+          FORCE_COLOR: 1
+
+  e2e-tests:
+    name: E2E Verification (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true # If any platform fails, abort the release
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      # Linux specifics for Headless
+      - name: Setup Virtual Display (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "DISPLAY=:99.0" >> $GITHUB_ENV
+
+      - run: npm ci
+      
+      - name: Build
+        run: |
+          npm run build
+          npm run build:electron
+        env:
+          NODE_ENV: production
+
+      - name: Run E2E
+        run: npm run test:e2e
+        env:
+          ELECTRON_USE_DIST: 'true'
+          DISPLAY: ${{ runner.os == 'Linux' && ':99.0' || '' }}
+
+  # ===========================================================================
+  # Build & Release
+  # ===========================================================================
+  release:
+    name: Build & Release (${{ matrix.os }})
+    needs: [unit-tests, e2e-tests]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Build the Frontend & Backend
+      - name: Build Project
+        run: |
+          npm run build
+          npm run build:electron
+        env:
+          NODE_ENV: production
+
+      # Run Electron Builder
+      # This step builds the artifacts and uploads them to the GitHub Release
+      - name: Build & Publish via Electron Builder
+        run: npx --yes electron-builder --publish always
+        env:
+          # GitHub token for publishing releases
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+          # macOS Signing & Notarization Secrets (Optional - Empty = Unsigned)
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          
+          # Windows Signing Secrets (Optional - Empty = Unsigned)
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
