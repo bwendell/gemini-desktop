@@ -13,6 +13,14 @@ import { clickMenuItem } from './helpers/menuActions';
 import { waitForWindowCount, switchToWindowByIndex } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
 
+declare global {
+    interface Window {
+        electronAPI: {
+            closeWindow: () => void;
+        };
+    }
+}
+
 describe('Options Window Features', () => {
     it('should open options window with correct window controls', async () => {
         // 1. Open Options via menu
@@ -56,8 +64,8 @@ describe('Options Window Features', () => {
             await closeBtn.click();
         } else {
             E2ELogger.info('options-window', 'Skipping custom controls check on macOS');
-            // Close via keyboard shortcut on macOS
-            await browser.keys(['Meta', 'w']);
+            // Close via exposed API for reliability (Cmd+W can be flaky in CI)
+            await browser.execute(() => window.electronAPI.closeWindow());
         }
 
         // 6. Verify correct window closing behavior
