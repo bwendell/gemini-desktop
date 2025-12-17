@@ -108,7 +108,7 @@ jobs:
       # Artifacts
       # -----------------------------------------------------------------------
       - name: Upload Frontend Coverage Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()  # Upload even if tests fail for debugging
         with:
           name: coverage-frontend
@@ -116,7 +116,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Electron Coverage Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: coverage-electron
@@ -211,7 +211,7 @@ jobs:
       # Artifacts & Error Handling
       # -----------------------------------------------------------------------
       - name: Upload E2E Screenshots (on failure)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: e2e-screenshots-${{ matrix.os }}
@@ -222,7 +222,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload E2E Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: e2e-results-${{ matrix.os }}
