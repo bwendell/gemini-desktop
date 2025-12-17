@@ -37,7 +37,8 @@ async function triggerMenuItemViaMacOS(ref: MenuItemRef): Promise<void> {
     await browser.electron.execute((electron, menuLabel, itemLabel) => {
         // Map menu items to IPC actions
         if (menuLabel === 'File' && itemLabel === 'Options') {
-            electron.ipcRenderer.send('open-options-window');
+            // Use ipcMain.emit to simulate the event trigger from within the main process
+            electron.ipcMain.emit('open-options-window');
             return;
         }
 
