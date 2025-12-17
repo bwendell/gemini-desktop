@@ -41,10 +41,19 @@ describe('useMenuDefinitions', () => {
             expect(fileMenu.items[1]).toEqual({ separator: true });
         });
 
-        it('has Options item (disabled placeholder)', () => {
+        it('has Sign in to Google item', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const fileMenu = result.current[0];
-            const optionsItem = fileMenu.items[2];
+            const signInItem = fileMenu.items[2];
+
+            expect(signInItem).toHaveProperty('label', 'Sign in to Google');
+            expect(signInItem).toHaveProperty('action');
+        });
+
+        it('has Options item', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const fileMenu = result.current[0];
+            const optionsItem = fileMenu.items[3];
 
             expect(optionsItem).toHaveProperty('label', 'Options');
             expect(optionsItem).toHaveProperty('disabled', false);
@@ -60,13 +69,13 @@ describe('useMenuDefinitions', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const fileMenu = result.current[0];
 
-            expect(fileMenu.items[3]).toEqual({ separator: true });
+            expect(fileMenu.items[4]).toEqual({ separator: true });
         });
 
         it('Exit action calls electronAPI.closeWindow()', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const fileMenu = result.current[0];
-            const exitItem = fileMenu.items[4];
+            const exitItem = fileMenu.items[5];
 
             expect(exitItem).toHaveProperty('label', 'Exit');
 

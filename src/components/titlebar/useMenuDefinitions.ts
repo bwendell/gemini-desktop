@@ -20,6 +20,14 @@ export function useMenuDefinitions(): MenuDefinition[] {
                 },
                 { separator: true },
                 {
+                    label: 'Sign in to Google',
+                    action: async () => {
+                        await window.electronAPI?.openGoogleSignIn();
+                        // Reload the page to pick up the new auth cookies
+                        window.location.reload();
+                    },
+                },
+                {
                     label: 'Options',
                     shortcut: 'Ctrl+,',
                     disabled: false,

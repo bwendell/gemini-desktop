@@ -1,12 +1,13 @@
 /// <reference types="vite/client" />
 
 interface Window {
-    electronAPI: {
+    electronAPI?: {
         minimizeWindow: () => void;
         maximizeWindow: () => void;
         closeWindow: () => void;
         isMaximized: () => Promise<boolean>;
         openOptions: () => void;
+        openGoogleSignIn: () => Promise<void>;
 
         // Theme API
         getTheme: () => Promise<{ preference: 'light' | 'dark' | 'system'; effectiveTheme: 'light' | 'dark' }>;

@@ -67,6 +67,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
      */
     openOptions: () => ipcRenderer.send('open-options-window'),
 
+    /**
+     * Open Google sign-in in a new BrowserWindow.
+     * Returns a promise that resolves when the window is closed.
+     * @returns {Promise<void>}
+     */
+    openGoogleSignIn: () => ipcRenderer.invoke('open-google-signin'),
+
     // =========================================================================
     // Platform Detection
     // Enables cross-platform conditional rendering

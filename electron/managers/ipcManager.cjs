@@ -12,6 +12,13 @@
  */
 const { ipcMain, BrowserWindow, nativeTheme } = require('electron');
 const SettingsStore = require('../store.cjs');
+const { GOOGLE_ACCOUNTS_URL } = require('../utils/constants.cjs');
+
+/**
+ * Logging prefix for IpcManager messages.
+ * @constant {string}
+ */
+const LOG_PREFIX = '[IpcManager]';
 
 /**
  * Valid theme values for the application.
@@ -46,7 +53,27 @@ class IpcManager {
         // Initialize native theme on startup
         this._initializeNativeTheme();
 
-        console.log('[IpcManager] Initialized');
+        this._log('Initialized');
+    }
+
+    /**
+     * Log an info message.
+     * @private
+     * @param {string} message - Message to log
+     * @param {...*} args - Additional arguments
+     */
+    _log(message, ...args) {
+        console.log(`${LOG_PREFIX} ${message}`, ...args);
+    }
+
+    /**
+     * Log an error message.
+     * @private
+     * @param {string} message - Message to log
+     * @param {...*} args - Additional arguments
+     */
+    _logError(message, ...args) {
+        console.error(`${LOG_PREFIX} ${message}`, ...args);
     }
 
     /**
@@ -57,9 +84,9 @@ class IpcManager {
         try {
             const savedTheme = this.store.get('theme') || 'system';
             nativeTheme.themeSource = savedTheme;
-            console.log(`[IpcManager] Native theme initialized to: ${savedTheme}`);
+            this._log(`Native theme initialized to: ${savedTheme}`);
         } catch (error) {
-            console.error('[IpcManager] Failed to initialize native theme:', error);
+            this._logError('Failed to initialize native theme:', error);
         }
     }
 
@@ -242,7 +269,22 @@ class IpcManager {
             try {
                 this.windowManager.createOptionsWindow();
             } catch (error) {
-                console.error('[IpcManager] Error opening options window:', error);
+                this._logError('Error opening options window:', error);
+            }
+        });
+
+        // Open Google sign-in using WindowManager's createAuthWindow
+        ipcMain.handle('open-google-signin', async () => {
+            try {
+                const authWindow = this.windowManager.createAuthWindow(GOOGLE_ACCOUNTS_URL);
+
+                // Return a promise that resolves when window is closed
+                return new Promise((resolve) => {
+                    authWindow.on('closed', () => resolve());
+                });
+            } catch (error) {
+                this._logError('Error opening Google sign-in:', error);
+                throw error;
             }
         });
     }
