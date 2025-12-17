@@ -18,7 +18,7 @@ interface MainLayoutProps {
  */
 export function MainLayout({ children }: MainLayoutProps) {
     return (
-        <div className="main-layout">
+        <div className="main-layout" data-testid="main-layout">
             <Titlebar />
             <main className="main-content">
                 {children}
