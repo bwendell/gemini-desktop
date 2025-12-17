@@ -10,7 +10,7 @@ import { browser, $, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { clickMenuItem } from './helpers/menuActions';
-import { waitForWindowCount } from './helpers/windowActions';
+import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 
 /**
  * Helper function to open the Options window and switch to it.
@@ -34,12 +34,7 @@ async function openOptionsWindow(): Promise<{ mainHandle: string; optionsHandle:
  * Helper function to close the Options window.
  */
 async function closeOptionsWindow(mainHandle: string): Promise<void> {
-    if (await usesCustomControls()) {
-        const closeBtn = await $(Selectors.optionsCloseButton);
-        await closeBtn.click();
-    } else {
-        await browser.keys(['Meta', 'w']);
-    }
+    await closeCurrentWindow();
 
     await waitForWindowCount(1, 5000);
     await browser.switchToWindow(mainHandle);

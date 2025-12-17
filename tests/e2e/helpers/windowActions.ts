@@ -5,6 +5,14 @@ import { browser, $ } from '@wdio/globals';
 import { isMacOS } from './platform';
 import { E2ELogger } from './logger';
 
+declare global {
+    interface Window {
+        electronAPI: {
+            closeWindow: () => void;
+        };
+    }
+}
+
 /**
  * Wait for a specific number of windows to exist.
  * @param expectedCount The number of windows expected
@@ -41,8 +49,8 @@ export async function switchToWindowByIndex(index: number): Promise<void> {
 export async function closeCurrentWindow(): Promise<void> {
     const mac = await isMacOS();
     if (mac) {
-        E2ELogger.info('windowActions', 'Closing window via Keyboard (Cmd+W) for macOS');
-        await browser.keys(['Meta', 'w']);
+        E2ELogger.info('windowActions', 'Closing window via API (electronAPI.closeWindow) for macOS');
+        await browser.execute(() => window.electronAPI.closeWindow());
     } else {
         const closeBtn = await $('[data-testid="close-button"], [data-testid="options-close-button"]');
         if (await closeBtn.isExisting()) {
