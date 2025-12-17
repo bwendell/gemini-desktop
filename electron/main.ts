@@ -12,6 +12,8 @@ import { setupHeaderStripping } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
 import WindowManager from './managers/windowManager';
 import IpcManager from './managers/ipcManager';
+import HotkeyManager from './managers/hotkeyManager';
+
 
 // Path to the production build
 const distIndexPath = getDistHtmlPath('index.html');
@@ -31,12 +33,14 @@ const isDev = !useProductionBuild;
 // Initialize Managers
 const windowManager = new WindowManager(isDev);
 const ipcManager = new IpcManager(windowManager);
+const hotkeyManager = new HotkeyManager(windowManager);
 
 // App lifecycle
 app.whenReady().then(() => {
     setupHeaderStripping(session.defaultSession);
     ipcManager.setupIpcHandlers();
     windowManager.createMainWindow();
+    hotkeyManager.registerShortcuts();
 
     app.on('activate', () => {
         // On macOS, recreate window when dock icon is clicked
@@ -51,4 +55,8 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
+});
+
+app.on('will-quit', () => {
+    hotkeyManager.unregisterAll();
 });
