@@ -57,11 +57,14 @@ describe('OptionsWindowTitlebar', () => {
             expect(screen.queryByTestId('options-maximize-button')).not.toBeInTheDocument();
         });
 
-        it('should NOT render window controls on macOS', () => {
-            mockUsesCustomWindowControls = false;
+        it('should render window controls on all platforms (including macOS)', () => {
+            mockUsesCustomWindowControls = false; // Simulating macOS
             render(<OptionsWindowTitlebar />);
 
-            expect(screen.queryByTestId('options-window-controls')).not.toBeInTheDocument();
+            // Controls should still be present for consistent UX and testability
+            expect(screen.getByTestId('options-window-controls')).toBeInTheDocument();
+            expect(screen.getByTestId('options-minimize-button')).toBeInTheDocument();
+            expect(screen.getByTestId('options-close-button')).toBeInTheDocument();
         });
 
         it('should have a draggable region', () => {

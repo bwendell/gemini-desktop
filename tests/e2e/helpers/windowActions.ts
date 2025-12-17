@@ -5,6 +5,14 @@ import { browser, $ } from '@wdio/globals';
 import { isMacOS } from './platform';
 import { E2ELogger } from './logger';
 
+declare global {
+    interface Window {
+        electronAPI: {
+            closeWindow: () => void;
+        };
+    }
+}
+
 /**
  * Wait for a specific number of windows to exist.
  * @param expectedCount The number of windows expected
@@ -35,22 +43,31 @@ export async function switchToWindowByIndex(index: number): Promise<void> {
 
 /**
  * Closes the current focused window using platform-specific methods.
- * - macOS: invalidates using Command+W
- * - Windows/Linux: uses close button if present, else Alt+F4
+ * 
+ * Strategy:
+ * 1. First, try to use the GUI close button (works on all platforms)
+ * 2. On macOS: Use Cmd+W as fallback (native and reliable)
+ * 3. On Windows/Linux: Use Alt+F4 as fallback
+ * 
+ * Note: We avoid browser.execute(() => electronAPI.closeWindow()) on macOS
+ * because it can cause race conditions with the Electron service in CI.
  */
 export async function closeCurrentWindow(): Promise<void> {
+    // First, try to find and click a close button (works on all platforms)
+    const closeBtn = await $('[data-testid="close-button"], [data-testid="options-close-button"]');
+    if (await closeBtn.isExisting()) {
+        E2ELogger.info('windowActions', 'Closing window via GUI Close Button');
+        await closeBtn.click();
+        return;
+    }
+
+    // Fallback: platform-specific keyboard shortcuts
     const mac = await isMacOS();
     if (mac) {
         E2ELogger.info('windowActions', 'Closing window via Keyboard (Cmd+W) for macOS');
         await browser.keys(['Meta', 'w']);
     } else {
-        const closeBtn = await $('[data-testid="close-button"], [data-testid="options-close-button"]');
-        if (await closeBtn.isExisting()) {
-            E2ELogger.info('windowActions', 'Closing window via GUI Close Button');
-            await closeBtn.click();
-        } else {
-            E2ELogger.info('windowActions', 'Closing window via Keyboard (Alt+F4) fallback');
-            await browser.keys(['Alt', 'F4']);
-        }
+        E2ELogger.info('windowActions', 'Closing window via Keyboard (Alt+F4) fallback');
+        await browser.keys(['Alt', 'F4']);
     }
 }

@@ -10,7 +10,7 @@ import { browser, $, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { clickMenuItem } from './helpers/menuActions';
-import { waitForWindowCount } from './helpers/windowActions';
+import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 
 describe('Theme Feature', () => {
     it('should apply correct text colors to Options titlebar in light and dark modes', async () => {
@@ -127,11 +127,6 @@ describe('Theme Feature', () => {
 
         // Close Options Window
         await browser.switchToWindow(optionsWindowHandle);
-        if (await usesCustomControls()) {
-            const closeBtn = await $(Selectors.optionsCloseButton);
-            await closeBtn.click();
-        } else {
-            await browser.keys(['Meta', 'w']);
-        }
+        await closeCurrentWindow();
     });
 });
