@@ -3,6 +3,8 @@
  * 
  * Styles for the options window layout and titlebar.
  * Uses consistent theming with the main application.
+ * 
+ * Note: Theme selector specific styles are in ThemeSelector.css
  */
 
 /* === Options Window Layout === */
@@ -102,48 +104,29 @@
     flex-direction: column;
     padding: 24px;
     overflow-y: auto;
+    gap: 24px;
 }
 
+/* === Options Section (Modular Container) === */
+
 .options-section {
-    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .options-section h2 {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    margin-bottom: 12px;
-    color: var(--text-primary);
+    margin: 0;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    opacity: 0.8;
 }
 
-.theme-selector {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.options-section__content {
     background: var(--bg-secondary);
-    padding: 12px;
-    border-radius: 6px;
+    padding: 16px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
-}
-
-.theme-option {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    padding: 4px 0;
-    font-size: 14px;
-    color: var(--text-primary);
-}
-
-.theme-option:hover {
-    color: var(--accent-color);
-}
-
-.theme-option input[type="radio"] {
-    accent-color: var(--accent-color);
-    width: 16px;
-    height: 16px;
 }

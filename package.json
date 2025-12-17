@@ -17,6 +17,7 @@
     "docs": "typedoc --out docs src"
   },
   "dependencies": {
+    "framer-motion": "^12.23.26",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

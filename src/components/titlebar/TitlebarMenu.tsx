@@ -39,6 +39,7 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
                 document.removeEventListener('keydown', handleKeyDown);
             };
         }
+        return undefined;
     }, [activeMenuIndex]);
 
     // Handle clicks outside both the menu bar AND the dropdown
@@ -67,6 +68,7 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
                 document.removeEventListener('mousedown', handleClickOutside);
             };
         }
+        return undefined;
     }, [activeMenuIndex]);
 
     const openMenu = useCallback((index: number) => {
@@ -109,6 +111,8 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
         if (activeMenuIndex === null) return null;
 
         const menu = menus[activeMenuIndex];
+        // Guard against undefined menu (TypeScript noUncheckedIndexedAccess)
+        if (!menu) return null;
 
         const dropdown = (
             <>

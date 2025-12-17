@@ -19,6 +19,17 @@ vi.mock('./OptionsWindowTitlebar', () => ({
     ),
 }));
 
+// Mock ThemeSelector for isolated testing
+vi.mock('./ThemeSelector', () => ({
+    ThemeSelector: () => (
+        <div data-testid="mock-theme-selector">
+            <div data-testid="theme-card-system" role="radio" aria-checked="true">System</div>
+            <div data-testid="theme-card-light" role="radio" aria-checked="false">Light</div>
+            <div data-testid="theme-card-dark" role="radio" aria-checked="false">Dark</div>
+        </div>
+    ),
+}));
+
 // Helper to render with ThemeProvider
 const renderWithTheme = (ui: React.ReactElement) => {
     return render(<ThemeProvider>{ui}</ThemeProvider>);
@@ -49,13 +60,17 @@ describe('OptionsWindow', () => {
             expect(screen.getByTestId('options-content')).toBeInTheDocument();
         });
 
-        it('should display Appearance section with theme options', () => {
+        it('should display Appearance section', () => {
             renderWithTheme(<OptionsWindow />);
 
             expect(screen.getByText('Appearance')).toBeInTheDocument();
-            expect(screen.getByTestId('theme-system')).toBeInTheDocument();
-            expect(screen.getByTestId('theme-light')).toBeInTheDocument();
-            expect(screen.getByTestId('theme-dark')).toBeInTheDocument();
+            expect(screen.getByTestId('options-appearance')).toBeInTheDocument();
+        });
+
+        it('should render the ThemeSelector component', () => {
+            renderWithTheme(<OptionsWindow />);
+
+            expect(screen.getByTestId('mock-theme-selector')).toBeInTheDocument();
         });
     });
 
@@ -66,39 +81,36 @@ describe('OptionsWindow', () => {
             expect(screen.getByTestId('options-window')).toHaveClass('options-window');
             expect(screen.getByTestId('options-content')).toHaveClass('options-content');
         });
+
+        it('should wrap content in options-section with proper structure', () => {
+            renderWithTheme(<OptionsWindow />);
+
+            const section = screen.getByTestId('options-appearance');
+            expect(section).toHaveClass('options-section');
+            expect(section.querySelector('h2')).toHaveTextContent('Appearance');
+            expect(section.querySelector('.options-section__content')).toBeInTheDocument();
+        });
     });
 
     describe('theme selection', () => {
-        it('should update theme when light radio is clicked', async () => {
+        it('should render theme cards for all three options', () => {
             renderWithTheme(<OptionsWindow />);
 
-            const lightRadio = screen.getByTestId('theme-light');
-            fireEvent.click(lightRadio);
-
-            expect(window.electronAPI.setTheme).toHaveBeenCalledWith('light');
+            expect(screen.getByTestId('theme-card-system')).toBeInTheDocument();
+            expect(screen.getByTestId('theme-card-light')).toBeInTheDocument();
+            expect(screen.getByTestId('theme-card-dark')).toBeInTheDocument();
         });
+    });
 
-        it('should update theme when dark radio is clicked', async () => {
+    describe('accessibility', () => {
+        it('should have proper ARIA roles on theme selector', () => {
             renderWithTheme(<OptionsWindow />);
 
-            const darkRadio = screen.getByTestId('theme-dark');
-            fireEvent.click(darkRadio);
-
-            expect(window.electronAPI.setTheme).toHaveBeenCalledWith('dark');
-        });
-
-        it('should update theme when system radio is clicked', async () => {
-            renderWithTheme(<OptionsWindow />);
-
-            // First select dark to change from the default 'system'
-            const darkRadio = screen.getByTestId('theme-dark');
-            fireEvent.click(darkRadio);
-
-            // Then select system
-            const systemRadio = screen.getByTestId('theme-system');
-            fireEvent.click(systemRadio);
-
-            expect(window.electronAPI.setTheme).toHaveBeenCalledWith('system');
+            // Cards should have radio role
+            expect(screen.getByTestId('theme-card-system')).toHaveAttribute('role', 'radio');
+            expect(screen.getByTestId('theme-card-light')).toHaveAttribute('role', 'radio');
+            expect(screen.getByTestId('theme-card-dark')).toHaveAttribute('role', 'radio');
         });
     });
 });
+

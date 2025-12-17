@@ -28,9 +28,9 @@ describe('Theme Feature', () => {
         const titleElement = await $('[data-testid="options-titlebar-title"]');
         await titleElement.waitForExist();
 
-        // Select Light Theme
-        const lightThemeRadio = await $('[data-testid="theme-light"]');
-        await lightThemeRadio.click();
+        // Select Light Theme (using new card-based selector)
+        const lightThemeCard = await $('[data-testid="theme-card-light"]');
+        await lightThemeCard.click();
 
         // Small delay for CSS to apply
         await browser.pause(500);
@@ -90,9 +90,9 @@ describe('Theme Feature', () => {
         // #202124 = rgb(32, 33, 36)
         expect(lightDebugInfo.titleColor).toBe('rgb(32, 33, 36)');
 
-        // Now switch to dark theme and verify
-        const darkThemeRadio = await $('[data-testid="theme-dark"]');
-        await darkThemeRadio.click();
+        // Now switch to dark theme and verify (using new card-based selector)
+        const darkThemeCard = await $('[data-testid="theme-card-dark"]');
+        await darkThemeCard.click();
         await browser.pause(500);
 
         const darkDebugInfo = await browser.execute(() => {
@@ -129,3 +129,4 @@ describe('Theme Feature', () => {
         await closeBtn.click();
     });
 });
+

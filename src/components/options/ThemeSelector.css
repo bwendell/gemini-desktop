@@ -1,0 +1,251 @@
+/**
+ * ThemeSelector Styles
+ * 
+ * Modern, animated styles for the theme selection cards.
+ * Features glassmorphism, smooth transitions, and visual feedback.
+ */
+
+/* ============================================================================
+   Container Styles
+   ============================================================================ */
+
+.theme-selector-container {
+    width: 100%;
+}
+
+.theme-selector-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+}
+
+/* Responsive: stack on smaller screens */
+@media (max-width: 400px) {
+    .theme-selector-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================================
+   Theme Card Styles
+   ============================================================================ */
+
+.theme-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    
+    /* Glassmorphism base */
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    
+    /* Smooth transitions for non-animated properties */
+    transition: 
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background-color 0.2s ease;
+    
+    /* Remove default button/focus styles */
+    outline: none;
+}
+
+/* Hover state */
+.theme-card:hover {
+    border-color: var(--accent-color);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px var(--accent-color);
+}
+
+/* Focus-visible state for keyboard navigation */
+.theme-card:focus-visible {
+    border-color: var(--accent-color);
+    box-shadow: 
+        0 0 0 2px var(--bg-primary),
+        0 0 0 4px var(--accent-color);
+}
+
+/* Selected state */
+.theme-card--selected {
+    border-color: var(--accent-color);
+    background: linear-gradient(
+        135deg,
+        rgba(138, 180, 248, 0.1) 0%,
+        rgba(138, 180, 248, 0.05) 100%
+    );
+    box-shadow: 
+        0 4px 16px rgba(138, 180, 248, 0.2),
+        inset 0 0 0 1px rgba(138, 180, 248, 0.3);
+}
+
+/* Light theme selected state override */
+[data-theme='light'] .theme-card--selected {
+    background: linear-gradient(
+        135deg,
+        rgba(26, 115, 232, 0.1) 0%,
+        rgba(26, 115, 232, 0.05) 100%
+    );
+    box-shadow: 
+        0 4px 16px rgba(26, 115, 232, 0.15),
+        inset 0 0 0 1px rgba(26, 115, 232, 0.3);
+}
+
+/* ============================================================================
+   Preview Styles
+   ============================================================================ */
+
+.theme-card__preview {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    
+    /* Subtle border for definition */
+    box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.2);
+}
+
+.theme-card__preview-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+}
+
+.theme-card__preview-header {
+    height: 20%;
+    border-radius: 4px 4px 0 0;
+    margin-bottom: 3px;
+}
+
+.theme-card__preview-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 4px;
+}
+
+.theme-card__preview-text {
+    height: 6px;
+    width: 70%;
+    border-radius: 2px;
+    opacity: 0.6;
+}
+
+.theme-card__preview-accent {
+    height: 6px;
+    width: 40%;
+    border-radius: 2px;
+}
+
+/* ============================================================================
+   Label Styles
+   ============================================================================ */
+
+.theme-card__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.theme-card__icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+
+.theme-card__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Icon color when selected */
+.theme-card--selected .theme-card__icon {
+    color: var(--accent-color);
+}
+
+.theme-card__text {
+    line-height: 1;
+}
+
+/* ============================================================================
+   Checkmark Indicator
+   ============================================================================ */
+
+.theme-card__checkmark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Subtle shadow for depth */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-card__checkmark svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* ============================================================================
+   Animation Enhancements
+   ============================================================================ */
+
+/* Glow effect on hover for cards (subtle) */
+.theme-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 13px;
+    background: linear-gradient(
+        135deg,
+        transparent 0%,
+        rgba(138, 180, 248, 0) 50%,
+        transparent 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.theme-card:hover::before {
+    opacity: 1;
+    background: linear-gradient(
+        135deg,
+        rgba(138, 180, 248, 0.1) 0%,
+        rgba(138, 180, 248, 0.2) 50%,
+        rgba(138, 180, 248, 0.1) 100%
+    );
+}
+
+/* Light theme glow override */
+[data-theme='light'] .theme-card:hover::before {
+    background: linear-gradient(
+        135deg,
+        rgba(26, 115, 232, 0.08) 0%,
+        rgba(26, 115, 232, 0.15) 50%,
+        rgba(26, 115, 232, 0.08) 100%
+    );
+}
