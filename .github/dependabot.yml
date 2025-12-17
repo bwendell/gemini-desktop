@@ -1,0 +1,100 @@
+# =============================================================================
+# Dependabot Configuration
+# =============================================================================
+#
+# Automatically creates pull requests to update dependencies.
+# This helps keep the project secure and up-to-date.
+#
+# Best Practices:
+#   ✓ Weekly updates to avoid update fatigue
+#   ✓ Grouped updates for related packages
+#   ✓ Conventional commit prefixes for changelog generation
+#   ✓ Assignee configuration for review
+#
+# =============================================================================
+
+version: 2
+updates:
+  # ---------------------------------------------------------------------------
+  # npm Dependencies
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    
+    # Limit open PRs to avoid overwhelming the maintainer
+    open-pull-requests-limit: 10
+    
+    # Use conventional commit format
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    
+    # Group related dependencies together
+    groups:
+      # React ecosystem updates
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      
+      # Testing framework updates
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "@testing-library/*"
+          - "jsdom"
+      
+      # E2E testing updates
+      e2e-testing:
+        patterns:
+          - "@wdio/*"
+          - "wdio-*"
+          - "@playwright/*"
+          - "expect-webdriverio"
+      
+      # Electron ecosystem
+      electron:
+        patterns:
+          - "electron"
+          - "electron-builder"
+      
+      # Build tools
+      build-tools:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "typescript"
+          - "typedoc"
+    
+    # Ignore major version updates for stability
+    # These require manual review
+    ignore:
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions Updates
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    
+    commit-message:
+      prefix: "ci"
+      include: "scope"

@@ -1,0 +1,296 @@
+# =============================================================================
+# GitHub Actions CI/CD Workflow
+# =============================================================================
+#
+# This workflow runs automated tests for the Gemini Desktop application.
+# It triggers on pushes to main and pull requests, running:
+#   - Unit tests with coverage (all platforms)
+#   - E2E/Integration tests (Windows, Linux, macOS)
+#
+# Best Practices Applied:
+#   ✓ Matrix strategy for cross-platform testing
+#   ✓ Caching for faster builds
+#   ✓ Artifact uploads for test reports
+#   ✓ Fail-fast disabled for comprehensive reporting
+#   ✓ Concurrency control to prevent redundant runs
+#   ✓ Proper error handling and logging
+#
+# =============================================================================
+
+name: CI
+
+# =============================================================================
+# Trigger Configuration
+# =============================================================================
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Allow manual triggering from Actions tab
+  workflow_dispatch:
+
+# =============================================================================
+# Concurrency Control
+# =============================================================================
+# Cancel in-progress runs when a new commit is pushed to the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# =============================================================================
+# Environment Variables
+# =============================================================================
+env:
+  # Node.js version to use across all jobs
+  NODE_VERSION: '20'
+  # Enable more verbose logging for debugging CI issues
+  CI: true
+  # Electron-specific: Skip download prompt
+  ELECTRON_ENABLE_LOGGING: true
+
+# =============================================================================
+# Jobs
+# =============================================================================
+jobs:
+  # ---------------------------------------------------------------------------
+  # Unit Tests Job
+  # ---------------------------------------------------------------------------
+  # Runs unit tests with coverage on Ubuntu (fastest runner)
+  # This job must pass before E2E tests run
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      # -----------------------------------------------------------------------
+      # Setup
+      # -----------------------------------------------------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better error context
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+        # npm ci is preferred over npm install for CI:
+        # - Faster (uses package-lock.json directly)
+        # - Deterministic (exact versions)
+        # - Fails if lock file is out of sync
+
+      # -----------------------------------------------------------------------
+      # Test Execution
+      # -----------------------------------------------------------------------
+      - name: Run Unit Tests with Coverage
+        run: npm run test:coverage
+        env:
+          # Force color output in CI logs
+          FORCE_COLOR: 1
+
+      # -----------------------------------------------------------------------
+      # Artifacts
+      # -----------------------------------------------------------------------
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()  # Upload even if tests fail for debugging
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Upload Coverage to Summary
+        if: always()
+        run: |
+          echo "## Unit Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View the full coverage report in the artifacts." >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
+  # E2E Tests Job
+  # ---------------------------------------------------------------------------
+  # Runs E2E tests on all supported platforms in parallel
+  # Uses matrix strategy for cross-platform testing
+  e2e-tests:
+    name: E2E Tests (${{ matrix.os }})
+    needs: unit-tests  # Only run if unit tests pass
+    runs-on: ${{ matrix.os }}
+    
+    # Continue running other OS tests even if one fails
+    # This provides comprehensive cross-platform results
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          # Platform-specific configurations
+          - os: ubuntu-latest
+            display: ':99.0'
+          - os: windows-latest
+            display: ''
+          - os: macos-latest
+            display: ''
+
+    steps:
+      # -----------------------------------------------------------------------
+      # Setup
+      # -----------------------------------------------------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # Linux-specific: Setup virtual display for headless Electron
+      - name: Setup Virtual Display (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          # Start Xvfb virtual framebuffer
+          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "DISPLAY=:99.0" >> $GITHUB_ENV
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # -----------------------------------------------------------------------
+      # Build
+      # -----------------------------------------------------------------------
+      - name: Build Application
+        run: npm run build
+        env:
+          # Ensure production build for accurate E2E testing
+          NODE_ENV: production
+
+      # -----------------------------------------------------------------------
+      # Test Execution
+      # -----------------------------------------------------------------------
+      - name: Run E2E Tests
+        run: npm run test:e2e
+        env:
+          # Use production build for E2E tests
+          ELECTRON_USE_DIST: 'true'
+          # Platform-specific display settings
+          DISPLAY: ${{ matrix.display }}
+          # Enable verbose logging for debugging failures
+          DEBUG: 'wdio:*'
+
+      # -----------------------------------------------------------------------
+      # Artifacts & Error Handling
+      # -----------------------------------------------------------------------
+      - name: Upload E2E Screenshots (on failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-screenshots-${{ matrix.os }}
+          path: |
+            tests/e2e/screenshots/
+            tests/e2e/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload E2E Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results-${{ matrix.os }}
+          path: |
+            wdio-logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Build Verification Job
+  # ---------------------------------------------------------------------------
+  # Verifies that the application can be built for distribution
+  # Runs in parallel with E2E tests for faster feedback
+  build-verification:
+    name: Build Verification (${{ matrix.os }})
+    needs: unit-tests
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Frontend
+        run: npm run build
+
+      # Note: Full electron-builder packaging is skipped in CI
+      # to avoid code signing requirements. The build step validates
+      # that the code compiles correctly on all platforms.
+
+      - name: Verify Build Output
+        run: |
+          echo "Verifying build output exists..."
+          ls -la dist/ || dir dist/
+        shell: bash
+
+  # ---------------------------------------------------------------------------
+  # Summary Job
+  # ---------------------------------------------------------------------------
+  # Aggregates results and provides a single status check
+  ci-complete:
+    name: CI Complete
+    needs: [unit-tests, e2e-tests, build-verification]
+    runs-on: ubuntu-latest
+    if: always()  # Run even if previous jobs failed
+    
+    steps:
+      - name: Check Job Results
+        run: |
+          echo "## CI Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check unit tests
+          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+            echo "✅ Unit Tests: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check E2E tests
+          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+            echo "✅ E2E Tests: Passed (all platforms)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ E2E Tests: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check build verification
+          if [ "${{ needs.build-verification.result }}" == "success" ]; then
+            echo "✅ Build Verification: Passed (all platforms)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build Verification: ${{ needs.build-verification.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if Any Job Failed
+        if: |
+          needs.unit-tests.result != 'success' ||
+          needs.e2e-tests.result != 'success' ||
+          needs.build-verification.result != 'success'
+        run: |
+          echo "One or more jobs failed. See summary above for details."
+          exit 1
