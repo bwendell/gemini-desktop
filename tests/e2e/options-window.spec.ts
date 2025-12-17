@@ -41,32 +41,26 @@ describe('Options Window Features', () => {
         const titlebar = await $(Selectors.optionsTitlebar);
         await expect(titlebar).toExist();
 
-        // 4. Verify window controls - only present on Windows/Linux
-        if (await usesCustomControls()) {
-            const controlsContainer = await $('.options-window-controls');
-            await expect(controlsContainer).toBeDisplayed();
+        // 4. Verify window controls - now always present on all platforms
+        const controlsContainer = await $('.options-window-controls');
+        await expect(controlsContainer).toBeDisplayed();
 
-            const buttons = await controlsContainer.$$('button');
-            // Should only be Minimize and Close
-            expect(buttons.length).toBe(2);
+        const buttons = await controlsContainer.$$('button');
+        // Should only be Minimize and Close (no maximize for Options window)
+        expect(buttons.length).toBe(2);
 
-            const minimizeBtn = await $('[data-testid="options-minimize-button"]');
-            const closeBtn = await $(Selectors.optionsCloseButton);
+        const minimizeBtn = await $('[data-testid="options-minimize-button"]');
+        const closeBtn = await $(Selectors.optionsCloseButton);
 
-            await expect(minimizeBtn).toBeDisplayed();
-            await expect(closeBtn).toBeDisplayed();
+        await expect(minimizeBtn).toBeDisplayed();
+        await expect(closeBtn).toBeDisplayed();
 
-            // Double check no maximize button exists
-            const maximizeBtn = await $('[data-testid="options-maximize-button"]');
-            await expect(maximizeBtn).not.toExist();
+        // Double check no maximize button exists
+        const maximizeBtn = await $('[data-testid="options-maximize-button"]');
+        await expect(maximizeBtn).not.toExist();
 
-            // 5. Close the options window via close button
-            await closeBtn.click();
-        } else {
-            E2ELogger.info('options-window', 'Skipping custom controls check on macOS');
-            // Close via exposed API for reliability (Cmd+W can be flaky in CI)
-            await browser.execute(() => window.electronAPI.closeWindow());
-        }
+        // 5. Close the options window via close button
+        await closeBtn.click();
 
         // 6. Verify correct window closing behavior
         await waitForWindowCount(1, 5000);
