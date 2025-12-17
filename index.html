@@ -1,14 +1,37 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Electron + React + Typescript</title>
-  </head>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <!--
+      Content Security Policy (CSP)
+      Security hardening to prevent XSS attacks.
+      
+      Directives:
+      - default-src 'self': Only allow resources from same origin
+      - script-src 'self': Scripts only from same origin
+      - style-src 'self' 'unsafe-inline': Styles from same origin + inline (needed for React)
+      - img-src 'self' data: https:: Images from same origin, data URIs, and HTTPS
+      - font-src 'self': Fonts only from same origin
+      - connect-src 'self' https://gemini.google.com: API calls to self and Gemini
+      - frame-src https://gemini.google.com https://aistudio.google.com: iframes only from Gemini
+    -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; 
+                   script-src 'self'; 
+                   style-src 'self' 'unsafe-inline'; 
+                   img-src 'self' data: https:; 
+                   font-src 'self' https://fonts.gstatic.com; 
+                   connect-src 'self' https://gemini.google.com https://*.google.com; 
+                   frame-src https://gemini.google.com https://aistudio.google.com https://*.google.com;">
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Gemini Desktop - A desktop wrapper for Google Gemini" />
+  <title>Gemini Desktop</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
