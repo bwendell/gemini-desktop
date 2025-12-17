@@ -19,13 +19,16 @@ const path = require('path');
 const fs = require('fs');
 const { createLogger } = require('./utils/logger.cjs');
 
+
+
 const logger = createLogger('[SettingsStore]');
 
 /**
  * Settings store options.
  * @typedef {Object} SettingsStoreOptions
- * @property {string} configName - Name of the config file (without extension)
+ * @property {string} [configName] - Name of the config file (without extension)
  * @property {Object} [defaults={}] - Default values for settings
+ * @property {Object} [fs] - File system module (for testing)
  */
 
 /**
@@ -46,6 +49,7 @@ class SettingsStore {
         const userDataPath = app.getPath('userData');
         this.path = path.join(userDataPath, opts.configName + '.json');
         this.defaults = opts.defaults || {};
+        this.fs = opts.fs || fs;
         this.data = this._loadData();
 
         logger.log(`Initialized at: ${this.path}`);
@@ -55,11 +59,11 @@ class SettingsStore {
      * Load data from the settings file.
      * Falls back to defaults if file doesn't exist or is corrupted.
      * @private
-     * @returns {Object} Parsed settings data or defaults
+     * @returns {Record<string, any>} Parsed settings data or defaults
      */
     _loadData() {
         try {
-            const fileContent = fs.readFileSync(this.path, 'utf-8');
+            const fileContent = this.fs.readFileSync(this.path, 'utf-8');
             const parsed = JSON.parse(fileContent);
             logger.log('Loaded existing settings');
             return { ...this.defaults, ...parsed };
@@ -104,7 +108,7 @@ class SettingsStore {
      */
     _saveData() {
         try {
-            fs.writeFileSync(this.path, JSON.stringify(this.data, null, 2), 'utf-8');
+            this.fs.writeFileSync(this.path, JSON.stringify(this.data, null, 2), 'utf-8');
             return true;
         } catch (error) {
             logger.error('Failed to save settings:', {
@@ -119,7 +123,7 @@ class SettingsStore {
 
     /**
      * Get all settings as an object.
-     * @returns {Object} All current settings
+     * @returns {Record<string, any>} All current settings
      */
     getAll() {
         return { ...this.data };
