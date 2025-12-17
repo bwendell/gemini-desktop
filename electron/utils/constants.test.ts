@@ -9,7 +9,7 @@ import {
     AUTH_WINDOW_CONFIG,
     isInternalDomain,
     isOAuthDomain
-} from '../utils/constants.cjs';
+} from '../utils/constants';
 
 describe('Constants', () => {
     describe('INTERNAL_DOMAINS', () => {

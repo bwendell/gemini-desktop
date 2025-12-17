@@ -18,12 +18,14 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
-            include: ['electron/**/*.cjs'],
+            reportsDirectory: 'coverage-electron',
+            include: ['electron/**/*.ts'],
             exclude: [
-                'electron/main.cjs',        // Entry point, tested by E2E
-                'electron/preload.cjs',     // contextBridge, tested by E2E
+                'electron/main.ts',         // Entry point, tested by E2E
+                'electron/preload.ts',      // contextBridge, tested by E2E
+                'electron/types.ts',        // Type definitions only
                 'electron/test/**',         // Test files themselves
-                'electron/**/*.test.cjs',   // Test files
+                'electron/**/*.test.ts',    // Test files
             ],
             thresholds: {
                 lines: 90,

@@ -3,7 +3,9 @@
  * 
  * @module SecurityManager
  */
-const { createLogger } = require('./logger.cjs');
+
+import type { Session } from 'electron';
+import { createLogger } from './logger';
 
 const logger = createLogger('[SecurityManager]');
 
@@ -13,9 +15,9 @@ const logger = createLogger('[SecurityManager]');
  * 
  * SECURITY: Only strips headers for Gemini domains to minimize attack surface.
  * 
- * @param {Electron.Session} session - The default session
+ * @param session - The default session
  */
-function setupHeaderStripping(session) {
+export function setupHeaderStripping(session: Session): void {
     // Only modify headers for Gemini-related domains
     const allowedUrls = [
         '*://gemini.google.com/*',
@@ -49,7 +51,3 @@ function setupHeaderStripping(session) {
 
     logger.log('Header stripping enabled for Gemini domains only');
 }
-
-module.exports = {
-    setupHeaderStripping
-};

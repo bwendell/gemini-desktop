@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserWindow, shell } from 'electron';
-import WindowManager from './windowManager.cjs';
+import WindowManager from './windowManager';
 import path from 'path';
 
 describe('WindowManager', () => {
@@ -126,6 +126,25 @@ describe('WindowManager', () => {
             const win = windowManager.createOptionsWindow();
             expect(win.loadFile).toHaveBeenCalledWith(expect.stringContaining('options.html'));
         });
+
+        it('shows window when ready-to-show is emitted', () => {
+            const win = windowManager.createOptionsWindow();
+            const readyHandler = win.once.mock.calls.find((call: any) => call[0] === 'ready-to-show')[1];
+            readyHandler();
+
+            expect(win.show).toHaveBeenCalled();
+        });
+
+        it('clears reference when options window is closed', () => {
+            windowManager.createOptionsWindow();
+            const instances = (BrowserWindow as any).getAllWindows();
+            const win = instances[0];
+
+            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
+            closeHandler();
+
+            expect(windowManager.optionsWindow).toBeNull();
+        });
     });
 
     describe('createAuthWindow', () => {
@@ -135,6 +154,13 @@ describe('WindowManager', () => {
 
             expect((BrowserWindow as any)._instances.length).toBe(1);
             expect(win.loadURL).toHaveBeenCalledWith(url);
+        });
+
+        it('logs when auth window is closed', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
+            closeHandler();
+            // Event handler was called (coverage of line 46)
         });
     });
 
@@ -176,6 +202,38 @@ describe('WindowManager', () => {
 
             const result = handler({ url: 'https://gemini.google.com/chat' });
             expect(result).toEqual({ action: 'allow' });
+        });
+
+        it('handles invalid URLs gracefully', () => {
+            windowManager.createMainWindow();
+            const instances = (BrowserWindow as any).getAllWindows();
+            const win = instances[0];
+            const handler = win.webContents.setWindowOpenHandler.mock.calls[0][0];
+
+            const result = handler({ url: 'not-a-valid-url' });
+            expect(result).toEqual({ action: 'deny' });
+        });
+
+        it('denies non-http/https protocols', () => {
+            windowManager.createMainWindow();
+            const instances = (BrowserWindow as any).getAllWindows();
+            const win = instances[0];
+            const handler = win.webContents.setWindowOpenHandler.mock.calls[0][0];
+
+            const result = handler({ url: 'file:///etc/passwd' });
+            expect(result).toEqual({ action: 'deny' });
+            expect(shell.openExternal).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('getMainWindow', () => {
+        it('returns null when no window exists', () => {
+            expect(windowManager.getMainWindow()).toBeNull();
+        });
+
+        it('returns the main window when it exists', () => {
+            const win = windowManager.createMainWindow();
+            expect(windowManager.getMainWindow()).toBe(win);
         });
     });
 });

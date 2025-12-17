@@ -6,9 +6,12 @@
  * strips X-Frame-Options headers to allow embedding Gemini in an iframe.
  */
 
-const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
-const path = require('path');
-const fs = require('fs');
+import { app, BrowserWindow, session } from 'electron';
+import * as path from 'path';
+import * as fs from 'fs';
+import { setupHeaderStripping } from './utils/security';
+import WindowManager from './managers/windowManager';
+import IpcManager from './managers/ipcManager';
 
 // Path to the production build
 const distIndexPath = path.join(__dirname, '../dist/index.html');
@@ -24,17 +27,6 @@ const useProductionBuild = app.isPackaged ||
 
 // For E2E tests, always use production build if it exists
 const isDev = !useProductionBuild;
-
-// mainWindow and optionsWindow are now managed by WindowManager
-
-/**
- * Strip security headers that prevent iframe embedding.
- * This is the key to making custom HTML menus work over external content.
- */
-const { setupHeaderStripping } = require('./utils/security.cjs');
-
-const WindowManager = require('./managers/windowManager.cjs');
-const IpcManager = require('./managers/ipcManager.cjs');
 
 // Initialize Managers
 const windowManager = new WindowManager(isDev);

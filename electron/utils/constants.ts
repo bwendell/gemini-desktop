@@ -3,6 +3,8 @@
  * Centralized configuration values used across electron modules.
  */
 
+import type { BrowserWindowConstructorOptions } from 'electron';
+
 // =========================================================================
 // Domain Configuration
 // =========================================================================
@@ -10,23 +12,19 @@
 /**
  * Domains that should open inside Electron windows.
  * These URLs open in new Electron windows instead of the system browser.
- * 
- * @type {string[]}
  */
-const INTERNAL_DOMAINS = [
+export const INTERNAL_DOMAINS = [
     'gemini.google.com'
-];
+] as const;
 
 /**
  * OAuth domains that require special handling.
  * These are intercepted and opened in a BrowserWindow with shared session.
- * 
- * @type {string[]}
  */
-const OAUTH_DOMAINS = [
+export const OAUTH_DOMAINS = [
     'accounts.google.com',
     'accounts.youtube.com'
-];
+] as const;
 
 // =========================================================================
 // Window Configuration
@@ -34,15 +32,13 @@ const OAUTH_DOMAINS = [
 
 /**
  * Default URL for Google sign-in.
- * @type {string}
  */
-const GOOGLE_ACCOUNTS_URL = 'https://accounts.google.com';
+export const GOOGLE_ACCOUNTS_URL = 'https://accounts.google.com' as const;
 
 /**
  * Configuration for the authentication window.
- * @type {Object}
  */
-const AUTH_WINDOW_CONFIG = {
+export const AUTH_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
     width: 500,
     height: 700,
     title: 'Sign in to Google',
@@ -61,10 +57,10 @@ const AUTH_WINDOW_CONFIG = {
 /**
  * Check if a hostname should be handled internally (in Electron) vs externally (system browser).
  * 
- * @param {string} hostname - The hostname to check
- * @returns {boolean} True if the URL should open in Electron
+ * @param hostname - The hostname to check
+ * @returns True if the URL should open in Electron
  */
-function isInternalDomain(hostname) {
+export function isInternalDomain(hostname: string): boolean {
     return INTERNAL_DOMAINS.some(domain =>
         hostname === domain || hostname.endsWith('.' + domain)
     );
@@ -74,23 +70,11 @@ function isInternalDomain(hostname) {
  * Check if a hostname is a Google OAuth domain.
  * OAuth domains are opened in a dedicated BrowserWindow with shared session.
  * 
- * @param {string} hostname - The hostname to check
- * @returns {boolean} True if the URL is an OAuth domain
+ * @param hostname - The hostname to check
+ * @returns True if the URL is an OAuth domain
  */
-function isOAuthDomain(hostname) {
+export function isOAuthDomain(hostname: string): boolean {
     return OAUTH_DOMAINS.some(domain =>
         hostname === domain || hostname.endsWith('.' + domain)
     );
 }
-
-module.exports = {
-    // Domains
-    INTERNAL_DOMAINS,
-    OAUTH_DOMAINS,
-    GOOGLE_ACCOUNTS_URL,
-    // Window config
-    AUTH_WINDOW_CONFIG,
-    // Helpers
-    isInternalDomain,
-    isOAuthDomain
-};

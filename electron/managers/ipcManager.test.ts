@@ -3,11 +3,11 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
-import IpcManager from './ipcManager.cjs';
-import SettingsStore from '../store.cjs';
+import IpcManager from './ipcManager';
+import SettingsStore from '../store';
 
 // Mock SettingsStore to prevent side effects during import
-vi.mock('../store.cjs', () => {
+vi.mock('../store', () => {
     return {
         default: vi.fn()
     };
@@ -26,7 +26,7 @@ const mockLogger = {
     error: vi.fn((...args) => console.error('[MOCK_ERROR]', ...args)),
     warn: vi.fn((...args) => console.warn('[MOCK_WARN]', ...args))
 };
-vi.mock('../utils/logger.cjs', () => ({
+vi.mock('../utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -59,7 +59,7 @@ describe('IpcManager', () => {
             set: vi.fn()
         };
 
-        ipcManager = new IpcManager(mockWindowManager, mockStore, mockLogger);
+        ipcManager = new IpcManager(mockWindowManager, mockStore as any, mockLogger);
     });
 
     describe('constructor', () => {
@@ -74,7 +74,7 @@ describe('IpcManager', () => {
                 set: vi.fn()
             };
 
-            new IpcManager(mockWindowManager, darkStore, mockLogger);
+            new IpcManager(mockWindowManager, darkStore as any, mockLogger);
             expect(nativeTheme.themeSource).toBe('dark');
         });
     });
@@ -263,7 +263,7 @@ describe('IpcManager', () => {
                 get: vi.fn().mockImplementation(() => { throw new Error('Store Error'); }),
                 set: vi.fn()
             };
-            new IpcManager(mockWindowManager, badStore, mockLogger);
+            new IpcManager(mockWindowManager, badStore as any, mockLogger);
             expect(mockLogger.error).toHaveBeenCalledWith('Failed to initialize native theme:', expect.anything());
         });
 

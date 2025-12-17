@@ -4,37 +4,39 @@
  * 
  * @module WindowManager
  */
-const { BrowserWindow, shell } = require('electron');
-const path = require('path');
 
-const {
+import { BrowserWindow, shell } from 'electron';
+import * as path from 'path';
+import {
     isInternalDomain,
     isOAuthDomain,
     AUTH_WINDOW_CONFIG
-} = require('../utils/constants.cjs');
-const { createLogger } = require('../utils/logger.cjs');
+} from '../utils/constants';
+import { createLogger } from '../utils/logger';
 
 const logger = createLogger('[WindowManager]');
 
-class WindowManager {
+export default class WindowManager {
+    readonly isDev: boolean;
+    private mainWindow: BrowserWindow | null = null;
+    private optionsWindow: BrowserWindow | null = null;
+
     /**
      * Creates a new WindowManager instance.
-     * @param {boolean} isDev - Whether running in development mode
+     * @param isDev - Whether running in development mode
      */
-    constructor(isDev) {
+    constructor(isDev: boolean) {
         this.isDev = isDev;
-        this.mainWindow = null;
-        this.optionsWindow = null;
     }
 
     /**
      * Create an authentication window for Google sign-in.
      * Uses shared session to persist cookies with main window.
      * 
-     * @param {string} url - The URL to load in the auth window
-     * @returns {Electron.BrowserWindow} The created auth window
+     * @param url - The URL to load in the auth window
+     * @returns The created auth window
      */
-    createAuthWindow(url) {
+    createAuthWindow(url: string): BrowserWindow {
         logger.log('Creating auth window for:', url);
 
         const authWindow = new BrowserWindow(AUTH_WINDOW_CONFIG);
@@ -49,9 +51,9 @@ class WindowManager {
 
     /**
      * Create the main application window.
-     * @returns {Electron.BrowserWindow} The main window
+     * @returns The main window
      */
-    createMainWindow() {
+    createMainWindow(): BrowserWindow {
         if (this.mainWindow) {
             this.mainWindow.focus();
             return this.mainWindow;
@@ -65,7 +67,7 @@ class WindowManager {
             frame: false, // Frameless for custom titlebar
             titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined,
             webPreferences: {
-                preload: path.join(__dirname, '../preload.cjs'),
+                preload: path.join(__dirname, '../preload.js'),
                 contextIsolation: true,
                 nodeIntegration: false,
             },
@@ -85,7 +87,7 @@ class WindowManager {
         }
 
         this.mainWindow.once('ready-to-show', () => {
-            this.mainWindow.show();
+            this.mainWindow?.show();
         });
 
         this._setupWindowOpenHandler();
@@ -106,7 +108,9 @@ class WindowManager {
      * Routes URLs to appropriate destinations (auth window, internal, or external).
      * @private
      */
-    _setupWindowOpenHandler() {
+    private _setupWindowOpenHandler(): void {
+        if (!this.mainWindow) return;
+
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
             try {
                 const urlObj = new URL(url);
@@ -137,9 +141,9 @@ class WindowManager {
 
     /**
      * Create or focus the options window.
-     * @returns {Electron.BrowserWindow} The options window
+     * @returns The options window
      */
-    createOptionsWindow() {
+    createOptionsWindow(): BrowserWindow {
         if (this.optionsWindow) {
             this.optionsWindow.focus();
             return this.optionsWindow;
@@ -154,7 +158,7 @@ class WindowManager {
             frame: false,
             titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined,
             webPreferences: {
-                preload: path.join(__dirname, '../preload.cjs'),
+                preload: path.join(__dirname, '../preload.js'),
                 contextIsolation: true,
                 nodeIntegration: false,
             },
@@ -171,7 +175,7 @@ class WindowManager {
         }
 
         this.optionsWindow.once('ready-to-show', () => {
-            this.optionsWindow.show();
+            this.optionsWindow?.show();
         });
 
         this.optionsWindow.on('closed', () => {
@@ -183,11 +187,9 @@ class WindowManager {
 
     /**
      * Get the main window instance.
-     * @returns {Electron.BrowserWindow | null} The main window or null
+     * @returns The main window or null
      */
-    getMainWindow() {
+    getMainWindow(): BrowserWindow | null {
         return this.mainWindow;
     }
 }
-
-module.exports = WindowManager;

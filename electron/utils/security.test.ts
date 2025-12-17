@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import electron from 'electron';
-import { setupHeaderStripping } from './security.cjs';
+import { setupHeaderStripping } from './security';
 
 describe('setupHeaderStripping', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

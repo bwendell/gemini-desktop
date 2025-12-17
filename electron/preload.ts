@@ -15,27 +15,11 @@
  * @module Preload
  */
 
-const { contextBridge, ipcRenderer } = require('electron');
-
-/**
- * API exposed to the renderer process.
- * Access via `window.electronAPI` in React components.
- * 
- * @typedef {Object} ElectronAPI
- * @property {function(): void} minimizeWindow - Minimize the current window
- * @property {function(): void} maximizeWindow - Toggle maximize/restore
- * @property {function(): void} closeWindow - Close the current window
- * @property {function(): Promise<boolean>} isMaximized - Check if window is maximized
- * @property {function(): void} openOptions - Open the options window
- * @property {string} platform - Current OS platform (win32, darwin, linux)
- * @property {boolean} isElectron - Always true in Electron environment
- * @property {function(): Promise<ThemeData>} getTheme - Get current theme
- * @property {function(theme: string): void} setTheme - Set theme preference
- * @property {function(callback: function): function} onThemeChanged - Subscribe to theme changes
- */
+import { contextBridge, ipcRenderer } from 'electron';
+import type { ElectronAPI } from './types';
 
 // Expose window control APIs to renderer
-contextBridge.exposeInMainWorld('electronAPI', {
+const electronAPI: ElectronAPI = {
     // =========================================================================
     // Window Controls
     // Cross-platform window management
@@ -58,7 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     /**
      * Check if the current window is maximized.
-     * @returns {Promise<boolean>} True if maximized
+     * @returns True if maximized
      */
     isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
 
@@ -70,7 +54,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     /**
      * Open Google sign-in in a new BrowserWindow.
      * Returns a promise that resolves when the window is closed.
-     * @returns {Promise<void>}
+     * @returns Promise that resolves when sign-in window closes
      */
     openGoogleSignIn: () => ipcRenderer.invoke('open-google-signin'),
 
@@ -98,23 +82,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     /**
      * Get the current theme preference and effective theme.
-     * @returns {Promise<{preference: string, effectiveTheme: string}>}
+     * @returns Theme data with preference and effective theme
      */
     getTheme: () => ipcRenderer.invoke('theme:get'),
 
     /**
      * Set the theme preference.
-     * @param {('light'|'dark'|'system')} theme - The theme to set
+     * @param theme - The theme to set (light, dark, or system)
      */
     setTheme: (theme) => ipcRenderer.send('theme:set', theme),
 
     /**
      * Subscribe to theme change events from other windows.
-     * @param {function({preference: string, effectiveTheme: string}): void} callback 
-     * @returns {function(): void} Cleanup function to unsubscribe
+     * @param callback - Function to call when theme changes
+     * @returns Cleanup function to unsubscribe
      */
     onThemeChanged: (callback) => {
-        const subscription = (_event, themeData) => callback(themeData);
+        const subscription = (_event: Electron.IpcRendererEvent, themeData: Parameters<typeof callback>[0]) =>
+            callback(themeData);
         ipcRenderer.on('theme:changed', subscription);
 
         // Return cleanup function for React useEffect
@@ -122,7 +107,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeListener('theme:changed', subscription);
         };
     }
-});
+};
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI);
 
 // Log that preload successfully executed (helps with debugging)
 console.log('[Preload] Electron API exposed to renderer');

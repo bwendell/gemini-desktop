@@ -10,37 +10,43 @@
  * 
  * @module IpcManager
  */
-const { ipcMain, BrowserWindow, nativeTheme } = require('electron');
-const SettingsStore = require('../store.cjs');
-const { GOOGLE_ACCOUNTS_URL } = require('../utils/constants.cjs');
-const { createLogger } = require('../utils/logger.cjs');
+
+import { ipcMain, BrowserWindow, nativeTheme, IpcMainEvent, IpcMainInvokeEvent } from 'electron';
+import SettingsStore from '../store';
+import { GOOGLE_ACCOUNTS_URL } from '../utils/constants';
+import { createLogger } from '../utils/logger';
+import type WindowManager from './windowManager';
+import type { ThemePreference, ThemeData, Logger } from '../types';
 
 /**
- * Valid theme values for the application.
- * @typedef {'light' | 'dark' | 'system'} ThemePreference
+ * User preferences structure for settings store.
  */
-
-/**
- * Theme data structure returned to renderer.
- * @typedef {Object} ThemeData
- * @property {ThemePreference} preference - User's theme preference
- * @property {'light' | 'dark'} effectiveTheme - Resolved theme based on system
- */
+interface UserPreferences extends Record<string, unknown> {
+    theme: ThemePreference;
+}
 
 /**
  * Manages IPC communication between main and renderer processes.
  * Handles window controls, theme management, and app-specific channels.
  */
-class IpcManager {
+export default class IpcManager {
+    private windowManager: WindowManager;
+    private store: SettingsStore<UserPreferences>;
+    private logger: Logger;
+
     /**
      * Creates a new IpcManager instance.
-     * @param {import('./windowManager.cjs')} windowManager - The window manager instance
-     * @param {import('../store.cjs')} [store] - Optional store instance for testing
-     * @param {Object} [logger] - Optional logger instance for testing
+     * @param windowManager - The window manager instance
+     * @param store - Optional store instance for testing
+     * @param logger - Optional logger instance for testing
      */
-    constructor(windowManager, store, logger) {
+    constructor(
+        windowManager: WindowManager,
+        store?: SettingsStore<UserPreferences>,
+        logger?: Logger
+    ) {
         this.windowManager = windowManager;
-        this.store = store || new SettingsStore({
+        this.store = store || new SettingsStore<UserPreferences>({
             configName: 'user-preferences',
             defaults: {
                 theme: 'system'
@@ -58,7 +64,7 @@ class IpcManager {
      * Initialize nativeTheme based on stored preference.
      * @private
      */
-    _initializeNativeTheme() {
+    private _initializeNativeTheme(): void {
         try {
             const savedTheme = this.store.get('theme') || 'system';
             nativeTheme.themeSource = savedTheme;
@@ -72,7 +78,7 @@ class IpcManager {
      * Set up all IPC handlers.
      * Call this after app is ready.
      */
-    setupIpcHandlers() {
+    setupIpcHandlers(): void {
         this._setupWindowHandlers();
         this._setupThemeHandlers();
         this._setupAppHandlers();
@@ -83,10 +89,10 @@ class IpcManager {
     /**
      * Get the window from an IPC event safely.
      * @private
-     * @param {Electron.IpcMainEvent | Electron.IpcMainInvokeEvent} event - IPC event
-     * @returns {Electron.BrowserWindow | null} The window or null if not found
+     * @param event - IPC event
+     * @returns The window or null if not found
      */
-    _getWindowFromEvent(event) {
+    private _getWindowFromEvent(event: IpcMainEvent | IpcMainInvokeEvent): BrowserWindow | null {
         try {
             return BrowserWindow.fromWebContents(event.sender);
         } catch (error) {
@@ -100,7 +106,7 @@ class IpcManager {
      * Cross-platform compatible - works on Windows, macOS, and Linux.
      * @private
      */
-    _setupWindowHandlers() {
+    private _setupWindowHandlers(): void {
         // Minimize window
         ipcMain.on('window-minimize', (event) => {
             const win = this._getWindowFromEvent(event);
@@ -109,7 +115,7 @@ class IpcManager {
                     win.minimize();
                 } catch (error) {
                     this.logger.error('Error minimizing window:', {
-                        error: error.message,
+                        error: (error as Error).message,
                         windowId: win.id
                     });
                 }
@@ -128,7 +134,7 @@ class IpcManager {
                     }
                 } catch (error) {
                     this.logger.error('Error toggling maximize:', {
-                        error: error.message,
+                        error: (error as Error).message,
                         windowId: win.id
                     });
                 }
@@ -143,7 +149,7 @@ class IpcManager {
                     win.close();
                 } catch (error) {
                     this.logger.error('Error closing window:', {
-                        error: error.message,
+                        error: (error as Error).message,
                         windowId: win.id
                     });
                 }
@@ -151,7 +157,7 @@ class IpcManager {
         });
 
         // Check if window is maximized
-        ipcMain.handle('window-is-maximized', (event) => {
+        ipcMain.handle('window-is-maximized', (event): boolean => {
             const win = this._getWindowFromEvent(event);
             if (!win) return false;
 
@@ -169,9 +175,9 @@ class IpcManager {
      * Manages theme persistence and synchronization across windows.
      * @private
      */
-    _setupThemeHandlers() {
+    private _setupThemeHandlers(): void {
         // Get current theme preference and effective theme
-        ipcMain.handle('theme:get', () => {
+        ipcMain.handle('theme:get', (): ThemeData => {
             try {
                 const preference = this.store.get('theme') || 'system';
                 const effectiveTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
@@ -183,10 +189,10 @@ class IpcManager {
         });
 
         // Set theme preference
-        ipcMain.on('theme:set', (event, theme) => {
+        ipcMain.on('theme:set', (_event, theme: ThemePreference) => {
             try {
                 // Validate theme value
-                const validThemes = ['light', 'dark', 'system'];
+                const validThemes: ThemePreference[] = ['light', 'dark', 'system'];
                 if (!validThemes.includes(theme)) {
                     this.logger.warn(`Invalid theme value: ${theme}`);
                     return;
@@ -207,7 +213,7 @@ class IpcManager {
                 this._broadcastThemeChange(theme, effectiveTheme);
             } catch (error) {
                 this.logger.error('Error setting theme:', {
-                    error: error.message,
+                    error: (error as Error).message,
                     requestedTheme: theme
                 });
             }
@@ -217,10 +223,10 @@ class IpcManager {
     /**
      * Broadcast theme change to all open windows.
      * @private
-     * @param {ThemePreference} preference - The theme preference
-     * @param {'light' | 'dark'} effectiveTheme - The resolved effective theme
+     * @param preference - The theme preference
+     * @param effectiveTheme - The resolved effective theme
      */
-    _broadcastThemeChange(preference, effectiveTheme) {
+    private _broadcastThemeChange(preference: ThemePreference, effectiveTheme: 'light' | 'dark'): void {
         const windows = BrowserWindow.getAllWindows();
 
         windows.forEach(win => {
@@ -230,7 +236,7 @@ class IpcManager {
                 }
             } catch (error) {
                 this.logger.error('Error broadcasting theme to window:', {
-                    error: error.message,
+                    error: (error as Error).message,
                     windowId: win.id
                 });
             }
@@ -241,7 +247,7 @@ class IpcManager {
      * Set up application-specific handlers.
      * @private
      */
-    _setupAppHandlers() {
+    private _setupAppHandlers(): void {
         // Open options window
         ipcMain.on('open-options-window', () => {
             try {
@@ -252,7 +258,7 @@ class IpcManager {
         });
 
         // Open Google sign-in using WindowManager's createAuthWindow
-        ipcMain.handle('open-google-signin', async () => {
+        ipcMain.handle('open-google-signin', async (): Promise<void> => {
             try {
                 const authWindow = this.windowManager.createAuthWindow(GOOGLE_ACCOUNTS_URL);
 
@@ -267,5 +273,3 @@ class IpcManager {
         });
     }
 }
-
-module.exports = IpcManager;

@@ -56,10 +56,10 @@ jobs:
   # ---------------------------------------------------------------------------
   # Unit Tests Job
   # ---------------------------------------------------------------------------
-  # Runs unit tests with coverage on Ubuntu (fastest runner)
+  # Runs unit tests (frontend + electron) with coverage on Ubuntu (fastest runner)
   # This job must pass before E2E tests run
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests (Frontend + Electron)
     runs-on: ubuntu-latest
     
     steps:
@@ -85,23 +85,42 @@ jobs:
         # - Fails if lock file is out of sync
 
       # -----------------------------------------------------------------------
+      # Build
+      # -----------------------------------------------------------------------
+      - name: Build Electron Backend (TypeScript)
+        run: npm run build:electron
+
+      # -----------------------------------------------------------------------
       # Test Execution
       # -----------------------------------------------------------------------
-      - name: Run Unit Tests with Coverage
+      - name: Run Frontend Unit Tests with Coverage
         run: npm run test:coverage
         env:
           # Force color output in CI logs
           FORCE_COLOR: 1
 
+      - name: Run Electron Unit Tests with Coverage
+        run: npm run test:electron:coverage
+        env:
+          FORCE_COLOR: 1
+
       # -----------------------------------------------------------------------
       # Artifacts
       # -----------------------------------------------------------------------
-      - name: Upload Coverage Report
+      - name: Upload Frontend Coverage Report
         uses: actions/upload-artifact@v4
         if: always()  # Upload even if tests fail for debugging
         with:
-          name: coverage-report
+          name: coverage-frontend
           path: coverage/
+          retention-days: 7
+
+      - name: Upload Electron Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-electron
+          path: coverage-electron/
           retention-days: 7
 
       - name: Upload Coverage to Summary
@@ -109,7 +128,8 @@ jobs:
         run: |
           echo "## Unit Test Coverage" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "View the full coverage report in the artifacts." >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend coverage: See coverage-frontend artifact" >> $GITHUB_STEP_SUMMARY
+          echo "- Electron coverage: See coverage-electron artifact" >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
   # E2E Tests Job
@@ -165,11 +185,14 @@ jobs:
       # -----------------------------------------------------------------------
       # Build
       # -----------------------------------------------------------------------
-      - name: Build Application
+      - name: Build Frontend
         run: npm run build
         env:
           # Ensure production build for accurate E2E testing
           NODE_ENV: production
+
+      - name: Build Electron Backend (TypeScript)
+        run: npm run build:electron
 
       # -----------------------------------------------------------------------
       # Test Execution
@@ -238,6 +261,9 @@ jobs:
 
       - name: Build Frontend
         run: npm run build
+
+      - name: Build Electron Backend (TypeScript)
+        run: npm run build:electron
 
       # Note: Full electron-builder packaging is skipped in CI
       # to avoid code signing requirements. The build step validates

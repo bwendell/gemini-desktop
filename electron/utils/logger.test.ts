@@ -2,7 +2,7 @@
  * Unit tests for logger utility.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createLogger } from '../utils/logger.cjs';
+import { createLogger } from '../utils/logger';
 
 describe('createLogger', () => {
     beforeEach(() => {

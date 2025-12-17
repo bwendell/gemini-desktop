@@ -11,7 +11,7 @@ vi.mock('fs', () => ({
 }));
 
 import * as fs from 'fs';
-import SettingsStore from './store.cjs';
+import SettingsStore from './store';
 
 const mockFs = vi.mocked(fs);
 
@@ -34,8 +34,8 @@ describe('SettingsStore', () => {
                 fs: mockFs
             });
 
-            expect(store.path).toContain('test-config.json');
-            expect(store.defaults).toEqual({ theme: 'dark' });
+            expect(store._path).toContain('test-config.json');
+            expect(store._defaults).toEqual({ theme: 'dark' });
         });
 
         it('uses default config name when not provided', () => {
@@ -47,7 +47,7 @@ describe('SettingsStore', () => {
 
             const store = new SettingsStore({ fs: mockFs });
 
-            expect(store.path).toContain('settings.json');
+            expect(store._path).toContain('settings.json');
         });
 
         it('loads existing settings from file', () => {
@@ -60,7 +60,7 @@ describe('SettingsStore', () => {
                 fs: mockFs
             });
 
-            expect(store.data).toEqual({ theme: 'light', custom: 'value' });
+            expect(store._data).toEqual({ theme: 'light', custom: 'value' });
         });
 
         it('merges existing settings with defaults', () => {
@@ -73,7 +73,7 @@ describe('SettingsStore', () => {
                 fs: mockFs
             });
 
-            expect(store.data).toEqual({ theme: 'dark', another: 'default', custom: 'value' });
+            expect(store._data).toEqual({ theme: 'dark', another: 'default', custom: 'value' });
         });
 
         it('handles file read errors gracefully', () => {
@@ -90,7 +90,7 @@ describe('SettingsStore', () => {
                 fs: mockFs
             });
 
-            expect(store.data).toEqual({ theme: 'system' });
+            expect(store._data).toEqual({ theme: 'system' });
         });
     });
 
@@ -124,7 +124,7 @@ describe('SettingsStore', () => {
             const result = store.set('theme', 'light');
 
             expect(result).toBe(true);
-            expect(store.data.theme).toBe('light');
+            expect(store._data.theme).toBe('light');
             expect(mockFs.writeFileSync).toHaveBeenCalled();
         });
 
@@ -153,7 +153,7 @@ describe('SettingsStore', () => {
             expect(all).toEqual({ a: 1, b: 2 });
             // Ensure it's a copy, not the original
             all.c = 3;
-            expect(store.data.c).toBeUndefined();
+            expect(store._data.c).toBeUndefined();
         });
     });
 
@@ -172,7 +172,7 @@ describe('SettingsStore', () => {
             const result = store.reset();
 
             expect(result).toBe(true);
-            expect(store.data).toEqual({ theme: 'system' });
+            expect(store._data).toEqual({ theme: 'system' });
         });
     });
 });
