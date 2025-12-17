@@ -13,9 +13,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:electron": "vitest run --config vitest.electron.config.ts",
+    "test:electron:coverage": "vitest run --config vitest.electron.config.ts --coverage",
     "test:e2e": "node scripts/run-e2e-sequential.cjs",
     "test:e2e:lifecycle": "wdio run wdio.lifecycle.conf.js",
     "test:e2e:all": "npm run test:e2e && npm run test:e2e:lifecycle",
+    "test:all": "npm run test && npm run test:electron && npm run test:e2e",
     "docs": "typedoc --out docs src"
   },
   "dependencies": {
