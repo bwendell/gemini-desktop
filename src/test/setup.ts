@@ -35,6 +35,7 @@ const mockElectronAPI = {
     maximizeWindow: vi.fn(),
     closeWindow: vi.fn(),
     openOptions: vi.fn(),
+    openGoogleSignIn: vi.fn().mockResolvedValue(undefined),
     isMaximized: vi.fn().mockResolvedValue(false),
 
     // Theme API - returns object with preference and effectiveTheme

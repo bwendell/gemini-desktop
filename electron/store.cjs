@@ -17,6 +17,9 @@
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { createLogger } = require('./utils/logger.cjs');
+
+const logger = createLogger('[SettingsStore]');
 
 /**
  * Settings store options.
@@ -36,7 +39,7 @@ class SettingsStore {
      */
     constructor(opts = {}) {
         if (!opts.configName) {
-            console.error('[SettingsStore] Missing required configName option');
+            logger.error('Missing required configName option');
             opts.configName = 'settings';
         }
 
@@ -45,7 +48,7 @@ class SettingsStore {
         this.defaults = opts.defaults || {};
         this.data = this._loadData();
 
-        console.log(`[SettingsStore] Initialized at: ${this.path}`);
+        logger.log(`Initialized at: ${this.path}`);
     }
 
     /**
@@ -58,13 +61,13 @@ class SettingsStore {
         try {
             const fileContent = fs.readFileSync(this.path, 'utf-8');
             const parsed = JSON.parse(fileContent);
-            console.log('[SettingsStore] Loaded existing settings');
+            logger.log('Loaded existing settings');
             return { ...this.defaults, ...parsed };
         } catch (error) {
             if (error.code === 'ENOENT') {
-                console.log('[SettingsStore] No existing settings file, using defaults');
+                logger.log('No existing settings file, using defaults');
             } else {
-                console.error('[SettingsStore] Error reading settings file:', {
+                logger.error('Error reading settings file:', {
                     error: error.message,
                     code: error.code,
                     path: this.path
@@ -104,7 +107,7 @@ class SettingsStore {
             fs.writeFileSync(this.path, JSON.stringify(this.data, null, 2), 'utf-8');
             return true;
         } catch (error) {
-            console.error('[SettingsStore] Failed to save settings:', {
+            logger.error('Failed to save settings:', {
                 error: error.message,
                 code: error.code,
                 path: this.path,

@@ -1,6 +1,11 @@
 /**
  * Security utilities for the Electron main process.
+ * 
+ * @module SecurityManager
  */
+const { createLogger } = require('./logger.cjs');
+
+const logger = createLogger('[SecurityManager]');
 
 /**
  * Strip security headers that prevent iframe embedding.
@@ -42,7 +47,7 @@ function setupHeaderStripping(session) {
         }
     );
 
-    console.log('[SecurityManager] Header stripping enabled for Gemini domains only');
+    logger.log('Header stripping enabled for Gemini domains only');
 }
 
 module.exports = {

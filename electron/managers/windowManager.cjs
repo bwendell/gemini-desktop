@@ -12,12 +12,9 @@ const {
     isOAuthDomain,
     AUTH_WINDOW_CONFIG
 } = require('../utils/constants.cjs');
+const { createLogger } = require('../utils/logger.cjs');
 
-/**
- * Logging prefix for WindowManager messages.
- * @constant {string}
- */
-const LOG_PREFIX = '[WindowManager]';
+const logger = createLogger('[WindowManager]');
 
 class WindowManager {
     /**
@@ -31,26 +28,6 @@ class WindowManager {
     }
 
     /**
-     * Log an info message.
-     * @private
-     * @param {string} message - Message to log
-     * @param {...*} args - Additional arguments
-     */
-    _log(message, ...args) {
-        console.log(`${LOG_PREFIX} ${message}`, ...args);
-    }
-
-    /**
-     * Log an error message.
-     * @private
-     * @param {string} message - Message to log
-     * @param {...*} args - Additional arguments
-     */
-    _logError(message, ...args) {
-        console.error(`${LOG_PREFIX} ${message}`, ...args);
-    }
-
-    /**
      * Create an authentication window for Google sign-in.
      * Uses shared session to persist cookies with main window.
      * 
@@ -58,13 +35,13 @@ class WindowManager {
      * @returns {Electron.BrowserWindow} The created auth window
      */
     createAuthWindow(url) {
-        this._log('Creating auth window for:', url);
+        logger.log('Creating auth window for:', url);
 
         const authWindow = new BrowserWindow(AUTH_WINDOW_CONFIG);
         authWindow.loadURL(url);
 
         authWindow.on('closed', () => {
-            this._log('Auth window closed');
+            logger.log('Auth window closed');
         });
 
         return authWindow;
@@ -137,7 +114,7 @@ class WindowManager {
 
                 // OAuth domains: open in dedicated auth window
                 if (isOAuthDomain(hostname)) {
-                    this._log('Intercepting OAuth popup:', url);
+                    logger.log('Intercepting OAuth popup:', url);
                     this.createAuthWindow(url);
                     return { action: 'deny' };
                 }
@@ -147,7 +124,7 @@ class WindowManager {
                     return { action: 'allow' };
                 }
             } catch (e) {
-                this._logError('Invalid URL in window open handler:', url);
+                logger.error('Invalid URL in window open handler:', url);
             }
 
             // External links: open in system browser

@@ -41,13 +41,34 @@ describe('useMenuDefinitions', () => {
             expect(fileMenu.items[1]).toEqual({ separator: true });
         });
 
-        it('has Sign in to Google item', () => {
+        it('has Sign in to Google item and action works', async () => {
+            const reloadSpy = vi.fn();
+            const originalLocation = window.location;
+
+            Object.defineProperty(window, 'location', {
+                value: { ...originalLocation, reload: reloadSpy },
+                writable: true,
+            });
+
             const { result } = renderHook(() => useMenuDefinitions());
             const fileMenu = result.current[0];
             const signInItem = fileMenu.items[2];
 
             expect(signInItem).toHaveProperty('label', 'Sign in to Google');
             expect(signInItem).toHaveProperty('action');
+
+            // Call the async action to cover lines 25-27
+            if ('action' in signInItem && signInItem.action) {
+                await signInItem.action();
+                expect(mockElectronAPI.openGoogleSignIn).toHaveBeenCalledTimes(1);
+                expect(reloadSpy).toHaveBeenCalled();
+            }
+
+            // Restore original location
+            Object.defineProperty(window, 'location', {
+                value: originalLocation,
+                writable: true,
+            });
         });
 
         it('has Options item', () => {

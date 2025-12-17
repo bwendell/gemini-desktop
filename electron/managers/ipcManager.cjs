@@ -13,12 +13,9 @@
 const { ipcMain, BrowserWindow, nativeTheme } = require('electron');
 const SettingsStore = require('../store.cjs');
 const { GOOGLE_ACCOUNTS_URL } = require('../utils/constants.cjs');
+const { createLogger } = require('../utils/logger.cjs');
 
-/**
- * Logging prefix for IpcManager messages.
- * @constant {string}
- */
-const LOG_PREFIX = '[IpcManager]';
+const logger = createLogger('[IpcManager]');
 
 /**
  * Valid theme values for the application.
@@ -53,27 +50,7 @@ class IpcManager {
         // Initialize native theme on startup
         this._initializeNativeTheme();
 
-        this._log('Initialized');
-    }
-
-    /**
-     * Log an info message.
-     * @private
-     * @param {string} message - Message to log
-     * @param {...*} args - Additional arguments
-     */
-    _log(message, ...args) {
-        console.log(`${LOG_PREFIX} ${message}`, ...args);
-    }
-
-    /**
-     * Log an error message.
-     * @private
-     * @param {string} message - Message to log
-     * @param {...*} args - Additional arguments
-     */
-    _logError(message, ...args) {
-        console.error(`${LOG_PREFIX} ${message}`, ...args);
+        logger.log('Initialized');
     }
 
     /**
@@ -84,9 +61,9 @@ class IpcManager {
         try {
             const savedTheme = this.store.get('theme') || 'system';
             nativeTheme.themeSource = savedTheme;
-            this._log(`Native theme initialized to: ${savedTheme}`);
+            logger.log(`Native theme initialized to: ${savedTheme}`);
         } catch (error) {
-            this._logError('Failed to initialize native theme:', error);
+            logger.error('Failed to initialize native theme:', error);
         }
     }
 
@@ -99,7 +76,7 @@ class IpcManager {
         this._setupThemeHandlers();
         this._setupAppHandlers();
 
-        console.log('[IpcManager] All IPC handlers registered');
+        logger.log('All IPC handlers registered');
     }
 
     /**
@@ -112,7 +89,7 @@ class IpcManager {
         try {
             return BrowserWindow.fromWebContents(event.sender);
         } catch (error) {
-            console.error('[IpcManager] Failed to get window from event:', error);
+            logger.error('Failed to get window from event:', error);
             return null;
         }
     }
@@ -130,7 +107,7 @@ class IpcManager {
                 try {
                     win.minimize();
                 } catch (error) {
-                    console.error('[IpcManager] Error minimizing window:', {
+                    logger.error('Error minimizing window:', {
                         error: error.message,
                         windowId: win.id
                     });
@@ -149,7 +126,7 @@ class IpcManager {
                         win.maximize();
                     }
                 } catch (error) {
-                    console.error('[IpcManager] Error toggling maximize:', {
+                    logger.error('Error toggling maximize:', {
                         error: error.message,
                         windowId: win.id
                     });
@@ -164,7 +141,7 @@ class IpcManager {
                 try {
                     win.close();
                 } catch (error) {
-                    console.error('[IpcManager] Error closing window:', {
+                    logger.error('Error closing window:', {
                         error: error.message,
                         windowId: win.id
                     });
@@ -180,7 +157,7 @@ class IpcManager {
             try {
                 return win.isMaximized();
             } catch (error) {
-                console.error('[IpcManager] Error checking maximized state:', error);
+                logger.error('Error checking maximized state:', error);
                 return false;
             }
         });
@@ -199,7 +176,7 @@ class IpcManager {
                 const effectiveTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
                 return { preference, effectiveTheme };
             } catch (error) {
-                console.error('[IpcManager] Error getting theme:', error);
+                logger.error('Error getting theme:', error);
                 return { preference: 'system', effectiveTheme: 'dark' };
             }
         });
@@ -210,7 +187,7 @@ class IpcManager {
                 // Validate theme value
                 const validThemes = ['light', 'dark', 'system'];
                 if (!validThemes.includes(theme)) {
-                    console.warn(`[IpcManager] Invalid theme value: ${theme}`);
+                    logger.warn(`Invalid theme value: ${theme}`);
                     return;
                 }
 
@@ -223,12 +200,12 @@ class IpcManager {
                 // Compute effective theme after nativeTheme update
                 const effectiveTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
 
-                console.log(`[IpcManager] Theme set to: ${theme} (effective: ${effectiveTheme})`);
+                logger.log(`Theme set to: ${theme} (effective: ${effectiveTheme})`);
 
                 // Broadcast to all windows
                 this._broadcastThemeChange(theme, effectiveTheme);
             } catch (error) {
-                console.error('[IpcManager] Error setting theme:', {
+                logger.error('Error setting theme:', {
                     error: error.message,
                     requestedTheme: theme
                 });
@@ -251,7 +228,7 @@ class IpcManager {
                     win.webContents.send('theme:changed', { preference, effectiveTheme });
                 }
             } catch (error) {
-                console.error('[IpcManager] Error broadcasting theme to window:', {
+                logger.error('Error broadcasting theme to window:', {
                     error: error.message,
                     windowId: win.id
                 });
@@ -269,7 +246,7 @@ class IpcManager {
             try {
                 this.windowManager.createOptionsWindow();
             } catch (error) {
-                this._logError('Error opening options window:', error);
+                logger.error('Error opening options window:', error);
             }
         });
 
@@ -283,7 +260,7 @@ class IpcManager {
                     authWindow.on('closed', () => resolve());
                 });
             } catch (error) {
-                this._logError('Error opening Google sign-in:', error);
+                logger.error('Error opening Google sign-in:', error);
                 throw error;
             }
         });
