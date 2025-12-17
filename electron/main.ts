@@ -7,14 +7,14 @@
  */
 
 import { app, BrowserWindow, session } from 'electron';
-import * as path from 'path';
 import * as fs from 'fs';
 import { setupHeaderStripping } from './utils/security';
+import { getDistHtmlPath } from './utils/paths';
 import WindowManager from './managers/windowManager';
 import IpcManager from './managers/ipcManager';
 
 // Path to the production build
-const distIndexPath = path.join(__dirname, '../dist/index.html');
+const distIndexPath = getDistHtmlPath('index.html');
 
 // Determine if we're in development mode
 // Use production build if:

@@ -6,12 +6,16 @@
  */
 
 import { BrowserWindow, shell } from 'electron';
-import * as path from 'path';
 import {
     isInternalDomain,
     isOAuthDomain,
-    AUTH_WINDOW_CONFIG
+    AUTH_WINDOW_CONFIG,
+    MAIN_WINDOW_CONFIG,
+    OPTIONS_WINDOW_CONFIG,
+    getTitleBarStyle,
+    getDevUrl
 } from '../utils/constants';
+import { getPreloadPath, getDistHtmlPath, getIconPath } from '../utils/paths';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('[WindowManager]');
@@ -60,27 +64,20 @@ export default class WindowManager {
         }
 
         this.mainWindow = new BrowserWindow({
-            width: 1200,
-            height: 800,
-            minWidth: 800,
-            minHeight: 600,
-            frame: false, // Frameless for custom titlebar
-            titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined,
+            ...MAIN_WINDOW_CONFIG,
+            titleBarStyle: getTitleBarStyle(),
             webPreferences: {
-                preload: path.join(__dirname, '../preload.js'),
-                contextIsolation: true,
-                nodeIntegration: false,
+                ...MAIN_WINDOW_CONFIG.webPreferences,
+                preload: getPreloadPath(),
             },
-            backgroundColor: '#1a1a1a',
-            show: false,
-            icon: path.join(__dirname, '../../build/icon.png'),
+            icon: getIconPath(),
         });
 
-        const distIndexPath = path.join(__dirname, '../../dist/index.html');
+        const distIndexPath = getDistHtmlPath('index.html');
 
         // Load the app
         if (this.isDev) {
-            this.mainWindow.loadURL('http://localhost:1420');
+            this.mainWindow.loadURL(getDevUrl());
             this.mainWindow.webContents.openDevTools();
         } else {
             this.mainWindow.loadFile(distIndexPath);
@@ -150,26 +147,18 @@ export default class WindowManager {
         }
 
         this.optionsWindow = new BrowserWindow({
-            width: 600,
-            height: 400,
-            resizable: true,
-            minimizable: true,
-            maximizable: false,
-            frame: false,
-            titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined,
+            ...OPTIONS_WINDOW_CONFIG,
+            titleBarStyle: getTitleBarStyle(),
             webPreferences: {
-                preload: path.join(__dirname, '../preload.js'),
-                contextIsolation: true,
-                nodeIntegration: false,
+                ...OPTIONS_WINDOW_CONFIG.webPreferences,
+                preload: getPreloadPath(),
             },
-            backgroundColor: '#1a1a1a',
-            show: true,
         });
 
-        const distOptionsPath = path.join(__dirname, '../../dist/options.html');
+        const distOptionsPath = getDistHtmlPath('options.html');
 
         if (this.isDev) {
-            this.optionsWindow.loadURL('http://localhost:1420/options.html');
+            this.optionsWindow.loadURL(getDevUrl('options.html'));
         } else {
             this.optionsWindow.loadFile(distOptionsPath);
         }

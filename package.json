@@ -3,11 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:electron": "tsc -p tsconfig.electron.json && node scripts/rename-electron-output.cjs",
     "preview": "vite preview",
     "electron:dev": "npm run build:electron && concurrently \"npm run dev\" \"wait-on http://localhost:1420 && electron .\"",
     "electron:build": "npm run build && npm run build:electron && electron-builder",

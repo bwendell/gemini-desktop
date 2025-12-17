@@ -13,8 +13,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-// Path to the Electron main entry
-const electronMainPath = path.resolve(__dirname, 'electron/main.cjs');
+// Path to the Electron main entry (compiled from TypeScript)
+const electronMainPath = path.resolve(__dirname, 'dist-electron/main.cjs');
 
 export const config = {
     // Lifecycle tests only - these close the app intentionally
@@ -51,10 +51,10 @@ export const config = {
         timeout: 60000,
     },
 
-    // Build the frontend before tests
+    // Build the frontend and Electron backend before tests
     onPrepare: () => {
         console.log('Building frontend for E2E tests...');
-        const result = spawnSync('npm', ['run', 'build'], {
+        let result = spawnSync('npm', ['run', 'build'], {
             stdio: 'inherit',
             shell: true,
         });
@@ -63,6 +63,17 @@ export const config = {
             throw new Error('Failed to build frontend');
         }
         console.log('Build complete.');
+
+        console.log('Building Electron backend...');
+        result = spawnSync('npm', ['run', 'build:electron'], {
+            stdio: 'inherit',
+            shell: true,
+        });
+
+        if (result.status !== 0) {
+            throw new Error('Failed to build Electron backend');
+        }
+        console.log('Electron backend build complete.');
     },
 
     // Log level
