@@ -32,7 +32,12 @@ export const config = {
     services: [
         ['electron', {
             appEntryPoint: electronMainPath,
-            appArgs: [],
+            appArgs: process.env.CI ? [
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--enable-logging'
+            ] : [],
         }],
     ],
 
@@ -81,7 +86,8 @@ export const config = {
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
         // Add a short delay to ensure React has time to mount
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Increased wait time for CI environments to prevent race conditions
+        await new Promise(resolve => setTimeout(resolve, 5000));
     },
 
     // Ensure the app quits after tests
