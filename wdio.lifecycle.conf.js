@@ -1,12 +1,10 @@
 /**
- * WebdriverIO configuration for Electron E2E testing.
+ * WebdriverIO configuration for Lifecycle E2E tests.
  * 
- * Platform Support:
- * - Windows: ✅ Fully supported
- * - Linux: ✅ Fully supported  
- * - macOS: ✅ Fully supported
+ * This config is for tests that intentionally close the application,
+ * which would otherwise disrupt other tests running in parallel.
  * 
- * @see https://webdriver.io/docs/desktop-testing/electron
+ * Run with: npm run test:e2e:lifecycle
  */
 
 import path from 'path';
@@ -19,15 +17,9 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const electronMainPath = path.resolve(__dirname, 'electron/main.cjs');
 
 export const config = {
+    // Lifecycle tests only - these close the app intentionally
     specs: [
-        './tests/e2e/app-startup.spec.ts',
-        './tests/e2e/menu_bar.spec.ts',
-        './tests/e2e/options-window.spec.ts',
-        './tests/e2e/menu-interactions.spec.ts',
-        './tests/e2e/theme.spec.ts',
-        './tests/e2e/theme-selector-visual.spec.ts',
-        './tests/e2e/theme-selector-keyboard.spec.ts',
-        './tests/e2e/external-links.spec.ts',
+        './tests/e2e/lifecycle.spec.ts',
     ],
     maxInstances: 1,
 
@@ -48,7 +40,6 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
-            maxInstances: 1, // Force sequential execution
         },
     ],
 
@@ -89,13 +80,8 @@ export const config = {
 
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
-        // Add a short delay to ensure React has time to mount
-        // Increased wait time for CI environments to prevent race conditions
         await new Promise(resolve => setTimeout(resolve, 5000));
     },
 
-    // Ensure the app quits after tests
-    after: async function () {
-        await browser.electron.execute((electron) => electron.app.quit());
-    },
+    // No after hook - lifecycle tests close the app themselves
 };

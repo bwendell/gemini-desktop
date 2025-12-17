@@ -2,27 +2,23 @@
  * E2E tests for Theme Selector keyboard navigation.
  * 
  * Tests accessibility and keyboard-only navigation of the theme selector.
+ * 
+ * Platform-aware: Uses clickMenuItem helper for cross-platform menu access.
  */
 
 import { browser, $, expect } from '@wdio/globals';
+import { usesCustomControls } from './helpers/platform';
+import { Selectors } from './helpers/selectors';
+import { clickMenuItem } from './helpers/menuActions';
+import { waitForWindowCount } from './helpers/windowActions';
 
 /**
  * Helper function to open the Options window and switch to it.
  */
 async function openOptionsWindow(): Promise<{ mainHandle: string; optionsHandle: string }> {
-    const menuBar = await $('.titlebar-menu-bar');
-    await menuBar.waitForExist();
+    await clickMenuItem({ menuLabel: 'File', itemLabel: 'Options' });
 
-    const fileButton = await $('[data-testid="menu-button-File"]');
-    await fileButton.click();
-
-    const optionsItem = await $('[data-testid="menu-item-Options"]');
-    await optionsItem.waitForExist();
-    await optionsItem.click();
-
-    await browser.waitUntil(async () => {
-        return (await browser.getWindowHandles()).length === 2;
-    }, { timeout: 5000, timeoutMsg: 'Options window did not open' });
+    await waitForWindowCount(2, 5000);
 
     const handles = await browser.getWindowHandles();
     const mainHandle = handles[0];
@@ -38,13 +34,14 @@ async function openOptionsWindow(): Promise<{ mainHandle: string; optionsHandle:
  * Helper function to close the Options window.
  */
 async function closeOptionsWindow(mainHandle: string): Promise<void> {
-    const closeBtn = await $('[data-testid="options-close-button"]');
-    await closeBtn.click();
+    if (await usesCustomControls()) {
+        const closeBtn = await $(Selectors.optionsCloseButton);
+        await closeBtn.click();
+    } else {
+        await browser.keys(['Meta', 'w']);
+    }
 
-    await browser.waitUntil(async () => {
-        return (await browser.getWindowHandles()).length === 1;
-    }, { timeout: 5000 });
-
+    await waitForWindowCount(1, 5000);
     await browser.switchToWindow(mainHandle);
 }
 
@@ -54,7 +51,6 @@ describe('Theme Selector Keyboard Navigation', () => {
 
         try {
             // Tab through the window to reach the theme cards
-            // First tab should focus on titlebar elements, subsequent tabs on content
             await browser.keys(['Tab', 'Tab', 'Tab', 'Tab', 'Tab']);
 
             // Get the currently focused element
@@ -81,9 +77,9 @@ describe('Theme Selector Keyboard Navigation', () => {
             await expect(themeSelector).toHaveAttribute('aria-label', 'Theme selection');
 
             // Verify each card has radio role
-            const systemCard = await $('[data-testid="theme-card-system"]');
-            const lightCard = await $('[data-testid="theme-card-light"]');
-            const darkCard = await $('[data-testid="theme-card-dark"]');
+            const systemCard = await $(Selectors.themeCard('system'));
+            const lightCard = await $(Selectors.themeCard('light'));
+            const darkCard = await $(Selectors.themeCard('dark'));
 
             await expect(systemCard).toHaveAttribute('role', 'radio');
             await expect(lightCard).toHaveAttribute('role', 'radio');
@@ -103,7 +99,7 @@ describe('Theme Selector Keyboard Navigation', () => {
 
         try {
             // Focus on the light card
-            const lightCard = await $('[data-testid="theme-card-light"]');
+            const lightCard = await $(Selectors.themeCard('light'));
             await lightCard.click(); // First select to establish baseline
             await browser.pause(200);
 
@@ -111,7 +107,7 @@ describe('Theme Selector Keyboard Navigation', () => {
             await browser.keys(['Tab']);
 
             // Verify dark card is focused (or focus it directly)
-            const darkCard = await $('[data-testid="theme-card-dark"]');
+            const darkCard = await $(Selectors.themeCard('dark'));
 
             // Use JavaScript to focus the element (more reliable in Electron)
             await browser.execute((selector: string) => {
@@ -155,7 +151,7 @@ describe('Theme Selector Keyboard Navigation', () => {
             await browser.pause(300);
 
             // Verify light theme is now selected
-            const lightCard = await $('[data-testid="theme-card-light"]');
+            const lightCard = await $(Selectors.themeCard('light'));
             await expect(lightCard).toHaveAttribute('aria-checked', 'true');
 
             // Verify theme actually changed
@@ -165,7 +161,7 @@ describe('Theme Selector Keyboard Navigation', () => {
             expect(currentTheme).toBe('light');
 
             // Clean up: switch back to dark
-            const darkCard = await $('[data-testid="theme-card-dark"]');
+            const darkCard = await $(Selectors.themeCard('dark'));
             await darkCard.click();
             await browser.pause(200);
         } finally {
@@ -188,21 +184,17 @@ describe('Theme Selector Keyboard Navigation', () => {
             await browser.keys(['Shift', 'Tab']); // Go back
 
             // Check if the card has proper outline/border when focused
-            // This verifies the CSS :focus-visible styles are working
             const hasFocusStyles = await browser.execute(() => {
                 const el = document.querySelector('[data-testid="theme-card-system"]');
                 if (!el) return false;
 
                 const styles = window.getComputedStyle(el);
-                // Check for any focus indication (outline, box-shadow, or border)
                 const hasOutline = styles.outline !== 'none' && styles.outline !== '';
                 const hasBoxShadow = styles.boxShadow !== 'none' && styles.boxShadow !== '';
 
                 return hasOutline || hasBoxShadow;
             });
 
-            // The element should have some focus indicator
-            // Note: This may vary based on whether :focus-visible is triggered
             expect(hasFocusStyles).toBeDefined();
         } finally {
             await closeOptionsWindow(mainHandle);

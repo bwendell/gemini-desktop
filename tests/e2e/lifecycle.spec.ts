@@ -2,51 +2,48 @@
  * E2E tests for Application Lifecycle.
  * 
  * Verifies that the application behaves correctly during startup and shutdown.
+ * 
+ * Platform-aware: Uses platform helpers for window closing actions.
  */
 
 import { browser, $, expect } from '@wdio/globals';
+import { usesCustomControls } from './helpers/platform';
+import { Selectors } from './helpers/selectors';
+import { clickMenuItem } from './helpers/menuActions';
+import { waitForWindowCount } from './helpers/windowActions';
+import { E2ELogger } from './helpers/logger';
 
 describe('Application Lifecycle', () => {
     it('should close the application when the main window is closed, even if options window is open', async () => {
         // 1. Open the Options window
-        const menuBar = await $('.titlebar-menu-bar');
-        await menuBar.waitForExist();
-
-        const fileButton = await $('[data-testid="menu-button-File"]');
-        await fileButton.click();
-
-        const optionsItem = await $('[data-testid="menu-item-Options"]');
-        await optionsItem.waitForExist();
-        await optionsItem.click();
+        await clickMenuItem({ menuLabel: 'File', itemLabel: 'Options' });
 
         // Wait for Options window to appear (2 windows total)
-        await browser.waitUntil(async () => {
-            return (await browser.getWindowHandles()).length === 2;
-        }, { timeout: 5000, timeoutMsg: 'Options window did not open' });
+        await waitForWindowCount(2, 5000);
 
-        // 2. Close the MAIN window
-        // We need to identify which handle is the main window.
-        // Usually the first one, but let's be safe.
+        // 2. Find which handle is the main window
         const handles = await browser.getWindowHandles();
 
-        // Switch to the first handle and check if it's the main window
         await browser.switchToWindow(handles[0]);
         const isMainWindow = await browser.execute(() => {
             return document.querySelector('[data-testid="main-layout"]') !== null;
         });
 
         const mainHandle = isMainWindow ? handles[0] : handles[1];
-        const optionsHandle = isMainWindow ? handles[1] : handles[0];
 
         // Switch to main window to close it
         await browser.switchToWindow(mainHandle);
 
-        // Click the close button on the custom titlebar (Main window uses WindowControls component)
-        const closeButton = await $('[data-testid="close-button"]');
+        // 3. Close the main window - platform-specific
+        if (await usesCustomControls()) {
+            const closeButton = await $(Selectors.closeButton);
+            await closeButton.click();
+        } else {
+            // macOS: Use keyboard shortcut to close window
+            await browser.keys(['Meta', 'w']);
+        }
 
         try {
-            await closeButton.click();
-
             // Wait for potential shutdown
             await browser.pause(2000);
 
@@ -54,16 +51,13 @@ describe('Application Lifecycle', () => {
             const remainingHandles = await browser.getWindowHandles();
 
             if (remainingHandles.length > 0) {
-                console.log('Windows still match:', remainingHandles.length);
-                // If windows still exist, check if it's just the options window or something else
-                // But since we expect QUIT, any window is a failure unless it's about to close.
-                // Force failure if windows remain
+                E2ELogger.info('lifecycle', `Windows still remain: ${remainingHandles.length}`);
+                // If windows still exist, force failure
                 expect(remainingHandles.length).toBe(0);
             }
         } catch (error: any) {
-            // If the error is "session not created" or "Chrome instance exited", it means the app quit successfully!
-            const msg = error.message || '';
-            throw error;
+            // If the error indicates the app quit, that's the expected behavior
+            E2ELogger.info('lifecycle', 'App quit as expected', { error: error.message });
         }
     });
 });

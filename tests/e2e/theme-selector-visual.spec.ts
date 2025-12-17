@@ -3,31 +3,24 @@
  * 
  * Tests visual elements, animations, and selection behavior
  * of the new card-based theme selector.
+ * 
+ * Platform-aware: Uses clickMenuItem helper for cross-platform menu access.
  */
 
 import { browser, $, $$, expect } from '@wdio/globals';
+import { usesCustomControls } from './helpers/platform';
+import { Selectors } from './helpers/selectors';
+import { clickMenuItem } from './helpers/menuActions';
+import { waitForWindowCount } from './helpers/windowActions';
 
 /**
  * Helper function to open the Options window and switch to it.
  * Returns the window handles for cleanup.
  */
 async function openOptionsWindow(): Promise<{ mainHandle: string; optionsHandle: string }> {
-    // Open File menu
-    const menuBar = await $('.titlebar-menu-bar');
-    await menuBar.waitForExist();
+    await clickMenuItem({ menuLabel: 'File', itemLabel: 'Options' });
 
-    const fileButton = await $('[data-testid="menu-button-File"]');
-    await fileButton.click();
-
-    // Click Options
-    const optionsItem = await $('[data-testid="menu-item-Options"]');
-    await optionsItem.waitForExist();
-    await optionsItem.click();
-
-    // Wait for Options window to open
-    await browser.waitUntil(async () => {
-        return (await browser.getWindowHandles()).length === 2;
-    }, { timeout: 5000, timeoutMsg: 'Options window did not open' });
+    await waitForWindowCount(2, 5000);
 
     const handles = await browser.getWindowHandles();
     const mainHandle = handles[0];
@@ -44,13 +37,14 @@ async function openOptionsWindow(): Promise<{ mainHandle: string; optionsHandle:
  * Helper function to close the Options window.
  */
 async function closeOptionsWindow(mainHandle: string): Promise<void> {
-    const closeBtn = await $('[data-testid="options-close-button"]');
-    await closeBtn.click();
+    if (await usesCustomControls()) {
+        const closeBtn = await $(Selectors.optionsCloseButton);
+        await closeBtn.click();
+    } else {
+        await browser.keys(['Meta', 'w']);
+    }
 
-    await browser.waitUntil(async () => {
-        return (await browser.getWindowHandles()).length === 1;
-    }, { timeout: 5000 });
-
+    await waitForWindowCount(1, 5000);
     await browser.switchToWindow(mainHandle);
 }
 
@@ -64,9 +58,9 @@ describe('Theme Selector Visual Verification', () => {
             await expect(themeSelector).toExist();
 
             // Verify all three theme cards are displayed
-            const systemCard = await $('[data-testid="theme-card-system"]');
-            const lightCard = await $('[data-testid="theme-card-light"]');
-            const darkCard = await $('[data-testid="theme-card-dark"]');
+            const systemCard = await $(Selectors.themeCard('system'));
+            const lightCard = await $(Selectors.themeCard('light'));
+            const darkCard = await $(Selectors.themeCard('dark'));
 
             await expect(systemCard).toBeDisplayed();
             await expect(lightCard).toBeDisplayed();
@@ -98,7 +92,7 @@ describe('Theme Selector Visual Verification', () => {
 
         try {
             // Click light theme
-            const lightCard = await $('[data-testid="theme-card-light"]');
+            const lightCard = await $(Selectors.themeCard('light'));
             await lightCard.click();
             await browser.pause(300); // Wait for animation
 
@@ -113,7 +107,7 @@ describe('Theme Selector Visual Verification', () => {
             await expect(darkCheckmark).not.toExist();
 
             // Now click dark theme
-            const darkCard = await $('[data-testid="theme-card-dark"]');
+            const darkCard = await $(Selectors.themeCard('dark'));
             await darkCard.click();
             await browser.pause(300);
 
@@ -133,7 +127,7 @@ describe('Theme Selector Visual Verification', () => {
         const { mainHandle } = await openOptionsWindow();
 
         try {
-            const lightCard = await $('[data-testid="theme-card-light"]');
+            const lightCard = await $(Selectors.themeCard('light'));
             await lightCard.click();
             await browser.pause(300);
 
@@ -149,7 +143,7 @@ describe('Theme Selector Visual Verification', () => {
             await expect(lightCard).toHaveAttribute('aria-checked', 'true');
 
             // Other cards should not have selected class
-            const darkCard = await $('[data-testid="theme-card-dark"]');
+            const darkCard = await $(Selectors.themeCard('dark'));
             await expect(darkCard).toHaveAttribute('aria-checked', 'false');
         } finally {
             await closeOptionsWindow(mainHandle);
@@ -161,7 +155,7 @@ describe('Theme Selector Visual Verification', () => {
 
         try {
             // Click light theme
-            const lightCard = await $('[data-testid="theme-card-light"]');
+            const lightCard = await $(Selectors.themeCard('light'));
             await lightCard.click();
             await browser.pause(500);
 
@@ -180,7 +174,7 @@ describe('Theme Selector Visual Verification', () => {
 
             // Clean up: set back to dark
             await browser.switchToWindow(optionsHandle);
-            const darkCard = await $('[data-testid="theme-card-dark"]');
+            const darkCard = await $(Selectors.themeCard('dark'));
             await darkCard.click();
             await browser.pause(300);
         } finally {

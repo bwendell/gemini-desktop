@@ -1,21 +1,24 @@
+/**
+ * E2E Test: Theme Feature
+ * 
+ * Tests theme switching and color verification.
+ * 
+ * Platform-aware: Uses clickMenuItem helper for cross-platform menu access.
+ */
 
 import { browser, $, expect } from '@wdio/globals';
+import { usesCustomControls } from './helpers/platform';
+import { Selectors } from './helpers/selectors';
+import { clickMenuItem } from './helpers/menuActions';
+import { waitForWindowCount } from './helpers/windowActions';
 
 describe('Theme Feature', () => {
     it('should apply correct text colors to Options titlebar in light and dark modes', async () => {
         // 1. Open Options Window
-        const menuBar = await $('.titlebar-menu-bar');
-        await menuBar.waitForExist();
-        const fileButton = await $('[data-testid="menu-button-File"]');
-        await fileButton.click();
-        const optionsItem = await $('[data-testid="menu-item-Options"]');
-        await optionsItem.waitForExist();
-        await optionsItem.click();
+        await clickMenuItem({ menuLabel: 'File', itemLabel: 'Options' });
 
         // Wait for Options Window
-        await browser.waitUntil(async () => {
-            return (await browser.getWindowHandles()).length === 2;
-        });
+        await waitForWindowCount(2);
 
         const handles = await browser.getWindowHandles();
         const mainWindowHandle = handles[0];
@@ -29,7 +32,7 @@ describe('Theme Feature', () => {
         await titleElement.waitForExist();
 
         // Select Light Theme (using new card-based selector)
-        const lightThemeCard = await $('[data-testid="theme-card-light"]');
+        const lightThemeCard = await $(Selectors.themeCard('light'));
         await lightThemeCard.click();
 
         // Small delay for CSS to apply
@@ -77,7 +80,6 @@ describe('Theme Feature', () => {
 
         // In light mode, title color should be dark (black-ish)
         // rgb(32, 33, 36) is #202124 which is --text-primary in light mode
-        // The color should NOT be rgb(232, 234, 237) which is #e8eaed (light/white text)
         console.log(`Light mode - Title computed color: ${lightDebugInfo.titleColor}`);
         console.log(`Light mode - CSS var --text-primary: ${lightDebugInfo.cssVarTextPrimary}`);
         console.log(`Light mode - Body color: ${lightDebugInfo.bodyColor}`);
@@ -91,7 +93,7 @@ describe('Theme Feature', () => {
         expect(lightDebugInfo.titleColor).toBe('rgb(32, 33, 36)');
 
         // Now switch to dark theme and verify (using new card-based selector)
-        const darkThemeCard = await $('[data-testid="theme-card-dark"]');
+        const darkThemeCard = await $(Selectors.themeCard('dark'));
         await darkThemeCard.click();
         await browser.pause(500);
 
@@ -125,8 +127,11 @@ describe('Theme Feature', () => {
 
         // Close Options Window
         await browser.switchToWindow(optionsWindowHandle);
-        const closeBtn = await $('[data-testid="options-close-button"]');
-        await closeBtn.click();
+        if (await usesCustomControls()) {
+            const closeBtn = await $(Selectors.optionsCloseButton);
+            await closeBtn.click();
+        } else {
+            await browser.keys(['Meta', 'w']);
+        }
     });
 });
-
