@@ -8,3 +8,4 @@ export * from './menuActions';
 export * from './windowActions';
 export * from './selectors';
 export * from './logger';
+export * from './hotkeyHelpers';

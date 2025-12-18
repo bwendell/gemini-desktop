@@ -7,6 +7,25 @@
 
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
+import React from 'react';
+
+// ============================================================================
+// Mock: framer-motion (animations don't work well in JSDOM)
+// ============================================================================
+vi.mock('framer-motion', () => ({
+    motion: {
+        div: React.forwardRef<HTMLDivElement, any>(({ children, ...props }, ref) => {
+            // Filter out framer-motion specific props to avoid warnings
+            const {
+                variants, initial, whileHover, whileTap, animate, exit, transition,
+                ...domProps
+            } = props;
+            return React.createElement('div', { ...domProps, ref }, children);
+        }),
+    },
+    AnimatePresence: ({ children }: React.PropsWithChildren) => React.createElement(React.Fragment, {}, children),
+}));
+
 
 // ============================================================================
 // Mock: window.matchMedia (JSDOM doesn't have this)

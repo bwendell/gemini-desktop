@@ -9,20 +9,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeSelector } from './ThemeSelector';
 import { ThemeProvider } from '../../context/ThemeContext';
 
-// Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-            // Filter out framer-motion specific props
-            const {
-                variants, initial, whileHover, whileTap, animate, exit, transition,
-                ...domProps
-            } = props;
-            return <div {...domProps}>{children}</div>;
-        },
-    },
-    AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
-}));
 
 // Helper to render with ThemeProvider
 const renderWithTheme = (ui: React.ReactElement, initialTheme: 'light' | 'dark' | 'system' = 'system') => {

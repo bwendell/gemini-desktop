@@ -227,4 +227,13 @@ export default class WindowManager {
     getMainWindow(): BrowserWindow | null {
         return this.mainWindow;
     }
+
+    /**
+     * Minimize the main window.
+     */
+    minimizeMainWindow() {
+        if (this.mainWindow) {
+            this.mainWindow.minimize();
+        }
+    }
 }
