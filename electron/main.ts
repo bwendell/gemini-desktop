@@ -12,6 +12,7 @@ import { setupHeaderStripping } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
 import WindowManager from './managers/windowManager';
 import IpcManager from './managers/ipcManager';
+import MenuManager from './managers/menuManager';
 import HotkeyManager from './managers/hotkeyManager';
 
 
@@ -39,7 +40,20 @@ const hotkeyManager = new HotkeyManager(windowManager);
 app.whenReady().then(() => {
     setupHeaderStripping(session.defaultSession);
     ipcManager.setupIpcHandlers();
+
+    // Setup native application menu (critical for macOS)
+    const menuManager = new MenuManager(windowManager);
+    menuManager.buildMenu();
+
     windowManager.createMainWindow();
+
+    // Security: Block webview creation attempts from renderer content
+    app.on('web-contents-created', (_, contents) => {
+        contents.on('will-attach-webview', (event) => {
+            event.preventDefault();
+            console.warn('[Security] Blocked webview creation attempt');
+        });
+    });
     hotkeyManager.registerShortcuts();
 
     app.on('activate', () => {

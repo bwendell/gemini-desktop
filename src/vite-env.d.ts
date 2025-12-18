@@ -6,7 +6,7 @@ interface Window {
         maximizeWindow: () => void;
         closeWindow: () => void;
         isMaximized: () => Promise<boolean>;
-        openOptions: () => void;
+        openOptions: (tab?: 'settings' | 'about') => void;
         openGoogleSignIn: () => Promise<void>;
 
         // Theme API

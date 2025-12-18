@@ -48,8 +48,9 @@ const electronAPI: ElectronAPI = {
 
     /**
      * Open the options/settings window.
+     * @param tab - Optional tab to open ('settings' or 'about')
      */
-    openOptions: () => ipcRenderer.send('open-options-window'),
+    openOptions: (tab) => ipcRenderer.send('open-options-window', tab),
 
     /**
      * Open Google sign-in in a new BrowserWindow.

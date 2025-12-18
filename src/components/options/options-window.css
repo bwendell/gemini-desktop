@@ -107,6 +107,60 @@
     gap: 24px;
 }
 
+/* === Tab Navigation === */
+
+.options-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background-color: var(--titlebar-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 16px;
+}
+
+.options-tab-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s ease;
+}
+
+.options-tab-button:hover {
+    color: var(--text-primary);
+}
+
+.options-tab-button:focus {
+    outline: none;
+}
+
+.options-tab-button:focus-visible {
+    outline: 1px solid #007acc;
+    outline-offset: -1px;
+}
+
+.options-tab-button.active {
+    color: var(--text-primary);
+}
+
+/* Active tab indicator */
+.options-tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--accent-color, #4fc3f7);
+}
+
 /* === Options Section (Modular Container) === */
 
 .options-section {

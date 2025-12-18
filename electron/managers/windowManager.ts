@@ -88,6 +88,7 @@ export default class WindowManager {
         });
 
         this._setupWindowOpenHandler();
+        this._setupNavigationHandler();
 
         this.mainWindow.on('closed', () => {
             this.mainWindow = null;
@@ -98,6 +99,41 @@ export default class WindowManager {
         });
 
         return this.mainWindow;
+    }
+
+    /**
+     * Set up navigation handler to prevent navigation hijacking.
+     * Blocks attempts to navigate the main window to external URLs.
+     * @private
+     */
+    private _setupNavigationHandler(): void {
+        if (!this.mainWindow) return;
+
+        this.mainWindow.webContents.on('will-navigate', (event, url) => {
+            try {
+                const urlObj = new URL(url);
+                const hostname = urlObj.hostname;
+
+                // Allow navigation to internal domains
+                if (isInternalDomain(hostname)) {
+                    logger.log('Allowing navigation to internal URL:', url);
+                    return;
+                }
+
+                // Allow navigation to OAuth domains (for sign-in flows)
+                if (isOAuthDomain(hostname)) {
+                    logger.log('Allowing navigation to OAuth URL:', url);
+                    return;
+                }
+
+                // Block navigation to external URLs
+                logger.warn('Blocked navigation to external URL:', url);
+                event.preventDefault();
+            } catch (e) {
+                logger.error('Invalid navigation URL, blocking:', url);
+                event.preventDefault();
+            }
+        });
     }
 
     /**
@@ -138,10 +174,20 @@ export default class WindowManager {
 
     /**
      * Create or focus the options window.
+     * @param tab - Optional tab to open ('settings' or 'about')
      * @returns The options window
      */
-    createOptionsWindow(): BrowserWindow {
+    createOptionsWindow(tab?: 'settings' | 'about'): BrowserWindow {
+        // Build hash fragment for tab
+        const hash = tab ? `#${tab}` : '';
+
         if (this.optionsWindow) {
+            // If window exists, navigate to the requested tab
+            if (tab) {
+                const currentUrl = this.optionsWindow.webContents.getURL();
+                const baseUrl = currentUrl.split('#')[0];
+                this.optionsWindow.loadURL(`${baseUrl}${hash}`);
+            }
             this.optionsWindow.focus();
             return this.optionsWindow;
         }
@@ -158,9 +204,9 @@ export default class WindowManager {
         const distOptionsPath = getDistHtmlPath('options.html');
 
         if (this.isDev) {
-            this.optionsWindow.loadURL(getDevUrl('options.html'));
+            this.optionsWindow.loadURL(getDevUrl('options.html') + hash);
         } else {
-            this.optionsWindow.loadFile(distOptionsPath);
+            this.optionsWindow.loadFile(distOptionsPath, { hash: tab });
         }
 
         this.optionsWindow.once('ready-to-show', () => {

@@ -9,7 +9,7 @@
 import { browser, $, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
-import { clickMenuItem } from './helpers/menuActions';
+import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, switchToWindowByIndex } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
 
@@ -24,7 +24,7 @@ declare global {
 describe('Options Window Features', () => {
     it('should open options window with correct window controls', async () => {
         // 1. Open Options via menu
-        await clickMenuItem({ menuLabel: 'File', itemLabel: 'Options' });
+        await clickMenuItemById('menu-file-options');
 
         // 2. Wait for new window
         await waitForWindowCount(2, 5000);

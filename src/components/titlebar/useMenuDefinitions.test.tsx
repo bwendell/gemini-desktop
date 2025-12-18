@@ -144,9 +144,7 @@ describe('useMenuDefinitions', () => {
     });
 
     describe('Help menu', () => {
-        it('About action shows alert dialog', () => {
-            const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { });
-
+        it('About action opens options window', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const helpMenu = result.current[2];
             const aboutItem = helpMenu.items[0];
@@ -155,12 +153,8 @@ describe('useMenuDefinitions', () => {
 
             if ('action' in aboutItem && aboutItem.action) {
                 aboutItem.action();
-                expect(alertSpy).toHaveBeenCalledWith(
-                    expect.stringContaining('Gemini Desktop v0.1.0')
-                );
+                expect(mockElectronAPI.openOptions).toHaveBeenCalledWith('about');
             }
-
-            alertSpy.mockRestore();
         });
     });
 });

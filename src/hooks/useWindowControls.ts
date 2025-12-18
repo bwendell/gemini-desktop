@@ -1,13 +1,5 @@
 import { useCallback } from 'react';
 
-
-
-/**
- * Custom hook for window control operations.
- * Provides minimize, maximize/restore, and close functionality.
- * 
- * Works with both Electron (via preload API) and falls back gracefully.
- */
 /**
  * Custom hook for window control operations.
  * Provides minimize, maximize/restore, and close functionality.

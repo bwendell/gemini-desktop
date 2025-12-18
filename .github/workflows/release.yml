@@ -14,18 +14,18 @@ concurrency:
 permissions:
   contents: write # Required for creating releases
 
+# =============================================================================
+# Environment Variables
+# =============================================================================
 env:
   NODE_VERSION: '20'
-  # Skip Electron install cache for faster builds
-  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+  CI: true
+  ELECTRON_ENABLE_LOGGING: true
 
 jobs:
   # ===========================================================================
-  # Quality Gate: Tests
+  # Quality Gate: Unit Tests
   # ===========================================================================
-  # Ensure strict quality control before attempting a release.
-  # We run Unit Tests and E2E tests.
-  
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -50,43 +50,76 @@ jobs:
         env:
           FORCE_COLOR: 1
 
+  # ===========================================================================
+  # Quality Gate: E2E Tests
+  # ===========================================================================
   e2e-tests:
     name: E2E Verification (${{ matrix.os }})
+    needs: unit-tests
     runs-on: ${{ matrix.os }}
+    
     strategy:
       fail-fast: true # If any platform fails, abort the release
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          # Platform-specific configurations
+          - os: ubuntu-latest
+            display: ':99.0'
+          - os: windows-latest
+            display: ''
+          - os: macos-latest
+            display: ''
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
-      # Linux specifics for Headless
+
+      # Linux-specific: Setup virtual display for headless Electron
       - name: Setup Virtual Display (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
+          # Start Xvfb virtual framebuffer
           Xvfb :99 -screen 0 1920x1080x24 &
           echo "DISPLAY=:99.0" >> $GITHUB_ENV
 
-      - run: npm ci
-      
-      - name: Build
-        run: |
-          npm run build
-          npm run build:electron
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Frontend
+        run: npm run build
         env:
           NODE_ENV: production
 
-      - name: Run E2E
+      - name: Build Electron Backend
+        run: npm run build:electron
+
+      - name: Run E2E Tests
         run: npm run test:e2e
         env:
           ELECTRON_USE_DIST: 'true'
-          DISPLAY: ${{ runner.os == 'Linux' && ':99.0' || '' }}
+          DISPLAY: ${{ matrix.display }}
+          DEBUG: 'wdio:*'
+
+      # Upload artifacts on failure for debugging
+      - name: Upload E2E Screenshots (on failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-screenshots-release-${{ matrix.os }}
+          path: |
+            tests/e2e/screenshots/
+            tests/e2e/logs/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # ===========================================================================
   # Build & Release
@@ -95,6 +128,7 @@ jobs:
     name: Build & Release (${{ matrix.os }})
     needs: [unit-tests, e2e-tests]
     runs-on: ${{ matrix.os }}
+    
     strategy:
       fail-fast: false
       matrix:
@@ -139,3 +173,13 @@ jobs:
           # Windows Signing Secrets (Optional - Empty = Unsigned)
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      # Upload build artifacts for debugging if needed
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-artifacts-${{ matrix.os }}
+          path: release/
+          retention-days: 7
+          if-no-files-found: ignore

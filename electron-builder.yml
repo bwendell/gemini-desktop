@@ -1,4 +1,4 @@
-appId: com.gemini.desktop
+appId: com.benwendell.gemini-desktop
 productName: Gemini Desktop
 directories:
   output: release

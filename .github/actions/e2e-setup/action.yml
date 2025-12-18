@@ -1,0 +1,42 @@
+name: 'E2E Setup'
+description: 'Setup environment for running E2E tests on Electron apps'
+
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '20'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+
+    # Linux-specific: Setup virtual display for headless Electron
+    - name: Setup Virtual Display (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+        # Start Xvfb virtual framebuffer
+        Xvfb :99 -screen 0 1920x1080x24 &
+        echo "DISPLAY=:99.0" >> $GITHUB_ENV
+
+    - name: Install Dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Build Frontend
+      shell: bash
+      run: npm run build
+      env:
+        NODE_ENV: production
+
+    - name: Build Electron Backend
+      shell: bash
+      run: npm run build:electron

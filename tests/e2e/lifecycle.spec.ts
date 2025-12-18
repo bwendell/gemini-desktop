@@ -10,20 +10,26 @@
  */
 
 import { browser, $, expect } from '@wdio/globals';
-import { usesCustomControls } from './helpers/platform';
-import { Selectors } from './helpers/selectors';
-import { clickMenuItem } from './helpers/menuActions';
+import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
 
-// TODO: Re-enable once WebDriver session handling for app shutdown is resolved
+/**
+ * SKIP REASON: WebDriver session handling cannot gracefully handle app shutdown.
+ * When the Electron app closes, WebDriver loses its session and throws timeout errors.
+ * The test logic is correct and the app shutdown works as expected (verified by logs),
+ * but the test framework cannot cleanly report success after the app exits.
+ * 
+ * This is a known limitation of E2E testing for app shutdown scenarios.
+ * The app shutdown behavior is unit-tested in windowManager.test.ts instead.
+ */
 describe.skip('Application Lifecycle', () => {
     it('should close the application when the main window is closed, even if options window is open', async function () {
         // Set a longer timeout for this test since it involves app shutdown
         this.timeout(30000);
 
         // 1. Open the Options window
-        await clickMenuItem({ menuLabel: 'File', itemLabel: 'Options' });
+        await clickMenuItemById('menu-file-options');
 
         // Wait for Options window to appear (2 windows total)
         await waitForWindowCount(2, 5000);

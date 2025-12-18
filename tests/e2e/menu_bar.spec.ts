@@ -60,9 +60,7 @@ describe('Custom Menu Bar', () => {
         expect(buttonTexts).toContain('Help');
     });
 
-    // Note: Dropdown click behavior is tested in unit tests.
-    // E2E click events in Electron WebDriver can be flaky with React portals.
-    it.skip('should open dropdown when File menu is clicked', async () => {
+    it('should open dropdown when File menu is clicked', async () => {
         if (!(await usesCustomControls())) {
             return; // Skip on macOS
         }

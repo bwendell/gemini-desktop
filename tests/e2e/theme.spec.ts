@@ -9,13 +9,13 @@
 import { browser, $, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
-import { clickMenuItem } from './helpers/menuActions';
+import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 
 describe('Theme Feature', () => {
     it('should apply correct text colors to Options titlebar in light and dark modes', async () => {
         // 1. Open Options Window
-        await clickMenuItem({ menuLabel: 'File', itemLabel: 'Options' });
+        await clickMenuItemById('menu-file-options');
 
         // Wait for Options Window
         await waitForWindowCount(2);

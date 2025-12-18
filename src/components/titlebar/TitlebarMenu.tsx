@@ -20,13 +20,14 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-    // On macOS, we use native menus, so don't render this component
-    if (!usesCustomWindowControls()) {
-        return null;
-    }
+    // Determine if we should render custom menus (all platforms except macOS)
+    const shouldRender = usesCustomWindowControls();
 
     // Handle Escape key to close menu
+    // Note: All hooks must be called unconditionally, so we guard inside the effect
     useEffect(() => {
+        if (!shouldRender) return;
+
         const handleKeyDown = (event: KeyboardEvent) => {
             if (activeMenuIndex !== null && event.key === 'Escape') {
                 setActiveMenuIndex(null);
@@ -40,10 +41,12 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
             };
         }
         return undefined;
-    }, [activeMenuIndex]);
+    }, [activeMenuIndex, shouldRender]);
 
     // Handle clicks outside both the menu bar AND the dropdown
     useEffect(() => {
+        if (!shouldRender) return;
+
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node;
 
@@ -69,7 +72,7 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
             };
         }
         return undefined;
-    }, [activeMenuIndex]);
+    }, [activeMenuIndex, shouldRender]);
 
     const openMenu = useCallback((index: number) => {
         const button = buttonRefs.current[index];
@@ -143,6 +146,7 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
                                 disabled={item.disabled}
                                 onClick={() => handleItemClick(item.action)}
                                 data-testid={`menu-item-${item.label}`}
+                                data-menu-id={item.id}
                             >
                                 <span className="menu-item-label">{item.label}</span>
                                 {item.shortcut && (
@@ -158,6 +162,12 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
         // Render dropdown as a portal to escape overflow:hidden containers
         return createPortal(dropdown, document.body);
     };
+
+    // On macOS, we use native menus, so don't render this component
+    // Note: This return is placed AFTER all hooks to comply with React Rules of Hooks
+    if (!shouldRender) {
+        return null;
+    }
 
     return (
         <>

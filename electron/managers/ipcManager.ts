@@ -248,10 +248,10 @@ export default class IpcManager {
      * @private
      */
     private _setupAppHandlers(): void {
-        // Open options window
-        ipcMain.on('open-options-window', () => {
+        // Open options window (optionally to a specific tab)
+        ipcMain.on('open-options-window', (_event, tab?: 'settings' | 'about') => {
             try {
-                this.windowManager.createOptionsWindow();
+                this.windowManager.createOptionsWindow(tab);
             } catch (error) {
                 this.logger.error('Error opening options window:', error);
             }

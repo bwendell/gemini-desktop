@@ -4,6 +4,8 @@
 
 export type MenuItem =
     | {
+        /** Unique identifier for E2E testing (should match native menu ID) */
+        id?: string;
         label: string;
         action?: () => void;
         shortcut?: string;

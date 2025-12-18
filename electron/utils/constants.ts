@@ -36,6 +36,50 @@ export const OAUTH_DOMAINS = [
 export const GOOGLE_ACCOUNTS_URL = 'https://accounts.google.com' as const;
 
 /**
+ * Full URL for Google sign-in page.
+ */
+export const GOOGLE_SIGNIN_URL = `${GOOGLE_ACCOUNTS_URL}/signin` as const;
+
+// =========================================================================
+// External URLs
+// =========================================================================
+
+/**
+ * GitHub repository base URL.
+ */
+export const GITHUB_REPO_URL = 'https://github.com/bwendell/gemini-desktop' as const;
+
+/**
+ * GitHub issues URL for bug reports.
+ */
+export const GITHUB_ISSUES_URL = `${GITHUB_REPO_URL}/issues` as const;
+
+/**
+ * GitHub license file URL.
+ */
+export const GITHUB_LICENSE_URL = `${GITHUB_REPO_URL}/blob/main/LICENSE` as const;
+
+/**
+ * GitHub disclaimer file URL.
+ */
+export const GITHUB_DISCLAIMER_URL = `${GITHUB_REPO_URL}/blob/main/DISCLAIMER.md` as const;
+
+/**
+ * Google Terms of Service URL.
+ */
+export const GOOGLE_TOS_URL = 'https://policies.google.com/terms' as const;
+
+/**
+ * Google Generative AI Terms URL.
+ */
+export const GOOGLE_GENAI_TERMS_URL = 'https://policies.google.com/terms/generative-ai' as const;
+
+/**
+ * Main Gemini application URL.
+ */
+export const GEMINI_APP_URL = 'https://gemini.google.com/app' as const;
+
+/**
  * Configuration for the authentication window.
  */
 export const AUTH_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
@@ -90,6 +134,7 @@ export function isOAuthDomain(hostname: string): boolean {
 export const BASE_WEB_PREFERENCES: BrowserWindowConstructorOptions['webPreferences'] = {
     contextIsolation: true,
     nodeIntegration: false,
+    sandbox: true,
 } as const;
 
 /**
@@ -163,3 +208,13 @@ export const DEV_SERVER_PORT = 1420;
 export function getDevUrl(page: string = ''): string {
     return page ? `${DEV_SERVER_URL}/${page}` : DEV_SERVER_URL;
 }
+
+// =============================================================================
+// Platform Constants
+// =============================================================================
+
+export const isMacOS = process.platform === 'darwin';
+export const isWindows = process.platform === 'win32';
+export const isLinux = process.platform === 'linux';
+export const isDev = process.env.NODE_ENV === 'development';
+
