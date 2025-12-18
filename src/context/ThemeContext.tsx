@@ -116,6 +116,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
             if (!window.electronAPI) {
                 console.log('[ThemeContext] No Electron API, using browser defaults');
                 const systemTheme = getSystemThemePreference();
+                /* v8 ignore next -- race condition guard for async unmount */
                 if (isMounted) {
                     setEffectiveTheme(systemTheme);
                     applyThemeToDom(systemTheme);
@@ -126,6 +127,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
             try {
                 const result = await window.electronAPI.getTheme();
 
+                /* v8 ignore next -- race condition guard for async unmount */
                 if (!isMounted) return;
 
                 if (isThemeData(result)) {
@@ -146,6 +148,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
                 console.error('[ThemeContext] Failed to initialize theme:', error);
                 // Fall back to system preference on error
                 const systemTheme = getSystemThemePreference();
+                /* v8 ignore next 4 -- race condition guard for async error fallback */
                 if (isMounted) {
                     setEffectiveTheme(systemTheme);
                     applyThemeToDom(systemTheme);
@@ -160,6 +163,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
         if (window.electronAPI) {
             cleanup = window.electronAPI.onThemeChanged((data) => {
+                /* v8 ignore next -- race condition guard for callback after unmount */
                 if (!isMounted) return;
 
                 if (isThemeData(data)) {

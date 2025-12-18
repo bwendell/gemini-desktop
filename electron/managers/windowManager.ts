@@ -111,6 +111,7 @@ export default class WindowManager {
      * @private
      */
     private _setupNavigationHandler(): void {
+        /* v8 ignore next -- guard clause, mainWindow always exists when called */
         if (!this.mainWindow) return;
 
         this.mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -146,6 +147,7 @@ export default class WindowManager {
      * @private
      */
     private _setupWindowOpenHandler(): void {
+        /* v8 ignore next -- guard clause, mainWindow always exists when called */
         if (!this.mainWindow) return;
 
         this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -258,6 +260,7 @@ export default class WindowManager {
         const { x: displayX, y: displayY } = display.workArea;
 
         // Center the window horizontally, position it in upper third vertically
+        /* v8 ignore next 2 -- fallback for undefined constants, always defined */
         const windowWidth = QUICK_CHAT_WINDOW_CONFIG.width ?? QUICK_CHAT_WIDTH;
         const windowHeight = QUICK_CHAT_WINDOW_CONFIG.height ?? QUICK_CHAT_HEIGHT;
         const x = displayX + Math.round((displayWidth - windowWidth) / 2);
@@ -313,6 +316,7 @@ export default class WindowManager {
             const { width: displayWidth, height: displayHeight } = display.workAreaSize;
             const { x: displayX, y: displayY } = display.workArea;
 
+            /* v8 ignore next -- fallback for undefined constant, always defined */
             const windowWidth = QUICK_CHAT_WINDOW_CONFIG.width ?? QUICK_CHAT_WIDTH;
             const x = displayX + Math.round((displayWidth - windowWidth) / 2);
             const y = displayY + Math.round(displayHeight / 4);

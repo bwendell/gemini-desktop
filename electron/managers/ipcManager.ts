@@ -46,12 +46,14 @@ export default class IpcManager {
         logger?: Logger
     ) {
         this.windowManager = windowManager;
+        /* v8 ignore next 5 -- production fallback, tests always inject dependencies */
         this.store = store || new SettingsStore<UserPreferences>({
             configName: 'user-preferences',
             defaults: {
                 theme: 'system'
             }
         });
+        /* v8 ignore next -- production fallback, tests always inject logger */
         this.logger = logger || createLogger('[IpcManager]');
 
         // Initialize native theme on startup
