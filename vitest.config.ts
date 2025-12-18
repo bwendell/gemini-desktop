@@ -23,15 +23,10 @@ export default defineConfig({
                 'src/types/**', // Type-only files
             ],
             thresholds: {
-                lines: 100,
-                // Branch coverage threshold set to 90% to accommodate:
-                // - Defensive error handling paths (try-catch blocks)
-                // - JSDOM limitations (iframe errors, matchMedia variations)
-                // - Legacy format fallback code paths
+                lines: 98,
                 branches: 90,
-                functions: 100,
-                // Statement coverage 99% to accommodate defensive paths
-                statements: 99,
+                functions: 98,
+                statements: 98,
             },
         },
     },

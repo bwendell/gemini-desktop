@@ -46,17 +46,24 @@ describe('Theme Selector Keyboard Navigation', () => {
 
         try {
             // Tab through the window to reach the theme cards
-            await browser.keys(['Tab', 'Tab', 'Tab', 'Tab', 'Tab']);
+            // Use a loop to be robust against changes in the number of focusable elements before the cards
+            let found = false;
+            for (let i = 0; i < 10; i++) {
+                await browser.keys(['Tab']);
+                const activeTestId = await browser.execute(() => {
+                    return document.activeElement?.getAttribute('data-testid');
+                });
 
-            // Get the currently focused element
-            const focusedTestId = await browser.execute(() => {
-                const activeEl = document.activeElement;
-                return activeEl?.getAttribute('data-testid') || '';
-            });
+                if (activeTestId && activeTestId.startsWith('theme-card-')) {
+                    found = true;
+                    break;
+                }
+                // Small pause to allow focus to settle
+                await browser.pause(50);
+            }
 
             // One of the theme cards should be focused
-            const isThemeCardFocused = focusedTestId.startsWith('theme-card-');
-            expect(isThemeCardFocused).toBe(true);
+            expect(found).toBe(true);
         } finally {
             await closeOptionsWindow(mainHandle);
         }

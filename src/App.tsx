@@ -36,7 +36,7 @@ function App() {
    * Note: This handler cannot be tested in JSDOM because iframe error events
    * don't trigger React's synthetic onError. Manually verified in Electron.
    */
-  /* istanbul ignore next -- @preserve JSDOM limitation */
+  /* c8 ignore next -- @preserve JSDOM limitation */
   const handleIframeError = useCallback(() => {
     setIsLoading(false);
     setError('Failed to load Gemini');

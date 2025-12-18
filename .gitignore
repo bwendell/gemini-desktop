@@ -27,3 +27,4 @@ dist-ssr
 coverage/
 coverage-electron/
 docs/
+release/
