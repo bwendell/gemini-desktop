@@ -20,6 +20,11 @@ interface Window {
         cancelQuickChat: () => void;
         onQuickChatExecute: (callback: (text: string) => void) => () => void;
 
+        // Hotkeys API
+        getHotkeysEnabled: () => Promise<{ enabled: boolean }>;
+        setHotkeysEnabled: (enabled: boolean) => void;
+        onHotkeysChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
+
         platform: string;
         isElectron: boolean;
     };

@@ -1,0 +1,136 @@
+/**
+ * CapsuleToggle Styles
+ * 
+ * Modern pill-shaped toggle switch with smooth animations.
+ * Theme-aware with light/dark mode support.
+ */
+
+/* ============================================================================
+   Container
+   ============================================================================ */
+
+.capsule-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+}
+
+.capsule-toggle--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ============================================================================
+   Content (Label & Description)
+   ============================================================================ */
+
+.capsule-toggle__content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.capsule-toggle__label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.capsule-toggle__description {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* ============================================================================
+   Switch (The Toggle Button)
+   ============================================================================ */
+
+.capsule-toggle__switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    
+    /* Default (unchecked) state */
+    background-color: var(--bg-tertiary, #4a4a4a);
+    
+    /* Smooth transition */
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    
+    /* Remove default button styles */
+    outline: none;
+}
+
+/* Checked state */
+.capsule-toggle__switch--checked {
+    background-color: var(--accent-color);
+}
+
+/* Hover state */
+.capsule-toggle__switch:hover:not(:disabled) {
+    box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3);
+}
+
+/* Focus-visible state */
+.capsule-toggle__switch:focus-visible {
+    box-shadow: 
+        0 0 0 2px var(--bg-primary),
+        0 0 0 4px var(--accent-color);
+}
+
+/* Disabled state */
+.capsule-toggle__switch:disabled {
+    cursor: not-allowed;
+}
+
+/* ============================================================================
+   Thumb (The Sliding Circle)
+   ============================================================================ */
+
+.capsule-toggle__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: white;
+    
+    /* Shadow for depth */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    
+    /* Smooth slide animation */
+    transition: transform 0.2s ease;
+}
+
+/* Move thumb to right when checked */
+.capsule-toggle__switch--checked .capsule-toggle__thumb {
+    transform: translateX(20px);
+}
+
+/* ============================================================================
+   Light Theme Overrides
+   ============================================================================ */
+
+[data-theme='light'] .capsule-toggle__switch {
+    background-color: #c4c4c4;
+}
+
+[data-theme='light'] .capsule-toggle__switch--checked {
+    background-color: var(--accent-color);
+}
+
+[data-theme='light'] .capsule-toggle__switch:hover:not(:disabled) {
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.3);
+}

@@ -30,6 +30,13 @@ vi.mock('./ThemeSelector', () => ({
     ),
 }));
 
+// Mock HotkeyToggle to avoid HotkeysProvider dependency
+vi.mock('./HotkeyToggle', () => ({
+    HotkeyToggle: () => (
+        <div data-testid="mock-hotkey-toggle">Hotkey Toggle</div>
+    ),
+}));
+
 // Helper to render with ThemeProvider
 const renderWithTheme = (ui: React.ReactElement) => {
     return render(<ThemeProvider>{ui}</ThemeProvider>);
@@ -71,6 +78,47 @@ describe('OptionsWindow', () => {
             renderWithTheme(<OptionsWindow />);
 
             expect(screen.getByTestId('mock-theme-selector')).toBeInTheDocument();
+        });
+
+        /**
+         * Tests for the Functionality section that contains the HotkeyToggle.
+         * This section was added to group hotkey-related settings separately
+         * from appearance settings for better organization.
+         */
+        it('should display Functionality section', () => {
+            renderWithTheme(<OptionsWindow />);
+
+            // Verify the Functionality section title is rendered
+            expect(screen.getByText('Functionality')).toBeInTheDocument();
+            // Verify the section container has the correct test ID
+            expect(screen.getByTestId('options-functionality')).toBeInTheDocument();
+        });
+
+        /**
+         * Verifies that the HotkeyToggle component is rendered within the
+         * Functionality section. The component is mocked to isolate testing.
+         */
+        it('should render the HotkeyToggle component in Functionality section', () => {
+            renderWithTheme(<OptionsWindow />);
+
+            // Verify the mocked HotkeyToggle is rendered
+            expect(screen.getByTestId('mock-hotkey-toggle')).toBeInTheDocument();
+        });
+
+        /**
+         * Ensures the Functionality section follows the same structural pattern
+         * as other options sections (h2 title + content container).
+         */
+        it('should have proper structure in Functionality section', () => {
+            renderWithTheme(<OptionsWindow />);
+
+            const section = screen.getByTestId('options-functionality');
+            // Verify the section has the correct CSS class
+            expect(section).toHaveClass('options-section');
+            // Verify the section title is an h2 element
+            expect(section.querySelector('h2')).toHaveTextContent('Functionality');
+            // Verify the content container exists within the section
+            expect(section.querySelector('.options-section__content')).toBeInTheDocument();
         });
     });
 

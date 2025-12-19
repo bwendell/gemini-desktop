@@ -59,7 +59,7 @@ describe('IpcManager', () => {
             set: vi.fn()
         };
 
-        ipcManager = new IpcManager(mockWindowManager, mockStore as any, mockLogger);
+        ipcManager = new IpcManager(mockWindowManager, null, mockStore as any, mockLogger);
     });
 
     describe('constructor', () => {
@@ -74,7 +74,7 @@ describe('IpcManager', () => {
                 set: vi.fn()
             };
 
-            new IpcManager(mockWindowManager, darkStore as any, mockLogger);
+            new IpcManager(mockWindowManager, null, darkStore as any, mockLogger);
             expect(nativeTheme.themeSource).toBe('dark');
         });
     });
@@ -92,6 +92,8 @@ describe('IpcManager', () => {
             expect(hasHandler('window-is-maximized')).toBe(true);
             expect(hasHandler('theme:get')).toBe(true);
             expect(hasListener('theme:set')).toBe(true);
+            expect(hasHandler('hotkeys:get')).toBe(true);
+            expect(hasListener('hotkeys:set')).toBe(true);
             expect(hasListener('open-options-window')).toBe(true);
             expect(hasHandler('open-google-signin')).toBe(true);
         });
@@ -190,6 +192,139 @@ describe('IpcManager', () => {
         });
     });
 
+    describe('Hotkey Handlers', () => {
+        let mockHotkeyManager: any;
+
+        beforeEach(() => {
+            mockHotkeyManager = {
+                setEnabled: vi.fn(),
+                isEnabled: vi.fn().mockReturnValue(true)
+            };
+            ipcManager = new IpcManager(mockWindowManager, mockHotkeyManager, mockStore as any, mockLogger);
+            ipcManager.setupIpcHandlers();
+        });
+
+        it('handles hotkeys:get', async () => {
+            mockStore.get.mockReturnValue(true);
+
+            const handler = (ipcMain as any)._handlers.get('hotkeys:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: true });
+        });
+
+        it('handles hotkeys:get with false value', async () => {
+            mockStore.get.mockReturnValue(false);
+
+            const handler = (ipcMain as any)._handlers.get('hotkeys:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: false });
+        });
+
+        it('handles hotkeys:get with undefined (defaults to true)', async () => {
+            mockStore.get.mockReturnValue(undefined);
+
+            const handler = (ipcMain as any)._handlers.get('hotkeys:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: true });
+        });
+
+        it('handles hotkeys:set to disable', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            handler({}, false);
+
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeysEnabled', false);
+            expect(mockHotkeyManager.setEnabled).toHaveBeenCalledWith(false);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith('hotkeys:changed', { enabled: false });
+        });
+
+        it('handles hotkeys:set to enable', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            handler({}, true);
+
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeysEnabled', true);
+            expect(mockHotkeyManager.setEnabled).toHaveBeenCalledWith(true);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith('hotkeys:changed', { enabled: true });
+        });
+
+        it('validates hotkeys:set input (rejects non-boolean)', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            handler({}, 'invalid');
+            expect(mockStore.set).not.toHaveBeenCalled();
+            expect(mockLogger.warn).toHaveBeenCalledWith('Invalid hotkeys enabled value: invalid');
+        });
+
+        it('handles hotkeys:set without hotkeyManager', () => {
+            // Create IpcManager without hotkeyManager
+            ipcManager = new IpcManager(mockWindowManager, null, mockStore as any, mockLogger);
+            ipcManager.setupIpcHandlers();
+
+            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            // Should not throw when hotkeyManager is null
+            handler({}, false);
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeysEnabled', false);
+        });
+
+        it('logs error when hotkeys:get fails', async () => {
+            const handler = (ipcMain as any)._handlers.get('hotkeys:get');
+            mockStore.get.mockImplementationOnce(() => { throw new Error('Get Failed'); });
+            const result = await handler();
+            expect(result).toEqual({ enabled: true });
+            expect(mockLogger.error).toHaveBeenCalledWith('Error getting hotkeys state:', expect.anything());
+        });
+
+        it('logs error when hotkeys:set fails', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            mockStore.set.mockImplementationOnce(() => { throw new Error('Set Failed'); });
+            handler({}, true);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error setting hotkeys enabled:', expect.anything());
+        });
+
+        it('logs error when broadcasting hotkeys fails', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            const badWindow = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn().mockImplementation(() => { throw new Error('Send Failed'); }) },
+                id: 99
+            };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([badWindow]);
+
+            handler({}, true);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error broadcasting hotkeys change to window:', expect.anything());
+        });
+
+        it('skips destroyed windows when broadcasting', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            const destroyedWindow = {
+                isDestroyed: () => true,
+                webContents: { send: vi.fn() },
+                id: 1
+            };
+            const goodWindow = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn() },
+                id: 2
+            };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([destroyedWindow, goodWindow]);
+
+            handler({}, true);
+
+            expect(destroyedWindow.webContents.send).not.toHaveBeenCalled();
+            expect(goodWindow.webContents.send).toHaveBeenCalledWith('hotkeys:changed', { enabled: true });
+        });
+    });
+
     describe('App Handlers', () => {
         beforeEach(() => {
             ipcManager.setupIpcHandlers();
@@ -263,7 +398,7 @@ describe('IpcManager', () => {
                 get: vi.fn().mockImplementation(() => { throw new Error('Store Error'); }),
                 set: vi.fn()
             };
-            new IpcManager(mockWindowManager, badStore as any, mockLogger);
+            new IpcManager(mockWindowManager, null, badStore as any, mockLogger);
             expect(mockLogger.error).toHaveBeenCalledWith('Failed to initialize native theme:', expect.anything());
         });
 

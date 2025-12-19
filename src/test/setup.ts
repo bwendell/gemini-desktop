@@ -62,6 +62,11 @@ const mockElectronAPI = {
     setTheme: vi.fn(),
     onThemeChanged: vi.fn().mockReturnValue(() => { }),
 
+    // Hotkeys API - returns object with enabled state
+    getHotkeysEnabled: vi.fn().mockResolvedValue({ enabled: true }),
+    setHotkeysEnabled: vi.fn(),
+    onHotkeysChanged: vi.fn().mockReturnValue(() => { }),
+
     platform: 'win32', // Default to Windows
     isElectron: true,
 };

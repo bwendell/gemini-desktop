@@ -10,12 +10,15 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { OptionsWindow } from './components/options';
 import { ThemeProvider } from './context/ThemeContext';
+import { HotkeysProvider } from './context/HotkeysContext';
 import './App.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <ThemeProvider>
-            <OptionsWindow />
+            <HotkeysProvider>
+                <OptionsWindow />
+            </HotkeysProvider>
         </ThemeProvider>
     </React.StrictMode>
 );

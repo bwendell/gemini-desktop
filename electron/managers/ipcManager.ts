@@ -24,13 +24,15 @@ import {
 } from '../utils/constants';
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
-import type { ThemePreference, ThemeData, Logger } from '../types';
+import type HotkeyManager from './hotkeyManager';
+import type { ThemePreference, ThemeData, HotkeysData, Logger } from '../types';
 
 /**
  * User preferences structure for settings store.
  */
 interface UserPreferences extends Record<string, unknown> {
     theme: ThemePreference;
+    hotkeysEnabled: boolean;
 }
 
 /**
@@ -39,6 +41,7 @@ interface UserPreferences extends Record<string, unknown> {
  */
 export default class IpcManager {
     private windowManager: WindowManager;
+    private hotkeyManager: HotkeyManager | null = null;
     private store: SettingsStore<UserPreferences>;
     private logger: Logger;
 
@@ -50,15 +53,18 @@ export default class IpcManager {
      */
     constructor(
         windowManager: WindowManager,
+        hotkeyManager?: HotkeyManager | null,
         store?: SettingsStore<UserPreferences>,
         logger?: Logger
     ) {
         this.windowManager = windowManager;
-        /* v8 ignore next 5 -- production fallback, tests always inject dependencies */
+        this.hotkeyManager = hotkeyManager || null;
+        /* v8 ignore next 6 -- production fallback, tests always inject dependencies */
         this.store = store || new SettingsStore<UserPreferences>({
             configName: 'user-preferences',
             defaults: {
-                theme: 'system'
+                theme: 'system',
+                hotkeysEnabled: true
             }
         });
         /* v8 ignore next -- production fallback, tests always inject logger */
@@ -91,6 +97,7 @@ export default class IpcManager {
     setupIpcHandlers(): void {
         this._setupWindowHandlers();
         this._setupThemeHandlers();
+        this._setupHotkeyHandlers();
         this._setupAppHandlers();
         this._setupQuickChatHandlers();
 
@@ -247,6 +254,75 @@ export default class IpcManager {
                 }
             } catch (error) {
                 this.logger.error('Error broadcasting theme to window:', {
+                    error: (error as Error).message,
+                    windowId: win.id
+                });
+            }
+        });
+    }
+
+    /**
+     * Set up hotkey-related IPC handlers.
+     * Manages hotkey enabled/disabled state and synchronization across windows.
+     * @private
+     */
+    private _setupHotkeyHandlers(): void {
+        // Get current hotkeys enabled state
+        ipcMain.handle('hotkeys:get', (): HotkeysData => {
+            try {
+                const enabled = this.store.get('hotkeysEnabled') ?? true;
+                return { enabled };
+            } catch (error) {
+                this.logger.error('Error getting hotkeys state:', error);
+                return { enabled: true };
+            }
+        });
+
+        // Set hotkeys enabled state
+        ipcMain.on('hotkeys:set', (_event, enabled: boolean) => {
+            try {
+                // Validate enabled value
+                if (typeof enabled !== 'boolean') {
+                    this.logger.warn(`Invalid hotkeys enabled value: ${enabled}`);
+                    return;
+                }
+
+                // Persist preference
+                this.store.set('hotkeysEnabled', enabled);
+
+                // Update HotkeyManager if available
+                if (this.hotkeyManager) {
+                    this.hotkeyManager.setEnabled(enabled);
+                }
+
+                this.logger.log(`Hotkeys enabled set to: ${enabled}`);
+
+                // Broadcast to all windows
+                this._broadcastHotkeysChange(enabled);
+            } catch (error) {
+                this.logger.error('Error setting hotkeys enabled:', {
+                    error: (error as Error).message,
+                    requestedEnabled: enabled
+                });
+            }
+        });
+    }
+
+    /**
+     * Broadcast hotkeys change to all open windows.
+     * @private
+     * @param enabled - Whether hotkeys are enabled
+     */
+    private _broadcastHotkeysChange(enabled: boolean): void {
+        const windows = BrowserWindow.getAllWindows();
+
+        windows.forEach(win => {
+            try {
+                if (!win.isDestroyed()) {
+                    win.webContents.send('hotkeys:changed', { enabled });
+                }
+            } catch (error) {
+                this.logger.error('Error broadcasting hotkeys change to window:', {
                     error: (error as Error).message,
                     windowId: win.id
                 });

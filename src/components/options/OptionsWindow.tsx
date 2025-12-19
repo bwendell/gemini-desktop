@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { OptionsWindowTitlebar } from './OptionsWindowTitlebar';
 import { ThemeSelector } from './ThemeSelector';
+import { HotkeyToggle } from './HotkeyToggle';
 import { AboutSection } from './AboutSection';
 import './options-window.css';
 
@@ -176,6 +177,11 @@ export function OptionsWindow() {
                             {/* Appearance Settings */}
                             <OptionsSection title="Appearance" testId="options-appearance">
                                 <ThemeSelector />
+                            </OptionsSection>
+
+                            {/* Functionality Settings */}
+                            <OptionsSection title="Functionality" testId="options-functionality">
+                                <HotkeyToggle />
                             </OptionsSection>
 
                             {/* 

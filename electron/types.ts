@@ -19,6 +19,14 @@ export interface ThemeData {
 }
 
 /**
+ * Hotkeys data returned from main process.
+ */
+export interface HotkeysData {
+    /** Whether hotkeys are currently enabled */
+    enabled: boolean;
+}
+
+/**
  * Settings store options.
  */
 export interface SettingsStoreOptions {
@@ -66,6 +74,11 @@ export interface ElectronAPI {
     hideQuickChat: () => void;
     cancelQuickChat: () => void;
     onQuickChatExecute: (callback: (text: string) => void) => () => void;
+
+    // Hotkeys API
+    getHotkeysEnabled: () => Promise<HotkeysData>;
+    setHotkeysEnabled: (enabled: boolean) => void;
+    onHotkeysChanged: (callback: (data: HotkeysData) => void) => () => void;
 }
 
 /**
