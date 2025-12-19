@@ -24,6 +24,7 @@ import {
     submitQuickChatText,
     getGeminiIframeState,
 } from './helpers/quickChatActions';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 describe('Quick Chat Text Injection', () => {
 
@@ -46,16 +47,16 @@ describe('Quick Chat Text Injection', () => {
 
         it('should have the Gemini iframe accessible', async () => {
             // Wait a bit for iframe to load
-            await browser.pause(2000);
+            await browser.pause(E2E_TIMING.IFRAME_LOAD_WAIT_MS);
 
             const iframeState = await getGeminiIframeState();
             E2ELogger.info('injection-prereq', `Iframe state: ${JSON.stringify(iframeState)}`);
 
             // Log detailed info for debugging in CI
-            console.log('\n=== Gemini Iframe State ===');
-            console.log(`  Loaded: ${iframeState.loaded}`);
-            console.log(`  URL: ${iframeState.url}`);
-            console.log(`  Frame Count: ${iframeState.frameCount}`);
+            E2ELogger.info('injection-prereq', '\n=== Gemini Iframe State ===');
+            E2ELogger.info('injection-prereq', `  Loaded: ${iframeState.loaded}`);
+            E2ELogger.info('injection-prereq', `  URL: ${iframeState.url}`);
+            E2ELogger.info('injection-prereq', `  Frame Count: ${iframeState.frameCount}`);
 
             // The iframe should be present (though it may not load in CI without auth)
             expect(iframeState.frameCount).toBeGreaterThanOrEqual(0);
@@ -67,7 +68,7 @@ describe('Quick Chat Text Injection', () => {
             // Ensure Quick Chat is hidden after each test
             try {
                 await hideQuickChatWindow();
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
             } catch {
                 // Ignore cleanup errors
             }
@@ -75,7 +76,7 @@ describe('Quick Chat Text Injection', () => {
 
         it('should be able to show Quick Chat window before injection', async () => {
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
             const state = await getQuickChatState();
             E2ELogger.info('injection-lifecycle', `Quick Chat state after show: ${JSON.stringify(state)}`);
@@ -86,11 +87,11 @@ describe('Quick Chat Text Injection', () => {
 
         it('should hide Quick Chat window after submitting text', async () => {
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
             // Submit some text
             await submitQuickChatText('Test message from E2E');
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             // Window should be hidden
             const state = await getQuickChatState();
@@ -100,11 +101,11 @@ describe('Quick Chat Text Injection', () => {
 
         it('should focus main window after submitting text', async () => {
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
             // Submit text
             await submitQuickChatText('Test focus after submit');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
             // Verify main window is visible
             const mainWindowVisible = await browser.electron.execute(
@@ -122,7 +123,7 @@ describe('Quick Chat Text Injection', () => {
     describe('Text Injection Content Handling', () => {
         beforeEach(async () => {
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
         });
 
         afterEach(async () => {
@@ -138,7 +139,7 @@ describe('Quick Chat Text Injection', () => {
 
             // Submit the text
             await submitQuickChatText(testText);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             // Test passes if no errors thrown
             const state = await getQuickChatState();
@@ -151,7 +152,7 @@ describe('Quick Chat Text Injection', () => {
             const specialChars = 'Test with <script>alert("xss")</script> & "quotes" \' apostrophe';
 
             await submitQuickChatText(specialChars);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             // Should not throw errors
             const state = await getQuickChatState();
@@ -164,7 +165,7 @@ describe('Quick Chat Text Injection', () => {
             const unicodeText = 'Hello 👋 World 🌍 日本語 中文 العربية';
 
             await submitQuickChatText(unicodeText);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
@@ -176,7 +177,7 @@ describe('Quick Chat Text Injection', () => {
             const multiLineText = 'Line 1\nLine 2\nLine 3';
 
             await submitQuickChatText(multiLineText);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
@@ -188,7 +189,7 @@ describe('Quick Chat Text Injection', () => {
             const longText = 'A'.repeat(1500);
 
             await submitQuickChatText(longText);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
@@ -198,7 +199,7 @@ describe('Quick Chat Text Injection', () => {
 
         it('should handle empty text gracefully', async () => {
             await submitQuickChatText('');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
             // Should not cause errors
             const state = await getQuickChatState();
@@ -212,7 +213,7 @@ describe('Quick Chat Text Injection', () => {
             const escapedText = 'Path: C:\\Users\\test\\file.txt and regex: \\d+';
 
             await submitQuickChatText(escapedText);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
@@ -229,7 +230,7 @@ describe('Quick Chat Text Injection', () => {
                 // Ignore
             }
             // Extra pause between rapid tests
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
         });
 
         it('should handle multiple rapid submissions without errors', async () => {
@@ -241,9 +242,9 @@ describe('Quick Chat Text Injection', () => {
 
             for (const text of submissions) {
                 await showQuickChatWindow();
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
                 await submitQuickChatText(text);
-                await browser.pause(300);
+                await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
             }
 
             // Final state should be Quick Chat hidden
@@ -260,24 +261,24 @@ describe('Quick Chat Text Injection', () => {
 
             // Step 1: Get initial state
             const initialState = await getQuickChatState();
-            console.log(`1. Initial state: visible=${initialState.windowVisible}`);
+            E2ELogger.info('injection-integration', `1. Initial state: visible=${initialState.windowVisible}`);
 
             // Step 2: Show Quick Chat
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
             const afterShowState = await getQuickChatState();
-            console.log(`2. After show: visible=${afterShowState.windowVisible}`);
+            E2ELogger.info('injection-integration', `2. After show: visible=${afterShowState.windowVisible}`);
             expect(afterShowState.windowVisible).toBe(true);
 
             // Step 3: Submit text (this triggers injection)
             const testText = 'Quick Chat E2E Integration Test';
-            console.log(`3. Submitting: "${testText}"`);
+            E2ELogger.info('injection-integration', `3. Submitting: "${testText}"`);
             await submitQuickChatText(testText);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             // Step 4: Verify final state
             const finalState = await getQuickChatState();
-            console.log(`4. Final state: visible=${finalState.windowVisible}`);
+            E2ELogger.info('injection-integration', `4. Final state: visible=${finalState.windowVisible}`);
             expect(finalState.windowVisible).toBe(false);
 
             // Step 5: Main window should still be operational
@@ -288,7 +289,7 @@ describe('Quick Chat Text Injection', () => {
                     return mainWindow?.isVisible() ?? false;
                 }
             );
-            console.log(`5. Main window visible: ${mainWindowOk}`);
+            E2ELogger.info('injection-integration', `5. Main window visible: ${mainWindowOk}`);
             expect(mainWindowOk).toBe(true);
 
             E2ELogger.info('injection-integration', 'Full workflow completed successfully');

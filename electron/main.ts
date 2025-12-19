@@ -36,6 +36,10 @@ const windowManager = new WindowManager(isDev);
 const ipcManager = new IpcManager(windowManager);
 const hotkeyManager = new HotkeyManager(windowManager);
 
+// Expose managers to app for E2E testing
+(app as any).windowManager = windowManager;
+(app as any).ipcManager = ipcManager;
+
 // App lifecycle
 app.whenReady().then(() => {
     setupHeaderStripping(session.defaultSession);

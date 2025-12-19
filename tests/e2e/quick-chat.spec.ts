@@ -15,6 +15,8 @@
 import { browser, expect } from '@wdio/globals';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { getHotkeyDisplayString } from './helpers/hotkeyHelpers';
+import { E2ELogger } from './helpers/logger';
+import { E2E_TIMING } from './helpers/e2eConstants';
 import {
     showQuickChatWindow,
     hideQuickChatWindow,
@@ -31,9 +33,7 @@ describe('Quick Chat Feature', () => {
         // Detect platform for each test
         if (!platform) {
             platform = await getPlatform();
-            console.log(`\n========================================`);
-            console.log(`Platform detected: ${platform.toUpperCase()}`);
-            console.log(`========================================\n`);
+            E2ELogger.info('quick-chat', `Platform detected: ${platform.toUpperCase()}`);
         }
     });
 
@@ -42,7 +42,7 @@ describe('Quick Chat Feature', () => {
             // Clean up: ensure Quick Chat is hidden after each test
             try {
                 await hideQuickChatWindow();
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
             } catch {
                 // Ignore cleanup errors
             }
@@ -55,27 +55,27 @@ describe('Quick Chat Feature', () => {
 
             // Test the actual functionality: trigger the action and verify outcome
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
             // Verify the outcome - the window should be visible
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(true);
-            console.log('✓ Quick Chat window appeared after triggering action');
+            E2ELogger.info('quick-chat', 'Quick Chat window appeared after triggering action');
         });
 
         it('should hide Quick Chat window when triggered again', async () => {
             // Show first
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
             // Toggle to hide
             await toggleQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
 
             // Verify the outcome - window should be hidden
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
-            console.log('✓ Quick Chat window hidden after toggle');
+            E2ELogger.info('quick-chat', 'Quick Chat window hidden after toggle');
         });
 
         it('should display the correct platform-specific hotkey string', async () => {
@@ -89,7 +89,7 @@ describe('Quick Chat Feature', () => {
                 expect(displayString).toBe('Ctrl+Shift+Space');
             }
 
-            console.log(`Platform: ${platform}, Display String: ${displayString}`);
+            E2ELogger.info('quick-chat', `Platform: ${platform}, Display String: ${displayString}`);
         });
     });
 
@@ -103,7 +103,7 @@ describe('Quick Chat Feature', () => {
 
             // At minimum, we should have the main window
             expect(windowCount).toBeGreaterThanOrEqual(1);
-            console.log(`Window count at start: ${windowCount}`);
+            E2ELogger.info('quick-chat', `Window count at start: ${windowCount}`);
         });
     });
 
@@ -120,17 +120,17 @@ describe('Quick Chat Feature', () => {
         it('should show Quick Chat window when showQuickChat is called', async () => {
             // Get initial state
             const initialState = await getQuickChatState();
-            console.log('Initial state:', initialState);
+            E2ELogger.info('quick-chat', `Initial state: ${JSON.stringify(initialState)}`);
 
             // Show the Quick Chat window
             await showQuickChatWindow();
 
             // Wait for window to appear
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS + 200); // Add buffer
 
             // Verify the window exists and is visible
             const afterShowState = await getQuickChatState();
-            console.log('After show state:', afterShowState);
+            E2ELogger.info('quick-chat', `After show state: ${JSON.stringify(afterShowState)}`);
 
             expect(afterShowState.windowExists).toBe(true);
             expect(afterShowState.windowVisible).toBe(true);
@@ -139,15 +139,15 @@ describe('Quick Chat Feature', () => {
         it('should hide Quick Chat window when hideQuickChat is called', async () => {
             // First show the window
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
             // Then hide it
             await hideQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
 
             // Verify hidden (window may still exist but not visible)
             const state = await getQuickChatState();
-            console.log('After hide state:', state);
+            E2ELogger.info('quick-chat', `After hide state: ${JSON.stringify(state)}`);
 
             expect(state.windowVisible).toBe(false);
         });
@@ -159,11 +159,11 @@ describe('Quick Chat Feature', () => {
 
             // Toggle
             await toggleQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
             // Check state changed
             const afterToggleState = await getQuickChatState();
-            console.log(`Toggle: was ${wasVisible}, now ${afterToggleState.windowVisible}`);
+            E2ELogger.info('quick-chat', `Toggle: was ${wasVisible}, now ${afterToggleState.windowVisible}`);
 
             // If window didn't exist, toggle should create and show it
             // If it was visible, toggle should hide it
@@ -178,12 +178,12 @@ describe('Quick Chat Feature', () => {
         it('should log all window states for debugging', async () => {
             // Show Quick Chat first
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
             const windowStates = await getAllWindowStates();
-            console.log('\nAll Window States:');
+            E2ELogger.info('quick-chat', 'All Window States:');
             windowStates.forEach((w, i) => {
-                console.log(`  ${i + 1}. "${w.title}" - visible: ${w.visible}, focused: ${w.focused}`);
+                E2ELogger.info('quick-chat', `  ${i + 1}. "${w.title}" - visible: ${w.visible}, focused: ${w.focused}`);
             });
 
             // Should have at least 2 windows (main + quick chat)
@@ -195,7 +195,7 @@ describe('Quick Chat Feature', () => {
         beforeEach(async () => {
             // Show Quick Chat window before each test
             await showQuickChatWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
         });
 
         afterEach(async () => {
@@ -212,24 +212,24 @@ describe('Quick Chat Feature', () => {
 
             // Submit text (this simulates what happens when user presses Enter)
             await submitQuickChatText(testText);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
             // After submit, window should be hidden
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
 
-            console.log(`Submitted text: "${testText}"`);
-            console.log(`Window visible after submit: ${state.windowVisible}`);
+            E2ELogger.info('quick-chat', `Submitted text: "${testText}"`);
+            E2ELogger.info('quick-chat', `Window visible after submit: ${state.windowVisible}`);
         });
 
         it('should handle empty text gracefully', async () => {
             // Submit empty text
             await submitQuickChatText('');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
             // Should not cause errors
             const state = await getQuickChatState();
-            console.log('State after empty submission:', state);
+            E2ELogger.info('quick-chat', `State after empty submission: ${JSON.stringify(state)}`);
 
             // Test passes if no errors thrown
             expect(true).toBe(true);
@@ -241,13 +241,13 @@ describe('Quick Chat Feature', () => {
 
             // Submit long text
             await submitQuickChatText(longText);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
             // Should not cause errors, window should be hidden
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
 
-            console.log(`Submitted ${longText.length} character text`);
+            E2ELogger.info('quick-chat', `Submitted ${longText.length} character text`);
         });
 
         it('should handle special characters in text', async () => {
@@ -255,26 +255,26 @@ describe('Quick Chat Feature', () => {
 
             // Submit text with special characters
             await submitQuickChatText(specialText);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
             // Should not cause errors
             const state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
 
-            console.log(`Submitted text with special characters`);
+            E2ELogger.info('quick-chat', `Submitted text with special characters`);
         });
     });
 
     describe('Cross-Platform Verification', () => {
         it('should report correct platform for logging', async () => {
-            console.log(`\n--- Cross-Platform Test Results ---`);
-            console.log(`Platform: ${platform}`);
-            console.log(`Hotkey: ${getHotkeyDisplayString(platform, 'QUICK_CHAT')}`);
+            E2ELogger.info('quick-chat', `--- Cross-Platform Test Results ---`);
+            E2ELogger.info('quick-chat', `Platform: ${platform}`);
+            E2ELogger.info('quick-chat', `Hotkey: ${getHotkeyDisplayString(platform, 'QUICK_CHAT')}`);
 
             const electronPlatform = await browser.electron.execute(
                 () => process.platform
             );
-            console.log(`Electron process.platform: ${electronPlatform}`);
+            E2ELogger.info('quick-chat', `Electron process.platform: ${electronPlatform}`);
 
             // Verify platform detection is consistent
             if (electronPlatform === 'darwin') {
