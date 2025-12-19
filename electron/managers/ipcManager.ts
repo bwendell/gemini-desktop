@@ -13,7 +13,7 @@
 
 import { ipcMain, BrowserWindow, nativeTheme, IpcMainEvent, IpcMainInvokeEvent } from 'electron';
 import SettingsStore from '../store';
-import { GOOGLE_ACCOUNTS_URL } from '../utils/constants';
+import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS } from '../utils/constants';
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type { ThemePreference, ThemeData, Logger } from '../types';
@@ -111,7 +111,7 @@ export default class IpcManager {
      */
     private _setupWindowHandlers(): void {
         // Minimize window
-        ipcMain.on('window-minimize', (event) => {
+        ipcMain.on(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
             const win = this._getWindowFromEvent(event);
             if (win) {
                 try {
@@ -126,7 +126,7 @@ export default class IpcManager {
         });
 
         // Maximize/restore window
-        ipcMain.on('window-maximize', (event) => {
+        ipcMain.on(IPC_CHANNELS.WINDOW_MAXIMIZE, (event) => {
             const win = this._getWindowFromEvent(event);
             if (win) {
                 try {
@@ -145,7 +145,7 @@ export default class IpcManager {
         });
 
         // Close window
-        ipcMain.on('window-close', (event) => {
+        ipcMain.on(IPC_CHANNELS.WINDOW_CLOSE, (event) => {
             const win = this._getWindowFromEvent(event);
             if (win) {
                 try {
@@ -160,7 +160,7 @@ export default class IpcManager {
         });
 
         // Check if window is maximized
-        ipcMain.handle('window-is-maximized', (event): boolean => {
+        ipcMain.handle(IPC_CHANNELS.WINDOW_IS_MAXIMIZED, (event): boolean => {
             const win = this._getWindowFromEvent(event);
             if (!win) return false;
 
@@ -180,7 +180,7 @@ export default class IpcManager {
      */
     private _setupThemeHandlers(): void {
         // Get current theme preference and effective theme
-        ipcMain.handle('theme:get', (): ThemeData => {
+        ipcMain.handle(IPC_CHANNELS.THEME_GET, (): ThemeData => {
             try {
                 const preference = this.store.get('theme') || 'system';
                 const effectiveTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
@@ -192,7 +192,7 @@ export default class IpcManager {
         });
 
         // Set theme preference
-        ipcMain.on('theme:set', (_event, theme: ThemePreference) => {
+        ipcMain.on(IPC_CHANNELS.THEME_SET, (_event, theme: ThemePreference) => {
             try {
                 // Validate theme value
                 const validThemes: ThemePreference[] = ['light', 'dark', 'system'];
@@ -235,7 +235,7 @@ export default class IpcManager {
         windows.forEach(win => {
             try {
                 if (!win.isDestroyed()) {
-                    win.webContents.send('theme:changed', { preference, effectiveTheme });
+                    win.webContents.send(IPC_CHANNELS.THEME_CHANGED, { preference, effectiveTheme });
                 }
             } catch (error) {
                 this.logger.error('Error broadcasting theme to window:', {
@@ -252,7 +252,7 @@ export default class IpcManager {
      */
     private _setupAppHandlers(): void {
         // Open options window (optionally to a specific tab)
-        ipcMain.on('open-options-window', (_event, tab?: 'settings' | 'about') => {
+        ipcMain.on(IPC_CHANNELS.OPEN_OPTIONS, (_event, tab?: 'settings' | 'about') => {
             try {
                 this.windowManager.createOptionsWindow(tab);
             } catch (error) {
@@ -261,7 +261,7 @@ export default class IpcManager {
         });
 
         // Open Google sign-in using WindowManager's createAuthWindow
-        ipcMain.handle('open-google-signin', async (): Promise<void> => {
+        ipcMain.handle(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN, async (): Promise<void> => {
             try {
                 const authWindow = this.windowManager.createAuthWindow(GOOGLE_ACCOUNTS_URL);
 
@@ -284,7 +284,7 @@ export default class IpcManager {
     private _setupQuickChatHandlers(): void {
         // Submit quick chat text - for now, just hide window and focus main
         // TODO: Implement text injection into Gemini in a future PR
-        ipcMain.on('quick-chat:submit', (_event, text: string) => {
+        ipcMain.on(IPC_CHANNELS.QUICK_CHAT_SUBMIT, (_event, text: string) => {
             try {
                 this.logger.log('Quick Chat submit received:', text.substring(0, 50));
 
@@ -302,7 +302,7 @@ export default class IpcManager {
         });
 
         // Hide Quick Chat window
-        ipcMain.on('quick-chat:hide', () => {
+        ipcMain.on(IPC_CHANNELS.QUICK_CHAT_HIDE, () => {
             try {
                 this.windowManager.hideQuickChat();
             } catch (error) {
@@ -311,7 +311,7 @@ export default class IpcManager {
         });
 
         // Cancel Quick Chat (hide without action)
-        ipcMain.on('quick-chat:cancel', () => {
+        ipcMain.on(IPC_CHANNELS.QUICK_CHAT_CANCEL, () => {
             try {
                 this.windowManager.hideQuickChat();
                 this.logger.log('Quick Chat cancelled');

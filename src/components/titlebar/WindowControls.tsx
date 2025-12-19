@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { usesCustomWindowControls } from '../../utils';
 import { useWindowControls } from '../../hooks/useWindowControls';
+import { TITLEBAR_TEST_IDS } from '../../utils/testIds';
 import './titlebar.css';
 
 /**
@@ -28,7 +29,7 @@ export const WindowControls = memo(function WindowControls() {
                 onClick={minimize}
                 aria-label="Minimize window"
                 title="Minimize"
-                data-testid="minimize-button"
+                data-testid={TITLEBAR_TEST_IDS.MINIMIZE_BUTTON}
             >
                 <svg width="10" height="1" viewBox="0 0 10 1">
                     <rect width="10" height="1" fill="currentColor" />
@@ -40,7 +41,7 @@ export const WindowControls = memo(function WindowControls() {
                 onClick={maximize}
                 aria-label="Maximize window"
                 title="Maximize"
-                data-testid="maximize-button"
+                data-testid={TITLEBAR_TEST_IDS.MAXIMIZE_BUTTON}
             >
                 <svg width="10" height="10" viewBox="0 0 10 10">
                     <rect
@@ -60,7 +61,7 @@ export const WindowControls = memo(function WindowControls() {
                 onClick={close}
                 aria-label="Close window"
                 title="Close"
-                data-testid="close-button"
+                data-testid={TITLEBAR_TEST_IDS.CLOSE_BUTTON}
             >
                 <svg width="10" height="10" viewBox="0 0 10 10">
                     <line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2" />

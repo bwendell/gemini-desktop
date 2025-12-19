@@ -18,6 +18,35 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ElectronAPI } from './types';
 
+/**
+ * IPC channel names used for main process <-> renderer communication.
+ * NOTE: These are duplicated from utils/constants.ts because preload scripts
+ * running in sandbox mode cannot use relative imports. If you update these,
+ * also update the constants in utils/constants.ts to keep them in sync.
+ */
+const IPC_CHANNELS = {
+    // Window controls
+    WINDOW_MINIMIZE: 'window-minimize',
+    WINDOW_MAXIMIZE: 'window-maximize',
+    WINDOW_CLOSE: 'window-close',
+    WINDOW_IS_MAXIMIZED: 'window-is-maximized',
+
+    // Theme
+    THEME_GET: 'theme:get',
+    THEME_SET: 'theme:set',
+    THEME_CHANGED: 'theme:changed',
+
+    // App
+    OPEN_OPTIONS: 'open-options-window',
+    OPEN_GOOGLE_SIGNIN: 'open-google-signin',
+
+    // Quick Chat
+    QUICK_CHAT_SUBMIT: 'quick-chat:submit',
+    QUICK_CHAT_HIDE: 'quick-chat:hide',
+    QUICK_CHAT_CANCEL: 'quick-chat:cancel',
+    QUICK_CHAT_EXECUTE: 'quick-chat:execute',
+} as const;
+
 // Expose window control APIs to renderer
 const electronAPI: ElectronAPI = {
     // =========================================================================
@@ -28,36 +57,36 @@ const electronAPI: ElectronAPI = {
     /**
      * Minimize the current window.
      */
-    minimizeWindow: () => ipcRenderer.send('window-minimize'),
+    minimizeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE),
 
     /**
      * Toggle maximize/restore for the current window.
      */
-    maximizeWindow: () => ipcRenderer.send('window-maximize'),
+    maximizeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE),
 
     /**
      * Close the current window.
      */
-    closeWindow: () => ipcRenderer.send('window-close'),
+    closeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE),
 
     /**
      * Check if the current window is maximized.
      * @returns True if maximized
      */
-    isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+    isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
 
     /**
      * Open the options/settings window.
      * @param tab - Optional tab to open ('settings' or 'about')
      */
-    openOptions: (tab) => ipcRenderer.send('open-options-window', tab),
+    openOptions: (tab) => ipcRenderer.send(IPC_CHANNELS.OPEN_OPTIONS, tab),
 
     /**
      * Open Google sign-in in a new BrowserWindow.
      * Returns a promise that resolves when the window is closed.
      * @returns Promise that resolves when sign-in window closes
      */
-    openGoogleSignIn: () => ipcRenderer.invoke('open-google-signin'),
+    openGoogleSignIn: () => ipcRenderer.invoke(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN),
 
     // =========================================================================
     // Platform Detection
@@ -85,13 +114,13 @@ const electronAPI: ElectronAPI = {
      * Get the current theme preference and effective theme.
      * @returns Theme data with preference and effective theme
      */
-    getTheme: () => ipcRenderer.invoke('theme:get'),
+    getTheme: () => ipcRenderer.invoke(IPC_CHANNELS.THEME_GET),
 
     /**
      * Set the theme preference.
      * @param theme - The theme to set (light, dark, or system)
      */
-    setTheme: (theme) => ipcRenderer.send('theme:set', theme),
+    setTheme: (theme) => ipcRenderer.send(IPC_CHANNELS.THEME_SET, theme),
 
     /**
      * Subscribe to theme change events from other windows.
@@ -101,11 +130,11 @@ const electronAPI: ElectronAPI = {
     onThemeChanged: (callback) => {
         const subscription = (_event: Electron.IpcRendererEvent, themeData: Parameters<typeof callback>[0]) =>
             callback(themeData);
-        ipcRenderer.on('theme:changed', subscription);
+        ipcRenderer.on(IPC_CHANNELS.THEME_CHANGED, subscription);
 
         // Return cleanup function for React useEffect
         return () => {
-            ipcRenderer.removeListener('theme:changed', subscription);
+            ipcRenderer.removeListener(IPC_CHANNELS.THEME_CHANGED, subscription);
         };
     },
 
@@ -118,17 +147,17 @@ const electronAPI: ElectronAPI = {
      * Submit quick chat text to main window.
      * @param text - The prompt text to send
      */
-    submitQuickChat: (text) => ipcRenderer.send('quick-chat:submit', text),
+    submitQuickChat: (text) => ipcRenderer.send(IPC_CHANNELS.QUICK_CHAT_SUBMIT, text),
 
     /**
      * Hide the quick chat window.
      */
-    hideQuickChat: () => ipcRenderer.send('quick-chat:hide'),
+    hideQuickChat: () => ipcRenderer.send(IPC_CHANNELS.QUICK_CHAT_HIDE),
 
     /**
      * Cancel quick chat (hide without action).
      */
-    cancelQuickChat: () => ipcRenderer.send('quick-chat:cancel'),
+    cancelQuickChat: () => ipcRenderer.send(IPC_CHANNELS.QUICK_CHAT_CANCEL),
 
     /**
      * Subscribe to quick chat execute events (main window receives this).
@@ -138,10 +167,10 @@ const electronAPI: ElectronAPI = {
     onQuickChatExecute: (callback) => {
         const subscription = (_event: Electron.IpcRendererEvent, text: string) =>
             callback(text);
-        ipcRenderer.on('quick-chat:execute', subscription);
+        ipcRenderer.on(IPC_CHANNELS.QUICK_CHAT_EXECUTE, subscription);
 
         return () => {
-            ipcRenderer.removeListener('quick-chat:execute', subscription);
+            ipcRenderer.removeListener(IPC_CHANNELS.QUICK_CHAT_EXECUTE, subscription);
         };
     }
 };

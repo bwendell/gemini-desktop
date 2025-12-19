@@ -2,15 +2,30 @@
  * Centralized E2E Selectors.
  * All CSS selectors in one place for easy updates and consistency.
  * 
+ * Imports test IDs from the shared testIds module to ensure consistency
+ * between React components and E2E tests.
+ * 
  * Includes:
  * - Dynamic selector generators (functions)
  * - Static CSS strings
  * - `data-testid` based selectors for robustness
  */
+
+import {
+    LAYOUT_TEST_IDS,
+    TITLEBAR_TEST_IDS,
+    OPTIONS_TEST_IDS,
+} from '../../../src/utils/testIds';
+
+/**
+ * Helper to create a data-testid selector from an ID string.
+ */
+const testId = (id: string) => `[data-testid="${id}"]`;
+
 export const Selectors = {
     // Main Window
     /** The main application container */
-    mainLayout: '[data-testid="main-layout"]',
+    mainLayout: testId(LAYOUT_TEST_IDS.MAIN_LAYOUT),
     /** The custom titlebar element (Windows/Linux) */
     titlebar: 'header.titlebar',
     /** The title text within the titlebar */
@@ -25,26 +40,27 @@ export const Selectors = {
      * Generates a selector for a top-level menu button.
      * @param label The menu label (e.g., 'File')
      */
-    menuButton: (label: string) => `[data-testid="menu-button-${label}"]`,
+    menuButton: (label: string) => testId(TITLEBAR_TEST_IDS.menuButton(label)),
     /** 
      * Generates a selector for a dropdown menu item.
      * @param label The item label (e.g., 'Options')
      */
-    menuItem: (label: string) => `[data-testid="menu-item-${label}"]`,
+    menuItem: (label: string) => testId(TITLEBAR_TEST_IDS.menuItem(label)),
     /** The container for the active dropdown menu */
     menuDropdown: '.titlebar-menu-dropdown',
 
     // Window Controls (Windows/Linux only)
-    minimizeButton: '[data-testid="minimize-button"]',
-    maximizeButton: '[data-testid="maximize-button"]',
-    closeButton: '[data-testid="close-button"]',
+    minimizeButton: testId(TITLEBAR_TEST_IDS.MINIMIZE_BUTTON),
+    maximizeButton: testId(TITLEBAR_TEST_IDS.MAXIMIZE_BUTTON),
+    closeButton: testId(TITLEBAR_TEST_IDS.CLOSE_BUTTON),
 
     // Options Window
     optionsTitlebar: '.options-titlebar',
-    optionsCloseButton: '[data-testid="options-close-button"]',
+    optionsCloseButton: testId(OPTIONS_TEST_IDS.OPTIONS_CLOSE_BUTTON),
     /** 
      * Generates a selector for a theme selection card.
      * @param theme The theme ID (e.g., 'light', 'dark', 'system')
      */
-    themeCard: (theme: string) => `[data-testid="theme-card-${theme}"]`,
+    themeCard: (theme: string) => testId(OPTIONS_TEST_IDS.themeCard(theme)),
 } as const;
+

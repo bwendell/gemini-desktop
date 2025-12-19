@@ -79,6 +79,37 @@ export const GOOGLE_GENAI_TERMS_URL = 'https://policies.google.com/terms/generat
  */
 export const GEMINI_APP_URL = 'https://gemini.google.com/app' as const;
 
+// =========================================================================
+// IPC Channel Names
+// =========================================================================
+
+/**
+ * IPC channel names used for main process <-> renderer communication.
+ * Centralized to ensure consistency between ipcMain handlers and ipcRenderer calls.
+ */
+export const IPC_CHANNELS = {
+    // Window controls
+    WINDOW_MINIMIZE: 'window-minimize',
+    WINDOW_MAXIMIZE: 'window-maximize',
+    WINDOW_CLOSE: 'window-close',
+    WINDOW_IS_MAXIMIZED: 'window-is-maximized',
+
+    // Theme
+    THEME_GET: 'theme:get',
+    THEME_SET: 'theme:set',
+    THEME_CHANGED: 'theme:changed',
+
+    // App
+    OPEN_OPTIONS: 'open-options-window',
+    OPEN_GOOGLE_SIGNIN: 'open-google-signin',
+
+    // Quick Chat
+    QUICK_CHAT_SUBMIT: 'quick-chat:submit',
+    QUICK_CHAT_HIDE: 'quick-chat:hide',
+    QUICK_CHAT_CANCEL: 'quick-chat:cancel',
+    QUICK_CHAT_EXECUTE: 'quick-chat:execute',
+} as const;
+
 /**
  * Configuration for the authentication window.
  */

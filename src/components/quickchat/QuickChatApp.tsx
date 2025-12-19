@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SearchIcon, SendIcon } from './Icons';
+import { QUICK_CHAT_TEST_IDS } from '../../utils/testIds';
 import './QuickChat.css';
 
 /**
@@ -58,7 +59,7 @@ function QuickChatApp(): React.ReactElement {
     }, []);
 
     return (
-        <div className="quick-chat-container" data-testid="quick-chat-container">
+        <div className="quick-chat-container" data-testid={QUICK_CHAT_TEST_IDS.QUICK_CHAT_CONTAINER}>
             <div className="quick-chat-input-wrapper">
                 <div className="quick-chat-icon" aria-hidden="true">
                     <SearchIcon />
@@ -71,7 +72,7 @@ function QuickChatApp(): React.ReactElement {
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
-                    data-testid="quick-chat-input"
+                    data-testid={QUICK_CHAT_TEST_IDS.QUICK_CHAT_INPUT}
                     autoComplete="off"
                     spellCheck={false}
                 />
@@ -80,7 +81,7 @@ function QuickChatApp(): React.ReactElement {
                     className="quick-chat-submit"
                     onClick={handleSubmit}
                     disabled={!inputValue.trim()}
-                    data-testid="quick-chat-submit"
+                    data-testid={QUICK_CHAT_TEST_IDS.QUICK_CHAT_SUBMIT}
                     aria-label="Send message"
                 >
                     <SendIcon />
