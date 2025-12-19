@@ -453,18 +453,83 @@ describe('IpcManager', () => {
     });
 
     describe('Quick Chat Handlers', () => {
+        let mockFrame: any;
+        let mockMainWin: any;
+
         beforeEach(() => {
             mockWindowManager.hideQuickChat = vi.fn();
             mockWindowManager.focusMainWindow = vi.fn();
+
+            // Mock main window and frames for injection
+            mockFrame = {
+                url: 'https://gemini.google.com/app',
+                executeJavaScript: vi.fn().mockResolvedValue(true)
+            };
+
+            mockMainWin = {
+                webContents: {
+                    mainFrame: {
+                        frames: [mockFrame]
+                    }
+                }
+            };
+            mockWindowManager.getMainWindow = vi.fn().mockReturnValue(mockMainWin);
+
             ipcManager.setupIpcHandlers();
         });
 
-        it('handles quick-chat:submit', () => {
+        it('handles quick-chat:submit and injects text', async () => {
             const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
-            handler({}, 'Hello, this is my prompt text');
+            await handler({}, 'Hello, this is my prompt text');
 
             expect(mockWindowManager.hideQuickChat).toHaveBeenCalled();
             expect(mockWindowManager.focusMainWindow).toHaveBeenCalled();
+            expect(mockWindowManager.getMainWindow).toHaveBeenCalled();
+
+            // Verify injection
+            expect(mockFrame.executeJavaScript).toHaveBeenCalled();
+            const script = mockFrame.executeJavaScript.mock.calls[0][0];
+            expect(script).toContain('Hello, this is my prompt text');
+        });
+
+        it('escapes special characters in injected text', async () => {
+            const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
+            const funnyText = "Text with 'quotes' and \\ slashes and \n newlines";
+            await handler({}, funnyText);
+
+            const script = mockFrame.executeJavaScript.mock.calls[0][0];
+            // Check that executeJavaScript was called with escaped text
+            // The script string itself should contain escaped versions
+            expect(script).toContain("\\\\"); // Escaped backslash
+            expect(script).toContain("\\'"); // Escaped quote
+            expect(script).toContain("\\n"); // Escaped newline
+        });
+
+        it('logs error when main window not found on submit', async () => {
+            mockWindowManager.getMainWindow.mockReturnValue(null);
+            const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
+
+            await handler({}, 'test');
+
+            expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: main window not found');
+        });
+
+        it('logs error when Gemini frame not found on submit', async () => {
+            mockMainWin.webContents.mainFrame.frames = [{ url: 'https://google.com' }]; // Wrong domain
+            const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
+
+            await handler({}, 'test');
+
+            expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: Gemini iframe not found');
+        });
+
+        it('logs error when injection script execution fails', async () => {
+            mockFrame.executeJavaScript.mockRejectedValue(new Error('Script Error'));
+            const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
+
+            await handler({}, 'test');
+
+            expect(mockLogger.error).toHaveBeenCalledWith('Failed to inject text into Gemini:', expect.anything());
         });
 
         it('handles quick-chat:hide', () => {
@@ -482,7 +547,7 @@ describe('IpcManager', () => {
             expect(mockLogger.log).toHaveBeenCalledWith('Quick Chat cancelled');
         });
 
-        it('logs error when quick-chat:submit fails', () => {
+        it('logs error when quick-chat:submit fails synchronously', () => {
             const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
             mockWindowManager.hideQuickChat.mockImplementationOnce(() => { throw new Error('Hide Failed'); });
             handler({}, 'test');

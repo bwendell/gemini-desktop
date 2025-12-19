@@ -88,7 +88,7 @@ export default class SettingsStore<T extends Record<string, unknown> = Record<st
      * @returns The setting value, or undefined if not found
      */
     get<K extends keyof T>(key: K): T[K] | undefined {
-        return this._data[key];
+        return this._data ? this._data[key] : undefined;
     }
 
     /**

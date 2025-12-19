@@ -113,16 +113,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
         const initTheme = async () => {
             // No Electron API - use browser defaults
+            /* v8 ignore start -- browser-only fallback path */
             if (!window.electronAPI) {
                 console.log('[ThemeContext] No Electron API, using browser defaults');
                 const systemTheme = getSystemThemePreference();
-                /* v8 ignore next -- race condition guard for async unmount */
                 if (isMounted) {
                     setEffectiveTheme(systemTheme);
                     applyThemeToDom(systemTheme);
                 }
                 return;
             }
+            /* v8 ignore stop */
 
             try {
                 const result = await window.electronAPI.getTheme();
@@ -135,7 +136,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
                     setEffectiveTheme(result.effectiveTheme);
                     applyThemeToDom(result.effectiveTheme);
                     console.log('[ThemeContext] Theme initialized:', result);
-                } else {
+                } else if (typeof result === 'string') {
                     // Legacy string format fallback
                     console.log('[ThemeContext] Using legacy theme format:', result);
                     const preference = result as Theme;
@@ -143,6 +144,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
                     setThemeState(preference);
                     setEffectiveTheme(effective);
                     applyThemeToDom(effective);
+                } else {
+                    console.warn('[ThemeContext] Received invalid theme data:', result);
+                    // Invalid data - safe fallback to system
+                    const systemTheme = getSystemThemePreference();
+                    setEffectiveTheme(systemTheme);
+                    applyThemeToDom(systemTheme);
                 }
             } catch (error) {
                 console.error('[ThemeContext] Failed to initialize theme:', error);
@@ -190,13 +197,14 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }, []);
 
     // Handle theme changes when Electron API is unavailable (browser-only fallback)
+    /* v8 ignore start -- browser-only fallback path */
     useEffect(() => {
         if (window.electronAPI) return;
-
         const computed = theme === 'system' ? getSystemThemePreference() : theme;
         setEffectiveTheme(computed);
         applyThemeToDom(computed);
     }, [theme]);
+    /* v8 ignore stop */
 
     // Memoized theme setter to prevent unnecessary re-renders
     const setTheme = useCallback((newTheme: Theme) => {

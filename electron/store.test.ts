@@ -94,6 +94,29 @@ describe('SettingsStore', () => {
         });
     });
 
+    it('handles corrupted JSON gracefully', () => {
+        mockFs.existsSync.mockReturnValue(true);
+        mockFs.readFileSync.mockReturnValue('invalid-json{');
+
+        const store = new SettingsStore({
+            configName: 'test',
+            defaults: { theme: 'system' },
+            fs: mockFs
+        });
+
+        // Should fall back to defaults
+        expect(store._data).toEqual({ theme: 'system' });
+    });
+
+    it('handles undefined internal data on get', () => {
+        const store = new SettingsStore({ configName: 'test', defaults: {}, fs: mockFs });
+        // Force undefined data to simulate potential runtime corruption
+        (store as any)._data = undefined;
+
+        // Should not crash
+        expect(store.get('theme')).toBeUndefined();
+    });
+
     describe('get', () => {
         it('returns value for existing key', () => {
             mockFs.existsSync.mockReturnValue(true);

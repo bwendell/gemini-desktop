@@ -138,6 +138,25 @@ describe('QuickChatApp', () => {
         });
     });
 
+
+
+    describe('Edge Cases', () => {
+        it('does not submit on Enter when input is empty', () => {
+            render(<QuickChatApp />);
+            const input = screen.getByTestId('quick-chat-input');
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(mockSubmitQuickChat).not.toHaveBeenCalled();
+        });
+
+        it('ignores other keys', () => {
+            render(<QuickChatApp />);
+            const input = screen.getByTestId('quick-chat-input');
+            fireEvent.keyDown(input, { key: 'a' });
+            expect(mockSubmitQuickChat).not.toHaveBeenCalled();
+            expect(mockCancelQuickChat).not.toHaveBeenCalled();
+        });
+    });
+
     describe('Keyboard Shortcuts', () => {
         it('submits on Enter key', () => {
             render(<QuickChatApp />);

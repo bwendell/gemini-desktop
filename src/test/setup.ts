@@ -32,6 +32,7 @@ vi.mock('framer-motion', () => ({
 // ============================================================================
 Object.defineProperty(window, 'matchMedia', {
     writable: true,
+    configurable: true, // Allow tests to redefine it
     value: vi.fn().mockImplementation(query => ({
         matches: false, // Default to light mode for consistent tests
         media: query,
