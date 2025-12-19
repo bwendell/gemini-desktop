@@ -80,6 +80,46 @@ export const GOOGLE_GENAI_TERMS_URL = 'https://policies.google.com/terms/generat
 export const GEMINI_APP_URL = 'https://gemini.google.com/app' as const;
 
 // =========================================================================
+// Gemini DOM Selectors
+// =========================================================================
+
+/**
+ * Domain pattern to match Gemini iframe URL.
+ */
+export const GEMINI_DOMAIN = 'gemini.google.com' as const;
+
+/**
+ * CSS selectors for finding the Gemini chat input editor.
+ * Ordered by specificity - first match wins.
+ */
+export const GEMINI_EDITOR_SELECTORS = [
+    '.ql-editor[contenteditable="true"]',
+    '.ql-editor',
+    '[contenteditable="true"][role="textbox"]'
+] as const;
+
+/**
+ * CSS selectors for finding the Gemini send/submit button.
+ * Ordered by specificity - first match wins.
+ */
+export const GEMINI_SUBMIT_BUTTON_SELECTORS = [
+    'button.send-button[aria-label="Send message"]',
+    'button.send-button',
+    'button[aria-label="Send message"]'
+] as const;
+
+/**
+ * CSS class removed from the Quill editor when content is added.
+ */
+export const GEMINI_EDITOR_BLANK_CLASS = 'ql-blank' as const;
+
+/**
+ * Delay in milliseconds before clicking the submit button.
+ * Allows Angular/Quill to process the text injection.
+ */
+export const GEMINI_SUBMIT_DELAY_MS = 200 as const;
+
+// =========================================================================
 // IPC Channel Names
 // =========================================================================
 

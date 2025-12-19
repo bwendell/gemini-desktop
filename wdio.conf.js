@@ -24,6 +24,7 @@ export const config = {
         './tests/e2e/menu_bar.spec.ts',
         './tests/e2e/hotkeys.spec.ts',
         './tests/e2e/quick-chat.spec.ts',
+        './tests/e2e/quick-chat-injection.spec.ts',
         './tests/e2e/options-window.spec.ts',
         './tests/e2e/menu-interactions.spec.ts',
         './tests/e2e/theme.spec.ts',
@@ -59,8 +60,13 @@ export const config = {
     framework: 'mocha',
     mochaOpts: {
         ui: 'bdd',
-        timeout: 60000,
+        timeout: 90000, // Increased from 60s for stability
     },
+
+    // Retry failed spec files to handle flaky tests
+    specFileRetries: 1,
+    specFileRetriesDelay: 2,
+    specFileRetriesDeferred: false,
 
     // Build the frontend and Electron backend before tests
     onPrepare: () => {

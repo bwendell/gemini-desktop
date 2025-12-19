@@ -13,7 +13,15 @@
 
 import { ipcMain, BrowserWindow, nativeTheme, IpcMainEvent, IpcMainInvokeEvent } from 'electron';
 import SettingsStore from '../store';
-import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS } from '../utils/constants';
+import {
+    GOOGLE_ACCOUNTS_URL,
+    IPC_CHANNELS,
+    GEMINI_DOMAIN,
+    GEMINI_EDITOR_SELECTORS,
+    GEMINI_SUBMIT_BUTTON_SELECTORS,
+    GEMINI_EDITOR_BLANK_CLASS,
+    GEMINI_SUBMIT_DELAY_MS
+} from '../utils/constants';
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type { ThemePreference, ThemeData, Logger } from '../types';
@@ -277,14 +285,145 @@ export default class IpcManager {
     }
 
     /**
+     * Inject text into the Gemini chat input and submit it.
+     * Uses WebFrame executeJavaScript to run code inside the iframe's context.
+     * 
+     * @param text - The text to inject and submit
+     * @private
+     */
+    private async _injectTextIntoGemini(text: string): Promise<void> {
+        const mainWindow = this.windowManager.getMainWindow();
+        if (!mainWindow) {
+            this.logger.error('Cannot inject text: main window not found');
+            return;
+        }
+
+        const webContents = mainWindow.webContents;
+        const frames = webContents.mainFrame.frames;
+
+        // Find the Gemini iframe's WebFrame using constant
+        const geminiFrame = frames.find(frame => {
+            try {
+                return frame.url.includes(GEMINI_DOMAIN);
+            } catch {
+                return false;
+            }
+        });
+
+        if (!geminiFrame) {
+            this.logger.error('Cannot inject text: Gemini iframe not found');
+            return;
+        }
+
+        // Escape the text for safe JavaScript injection
+        const escapedText = text
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r');
+
+        // Serialize constants for use in iframe context
+        const editorSelectorsJson = JSON.stringify(GEMINI_EDITOR_SELECTORS);
+        const buttonSelectorsJson = JSON.stringify(GEMINI_SUBMIT_BUTTON_SELECTORS);
+        const blankClass = GEMINI_EDITOR_BLANK_CLASS;
+        const submitDelay = GEMINI_SUBMIT_DELAY_MS;
+
+        // JavaScript to execute inside the Gemini iframe
+        // Uses Trusted Types-compatible DOM manipulation (textContent + Selection API)
+        const injectionScript = `
+            (function() {
+                try {
+                    // Find the Quill editor's contenteditable div
+                    const selectors = ${editorSelectorsJson};
+                    
+                    let editor = null;
+                    for (const selector of selectors) {
+                        editor = document.querySelector(selector);
+                        if (editor) break;
+                    }
+                    
+                    if (!editor) {
+                        console.error('[Quick Chat] Editor element not found');
+                        return { success: false, error: 'editor_not_found' };
+                    }
+
+                    // Focus and clear the editor
+                    editor.focus();
+                    const textToInject = '${escapedText}';
+                    
+                    // Clear using textContent (Trusted Types safe)
+                    editor.textContent = '';
+
+                    // Insert text using Selection API (Trusted Types safe)
+                    const textNode = document.createTextNode(textToInject);
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(editor);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    range.insertNode(textNode);
+                    
+                    // Move cursor to end
+                    range.setStartAfter(textNode);
+                    range.setEndAfter(textNode);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+
+                    // Update editor state
+                    editor.classList.remove('${blankClass}');
+                    
+                    // Dispatch events to notify Angular/Quill
+                    editor.dispatchEvent(new InputEvent('input', {
+                        bubbles: true,
+                        cancelable: true,
+                        inputType: 'insertText',
+                        data: textToInject
+                    }));
+                    editor.dispatchEvent(new Event('text-change', { bubbles: true }));
+                    editor.dispatchEvent(new Event('input', { bubbles: true }));
+
+                    // Find and click submit button after UI update
+                    setTimeout(() => {
+                        const buttonSelectors = ${buttonSelectorsJson};
+                        
+                        let submitButton = null;
+                        for (const selector of buttonSelectors) {
+                            submitButton = document.querySelector(selector);
+                            if (submitButton && !submitButton.disabled) break;
+                        }
+                        
+                        if (submitButton && !submitButton.disabled) {
+                            submitButton.click();
+                        } else {
+                            console.error('[Quick Chat] Submit button not found or disabled');
+                        }
+                    }, ${submitDelay});
+
+                    return { success: true };
+                } catch (e) {
+                    console.error('[Quick Chat] Injection error:', e);
+                    return { success: false, error: e.message };
+                }
+            })();
+        `;
+
+        try {
+            await geminiFrame.executeJavaScript(injectionScript);
+            this.logger.log('Text injected into Gemini successfully');
+        } catch (error) {
+            this.logger.error('Failed to inject text into Gemini:', error);
+        }
+    }
+
+    /**
      * Set up Quick Chat IPC handlers.
      * Handles communication between Quick Chat window and main window.
      * @private
      */
     private _setupQuickChatHandlers(): void {
-        // Submit quick chat text - for now, just hide window and focus main
-        // TODO: Implement text injection into Gemini in a future PR
-        ipcMain.on(IPC_CHANNELS.QUICK_CHAT_SUBMIT, (_event, text: string) => {
+        // Submit quick chat text - inject into Gemini and submit
+        ipcMain.on(IPC_CHANNELS.QUICK_CHAT_SUBMIT, async (_event, text: string) => {
             try {
                 this.logger.log('Quick Chat submit received:', text.substring(0, 50));
 
@@ -294,8 +433,8 @@ export default class IpcManager {
                 // Focus the main window
                 this.windowManager.focusMainWindow();
 
-                // TODO: Inject text into Gemini chat (requires DOM access or keyboard events)
-                this.logger.log('Quick Chat text injection not yet implemented');
+                // Inject text into Gemini chat and submit
+                await this._injectTextIntoGemini(text);
             } catch (error) {
                 this.logger.error('Error handling quick chat submit:', error);
             }

@@ -15,6 +15,43 @@ import {
     type HotkeyActionHandler,
     type HotkeyActionState,
 } from './hotkeyHelpers';
+import { E2ELogger } from './logger';
+import {
+    GEMINI_DOMAIN_PATTERNS,
+    E2E_ERROR_MESSAGES,
+} from './e2eConstants';
+
+// =============================================================================
+// Type Definitions for WindowManager Access
+// =============================================================================
+
+/**
+ * WindowManager interface for E2E testing.
+ * Defines the expected shape of the windowManager on the app instance.
+ */
+interface E2EWindowManager {
+    showQuickChat?: () => void;
+    hideQuickChat?: () => void;
+    toggleQuickChat?: () => void;
+    focusMainWindow?: () => void;
+    getQuickChatWindow?: () => Electron.BrowserWindow | null;
+    getMainWindow?: () => Electron.BrowserWindow | null;
+}
+
+/**
+ * IpcManager interface for E2E testing.
+ */
+interface E2EIpcManager {
+    _injectTextIntoGemini?: (text: string) => Promise<void>;
+}
+
+/**
+ * Extended app type with exposed managers for E2E testing.
+ */
+interface E2EApp {
+    windowManager?: E2EWindowManager;
+    ipcManager?: E2EIpcManager;
+}
 
 // =============================================================================
 // Quick Chat State Interface
@@ -119,35 +156,113 @@ export async function getQuickChatState(): Promise<QuickChatState> {
 
 /**
  * Simulate submitting text via Quick Chat.
- * This directly triggers the IPC handler to test text reception.
+ * This properly emits the IPC event to trigger text injection.
  * 
  * @param text - The text to submit
  * @returns Promise<void>
  */
 export async function submitQuickChatText(text: string): Promise<void> {
+    // Log before execution since we can't use E2ELogger inside browser.electron.execute
+    E2ELogger.info('quick-chat-action', `Submitting text (${text.length} chars)`);
+
     await browser.electron.execute(
         (electron: typeof import('electron'), submittedText: string) => {
-            // Emit the IPC event that the preload script would normally send
-            const { ipcMain } = electron;
-            // Create a mock event with a basic sender
-            const mockEvent = { sender: null } as unknown as Electron.IpcMainEvent;
-
-            // We can't directly access ipcMain listeners, so we need to use a different approach
-            // Instead, let's access the windowManager directly
             const { app } = electron;
+
+            // Type-safe access to windowManager (inline cast - can't use imports in serialized context)
             const windowManager = (app as unknown as {
                 windowManager?: {
-                    hideQuickChat: () => void;
-                    focusMainWindow: () => void;
+                    hideQuickChat?: () => void;
+                    focusMainWindow?: () => void;
                 }
             }).windowManager;
 
-            // Simulate what the IPC handler does
-            console.log('Quick Chat submit received:', submittedText.substring(0, 50));
-            windowManager?.hideQuickChat?.();
-            windowManager?.focusMainWindow?.();
+            // Defensive: check WindowManager exists
+            if (!windowManager) {
+                console.warn('[E2E] WindowManager not available for Quick Chat submit');
+                return;
+            }
+
+            // Log the submission (console.log is the only option inside execute)
+            console.log('[E2E] Quick Chat submit:', submittedText.substring(0, 50));
+
+            // Hide the Quick Chat window
+            windowManager.hideQuickChat?.();
+
+            // Focus the main window
+            windowManager.focusMainWindow?.();
+
+            // Access IpcManager to trigger text injection (inline cast)
+            const ipcManager = (app as unknown as {
+                ipcManager?: {
+                    _injectTextIntoGemini?: (text: string) => Promise<void>;
+                }
+            }).ipcManager;
+
+            // Try to inject directly if the method is exposed
+            if (ipcManager?._injectTextIntoGemini) {
+                ipcManager._injectTextIntoGemini(submittedText);
+            } else {
+                console.warn('[E2E] IpcManager._injectTextIntoGemini not available');
+            }
         },
         text
+    );
+}
+
+/**
+ * Check if the Gemini iframe is loaded and accessible.
+ * Uses domain patterns from e2eConstants for maintainability.
+ * 
+ * @returns Promise<{ loaded: boolean, url: string | null, frameCount: number }>
+ */
+export async function getGeminiIframeState(): Promise<{
+    loaded: boolean;
+    url: string | null;
+    frameCount: number;
+}> {
+    // Pass domain patterns to the execute context since we can't import there
+    const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
+
+    return browser.electron.execute(
+        (electron: typeof import('electron'), domains: string[]) => {
+            const { app } = electron;
+            const windowManager = (app as unknown as {
+                windowManager?: {
+                    getMainWindow: () => Electron.BrowserWindow | null;
+                }
+            }).windowManager;
+
+            // Defensive: check WindowManager exists
+            if (!windowManager) {
+                console.warn('[E2E] WindowManager not available');
+                return { loaded: false, url: null, frameCount: 0 };
+            }
+
+            const mainWindow = windowManager.getMainWindow?.();
+            if (!mainWindow) {
+                return { loaded: false, url: null, frameCount: 0 };
+            }
+
+            const webContents = mainWindow.webContents;
+            const frames = webContents.mainFrame.frames;
+
+            // Find frame matching any Gemini domain pattern
+            const geminiFrame = frames.find(frame => {
+                try {
+                    return domains.some(domain => frame.url.includes(domain));
+                } catch {
+                    return false;
+                }
+            });
+
+            return {
+                loaded: geminiFrame != null,
+                url: geminiFrame?.url ?? null,
+                frameCount: frames.length,
+            };
+        },
+        domainPatterns
     );
 }
 

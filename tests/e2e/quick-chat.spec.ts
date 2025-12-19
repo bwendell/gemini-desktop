@@ -14,12 +14,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { getPlatform, E2EPlatform } from './helpers/platform';
-import {
-    REGISTERED_HOTKEYS,
-    isHotkeyRegistered,
-    getHotkeyDisplayString,
-    verifyHotkeyRegistration,
-} from './helpers/hotkeyHelpers';
+import { getHotkeyDisplayString } from './helpers/hotkeyHelpers';
 import {
     showQuickChatWindow,
     hideQuickChatWindow,
@@ -42,23 +37,45 @@ describe('Quick Chat Feature', () => {
         }
     });
 
-    describe('Hotkey Registration', () => {
-        it('should have the Quick Chat hotkey registered', async () => {
+    describe('Hotkey Functionality', () => {
+        afterEach(async () => {
+            // Clean up: ensure Quick Chat is hidden after each test
+            try {
+                await hideQuickChatWindow();
+                await browser.pause(200);
+            } catch {
+                // Ignore cleanup errors
+            }
+        });
+
+        it('should show Quick Chat window when hotkey action is triggered', async () => {
             // Ensure app is loaded
             const title = await browser.getTitle();
             expect(title).not.toBe('');
 
-            // Verify the hotkey is registered
-            const isRegistered = await verifyHotkeyRegistration(platform, 'QUICK_CHAT');
-            expect(isRegistered).toBe(true);
+            // Test the actual functionality: trigger the action and verify outcome
+            await showQuickChatWindow();
+            await browser.pause(300);
+
+            // Verify the outcome - the window should be visible
+            const state = await getQuickChatState();
+            expect(state.windowVisible).toBe(true);
+            console.log('✓ Quick Chat window appeared after triggering action');
         });
 
-        it('should use the correct accelerator format (CommandOrControl+Shift+Space)', async () => {
-            const expectedAccelerator = REGISTERED_HOTKEYS.QUICK_CHAT.accelerator;
-            const isRegistered = await isHotkeyRegistered(expectedAccelerator);
+        it('should hide Quick Chat window when triggered again', async () => {
+            // Show first
+            await showQuickChatWindow();
+            await browser.pause(300);
 
-            console.log(`Checking accelerator: ${expectedAccelerator}`);
-            expect(isRegistered).toBe(true);
+            // Toggle to hide
+            await toggleQuickChatWindow();
+            await browser.pause(300);
+
+            // Verify the outcome - window should be hidden
+            const state = await getQuickChatState();
+            expect(state.windowVisible).toBe(false);
+            console.log('✓ Quick Chat window hidden after toggle');
         });
 
         it('should display the correct platform-specific hotkey string', async () => {
