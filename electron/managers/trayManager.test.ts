@@ -13,6 +13,15 @@ describe('TrayManager', () => {
     let mockWindowManager: Partial<WindowManager>;
     let originalPlatform: string;
 
+    // Helper to mock platform
+    const mockPlatform = (platform: string) => {
+        Object.defineProperty(process, 'platform', {
+            value: platform,
+            configurable: true,
+            writable: true
+        });
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
         (Tray as any)._reset();
@@ -30,11 +39,7 @@ describe('TrayManager', () => {
     });
 
     afterEach(() => {
-        Object.defineProperty(process, 'platform', {
-            value: originalPlatform,
-            configurable: true,
-            writable: true
-        });
+        mockPlatform(originalPlatform);
     });
 
     describe('constructor', () => {
@@ -45,11 +50,42 @@ describe('TrayManager', () => {
     });
 
     describe('createTray', () => {
-        it('creates Tray instance with correct icon path', () => {
-            const tray = trayManager.createTray();
+        it('creates Tray with .ico icon on Windows', async () => {
+            mockPlatform('win32');
+            vi.resetModules();
+
+            // Reimport TrayManager after platform mock
+            const { default: TrayManager } = await import('./trayManager');
+            const manager = new TrayManager(mockWindowManager as WindowManager);
+            const tray = manager.createTray();
 
             expect(tray).toBeDefined();
-            expect((Tray as any)._instances.length).toBe(1);
+            expect((tray as any).iconPath).toContain('icon.ico');
+        });
+
+        it('creates Tray with .png icon on macOS', async () => {
+            mockPlatform('darwin');
+            vi.resetModules();
+
+            // Reimport TrayManager after platform mock
+            const { default: TrayManager } = await import('./trayManager');
+            const manager = new TrayManager(mockWindowManager as WindowManager);
+            const tray = manager.createTray();
+
+            expect(tray).toBeDefined();
+            expect((tray as any).iconPath).toContain('icon.png');
+        });
+
+        it('creates Tray with .png icon on Linux', async () => {
+            mockPlatform('linux');
+            vi.resetModules();
+
+            // Reimport TrayManager after platform mock
+            const { default: TrayManager } = await import('./trayManager');
+            const manager = new TrayManager(mockWindowManager as WindowManager);
+            const tray = manager.createTray();
+
+            expect(tray).toBeDefined();
             expect((tray as any).iconPath).toContain('icon.png');
         });
 

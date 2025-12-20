@@ -23,11 +23,11 @@ describe('Titlebar', () => {
         it('renders app icon by default', () => {
             render(<Titlebar />);
 
-            // Check for SVG icon in titlebar-icon div
+            // Check for icon in titlebar-icon div
             const titlebar = document.querySelector('.titlebar');
             const iconDiv = titlebar?.querySelector('.titlebar-icon');
             expect(iconDiv).toBeInTheDocument();
-            expect(iconDiv?.querySelector('svg')).toBeInTheDocument();
+            expect(iconDiv?.querySelector('img')).toBeInTheDocument();
         });
 
         it('renders header element with titlebar class', () => {

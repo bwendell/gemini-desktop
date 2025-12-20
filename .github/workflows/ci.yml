@@ -56,11 +56,16 @@ jobs:
   # ---------------------------------------------------------------------------
   # Unit Tests Job
   # ---------------------------------------------------------------------------
-  # Runs unit tests (frontend + electron) with coverage on Ubuntu (fastest runner)
+  # Runs unit tests (frontend + electron) with coverage on all platforms
   # This job must pass before E2E tests run
   unit-tests:
-    name: Unit Tests (Frontend + Electron)
-    runs-on: ubuntu-latest
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     
     steps:
       # -----------------------------------------------------------------------
@@ -111,7 +116,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()  # Upload even if tests fail for debugging
         with:
-          name: coverage-frontend
+          name: coverage-frontend-${{ matrix.os }}
           path: coverage/
           retention-days: 7
 
@@ -119,17 +124,18 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-electron
+          name: coverage-electron-${{ matrix.os }}
           path: coverage-electron/
           retention-days: 7
 
       - name: Upload Coverage to Summary
         if: always()
         run: |
-          echo "## Unit Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "## Unit Test Coverage (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend coverage: See coverage-frontend artifact" >> $GITHUB_STEP_SUMMARY
-          echo "- Electron coverage: See coverage-electron artifact" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend coverage: See coverage-frontend-${{ matrix.os }} artifact" >> $GITHUB_STEP_SUMMARY
+          echo "- Electron coverage: See coverage-electron-${{ matrix.os }} artifact" >> $GITHUB_STEP_SUMMARY
+        shell: bash
 
   # ---------------------------------------------------------------------------
   # E2E Tests Job

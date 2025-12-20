@@ -16,6 +16,16 @@ vi.mock('path', async () => {
 });
 
 describe('paths utilities', () => {
+    // Helper to mock platform
+    const mockPlatform = (platform: string) => {
+        Object.defineProperty(process, 'platform', {
+            value: platform,
+            configurable: true
+        });
+    };
+
+    const originalPlatform = process.platform;
+
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -23,6 +33,7 @@ describe('paths utilities', () => {
     afterEach(() => {
         vi.restoreAllMocks();
         vi.resetModules();
+        mockPlatform(originalPlatform);
     });
 
     describe('getPreloadPath', () => {
@@ -60,7 +71,29 @@ describe('paths utilities', () => {
     });
 
     describe('getIconPath', () => {
-        it('should return path to app icon in build directory', async () => {
+        it('should return .ico path on Windows', async () => {
+            mockPlatform('win32');
+            vi.resetModules();
+            const { getIconPath } = await import('./paths');
+            const result = getIconPath();
+
+            expect(path.join).toHaveBeenCalledWith(expect.any(String), '../../build/icon.ico');
+            expect(result).toContain('icon.ico');
+        });
+
+        it('should return .png path on macOS', async () => {
+            mockPlatform('darwin');
+            vi.resetModules();
+            const { getIconPath } = await import('./paths');
+            const result = getIconPath();
+
+            expect(path.join).toHaveBeenCalledWith(expect.any(String), '../../build/icon.png');
+            expect(result).toContain('icon.png');
+        });
+
+        it('should return .png path on Linux', async () => {
+            mockPlatform('linux');
+            vi.resetModules();
             const { getIconPath } = await import('./paths');
             const result = getIconPath();
 
