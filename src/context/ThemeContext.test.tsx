@@ -81,7 +81,8 @@ describe('ThemeContext', () => {
             expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
         });
 
-        it.skip('detects dark mode system preference via matchMedia', async () => {
+        it.skip('detects dark mode system preference via matchMedia when no electronAPI', async () => {
+            // This test runs in ThemeContext.browser.test.tsx for better isolation
             // Mock matchMedia to return dark mode using spyOn (cleaner restoration)
             const matchMediaSpy = vi.spyOn(window, 'matchMedia').mockImplementation(query => ({
                 matches: true, // Dark mode
@@ -94,7 +95,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-ignore
+            // @ts-ignore - Explicitly set electronAPI to undefined to test browser fallback
             window.electronAPI = undefined;
 
             await act(async () => {
@@ -144,8 +145,21 @@ describe('ThemeContext', () => {
             consoleSpy.mockRestore();
         });
 
-        it.skip('falls back to browser matchMedia when no electronAPI', async () => {
-            // @ts-ignore
+        it.skip('falls back to browser matchMedia when electronAPI is deleted', async () => {
+            // This test runs in ThemeContext.browser.test.tsx for better isolation
+            // Mock matchMedia for consistent test results
+            const matchMediaSpy = vi.spyOn(window, 'matchMedia').mockImplementation(query => ({
+                matches: false, // Light mode
+                media: query,
+                onchange: null,
+                addListener: vi.fn(),
+                removeListener: vi.fn(),
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            }));
+
+            // @ts-ignore - Delete electronAPI to test browser fallback
             delete window.electronAPI;
 
             await act(async () => {
@@ -156,9 +170,11 @@ describe('ThemeContext', () => {
                 );
             });
 
-            // Should use matchMedia result (mocked to 'dark' in setup.ts)
+            // Should use matchMedia result - light mode
             expect(screen.getByTestId('current-theme')).toHaveTextContent('system');
-            expect(document.documentElement.getAttribute('data-theme')).toBeDefined();
+            expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+
+            matchMediaSpy.mockRestore();
         });
     });
 
@@ -307,7 +323,20 @@ describe('ThemeContext', () => {
 
     describe('Browser-only mode', () => {
         it.skip('applies theme changes in browser-only mode', async () => {
-            // @ts-ignore
+            // This test runs in ThemeContext.browser.test.tsx for better isolation
+            // Mock matchMedia for consistent results
+            const matchMediaSpy = vi.spyOn(window, 'matchMedia').mockImplementation(query => ({
+                matches: false, // Light mode
+                media: query,
+                onchange: null,
+                addListener: vi.fn(),
+                removeListener: vi.fn(),
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            }));
+
+            // @ts-ignore - Set electronAPI to undefined to test browser fallback
             window.electronAPI = undefined;
 
             await act(async () => {
@@ -335,10 +364,24 @@ describe('ThemeContext', () => {
 
             expect(screen.getByTestId('current-theme')).toHaveTextContent('light');
             expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+
+            matchMediaSpy.mockRestore();
         });
 
         it.skip('handles system theme in browser-only mode', async () => {
-            // @ts-ignore
+            // This test runs in ThemeContext.browser.test.tsx for better isolation
+            const matchMediaSpy = vi.spyOn(window, 'matchMedia').mockImplementation(query => ({
+                matches: true, // Dark mode
+                media: query,
+                onchange: null,
+                addListener: vi.fn(),
+                removeListener: vi.fn(),
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            }));
+
+            // @ts-ignore - Set electronAPI to undefined to test browser fallback
             window.electronAPI = undefined;
 
             await act(async () => {
@@ -355,9 +398,11 @@ describe('ThemeContext', () => {
                 systemButton.click();
             });
 
-            // Should resolve to matchMedia result
+            // Should resolve to matchMedia result (dark)
             expect(screen.getByTestId('current-theme')).toHaveTextContent('system');
-            expect(document.documentElement.getAttribute('data-theme')).toBeDefined();
+            expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+
+            matchMediaSpy.mockRestore();
         });
     });
 

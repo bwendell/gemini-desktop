@@ -82,6 +82,15 @@ describe('Constants', () => {
             expect(config.webPreferences.contextIsolation).toBe(true);
             expect(config.webPreferences.nodeIntegration).toBe(false);
         });
+
+        it('uses shared session (no partition) for cookie-based auth', () => {
+            // Critical security & functionality test:
+            // The auth window must NOT have a session partition, so it shares
+            // the default session with the main window. This allows auth cookies
+            // set during Google sign-in to be immediately available to the main
+            // window when it reloads after auth completes.
+            expect(config.webPreferences.partition).toBeUndefined();
+        });
     });
 
     describe('URL constants', () => {
@@ -222,11 +231,52 @@ describe('isOAuthDomain', () => {
 });
 
 describe('getTitleBarStyle', () => {
-    it('returns value based on platform', () => {
-        // This test verifies the function works - platform value cannot be changed at runtime
-        const result = getTitleBarStyle();
-        // On non-darwin, should be undefined; on darwin, should be 'hidden'
-        expect(result === 'hidden' || result === undefined).toBe(true);
+    const originalPlatform = process.platform;
+
+    afterEach(() => {
+        // Restore original platform
+        Object.defineProperty(process, 'platform', {
+            value: originalPlatform,
+            configurable: true,
+            writable: true
+        });
+    });
+
+    it('returns "hidden" on macOS (darwin)', async () => {
+        Object.defineProperty(process, 'platform', {
+            value: 'darwin',
+            configurable: true,
+            writable: true
+        });
+
+        // Need to reimport to pick up the mocked platform
+        vi.resetModules();
+        const { getTitleBarStyle: getTitleBarStyleMocked } = await import('../utils/constants');
+        expect(getTitleBarStyleMocked()).toBe('hidden');
+    });
+
+    it('returns undefined on Windows (win32)', async () => {
+        Object.defineProperty(process, 'platform', {
+            value: 'win32',
+            configurable: true,
+            writable: true
+        });
+
+        vi.resetModules();
+        const { getTitleBarStyle: getTitleBarStyleMocked } = await import('../utils/constants');
+        expect(getTitleBarStyleMocked()).toBeUndefined();
+    });
+
+    it('returns undefined on Linux', async () => {
+        Object.defineProperty(process, 'platform', {
+            value: 'linux',
+            configurable: true,
+            writable: true
+        });
+
+        vi.resetModules();
+        const { getTitleBarStyle: getTitleBarStyleMocked } = await import('../utils/constants');
+        expect(getTitleBarStyleMocked()).toBeUndefined();
     });
 });
 

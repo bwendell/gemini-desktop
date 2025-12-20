@@ -73,4 +73,69 @@ describe('createLogger', () => {
             expect(console.warn).toHaveBeenCalledWith('[Test] Deprecated:', 'oldMethod');
         });
     });
+
+    describe('EPIPE error handling', () => {
+        it('should swallow EPIPE errors with code property', () => {
+            vi.restoreAllMocks();
+            const mockConsole = vi.spyOn(console, 'log').mockImplementation(() => {
+                const error = new Error('write EPIPE') as NodeJS.ErrnoException;
+                error.code = 'EPIPE';
+                throw error;
+            });
+
+            const logger = createLogger('[Test]');
+            // Should not throw
+            expect(() => logger.log('test')).not.toThrow();
+            mockConsole.mockRestore();
+        });
+
+        it('should swallow EPIPE errors detected via message string', () => {
+            vi.restoreAllMocks();
+            const mockConsole = vi.spyOn(console, 'log').mockImplementation(() => {
+                throw new Error('EPIPE: broken pipe, write');
+            });
+
+            const logger = createLogger('[Test]');
+            // Should not throw
+            expect(() => logger.log('test')).not.toThrow();
+            mockConsole.mockRestore();
+        });
+
+        it('should rethrow non-EPIPE errors', () => {
+            vi.restoreAllMocks();
+            const mockConsole = vi.spyOn(console, 'log').mockImplementation(() => {
+                throw new Error('Some other error');
+            });
+
+            const logger = createLogger('[Test]');
+            expect(() => logger.log('test')).toThrow('Some other error');
+            mockConsole.mockRestore();
+        });
+
+        it('should swallow EPIPE errors on error method', () => {
+            vi.restoreAllMocks();
+            const mockConsole = vi.spyOn(console, 'error').mockImplementation(() => {
+                const error = new Error('write EPIPE') as NodeJS.ErrnoException;
+                error.code = 'EPIPE';
+                throw error;
+            });
+
+            const logger = createLogger('[Test]');
+            expect(() => logger.error('test')).not.toThrow();
+            mockConsole.mockRestore();
+        });
+
+        it('should swallow EPIPE errors on warn method', () => {
+            vi.restoreAllMocks();
+            const mockConsole = vi.spyOn(console, 'warn').mockImplementation(() => {
+                const error = new Error('write EPIPE') as NodeJS.ErrnoException;
+                error.code = 'EPIPE';
+                throw error;
+            });
+
+            const logger = createLogger('[Test]');
+            expect(() => logger.warn('test')).not.toThrow();
+            mockConsole.mockRestore();
+        });
+    });
 });

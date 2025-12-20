@@ -30,7 +30,7 @@ export class BrowserWindow {
         const instance: any = {
             options,
             webContents: createMockWebContents(),
-            loadURL: vi.fn(),
+            loadURL: vi.fn().mockResolvedValue(undefined),
             loadFile: vi.fn(),
             show: vi.fn(),
             hide: vi.fn(),

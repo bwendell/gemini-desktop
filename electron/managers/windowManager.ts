@@ -42,6 +42,13 @@ export default class WindowManager {
     /**
      * Create an authentication window for Google sign-in.
      * Uses shared session to persist cookies with main window.
+     * Auto-closes when user successfully navigates back to Gemini.
+     * 
+     * Defensive measures:
+     * - Handles page load failures gracefully
+     * - Guards against destroyed window/webContents
+     * - Logs all significant navigation events
+     * - Handles invalid URLs without crashing
      * 
      * @param url - The URL to load in the auth window
      * @returns The created auth window
@@ -50,10 +57,84 @@ export default class WindowManager {
         logger.log('Creating auth window for:', url);
 
         const authWindow = new BrowserWindow(AUTH_WINDOW_CONFIG);
-        authWindow.loadURL(url);
 
+        // Load the URL and handle initial load errors
+        authWindow.loadURL(url).catch((error) => {
+            logger.error('Failed to load auth URL:', {
+                url,
+                error: (error as Error).message
+            });
+        });
+
+        // Handle page load failures (network errors, DNS failures, etc.)
+        authWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+            logger.error('Auth window failed to load:', {
+                errorCode,
+                errorDescription,
+                url: validatedURL
+            });
+            // Don't auto-close on load failure - let user see the error or retry
+        });
+
+        // Handle certificate errors (expired certs, self-signed, etc.)
+        authWindow.webContents.on('certificate-error', (_event, _url, _error, _certificate, callback) => {
+            // In production, we should NOT bypass certificate errors for security
+            // Just log and deny - the default browser error page will show
+            logger.warn('Certificate error in auth window - connection denied for security');
+            callback(false);
+        });
+
+        // Auto-close when user successfully signs in and navigates to Gemini
+        authWindow.webContents.on('did-navigate', (_event, navigationUrl) => {
+            // Guard: Check if window/webContents still exists
+            if (authWindow.isDestroyed()) {
+                logger.warn('Auth window navigated but window was already destroyed');
+                return;
+            }
+
+            try {
+                const urlObj = new URL(navigationUrl);
+                const hostname = urlObj.hostname;
+
+                // Log navigation for debugging OAuth flows
+                logger.log('Auth window navigated to:', hostname);
+
+                if (isInternalDomain(hostname)) {
+                    logger.log('Login successful, closing auth window');
+
+                    // Guard: Double-check before closing
+                    if (!authWindow.isDestroyed()) {
+                        authWindow.close();
+                    }
+                }
+            } catch (e) {
+                // Invalid URL - log but don't crash
+                logger.error('Invalid URL in auth navigation:', {
+                    url: navigationUrl,
+                    error: (e as Error).message
+                });
+            }
+        });
+
+        // Handle in-page navigation (hash changes, etc.) - for completeness
+        authWindow.webContents.on('did-navigate-in-page', (_event, navigationUrl) => {
+            if (!authWindow.isDestroyed()) {
+                logger.log('Auth window in-page navigation:', navigationUrl);
+            }
+        });
+
+        // Log when window is closed (by user or auto-close)
         authWindow.on('closed', () => {
             logger.log('Auth window closed');
+        });
+
+        // Handle unresponsive renderer (rare but possible)
+        authWindow.on('unresponsive', () => {
+            logger.warn('Auth window became unresponsive');
+        });
+
+        authWindow.on('responsive', () => {
+            logger.log('Auth window became responsive again');
         });
 
         return authWindow;

@@ -127,6 +127,24 @@ describe('TrayManager', () => {
             expect(tray1).toBe(tray2);
             expect((Tray as any)._instances.length).toBe(1);
         });
+
+        it('throws error when icon file is not found', async () => {
+            // Need to mock fs.existsSync to return false
+            vi.resetModules();
+
+            // Create a mock for fs that returns false for existsSync
+            vi.doMock('fs', () => ({
+                existsSync: vi.fn().mockReturnValue(false),
+            }));
+
+            // Reimport TrayManager after mocking fs
+            const { default: TrayManagerMocked } = await import('./trayManager');
+            const manager = new TrayManagerMocked(mockWindowManager as WindowManager);
+
+            expect(() => manager.createTray()).toThrow('Tray icon not found');
+
+            vi.doUnmock('fs');
+        });
     });
 
     describe('tray click handler', () => {

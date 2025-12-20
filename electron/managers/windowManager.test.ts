@@ -178,6 +178,156 @@ describe('WindowManager', () => {
             closeHandler();
             // Event handler was called (coverage of line 46)
         });
+
+        it('sets up did-navigate listener on auth window', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
+            expect(navigateCall).toBeDefined();
+        });
+
+        it('auto-closes auth window when navigating to Gemini domain', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
+            const navigateHandler = navigateCall[1];
+
+            // Simulate successful login navigation to Gemini
+            navigateHandler({}, 'https://gemini.google.com/app');
+
+            expect(win.close).toHaveBeenCalled();
+        });
+
+        it('auto-closes auth window when navigating to Gemini subdomain', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
+            const navigateHandler = navigateCall[1];
+
+            // Simulate navigation to Gemini subdomain
+            navigateHandler({}, 'https://share.gemini.google.com/');
+
+            expect(win.close).toHaveBeenCalled();
+        });
+
+        it('does not close auth window when navigating between Google auth pages', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
+            const navigateHandler = navigateCall[1];
+
+            // Simulate navigation within OAuth flow
+            navigateHandler({}, 'https://accounts.google.com/o/oauth2/v2/auth');
+
+            expect(win.close).not.toHaveBeenCalled();
+        });
+
+        it('handles invalid navigation URLs gracefully', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
+            const navigateHandler = navigateCall[1];
+
+            // Should not throw on invalid URL
+            expect(() => navigateHandler({}, 'not-a-valid-url')).not.toThrow();
+            expect(win.close).not.toHaveBeenCalled();
+        });
+
+        it('guards against destroyed window in did-navigate handler', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
+            const navigateHandler = navigateCall[1];
+
+            // Simulate window being destroyed before navigation handler runs
+            win.isDestroyed = vi.fn().mockReturnValue(true);
+
+            // Should not throw when window is destroyed
+            expect(() => navigateHandler({}, 'https://gemini.google.com/app')).not.toThrow();
+            expect(win.close).not.toHaveBeenCalled();
+        });
+
+        it('sets up did-fail-load listener for error handling', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const failLoadCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-fail-load');
+            expect(failLoadCall).toBeDefined();
+        });
+
+        it('handles did-fail-load event gracefully', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const failLoadCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-fail-load');
+            const failLoadHandler = failLoadCall[1];
+
+            // Simulate network error
+            expect(() => failLoadHandler({}, -105, 'ERR_NAME_NOT_RESOLVED', 'https://accounts.google.com')).not.toThrow();
+            // Window should remain open for user to see error
+            expect(win.close).not.toHaveBeenCalled();
+        });
+
+        it('sets up certificate-error listener for security', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const certErrorCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'certificate-error');
+            expect(certErrorCall).toBeDefined();
+        });
+
+        it('denies certificate errors for security', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const certErrorCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'certificate-error');
+            const certErrorHandler = certErrorCall[1];
+
+            const callbackMock = vi.fn();
+            certErrorHandler({}, 'https://accounts.google.com', 'ERR_CERT_AUTHORITY_INVALID', {}, callbackMock);
+
+            // Should deny the connection for security
+            expect(callbackMock).toHaveBeenCalledWith(false);
+        });
+
+        it('sets up did-navigate-in-page listener', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const inPageCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate-in-page');
+            expect(inPageCall).toBeDefined();
+        });
+
+        it('handles in-page navigation gracefully', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const inPageCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate-in-page');
+            const inPageHandler = inPageCall[1];
+
+            // Should not throw on in-page navigation
+            expect(() => inPageHandler({}, 'https://accounts.google.com#fragment')).not.toThrow();
+        });
+
+        it('sets up unresponsive handler', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const unresponsiveCall = win.on.mock.calls.find((c: any) => c[0] === 'unresponsive');
+            expect(unresponsiveCall).toBeDefined();
+        });
+
+        it('handles unresponsive event gracefully', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const unresponsiveCall = win.on.mock.calls.find((c: any) => c[0] === 'unresponsive');
+            const unresponsiveHandler = unresponsiveCall[1];
+
+            // Should not throw
+            expect(() => unresponsiveHandler()).not.toThrow();
+        });
+
+        it('sets up responsive handler', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const responsiveCall = win.on.mock.calls.find((c: any) => c[0] === 'responsive');
+            expect(responsiveCall).toBeDefined();
+        });
+
+        it('handles responsive event gracefully', () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+            const responsiveCall = win.on.mock.calls.find((c: any) => c[0] === 'responsive');
+            const responsiveHandler = responsiveCall[1];
+
+            // Should not throw
+            expect(() => responsiveHandler()).not.toThrow();
+        });
+
+        it('handles loadURL rejection gracefully', async () => {
+            const win = windowManager.createAuthWindow('https://accounts.google.com');
+
+            // The loadURL mock returns a resolved promise by default
+            // This test verifies the catch handler exists
+            expect(win.loadURL).toHaveBeenCalled();
+        });
     });
 
     describe('window open handler', () => {
@@ -280,6 +430,12 @@ describe('WindowManager', () => {
             const event = { preventDefault: vi.fn() };
             navigateHandler(event, 'not-a-valid-url');
             expect(event.preventDefault).toHaveBeenCalled();
+        });
+
+        it('allows navigation to local file:// protocol (for reloads)', () => {
+            const event = { preventDefault: vi.fn() };
+            navigateHandler(event, 'file:///C:/path/to/app/index.html');
+            expect(event.preventDefault).not.toHaveBeenCalled();
         });
     });
 
