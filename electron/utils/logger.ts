@@ -19,6 +19,26 @@ import type { Logger } from '../types';
  * logger.error('Something failed'); // [MyModule] Something failed
  */
 export function createLogger(prefix: string): Logger {
+    /**
+     * Safely writes to console, catching EPIPE errors that occur
+     * when stdout/stderr is closed during app reload on Windows.
+     */
+    const safeWrite = (
+        method: 'log' | 'error' | 'warn',
+        message: string,
+        args: unknown[]
+    ): void => {
+        try {
+            console[method](`${prefix} ${message}`, ...args);
+        } catch (e) {
+            // Ignore EPIPE errors - they occur when the pipe is closed during reload
+            // This is expected behavior on Windows and can be safely ignored
+            if (!(e instanceof Error && e.message.includes('EPIPE'))) {
+                throw e;
+            }
+        }
+    };
+
     return {
         /**
          * Log an info message.
@@ -26,7 +46,7 @@ export function createLogger(prefix: string): Logger {
          * @param args - Additional arguments
          */
         log(message: string, ...args: unknown[]): void {
-            console.log(`${prefix} ${message}`, ...args);
+            safeWrite('log', message, args);
         },
 
         /**
@@ -35,7 +55,7 @@ export function createLogger(prefix: string): Logger {
          * @param args - Additional arguments
          */
         error(message: string, ...args: unknown[]): void {
-            console.error(`${prefix} ${message}`, ...args);
+            safeWrite('error', message, args);
         },
 
         /**
@@ -44,7 +64,7 @@ export function createLogger(prefix: string): Logger {
          * @param args - Additional arguments
          */
         warn(message: string, ...args: unknown[]): void {
-            console.warn(`${prefix} ${message}`, ...args);
+            safeWrite('warn', message, args);
         }
     };
 }

@@ -118,6 +118,13 @@ export default class WindowManager {
             try {
                 const urlObj = new URL(url);
                 const hostname = urlObj.hostname;
+                const protocol = urlObj.protocol;
+
+                // Allow navigation to local application files (needed for reload)
+                if (protocol === 'file:') {
+                    logger.log('Allowing navigation to local file:', url);
+                    return;
+                }
 
                 // Allow navigation to internal domains
                 if (isInternalDomain(hostname)) {
