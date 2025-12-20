@@ -28,14 +28,23 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Delete All Existing Release Assets
         run: |
-          # Get release info - properly handle 404 when release doesn't exist
-          RESPONSE=$(gh api repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} 2>&1) || true
+          # Get version from package.json (works for both tag and manual triggers)
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v${VERSION}"
+          echo "Looking for release with tag: $TAG"
           
-          # Check if release exists (response contains "id" field)
+          # Get release info - properly handle 404 when release doesn't exist
+          RESPONSE=$(gh api repos/${{ github.repository }}/releases/tags/$TAG 2>&1) || true
+          
+          # Check if release exists
           if echo "$RESPONSE" | grep -q '"message":"Not Found"'; then
-            echo "No existing release found for tag ${{ github.ref_name }}, skipping asset deletion"
+            echo "No existing release found for tag $TAG, skipping asset deletion"
+            echo "This is expected for first-time releases."
             exit 0
           fi
           
