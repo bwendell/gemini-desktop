@@ -160,6 +160,8 @@ jobs:
       - name: Build & Publish via Electron Builder
         run: npx --yes electron-builder --publish always
         env:
+          # Overwrite existing files on re-run (prevents "already exists" errors)
+          EP_GH_IGNORE_TIME: true
           # GitHub token for publishing releases
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
