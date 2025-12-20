@@ -10,6 +10,9 @@ import { app, BrowserWindow, session } from 'electron';
 import * as fs from 'fs';
 import { setupHeaderStripping } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
+
+// Set application name for Windows/Linux
+app.setName('Gemini Desktop');
 import WindowManager from './managers/windowManager';
 import IpcManager from './managers/ipcManager';
 import MenuManager from './managers/menuManager';

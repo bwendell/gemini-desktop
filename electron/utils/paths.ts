@@ -6,6 +6,7 @@
  */
 
 import * as path from 'path';
+import { isWindows } from './constants';
 
 /**
  * Get the preload script path.
@@ -33,5 +34,8 @@ export function getDistHtmlPath(filename: string): string {
  * @returns Absolute path to app icon
  */
 export function getIconPath(): string {
+    if (isWindows) {
+        return path.join(__dirname, '../../build/icon.ico');
+    }
     return path.join(__dirname, '../../build/icon.png');
 }
