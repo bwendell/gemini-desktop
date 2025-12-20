@@ -20,10 +20,10 @@ import { E2ELogger } from './helpers/logger';
 import {
     showQuickChatWindow,
     hideQuickChatWindow,
+    hideAndFocusMainWindow,
     getQuickChatState,
     getGeminiIframeState,
     injectTextOnly,
-    submitQuickChatText,
 } from './helpers/quickChatActions';
 import { E2E_TIMING } from './helpers/e2eConstants';
 
@@ -86,33 +86,38 @@ describe('Quick Chat Text Injection', () => {
             expect(state.windowVisible).toBe(true);
         });
 
-        it('should hide Quick Chat window after submitting text', async () => {
+        it('should hide Quick Chat window after simulating submission flow', async () => {
             await showQuickChatWindow();
             await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
-            // Submit some text
-            await submitQuickChatText('Test message from E2E');
+            // Simulate window behavior of submission WITHOUT actually injecting text
+            await hideAndFocusMainWindow();
             await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
             // Window should be hidden
             const state = await getQuickChatState();
-            E2ELogger.info('injection-lifecycle', `State after submit: ${JSON.stringify(state)}`);
+            E2ELogger.info('injection-lifecycle', `State after simulated submit: ${JSON.stringify(state)}`);
             expect(state.windowVisible).toBe(false);
         });
 
-        it('should focus main window after submitting text', async () => {
+        it('should focus main window after simulating submission flow', async () => {
             await showQuickChatWindow();
             await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
-            // Submit text
-            await submitQuickChatText('Test focus after submit');
+            // Simulate window behavior of submission WITHOUT actually injecting text
+            await hideAndFocusMainWindow();
             await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
             // Verify main window is visible
             const mainWindowVisible = await browser.electron.execute(
                 (electron: typeof import('electron')) => {
                     const windows = electron.BrowserWindow.getAllWindows();
-                    const mainWindow = windows.find(w => !w.isDestroyed() && w.getTitle() !== '');
+                    // Find main window by excluding Quick Chat windows
+                    const mainWindow = windows.find(w => {
+                        const title = w.getTitle();
+                        return !w.isDestroyed() && !title.includes('Quick Chat');
+                    });
+
                     return mainWindow?.isVisible() ?? false;
                 }
             );
@@ -303,15 +308,21 @@ describe('Quick Chat Text Injection', () => {
             expect(finalState.windowVisible).toBe(false);
 
             // Step 6: Main window should still be operational
-            const mainWindowOk = await browser.electron.execute(
+            const mainWindowVisible = await browser.electron.execute(
                 (electron: typeof import('electron')) => {
                     const windows = electron.BrowserWindow.getAllWindows();
-                    const mainWindow = windows.find(w => !w.isDestroyed());
+
+                    // Find the MAIN window - exclude Quick Chat windows
+                    const mainWindow = windows.find(w => {
+                        const title = w.getTitle();
+                        return !w.isDestroyed() && !title.includes('Quick Chat');
+                    });
+
                     return mainWindow?.isVisible() ?? false;
                 }
             );
-            E2ELogger.info('injection-integration', `6. Main window visible: ${mainWindowOk}`);
-            expect(mainWindowOk).toBe(true);
+            E2ELogger.info('injection-integration', `6. Main window visible: ${mainWindowVisible}`);
+            expect(mainWindowVisible).toBe(true);
 
             E2ELogger.info('injection-integration', 'Injection workflow completed (NO message sent to Gemini)');
         });

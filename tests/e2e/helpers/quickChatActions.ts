@@ -85,18 +85,12 @@ export interface QuickChatState extends HotkeyActionState {
  * @returns Promise<void>
  */
 export async function showQuickChatWindow(): Promise<void> {
-    await browser.electron.execute((electron: typeof import('electron')) => {
-        const windows = electron.BrowserWindow.getAllWindows();
-        const mainWindow = windows.find(w => !w.isDestroyed() && w.getTitle() !== '');
+    await browser.electron.execute(() => {
+        // Access windowManager through Node.js global scope
+        const windowManager = (global as any).windowManager;
 
-        if (mainWindow) {
-            // Access windowManager through the app's global state
-            // This assumes the main process has stored it globally
-            const { app } = electron;
-            const windowManager = (app as unknown as { windowManager?: { showQuickChat: () => void } }).windowManager;
-            if (windowManager?.showQuickChat) {
-                windowManager.showQuickChat();
-            }
+        if (windowManager?.showQuickChat) {
+            windowManager.showQuickChat();
         }
     });
 }
@@ -107,9 +101,9 @@ export async function showQuickChatWindow(): Promise<void> {
  * @returns Promise<void>
  */
 export async function hideQuickChatWindow(): Promise<void> {
-    await browser.electron.execute((electron: typeof import('electron')) => {
-        const { app } = electron;
-        const windowManager = (app as unknown as { windowManager?: { hideQuickChat: () => void } }).windowManager;
+    await browser.electron.execute(() => {
+        const windowManager = (global as any).windowManager;
+
         if (windowManager?.hideQuickChat) {
             windowManager.hideQuickChat();
         }
@@ -122,9 +116,9 @@ export async function hideQuickChatWindow(): Promise<void> {
  * @returns Promise<void>
  */
 export async function toggleQuickChatWindow(): Promise<void> {
-    await browser.electron.execute((electron: typeof import('electron')) => {
-        const { app } = electron;
-        const windowManager = (app as unknown as { windowManager?: { toggleQuickChat: () => void } }).windowManager;
+    await browser.electron.execute(() => {
+        const windowManager = (global as any).windowManager;
+
         if (windowManager?.toggleQuickChat) {
             windowManager.toggleQuickChat();
         }
@@ -138,12 +132,8 @@ export async function toggleQuickChatWindow(): Promise<void> {
  */
 export async function getQuickChatState(): Promise<QuickChatState> {
     return browser.electron.execute((electron: typeof import('electron')) => {
-        const { app, BrowserWindow } = electron;
-        const windowManager = (app as unknown as {
-            windowManager?: {
-                getQuickChatWindow: () => Electron.BrowserWindow | null
-            }
-        }).windowManager;
+        const { BrowserWindow } = electron;
+        const windowManager = (global as any).windowManager;
 
         const quickChatWindow = windowManager?.getQuickChatWindow?.();
         const allWindows = BrowserWindow.getAllWindows();
@@ -154,6 +144,34 @@ export async function getQuickChatState(): Promise<QuickChatState> {
             windowFocused: quickChatWindow?.isFocused() ?? false,
             windowCount: allWindows.length,
         };
+    });
+}
+
+/**
+ * Hide Quick Chat and focus main window WITHOUT injecting any text.
+ * Use this to test window lifecycle behavior without sending messages to Gemini.
+ * 
+ * @returns Promise<void>
+ */
+export async function hideAndFocusMainWindow(): Promise<void> {
+    E2ELogger.info('quick-chat-action', 'Hiding Quick Chat and focusing main window (NO text injection)');
+
+    await browser.electron.execute(() => {
+        const windowManager = (global as any).windowManager as {
+            hideQuickChat?: () => void;
+            focusMainWindow?: () => void;
+        } | undefined;
+
+        if (!windowManager) {
+            console.warn('[E2E] WindowManager not available');
+            return;
+        }
+
+        // Hide the Quick Chat window
+        windowManager.hideQuickChat?.();
+
+        // Focus the main window
+        windowManager.focusMainWindow?.();
     });
 }
 
@@ -169,16 +187,12 @@ export async function submitQuickChatText(text: string): Promise<void> {
     E2ELogger.info('quick-chat-action', `Submitting text (${text.length} chars)`);
 
     await browser.electron.execute(
-        (electron: typeof import('electron'), submittedText: string) => {
-            const { app } = electron;
-
-            // Type-safe access to windowManager (inline cast - can't use imports in serialized context)
-            const windowManager = (app as unknown as {
-                windowManager?: {
-                    hideQuickChat?: () => void;
-                    focusMainWindow?: () => void;
-                }
-            }).windowManager;
+        (_electron: typeof import('electron'), submittedText: string) => {
+            // Access managers through Node.js global scope
+            const windowManager = (global as any).windowManager as {
+                hideQuickChat?: () => void;
+                focusMainWindow?: () => void;
+            } | undefined;
 
             // Defensive: check WindowManager exists
             if (!windowManager) {
@@ -195,12 +209,10 @@ export async function submitQuickChatText(text: string): Promise<void> {
             // Focus the main window
             windowManager.focusMainWindow?.();
 
-            // Access IpcManager to trigger text injection (inline cast)
-            const ipcManager = (app as unknown as {
-                ipcManager?: {
-                    _injectTextIntoGemini?: (text: string) => Promise<void>;
-                }
-            }).ipcManager;
+            // Access IpcManager from global scope
+            const ipcManager = (global as any).ipcManager as {
+                _injectTextIntoGemini?: (text: string) => Promise<void>;
+            } | undefined;
 
             // Try to inject directly if the method is exposed
             if (ipcManager?._injectTextIntoGemini) {
@@ -228,13 +240,10 @@ export async function getGeminiIframeState(): Promise<{
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
     return browser.electron.execute(
-        (electron: typeof import('electron'), domains: string[]) => {
-            const { app } = electron;
-            const windowManager = (app as unknown as {
-                windowManager?: {
-                    getMainWindow: () => Electron.BrowserWindow | null;
-                }
-            }).windowManager;
+        (_electron: typeof import('electron'), domains: string[]) => {
+            const windowManager = (global as any).windowManager as {
+                getMainWindow?: () => Electron.BrowserWindow | null;
+            } | undefined;
 
             // Defensive: check WindowManager exists
             if (!windowManager) {
@@ -328,21 +337,17 @@ export async function injectTextOnly(text: string): Promise<InjectionResult> {
 
     return browser.electron.execute(
         (
-            electron: typeof import('electron'),
+            _electron: typeof import('electron'),
             textToInject: string,
             editorSels: string[],
             buttonSels: string[],
             blankClassName: string,
             domains: string[]
         ): InjectionResult => {
-            const { app } = electron;
-
-            // Get the main window
-            const windowManager = (app as unknown as {
-                windowManager?: {
-                    getMainWindow: () => Electron.BrowserWindow | null;
-                }
-            }).windowManager;
+            // Get the main window via global scope
+            const windowManager = (global as any).windowManager as {
+                getMainWindow?: () => Electron.BrowserWindow | null;
+            } | undefined;
 
             if (!windowManager) {
                 return {

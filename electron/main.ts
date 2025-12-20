@@ -36,9 +36,10 @@ const windowManager = new WindowManager(isDev);
 const hotkeyManager = new HotkeyManager(windowManager);
 const ipcManager = new IpcManager(windowManager, hotkeyManager);
 
-// Expose managers to app for E2E testing
-(app as any).windowManager = windowManager;
-(app as any).ipcManager = ipcManager;
+// Expose managers globally for E2E testing
+// Using global instead of app to avoid side effects (extra window creation)
+(global as any).windowManager = windowManager;
+(global as any).ipcManager = ipcManager;
 
 // App lifecycle
 app.whenReady().then(() => {
