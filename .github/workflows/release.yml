@@ -155,13 +155,47 @@ jobs:
         env:
           NODE_ENV: production
 
+      # Delete existing assets for this platform before uploading (handles re-runs)
+      - name: Delete Existing Release Assets
+        run: |
+          # Get release info
+          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} --jq '.id' 2>/dev/null || echo "")
+          if [ -z "$RELEASE_ID" ]; then
+            echo "No existing release found, skipping asset deletion"
+            exit 0
+          fi
+          
+          # Define platform-specific patterns
+          case "${{ runner.os }}" in
+            "macOS")
+              PATTERNS="\.dmg$|\.zip$|\.zip\.blockmap$|latest-mac\.yml$"
+              ;;
+            "Windows")
+              PATTERNS="\.exe$|\.exe\.blockmap$|latest\.yml$"
+              ;;
+            "Linux")
+              PATTERNS="\.AppImage$|\.deb$|\.rpm$|\.tar\.gz$|latest-linux\.yml$"
+              ;;
+          esac
+          
+          # Delete matching assets
+          gh api repos/${{ github.repository }}/releases/$RELEASE_ID/assets --jq '.[].id' | while read ASSET_ID; do
+            ASSET_NAME=$(gh api repos/${{ github.repository }}/releases/assets/$ASSET_ID --jq '.name')
+            if echo "$ASSET_NAME" | grep -qE "$PATTERNS"; then
+              echo "Deleting asset: $ASSET_NAME"
+              gh api -X DELETE repos/${{ github.repository }}/releases/assets/$ASSET_ID
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        continue-on-error: true
+
       # Run Electron Builder
       # This step builds the artifacts and uploads them to the GitHub Release
       - name: Build & Publish via Electron Builder
         run: npx --yes electron-builder --publish always
         env:
-          # Overwrite existing files on re-run (prevents "already exists" errors)
-          EP_GH_IGNORE_TIME: true
           # GitHub token for publishing releases
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
