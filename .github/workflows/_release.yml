@@ -30,10 +30,19 @@ jobs:
     steps:
       - name: Delete All Existing Release Assets
         run: |
-          # Get release info
-          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} --jq '.id' 2>/dev/null || echo "")
-          if [ -z "$RELEASE_ID" ]; then
-            echo "No existing release found, skipping asset deletion"
+          # Get release info - properly handle 404 when release doesn't exist
+          RESPONSE=$(gh api repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} 2>&1) || true
+          
+          # Check if release exists (response contains "id" field)
+          if echo "$RESPONSE" | grep -q '"message":"Not Found"'; then
+            echo "No existing release found for tag ${{ github.ref_name }}, skipping asset deletion"
+            exit 0
+          fi
+          
+          # Extract release ID
+          RELEASE_ID=$(echo "$RESPONSE" | jq -r '.id')
+          if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
+            echo "Could not extract release ID, skipping asset deletion"
             exit 0
           fi
 
