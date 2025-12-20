@@ -28,3 +28,9 @@ coverage/
 coverage-electron/
 docs/
 release/
+
+# gemini-cli settings
+.gemini/
+
+# GitHub App credentials
+gha-creds-*.json

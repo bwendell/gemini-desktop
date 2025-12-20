@@ -1,132 +1,20 @@
-name: Release
+name: Manual Release Packaging Test
 
 on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch: # Allow manual triggering for testing
+  workflow_dispatch:
 
-# Prevent concurrent releases
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
-permissions:
-  contents: write # Required for creating releases
-
-# =============================================================================
-# Environment Variables
-# =============================================================================
 env:
   NODE_VERSION: '20'
   CI: true
   ELECTRON_ENABLE_LOGGING: true
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  # ===========================================================================
-  # Quality Gate: Unit Tests
-  # ===========================================================================
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Install Dependencies
-        run: npm ci
-      
-      - name: Build Electron Backend
-        run: npm run build:electron
-      
-      - name: Run All Tests
-        run: npm run test:all
-        env:
-          FORCE_COLOR: 1
-
-  # ===========================================================================
-  # Quality Gate: E2E Tests
-  # ===========================================================================
-  e2e-tests:
-    name: E2E Verification (${{ matrix.os }})
-    needs: unit-tests
-    runs-on: ${{ matrix.os }}
-    
-    strategy:
-      fail-fast: true # If any platform fails, abort the release
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          # Platform-specific configurations
-          - os: ubuntu-latest
-            display: ':99.0'
-          - os: windows-latest
-            display: ''
-          - os: macos-latest
-            display: ''
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      # Linux-specific: Setup virtual display for headless Electron
-      - name: Setup Virtual Display (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb
-          # Start Xvfb virtual framebuffer
-          Xvfb :99 -screen 0 1920x1080x24 &
-          echo "DISPLAY=:99.0" >> $GITHUB_ENV
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Frontend
-        run: npm run build
-        env:
-          NODE_ENV: production
-
-      - name: Build Electron Backend
-        run: npm run build:electron
-
-      - name: Run E2E Tests
-        run: npm run test:e2e
-        env:
-          ELECTRON_USE_DIST: 'true'
-          DISPLAY: ${{ matrix.display }}
-          DEBUG: 'wdio:*'
-
-      # Upload artifacts on failure for debugging
-      - name: Upload E2E Screenshots (on failure)
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: e2e-screenshots-release-${{ matrix.os }}
-          path: |
-            tests/e2e/screenshots/
-            tests/e2e/logs/
-          retention-days: 7
-          if-no-files-found: ignore
-
-  # ===========================================================================
-  # Build & Release
-  # ===========================================================================
   release:
     name: Build & Release (${{ matrix.os }})
-    needs: [unit-tests, e2e-tests]
     runs-on: ${{ matrix.os }}
     
     strategy:
