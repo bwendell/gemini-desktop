@@ -45,6 +45,11 @@ const IPC_CHANNELS = {
     QUICK_CHAT_HIDE: 'quick-chat:hide',
     QUICK_CHAT_CANCEL: 'quick-chat:cancel',
     QUICK_CHAT_EXECUTE: 'quick-chat:execute',
+
+    // Zen Mode
+    ZEN_MODE_GET: 'zen-mode:get',
+    ZEN_MODE_SET: 'zen-mode:set',
+    ZEN_MODE_CHANGED: 'zen-mode:changed',
 } as const;
 
 // Expose window control APIs to renderer
@@ -251,6 +256,43 @@ const electronAPI: ElectronAPI = {
         // Return cleanup function for React useEffect
         return () => {
             ipcRenderer.removeListener('hotkeys:changed', subscription);
+        };
+    },
+
+    // =========================================================================
+    // Zen Mode API
+    // =========================================================================
+    //
+    // Provides methods for managing Zen Mode (distraction-free mode).
+    // Zen Mode hides UI elements like the title bar for a cleaner experience.
+    // State is persisted and synchronized across windows.
+    // =========================================================================
+
+    /**
+     * Get the current Zen Mode state from the backend.
+     * @returns Promise resolving to { enabled: boolean }
+     */
+    getZenMode: () => ipcRenderer.invoke(IPC_CHANNELS.ZEN_MODE_GET),
+
+    /**
+     * Set the Zen Mode state in the backend.
+     * @param enabled - Whether to enable (true) or disable (false) Zen Mode
+     */
+    setZenMode: (enabled) => ipcRenderer.send(IPC_CHANNELS.ZEN_MODE_SET, enabled),
+
+    /**
+     * Subscribe to Zen Mode state changes from other windows or hotkey toggle.
+     * @param callback - Function called with { enabled: boolean } when state changes
+     * @returns Cleanup function to unsubscribe (for use in React useEffect)
+     */
+    onZenModeChanged: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) =>
+            callback(data);
+        ipcRenderer.on(IPC_CHANNELS.ZEN_MODE_CHANGED, subscription);
+
+        // Return cleanup function for React useEffect
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.ZEN_MODE_CHANGED, subscription);
         };
     }
 

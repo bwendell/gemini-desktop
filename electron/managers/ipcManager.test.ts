@@ -198,7 +198,8 @@ describe('IpcManager', () => {
         beforeEach(() => {
             mockHotkeyManager = {
                 setEnabled: vi.fn(),
-                isEnabled: vi.fn().mockReturnValue(true)
+                isEnabled: vi.fn().mockReturnValue(true),
+                setZenModeToggleCallback: vi.fn()
             };
             ipcManager = new IpcManager(mockWindowManager, mockHotkeyManager, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
@@ -322,6 +323,166 @@ describe('IpcManager', () => {
 
             expect(destroyedWindow.webContents.send).not.toHaveBeenCalled();
             expect(goodWindow.webContents.send).toHaveBeenCalledWith('hotkeys:changed', { enabled: true });
+        });
+
+        it('registers Zen Mode toggle callback with HotkeyManager', () => {
+            expect(mockHotkeyManager.setZenModeToggleCallback).toHaveBeenCalledWith(expect.any(Function));
+        });
+    });
+
+    describe('Zen Mode Handlers', () => {
+        let mockHotkeyManager: any;
+
+        beforeEach(() => {
+            mockHotkeyManager = {
+                setEnabled: vi.fn(),
+                isEnabled: vi.fn().mockReturnValue(true),
+                setZenModeToggleCallback: vi.fn()
+            };
+            ipcManager = new IpcManager(mockWindowManager, mockHotkeyManager, mockStore as any, mockLogger);
+            ipcManager.setupIpcHandlers();
+        });
+
+        it('registers Zen Mode IPC handlers', () => {
+            const hasHandler = (channel: string) => (ipcMain as any)._handlers.has(channel);
+            const hasListener = (channel: string) => (ipcMain as any)._listeners.has(channel);
+
+            expect(hasHandler('zen-mode:get')).toBe(true);
+            expect(hasListener('zen-mode:set')).toBe(true);
+            expect(hasListener('zen-mode:toggle')).toBe(true);
+        });
+
+        it('handles zen-mode:get with enabled=false', async () => {
+            mockStore.get.mockReturnValue(false);
+
+            const handler = (ipcMain as any)._handlers.get('zen-mode:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: false });
+        });
+
+        it('handles zen-mode:get with enabled=true', async () => {
+            mockStore.get.mockReturnValue(true);
+
+            const handler = (ipcMain as any)._handlers.get('zen-mode:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: true });
+        });
+
+        it('handles zen-mode:get with undefined (defaults to false)', async () => {
+            mockStore.get.mockReturnValue(undefined);
+
+            const handler = (ipcMain as any)._handlers.get('zen-mode:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: false });
+        });
+
+        it('handles zen-mode:set to enable', () => {
+            const handler = (ipcMain as any)._listeners.get('zen-mode:set');
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            handler({}, true);
+
+            expect(mockStore.set).toHaveBeenCalledWith('zenModeEnabled', true);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith('zen-mode:changed', { enabled: true });
+        });
+
+        it('handles zen-mode:set to disable', () => {
+            const handler = (ipcMain as any)._listeners.get('zen-mode:set');
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            handler({}, false);
+
+            expect(mockStore.set).toHaveBeenCalledWith('zenModeEnabled', false);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith('zen-mode:changed', { enabled: false });
+        });
+
+        it('validates zen-mode:set input (rejects non-boolean)', () => {
+            const handler = (ipcMain as any)._listeners.get('zen-mode:set');
+            handler({}, 'invalid');
+            expect(mockStore.set).not.toHaveBeenCalled();
+            expect(mockLogger.warn).toHaveBeenCalledWith('Invalid Zen Mode enabled value: invalid');
+        });
+
+        it('handles zen-mode:toggle', () => {
+            mockStore.get.mockReturnValue(false);
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            const handler = (ipcMain as any)._listeners.get('zen-mode:toggle');
+            handler();
+
+            expect(mockStore.set).toHaveBeenCalledWith('zenModeEnabled', true);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith('zen-mode:changed', { enabled: true });
+        });
+
+        it('toggleZenMode can be called directly', () => {
+            mockStore.get.mockReturnValue(true);
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            ipcManager.toggleZenMode();
+
+            expect(mockStore.set).toHaveBeenCalledWith('zenModeEnabled', false);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith('zen-mode:changed', { enabled: false });
+        });
+
+        it('logs error when zen-mode:get fails', async () => {
+            const handler = (ipcMain as any)._handlers.get('zen-mode:get');
+            mockStore.get.mockImplementationOnce(() => { throw new Error('Get Failed'); });
+            const result = await handler();
+            expect(result).toEqual({ enabled: false });
+            expect(mockLogger.error).toHaveBeenCalledWith('Error getting Zen Mode state:', expect.anything());
+        });
+
+        it('logs error when zen-mode:set fails', () => {
+            const handler = (ipcMain as any)._listeners.get('zen-mode:set');
+            mockStore.set.mockImplementationOnce(() => { throw new Error('Set Failed'); });
+            handler({}, true);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error setting Zen Mode:', expect.anything());
+        });
+
+        it('logs error when toggleZenMode fails', () => {
+            mockStore.get.mockImplementationOnce(() => { throw new Error('Toggle Failed'); });
+            ipcManager.toggleZenMode();
+            expect(mockLogger.error).toHaveBeenCalledWith('Error toggling Zen Mode:', expect.anything());
+        });
+
+        it('skips destroyed windows when broadcasting Zen Mode change', () => {
+            const handler = (ipcMain as any)._listeners.get('zen-mode:set');
+            const destroyedWindow = {
+                isDestroyed: () => true,
+                webContents: { send: vi.fn() },
+                id: 1
+            };
+            const goodWindow = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn() },
+                id: 2
+            };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([destroyedWindow, goodWindow]);
+
+            handler({}, true);
+
+            expect(destroyedWindow.webContents.send).not.toHaveBeenCalled();
+            expect(goodWindow.webContents.send).toHaveBeenCalledWith('zen-mode:changed', { enabled: true });
+        });
+
+        it('logs error when broadcasting Zen Mode fails', () => {
+            const handler = (ipcMain as any)._listeners.get('zen-mode:set');
+            const badWindow = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn().mockImplementation(() => { throw new Error('Send Failed'); }) },
+                id: 99
+            };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([badWindow]);
+
+            handler({}, true);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error broadcasting Zen Mode change to window:', expect.anything());
         });
     });
 

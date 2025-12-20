@@ -27,6 +27,14 @@ export interface HotkeysData {
 }
 
 /**
+ * Zen Mode data returned from main process.
+ */
+export interface ZenModeData {
+    /** Whether Zen Mode is currently enabled */
+    enabled: boolean;
+}
+
+/**
  * Settings store options.
  */
 export interface SettingsStoreOptions {
@@ -79,6 +87,11 @@ export interface ElectronAPI {
     getHotkeysEnabled: () => Promise<HotkeysData>;
     setHotkeysEnabled: (enabled: boolean) => void;
     onHotkeysChanged: (callback: (data: HotkeysData) => void) => () => void;
+
+    // Zen Mode API
+    getZenMode: () => Promise<ZenModeData>;
+    setZenMode: (enabled: boolean) => void;
+    onZenModeChanged: (callback: (data: ZenModeData) => void) => () => void;
 }
 
 /**

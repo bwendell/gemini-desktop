@@ -126,6 +126,12 @@ export const IPC_CHANNELS = {
     QUICK_CHAT_HIDE: 'quick-chat:hide',
     QUICK_CHAT_CANCEL: 'quick-chat:cancel',
     QUICK_CHAT_EXECUTE: 'quick-chat:execute',
+
+    // Zen Mode
+    ZEN_MODE_GET: 'zen-mode:get',
+    ZEN_MODE_SET: 'zen-mode:set',
+    ZEN_MODE_TOGGLE: 'zen-mode:toggle',
+    ZEN_MODE_CHANGED: 'zen-mode:changed',
 } as const;
 
 /**

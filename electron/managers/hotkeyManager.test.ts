@@ -109,12 +109,13 @@ describe('HotkeyManager', () => {
             expect(hotkeyManager).toBeDefined();
         });
 
-        it('should initialize shortcuts array with minimize and quick chat shortcuts', () => {
+        it('should initialize shortcuts array with minimize, quick chat, and zen mode shortcuts', () => {
             // Access private shortcuts via type casting to verify initialization
             const shortcuts = (hotkeyManager as unknown as { shortcuts: { accelerator: string }[] }).shortcuts;
-            expect(shortcuts).toHaveLength(2);
+            expect(shortcuts).toHaveLength(3);
             expect(shortcuts[0].accelerator).toBe('CommandOrControl+Alt+E');
             expect(shortcuts[1].accelerator).toBe('CommandOrControl+Shift+Space');
+            expect(shortcuts[2].accelerator).toBe('CommandOrControl+Shift+/');
         });
     });
 
@@ -129,13 +130,17 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
                 'CommandOrControl+Alt+E',
                 expect.any(Function)
             );
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
                 'CommandOrControl+Shift+Space',
+                expect.any(Function)
+            );
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+                'CommandOrControl+Shift+/',
                 expect.any(Function)
             );
         });
@@ -145,7 +150,7 @@ describe('HotkeyManager', () => {
 
             // Should not throw
             expect(() => hotkeyManager.registerShortcuts()).not.toThrow();
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
         });
 
         it('should call minimizeMainWindow when minimize hotkey is triggered', () => {
@@ -192,7 +197,7 @@ describe('HotkeyManager', () => {
 
             // Registering again should work
             hotkeyManager.registerShortcuts();
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(4); // 2 + 2
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(6); // 3 + 3
         });
     });
 
@@ -232,7 +237,7 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.setEnabled(true);
 
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
             expect(hotkeyManager.isEnabled()).toBe(true);
         });
 
@@ -285,7 +290,7 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
         });
     });
 
@@ -307,8 +312,8 @@ describe('HotkeyManager', () => {
             hotkeyManager.setEnabled(true);
             expect(hotkeyManager.isEnabled()).toBe(true);
 
-            // Total: 2 initial + 2 re-enabled = 4
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(4);
+            // Total: 3 initial + 3 re-enabled = 6
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(6);
         });
 
         it('should preserve shortcuts config when toggling', () => {
@@ -327,6 +332,57 @@ describe('HotkeyManager', () => {
                 'CommandOrControl+Shift+Space',
                 expect.any(Function)
             );
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+                'CommandOrControl+Shift+/',
+                expect.any(Function)
+            );
+        });
+    });
+
+    // ========================================================================
+    // Zen Mode Callback Tests
+    // ========================================================================
+
+    describe('setZenModeToggleCallback', () => {
+        it('should set the Zen Mode toggle callback', () => {
+            const callback = vi.fn();
+
+            hotkeyManager.setZenModeToggleCallback(callback);
+
+            // Access private callback via type casting to verify it was set
+            const storedCallback = (hotkeyManager as unknown as { _zenModeToggleCallback: (() => void) | null })._zenModeToggleCallback;
+            expect(storedCallback).toBe(callback);
+        });
+
+        it('should call the Zen Mode callback when hotkey is triggered', () => {
+            mockGlobalShortcut.register.mockReturnValue(true);
+            const callback = vi.fn();
+
+            hotkeyManager.setZenModeToggleCallback(callback);
+
+            // Trigger the Zen Mode shortcut during registration
+            mockGlobalShortcut.register.mockImplementation((accelerator: string, action: () => void) => {
+                if (accelerator === 'CommandOrControl+Shift+/') {
+                    action();
+                }
+                return true;
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            expect(callback).toHaveBeenCalledTimes(1);
+        });
+
+        it('should not throw if Zen Mode callback is not set when hotkey is triggered', () => {
+            mockGlobalShortcut.register.mockImplementation((accelerator: string, action: () => void) => {
+                if (accelerator === 'CommandOrControl+Shift+/') {
+                    action(); // Should not throw even without callback set
+                }
+                return true;
+            });
+
+            // Should not throw
+            expect(() => hotkeyManager.registerShortcuts()).not.toThrow();
         });
     });
 });

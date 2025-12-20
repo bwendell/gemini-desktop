@@ -98,6 +98,12 @@ export default class HotkeyManager {
     private _registered: boolean = false;
 
     /**
+     * Callback for toggling Zen Mode.
+     * Set by IpcManager to avoid circular dependencies.
+     */
+    private _zenModeToggleCallback: (() => void) | null = null;
+
+    /**
      * Creates a new HotkeyManager instance.
      * 
      * Initializes the shortcut configuration array with all available shortcuts.
@@ -134,6 +140,19 @@ export default class HotkeyManager {
                 action: () => {
                     logger.log('Hotkey pressed: CommandOrControl+Shift+Space (Quick Chat)');
                     this.windowManager.toggleQuickChat();
+                }
+            },
+            {
+                // Zen Mode Shortcut - toggles distraction-free mode
+                // Ctrl+Shift+/ (Windows/Linux) or Cmd+Shift+/ (macOS)
+                accelerator: 'CommandOrControl+Shift+/',
+                action: () => {
+                    logger.log('Hotkey pressed: CommandOrControl+Shift+/ (Zen Mode)');
+                    if (this._zenModeToggleCallback) {
+                        this._zenModeToggleCallback();
+                    } else {
+                        logger.warn('Zen Mode toggle callback not set');
+                    }
                 }
             }
         ];
@@ -257,5 +276,18 @@ export default class HotkeyManager {
         globalShortcut.unregisterAll();
         this._registered = false;
         logger.log('All hotkeys unregistered');
+    }
+
+    /**
+     * Set the callback for Zen Mode toggle hotkey.
+     * 
+     * This is called by IpcManager to register the toggle handler,
+     * avoiding circular dependencies between managers.
+     * 
+     * @param callback - Function to call when Zen Mode hotkey is pressed
+     */
+    setZenModeToggleCallback(callback: () => void): void {
+        this._zenModeToggleCallback = callback;
+        logger.log('Zen Mode toggle callback registered');
     }
 }

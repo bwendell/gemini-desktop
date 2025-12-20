@@ -61,7 +61,8 @@ export default class IpcManager {
             configName: 'user-preferences',
             defaults: {
                 theme: 'system',
-                hotkeysEnabled: true
+                hotkeysEnabled: true,
+                zenModeEnabled: false
             }
         });
         /* v8 ignore next -- production fallback, tests always inject logger */
@@ -69,6 +70,11 @@ export default class IpcManager {
 
         // Initialize native theme on startup
         this._initializeNativeTheme();
+
+        // Register Zen Mode toggle callback with HotkeyManager
+        if (this.hotkeyManager) {
+            this.hotkeyManager.setZenModeToggleCallback(() => this.toggleZenMode());
+        }
 
         this.logger.log('Initialized');
     }
@@ -95,6 +101,7 @@ export default class IpcManager {
         this._setupWindowHandlers();
         this._setupThemeHandlers();
         this._setupHotkeyHandlers();
+        this._setupZenModeHandlers();
         this._setupAppHandlers();
         this._setupQuickChatHandlers();
 
@@ -453,5 +460,77 @@ export default class IpcManager {
                 this.logger.error('Error cancelling quick chat:', error);
             }
         });
+    }
+
+    // =========================================================================
+    // Zen Mode Handlers
+    // =========================================================================
+
+    /**
+     * Set up Zen Mode IPC handlers.
+     * @private
+     */
+    private _setupZenModeHandlers(): void {
+        // Get current Zen Mode state
+        ipcMain.handle(IPC_CHANNELS.ZEN_MODE_GET, () => {
+            try {
+                return { enabled: this.store.get('zenModeEnabled') ?? false };
+            } catch (error) {
+                this.logger.error('Error getting Zen Mode state:', error);
+                return { enabled: false };
+            }
+        });
+
+        // Set Zen Mode state
+        ipcMain.on(IPC_CHANNELS.ZEN_MODE_SET, (_event, enabled: unknown) => {
+            if (typeof enabled !== 'boolean') {
+                this.logger.warn(`Invalid Zen Mode enabled value: ${enabled}`);
+                return;
+            }
+            try {
+                this.store.set('zenModeEnabled', enabled);
+                this._broadcastZenModeChange(enabled);
+            } catch (error) {
+                this.logger.error('Error setting Zen Mode:', error);
+            }
+        });
+
+        // Toggle Zen Mode (for hotkey)
+        ipcMain.on(IPC_CHANNELS.ZEN_MODE_TOGGLE, () => {
+            this.toggleZenMode();
+        });
+    }
+
+    /**
+     * Toggle Zen Mode state.
+     * Called by HotkeyManager via callback.
+     */
+    public toggleZenMode(): void {
+        try {
+            const currentEnabled = this.store.get('zenModeEnabled') ?? false;
+            const newEnabled = !currentEnabled;
+            this.store.set('zenModeEnabled', newEnabled);
+            this._broadcastZenModeChange(newEnabled);
+            this.logger.log(`Zen Mode toggled: ${currentEnabled} -> ${newEnabled}`);
+        } catch (error) {
+            this.logger.error('Error toggling Zen Mode:', error);
+        }
+    }
+
+    /**
+     * Broadcast Zen Mode change to all windows.
+     * @private
+     * @param enabled - New Zen Mode state
+     */
+    private _broadcastZenModeChange(enabled: boolean): void {
+        const windows = BrowserWindow.getAllWindows();
+        for (const win of windows) {
+            if (win.isDestroyed()) continue;
+            try {
+                win.webContents.send(IPC_CHANNELS.ZEN_MODE_CHANGED, { enabled });
+            } catch (error) {
+                this.logger.error('Error broadcasting Zen Mode change to window:', error);
+            }
+        }
     }
 }
