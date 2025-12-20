@@ -88,14 +88,24 @@ jobs:
         continue-on-error: true
 
   release:
-    name: Release (${{ matrix.os }})
+    name: Release (${{ matrix.os }}${{ matrix.arch && format(' {0}', matrix.arch) || '' }})
     needs: cleanup  # Wait for cleanup to finish
     runs-on: ${{ matrix.os }}
     
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          # macOS: Build x64 and arm64 separately to avoid upload collisions
+          - os: macos-latest
+            arch: x64
+          - os: macos-latest
+            arch: arm64
+          # Windows and Linux: single architecture
+          - os: ubuntu-latest
+            arch: ''
+          - os: windows-latest
+            arch: ''
 
     steps:
       - name: Checkout Code
@@ -125,10 +135,17 @@ jobs:
 
       # Run Electron Builder
       # This step builds the artifacts and uploads them to the GitHub Release
-      # Force overwrite in case cleanup didn't fully propagate
+      # For macOS: build only the specified architecture to avoid upload collisions
       - name: Build & Publish via Electron Builder
-        run: npx --yes electron-builder --publish always
-        # Note: electron-builder automatically handles overwrites when publishing to GitHub
+        run: |
+          if [ -n "${{ matrix.arch }}" ]; then
+            echo "Building for macOS ${{ matrix.arch }} only"
+            npx --yes electron-builder --mac --${{ matrix.arch }} --publish always
+          else
+            echo "Building for ${{ runner.os }}"
+            npx --yes electron-builder --publish always
+          fi
+        shell: bash
         env:
           # GitHub token for publishing releases
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -149,7 +166,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: release-artifacts-${{ matrix.os }}
+          name: release-artifacts-${{ matrix.os }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
           path: release/
           retention-days: 7
           if-no-files-found: ignore

@@ -77,7 +77,8 @@ describe('Quick Chat Text Injection', () => {
 
         it('should be able to show Quick Chat window before injection', async () => {
             await showQuickChatWindow();
-            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
+            // Add extra buffer for macOS window animation (300ms + 200ms buffer)
+            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS + 200);
 
             const state = await getQuickChatState();
             E2ELogger.info('injection-lifecycle', `Quick Chat state after show: ${JSON.stringify(state)}`);
