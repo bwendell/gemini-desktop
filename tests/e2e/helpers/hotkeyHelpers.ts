@@ -53,6 +53,16 @@ export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
             linux: 'Ctrl+Shift+Space',
         },
     },
+    // TODO: Refactor this to use configurable hotkeys
+    ZEN_MODE: {
+        accelerator: 'CommandOrControl+Shift+/',
+        description: 'Toggle Zen Mode (distraction-free)',
+        displayFormat: {
+            windows: 'Ctrl+Shift+/',
+            macos: 'Cmd+Shift+/',
+            linux: 'Ctrl+Shift+/',
+        },
+    },
 };
 
 /**

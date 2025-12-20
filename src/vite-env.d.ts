@@ -25,6 +25,11 @@ interface Window {
         setHotkeysEnabled: (enabled: boolean) => void;
         onHotkeysChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
 
+        // Zen Mode API
+        getZenMode: () => Promise<{ enabled: boolean }>;
+        setZenMode: (enabled: boolean) => void;
+        onZenModeChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
+
         platform: string;
         isElectron: boolean;
     };
