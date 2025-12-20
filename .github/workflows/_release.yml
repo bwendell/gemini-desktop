@@ -1,5 +1,5 @@
 # =============================================================================
-# Atomic Release Workflow (Reusable)
+# Atomic Release Workflow (DO NOT USE)
 # =============================================================================
 #
 # This reusable workflow handles the packaging and publishing process.
@@ -10,7 +10,7 @@
 #
 # =============================================================================
 
-name: Release (Reusable)
+name: Release (DO NOT USE)
 
 on:
   workflow_call:
@@ -65,33 +65,40 @@ jobs:
             echo "No existing release found, skipping asset deletion"
             exit 0
           fi
-          
+
           # Define platform-specific patterns
+          # IMPORTANT: These patterns must handle spaces in filenames correctly
           case "${{ runner.os }}" in
             "macOS")
+              # Matches: .dmg, .zip, .zip.blockmap, latest-mac.yml
               PATTERNS="\.dmg$|\.zip$|\.zip\.blockmap$|latest-mac\.yml$"
               ;;
             "Windows")
+              # Matches: .exe, .exe.blockmap, latest.yml
               PATTERNS="\.exe$|\.exe\.blockmap$|latest\.yml$"
               ;;
             "Linux")
+              # Matches: .AppImage, .deb, .rpm, .tar.gz, latest-linux.yml
               PATTERNS="\.AppImage$|\.deb$|\.rpm$|\.tar\.gz$|latest-linux\.yml$"
               ;;
           esac
-          
+
           echo "Listing assets for Release ID: $RELEASE_ID"
-          
-          # List all assets with names and IDs, handling pagination
-          # Output format: ID <tab> Name
+
+          # List all assets and filter/delete in one go
+          # We use a loop to handle items one by one to avoid argument list too long
           gh api repos/${{ github.repository }}/releases/$RELEASE_ID/assets --paginate --jq '.[] | "\(.id)\t\(.name)"' | while read -r line; do
             ASSET_ID=$(echo "$line" | cut -f1)
             ASSET_NAME=$(echo "$line" | cut -f2)
-            
+
             if echo "$ASSET_NAME" | grep -qE "$PATTERNS"; then
               echo "Deleting existing asset: $ASSET_NAME ($ASSET_ID)"
-              gh api -X DELETE repos/${{ github.repository }}/releases/assets/$ASSET_ID
+              gh api -X DELETE repos/${{ github.repository }}/releases/assets/$ASSET_ID || echo "Failed to delete $ASSET_NAME (might be already deleted)"
             fi
           done
+
+          echo "Waiting for GitHub API propagation..."
+          sleep 10
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash

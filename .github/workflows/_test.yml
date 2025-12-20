@@ -1,5 +1,5 @@
 # =============================================================================
-# Atomic Test Workflow (Reusable)
+# Atomic Test Workflow (DO NOT USE)
 # =============================================================================
 #
 # This reusable workflow handles test execution.
@@ -10,7 +10,7 @@
 #
 # =============================================================================
 
-name: Test (Reusable)
+name: Test (DO NOT USE)
 
 on:
   workflow_call:

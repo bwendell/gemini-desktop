@@ -1,5 +1,5 @@
 # =============================================================================
-# Atomic Build Workflow (Reusable)
+# Atomic Build Workflow (DO NOT USE)
 # =============================================================================
 #
 # This reusable workflow handles the build process.
@@ -10,7 +10,7 @@
 #
 # =============================================================================
 
-name: Build (Reusable)
+name: Build (DO NOT USE)
 
 on:
   workflow_call:
