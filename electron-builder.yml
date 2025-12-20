@@ -28,6 +28,10 @@ win:
   icon: build/icon.png
   artifactName: ${productName}-${version}-${arch}.${ext}
 
+# Portable gets a different name to avoid collision with NSIS installer
+portable:
+  artifactName: ${productName}-${version}-${arch}-portable.${ext}
+
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
