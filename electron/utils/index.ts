@@ -9,3 +9,4 @@ export * from './constants';
 export { createLogger } from './logger';
 export { getPreloadPath, getDistHtmlPath, getIconPath } from './paths';
 export { setupHeaderStripping } from './security';
+export * from './injectionScript';

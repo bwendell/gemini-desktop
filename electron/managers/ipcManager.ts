@@ -16,12 +16,9 @@ import SettingsStore from '../store';
 import {
     GOOGLE_ACCOUNTS_URL,
     IPC_CHANNELS,
-    GEMINI_DOMAIN,
-    GEMINI_EDITOR_SELECTORS,
-    GEMINI_SUBMIT_BUTTON_SELECTORS,
-    GEMINI_EDITOR_BLANK_CLASS,
-    GEMINI_SUBMIT_DELAY_MS
+    GEMINI_DOMAIN
 } from '../utils/constants';
+import { InjectionScriptBuilder, DEFAULT_INJECTION_CONFIG, InjectionResult } from '../utils/injectionScript';
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type HotkeyManager from './hotkeyManager';
@@ -365,9 +362,13 @@ export default class IpcManager {
      * Uses WebFrame executeJavaScript to run code inside the iframe's context.
      * 
      * @param text - The text to inject and submit
+     * @param config - Optional injection configuration override
      * @private
      */
-    private async _injectTextIntoGemini(text: string): Promise<void> {
+    private async _injectTextIntoGemini(
+        text: string,
+        config: Partial<typeof DEFAULT_INJECTION_CONFIG> = {}
+    ): Promise<void> {
         const mainWindow = this.windowManager.getMainWindow();
         if (!mainWindow) {
             this.logger.error('Cannot inject text: main window not found');
@@ -391,102 +392,20 @@ export default class IpcManager {
             return;
         }
 
-        // Escape the text for safe JavaScript injection
-        const escapedText = text
-            .replace(/\\/g, '\\\\')
-            .replace(/'/g, "\\'")
-            .replace(/\n/g, '\\n')
-            .replace(/\r/g, '\\r');
-
-        // Serialize constants for use in iframe context
-        const editorSelectorsJson = JSON.stringify(GEMINI_EDITOR_SELECTORS);
-        const buttonSelectorsJson = JSON.stringify(GEMINI_SUBMIT_BUTTON_SELECTORS);
-        const blankClass = GEMINI_EDITOR_BLANK_CLASS;
-        const submitDelay = GEMINI_SUBMIT_DELAY_MS;
-
-        // JavaScript to execute inside the Gemini iframe
-        // Uses Trusted Types-compatible DOM manipulation (textContent + Selection API)
-        const injectionScript = `
-            (function() {
-                try {
-                    // Find the Quill editor's contenteditable div
-                    const selectors = ${editorSelectorsJson};
-                    
-                    let editor = null;
-                    for (const selector of selectors) {
-                        editor = document.querySelector(selector);
-                        if (editor) break;
-                    }
-                    
-                    if (!editor) {
-                        console.error('[Quick Chat] Editor element not found');
-                        return { success: false, error: 'editor_not_found' };
-                    }
-
-                    // Focus and clear the editor
-                    editor.focus();
-                    const textToInject = '${escapedText}';
-                    
-                    // Clear using textContent (Trusted Types safe)
-                    editor.textContent = '';
-
-                    // Insert text using Selection API (Trusted Types safe)
-                    const textNode = document.createTextNode(textToInject);
-                    const selection = window.getSelection();
-                    const range = document.createRange();
-                    range.selectNodeContents(editor);
-                    range.collapse(false);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                    range.insertNode(textNode);
-                    
-                    // Move cursor to end
-                    range.setStartAfter(textNode);
-                    range.setEndAfter(textNode);
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-
-                    // Update editor state
-                    editor.classList.remove('${blankClass}');
-                    
-                    // Dispatch events to notify Angular/Quill
-                    editor.dispatchEvent(new InputEvent('input', {
-                        bubbles: true,
-                        cancelable: true,
-                        inputType: 'insertText',
-                        data: textToInject
-                    }));
-                    editor.dispatchEvent(new Event('text-change', { bubbles: true }));
-                    editor.dispatchEvent(new Event('input', { bubbles: true }));
-
-                    // Find and click submit button after UI update
-                    setTimeout(() => {
-                        const buttonSelectors = ${buttonSelectorsJson};
-                        
-                        let submitButton = null;
-                        for (const selector of buttonSelectors) {
-                            submitButton = document.querySelector(selector);
-                            if (submitButton && !submitButton.disabled) break;
-                        }
-                        
-                        if (submitButton && !submitButton.disabled) {
-                            submitButton.click();
-                        } else {
-                            console.error('[Quick Chat] Submit button not found or disabled');
-                        }
-                    }, ${submitDelay});
-
-                    return { success: true };
-                } catch (e) {
-                    console.error('[Quick Chat] Injection error:', e);
-                    return { success: false, error: e.message };
-                }
-            })();
-        `;
+        // Build the injection script using the builder pattern
+        const injectionScript = new InjectionScriptBuilder()
+            .withText(text)
+            .withConfig(config)
+            .build();
 
         try {
-            await geminiFrame.executeJavaScript(injectionScript);
-            this.logger.log('Text injected into Gemini successfully');
+            const result = await geminiFrame.executeJavaScript(injectionScript) as InjectionResult;
+
+            if (result?.success) {
+                this.logger.log('Text injected into Gemini successfully');
+            } else {
+                this.logger.error('Injection script returned failure:', result?.error);
+            }
         } catch (error) {
             this.logger.error('Failed to inject text into Gemini:', error);
         }
