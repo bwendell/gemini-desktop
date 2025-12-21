@@ -213,7 +213,7 @@ export const BASE_WINDOW_CONFIG: Partial<BrowserWindowConstructorOptions> = {
 export const MAIN_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
     width: 1200,
     height: 800,
-    minWidth: 800,
+    minWidth: 200,
     minHeight: 600,
     frame: false,
     ...BASE_WINDOW_CONFIG,

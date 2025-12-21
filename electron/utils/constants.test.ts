@@ -145,7 +145,7 @@ describe('Constants', () => {
         it('MAIN_WINDOW_CONFIG has correct dimensions', () => {
             expect(MAIN_WINDOW_CONFIG.width).toBe(1200);
             expect(MAIN_WINDOW_CONFIG.height).toBe(800);
-            expect(MAIN_WINDOW_CONFIG.minWidth).toBe(800);
+            expect(MAIN_WINDOW_CONFIG.minWidth).toBe(200);
             expect(MAIN_WINDOW_CONFIG.minHeight).toBe(600);
             expect(MAIN_WINDOW_CONFIG.frame).toBe(false);
         });
