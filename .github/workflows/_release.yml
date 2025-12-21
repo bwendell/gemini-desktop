@@ -29,7 +29,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Delete All Existing Release Assets
+      - name: Delete Existing Draft Release
         run: |
           # Get version from package.json (works for both tag and manual triggers)
           VERSION=$(node -p "require('./package.json').version")
@@ -41,45 +41,48 @@ jobs:
           
           # Check if release exists
           if echo "$RESPONSE" | grep -q '"message":"Not Found"'; then
-            echo "No existing release found for tag $TAG, skipping asset deletion"
+            echo "No existing release found for tag $TAG"
             echo "This is expected for first-time releases."
             exit 0
           fi
           
-          # Extract release ID
+          # Extract release ID and check if it's a draft
           RELEASE_ID=$(echo "$RESPONSE" | jq -r '.id')
+          IS_DRAFT=$(echo "$RESPONSE" | jq -r '.draft')
+          
           if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
-            echo "Could not extract release ID, skipping asset deletion"
+            echo "Could not extract release ID, skipping cleanup"
             exit 0
           fi
 
           echo "================================================="
-          echo "Deleting ALL existing assets for Release ID: $RELEASE_ID"
+          echo "Found release ID: $RELEASE_ID (draft: $IS_DRAFT)"
           echo "================================================="
 
-          # Count assets before deletion
-          ASSET_COUNT=$(gh api repos/${{ github.repository }}/releases/$RELEASE_ID/assets --paginate --jq '. | length')
-          echo "Total assets to delete: $ASSET_COUNT"
-          echo ""
-
-          # Delete ALL assets (will be rebuilt by the platform jobs)
-          gh api repos/${{ github.repository }}/releases/$RELEASE_ID/assets --paginate --jq '.[] | "\(.id)\t\(.name)"' | while read -r line; do
-            ASSET_ID=$(echo "$line" | cut -f1)
-            ASSET_NAME=$(echo "$line" | cut -f2)
-
-            echo "[DELETE] Asset: '$ASSET_NAME' (ID: $ASSET_ID)"
-            if gh api -X DELETE repos/${{ github.repository }}/releases/assets/$ASSET_ID 2>&1; then
-              echo "  ✓ Successfully deleted"
+          # Only delete draft releases to avoid accidentally deleting published releases
+          if [ "$IS_DRAFT" = "true" ]; then
+            echo "Deleting entire draft release to ensure clean slate..."
+            if gh api -X DELETE repos/${{ github.repository }}/releases/$RELEASE_ID 2>&1; then
+              echo "✓ Successfully deleted draft release $RELEASE_ID"
             else
-              echo "  ⚠ Failed to delete (might be already deleted)"
+              echo "⚠ Failed to delete draft release (might be already deleted)"
             fi
-          done
+          else
+            echo "Release is not a draft, deleting assets only..."
+            # Delete ALL assets (will be rebuilt by the platform jobs)
+            gh api repos/${{ github.repository }}/releases/$RELEASE_ID/assets --paginate --jq '.[] | "\(.id)\t\(.name)"' | while read -r line; do
+              ASSET_ID=$(echo "$line" | cut -f1)
+              ASSET_NAME=$(echo "$line" | cut -f2)
+              echo "[DELETE] Asset: '$ASSET_NAME' (ID: $ASSET_ID)"
+              gh api -X DELETE repos/${{ github.repository }}/releases/assets/$ASSET_ID 2>&1 || true
+            done
+          fi
 
           echo ""
           echo "================================================="
-          echo "Waiting 15 seconds for GitHub API propagation..."
+          echo "Waiting 10 seconds for GitHub API propagation..."
           echo "================================================="
-          sleep 15
+          sleep 10
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -141,7 +144,7 @@ jobs:
 
   macos-arm64:
     name: macOS (arm64)
-    needs: cleanup
+    needs: [cleanup, macos-x64]  # Wait for x64 to finish to avoid upload conflicts
     runs-on: macos-latest
     env:
       npm_config_arch: arm64
