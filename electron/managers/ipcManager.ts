@@ -30,6 +30,7 @@ import type { ThemePreference, ThemeData, HotkeysData, Logger } from '../types';
 interface UserPreferences extends Record<string, unknown> {
     theme: ThemePreference;
     hotkeysEnabled: boolean;
+    alwaysOnTop: boolean;
 }
 
 /**
@@ -61,7 +62,8 @@ export default class IpcManager {
             configName: 'user-preferences',
             defaults: {
                 theme: 'system',
-                hotkeysEnabled: true
+                hotkeysEnabled: true,
+                alwaysOnTop: false
             }
         });
         /* v8 ignore next -- production fallback, tests always inject logger */
@@ -88,6 +90,23 @@ export default class IpcManager {
     }
 
     /**
+     * Initialize always-on-top state from stored preference.
+     * Called after window is created.
+     * @private
+     */
+    private _initializeAlwaysOnTop(): void {
+        try {
+            const savedAlwaysOnTop = this.store.get('alwaysOnTop') ?? false;
+            if (savedAlwaysOnTop) {
+                this.windowManager.setAlwaysOnTop(true);
+                this.logger.log('Always on top initialized to: enabled');
+            }
+        } catch (error) {
+            this.logger.error('Failed to initialize always on top:', error);
+        }
+    }
+
+    /**
      * Set up all IPC handlers.
      * Call this after app is ready.
      */
@@ -95,8 +114,15 @@ export default class IpcManager {
         this._setupWindowHandlers();
         this._setupThemeHandlers();
         this._setupHotkeyHandlers();
+        this._setupAlwaysOnTopHandlers();
         this._setupAppHandlers();
         this._setupQuickChatHandlers();
+
+        // Listen for internal changes (from hotkeys or menu)
+        this.windowManager.on('always-on-top-changed', this._handleAlwaysOnTopChanged.bind(this));
+
+        // Initialize settings that require window to exist
+        this._initializeAlwaysOnTop();
 
         this.logger.log('All IPC handlers registered');
     }
@@ -329,6 +355,90 @@ export default class IpcManager {
                 }
             } catch (error) {
                 this.logger.error('Error broadcasting hotkeys change to window:', {
+                    error: (error as Error).message,
+                    windowId: win.id
+                });
+            }
+        });
+    }
+
+    /**
+     * Set up Always On Top IPC handlers.
+     * @private
+     */
+    private _setupAlwaysOnTopHandlers(): void {
+        // Get current always-on-top state
+        ipcMain.handle(IPC_CHANNELS.ALWAYS_ON_TOP_GET, (): { enabled: boolean } => {
+            try {
+                const enabled = this.store.get('alwaysOnTop') ?? false;
+                return { enabled };
+            } catch (error) {
+                this.logger.error('Error getting always on top state:', error);
+                return { enabled: false };
+            }
+        });
+
+        // Set always-on-top state
+        ipcMain.on(IPC_CHANNELS.ALWAYS_ON_TOP_SET, (_event, enabled: boolean) => {
+            try {
+                // Validate enabled value
+                if (typeof enabled !== 'boolean') {
+                    this.logger.warn(`Invalid alwaysOnTop value: ${enabled}`);
+                    return;
+                }
+
+                // Update WindowManager - this will emit 'always-on-top-changed'
+                // which IPC Manager listens to for persistence and broadcasting
+                this.windowManager.setAlwaysOnTop(enabled);
+
+                this.logger.log(`Always on top requested: ${enabled}`);
+            } catch (error) {
+                this.logger.error('Error setting always on top:', {
+                    error: (error as Error).message,
+                    requestedEnabled: enabled
+                });
+            }
+        });
+    }
+
+    /**
+     * Handle always-on-top state changes from WindowManager.
+     * Persists the state and broadcasts to all windows.
+     * @private
+     * @param enabled - New always-on-top state
+     */
+    private _handleAlwaysOnTopChanged(enabled: boolean): void {
+        try {
+            // Persist preference
+            this.store.set('alwaysOnTop', enabled);
+
+            this.logger.log(`Always on top changed to: ${enabled} (persisted and broadcasting)`);
+
+            // Broadcast to all windows
+            this._broadcastAlwaysOnTopChange(enabled);
+        } catch (error) {
+            this.logger.error('Error handling always on top change:', {
+                error: (error as Error).message,
+                enabled
+            });
+        }
+    }
+
+    /**
+     * Broadcast always-on-top change to all open windows.
+     * @private
+     * @param enabled - Whether always-on-top is enabled
+     */
+    private _broadcastAlwaysOnTopChange(enabled: boolean): void {
+        const windows = BrowserWindow.getAllWindows();
+
+        windows.forEach(win => {
+            try {
+                if (!win.isDestroyed()) {
+                    win.webContents.send(IPC_CHANNELS.ALWAYS_ON_TOP_CHANGED, { enabled });
+                }
+            } catch (error) {
+                this.logger.error('Error broadcasting always on top change to window:', {
                     error: (error as Error).message,
                     windowId: win.id
                 });

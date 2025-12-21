@@ -202,6 +202,13 @@
   color: #6d6d6d;
 }
 
+.menu-item-check {
+  width: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: inherit;
+}
+
 .menu-item-label {
   flex: 1;
 }

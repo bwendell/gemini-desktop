@@ -868,4 +868,47 @@ describe('WindowManager', () => {
             expect(windowManager['isQuitting']).toBe(false);
         });
     });
+
+    describe('setAlwaysOnTop', () => {
+        it('enables always-on-top when main window exists', () => {
+            const win = windowManager.createMainWindow();
+
+            windowManager.setAlwaysOnTop(true);
+
+            expect(win.setAlwaysOnTop).toHaveBeenCalledWith(true);
+        });
+
+        it('disables always-on-top when main window exists', () => {
+            const win = windowManager.createMainWindow();
+
+            windowManager.setAlwaysOnTop(false);
+
+            expect(win.setAlwaysOnTop).toHaveBeenCalledWith(false);
+        });
+
+        it('does nothing when no main window exists', () => {
+            // Should not throw
+            expect(() => windowManager.setAlwaysOnTop(true)).not.toThrow();
+        });
+    });
+
+    describe('isAlwaysOnTop', () => {
+        it('returns true when main window is always-on-top', () => {
+            const win = windowManager.createMainWindow();
+            win.isAlwaysOnTop = vi.fn().mockReturnValue(true);
+
+            expect(windowManager.isAlwaysOnTop()).toBe(true);
+        });
+
+        it('returns false when main window is not always-on-top', () => {
+            const win = windowManager.createMainWindow();
+            win.isAlwaysOnTop = vi.fn().mockReturnValue(false);
+
+            expect(windowManager.isAlwaysOnTop()).toBe(false);
+        });
+
+        it('returns false when no main window exists', () => {
+            expect(windowManager.isAlwaysOnTop()).toBe(false);
+        });
+    });
 });

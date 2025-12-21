@@ -43,6 +43,8 @@ export class BrowserWindow {
             isDestroyed: vi.fn().mockReturnValue(false),
             isVisible: vi.fn().mockReturnValue(true),
             setSkipTaskbar: vi.fn(),
+            setAlwaysOnTop: vi.fn(),
+            isAlwaysOnTop: vi.fn().mockReturnValue(false),
             on: vi.fn(),
             once: vi.fn(),
             id: Math.random(),

@@ -10,6 +10,8 @@ export type MenuItem =
         action?: () => void;
         shortcut?: string;
         disabled?: boolean;
+        /** For toggle menu items - shows checkmark when true */
+        checked?: boolean;
     }
     | { separator: true };
 

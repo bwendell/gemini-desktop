@@ -42,7 +42,9 @@ describe('MenuManager', () => {
             createAuthWindow: vi.fn().mockResolvedValue(undefined),
             getMainWindow: vi.fn().mockReturnValue({
                 reload: vi.fn()
-            })
+            }),
+            isAlwaysOnTop: vi.fn().mockReturnValue(false),
+            setAlwaysOnTop: vi.fn()
         };
 
         menuManager = new MenuManager(mockWindowManager as unknown as WindowManager);
@@ -181,6 +183,52 @@ describe('MenuManager', () => {
             expect(aboutItem).toBeTruthy();
             aboutItem.click();
             expect(mockWindowManager.createOptionsWindow).toHaveBeenCalledWith('about');
+        });
+    });
+
+    describe('View Menu', () => {
+        it('includes Always On Top menu item', () => {
+            setPlatform('win32');
+            menuManager.buildMenu();
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const viewMenu = findMenuItem(template, 'View');
+            const alwaysOnTopItem = findSubmenuItem(viewMenu, 'Always On Top');
+
+            expect(alwaysOnTopItem).toBeTruthy();
+            expect(alwaysOnTopItem.type).toBe('checkbox');
+            expect(alwaysOnTopItem.id).toBe('menu-view-always-on-top');
+            expect(alwaysOnTopItem.accelerator).toBe('CmdOrCtrl+Shift+T');
+        });
+
+        it('Always On Top click handler calls setAlwaysOnTop', () => {
+            mockWindowManager.isAlwaysOnTop = vi.fn().mockReturnValue(false);
+            mockWindowManager.setAlwaysOnTop = vi.fn();
+
+            setPlatform('win32');
+            menuManager.buildMenu();
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const viewMenu = findMenuItem(template, 'View');
+            const alwaysOnTopItem = findSubmenuItem(viewMenu, 'Always On Top');
+
+            // Simulate menu click with checked = true
+            alwaysOnTopItem.click({ checked: true });
+            expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalledWith(true);
+
+            // Simulate menu click with checked = false
+            alwaysOnTopItem.click({ checked: false });
+            expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalledWith(false);
+        });
+
+        it('Always On Top initial checked state reflects isAlwaysOnTop()', () => {
+            mockWindowManager.isAlwaysOnTop = vi.fn().mockReturnValue(true);
+
+            setPlatform('win32');
+            menuManager.buildMenu();
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const viewMenu = findMenuItem(template, 'View');
+            const alwaysOnTopItem = findSubmenuItem(viewMenu, 'Always On Top');
+
+            expect(alwaysOnTopItem.checked).toBe(true);
         });
     });
 

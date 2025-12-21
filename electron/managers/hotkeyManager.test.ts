@@ -87,7 +87,9 @@ describe('HotkeyManager', () => {
         // Create mock WindowManager with required methods
         mockWindowManager = {
             minimizeMainWindow: vi.fn(),
-            toggleQuickChat: vi.fn()
+            toggleQuickChat: vi.fn(),
+            isAlwaysOnTop: vi.fn().mockReturnValue(false),
+            setAlwaysOnTop: vi.fn()
         } as unknown as WindowManager;
 
         hotkeyManager = new HotkeyManager(mockWindowManager);
@@ -109,12 +111,13 @@ describe('HotkeyManager', () => {
             expect(hotkeyManager).toBeDefined();
         });
 
-        it('should initialize shortcuts array with minimize and quick chat shortcuts', () => {
+        it('should initialize shortcuts array with minimize, quick chat, and always on top shortcuts', () => {
             // Access private shortcuts via type casting to verify initialization
             const shortcuts = (hotkeyManager as unknown as { shortcuts: { accelerator: string }[] }).shortcuts;
-            expect(shortcuts).toHaveLength(2);
+            expect(shortcuts).toHaveLength(3);
             expect(shortcuts[0].accelerator).toBe('CommandOrControl+Alt+E');
             expect(shortcuts[1].accelerator).toBe('CommandOrControl+Shift+Space');
+            expect(shortcuts[2].accelerator).toBe('CommandOrControl+Shift+T');
         });
     });
 
@@ -129,13 +132,17 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
                 'CommandOrControl+Alt+E',
                 expect.any(Function)
             );
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
                 'CommandOrControl+Shift+Space',
+                expect.any(Function)
+            );
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+                'CommandOrControl+Shift+T',
                 expect.any(Function)
             );
         });
@@ -145,7 +152,7 @@ describe('HotkeyManager', () => {
 
             // Should not throw
             expect(() => hotkeyManager.registerShortcuts()).not.toThrow();
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
         });
 
         it('should call minimizeMainWindow when minimize hotkey is triggered', () => {
@@ -173,6 +180,38 @@ describe('HotkeyManager', () => {
 
             expect(mockWindowManager.toggleQuickChat).toHaveBeenCalledTimes(1);
         });
+
+        it('should toggle always-on-top when always on top hotkey is triggered', () => {
+            (mockWindowManager.isAlwaysOnTop as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+            mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
+                if (accelerator === 'CommandOrControl+Shift+T') {
+                    callback();
+                }
+                return true;
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            expect(mockWindowManager.isAlwaysOnTop).toHaveBeenCalled();
+            expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalledWith(true);
+        });
+
+        it('should toggle always-on-top off when already enabled', () => {
+            (mockWindowManager.isAlwaysOnTop as ReturnType<typeof vi.fn>).mockReturnValue(true);
+
+            mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
+                if (accelerator === 'CommandOrControl+Shift+T') {
+                    callback();
+                }
+                return true;
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            expect(mockWindowManager.isAlwaysOnTop).toHaveBeenCalled();
+            expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalledWith(false);
+        });
     });
 
     describe('unregisterAll', () => {
@@ -192,7 +231,7 @@ describe('HotkeyManager', () => {
 
             // Registering again should work
             hotkeyManager.registerShortcuts();
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(4); // 2 + 2
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(6); // 3 + 3
         });
     });
 
@@ -232,7 +271,7 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.setEnabled(true);
 
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
             expect(hotkeyManager.isEnabled()).toBe(true);
         });
 
@@ -285,7 +324,7 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
         });
     });
 
@@ -307,8 +346,8 @@ describe('HotkeyManager', () => {
             hotkeyManager.setEnabled(true);
             expect(hotkeyManager.isEnabled()).toBe(true);
 
-            // Total: 2 initial + 2 re-enabled = 4
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(4);
+            // Total: 3 initial + 3 re-enabled = 6
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(6);
         });
 
         it('should preserve shortcuts config when toggling', () => {
@@ -318,13 +357,17 @@ describe('HotkeyManager', () => {
             mockGlobalShortcut.register.mockClear();
             hotkeyManager.setEnabled(true);
 
-            // Should still register the same two shortcuts
+            // Should still register the same three shortcuts
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
                 'CommandOrControl+Alt+E',
                 expect.any(Function)
             );
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
                 'CommandOrControl+Shift+Space',
+                expect.any(Function)
+            );
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+                'CommandOrControl+Shift+T',
                 expect.any(Function)
             );
         });

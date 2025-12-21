@@ -26,6 +26,13 @@ describe('TitlebarMenu', () => {
                 { label: 'Disabled Item', disabled: true },
             ],
         },
+        {
+            label: 'View',
+            items: [
+                { label: 'Checked Item', checked: true, action: vi.fn() },
+                { label: 'Unchecked Item', checked: false, action: vi.fn() },
+            ],
+        },
     ];
 
     beforeEach(() => {
@@ -265,6 +272,44 @@ describe('TitlebarMenu', () => {
             expect(screen.getByText('New')).toBeVisible();
 
             vi.useRealTimers();
+        });
+    });
+
+    describe('checked menu items', () => {
+        it('renders checkmark for checked items', () => {
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            fireEvent.click(screen.getByText('View'));
+
+            const checkedItem = screen.getByTestId('menu-item-Checked Item');
+            const checkSpan = checkedItem.querySelector('.menu-item-check');
+
+            expect(checkSpan).toBeInTheDocument();
+            expect(checkSpan).toHaveTextContent('✓');
+        });
+
+        it('renders empty checkmark span for unchecked items', () => {
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            fireEvent.click(screen.getByText('View'));
+
+            const uncheckedItem = screen.getByTestId('menu-item-Unchecked Item');
+            const checkSpan = uncheckedItem.querySelector('.menu-item-check');
+
+            expect(checkSpan).toBeInTheDocument();
+            expect(checkSpan).toHaveTextContent('');
+        });
+
+        it('renders empty checkmark span for items without checked property', () => {
+            render(<TitlebarMenu menus={sampleMenus} />);
+
+            fireEvent.click(screen.getByText('File'));
+
+            const newItem = screen.getByTestId('menu-item-New');
+            const checkSpan = newItem.querySelector('.menu-item-check');
+
+            expect(checkSpan).toBeInTheDocument();
+            expect(checkSpan).toHaveTextContent('');
         });
     });
 });

@@ -190,6 +190,16 @@ export default class MenuManager {
                 { role: 'forceReload', id: 'menu-view-forcereload' },
                 { role: 'toggleDevTools', id: 'menu-view-devtools' },
                 { type: 'separator' },
+                {
+                    label: 'Always On Top',
+                    id: 'menu-view-always-on-top',
+                    type: 'checkbox',
+                    checked: this.windowManager.isAlwaysOnTop(),
+                    accelerator: 'CmdOrCtrl+Shift+T',
+                    click: (menuItem) => {
+                        this.windowManager.setAlwaysOnTop(menuItem.checked);
+                    }
+                },
                 { role: 'togglefullscreen', id: 'menu-view-fullscreen' }
             ]
         };

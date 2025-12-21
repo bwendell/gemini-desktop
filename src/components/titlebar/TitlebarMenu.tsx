@@ -147,7 +147,10 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
                                 onClick={() => handleItemClick(item.action)}
                                 data-testid={`menu-item-${item.label}`}
                                 data-menu-id={item.id}
+                                role={typeof item.checked === 'boolean' ? 'menuitemcheckbox' : 'menuitem'}
+                                aria-checked={typeof item.checked === 'boolean' ? item.checked : undefined}
                             >
+                                <span className="menu-item-check">{item.checked ? '✓' : ''}</span>
                                 <span className="menu-item-label">{item.label}</span>
                                 {item.shortcut && (
                                     <span className="menu-item-shortcut">{item.shortcut}</span>

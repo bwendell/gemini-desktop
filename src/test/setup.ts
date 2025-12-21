@@ -68,6 +68,11 @@ const mockElectronAPI = {
     setHotkeysEnabled: vi.fn(),
     onHotkeysChanged: vi.fn().mockReturnValue(() => { }),
 
+    // Always On Top API - returns object with enabled state
+    getAlwaysOnTop: vi.fn().mockResolvedValue({ enabled: false }),
+    setAlwaysOnTop: vi.fn(),
+    onAlwaysOnTopChanged: vi.fn().mockReturnValue(() => { }),
+
     platform: 'win32', // Default to Windows
     isElectron: true,
 };

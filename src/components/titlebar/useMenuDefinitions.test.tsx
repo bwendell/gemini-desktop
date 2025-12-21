@@ -136,10 +136,84 @@ describe('useMenuDefinitions', () => {
         it('Toggle Fullscreen is disabled', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
-            const toggleItem = viewMenu.items[2];
+            const toggleItem = viewMenu.items[4]; // After Always On Top and separator
 
             expect(toggleItem).toHaveProperty('label', 'Toggle Fullscreen');
             expect(toggleItem).toHaveProperty('disabled', true);
+        });
+
+        it('has Always On Top item with correct properties', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const viewMenu = result.current[1];
+            const alwaysOnTopItem = viewMenu.items[2];
+
+            expect(alwaysOnTopItem).toHaveProperty('id', 'menu-view-always-on-top');
+            expect(alwaysOnTopItem).toHaveProperty('label', 'Always On Top');
+            expect(alwaysOnTopItem).toHaveProperty('shortcut', 'Ctrl+Shift+T');
+            expect(alwaysOnTopItem).toHaveProperty('checked', false); // Default state
+            expect(alwaysOnTopItem).toHaveProperty('action');
+        });
+
+        it('Always On Top action calls setAlwaysOnTop and updates state', async () => {
+            const { result, rerender } = renderHook(() => useMenuDefinitions());
+            const viewMenu = result.current[1];
+            const alwaysOnTopItem = viewMenu.items[2];
+
+            // Initial state should be false
+            expect(alwaysOnTopItem).toHaveProperty('checked', false);
+
+            // Call the action to toggle
+            if ('action' in alwaysOnTopItem && alwaysOnTopItem.action) {
+                alwaysOnTopItem.action();
+            }
+
+            // Mock should have been called
+            expect(mockElectronAPI.setAlwaysOnTop).toHaveBeenCalledWith(true);
+
+            // Simulate the event coming back from main process
+            const callback = mockElectronAPI.onAlwaysOnTopChanged.mock.calls[0][0];
+            await import('react').then(({ act }) => {
+                act(() => {
+                    callback({ enabled: true });
+                });
+            });
+
+            // After rerender, checked should be true
+            rerender();
+            const updatedViewMenu = result.current[1];
+            const updatedItem = updatedViewMenu.items[2];
+            expect(updatedItem).toHaveProperty('checked', true);
+        });
+
+        it('has separator before Always On Top', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const viewMenu = result.current[1];
+
+            expect(viewMenu.items[1]).toEqual({ separator: true });
+        });
+
+        it('has separator after Always On Top', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const viewMenu = result.current[1];
+
+            expect(viewMenu.items[3]).toEqual({ separator: true });
+        });
+
+        it('subscribes to always-on-top changes on mount', () => {
+            renderHook(() => useMenuDefinitions());
+
+            expect(mockElectronAPI.getAlwaysOnTop).toHaveBeenCalled();
+            expect(mockElectronAPI.onAlwaysOnTopChanged).toHaveBeenCalled();
+        });
+
+        it('cleanup function is called on unmount', () => {
+            const mockCleanup = vi.fn();
+            mockElectronAPI.onAlwaysOnTopChanged.mockReturnValue(mockCleanup);
+
+            const { unmount } = renderHook(() => useMenuDefinitions());
+            unmount();
+
+            expect(mockCleanup).toHaveBeenCalled();
         });
     });
 
