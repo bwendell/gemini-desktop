@@ -13,6 +13,7 @@ import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -53,7 +54,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
         await browser.execute(() => {
             window.electronAPI?.setAlwaysOnTop?.(false);
         });
-        await browser.pause(200);
+        await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
     });
 
     afterEach(async () => {
@@ -75,7 +76,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
         await browser.execute(() => {
             window.electronAPI?.setAlwaysOnTop?.(false);
         });
-        await browser.pause(200);
+        await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
     });
 
     describe('Options Window Interaction', () => {
@@ -86,7 +87,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeOptions = await getWindowAlwaysOnTopState();
             expect(stateBeforeOptions).toBe(true);
@@ -100,7 +101,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
 
             // Switch to Options window
             await browser.switchToWindow(optionsHandle);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify main window still has always-on-top
             // Need to switch back to main to check
@@ -118,7 +119,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Open Options window
             await clickMenuItemById('menu-file-options');
@@ -129,13 +130,13 @@ describe('Always On Top - Multi-Window Interactions', () => {
 
             // Switch to Options and close it
             await browser.switchToWindow(optionsHandle);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
             await closeCurrentWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Switch back to main
             await browser.switchToWindow(mainWindowHandle);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify always-on-top persisted
             const stateAfterClose = await getWindowAlwaysOnTopState();
@@ -153,13 +154,13 @@ describe('Always On Top - Multi-Window Interactions', () => {
 
             // Switch back to main window
             await browser.switchToWindow(mainWindowHandle);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Enable always-on-top while Options is open
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const enabled = await getWindowAlwaysOnTopState();
             expect(enabled).toBe(true);
@@ -168,7 +169,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const disabled = await getWindowAlwaysOnTopState();
             expect(disabled).toBe(false);
@@ -185,7 +186,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Open Options window
             await clickMenuItemById('menu-file-options');
@@ -196,18 +197,18 @@ describe('Always On Top - Multi-Window Interactions', () => {
 
             // Switch to Options window
             await browser.switchToWindow(optionsHandle);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Do some actions in Options (e.g., click theme)
             const themeCard = await $('[data-testid="theme-card-dark"]');
             if (await themeCard.isExisting()) {
                 await themeCard.click();
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
             }
 
             // Close Options
             await closeCurrentWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify main window still has always-on-top
             await browser.switchToWindow(mainWindowHandle);
@@ -230,7 +231,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             await clickMenuItemById('menu-file-options');
             await waitForWindowCount(2, 5000);
@@ -253,7 +254,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             await clickMenuItemById('menu-file-options');
             await waitForWindowCount(2, 5000);
@@ -276,7 +277,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             await clickMenuItemById('menu-file-options');
             await waitForWindowCount(2, 5000);
@@ -297,7 +298,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeAbout = await getWindowAlwaysOnTopState();
             expect(stateBeforeAbout).toBe(true);
@@ -311,7 +312,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
 
             // Switch to About window
             await browser.switchToWindow(aboutHandle);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Switch back to main to verify state
             await browser.switchToWindow(mainWindowHandle);
@@ -328,7 +329,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Open About window
             await clickMenuItemById('menu-help-about');
@@ -339,13 +340,13 @@ describe('Always On Top - Multi-Window Interactions', () => {
 
             // Switch to About and close it
             await browser.switchToWindow(aboutHandle);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
             await closeCurrentWindow();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Switch back to main
             await browser.switchToWindow(mainWindowHandle);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify always-on-top persisted
             const stateAfterClose = await getWindowAlwaysOnTopState();
@@ -363,7 +364,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Open Options window
             await clickMenuItemById('menu-file-options');
@@ -371,11 +372,11 @@ describe('Always On Top - Multi-Window Interactions', () => {
 
             // Open About window (will open as tab in Options or as new window)
             await browser.switchToWindow(mainWindowHandle);
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
             await clickMenuItemById('menu-help-about');
 
             // Wait for possible third window
-            await browser.pause(1000);
+            await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE);
 
             // Verify main window still has always-on-top
             await browser.switchToWindow(mainWindowHandle);

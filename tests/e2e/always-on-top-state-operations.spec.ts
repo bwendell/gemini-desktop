@@ -12,6 +12,7 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -71,7 +72,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeMinimize = await getWindowAlwaysOnTopState();
             expect(stateBeforeMinimize).toBe(true);
@@ -84,7 +85,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.minimize();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify minimized
             const minimized = await isWindowMinimized();
@@ -99,7 +100,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.restore();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify always-on-top persisted
             const stateAfterRestore = await getWindowAlwaysOnTopState();
@@ -111,7 +112,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
 
         it('should maintain disabled state after minimize/restore', async () => {
@@ -121,7 +122,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Minimize and restore
             await browser.electron.execute(() => {
@@ -131,7 +132,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.minimize();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             await browser.electron.execute(() => {
                 const { BrowserWindow } = require('electron');
@@ -140,7 +141,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.restore();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify still disabled
             const stateAfterRestore = await getWindowAlwaysOnTopState();
@@ -158,7 +159,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeMaximize = await getWindowAlwaysOnTopState();
             expect(stateBeforeMaximize).toBe(true);
@@ -171,7 +172,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.maximize();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify maximized
             const maximized = await isWindowMaximized();
@@ -190,7 +191,7 @@ describe('Always On Top - State Operations', () => {
                         mainWindow.unmaximize();
                     }
                 });
-                await browser.pause(500);
+                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
                 // Verify always-on-top still enabled
                 const stateAfterRestore = await getWindowAlwaysOnTopState();
@@ -205,7 +206,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
     });
 
@@ -217,7 +218,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Perform 3 minimize/restore cycles
             for (let i = 0; i < 3; i++) {
@@ -229,7 +230,7 @@ describe('Always On Top - State Operations', () => {
                         mainWindow.minimize();
                     }
                 });
-                await browser.pause(300);
+                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
                 // Restore
                 await browser.electron.execute(() => {
@@ -239,7 +240,7 @@ describe('Always On Top - State Operations', () => {
                         mainWindow.restore();
                     }
                 });
-                await browser.pause(300);
+                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
                 // Verify state
                 const state = await getWindowAlwaysOnTopState();
@@ -252,7 +253,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
     });
 
@@ -268,7 +269,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Minimize/restore
             await browser.electron.execute(() => {
@@ -278,7 +279,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.minimize();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             await browser.electron.execute(() => {
                 const { BrowserWindow } = require('electron');
@@ -287,7 +288,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.restore();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -298,7 +299,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
 
         it('should work on macOS', async function () {
@@ -312,7 +313,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Minimize/restore
             await browser.electron.execute(() => {
@@ -322,7 +323,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.minimize();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             await browser.electron.execute(() => {
                 const { BrowserWindow } = require('electron');
@@ -331,7 +332,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.restore();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -342,7 +343,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
 
         it('should work on Linux', async function () {
@@ -356,7 +357,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Minimize/restore
             await browser.electron.execute(() => {
@@ -366,7 +367,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.minimize();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             await browser.electron.execute(() => {
                 const { BrowserWindow } = require('electron');
@@ -375,7 +376,7 @@ describe('Always On Top - State Operations', () => {
                     mainWindow.restore();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -386,7 +387,7 @@ describe('Always On Top - State Operations', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
     });
 });

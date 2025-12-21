@@ -13,6 +13,7 @@ import { browser, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -47,12 +48,12 @@ describe('Always On Top - Menu Toggle', () => {
             // We'll verify by attempting to click it
             try {
                 await clickMenuItemById('menu-view-always-on-top');
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
                 E2ELogger.info('always-on-top-menu', 'Menu item exists and is clickable');
 
                 // Toggle back to original state
                 await clickMenuItemById('menu-view-always-on-top');
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
             } catch (error) {
                 E2ELogger.error('always-on-top-menu', `Failed to find menu item: ${error}`);
                 throw error;
@@ -74,7 +75,7 @@ describe('Always On Top - Menu Toggle', () => {
 
             // Click menu item to toggle
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300); // Wait for IPC
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP); // Wait for IPC
 
             // Verify state changed
             const newState = await browser.execute(() => {
@@ -86,7 +87,7 @@ describe('Always On Top - Menu Toggle', () => {
 
             // Toggle back to original state
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const finalState = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -109,7 +110,7 @@ describe('Always On Top - Menu Toggle', () => {
             // Toggle 3 times
             for (let i = 0; i < 3; i++) {
                 await clickMenuItemById('menu-view-always-on-top');
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
                 const expectedEnabled = (i % 2 === 0) ? !startEnabled : startEnabled;
                 const currentState = await browser.execute(() => {
@@ -128,7 +129,7 @@ describe('Always On Top - Menu Toggle', () => {
 
             // Toggle back to original
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
     });
 
@@ -146,7 +147,7 @@ describe('Always On Top - Menu Toggle', () => {
             });
 
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const newState = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -156,7 +157,7 @@ describe('Always On Top - Menu Toggle', () => {
 
             // Restore
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             E2ELogger.info('always-on-top-menu', 'Windows: Toggle verified working');
         });
@@ -175,7 +176,7 @@ describe('Always On Top - Menu Toggle', () => {
 
             // On macOS, use the native menu (same menu ID works)
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const newState = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -185,7 +186,7 @@ describe('Always On Top - Menu Toggle', () => {
 
             // Restore
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             E2ELogger.info('always-on-top-menu', 'macOS: Toggle verified working');
         });
@@ -203,7 +204,7 @@ describe('Always On Top - Menu Toggle', () => {
             });
 
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const newState = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -213,7 +214,7 @@ describe('Always On Top - Menu Toggle', () => {
 
             // Restore
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             E2ELogger.info('always-on-top-menu', 'Linux: Toggle verified working');
         });

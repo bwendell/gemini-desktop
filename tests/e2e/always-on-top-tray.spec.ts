@@ -11,6 +11,7 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -81,11 +82,11 @@ describe('Always On Top - Tray Interaction', () => {
     afterEach(async () => {
         // Ensure window is visible and reset state
         await showWindow();
-        await browser.pause(300);
+        await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
         await browser.execute(() => {
             window.electronAPI?.setAlwaysOnTop?.(false);
         });
-        await browser.pause(200);
+        await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
     });
 
     describe('Hide and Show Persistence', () => {
@@ -96,14 +97,14 @@ describe('Always On Top - Tray Interaction', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeHide = await getWindowAlwaysOnTopState();
             expect(stateBeforeHide).toBe(true);
 
             // Hide window (simulate minimize to tray)
             await hideWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify window is hidden
             const visible = await isWindowVisible();
@@ -113,7 +114,7 @@ describe('Always On Top - Tray Interaction', () => {
 
             // Show window (restore from tray)
             await showWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify window is visible again
             const visibleAfter = await isWindowVisible();
@@ -133,13 +134,13 @@ describe('Always On Top - Tray Interaction', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Hide and show
             await hideWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
             await showWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify still disabled
             const state = await getWindowAlwaysOnTopState();
@@ -156,14 +157,14 @@ describe('Always On Top - Tray Interaction', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Perform 3 hide/show cycles
             for (let i = 0; i < 3; i++) {
                 await hideWindow();
-                await browser.pause(400);
+                await browser.pause(E2E_TIMING.CYCLE_PAUSE);
                 await showWindow();
-                await browser.pause(400);
+                await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
                 const state = await getWindowAlwaysOnTopState();
                 expect(state).toBe(true);
@@ -181,21 +182,21 @@ describe('Always On Top - Tray Interaction', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             // Then enable
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             // Hide
             await hideWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Show
             await showWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Should still be enabled
             const state = await getWindowAlwaysOnTopState();
@@ -217,12 +218,12 @@ describe('Always On Top - Tray Interaction', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             await hideWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
             await showWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -241,12 +242,12 @@ describe('Always On Top - Tray Interaction', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             await hideWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
             await showWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -265,12 +266,12 @@ describe('Always On Top - Tray Interaction', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             await hideWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
             await showWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);

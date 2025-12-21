@@ -12,6 +12,7 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -55,7 +56,7 @@ describe('Always On Top - Hotkey Toggle', () => {
 
             // Press hotkey
             await pressAlwaysOnTopHotkey();
-            await browser.pause(300); // Wait for IPC
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP); // Wait for IPC
 
             // Verify state changed
             const newState = await browser.execute(() => {
@@ -67,7 +68,7 @@ describe('Always On Top - Hotkey Toggle', () => {
 
             // Toggle back
             await pressAlwaysOnTopHotkey();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const finalState = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -126,7 +127,7 @@ describe('Always On Top - Hotkey Toggle', () => {
             }
 
             // Wait for all IPC operations to settle
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Final state should be opposite of start (5 is odd)
             const finalState = await browser.execute(() => {
@@ -139,7 +140,7 @@ describe('Always On Top - Hotkey Toggle', () => {
             // Reset to initial state
             if (finalState?.enabled !== startEnabled) {
                 await pressAlwaysOnTopHotkey();
-                await browser.pause(300);
+                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
             }
         });
     });
@@ -159,7 +160,7 @@ describe('Always On Top - Hotkey Toggle', () => {
 
             // Use Control modifier
             await browser.keys(['Control', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const newState = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -169,7 +170,7 @@ describe('Always On Top - Hotkey Toggle', () => {
 
             // Toggle back
             await browser.keys(['Control', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             E2ELogger.info('always-on-top-hotkey', 'Windows: Hotkey verified working');
         });
@@ -188,7 +189,7 @@ describe('Always On Top - Hotkey Toggle', () => {
 
             // Use Meta (Command) modifier
             await browser.keys(['Meta', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const newState = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -198,7 +199,7 @@ describe('Always On Top - Hotkey Toggle', () => {
 
             // Toggle back
             await browser.keys(['Meta', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             E2ELogger.info('always-on-top-hotkey', 'macOS: Hotkey verified working');
         });
@@ -217,7 +218,7 @@ describe('Always On Top - Hotkey Toggle', () => {
 
             // Use Control modifier
             await browser.keys(['Control', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const newState = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -227,7 +228,7 @@ describe('Always On Top - Hotkey Toggle', () => {
 
             // Toggle back
             await browser.keys(['Control', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             E2ELogger.info('always-on-top-hotkey', 'Linux: Hotkey verified working');
         });

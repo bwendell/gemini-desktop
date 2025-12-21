@@ -13,6 +13,7 @@ import { browser, $, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -52,7 +53,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Toggle via hotkey
             await pressAlwaysOnTopHotkey();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify state changed
             const newState = await browser.execute(() => {
@@ -64,7 +65,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Restore
             await pressAlwaysOnTopHotkey();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
         });
     });
 
@@ -81,7 +82,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Toggle via menu
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify state changed
             const newState = await browser.execute(() => {
@@ -93,7 +94,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Restore
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
         });
     });
 
@@ -110,7 +111,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // 1. Toggle via hotkey
             await pressAlwaysOnTopHotkey();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             let state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -120,7 +121,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // 2. Toggle via menu
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -130,7 +131,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // 3. Toggle via hotkey again
             await pressAlwaysOnTopHotkey();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -140,7 +141,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // 4. Toggle via menu to restore
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -160,19 +161,19 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Rapidly alternate: hotkey, menu, hotkey, menu, hotkey
             await pressAlwaysOnTopHotkey();
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await pressAlwaysOnTopHotkey();
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await pressAlwaysOnTopHotkey();
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // After 5 toggles (odd), should be opposite of start
             const finalState = await browser.execute(() => {
@@ -185,7 +186,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
             // Restore
             if (finalState?.enabled !== startEnabled) {
                 await pressAlwaysOnTopHotkey();
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
             }
         });
     });
@@ -205,7 +206,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Hotkey
             await browser.keys(['Control', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             let state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -214,7 +215,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Menu
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -238,7 +239,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Hotkey
             await browser.keys(['Meta', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             let state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -247,7 +248,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Menu
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -271,7 +272,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Hotkey
             await browser.keys(['Control', 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             let state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -280,7 +281,7 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
             // Menu
             await clickMenuItemById('menu-view-always-on-top');
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             state = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();

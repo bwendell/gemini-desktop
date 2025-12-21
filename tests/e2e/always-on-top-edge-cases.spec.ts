@@ -12,6 +12,7 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -107,20 +108,20 @@ describe('Always On Top - Edge Cases', () => {
     afterEach(async () => {
         // Ensure window is restored and state is reset
         await restoreWindow();
-        await browser.pause(300);
+        await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
         // Exit fullscreen if active
         const isFS = await isWindowFullScreen();
         if (isFS) {
             await setFullScreen(false);
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
         }
 
         // Reset always-on-top state
         await browser.execute(() => {
             window.electronAPI?.setAlwaysOnTop?.(false);
         });
-        await browser.pause(200);
+        await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
     });
 
     describe('Toggle During Minimize', () => {
@@ -131,11 +132,11 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             // Minimize window
             await minimizeWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const minimized = await isWindowMinimized();
             expect(minimized).toBe(true);
@@ -145,11 +146,11 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Restore window
             await restoreWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify always-on-top is enabled after restore
             const state = await getWindowAlwaysOnTopState();
@@ -165,24 +166,24 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeMinimize = await getWindowAlwaysOnTopState();
             expect(stateBeforeMinimize).toBe(true);
 
             // Minimize window
             await minimizeWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Disable always-on-top while minimized
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Restore window
             await restoreWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify always-on-top is disabled after restore
             const stateAfterRestore = await getWindowAlwaysOnTopState();
@@ -198,23 +199,23 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             const initialState = await getWindowAlwaysOnTopState();
             expect(initialState).toBe(false);
 
             // Minimize
             await minimizeWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Try hotkey (may or may not work depending on OS focus behavior)
             // This is best-effort - hotkeys might not register when window is minimized
             await browser.keys([modifierKey, 'Shift', 't']);
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Restore
             await restoreWindow();
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Check state - could be either enabled or disabled depending on hotkey behavior
             const finalState = await getWindowAlwaysOnTopState();
@@ -233,14 +234,14 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeFullscreen = await getWindowAlwaysOnTopState();
             expect(stateBeforeFullscreen).toBe(true);
 
             // Enter fullscreen
             await setFullScreen(true);
-            await browser.pause(1000); // Fullscreen transitions need more time
+            await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE); // Fullscreen transitions need more time
 
             const isFS = await isWindowFullScreen();
             if (isFS) {
@@ -248,7 +249,7 @@ describe('Always On Top - Edge Cases', () => {
 
                 // Exit fullscreen
                 await setFullScreen(false);
-                await browser.pause(1000);
+                await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE);
 
                 // Verify always-on-top is still enabled
                 const stateAfterFullscreen = await getWindowAlwaysOnTopState();
@@ -270,7 +271,7 @@ describe('Always On Top - Edge Cases', () => {
 
             // Enter fullscreen first
             await setFullScreen(true);
-            await browser.pause(1000);
+            await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE);
 
             const isFS = await isWindowFullScreen();
             if (!isFS) {
@@ -283,14 +284,14 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const newState = await getWindowAlwaysOnTopState();
             E2ELogger.info('always-on-top-edge-cases', `State toggled in fullscreen: ${initialState} -> ${newState}`);
 
             // Exit fullscreen
             await setFullScreen(false);
-            await browser.pause(1000);
+            await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE);
 
             // Verify state persisted
             const finalState = await getWindowAlwaysOnTopState();
@@ -310,13 +311,13 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Enter and exit fullscreen
             await setFullScreen(true);
-            await browser.pause(800);
+            await browser.pause(E2E_TIMING.FULLSCREEN_TRANSITION);
             await setFullScreen(false);
-            await browser.pause(800);
+            await browser.pause(E2E_TIMING.FULLSCREEN_TRANSITION);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -338,18 +339,18 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await minimizeWindow();
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await restoreWindow();
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(false);
@@ -369,18 +370,18 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await minimizeWindow();
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await restoreWindow();
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(false);
@@ -399,18 +400,18 @@ describe('Always On Top - Edge Cases', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await minimizeWindow();
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
             await restoreWindow();
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(false);

@@ -12,6 +12,7 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -71,12 +72,12 @@ describe('Always On Top - Resize and Move', () => {
     afterEach(async () => {
         // Restore original bounds
         await setWindowBounds(originalBounds);
-        await browser.pause(200);
+        await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         // Reset state
         await browser.execute(() => {
             window.electronAPI?.setAlwaysOnTop?.(false);
         });
-        await browser.pause(200);
+        await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
     });
 
     describe('Resize Persistence', () => {
@@ -87,7 +88,7 @@ describe('Always On Top - Resize and Move', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeResize = await getWindowAlwaysOnTopState();
             expect(stateBeforeResize).toBe(true);
@@ -98,7 +99,7 @@ describe('Always On Top - Resize and Move', () => {
                 width: currentBounds.width + 100,
                 height: currentBounds.height + 100
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify always-on-top persisted
             const stateAfterResize = await getWindowAlwaysOnTopState();
@@ -111,7 +112,7 @@ describe('Always On Top - Resize and Move', () => {
                 width: currentBounds.width - 50,
                 height: currentBounds.height - 50
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateAfterShrink = await getWindowAlwaysOnTopState();
             expect(stateAfterShrink).toBe(true);
@@ -126,7 +127,7 @@ describe('Always On Top - Resize and Move', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeResize = await getWindowAlwaysOnTopState();
             expect(stateBeforeResize).toBe(false);
@@ -137,7 +138,7 @@ describe('Always On Top - Resize and Move', () => {
                 width: currentBounds.width + 150,
                 height: currentBounds.height + 100
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify still disabled
             const stateAfterResize = await getWindowAlwaysOnTopState();
@@ -155,7 +156,7 @@ describe('Always On Top - Resize and Move', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateBeforeMove = await getWindowAlwaysOnTopState();
             expect(stateBeforeMove).toBe(true);
@@ -166,7 +167,7 @@ describe('Always On Top - Resize and Move', () => {
                 x: currentBounds.x + 50,
                 y: currentBounds.y + 50
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify always-on-top persisted
             const stateAfterMove = await getWindowAlwaysOnTopState();
@@ -181,7 +182,7 @@ describe('Always On Top - Resize and Move', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Move window multiple times
             for (let i = 0; i < 3; i++) {
@@ -190,7 +191,7 @@ describe('Always On Top - Resize and Move', () => {
                     x: currentBounds.x + 20,
                     y: currentBounds.y + 20
                 });
-                await browser.pause(200);
+                await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
 
                 const state = await getWindowAlwaysOnTopState();
                 expect(state).toBe(true);
@@ -207,7 +208,7 @@ describe('Always On Top - Resize and Move', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Resize and move simultaneously
             const currentBounds = await getWindowBounds();
@@ -217,7 +218,7 @@ describe('Always On Top - Resize and Move', () => {
                 width: currentBounds.width + 80,
                 height: currentBounds.height + 60
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const stateAfterBoth = await getWindowAlwaysOnTopState();
             expect(stateAfterBoth).toBe(true);
@@ -238,7 +239,7 @@ describe('Always On Top - Resize and Move', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
             await setWindowBounds({
@@ -247,7 +248,7 @@ describe('Always On Top - Resize and Move', () => {
                 width: currentBounds.width + 50,
                 height: currentBounds.height + 50
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -266,7 +267,7 @@ describe('Always On Top - Resize and Move', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
             await setWindowBounds({
@@ -275,7 +276,7 @@ describe('Always On Top - Resize and Move', () => {
                 width: currentBounds.width + 50,
                 height: currentBounds.height + 50
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -294,7 +295,7 @@ describe('Always On Top - Resize and Move', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
             await setWindowBounds({
@@ -303,7 +304,7 @@ describe('Always On Top - Resize and Move', () => {
                 width: currentBounds.width + 50,
                 height: currentBounds.height + 50
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);

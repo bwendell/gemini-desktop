@@ -12,6 +12,7 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 interface SettingsData {
     alwaysOnTop?: boolean;
@@ -68,7 +69,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(500); // Wait for file write
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION); // Wait for file write
 
             // Read settings file
             const settings = await readSettingsFile();
@@ -86,7 +87,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Read settings file
             const settings = await readSettingsFile();
@@ -109,7 +110,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             let settings = await readSettingsFile();
             expect(settings?.alwaysOnTop).toBe(true);
@@ -119,7 +120,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             settings = await readSettingsFile();
             expect(settings?.alwaysOnTop).toBe(false);
@@ -129,7 +130,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute((enabled: boolean) => {
                 window.electronAPI?.setAlwaysOnTop?.(enabled);
             }, startEnabled);
-            await browser.pause(400);
+            await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
             settings = await readSettingsFile();
             expect(settings?.alwaysOnTop).toBe(startEnabled);
@@ -145,7 +146,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const settings = await readSettingsFile();
 
@@ -159,7 +160,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
         });
 
         it('should not corrupt other settings when updating alwaysOnTop', async () => {
@@ -176,7 +177,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Read settings again
             const newSettings = await readSettingsFile();
@@ -191,7 +192,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
         });
     });
 
@@ -203,7 +204,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             const settings = await readSettingsFile();
             expect(settings?.alwaysOnTop).toBe(true);
@@ -214,7 +215,7 @@ describe('Always On Top - Settings Persistence', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
         });
     });
 });

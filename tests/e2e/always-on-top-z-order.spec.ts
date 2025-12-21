@@ -17,6 +17,7 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 declare global {
     interface Window {
@@ -55,7 +56,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify via Electron API (renderer side)
             const rendererState = await browser.execute(() => {
@@ -74,7 +75,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
 
         it('should maintain always-on-top state after window operations', async () => {
@@ -84,7 +85,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Minimize and restore
             await browser.electron.execute(() => {
@@ -94,7 +95,7 @@ describe('Always On Top - Z-Order Verification', () => {
                     mainWindow.minimize();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             await browser.electron.execute(() => {
                 const { BrowserWindow } = require('electron');
@@ -103,7 +104,7 @@ describe('Always On Top - Z-Order Verification', () => {
                     mainWindow.restore();
                 }
             });
-            await browser.pause(500);
+            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
             // Verify state still enabled
             const stateAfterMinimize = await getWindowAlwaysOnTopState();
@@ -115,7 +116,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(200);
+            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
         });
     });
 
@@ -127,7 +128,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify via Electron API (renderer side)
             const rendererState = await browser.execute(() => {
@@ -150,7 +151,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             let state = await getWindowAlwaysOnTopState();
             expect(state).toBe(true);
@@ -159,7 +160,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             state = await getWindowAlwaysOnTopState();
             expect(state).toBe(false);
@@ -176,7 +177,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const rendererEnabled = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -190,7 +191,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const rendererDisabled = await browser.execute(() => {
                 return window.electronAPI?.getAlwaysOnTop?.();
@@ -217,7 +218,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const enabled = await getWindowAlwaysOnTopState();
             expect(enabled).toBe(true);
@@ -226,7 +227,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const disabled = await getWindowAlwaysOnTopState();
             expect(disabled).toBe(false);
@@ -246,7 +247,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const enabled = await getWindowAlwaysOnTopState();
             expect(enabled).toBe(true);
@@ -255,7 +256,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const disabled = await getWindowAlwaysOnTopState();
             expect(disabled).toBe(false);
@@ -275,7 +276,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(true);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const enabled = await getWindowAlwaysOnTopState();
             expect(enabled).toBe(true);
@@ -284,7 +285,7 @@ describe('Always On Top - Z-Order Verification', () => {
             await browser.execute(() => {
                 window.electronAPI?.setAlwaysOnTop?.(false);
             });
-            await browser.pause(300);
+            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
             const disabled = await getWindowAlwaysOnTopState();
             expect(disabled).toBe(false);
