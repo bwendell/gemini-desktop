@@ -288,4 +288,101 @@ describe('Always On Top - Multi-Window Interactions', () => {
             E2ELogger.info('always-on-top-multi-window', 'Linux: Multi-window verified');
         });
     });
+
+    describe('About Window Interaction', () => {
+        it('should maintain always-on-top when About window opens', async () => {
+            E2ELogger.info('always-on-top-multi-window', 'Testing About window interaction');
+
+            // Enable always-on-top
+            await browser.execute(() => {
+                window.electronAPI?.setAlwaysOnTop?.(true);
+            });
+            await browser.pause(300);
+
+            const stateBeforeAbout = await getWindowAlwaysOnTopState();
+            expect(stateBeforeAbout).toBe(true);
+
+            // Open About window (Help -> About)
+            await clickMenuItemById('menu-help-about');
+            await waitForWindowCount(2, 5000);
+
+            const handles = await browser.getWindowHandles();
+            const aboutHandle = handles.find(h => h !== mainWindowHandle) || handles[1];
+
+            // Switch to About window
+            await browser.switchToWindow(aboutHandle);
+            await browser.pause(500);
+
+            // Switch back to main to verify state
+            await browser.switchToWindow(mainWindowHandle);
+            const stateWithAboutOpen = await getWindowAlwaysOnTopState();
+            expect(stateWithAboutOpen).toBe(true);
+
+            E2ELogger.info('always-on-top-multi-window', 'Main window maintained always-on-top with About window open');
+        });
+
+        it('should maintain always-on-top after closing About window', async () => {
+            E2ELogger.info('always-on-top-multi-window', 'Testing About window close behavior');
+
+            // Enable always-on-top
+            await browser.execute(() => {
+                window.electronAPI?.setAlwaysOnTop?.(true);
+            });
+            await browser.pause(300);
+
+            // Open About window
+            await clickMenuItemById('menu-help-about');
+            await waitForWindowCount(2, 5000);
+
+            const handles = await browser.getWindowHandles();
+            const aboutHandle = handles.find(h => h !== mainWindowHandle) || handles[1];
+
+            // Switch to About and close it
+            await browser.switchToWindow(aboutHandle);
+            await browser.pause(300);
+            await closeCurrentWindow();
+            await browser.pause(300);
+
+            // Switch back to main
+            await browser.switchToWindow(mainWindowHandle);
+            await browser.pause(300);
+
+            // Verify always-on-top persisted
+            const stateAfterClose = await getWindowAlwaysOnTopState();
+            expect(stateAfterClose).toBe(true);
+
+            E2ELogger.info('always-on-top-multi-window', 'Always-on-top persisted after About window closed');
+        });
+    });
+
+    describe('Multiple Child Windows', () => {
+        it('should maintain always-on-top with multiple windows open', async () => {
+            E2ELogger.info('always-on-top-multi-window', 'Testing multiple child windows');
+
+            // Enable always-on-top
+            await browser.execute(() => {
+                window.electronAPI?.setAlwaysOnTop?.(true);
+            });
+            await browser.pause(300);
+
+            // Open Options window
+            await clickMenuItemById('menu-file-options');
+            await waitForWindowCount(2, 5000);
+
+            // Open About window (will open as tab in Options or as new window)
+            await browser.switchToWindow(mainWindowHandle);
+            await browser.pause(200);
+            await clickMenuItemById('menu-help-about');
+
+            // Wait for possible third window
+            await browser.pause(1000);
+
+            // Verify main window still has always-on-top
+            await browser.switchToWindow(mainWindowHandle);
+            const state = await getWindowAlwaysOnTopState();
+            expect(state).toBe(true);
+
+            E2ELogger.info('always-on-top-multi-window', 'Main window maintained always-on-top with multiple windows');
+        });
+    });
 });
