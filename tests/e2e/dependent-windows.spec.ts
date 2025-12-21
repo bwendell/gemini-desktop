@@ -10,7 +10,7 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount } from './helpers/windowActions';
+import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
 import { Selectors } from './helpers/selectors';
 
@@ -48,10 +48,9 @@ describe('Dependent Windows', () => {
         await browser.switchToWindow(mainHandle);
 
         // 4. Close main window (triggers hide-to-tray behavior)
-        // Use the close button in the custom titlebar
-        const closeBtn = await $(Selectors.closeButton);
-        await closeBtn.click();
-        E2ELogger.info('dependent-windows', 'Clicked close button on main window');
+        // Use cross-platform helper (guarantees correct closure method per OS)
+        await closeCurrentWindow();
+        E2ELogger.info('dependent-windows', 'Closed main window via helper');
 
         // 5. Wait for both windows to close/hide
         // When main window hides to tray, options window should also close
@@ -64,13 +63,11 @@ describe('Dependent Windows', () => {
 
         // 7. Restore from tray to verify app is still running
         // Use Electron API to restore the main window
+        // 7. Restore from tray to verify app is still running
+        // Use Electron API to restore the main window
         await browser.execute(() => {
-            // Access Electron main process via IPC if available
-            // @ts-ignore
-            if (window.electronAPI?.showWindow) {
-                // @ts-ignore
-                window.electronAPI.showWindow();
-            }
+            // Access Electron main process via IPC exposed in preload
+            window.electronAPI.showWindow();
         });
 
         // Alternative: Click tray icon (platform-specific, may not work in all CI)
@@ -86,8 +83,8 @@ describe('Dependent Windows', () => {
         await browser.switchToWindow(mainHandle);
 
         // Close to tray
-        const closeBtn = await $(Selectors.closeButton);
-        await closeBtn.click();
+        // Close to tray
+        await closeCurrentWindow();
         await browser.pause(1000);
 
         // 2. Wait for windows to close
@@ -95,17 +92,10 @@ describe('Dependent Windows', () => {
 
         // 3. Restore main window from tray via Electron API
         // Use electron service to simulate tray click
-        await browser.electron.execute(
-            // @ts-ignore - electron execute has different signature
-            (electron: typeof import('electron')) => {
-                const { BrowserWindow } = electron;
-                const windows = BrowserWindow.getAllWindows();
-                if (windows.length > 0) {
-                    windows[0].show();
-                    windows[0].focus();
-                }
-            }
-        );
+        // 3. Restore main window from tray via Electron API
+        await browser.execute(() => {
+            window.electronAPI.showWindow();
+        });
 
         // 4. Wait for main window to reappear
         await waitForWindowCount(1, 5000);

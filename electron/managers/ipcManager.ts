@@ -171,6 +171,15 @@ export default class IpcManager {
             }
         });
 
+        // Show/Restore window (e.g., from tray or helper)
+        ipcMain.on(IPC_CHANNELS.WINDOW_SHOW, () => {
+            try {
+                this.windowManager.restoreFromTray();
+            } catch (error) {
+                this.logger.error('Error showing window:', error);
+            }
+        });
+
         // Check if window is maximized
         ipcMain.handle(IPC_CHANNELS.WINDOW_IS_MAXIMIZED, (event): boolean => {
             const win = this._getWindowFromEvent(event);

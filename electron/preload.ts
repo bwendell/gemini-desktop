@@ -29,6 +29,7 @@ const IPC_CHANNELS = {
     WINDOW_MINIMIZE: 'window-minimize',
     WINDOW_MAXIMIZE: 'window-maximize',
     WINDOW_CLOSE: 'window-close',
+    WINDOW_SHOW: 'window-show',
     WINDOW_IS_MAXIMIZED: 'window-is-maximized',
 
     // Theme
@@ -68,6 +69,11 @@ const electronAPI: ElectronAPI = {
      * Close the current window.
      */
     closeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE),
+
+    /**
+     * Show/Restore the main window (e.g. from tray).
+     */
+    showWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_SHOW),
 
     /**
      * Check if the current window is maximized.

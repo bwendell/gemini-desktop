@@ -45,6 +45,7 @@ const trayManager = new TrayManager(windowManager);
 // Using global instead of app to avoid side effects (extra window creation)
 (global as any).windowManager = windowManager;
 (global as any).ipcManager = ipcManager;
+(global as any).trayManager = trayManager;
 
 // Single Instance Lock
 const gotTheLock = app.requestSingleInstanceLock();

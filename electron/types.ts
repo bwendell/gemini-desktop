@@ -56,6 +56,7 @@ export interface ElectronAPI {
     minimizeWindow: () => void;
     maximizeWindow: () => void;
     closeWindow: () => void;
+    showWindow: () => void;
     isMaximized: () => Promise<boolean>;
     openOptions: (tab?: 'settings' | 'about') => void;
     openGoogleSignIn: () => Promise<void>;

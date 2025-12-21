@@ -19,6 +19,15 @@ vi.mock('../utils/constants', async (importOriginal) => {
     };
 });
 
+vi.mock('../utils/paths', async (importOriginal) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const actual = await importOriginal<any>();
+    return {
+        ...actual,
+        getIconPath: vi.fn().mockReturnValue('/mock/icon/path.png'),
+    };
+});
+
 describe('WindowManager', () => {
     let windowManager: any;
 
@@ -170,9 +179,9 @@ describe('WindowManager', () => {
 
             expect((BrowserWindow as any)._instances.length).toBe(1);
 
-            // Verify icon is set
+            // Verify icon is set to the value from getIconPath
             const createdWindow = (BrowserWindow as any)._instances[0];
-            expect(createdWindow.options.icon).toBeDefined();
+            expect(createdWindow.options.icon).toBe('/mock/icon/path.png');
 
             expect(win.loadURL).toHaveBeenCalledWith(url);
         });

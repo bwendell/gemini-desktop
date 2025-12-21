@@ -1,0 +1,212 @@
+/**
+ * Tray E2E Test Helpers.
+ *
+ * Provides utilities for testing the system tray functionality.
+ *
+ * @module trayActions
+ */
+
+/// <reference path="./wdio-electron.d.ts" />
+
+import { browser } from '@wdio/globals';
+import { E2ELogger } from './logger';
+
+// =============================================================================
+// Type Definitions for TrayManager Access
+// =============================================================================
+
+/**
+ * TrayManager interface for E2E testing.
+ */
+interface E2ETrayManager {
+    getTray?: () => Electron.Tray | null;
+    createTray?: () => Electron.Tray;
+    destroyTray?: () => void;
+}
+
+/**
+ * State of the system tray.
+ */
+export interface TrayState {
+    /** Whether the tray exists */
+    exists: boolean;
+    /** Whether the tray is destroyed */
+    isDestroyed: boolean;
+    /** The tray tooltip text */
+    tooltip: string | null;
+}
+
+/**
+ * Tray menu item representation.
+ */
+export interface TrayMenuItem {
+    label: string;
+    enabled: boolean;
+    type: string;
+}
+
+// =============================================================================
+// Tray State Actions
+// =============================================================================
+
+/**
+ * Get the current state of the system tray.
+ *
+ * @returns Promise<TrayState> - The current tray state
+ */
+export async function getTrayState(): Promise<TrayState> {
+    return browser.electron.execute(() => {
+        const trayManager = (global as any).trayManager as E2ETrayManager | undefined;
+
+        if (!trayManager) {
+            return {
+                exists: false,
+                isDestroyed: true,
+                tooltip: null,
+            };
+        }
+
+        const tray = trayManager.getTray?.();
+
+        if (!tray) {
+            return {
+                exists: false,
+                isDestroyed: true,
+                tooltip: null,
+            };
+        }
+
+        return {
+            exists: true,
+            isDestroyed: tray.isDestroyed(),
+            tooltip: tray.getToolTip() || null,
+        };
+    });
+}
+
+/**
+ * Simulate a click on the tray icon.
+ * This triggers the 'click' event handler on the tray.
+ *
+ * @returns Promise<void>
+ */
+export async function simulateTrayClick(): Promise<void> {
+    E2ELogger.info('tray', 'Simulating tray click');
+
+    await browser.electron.execute(() => {
+        const trayManager = (global as any).trayManager as E2ETrayManager | undefined;
+
+        if (!trayManager) {
+            console.warn('[E2E] TrayManager not available');
+            return;
+        }
+
+        const tray = trayManager.getTray?.();
+
+        if (tray && !tray.isDestroyed()) {
+            // Emit click event to trigger the handler
+            tray.emit('click');
+        }
+    });
+}
+
+/**
+ * Simulate a right-click on the tray icon.
+ * This triggers the 'right-click' event handler on the tray.
+ *
+ * @returns Promise<void>
+ */
+export async function simulateTrayRightClick(): Promise<void> {
+    E2ELogger.info('tray', 'Simulating tray right-click');
+
+    await browser.electron.execute(() => {
+        const trayManager = (global as any).trayManager as E2ETrayManager | undefined;
+
+        if (!trayManager) {
+            console.warn('[E2E] TrayManager not available');
+            return;
+        }
+
+        const tray = trayManager.getTray?.();
+
+        if (tray && !tray.isDestroyed()) {
+            // Emit right-click event
+            tray.emit('right-click');
+        }
+    });
+}
+
+/**
+ * Get the tray context menu items.
+ *
+ * @returns Promise<TrayMenuItem[]> - Array of menu items
+ */
+export async function getTrayContextMenuItems(): Promise<TrayMenuItem[]> {
+    return browser.electron.execute((electron: typeof import('electron')) => {
+        const trayManager = (global as any).trayManager as {
+            getTray?: () => Electron.Tray | null;
+        } | undefined;
+
+        if (!trayManager) {
+            return [];
+        }
+
+        const tray = trayManager.getTray?.();
+
+        if (!tray || tray.isDestroyed()) {
+            return [];
+        }
+
+        // Note: Electron doesn't expose context menu items directly
+        // We return a placeholder - actual menu testing may need different approach
+        // For now, we verify the tray exists and has a menu set
+        return [];
+    });
+}
+
+/**
+ * Click a tray context menu item by simulating the menu action.
+ * Since we can't directly access context menu items, we simulate
+ * the action that would be taken.
+ *
+ * @param action - 'show' or 'quit'
+ * @returns Promise<void>
+ */
+export async function clickTrayMenuItem(action: 'show' | 'quit'): Promise<void> {
+    E2ELogger.info('tray', `Clicking tray menu item: ${action}`);
+
+    await browser.electron.execute(
+        (electron: typeof import('electron'), menuAction: string) => {
+            const windowManager = (global as any).windowManager as {
+                restoreFromTray?: () => void;
+            } | undefined;
+
+            if (menuAction === 'show') {
+                windowManager?.restoreFromTray?.();
+            } else if (menuAction === 'quit') {
+                electron.app.quit();
+            }
+        },
+        action
+    );
+}
+
+/**
+ * Verify the tray icon was created on app startup.
+ *
+ * @returns Promise<boolean> - True if tray exists and is not destroyed
+ */
+export async function verifyTrayCreated(): Promise<boolean> {
+    const state = await getTrayState();
+    return state.exists && !state.isDestroyed;
+}
+
+/**
+ * Get the tray tooltip text.
+ *
+ * @returns Promise<string | null> - The tooltip text or null
+ */
+export async function getTrayTooltip(): Promise<string | null> {
+    const state = await getTrayState();
+    return state.tooltip;
+}
