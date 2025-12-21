@@ -18,7 +18,10 @@
 import React, { useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme, Theme } from '../../context/ThemeContext';
+import { createRendererLogger } from '../../utils';
 import './ThemeSelector.css';
+
+const logger = createRendererLogger('[ThemeSelector]');
 
 // ============================================================================
 // Types
@@ -242,7 +245,7 @@ export const ThemeSelector = memo(function ThemeSelector() {
      */
     const handleThemeSelect = useCallback((themeId: Theme) => {
         setTheme(themeId);
-        console.log(`[ThemeSelector] Theme changed to: ${themeId}`);
+        logger.log(`Theme changed to: ${themeId}`);
     }, [setTheme]);
 
     return (

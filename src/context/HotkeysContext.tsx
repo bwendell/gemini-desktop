@@ -21,6 +21,9 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createRendererLogger } from '../utils';
+
+const logger = createRendererLogger('[HotkeysContext]');
 
 // ============================================================================
 // Types
@@ -87,7 +90,7 @@ export function HotkeysProvider({ children }: HotkeysProviderProps) {
         const initHotkeys = async () => {
             // No Electron API - use default (enabled)
             if (!window.electronAPI?.getHotkeysEnabled) {
-                console.log('[HotkeysContext] No Electron API, using default (enabled)');
+                logger.log('No Electron API, using default (enabled)');
                 return;
             }
 
@@ -99,12 +102,12 @@ export function HotkeysProvider({ children }: HotkeysProviderProps) {
 
                 if (isHotkeysData(result)) {
                     setEnabledState(result.enabled);
-                    console.log('[HotkeysContext] Hotkeys initialized:', result);
+                    logger.log('Hotkeys initialized:', result);
                 } else {
-                    console.log('[HotkeysContext] Unexpected data format:', result);
+                    logger.log('Unexpected data format:', result);
                 }
             } catch (error) {
-                console.error('[HotkeysContext] Failed to initialize hotkeys:', error);
+                logger.error('Failed to initialize hotkeys:', error);
             }
         };
 
@@ -120,7 +123,7 @@ export function HotkeysProvider({ children }: HotkeysProviderProps) {
 
                 if (isHotkeysData(data)) {
                     setEnabledState(data.enabled);
-                    console.log('[HotkeysContext] Hotkeys updated from external source:', data);
+                    logger.log('Hotkeys updated from external source:', data);
                 }
             });
         }
@@ -139,7 +142,7 @@ export function HotkeysProvider({ children }: HotkeysProviderProps) {
             try {
                 window.electronAPI.setHotkeysEnabled(newEnabled);
             } catch (error) {
-                console.error('[HotkeysContext] Failed to set hotkeys enabled:', error);
+                logger.error('Failed to set hotkeys enabled:', error);
             }
         }
     }, []);

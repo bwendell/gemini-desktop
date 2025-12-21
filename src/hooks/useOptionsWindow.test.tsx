@@ -14,7 +14,7 @@ describe('useOptionsWindow', () => {
             const { result } = renderHook(() => useOptionsWindow());
             await result.current.openOptions();
 
-            expect(consoleSpy).toHaveBeenCalledWith('Options window not yet implemented in Electron');
+            expect(consoleSpy).toHaveBeenCalledWith('[useOptionsWindow] Options window not yet implemented in Electron');
 
             consoleSpy.mockRestore();
         });

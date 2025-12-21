@@ -66,7 +66,7 @@ describe('useWindowControls', () => {
                 result.current.minimize();
             });
 
-            expect(consoleSpy).toHaveBeenCalledWith('Window controls not available');
+            expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
             consoleSpy.mockRestore();
 
             // Restore API
@@ -86,7 +86,7 @@ describe('useWindowControls', () => {
                 result.current.maximize();
             });
 
-            expect(consoleSpy).toHaveBeenCalledWith('Window controls not available');
+            expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
             consoleSpy.mockRestore();
 
             // Restore API
@@ -106,7 +106,7 @@ describe('useWindowControls', () => {
                 result.current.close();
             });
 
-            expect(consoleSpy).toHaveBeenCalledWith('Window controls not available');
+            expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
             consoleSpy.mockRestore();
 
             // Restore API

@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MenuDefinition } from './menuTypes';
+import { createRendererLogger } from '../../utils';
+
+const logger = createRendererLogger('[useMenuDefinitions]');
 
 // Re-export types for consumers
 export type { MenuDefinition, MenuItem } from './menuTypes';
@@ -24,7 +27,7 @@ export function useMenuDefinitions(): MenuDefinition[] {
                 setAlwaysOnTop(enabled);
             })
             .catch((error) => {
-                console.error('Failed to get always-on-top state:', error);
+                logger.error('Failed to get always-on-top state:', error);
             });
 
         // Subscribe to changes from hotkey or other sources

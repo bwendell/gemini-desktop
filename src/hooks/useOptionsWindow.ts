@@ -8,6 +8,9 @@
  */
 
 import { useCallback } from 'react';
+import { createRendererLogger } from '../utils';
+
+const logger = createRendererLogger('[useOptionsWindow]');
 
 /**
  * Hook for interacting with the Options window.
@@ -20,7 +23,7 @@ export function useOptionsWindow() {
      * Currently a placeholder - to be implemented.
      */
     const openOptions = useCallback(async () => {
-        console.warn('Options window not yet implemented in Electron');
+        logger.warn('Options window not yet implemented in Electron');
         // TODO: Implement IPC to open options window
     }, []);
 
