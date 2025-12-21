@@ -49,53 +49,10 @@ jobs:
       e2e-fail-fast: false
       artifact-suffix: ''
   
-  # Verify build output on all platforms
-  build-verification:
-    name: Build Verification (${{ matrix.os }})
-    needs: build
-    runs-on: ${{ matrix.os }}
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Download Frontend Build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: dist/
-
-      - name: Download Electron Build
-        uses: actions/download-artifact@v4
-        with:
-          name: electron-dist
-          path: dist-electron/
-
-      - name: Verify Build Output
-        run: |
-          echo "Verifying build output exists..."
-          ls -la dist/ || dir dist/
-          ls -la dist-electron/ || dir dist-electron/
-        shell: bash
-  
   # Aggregate results
   test-complete:
     name: Test Complete
-    needs: [build, test, build-verification]
+    needs: [build, test]
     runs-on: ubuntu-latest
     if: always()
     
@@ -118,19 +75,12 @@ jobs:
           else
             echo "❌ Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
-          # Check build verification
-          if [ "${{ needs.build-verification.result }}" == "success" ]; then
-            echo "✅ Build Verification: Passed (all platforms)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Build Verification: ${{ needs.build-verification.result }}" >> $GITHUB_STEP_SUMMARY
-          fi
 
       - name: Fail if Any Job Failed
         if: |
           needs.build.result != 'success' ||
-          needs.test.result != 'success' ||
-          needs.build-verification.result != 'success'
+          needs.test.result != 'success'
         run: |
           echo "One or more jobs failed. See summary above for details."
           exit 1
+

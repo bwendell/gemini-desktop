@@ -26,13 +26,6 @@ concurrency:
 permissions:
   contents: write # Required for creating releases
 
-# =============================================================================
-# Environment Variables
-# =============================================================================
-env:
-  NODE_VERSION: '20'
-  CI: true
-  ELECTRON_ENABLE_LOGGING: true
 
 jobs:
   # Build application
