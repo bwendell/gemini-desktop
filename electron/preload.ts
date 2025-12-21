@@ -46,6 +46,11 @@ const IPC_CHANNELS = {
     QUICK_CHAT_HIDE: 'quick-chat:hide',
     QUICK_CHAT_CANCEL: 'quick-chat:cancel',
     QUICK_CHAT_EXECUTE: 'quick-chat:execute',
+
+    // Always On Top
+    ALWAYS_ON_TOP_GET: 'always-on-top:get',
+    ALWAYS_ON_TOP_SET: 'always-on-top:set',
+    ALWAYS_ON_TOP_CHANGED: 'always-on-top:changed',
 } as const;
 
 // Expose window control APIs to renderer
@@ -257,6 +262,37 @@ const electronAPI: ElectronAPI = {
         // Return cleanup function for React useEffect
         return () => {
             ipcRenderer.removeListener('hotkeys:changed', subscription);
+        };
+    },
+
+    // =========================================================================
+    // Always On Top API
+    // =========================================================================
+
+    /**
+     * Get the current always-on-top state.
+     * @returns Promise resolving to { enabled: boolean }
+     */
+    getAlwaysOnTop: () => ipcRenderer.invoke(IPC_CHANNELS.ALWAYS_ON_TOP_GET),
+
+    /**
+     * Set the always-on-top state.
+     * @param enabled - Whether to enable always-on-top
+     */
+    setAlwaysOnTop: (enabled) => ipcRenderer.send(IPC_CHANNELS.ALWAYS_ON_TOP_SET, enabled),
+
+    /**
+     * Subscribe to always-on-top state changes.
+     * @param callback - Function called with { enabled: boolean } when state changes
+     * @returns Cleanup function to unsubscribe
+     */
+    onAlwaysOnTopChanged: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) =>
+            callback(data);
+        ipcRenderer.on(IPC_CHANNELS.ALWAYS_ON_TOP_CHANGED, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.ALWAYS_ON_TOP_CHANGED, subscription);
         };
     }
 

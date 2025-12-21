@@ -77,6 +77,24 @@ export const E2E_TIMING = {
 
     /** Short pause for quick restore operations or state updates */
     QUICK_RESTORE: 300,
+
+    /** Short pause for state cleanup between tests */
+    CLEANUP_PAUSE: 200,
+
+    /** Pause for IPC round-trip and state propagation */
+    IPC_ROUND_TRIP: 300,
+
+    /** Pause for window hide/show operations (tray interactions) */
+    WINDOW_HIDE_SHOW: 500,
+
+    /** Pause for multiple operation cycles */
+    CYCLE_PAUSE: 400,
+
+    /** Extended wait for fullscreen transitions */
+    FULLSCREEN_TRANSITION: 1000,
+
+    /** Pause for multi-window operations */
+    MULTI_WINDOW_PAUSE: 1000,
 } as const;
 
 // =============================================================================

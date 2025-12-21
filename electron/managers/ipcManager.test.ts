@@ -50,7 +50,12 @@ describe('IpcManager', () => {
                 on: vi.fn((event, handler) => {
                     if (event === 'closed') handler();
                 })
-            })
+            }),
+            setAlwaysOnTop: vi.fn(),
+            isAlwaysOnTop: vi.fn(),
+            on: vi.fn(),
+            emit: vi.fn(),
+            removeListener: vi.fn(),
         };
 
         // Create mock store explicitly
@@ -94,6 +99,8 @@ describe('IpcManager', () => {
             expect(hasListener('theme:set')).toBe(true);
             expect(hasHandler('hotkeys:get')).toBe(true);
             expect(hasListener('hotkeys:set')).toBe(true);
+            expect(hasHandler('always-on-top:get')).toBe(true);
+            expect(hasListener('always-on-top:set')).toBe(true);
             expect(hasListener('open-options-window')).toBe(true);
             expect(hasHandler('open-google-signin')).toBe(true);
         });
@@ -568,4 +575,183 @@ describe('IpcManager', () => {
             expect(mockLogger.error).toHaveBeenCalledWith('Error cancelling quick chat:', expect.anything());
         });
     });
+
+    describe('Always On Top Handlers', () => {
+        beforeEach(() => {
+            mockWindowManager.setAlwaysOnTop = vi.fn();
+            ipcManager.setupIpcHandlers();
+        });
+
+        it('handles always-on-top:get with true', async () => {
+            mockStore.get.mockReturnValue(true);
+
+            const handler = (ipcMain as any)._handlers.get('always-on-top:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: true });
+        });
+
+        it('handles always-on-top:get with false', async () => {
+            mockStore.get.mockReturnValue(false);
+
+            const handler = (ipcMain as any)._handlers.get('always-on-top:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: false });
+        });
+
+        it('handles always-on-top:get with undefined (defaults to false)', async () => {
+            mockStore.get.mockReturnValue(undefined);
+
+            const handler = (ipcMain as any)._handlers.get('always-on-top:get');
+            const result = await handler();
+
+            expect(result).toEqual({ enabled: false });
+        });
+
+        it('handles always-on-top:set by delegating to windowManager', () => {
+            const handler = (ipcMain as any)._listeners.get('always-on-top:set');
+
+            handler({}, true);
+
+            expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalledWith(true);
+            // Verify it DOES NOT persist/broadcast directly anymore
+            expect(mockStore.set).not.toHaveBeenCalled();
+        });
+
+        it('handles always-on-top-changed event by persisting and broadcasting', () => {
+            // Retrieve the listener registered in setupIpcHandlers
+            const calls = mockWindowManager.on.mock.calls;
+            const changeListenerCall = calls.find((c: any) => c[0] === 'always-on-top-changed');
+            expect(changeListenerCall).toBeDefined();
+            const listener = changeListenerCall[1];
+
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            // Simulate event from WindowManager
+            listener(true);
+
+            expect(mockStore.set).toHaveBeenCalledWith('alwaysOnTop', true);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith('always-on-top:changed', { enabled: true });
+        });
+
+        it('handles always-on-top-changed event (disabled state)', () => {
+            // Retrieve the listener
+            const calls = mockWindowManager.on.mock.calls;
+            const changeListenerCall = calls.find((c: any) => c[0] === 'always-on-top-changed');
+            const listener = changeListenerCall[1];
+
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+            // Simulate event
+            listener(false);
+
+            expect(mockStore.set).toHaveBeenCalledWith('alwaysOnTop', false);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith('always-on-top:changed', { enabled: false });
+        });
+
+        it('validates always-on-top:set input (rejects non-boolean)', () => {
+            const handler = (ipcMain as any)._listeners.get('always-on-top:set');
+            handler({}, 'invalid');
+            expect(mockStore.set).not.toHaveBeenCalled();
+            expect(mockLogger.warn).toHaveBeenCalledWith('Invalid alwaysOnTop value: invalid');
+        });
+
+        it('logs error when always-on-top:get fails', async () => {
+            const handler = (ipcMain as any)._handlers.get('always-on-top:get');
+            mockStore.get.mockImplementationOnce(() => { throw new Error('Get Failed'); });
+            const result = await handler();
+            expect(result).toEqual({ enabled: false });
+            expect(mockLogger.error).toHaveBeenCalledWith('Error getting always on top state:', expect.anything());
+        });
+
+        it('logs error when always-on-top:set fails', () => {
+            const handler = (ipcMain as any)._listeners.get('always-on-top:set');
+            mockWindowManager.setAlwaysOnTop.mockImplementationOnce(() => { throw new Error('Set Failed'); });
+            handler({}, true);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error setting always on top:', expect.anything());
+        });
+
+        it('logs error when broadcasting always-on-top fails', () => {
+            const calls = mockWindowManager.on.mock.calls;
+            const changeListenerCall = calls.find((c: any) => c[0] === 'always-on-top-changed');
+            const listener = changeListenerCall[1];
+
+            const badWindow = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn().mockImplementation(() => { throw new Error('Send Failed'); }) },
+                id: 99
+            };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([badWindow]);
+
+            listener(true);
+
+            expect(mockLogger.error).toHaveBeenCalledWith('Error broadcasting always on top change to window:', expect.anything());
+        });
+
+        it('skips destroyed windows when broadcasting', () => {
+            const calls = mockWindowManager.on.mock.calls;
+            const changeListenerCall = calls.find((c: any) => c[0] === 'always-on-top-changed');
+            const listener = changeListenerCall[1];
+
+            const destroyedWindow = {
+                isDestroyed: () => true,
+                webContents: { send: vi.fn() },
+                id: 1
+            };
+            const goodWindow = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn() },
+                id: 2
+            };
+
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([destroyedWindow, goodWindow]);
+
+            listener(true);
+
+            expect(destroyedWindow.webContents.send).not.toHaveBeenCalled();
+            expect(goodWindow.webContents.send).toHaveBeenCalledWith('always-on-top:changed', { enabled: true });
+        });
+    });
+
+    it('initializes always-on-top from stored preference when enabled', () => {
+        mockStore.get.mockImplementation((key: string) => {
+            if (key === 'alwaysOnTop') return true;
+            return 'system';
+        });
+
+        const newManager = new IpcManager(mockWindowManager, null, mockStore as any, mockLogger);
+        newManager.setupIpcHandlers();
+
+        expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalledWith(true);
+    });
+
+    it('does not call setAlwaysOnTop when preference is false', () => {
+        mockStore.get.mockImplementation((key: string) => {
+            if (key === 'alwaysOnTop') return false;
+            return 'system';
+        });
+
+        mockWindowManager.setAlwaysOnTop.mockClear();
+        const newManager = new IpcManager(mockWindowManager, null, mockStore as any, mockLogger);
+        newManager.setupIpcHandlers();
+
+        expect(mockWindowManager.setAlwaysOnTop).not.toHaveBeenCalled();
+    });
+
+    it('logs error when initializing always-on-top fails', () => {
+        const badStore = {
+            get: vi.fn().mockImplementation((key: string) => {
+                if (key === 'alwaysOnTop') throw new Error('Store Error');
+                return 'system';
+            }),
+            set: vi.fn()
+        };
+        const manager = new IpcManager(mockWindowManager, null, badStore as any, mockLogger);
+        manager.setupIpcHandlers();
+        expect(mockLogger.error).toHaveBeenCalledWith('Failed to initialize always on top:', expect.anything());
+    });
 });
+

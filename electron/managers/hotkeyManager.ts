@@ -135,6 +135,17 @@ export default class HotkeyManager {
                     logger.log('Hotkey pressed: CommandOrControl+Shift+Space (Quick Chat)');
                     this.windowManager.toggleQuickChat();
                 }
+            },
+            {
+                // Always On Top Toggle
+                // Ctrl+Shift+T (Windows/Linux) or Cmd+Shift+T (macOS)
+                accelerator: 'CommandOrControl+Shift+T',
+                action: () => {
+                    logger.log('Hotkey pressed: CommandOrControl+Shift+T (Always On Top)');
+                    const current = this.windowManager.isAlwaysOnTop();
+                    logger.log(`Current always-on-top state: ${current}, toggling to: ${!current}`);
+                    this.windowManager.setAlwaysOnTop(!current);
+                }
             }
         ];
     }

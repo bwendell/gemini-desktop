@@ -1,4 +1,7 @@
 import { useCallback } from 'react';
+import { createRendererLogger } from '../utils';
+
+const logger = createRendererLogger('[useWindowControls]');
 
 /**
  * Custom hook for window control operations.
@@ -16,7 +19,7 @@ export function useWindowControls(): { minimize: () => void; maximize: () => voi
         if (window.electronAPI) {
             window.electronAPI.minimizeWindow();
         } else {
-            console.warn('Window controls not available');
+            logger.warn('Window controls not available');
         }
     }, []);
 
@@ -27,7 +30,7 @@ export function useWindowControls(): { minimize: () => void; maximize: () => voi
         if (window.electronAPI) {
             window.electronAPI.maximizeWindow();
         } else {
-            console.warn('Window controls not available');
+            logger.warn('Window controls not available');
         }
     }, []);
 
@@ -38,7 +41,7 @@ export function useWindowControls(): { minimize: () => void; maximize: () => voi
         if (window.electronAPI) {
             window.electronAPI.closeWindow();
         } else {
-            console.warn('Window controls not available');
+            logger.warn('Window controls not available');
         }
     }, []);
 

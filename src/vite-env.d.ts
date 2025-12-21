@@ -25,6 +25,11 @@ interface Window {
         setHotkeysEnabled: (enabled: boolean) => void;
         onHotkeysChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
 
+        // Always On Top API
+        getAlwaysOnTop: () => Promise<{ enabled: boolean }>;
+        setAlwaysOnTop: (enabled: boolean) => void;
+        onAlwaysOnTopChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
+
         platform: string;
         isElectron: boolean;
     };

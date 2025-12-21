@@ -2,7 +2,10 @@ import { useState, useCallback } from 'react';
 import { MainLayout } from './components/layout';
 import { ThemeProvider } from './context/ThemeContext';
 import { GEMINI_APP_URL } from './utils/constants';
+import { createRendererLogger } from './utils';
 import './App.css';
+
+const logger = createRendererLogger('[App]');
 
 /**
  * Root application component.
@@ -34,7 +37,7 @@ function App() {
   const handleIframeError = useCallback(() => {
     setIsLoading(false);
     setError('Failed to load Gemini');
-    console.error('Failed to load Gemini iframe');
+    logger.error('Failed to load Gemini iframe');
   }, []);
 
   return (

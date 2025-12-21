@@ -22,9 +22,11 @@ import {
 import { getPreloadPath, getDistHtmlPath, getIconPath } from '../utils/paths';
 import { createLogger } from '../utils/logger';
 
+import { EventEmitter } from 'events';
+
 const logger = createLogger('[WindowManager]');
 
-export default class WindowManager {
+export default class WindowManager extends EventEmitter {
     readonly isDev: boolean;
     private mainWindow: BrowserWindow | null = null;
     private optionsWindow: BrowserWindow | null = null;
@@ -37,6 +39,7 @@ export default class WindowManager {
      * @param isDev - Whether running in development mode
      */
     constructor(isDev: boolean) {
+        super();
         this.isDev = isDev;
     }
 
@@ -545,5 +548,25 @@ export default class WindowManager {
      */
     setQuitting(state: boolean): void {
         this.isQuitting = state;
+    }
+
+    /**
+     * Set the always-on-top state for the main window.
+     * @param enabled - Whether to enable always-on-top
+     */
+    setAlwaysOnTop(enabled: boolean): void {
+        if (this.mainWindow) {
+            this.mainWindow.setAlwaysOnTop(enabled);
+            this.emit('always-on-top-changed', enabled);
+            logger.log(`Always on top ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    /**
+     * Get the current always-on-top state.
+     * @returns True if always-on-top is enabled, false otherwise
+     */
+    isAlwaysOnTop(): boolean {
+        return this.mainWindow?.isAlwaysOnTop() ?? false;
     }
 }

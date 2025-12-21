@@ -80,6 +80,11 @@ export interface ElectronAPI {
     getHotkeysEnabled: () => Promise<HotkeysData>;
     setHotkeysEnabled: (enabled: boolean) => void;
     onHotkeysChanged: (callback: (data: HotkeysData) => void) => () => void;
+
+    // Always On Top API
+    getAlwaysOnTop: () => Promise<{ enabled: boolean }>;
+    setAlwaysOnTop: (enabled: boolean) => void;
+    onAlwaysOnTopChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
 }
 
 /**

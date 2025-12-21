@@ -22,6 +22,9 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createRendererLogger } from '../utils';
+
+const logger = createRendererLogger('[ThemeContext]');
 
 // ============================================================================
 // Types
@@ -115,7 +118,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
             // No Electron API - use browser defaults
             /* v8 ignore start -- browser-only fallback path */
             if (!window.electronAPI) {
-                console.log('[ThemeContext] No Electron API, using browser defaults');
+                logger.log('No Electron API, using browser defaults');
                 const systemTheme = getSystemThemePreference();
                 if (isMounted) {
                     setEffectiveTheme(systemTheme);
@@ -135,24 +138,24 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
                     setThemeState(result.preference);
                     setEffectiveTheme(result.effectiveTheme);
                     applyThemeToDom(result.effectiveTheme);
-                    console.log('[ThemeContext] Theme initialized:', result);
+                    logger.log('Theme initialized:', result);
                 } else if (typeof result === 'string') {
                     // Legacy string format fallback
-                    console.log('[ThemeContext] Using legacy theme format:', result);
+                    logger.log('Using legacy theme format:', result);
                     const preference = result as Theme;
                     const effective = preference === 'system' ? getSystemThemePreference() : preference;
                     setThemeState(preference);
                     setEffectiveTheme(effective);
                     applyThemeToDom(effective);
                 } else {
-                    console.warn('[ThemeContext] Received invalid theme data:', result);
+                    logger.warn('Received invalid theme data:', result);
                     // Invalid data - safe fallback to system
                     const systemTheme = getSystemThemePreference();
                     setEffectiveTheme(systemTheme);
                     applyThemeToDom(systemTheme);
                 }
             } catch (error) {
-                console.error('[ThemeContext] Failed to initialize theme:', error);
+                logger.error('Failed to initialize theme:', error);
                 // Fall back to system preference on error
                 const systemTheme = getSystemThemePreference();
                 /* v8 ignore next 4 -- race condition guard for async error fallback */
@@ -177,10 +180,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
                     setThemeState(data.preference);
                     setEffectiveTheme(data.effectiveTheme);
                     applyThemeToDom(data.effectiveTheme);
-                    console.log('[ThemeContext] Theme updated from external source:', data);
+                    logger.log('Theme updated from external source:', data);
                 } else {
                     // Legacy format fallback
-                    console.log('[ThemeContext] Using legacy change format:', data);
+                    logger.log('Using legacy change format:', data);
                     const preference = data as Theme;
                     const effective = preference === 'system' ? getSystemThemePreference() : preference;
                     setThemeState(preference);
@@ -214,7 +217,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
             try {
                 window.electronAPI.setTheme(newTheme);
             } catch (error) {
-                console.error('[ThemeContext] Failed to set theme:', error);
+                logger.error('Failed to set theme:', error);
             }
         }
     }, []);

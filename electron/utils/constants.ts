@@ -127,6 +127,11 @@ export const IPC_CHANNELS = {
     QUICK_CHAT_HIDE: 'quick-chat:hide',
     QUICK_CHAT_CANCEL: 'quick-chat:cancel',
     QUICK_CHAT_EXECUTE: 'quick-chat:execute',
+
+    // Always On Top
+    ALWAYS_ON_TOP_GET: 'always-on-top:get',
+    ALWAYS_ON_TOP_SET: 'always-on-top:set',
+    ALWAYS_ON_TOP_CHANGED: 'always-on-top:changed',
 } as const;
 
 /**

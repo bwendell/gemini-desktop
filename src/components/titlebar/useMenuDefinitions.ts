@@ -1,4 +1,8 @@
+import { useState, useEffect, useCallback } from 'react';
 import type { MenuDefinition } from './menuTypes';
+import { createRendererLogger } from '../../utils';
+
+const logger = createRendererLogger('[useMenuDefinitions]');
 
 // Re-export types for consumers
 export type { MenuDefinition, MenuItem } from './menuTypes';
@@ -13,6 +17,35 @@ export type { MenuDefinition, MenuItem } from './menuTypes';
  * Note: Edit menu removed as it doesn't affect the embedded Gemini webview.
  */
 export function useMenuDefinitions(): MenuDefinition[] {
+    const [alwaysOnTop, setAlwaysOnTop] = useState(false);
+
+    // Initialize state from main process and subscribe to changes
+    useEffect(() => {
+        // Get initial state
+        window.electronAPI?.getAlwaysOnTop()
+            .then(({ enabled }) => {
+                setAlwaysOnTop(enabled);
+            })
+            .catch((error) => {
+                logger.error('Failed to get always-on-top state:', error);
+            });
+
+        // Subscribe to changes from hotkey or other sources
+        const cleanup = window.electronAPI?.onAlwaysOnTopChanged(({ enabled }) => {
+            setAlwaysOnTop(enabled);
+        });
+
+        return () => {
+            cleanup?.();
+        };
+    }, []);
+
+    const toggleAlwaysOnTop = useCallback(() => {
+        const newState = !alwaysOnTop;
+        // Fire and forget - state update will come via onAlwaysOnTopChanged event
+        window.electronAPI?.setAlwaysOnTop(newState);
+    }, [alwaysOnTop]);
+
     return [
         {
             label: 'File',
@@ -61,6 +94,14 @@ export function useMenuDefinitions(): MenuDefinition[] {
                     label: 'Reload',
                     shortcut: 'Ctrl+R',
                     action: () => window.location.reload(),
+                },
+                { separator: true },
+                {
+                    id: 'menu-view-always-on-top',
+                    label: 'Always On Top',
+                    shortcut: 'Ctrl+Shift+T',
+                    checked: alwaysOnTop,
+                    action: toggleAlwaysOnTop,
                 },
                 { separator: true },
                 {
