@@ -6,10 +6,21 @@ import WindowManager from './windowManager';
 // Mock electron
 vi.mock('electron', () => ({
     app: {
-        name: 'Gemini Desktop'
+        name: 'Gemini Desktop',
+        on: vi.fn()
     },
     Menu: {
-        buildFromTemplate: vi.fn((template) => template),
+        buildFromTemplate: vi.fn((template) => ({
+            popup: vi.fn(),
+            template,
+            getMenuItemById: vi.fn((id: string) => {
+                const item = template.find((t: any) => t.id === id);
+                if (item) {
+                    return { ...item, enabled: true };
+                }
+                return null;
+            })
+        })),
         setApplicationMenu: vi.fn(),
     },
     shell: {
@@ -170,6 +181,83 @@ describe('MenuManager', () => {
             expect(aboutItem).toBeTruthy();
             aboutItem.click();
             expect(mockWindowManager.createOptionsWindow).toHaveBeenCalledWith('about');
+        });
+    });
+
+    describe('Context Menu', () => {
+        let webContentsCreatedCallback: any;
+        let contextMenuCallback: any;
+        let mockContents: any;
+
+        beforeEach(() => {
+            mockContents = {
+                on: vi.fn((event: string, callback: any) => {
+                    if (event === 'context-menu') {
+                        contextMenuCallback = callback;
+                    }
+                })
+            };
+        });
+
+        it('registers web-contents-created listener', async () => {
+            const { app } = await import('electron');
+
+            menuManager.setupContextMenu();
+
+            expect(app.on).toHaveBeenCalledWith('web-contents-created', expect.any(Function));
+        });
+
+        it('pre-builds context menu with correct items and accelerators', async () => {
+            const { Menu } = await import('electron');
+
+            menuManager.setupContextMenu();
+
+            // Verify menu was pre-built once during setup
+            expect(Menu.buildFromTemplate).toHaveBeenCalled();
+            const buildCall = (Menu.buildFromTemplate as any).mock.calls[
+                (Menu.buildFromTemplate as any).mock.calls.length - 1
+            ];
+            const template = buildCall[0];
+
+            // Verify template includes IDs, roles, and accelerators
+            expect(template).toEqual([
+                { id: 'cut', role: 'cut', accelerator: 'CmdOrCtrl+X' },
+                { id: 'copy', role: 'copy', accelerator: 'CmdOrCtrl+C' },
+                { id: 'paste', role: 'paste', accelerator: 'CmdOrCtrl+V' },
+                { id: 'delete', role: 'delete' },
+                { type: 'separator' },
+                { id: 'selectAll', role: 'selectAll', accelerator: 'CmdOrCtrl+A' }
+            ]);
+        });
+
+        it('calls popup on the cached menu when context-menu event fires', async () => {
+            const { app, Menu } = await import('electron');
+
+            menuManager.setupContextMenu();
+
+            // Get the web-contents-created callback
+            webContentsCreatedCallback = (app.on as any).mock.calls.find(
+                (call: any[]) => call[0] === 'web-contents-created'
+            )?.[1];
+
+            webContentsCreatedCallback({}, mockContents);
+
+            const mockParams = {
+                editFlags: {
+                    canCut: true,
+                    canCopy: true,
+                    canPaste: true,
+                    canDelete: true,
+                    canSelectAll: true
+                }
+            };
+
+            contextMenuCallback({}, mockParams);
+
+            const menu = (Menu.buildFromTemplate as any).mock.results[
+                (Menu.buildFromTemplate as any).mock.results.length - 1
+            ].value;
+            expect(menu.popup).toHaveBeenCalled();
         });
     });
 });

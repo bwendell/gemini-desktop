@@ -67,6 +67,7 @@ if (!gotTheLock) {
         // Setup native application menu (critical for macOS)
         const menuManager = new MenuManager(windowManager);
         menuManager.buildMenu();
+        menuManager.setupContextMenu();
 
         windowManager.createMainWindow();
 

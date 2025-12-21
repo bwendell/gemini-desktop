@@ -6,13 +6,102 @@ import { GOOGLE_SIGNIN_URL, GITHUB_ISSUES_URL } from '../utils/constants';
 const isMac = () => process.platform === 'darwin';
 
 /**
- * Manages the application native menu.
+ * Manages the application native menu and context menus.
  * Critical for macOS where the menu bar is at the top of the screen.
  * On Windows/Linux, we use a custom titlebar menu, so this is less visible,
  * but still good for accessibility if the custom menu is disabled.
+ * Also handles right-click context menus for standard text editing operations.
  */
 export default class MenuManager {
+    private cachedContextMenu: Menu | null = null;
+    private contextMenuItems: { id: string; item: MenuItem }[] = [];
+
     constructor(private windowManager: WindowManager) { }
+
+    /**
+     * Sets up context menu for all web contents.
+     * Pre-builds the menu for faster display and updates enabled states dynamically.
+     */
+    setupContextMenu(): void {
+        // Pre-build the context menu once
+        this.cachedContextMenu = this.buildCachedContextMenu();
+
+        app.on('web-contents-created', (_, contents) => {
+            contents.on('context-menu', (_, params) => {
+                // Update enabled states based on current context
+                this.updateContextMenuState(params);
+                // Show the pre-built menu
+                this.cachedContextMenu?.popup();
+            });
+        });
+    }
+
+    /**
+     * Builds and caches the context menu with menu item references.
+     * @returns Pre-built Menu instance
+     */
+    private buildCachedContextMenu(): Menu {
+        const template: MenuItemConstructorOptions[] = [
+            {
+                id: 'cut',
+                role: 'cut',
+                accelerator: 'CmdOrCtrl+X',
+            },
+            {
+                id: 'copy',
+                role: 'copy',
+                accelerator: 'CmdOrCtrl+C',
+            },
+            {
+                id: 'paste',
+                role: 'paste',
+                accelerator: 'CmdOrCtrl+V',
+            },
+            {
+                id: 'delete',
+                role: 'delete',
+            },
+            { type: 'separator' },
+            {
+                id: 'selectAll',
+                role: 'selectAll',
+                accelerator: 'CmdOrCtrl+A',
+            },
+        ];
+
+        const menu = Menu.buildFromTemplate(template);
+
+        // Cache references to menu items for fast state updates
+        this.contextMenuItems = [
+            { id: 'cut', item: menu.getMenuItemById('cut')! },
+            { id: 'copy', item: menu.getMenuItemById('copy')! },
+            { id: 'paste', item: menu.getMenuItemById('paste')! },
+            { id: 'delete', item: menu.getMenuItemById('delete')! },
+            { id: 'selectAll', item: menu.getMenuItemById('selectAll')! },
+        ].filter(entry => entry.item !== null);
+
+        return menu;
+    }
+
+    /**
+     * Updates the enabled state of context menu items based on current edit flags.
+     * @param params - Context menu parameters from Electron
+     */
+    private updateContextMenuState(params: Electron.ContextMenuParams): void {
+        const flagMap: Record<string, boolean> = {
+            cut: params.editFlags.canCut,
+            copy: params.editFlags.canCopy,
+            paste: params.editFlags.canPaste,
+            delete: params.editFlags.canDelete,
+            selectAll: params.editFlags.canSelectAll,
+        };
+
+        for (const { id, item } of this.contextMenuItems) {
+            if (id in flagMap) {
+                item.enabled = flagMap[id];
+            }
+        }
+    }
 
     /**
      * Builds and sets the application menu.
