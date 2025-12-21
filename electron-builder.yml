@@ -1,3 +1,18 @@
+# =============================================================================
+# Electron Builder Configuration
+# =============================================================================
+#
+# This file configures electron-builder for packaging the application.
+# Architecture is specified via CLI flags (--x64 or --arm64) to allow
+# separate workflow jobs per architecture without upload collisions.
+#
+# Targets:
+#   - macOS: DMG + ZIP (x64, arm64 via CLI)
+#   - Windows: NSIS installer + Portable (x64)
+#   - Linux: AppImage, DEB, RPM, tar.gz (x64)
+#
+# =============================================================================
+
 appId: com.benwendell.gemini-desktop
 productName: Gemini Desktop
 directories:
@@ -41,16 +56,12 @@ nsis:
   perMachine: false
 
 # macOS Configuration
+# Note: Architecture is specified via CLI flags (--x64 or --arm64)
+# This allows separate jobs to build each architecture without conflicts
 mac:
   target:
-    - target: dmg
-      arch:
-        - x64
-        - arm64
-    - target: zip
-      arch:
-        - x64
-        - arm64
+    - dmg
+    - zip
   icon: build/icon.png
   # Skip code signing when no certificates are configured
   identity: null

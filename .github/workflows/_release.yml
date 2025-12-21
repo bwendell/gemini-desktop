@@ -1,16 +1,14 @@
 # =============================================================================
-# Atomic Release Workflow (DO NOT USE)
+# Atomic Release Workflow (Reusable)
 # =============================================================================
 #
 # This reusable workflow handles the packaging and publishing process.
-# It runs on multiple platforms (macOS, Windows, Linux) to:
-#   - Download build artifacts
-#   - Package the application
-#   - Publish to GitHub Releases
+# It runs explicit separate jobs per platform/architecture following
+# industry best practices (Bitwarden/Zettlr pattern) to avoid upload collisions.
 #
 # =============================================================================
 
-name: Release (DO NOT USE)
+name: Release (Reusable)
 
 on:
   workflow_call:
@@ -87,26 +85,16 @@ jobs:
         shell: bash
         continue-on-error: true
 
-  release:
-    name: Release (${{ matrix.os }}${{ matrix.arch && format(' {0}', matrix.arch) || '' }})
-    needs: cleanup  # Wait for cleanup to finish
-    runs-on: ${{ matrix.os }}
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # macOS: Build x64 and arm64 separately to avoid upload collisions
-          - os: macos-latest
-            arch: x64
-          - os: macos-latest
-            arch: arm64
-          # Windows and Linux: single architecture
-          - os: ubuntu-latest
-            arch: ''
-          - os: windows-latest
-            arch: ''
-
+  # ==========================================================================
+  # macOS Builds - Separate jobs per architecture (Bitwarden/Zettlr pattern)
+  # ==========================================================================
+  
+  macos-x64:
+    name: macOS (x64)
+    needs: cleanup
+    runs-on: macos-latest
+    env:
+      npm_config_arch: x64
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -120,7 +108,6 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      # Download build artifacts from _build.yml
       - name: Download Frontend Build
         uses: actions/download-artifact@v4
         with:
@@ -133,40 +120,168 @@ jobs:
           name: electron-dist
           path: dist-electron/
 
-      # Run Electron Builder
-      # This step builds the artifacts and uploads them to the GitHub Release
-      # For macOS: build only the specified architecture to avoid upload collisions
-      - name: Build & Publish via Electron Builder
-        run: |
-          if [ -n "${{ matrix.arch }}" ]; then
-            echo "Building for macOS ${{ matrix.arch }} only"
-            npx --yes electron-builder --mac --${{ matrix.arch }} --publish always
-          else
-            echo "Building for ${{ runner.os }}"
-            npx --yes electron-builder --publish always
-          fi
-        shell: bash
+      - name: Build & Publish (macOS x64)
+        run: npm run dist:mac-x64 -- --publish always
         env:
-          # GitHub token for publishing releases
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-          # macOS Signing & Notarization Secrets (Optional - Empty = Unsigned)
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          
-          # Windows Signing Secrets (Optional - Empty = Unsigned)
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
-      # Upload build artifacts for debugging if needed
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: release-artifacts-${{ matrix.os }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
+          name: release-artifacts-macos-x64
+          path: release/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  macos-arm64:
+    name: macOS (arm64)
+    needs: cleanup
+    runs-on: macos-latest
+    env:
+      npm_config_arch: arm64
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+      
+      - name: Download Electron Build
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-dist
+          path: dist-electron/
+
+      - name: Build & Publish (macOS arm64)
+        run: npm run dist:mac-arm64 -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-artifacts-macos-arm64
+          path: release/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ==========================================================================
+  # Windows Build
+  # ==========================================================================
+  
+  windows:
+    name: Windows (x64)
+    needs: cleanup
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+      
+      - name: Download Electron Build
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-dist
+          path: dist-electron/
+
+      - name: Build & Publish (Windows)
+        run: npm run dist:win -- --publish always
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-artifacts-windows
+          path: release/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ==========================================================================
+  # Linux Build
+  # ==========================================================================
+  
+  linux:
+    name: Linux (x64)
+    needs: cleanup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+      
+      - name: Download Electron Build
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-dist
+          path: dist-electron/
+
+      - name: Build & Publish (Linux)
+        run: npm run dist:linux -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-artifacts-linux
           path: release/
           retention-days: 7
           if-no-files-found: ignore
