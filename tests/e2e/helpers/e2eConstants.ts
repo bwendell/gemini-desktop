@@ -95,6 +95,12 @@ export const E2E_TIMING = {
 
     /** Pause for multi-window operations */
     MULTI_WINDOW_PAUSE: 1000,
+
+    /** Timeout for waitUntil conditions expecting window state changes */
+    WINDOW_STATE_TIMEOUT: 5000,
+
+    /** Interval for polling window state */
+    WINDOW_STATE_POLL_INTERVAL: 200,
 } as const;
 
 // =============================================================================
