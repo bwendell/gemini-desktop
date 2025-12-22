@@ -205,9 +205,16 @@ describe('Quick Chat Feature', () => {
                 if (main) main.focus();
             });
 
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            // 3. Wait for Quick Chat to be hidden (auto-hide on blur)
+            // Use waitUntil instead of pause to be robust against timing variations
+            await browser.waitUntil(async () => {
+                const s = await getQuickChatState();
+                return s.windowVisible === false;
+            }, {
+                timeout: 3000,
+                timeoutMsg: 'Quick Chat window did not hide after losing focus'
+            });
 
-            // 3. Quick Chat should now be hidden
             state = await getQuickChatState();
             expect(state.windowVisible).toBe(false);
             E2ELogger.info('quick-chat', 'Quick Chat window hidden on blur');

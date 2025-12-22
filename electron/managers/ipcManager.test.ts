@@ -97,8 +97,8 @@ describe('IpcManager', () => {
             expect(hasHandler('window-is-maximized')).toBe(true);
             expect(hasHandler('theme:get')).toBe(true);
             expect(hasListener('theme:set')).toBe(true);
-            expect(hasHandler('hotkeys:get')).toBe(true);
-            expect(hasListener('hotkeys:set')).toBe(true);
+            expect(hasHandler('hotkeys:individual:get')).toBe(true);
+            expect(hasListener('hotkeys:individual:set')).toBe(true);
             expect(hasHandler('always-on-top:get')).toBe(true);
             expect(hasListener('always-on-top:set')).toBe(true);
             expect(hasListener('open-options-window')).toBe(true);
@@ -199,107 +199,124 @@ describe('IpcManager', () => {
         });
     });
 
-    describe('Hotkey Handlers', () => {
+    describe('Individual Hotkey Handlers', () => {
         let mockHotkeyManager: any;
 
         beforeEach(() => {
             mockHotkeyManager = {
-                setEnabled: vi.fn(),
-                isEnabled: vi.fn().mockReturnValue(true)
+                setIndividualEnabled: vi.fn(),
+                getIndividualSettings: vi.fn().mockReturnValue({ alwaysOnTop: true, bossKey: true, quickChat: true })
             };
             ipcManager = new IpcManager(mockWindowManager, mockHotkeyManager, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
         });
 
-        it('handles hotkeys:get', async () => {
-            mockStore.get.mockReturnValue(true);
+        it('handles hotkeys:individual:get', async () => {
+            mockStore.get.mockImplementation((key: string) => {
+                if (key === 'hotkeyAlwaysOnTop') return true;
+                if (key === 'hotkeyBossKey') return false;
+                if (key === 'hotkeyQuickChat') return true;
+                return undefined;
+            });
 
-            const handler = (ipcMain as any)._handlers.get('hotkeys:get');
+            const handler = (ipcMain as any)._handlers.get('hotkeys:individual:get');
             const result = await handler();
 
-            expect(result).toEqual({ enabled: true });
+            expect(result).toEqual({ alwaysOnTop: true, bossKey: false, quickChat: true });
         });
 
-        it('handles hotkeys:get with false value', async () => {
-            mockStore.get.mockReturnValue(false);
-
-            const handler = (ipcMain as any)._handlers.get('hotkeys:get');
-            const result = await handler();
-
-            expect(result).toEqual({ enabled: false });
-        });
-
-        it('handles hotkeys:get with undefined (defaults to true)', async () => {
+        it('handles hotkeys:individual:get with defaults', async () => {
             mockStore.get.mockReturnValue(undefined);
 
-            const handler = (ipcMain as any)._handlers.get('hotkeys:get');
+            const handler = (ipcMain as any)._handlers.get('hotkeys:individual:get');
             const result = await handler();
 
-            expect(result).toEqual({ enabled: true });
+            expect(result).toEqual({ alwaysOnTop: true, bossKey: true, quickChat: true });
         });
 
-        it('handles hotkeys:set to disable', () => {
-            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+        it('handles hotkeys:individual:set for alwaysOnTop', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
+            const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+            (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+            mockStore.get.mockReturnValue(true);
+
+            handler({}, 'alwaysOnTop', false);
+
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeyAlwaysOnTop', false);
+            expect(mockHotkeyManager.setIndividualEnabled).toHaveBeenCalledWith('alwaysOnTop', false);
+            expect(mockWin.webContents.send).toHaveBeenCalledWith(
+                'hotkeys:individual:changed',
+                expect.objectContaining({ alwaysOnTop: true, bossKey: true, quickChat: true })
+            );
+        });
+
+        it('handles hotkeys:individual:set for bossKey', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
             const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
             (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
 
-            handler({}, false);
+            handler({}, 'bossKey', false);
 
-            expect(mockStore.set).toHaveBeenCalledWith('hotkeysEnabled', false);
-            expect(mockHotkeyManager.setEnabled).toHaveBeenCalledWith(false);
-            expect(mockWin.webContents.send).toHaveBeenCalledWith('hotkeys:changed', { enabled: false });
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeyBossKey', false);
+            expect(mockHotkeyManager.setIndividualEnabled).toHaveBeenCalledWith('bossKey', false);
         });
 
-        it('handles hotkeys:set to enable', () => {
-            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+        it('handles hotkeys:individual:set for quickChat', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
             const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
             (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
 
-            handler({}, true);
+            handler({}, 'quickChat', true);
 
-            expect(mockStore.set).toHaveBeenCalledWith('hotkeysEnabled', true);
-            expect(mockHotkeyManager.setEnabled).toHaveBeenCalledWith(true);
-            expect(mockWin.webContents.send).toHaveBeenCalledWith('hotkeys:changed', { enabled: true });
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeyQuickChat', true);
+            expect(mockHotkeyManager.setIndividualEnabled).toHaveBeenCalledWith('quickChat', true);
         });
 
-        it('validates hotkeys:set input (rejects non-boolean)', () => {
-            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
-            handler({}, 'invalid');
+        it('validates hotkeys:individual:set input (rejects invalid id)', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
+            handler({}, 'invalidId', false);
             expect(mockStore.set).not.toHaveBeenCalled();
-            expect(mockLogger.warn).toHaveBeenCalledWith('Invalid hotkeys enabled value: invalid');
+            expect(mockLogger.warn).toHaveBeenCalledWith('Invalid hotkey id: invalidId');
         });
 
-        it('handles hotkeys:set without hotkeyManager', () => {
+        it('validates hotkeys:individual:set input (rejects non-boolean)', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
+            handler({}, 'alwaysOnTop', 'invalid');
+            expect(mockStore.set).not.toHaveBeenCalled();
+            expect(mockLogger.warn).toHaveBeenCalledWith('Invalid enabled value: invalid');
+        });
+
+        it('handles hotkeys:individual:set without hotkeyManager', () => {
             // Create IpcManager without hotkeyManager
             ipcManager = new IpcManager(mockWindowManager, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
             const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
             (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
 
             // Should not throw when hotkeyManager is null
-            handler({}, false);
-            expect(mockStore.set).toHaveBeenCalledWith('hotkeysEnabled', false);
+            handler({}, 'alwaysOnTop', false);
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeyAlwaysOnTop', false);
         });
 
-        it('logs error when hotkeys:get fails', async () => {
-            const handler = (ipcMain as any)._handlers.get('hotkeys:get');
+        it('logs error when hotkeys:individual:get fails', async () => {
+            const handler = (ipcMain as any)._handlers.get('hotkeys:individual:get');
             mockStore.get.mockImplementationOnce(() => { throw new Error('Get Failed'); });
             const result = await handler();
-            expect(result).toEqual({ enabled: true });
-            expect(mockLogger.error).toHaveBeenCalledWith('Error getting hotkeys state:', expect.anything());
+            expect(result).toEqual({ alwaysOnTop: true, bossKey: true, quickChat: true });
+            expect(mockLogger.error).toHaveBeenCalledWith('Error getting individual hotkeys state:', expect.anything());
         });
 
-        it('logs error when hotkeys:set fails', () => {
-            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+        it('logs error when hotkeys:individual:set fails', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
             mockStore.set.mockImplementationOnce(() => { throw new Error('Set Failed'); });
-            handler({}, true);
-            expect(mockLogger.error).toHaveBeenCalledWith('Error setting hotkeys enabled:', expect.anything());
+            handler({}, 'alwaysOnTop', true);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error setting individual hotkey:', expect.anything());
         });
 
-        it('logs error when broadcasting hotkeys fails', () => {
-            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+        it('logs error when broadcasting individual hotkeys fails', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
             const badWindow = {
                 isDestroyed: () => false,
                 webContents: { send: vi.fn().mockImplementation(() => { throw new Error('Send Failed'); }) },
@@ -307,12 +324,12 @@ describe('IpcManager', () => {
             };
             (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([badWindow]);
 
-            handler({}, true);
-            expect(mockLogger.error).toHaveBeenCalledWith('Error broadcasting hotkeys change to window:', expect.anything());
+            handler({}, 'quickChat', true);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error broadcasting individual hotkey change to window:', expect.anything());
         });
 
         it('skips destroyed windows when broadcasting', () => {
-            const handler = (ipcMain as any)._listeners.get('hotkeys:set');
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
             const destroyedWindow = {
                 isDestroyed: () => true,
                 webContents: { send: vi.fn() },
@@ -324,11 +341,15 @@ describe('IpcManager', () => {
                 id: 2
             };
             (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([destroyedWindow, goodWindow]);
+            mockStore.get.mockReturnValue(true);
 
-            handler({}, true);
+            handler({}, 'bossKey', true);
 
             expect(destroyedWindow.webContents.send).not.toHaveBeenCalled();
-            expect(goodWindow.webContents.send).toHaveBeenCalledWith('hotkeys:changed', { enabled: true });
+            expect(goodWindow.webContents.send).toHaveBeenCalledWith(
+                'hotkeys:individual:changed',
+                expect.objectContaining({ alwaysOnTop: true, bossKey: true, quickChat: true })
+            );
         });
     });
 

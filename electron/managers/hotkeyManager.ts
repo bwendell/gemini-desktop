@@ -3,8 +3,8 @@
  * 
  * This module handles global keyboard shortcuts (hotkeys) registration and management.
  * It provides a centralized way to:
- * - Register/unregister global keyboard shortcuts
- * - Enable/disable all shortcuts without losing their configuration
+ * - Register/unregister individual global keyboard shortcuts
+ * - Enable/disable each shortcut independently
  * - Integrate with the WindowManager for shortcut actions
  * 
  * ## Architecture
@@ -18,14 +18,10 @@
  * - **Windows/Linux**: `CommandOrControl` maps to `Ctrl`
  * - **macOS**: `CommandOrControl` maps to `Cmd`
  * 
- * ## Enable/Disable Feature
+ * ## Individual Enable/Disable Feature
  * 
- * The manager supports toggling all shortcuts on/off via `setEnabled()`. When disabled:
- * - All shortcuts are unregistered from the system
- * - The shortcut configurations are preserved in memory
- * - Re-enabling will re-register the same shortcuts
- * 
- * This allows users to temporarily disable hotkeys without losing their settings.
+ * Each hotkey can be individually enabled/disabled via `setIndividualEnabled()`.
+ * Settings are persisted and synced via IpcManager.
  * 
  * @module HotkeyManager
  * @see {@link WindowManager} - Used for shortcut actions
@@ -35,6 +31,7 @@
 import { globalShortcut } from 'electron';
 import type WindowManager from './windowManager';
 import { createLogger } from '../utils/logger';
+import type { HotkeyId, IndividualHotkeySettings } from '../types';
 
 const logger = createLogger('[HotkeyManager]');
 
@@ -45,10 +42,12 @@ const logger = createLogger('[HotkeyManager]');
 /**
  * Defines a keyboard shortcut configuration.
  * 
+ * @property id - Unique identifier for the shortcut
  * @property accelerator - The Electron accelerator string (e.g., 'CommandOrControl+Alt+E')
  * @property action - The callback function to execute when the shortcut is triggered
  */
 interface Shortcut {
+    id: HotkeyId;
     accelerator: string;
     action: () => void;
 }
@@ -62,16 +61,15 @@ interface Shortcut {
  * 
  * ## Features
  * - Registers global shortcuts that work system-wide
- * - Supports enable/disable toggle without losing configuration
+ * - Supports individual enable/disable per hotkey
  * - Prevents duplicate registrations
  * - Logs all shortcut events for debugging
  * 
  * ## Usage
  * ```typescript
  * const hotkeyManager = new HotkeyManager(windowManager);
- * hotkeyManager.registerShortcuts(); // Register all shortcuts
- * hotkeyManager.setEnabled(false);   // Disable all shortcuts
- * hotkeyManager.setEnabled(true);    // Re-enable shortcuts
+ * hotkeyManager.registerShortcuts(); // Register enabled shortcuts
+ * hotkeyManager.setIndividualEnabled('quickChat', false); // Disable Quick Chat hotkey
  * ```
  * 
  * @class HotkeyManager
@@ -84,18 +82,20 @@ export default class HotkeyManager {
     private shortcuts: Shortcut[];
 
     /** 
-     * Whether hotkeys are currently enabled.
-     * When false, shortcuts will not be registered even if registerShortcuts() is called.
-     * @default true
+     * Individual enabled state for each hotkey.
+     * When a hotkey is disabled, it will not be registered.
      */
-    private _enabled: boolean = true;
+    private _individualSettings: IndividualHotkeySettings = {
+        alwaysOnTop: true,
+        bossKey: true,
+        quickChat: true,
+    };
 
     /** 
-     * Whether shortcuts are currently registered with the system.
+     * Tracks which shortcuts are currently registered with the system.
      * Prevents duplicate registration calls.
-     * @default false
      */
-    private _registered: boolean = false;
+    private _registeredShortcuts: Set<HotkeyId> = new Set();
 
     /**
      * Creates a new HotkeyManager instance.
@@ -104,6 +104,7 @@ export default class HotkeyManager {
      * Shortcuts are not registered until `registerShortcuts()` is called.
      * 
      * @param windowManager - The WindowManager instance for executing shortcut actions
+     * @param initialSettings - Optional initial settings for individual hotkeys
      * 
      * @example
      * ```typescript
@@ -111,23 +112,29 @@ export default class HotkeyManager {
      * const hotkeyManager = new HotkeyManager(windowManager);
      * ```
      */
-    constructor(windowManager: WindowManager) {
+    constructor(windowManager: WindowManager, initialSettings?: Partial<IndividualHotkeySettings>) {
         this.windowManager = windowManager;
 
+        // Apply initial settings if provided
+        if (initialSettings) {
+            this._individualSettings = { ...this._individualSettings, ...initialSettings };
+        }
+
         // Define shortcuts configuration
-        // Each shortcut has an accelerator string and an action callback
-        // This structure allows for easy extension and platform-specific overrides
+        // Each shortcut has an id, accelerator string and an action callback
         this.shortcuts = [
             {
+                id: 'bossKey',
                 // Minimize Window Shortcut
                 // Ctrl+Alt+E (Windows/Linux) or Cmd+Alt+E (macOS)
                 accelerator: 'CommandOrControl+Alt+E',
                 action: () => {
-                    logger.log('Hotkey pressed: CommandOrControl+Alt+E (Minimize)');
+                    logger.log('Hotkey pressed: CommandOrControl+Alt+E (Boss Key)');
                     this.windowManager.minimizeMainWindow();
                 }
             },
             {
+                id: 'quickChat',
                 // Quick Chat Shortcut - toggles the floating prompt window
                 // Ctrl+Shift+Space (Windows/Linux) or Cmd+Shift+Space (macOS)
                 accelerator: 'CommandOrControl+Shift+Space',
@@ -137,6 +144,7 @@ export default class HotkeyManager {
                 }
             },
             {
+                id: 'alwaysOnTop',
                 // Always On Top Toggle
                 // Ctrl+Shift+T (Windows/Linux) or Cmd+Shift+T (macOS)
                 accelerator: 'CommandOrControl+Shift+T',
@@ -151,122 +159,160 @@ export default class HotkeyManager {
     }
 
     /**
-     * Check if hotkeys are currently enabled.
+     * Get the current individual hotkey settings.
      * 
-     * This is a read-only accessor for the enabled state.
-     * Use `setEnabled()` to change the state.
-     * 
-     * @returns True if hotkeys are enabled, false otherwise
-     * 
-     * @example
-     * ```typescript
-     * if (hotkeyManager.isEnabled()) {
-     *     console.log('Hotkeys are active');
-     * }
-     * ```
+     * @returns Copy of the current settings object
      */
-    isEnabled(): boolean {
-        return this._enabled;
+    getIndividualSettings(): IndividualHotkeySettings {
+        return { ...this._individualSettings };
     }
 
     /**
-     * Enable or disable all hotkeys.
+     * Check if a specific hotkey is enabled.
      * 
-     * This method provides the core toggle functionality for the hotkey toggle switch.
-     * When disabled:
-     * - All shortcuts are unregistered immediately
-     * - The shortcut configurations remain in memory
-     * - The `_registered` flag is reset to allow re-registration
-     * 
-     * When enabled:
-     * - All configured shortcuts are re-registered
-     * - No duplicate registration occurs (idempotent)
-     * 
-     * @param enabled - Whether to enable (true) or disable (false) hotkeys
-     * 
-     * @example
-     * ```typescript
-     * // Disable all hotkeys (user toggles switch OFF)
-     * hotkeyManager.setEnabled(false);
-     * 
-     * // Re-enable all hotkeys (user toggles switch ON)
-     * hotkeyManager.setEnabled(true);
-     * ```
+     * @param id - The hotkey identifier
+     * @returns True if the hotkey is enabled, false otherwise
      */
-    setEnabled(enabled: boolean): void {
-        if (this._enabled === enabled) {
+    isIndividualEnabled(id: HotkeyId): boolean {
+        return this._individualSettings[id];
+    }
+
+    /**
+     * Enable or disable a specific hotkey.
+     * 
+     * When disabling:
+     * - The shortcut is unregistered immediately
+     * - The setting is preserved for future reference
+     * 
+     * When enabling:
+     * - The shortcut is registered if not already
+     * 
+     * @param id - The hotkey identifier
+     * @param enabled - Whether to enable (true) or disable (false) the hotkey
+     */
+    setIndividualEnabled(id: HotkeyId, enabled: boolean): void {
+        if (this._individualSettings[id] === enabled) {
             return; // No change needed - idempotent behavior
         }
 
-        this._enabled = enabled;
+        this._individualSettings[id] = enabled;
+
+        const shortcut = this.shortcuts.find(s => s.id === id);
+        if (!shortcut) {
+            logger.warn(`Unknown hotkey id: ${id}`);
+            return;
+        }
 
         if (enabled) {
-            this.registerShortcuts();
-            logger.log('Hotkeys enabled');
+            this._registerShortcut(shortcut);
+            logger.log(`Hotkey enabled: ${id}`);
         } else {
-            this.unregisterAll();
-            logger.log('Hotkeys disabled');
+            this._unregisterShortcut(shortcut);
+            logger.log(`Hotkey disabled: ${id}`);
         }
     }
 
     /**
-     * Register all configured global shortcuts with the system.
+     * Update all individual hotkey settings at once.
+     * 
+     * @param settings - New settings to apply
+     */
+    updateAllSettings(settings: IndividualHotkeySettings): void {
+        for (const id of Object.keys(settings) as HotkeyId[]) {
+            this.setIndividualEnabled(id, settings[id]);
+        }
+    }
+
+    /**
+     * Register all enabled global shortcuts with the system.
      * 
      * This method is called:
      * - On application startup (via main.ts)
-     * - When hotkeys are re-enabled via `setEnabled(true)`
+     * - When the app is ready
      * 
-     * ## Guards
-     * - Returns early if hotkeys are disabled (`_enabled === false`)
-     * - Returns early if already registered (`_registered === true`)
+     * Only shortcuts that are individually enabled will be registered.
      * 
-     * ## Error Handling
-     * Registration failures are logged but do not throw exceptions,
-     * allowing other shortcuts to still be registered.
-     * 
-     * @see setEnabled - For enabling/disabling hotkeys
+     * @see setIndividualEnabled - For enabling/disabling individual hotkeys
      */
     registerShortcuts(): void {
-        // Guard: Don't register if hotkeys are disabled
-        if (!this._enabled) {
-            logger.log('Hotkeys disabled, skipping registration');
-            return;
-        }
-
-        // Guard: Don't register if already registered (prevent duplicates)
-        if (this._registered) {
-            logger.log('Hotkeys already registered');
-            return;
-        }
-
-        // Register each shortcut with the global shortcut API
         this.shortcuts.forEach(shortcut => {
-            const success = globalShortcut.register(shortcut.accelerator, shortcut.action);
-
-            if (!success) {
-                // Registration can fail if another app has claimed the shortcut
-                logger.error(`Registration failed for hotkey: ${shortcut.accelerator}`);
-            } else {
-                logger.log(`Hotkey registered: ${shortcut.accelerator}`);
+            if (this._individualSettings[shortcut.id]) {
+                this._registerShortcut(shortcut);
             }
         });
+    }
 
-        this._registered = true;
+    /**
+     * Register a single shortcut with the system.
+     * 
+     * @param shortcut - The shortcut to register
+     * @private
+     */
+    private _registerShortcut(shortcut: Shortcut): void {
+        // Guard: Don't register if already registered
+        if (this._registeredShortcuts.has(shortcut.id)) {
+            logger.log(`Hotkey already registered: ${shortcut.id}`);
+            return;
+        }
+
+        const success = globalShortcut.register(shortcut.accelerator, shortcut.action);
+
+        if (!success) {
+            // Registration can fail if another app has claimed the shortcut
+            logger.error(`Registration failed for hotkey: ${shortcut.id} (${shortcut.accelerator})`);
+        } else {
+            this._registeredShortcuts.add(shortcut.id);
+            logger.log(`Hotkey registered: ${shortcut.id} (${shortcut.accelerator})`);
+        }
+    }
+
+    /**
+     * Unregister a single shortcut from the system.
+     * 
+     * @param shortcut - The shortcut to unregister
+     * @private
+     */
+    private _unregisterShortcut(shortcut: Shortcut): void {
+        if (!this._registeredShortcuts.has(shortcut.id)) {
+            return; // Not registered, nothing to do
+        }
+
+        globalShortcut.unregister(shortcut.accelerator);
+        this._registeredShortcuts.delete(shortcut.id);
+        logger.log(`Hotkey unregistered: ${shortcut.id} (${shortcut.accelerator})`);
     }
 
     /**
      * Unregister all global shortcuts from the system.
      * 
      * This method is called:
-     * - When hotkeys are disabled via `setEnabled(false)`
      * - When the application is shutting down
-     * 
-     * After calling this method, shortcuts can be re-registered by calling
-     * `registerShortcuts()` (assuming `_enabled` is true).
      */
     unregisterAll(): void {
         globalShortcut.unregisterAll();
-        this._registered = false;
+        this._registeredShortcuts.clear();
         logger.log('All hotkeys unregistered');
+    }
+
+    // =========================================================================
+    // Deprecated methods (for backwards compatibility during transition)
+    // =========================================================================
+
+    /**
+     * @deprecated Use getIndividualSettings() instead
+     */
+    isEnabled(): boolean {
+        // Returns true if any hotkey is enabled
+        return Object.values(this._individualSettings).some(v => v);
+    }
+
+    /**
+     * @deprecated Use setIndividualEnabled() for each hotkey instead
+     */
+    setEnabled(enabled: boolean): void {
+        logger.warn('setEnabled() is deprecated. Use setIndividualEnabled() instead.');
+        for (const id of Object.keys(this._individualSettings) as HotkeyId[]) {
+            this.setIndividualEnabled(id, enabled);
+        }
     }
 }

@@ -132,6 +132,11 @@ export const IPC_CHANNELS = {
     ALWAYS_ON_TOP_GET: 'always-on-top:get',
     ALWAYS_ON_TOP_SET: 'always-on-top:set',
     ALWAYS_ON_TOP_CHANGED: 'always-on-top:changed',
+
+    // Individual Hotkeys
+    HOTKEYS_INDIVIDUAL_GET: 'hotkeys:individual:get',
+    HOTKEYS_INDIVIDUAL_SET: 'hotkeys:individual:set',
+    HOTKEYS_INDIVIDUAL_CHANGED: 'hotkeys:individual:changed',
 } as const;
 
 /**

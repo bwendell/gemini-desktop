@@ -22,15 +22,18 @@ import { InjectionScriptBuilder, DEFAULT_INJECTION_CONFIG, InjectionResult } fro
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type HotkeyManager from './hotkeyManager';
-import type { ThemePreference, ThemeData, HotkeysData, Logger } from '../types';
+import type { ThemePreference, ThemeData, IndividualHotkeySettings, HotkeyId, Logger } from '../types';
 
 /**
  * User preferences structure for settings store.
  */
 interface UserPreferences extends Record<string, unknown> {
     theme: ThemePreference;
-    hotkeysEnabled: boolean;
     alwaysOnTop: boolean;
+    // Individual hotkey settings
+    hotkeyAlwaysOnTop: boolean;
+    hotkeyBossKey: boolean;
+    hotkeyQuickChat: boolean;
 }
 
 /**
@@ -62,8 +65,11 @@ export default class IpcManager {
             configName: 'user-preferences',
             defaults: {
                 theme: 'system',
-                hotkeysEnabled: true,
-                alwaysOnTop: false
+                alwaysOnTop: false,
+                // Individual hotkey defaults
+                hotkeyAlwaysOnTop: true,
+                hotkeyBossKey: true,
+                hotkeyQuickChat: true,
             }
         });
         /* v8 ignore next -- production fallback, tests always inject logger */
@@ -113,7 +119,7 @@ export default class IpcManager {
     setupIpcHandlers(): void {
         this._setupWindowHandlers();
         this._setupThemeHandlers();
-        this._setupHotkeyHandlers();
+        this._setupIndividualHotkeyHandlers();
         this._setupAlwaysOnTopHandlers();
         this._setupAppHandlers();
         this._setupQuickChatHandlers();
@@ -294,67 +300,102 @@ export default class IpcManager {
     }
 
     /**
-     * Set up hotkey-related IPC handlers.
-     * Manages hotkey enabled/disabled state and synchronization across windows.
+     * Set up individual hotkey IPC handlers.
+     * Manages per-hotkey enabled/disabled state and synchronization across windows.
      * @private
      */
-    private _setupHotkeyHandlers(): void {
-        // Get current hotkeys enabled state
-        ipcMain.handle('hotkeys:get', (): HotkeysData => {
+    private _setupIndividualHotkeyHandlers(): void {
+        // Get current individual hotkey settings
+        ipcMain.handle(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_GET, (): IndividualHotkeySettings => {
             try {
-                const enabled = this.store.get('hotkeysEnabled') ?? true;
-                return { enabled };
+                return this._getIndividualHotkeySettings();
             } catch (error) {
-                this.logger.error('Error getting hotkeys state:', error);
-                return { enabled: true };
+                this.logger.error('Error getting individual hotkeys state:', error);
+                return { alwaysOnTop: true, bossKey: true, quickChat: true };
             }
         });
 
-        // Set hotkeys enabled state
-        ipcMain.on('hotkeys:set', (_event, enabled: boolean) => {
+        // Set individual hotkey enabled state
+        ipcMain.on(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET, (_event, id: HotkeyId, enabled: boolean) => {
             try {
-                // Validate enabled value
+                // Validate inputs
+                const validIds: HotkeyId[] = ['alwaysOnTop', 'bossKey', 'quickChat'];
+                if (!validIds.includes(id)) {
+                    this.logger.warn(`Invalid hotkey id: ${id}`);
+                    return;
+                }
                 if (typeof enabled !== 'boolean') {
-                    this.logger.warn(`Invalid hotkeys enabled value: ${enabled}`);
+                    this.logger.warn(`Invalid enabled value: ${enabled}`);
                     return;
                 }
 
                 // Persist preference
-                this.store.set('hotkeysEnabled', enabled);
+                this._setIndividualHotkeySetting(id, enabled);
 
                 // Update HotkeyManager if available
                 if (this.hotkeyManager) {
-                    this.hotkeyManager.setEnabled(enabled);
+                    this.hotkeyManager.setIndividualEnabled(id, enabled);
                 }
 
-                this.logger.log(`Hotkeys enabled set to: ${enabled}`);
+                this.logger.log(`Individual hotkey ${id} set to: ${enabled}`);
 
                 // Broadcast to all windows
-                this._broadcastHotkeysChange(enabled);
+                this._broadcastIndividualHotkeyChange();
             } catch (error) {
-                this.logger.error('Error setting hotkeys enabled:', {
+                this.logger.error('Error setting individual hotkey:', {
                     error: (error as Error).message,
-                    requestedEnabled: enabled
+                    id,
+                    enabled
                 });
             }
         });
     }
 
     /**
-     * Broadcast hotkeys change to all open windows.
+     * Get individual hotkey settings from store.
      * @private
-     * @param enabled - Whether hotkeys are enabled
      */
-    private _broadcastHotkeysChange(enabled: boolean): void {
+    private _getIndividualHotkeySettings(): IndividualHotkeySettings {
+        return {
+            alwaysOnTop: this.store.get('hotkeyAlwaysOnTop') ?? true,
+            bossKey: this.store.get('hotkeyBossKey') ?? true,
+            quickChat: this.store.get('hotkeyQuickChat') ?? true,
+        };
+    }
+
+    /**
+     * Set an individual hotkey setting in the store.
+     * @private
+     */
+    private _setIndividualHotkeySetting(id: HotkeyId, enabled: boolean): void {
+        switch (id) {
+            case 'alwaysOnTop':
+                this.store.set('hotkeyAlwaysOnTop', enabled);
+                break;
+            case 'bossKey':
+                this.store.set('hotkeyBossKey', enabled);
+                break;
+            case 'quickChat':
+                this.store.set('hotkeyQuickChat', enabled);
+                break;
+        }
+    }
+
+    /**
+     * Broadcast individual hotkey settings change to all open windows.
+     * @private
+     */
+    private _broadcastIndividualHotkeyChange(): void {
+        const settings = this._getIndividualHotkeySettings();
         const windows = BrowserWindow.getAllWindows();
 
         windows.forEach(win => {
             try {
                 if (!win.isDestroyed()) {
-                    win.webContents.send('hotkeys:changed', { enabled });
+                    win.webContents.send(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_CHANGED, settings);
                 }
             } catch (error) {
-                this.logger.error('Error broadcasting hotkeys change to window:', {
+                this.logger.error('Error broadcasting individual hotkey change to window:', {
                     error: (error as Error).message,
                     windowId: win.id
                 });

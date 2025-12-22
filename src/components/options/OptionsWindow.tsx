@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { OptionsWindowTitlebar } from './OptionsWindowTitlebar';
 import { ThemeSelector } from './ThemeSelector';
-import { HotkeyToggle } from './HotkeyToggle';
+import { IndividualHotkeyToggles } from './IndividualHotkeyToggles';
 import { AboutSection } from './AboutSection';
 import './options-window.css';
 
@@ -179,9 +179,9 @@ export function OptionsWindow() {
                                 <ThemeSelector />
                             </OptionsSection>
 
-                            {/* Functionality Settings */}
-                            <OptionsSection title="Functionality" testId="options-functionality">
-                                <HotkeyToggle />
+                            {/* Hotkey Settings */}
+                            <OptionsSection title="Hotkey Shortcuts" testId="options-hotkeys">
+                                <IndividualHotkeyToggles />
                             </OptionsSection>
 
                             {/* 

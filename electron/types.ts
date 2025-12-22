@@ -19,11 +19,21 @@ export interface ThemeData {
 }
 
 /**
- * Hotkeys data returned from main process.
+ * Identifiers for individual hotkey features.
  */
-export interface HotkeysData {
-    /** Whether hotkeys are currently enabled */
-    enabled: boolean;
+export type HotkeyId = 'alwaysOnTop' | 'bossKey' | 'quickChat';
+
+/**
+ * Individual hotkey settings returned from main process.
+ * Each key represents a hotkey feature's enabled state.
+ */
+export interface IndividualHotkeySettings {
+    /** Always on Top toggle hotkey (Ctrl/Cmd+Shift+T) */
+    alwaysOnTop: boolean;
+    /** Boss Key / Minimize hotkey (Ctrl/Cmd+Alt+E) */
+    bossKey: boolean;
+    /** Quick Chat toggle hotkey (Ctrl/Cmd+Shift+Space) */
+    quickChat: boolean;
 }
 
 /**
@@ -76,10 +86,10 @@ export interface ElectronAPI {
     cancelQuickChat: () => void;
     onQuickChatExecute: (callback: (text: string) => void) => () => void;
 
-    // Hotkeys API
-    getHotkeysEnabled: () => Promise<HotkeysData>;
-    setHotkeysEnabled: (enabled: boolean) => void;
-    onHotkeysChanged: (callback: (data: HotkeysData) => void) => () => void;
+    // Individual Hotkeys API
+    getIndividualHotkeys: () => Promise<IndividualHotkeySettings>;
+    setIndividualHotkey: (id: HotkeyId, enabled: boolean) => void;
+    onIndividualHotkeysChanged: (callback: (settings: IndividualHotkeySettings) => void) => () => void;
 
     // Always On Top API
     getAlwaysOnTop: () => Promise<{ enabled: boolean }>;

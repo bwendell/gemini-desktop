@@ -51,6 +51,11 @@ const IPC_CHANNELS = {
     ALWAYS_ON_TOP_GET: 'always-on-top:get',
     ALWAYS_ON_TOP_SET: 'always-on-top:set',
     ALWAYS_ON_TOP_CHANGED: 'always-on-top:changed',
+
+    // Individual Hotkeys
+    HOTKEYS_INDIVIDUAL_GET: 'hotkeys:individual:get',
+    HOTKEYS_INDIVIDUAL_SET: 'hotkeys:individual:set',
+    HOTKEYS_INDIVIDUAL_CHANGED: 'hotkeys:individual:changed',
 } as const;
 
 // Expose window control APIs to renderer
@@ -186,82 +191,47 @@ const electronAPI: ElectronAPI = {
     },
 
     // =========================================================================
-    // Hotkeys API
+    // Individual Hotkeys API
     // =========================================================================
     // 
-    // Provides methods for managing global hotkey combinations enable/disable.
-    // These methods allow the renderer process (UI) to control the hotkey
-    // registration state in the main process.
+    // Provides methods for managing individual hotkey enable/disable.
+    // Each hotkey can be independently controlled.
     //
     // Architecture:
-    //   UI Toggle → setHotkeysEnabled() → IPC → HotkeyManager.setEnabled()
+    //   UI Toggle → setIndividualHotkey() → IPC → HotkeyManager.setIndividualEnabled()
     //
     // The state is persisted in SettingsStore and synchronized across windows
-    // via the 'hotkeys:changed' event.
+    // via the 'hotkeys:individual:changed' event.
     // =========================================================================
 
     /**
-     * Get the current hotkeys enabled state from the backend.
+     * Get the current individual hotkey settings from the backend.
      * 
-     * This makes a synchronous-style IPC call to the main process to retrieve
-     * the current hotkey enabled state from the SettingsStore.
-     * 
-     * @returns Promise resolving to { enabled: boolean }
-     * 
-     * @example
-     * ```typescript
-     * const { enabled } = await window.electronAPI.getHotkeysEnabled();
-     * console.log(`Hotkeys are ${enabled ? 'ON' : 'OFF'}`);
-     * ```
+     * @returns Promise resolving to IndividualHotkeySettings
      */
-    getHotkeysEnabled: () => ipcRenderer.invoke('hotkeys:get'),
+    getIndividualHotkeys: () => ipcRenderer.invoke(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_GET),
 
     /**
-     * Set the hotkeys enabled state in the backend.
+     * Set an individual hotkey's enabled state in the backend.
      * 
-     * This sends a one-way IPC message to the main process which:
-     * 1. Persists the new state to SettingsStore
-     * 2. Calls HotkeyManager.setEnabled() to register/unregister shortcuts
-     * 3. Broadcasts 'hotkeys:changed' to all windows for synchronization
-     * 
-     * @param enabled - Whether to enable (true) or disable (false) hotkeys
-     * 
-     * @example
-     * ```typescript
-     * // Disable all global hotkeys
-     * window.electronAPI.setHotkeysEnabled(false);
-     * ```
+     * @param id - The hotkey identifier ('alwaysOnTop' | 'bossKey' | 'quickChat')
+     * @param enabled - Whether to enable (true) or disable (false) the hotkey
      */
-    setHotkeysEnabled: (enabled) => ipcRenderer.send('hotkeys:set', enabled),
+    setIndividualHotkey: (id, enabled) => ipcRenderer.send(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET, id, enabled),
 
     /**
-     * Subscribe to hotkeys enabled state changes from other windows.
+     * Subscribe to individual hotkey settings changes from other windows.
      * 
-     * This allows the UI to stay in sync when the hotkey state is changed
-     * from another window (e.g., if user has multiple Options windows open).
-     * 
-     * @param callback - Function called with { enabled: boolean } when state changes
+     * @param callback - Function called with IndividualHotkeySettings when any setting changes
      * @returns Cleanup function to unsubscribe (for use in React useEffect)
-     * 
-     * @example
-     * ```typescript
-     * // In a React useEffect
-     * useEffect(() => {
-     *     const cleanup = window.electronAPI.onHotkeysChanged(({ enabled }) => {
-     *         setEnabled(enabled);
-     *     });
-     *     return cleanup; // Unsubscribe on unmount
-     * }, []);
-     * ```
      */
-    onHotkeysChanged: (callback) => {
-        const subscription = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) =>
-            callback(data);
-        ipcRenderer.on('hotkeys:changed', subscription);
+    onIndividualHotkeysChanged: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, settings: Parameters<typeof callback>[0]) =>
+            callback(settings);
+        ipcRenderer.on(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_CHANGED, subscription);
 
-        // Return cleanup function for React useEffect
         return () => {
-            ipcRenderer.removeListener('hotkeys:changed', subscription);
+            ipcRenderer.removeListener(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_CHANGED, subscription);
         };
     },
 

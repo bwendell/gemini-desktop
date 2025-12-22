@@ -30,10 +30,10 @@ vi.mock('./ThemeSelector', () => ({
     ),
 }));
 
-// Mock HotkeyToggle to avoid HotkeysProvider dependency
-vi.mock('./HotkeyToggle', () => ({
-    HotkeyToggle: () => (
-        <div data-testid="mock-hotkey-toggle">Hotkey Toggle</div>
+// Mock IndividualHotkeyToggles to avoid IndividualHotkeysProvider dependency
+vi.mock('./IndividualHotkeyToggles', () => ({
+    IndividualHotkeyToggles: () => (
+        <div data-testid="mock-individual-hotkey-toggles">Individual Hotkey Toggles</div>
     ),
 }));
 
@@ -81,42 +81,42 @@ describe('OptionsWindow', () => {
         });
 
         /**
-         * Tests for the Functionality section that contains the HotkeyToggle.
+         * Tests for the Hotkey Shortcuts section that contains the individual hotkey toggles.
          * This section was added to group hotkey-related settings separately
          * from appearance settings for better organization.
          */
-        it('should display Functionality section', () => {
+        it('should display Hotkey Shortcuts section', () => {
             renderWithTheme(<OptionsWindow />);
 
-            // Verify the Functionality section title is rendered
-            expect(screen.getByText('Functionality')).toBeInTheDocument();
+            // Verify the Hotkey Shortcuts section title is rendered
+            expect(screen.getByText('Hotkey Shortcuts')).toBeInTheDocument();
             // Verify the section container has the correct test ID
-            expect(screen.getByTestId('options-functionality')).toBeInTheDocument();
+            expect(screen.getByTestId('options-hotkeys')).toBeInTheDocument();
         });
 
         /**
-         * Verifies that the HotkeyToggle component is rendered within the
-         * Functionality section. The component is mocked to isolate testing.
+         * Verifies that the IndividualHotkeyToggles component is rendered within the
+         * Hotkey Shortcuts section. The component is mocked to isolate testing.
          */
-        it('should render the HotkeyToggle component in Functionality section', () => {
+        it('should render the IndividualHotkeyToggles component in Hotkey Shortcuts section', () => {
             renderWithTheme(<OptionsWindow />);
 
-            // Verify the mocked HotkeyToggle is rendered
-            expect(screen.getByTestId('mock-hotkey-toggle')).toBeInTheDocument();
+            // Verify the mocked IndividualHotkeyToggles is rendered
+            expect(screen.getByTestId('mock-individual-hotkey-toggles')).toBeInTheDocument();
         });
 
         /**
-         * Ensures the Functionality section follows the same structural pattern
+         * Ensures the Hotkey Shortcuts section follows the same structural pattern
          * as other options sections (h2 title + content container).
          */
-        it('should have proper structure in Functionality section', () => {
+        it('should have proper structure in Hotkey Shortcuts section', () => {
             renderWithTheme(<OptionsWindow />);
 
-            const section = screen.getByTestId('options-functionality');
+            const section = screen.getByTestId('options-hotkeys');
             // Verify the section has the correct CSS class
             expect(section).toHaveClass('options-section');
             // Verify the section title is an h2 element
-            expect(section.querySelector('h2')).toHaveTextContent('Functionality');
+            expect(section.querySelector('h2')).toHaveTextContent('Hotkey Shortcuts');
             // Verify the content container exists within the section
             expect(section.querySelector('.options-section__content')).toBeInTheDocument();
         });

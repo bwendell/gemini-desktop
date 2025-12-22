@@ -20,10 +20,10 @@ interface Window {
         cancelQuickChat: () => void;
         onQuickChatExecute: (callback: (text: string) => void) => () => void;
 
-        // Hotkeys API
-        getHotkeysEnabled: () => Promise<{ enabled: boolean }>;
-        setHotkeysEnabled: (enabled: boolean) => void;
-        onHotkeysChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
+        // Individual Hotkeys API
+        getIndividualHotkeys: () => Promise<{ alwaysOnTop: boolean; bossKey: boolean; quickChat: boolean }>;
+        setIndividualHotkey: (id: 'alwaysOnTop' | 'bossKey' | 'quickChat', enabled: boolean) => void;
+        onIndividualHotkeysChanged: (callback: (settings: { alwaysOnTop: boolean; bossKey: boolean; quickChat: boolean }) => void) => () => void;
 
         // Always On Top API
         getAlwaysOnTop: () => Promise<{ enabled: boolean }>;

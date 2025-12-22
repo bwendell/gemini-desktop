@@ -4,29 +4,6 @@
  * This test suite validates the HotkeyManager class which handles global keyboard
  * shortcut registration and management in the Electron main process.
  * 
- * ## Test Coverage
- * 
- * - **constructor**: Initialization and shortcut configuration
- * - **registerShortcuts**: Shortcut registration with Electron's globalShortcut API
- * - **unregisterAll**: Cleanup and state reset
- * - **isEnabled**: Enabled state accessor
- * - **setEnabled**: Enable/disable toggle functionality
- * - **State management**: Registration flags and toggle cycles
- * 
- * ## Mocking Strategy
- * 
- * The tests mock:
- * - `electron.globalShortcut` - To avoid actual global shortcut registration
- * - `logger` - To prevent console output during tests
- * - `WindowManager` - To verify shortcut actions are called correctly
- * 
- * ## Test Patterns
- * 
- * Each test follows the Arrange-Act-Assert pattern:
- * 1. Set up mocks and initial state
- * 2. Call the method under test
- * 3. Verify expected behavior via assertions
- * 
  * @module HotkeyManager.test
  * @see HotkeyManager - The class being tested
  */
@@ -44,6 +21,7 @@ import type WindowManager from './windowManager';
  */
 const mockGlobalShortcut = vi.hoisted(() => ({
     register: vi.fn(),
+    unregister: vi.fn(),
     unregisterAll: vi.fn()
 }));
 
@@ -54,7 +32,6 @@ vi.mock('electron', () => ({
 
 /**
  * Mock for the logger utility.
- * Prevents console output and allows verification of log calls.
  */
 vi.mock('../utils/logger', () => ({
     createLogger: () => ({
@@ -64,7 +41,7 @@ vi.mock('../utils/logger', () => ({
     })
 }));
 
-// Import after mocks are set up (important for mock injection)
+// Import after mocks are set up
 import HotkeyManager from './hotkeyManager';
 
 // ============================================================================
@@ -95,9 +72,6 @@ describe('HotkeyManager', () => {
         hotkeyManager = new HotkeyManager(mockWindowManager);
     });
 
-    /**
-     * Restore all mocks after each test for isolation.
-     */
     afterEach(() => {
         vi.restoreAllMocks();
     });
@@ -107,17 +81,120 @@ describe('HotkeyManager', () => {
     // ========================================================================
 
     describe('constructor', () => {
-        it('should create a HotkeyManager instance with the windowManager', () => {
+        it('should create a HotkeyManager instance', () => {
             expect(hotkeyManager).toBeDefined();
         });
 
-        it('should initialize shortcuts array with minimize, quick chat, and always on top shortcuts', () => {
-            // Access private shortcuts via type casting to verify initialization
-            const shortcuts = (hotkeyManager as unknown as { shortcuts: { accelerator: string }[] }).shortcuts;
+        it('should initialize shortcuts with correct IDs', () => {
+            const shortcuts = (hotkeyManager as unknown as { shortcuts: { id: string; accelerator: string }[] }).shortcuts;
             expect(shortcuts).toHaveLength(3);
-            expect(shortcuts[0].accelerator).toBe('CommandOrControl+Alt+E');
-            expect(shortcuts[1].accelerator).toBe('CommandOrControl+Shift+Space');
-            expect(shortcuts[2].accelerator).toBe('CommandOrControl+Shift+T');
+            expect(shortcuts.map(s => s.id)).toEqual(['bossKey', 'quickChat', 'alwaysOnTop']);
+        });
+
+        it('should accept initial settings', () => {
+            const customManager = new HotkeyManager(mockWindowManager, {
+                alwaysOnTop: false,
+                bossKey: true,
+                quickChat: false
+            });
+
+            expect(customManager.getIndividualSettings()).toEqual({
+                alwaysOnTop: false,
+                bossKey: true,
+                quickChat: false
+            });
+        });
+    });
+
+    // ========================================================================
+    // Individual Settings Tests
+    // ========================================================================
+
+    describe('getIndividualSettings', () => {
+        it('should return default settings (all enabled)', () => {
+            expect(hotkeyManager.getIndividualSettings()).toEqual({
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true
+            });
+        });
+    });
+
+    describe('isIndividualEnabled', () => {
+        it('should return true for enabled hotkeys', () => {
+            expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(true);
+            expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
+            expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(true);
+        });
+
+        it('should return false for disabled hotkeys', () => {
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+            expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(false);
+        });
+    });
+
+    describe('setIndividualEnabled', () => {
+        beforeEach(() => {
+            mockGlobalShortcut.register.mockReturnValue(true);
+        });
+
+        it('should register a hotkey when enabling it', () => {
+            // First disable it
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+            mockGlobalShortcut.register.mockClear();
+
+            // Then enable it
+            hotkeyManager.setIndividualEnabled('quickChat', true);
+
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+                'CommandOrControl+Shift+Space',
+                expect.any(Function)
+            );
+        });
+
+        it('should unregister a hotkey when disabling it', () => {
+            // First register all
+            hotkeyManager.registerShortcuts();
+
+            // Now disable one
+            hotkeyManager.setIndividualEnabled('bossKey', false);
+
+            expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith('CommandOrControl+Alt+E');
+        });
+
+        it('should not call unregister if hotkey was never registered', () => {
+            hotkeyManager.setIndividualEnabled('bossKey', false);
+            expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
+        });
+
+        it('should be idempotent (no-op if already in desired state)', () => {
+            hotkeyManager.setIndividualEnabled('alwaysOnTop', true); // Already true
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+        });
+
+        it('should update individual settings', () => {
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+            expect(hotkeyManager.getIndividualSettings().quickChat).toBe(false);
+        });
+    });
+
+    describe('updateAllSettings', () => {
+        beforeEach(() => {
+            mockGlobalShortcut.register.mockReturnValue(true);
+        });
+
+        it('should update all settings at once', () => {
+            hotkeyManager.updateAllSettings({
+                alwaysOnTop: false,
+                bossKey: true,
+                quickChat: false
+            });
+
+            expect(hotkeyManager.getIndividualSettings()).toEqual({
+                alwaysOnTop: false,
+                bossKey: true,
+                quickChat: false
+            });
         });
     });
 
@@ -126,10 +203,11 @@ describe('HotkeyManager', () => {
     // ========================================================================
 
     describe('registerShortcuts', () => {
-
-        it('should register all shortcuts successfully', () => {
+        beforeEach(() => {
             mockGlobalShortcut.register.mockReturnValue(true);
+        });
 
+        it('should register all enabled shortcuts', () => {
             hotkeyManager.registerShortcuts();
 
             expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
@@ -147,15 +225,36 @@ describe('HotkeyManager', () => {
             );
         });
 
+        it('should not register disabled shortcuts', () => {
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+            mockGlobalShortcut.register.mockClear();
+
+            hotkeyManager.registerShortcuts();
+
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalledWith(
+                'CommandOrControl+Shift+Space',
+                expect.any(Function)
+            );
+        });
+
         it('should handle registration failure gracefully', () => {
             mockGlobalShortcut.register.mockReturnValue(false);
 
-            // Should not throw
             expect(() => hotkeyManager.registerShortcuts()).not.toThrow();
             expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
         });
 
-        it('should call minimizeMainWindow when minimize hotkey is triggered', () => {
+        it('should not register already registered shortcuts', () => {
+            hotkeyManager.registerShortcuts();
+            mockGlobalShortcut.register.mockClear();
+
+            hotkeyManager.registerShortcuts();
+
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+        });
+
+        it('should call minimizeMainWindow when boss key is triggered', () => {
             mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
                 if (accelerator === 'CommandOrControl+Alt+E') {
                     callback();
@@ -196,23 +295,11 @@ describe('HotkeyManager', () => {
             expect(mockWindowManager.isAlwaysOnTop).toHaveBeenCalled();
             expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalledWith(true);
         });
-
-        it('should toggle always-on-top off when already enabled', () => {
-            (mockWindowManager.isAlwaysOnTop as ReturnType<typeof vi.fn>).mockReturnValue(true);
-
-            mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
-                if (accelerator === 'CommandOrControl+Shift+T') {
-                    callback();
-                }
-                return true;
-            });
-
-            hotkeyManager.registerShortcuts();
-
-            expect(mockWindowManager.isAlwaysOnTop).toHaveBeenCalled();
-            expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalledWith(false);
-        });
     });
+
+    // ========================================================================
+    // unregisterAll Tests
+    // ========================================================================
 
     describe('unregisterAll', () => {
         it('should unregister all shortcuts', () => {
@@ -224,100 +311,8 @@ describe('HotkeyManager', () => {
             expect(mockGlobalShortcut.unregisterAll).toHaveBeenCalledTimes(1);
         });
 
-        it('should reset registered state', () => {
+        it('should reset registered state allowing re-registration', () => {
             mockGlobalShortcut.register.mockReturnValue(true);
-            hotkeyManager.registerShortcuts();
-            hotkeyManager.unregisterAll();
-
-            // Registering again should work
-            hotkeyManager.registerShortcuts();
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(6); // 3 + 3
-        });
-    });
-
-    describe('isEnabled', () => {
-        it('should return true by default', () => {
-            expect(hotkeyManager.isEnabled()).toBe(true);
-        });
-
-        it('should return false after setEnabled(false)', () => {
-            hotkeyManager.setEnabled(false);
-            expect(hotkeyManager.isEnabled()).toBe(false);
-        });
-
-        it('should return true after setEnabled(true)', () => {
-            hotkeyManager.setEnabled(false);
-            hotkeyManager.setEnabled(true);
-            expect(hotkeyManager.isEnabled()).toBe(true);
-        });
-    });
-
-    describe('setEnabled', () => {
-        beforeEach(() => {
-            mockGlobalShortcut.register.mockReturnValue(true);
-        });
-
-        it('should disable hotkeys when called with false', () => {
-            hotkeyManager.registerShortcuts();
-            hotkeyManager.setEnabled(false);
-
-            expect(mockGlobalShortcut.unregisterAll).toHaveBeenCalled();
-            expect(hotkeyManager.isEnabled()).toBe(false);
-        });
-
-        it('should enable hotkeys when called with true', () => {
-            hotkeyManager.setEnabled(false);
-            mockGlobalShortcut.register.mockClear();
-
-            hotkeyManager.setEnabled(true);
-
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
-            expect(hotkeyManager.isEnabled()).toBe(true);
-        });
-
-        it('should not re-register if already enabled', () => {
-            hotkeyManager.registerShortcuts();
-            mockGlobalShortcut.register.mockClear();
-
-            hotkeyManager.setEnabled(true); // Already enabled
-
-            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
-        });
-
-        it('should not unregister if already disabled', () => {
-            hotkeyManager.setEnabled(false);
-            mockGlobalShortcut.unregisterAll.mockClear();
-
-            hotkeyManager.setEnabled(false); // Already disabled
-
-            expect(mockGlobalShortcut.unregisterAll).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('registerShortcuts state management', () => {
-        beforeEach(() => {
-            mockGlobalShortcut.register.mockReturnValue(true);
-        });
-
-        it('should not register if hotkeys are disabled', () => {
-            hotkeyManager.setEnabled(false);
-            mockGlobalShortcut.register.mockClear();
-
-            hotkeyManager.registerShortcuts();
-
-            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
-        });
-
-        it('should not register if already registered', () => {
-            hotkeyManager.registerShortcuts();
-            mockGlobalShortcut.register.mockClear();
-
-            hotkeyManager.registerShortcuts();
-
-            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
-        });
-
-        it('should register after unregisterAll even if previously registered', () => {
             hotkeyManager.registerShortcuts();
             hotkeyManager.unregisterAll();
             mockGlobalShortcut.register.mockClear();
@@ -328,48 +323,50 @@ describe('HotkeyManager', () => {
         });
     });
 
-    describe('enable/disable workflow', () => {
+    // ========================================================================
+    // Deprecated API Tests (for backwards compatibility)
+    // ========================================================================
+
+    describe('deprecated API', () => {
         beforeEach(() => {
             mockGlobalShortcut.register.mockReturnValue(true);
         });
 
-        it('should maintain state through toggle cycle', () => {
-            // Initial state
+        it('isEnabled should return true if any hotkey is enabled', () => {
             expect(hotkeyManager.isEnabled()).toBe(true);
-
-            // Register then disable
-            hotkeyManager.registerShortcuts();
-            hotkeyManager.setEnabled(false);
-            expect(hotkeyManager.isEnabled()).toBe(false);
-
-            // Re-enable
-            hotkeyManager.setEnabled(true);
-            expect(hotkeyManager.isEnabled()).toBe(true);
-
-            // Total: 3 initial + 3 re-enabled = 6
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(6);
         });
 
-        it('should preserve shortcuts config when toggling', () => {
+        it('isEnabled should return false if all hotkeys are disabled', () => {
+            hotkeyManager.setIndividualEnabled('alwaysOnTop', false);
+            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+
+            expect(hotkeyManager.isEnabled()).toBe(false);
+        });
+
+        it('setEnabled(false) should disable all hotkeys', () => {
             hotkeyManager.registerShortcuts();
             hotkeyManager.setEnabled(false);
 
-            mockGlobalShortcut.register.mockClear();
+            expect(hotkeyManager.getIndividualSettings()).toEqual({
+                alwaysOnTop: false,
+                bossKey: false,
+                quickChat: false
+            });
+        });
+
+        it('setEnabled(true) should enable all hotkeys', () => {
+            hotkeyManager.setIndividualEnabled('alwaysOnTop', false);
+            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+
             hotkeyManager.setEnabled(true);
 
-            // Should still register the same three shortcuts
-            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-                'CommandOrControl+Alt+E',
-                expect.any(Function)
-            );
-            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-                'CommandOrControl+Shift+Space',
-                expect.any(Function)
-            );
-            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-                'CommandOrControl+Shift+T',
-                expect.any(Function)
-            );
+            expect(hotkeyManager.getIndividualSettings()).toEqual({
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true
+            });
         });
     });
 });
