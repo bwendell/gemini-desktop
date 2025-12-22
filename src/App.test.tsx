@@ -2,14 +2,21 @@
  * Unit tests for App component.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import App from './App';
-import * as hooks from './hooks/useNetworkStatus';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
+
+// Mock the network status hook
+vi.mock('./hooks/useNetworkStatus', () => ({
+    useNetworkStatus: vi.fn(),
+}));
 
 describe('App', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Default to online
+        (useNetworkStatus as Mock).mockReturnValue(true);
     });
 
     describe('loading state', () => {
@@ -101,7 +108,7 @@ describe('App', () => {
 
         describe('offline state', () => {
             it('renders OfflineOverlay when offline', async () => {
-                vi.spyOn(hooks, 'useNetworkStatus').mockReturnValue(false);
+                (useNetworkStatus as Mock).mockReturnValue(false);
 
                 await act(async () => {
                     render(<App />);
@@ -116,7 +123,7 @@ describe('App', () => {
             });
 
             it('does not render OfflineOverlay when online', async () => {
-                vi.spyOn(hooks, 'useNetworkStatus').mockReturnValue(true);
+                (useNetworkStatus as Mock).mockReturnValue(true);
 
                 await act(async () => {
                     render(<App />);
