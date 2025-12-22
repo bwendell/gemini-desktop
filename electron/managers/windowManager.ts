@@ -1,38 +1,29 @@
 /**
  * Window Manager for the Electron main process.
- * Handles creation and management of application windows.
- * 
+ * Facade/coordinator for all application windows.
+ *
+ * This class delegates window-specific logic to dedicated window classes
+ * and provides a unified interface for window management.
+ *
  * @module WindowManager
  */
 
-import { BrowserWindow, shell, screen } from 'electron';
-import {
-    isInternalDomain,
-    isOAuthDomain,
-    AUTH_WINDOW_CONFIG,
-    MAIN_WINDOW_CONFIG,
-    OPTIONS_WINDOW_CONFIG,
-    QUICK_CHAT_WINDOW_CONFIG,
-    QUICK_CHAT_WIDTH,
-    QUICK_CHAT_HEIGHT,
-    getTitleBarStyle,
-    getDevUrl,
-    isMacOS,
-} from '../utils/constants';
-import { getPreloadPath, getDistHtmlPath, getIconPath } from '../utils/paths';
-import { createLogger } from '../utils/logger';
-
+import { BrowserWindow } from 'electron';
 import { EventEmitter } from 'events';
+import { createLogger } from '../utils/logger';
+import MainWindow from '../windows/mainWindow';
+import AuthWindow from '../windows/authWindow';
+import OptionsWindow from '../windows/optionsWindow';
+import QuickChatWindow from '../windows/quickChatWindow';
 
 const logger = createLogger('[WindowManager]');
 
 export default class WindowManager extends EventEmitter {
     readonly isDev: boolean;
-    private mainWindow: BrowserWindow | null = null;
-    private optionsWindow: BrowserWindow | null = null;
-    private authWindow: BrowserWindow | null = null;
-    private quickChatWindow: BrowserWindow | null = null;
-    private isQuitting: boolean = false;
+    private mainWindow: MainWindow;
+    private optionsWindow: OptionsWindow;
+    private authWindow: AuthWindow;
+    private quickChatWindow: QuickChatWindow;
 
     /**
      * Creates a new WindowManager instance.
@@ -41,117 +32,31 @@ export default class WindowManager extends EventEmitter {
     constructor(isDev: boolean) {
         super();
         this.isDev = isDev;
+
+        // Initialize window instances
+        this.mainWindow = new MainWindow(isDev);
+        this.optionsWindow = new OptionsWindow(isDev);
+        this.authWindow = new AuthWindow(isDev);
+        this.quickChatWindow = new QuickChatWindow(isDev);
+
+        // Wire up callbacks between windows
+        this.mainWindow.setAuthWindowCallback((url) => this.createAuthWindow(url));
+        this.mainWindow.setCloseOptionsCallback(() => this.optionsWindow.close());
+        this.mainWindow.setCloseAuthCallback(() => this.authWindow.close());
+
+        // Forward always-on-top events from MainWindow
+        this.mainWindow.on('always-on-top-changed', (enabled: boolean) => {
+            this.emit('always-on-top-changed', enabled);
+        });
     }
 
     /**
      * Create an authentication window for Google sign-in.
-     * Uses shared session to persist cookies with main window.
-     * Auto-closes when user successfully navigates back to Gemini.
-     * 
-     * Defensive measures:
-     * - Handles page load failures gracefully
-     * - Guards against destroyed window/webContents
-     * - Logs all significant navigation events
-     * - Handles invalid URLs without crashing
-     * 
      * @param url - The URL to load in the auth window
      * @returns The created auth window
      */
     createAuthWindow(url: string): BrowserWindow {
-        logger.log('Creating auth window for:', url);
-
-        // Close any existing auth window before creating a new one
-        if (this.authWindow && !this.authWindow.isDestroyed()) {
-            this.authWindow.close();
-        }
-
-        this.authWindow = new BrowserWindow({
-            ...AUTH_WINDOW_CONFIG,
-            icon: getIconPath(),
-        });
-        const authWindow = this.authWindow;
-
-        // Load the URL and handle initial load errors
-        authWindow.loadURL(url).catch((error) => {
-            logger.error('Failed to load auth URL:', {
-                url,
-                error: (error as Error).message
-            });
-        });
-
-        // Handle page load failures (network errors, DNS failures, etc.)
-        authWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-            logger.error('Auth window failed to load:', {
-                errorCode,
-                errorDescription,
-                url: validatedURL
-            });
-            // Don't auto-close on load failure - let user see the error or retry
-        });
-
-        // Handle certificate errors (expired certs, self-signed, etc.)
-        authWindow.webContents.on('certificate-error', (_event, _url, _error, _certificate, callback) => {
-            // In production, we should NOT bypass certificate errors for security
-            // Just log and deny - the default browser error page will show
-            logger.warn('Certificate error in auth window - connection denied for security');
-            callback(false);
-        });
-
-        // Auto-close when user successfully signs in and navigates to Gemini
-        authWindow.webContents.on('did-navigate', (_event, navigationUrl) => {
-            // Guard: Check if window/webContents still exists
-            if (authWindow.isDestroyed()) {
-                logger.warn('Auth window navigated but window was already destroyed');
-                return;
-            }
-
-            try {
-                const urlObj = new URL(navigationUrl);
-                const hostname = urlObj.hostname;
-
-                // Log navigation for debugging OAuth flows
-                logger.log('Auth window navigated to:', hostname);
-
-                if (isInternalDomain(hostname)) {
-                    logger.log('Login successful, closing auth window');
-
-                    // Guard: Double-check before closing
-                    if (!authWindow.isDestroyed()) {
-                        authWindow.close();
-                    }
-                }
-            } catch (e) {
-                // Invalid URL - log but don't crash
-                logger.error('Invalid URL in auth navigation:', {
-                    url: navigationUrl,
-                    error: (e as Error).message
-                });
-            }
-        });
-
-        // Handle in-page navigation (hash changes, etc.) - for completeness
-        authWindow.webContents.on('did-navigate-in-page', (_event, navigationUrl) => {
-            if (!authWindow.isDestroyed()) {
-                logger.log('Auth window in-page navigation:', navigationUrl);
-            }
-        });
-
-        // Log when window is closed (by user or auto-close) and clear reference
-        authWindow.on('closed', () => {
-            logger.log('Auth window closed');
-            this.authWindow = null;
-        });
-
-        // Handle unresponsive renderer (rare but possible)
-        authWindow.on('unresponsive', () => {
-            logger.warn('Auth window became unresponsive');
-        });
-
-        authWindow.on('responsive', () => {
-            logger.log('Auth window became responsive again');
-        });
-
-        return authWindow;
+        return this.authWindow.create(url);
     }
 
     /**
@@ -159,137 +64,7 @@ export default class WindowManager extends EventEmitter {
      * @returns The main window
      */
     createMainWindow(): BrowserWindow {
-        if (this.mainWindow) {
-            this.mainWindow.focus();
-            return this.mainWindow;
-        }
-
-        this.mainWindow = new BrowserWindow({
-            ...MAIN_WINDOW_CONFIG,
-            titleBarStyle: getTitleBarStyle(),
-            webPreferences: {
-                ...MAIN_WINDOW_CONFIG.webPreferences,
-                preload: getPreloadPath(),
-            },
-            icon: getIconPath(),
-        });
-
-        const distIndexPath = getDistHtmlPath('index.html');
-
-        // Load the app
-        if (this.isDev) {
-            this.mainWindow.loadURL(getDevUrl());
-            this.mainWindow.webContents.openDevTools();
-        } else {
-            this.mainWindow.loadFile(distIndexPath);
-        }
-
-        this.mainWindow.once('ready-to-show', () => {
-            this.mainWindow?.show();
-        });
-
-        this._setupWindowOpenHandler();
-        this._setupNavigationHandler();
-
-        this.mainWindow.on('closed', () => {
-            this.mainWindow = null;
-            // Close options window if it exists to ensure app quits
-            if (this.optionsWindow) {
-                this.optionsWindow.close();
-            }
-        });
-
-        // Close to tray behavior
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.mainWindow as any).on('close', (event: Electron.Event) => {
-            if (!this.isQuitting) {
-                event.preventDefault();
-                this.hideToTray();
-            }
-            return false;
-        });
-
-        return this.mainWindow;
-    }
-
-    /**
-     * Set up navigation handler to prevent navigation hijacking.
-     * Blocks attempts to navigate the main window to external URLs.
-     * @private
-     */
-    private _setupNavigationHandler(): void {
-        /* v8 ignore next -- guard clause, mainWindow always exists when called */
-        if (!this.mainWindow) return;
-
-        this.mainWindow.webContents.on('will-navigate', (event, url) => {
-            try {
-                const urlObj = new URL(url);
-                const hostname = urlObj.hostname;
-                const protocol = urlObj.protocol;
-
-                // Allow navigation to local application files (needed for reload)
-                if (protocol === 'file:') {
-                    logger.log('Allowing navigation to local file:', url);
-                    return;
-                }
-
-                // Allow navigation to internal domains
-                if (isInternalDomain(hostname)) {
-                    logger.log('Allowing navigation to internal URL:', url);
-                    return;
-                }
-
-                // Allow navigation to OAuth domains (for sign-in flows)
-                if (isOAuthDomain(hostname)) {
-                    logger.log('Allowing navigation to OAuth URL:', url);
-                    return;
-                }
-
-                // Block navigation to external URLs
-                logger.warn('Blocked navigation to external URL:', url);
-                event.preventDefault();
-            } catch (e) {
-                logger.error('Invalid navigation URL, blocking:', url);
-                event.preventDefault();
-            }
-        });
-    }
-
-    /**
-     * Set up handler for window.open() calls from the renderer.
-     * Routes URLs to appropriate destinations (auth window, internal, or external).
-     * @private
-     */
-    private _setupWindowOpenHandler(): void {
-        /* v8 ignore next -- guard clause, mainWindow always exists when called */
-        if (!this.mainWindow) return;
-
-        this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-            try {
-                const urlObj = new URL(url);
-                const hostname = urlObj.hostname;
-
-                // OAuth domains: open in dedicated auth window
-                if (isOAuthDomain(hostname)) {
-                    logger.log('Intercepting OAuth popup:', url);
-                    this.createAuthWindow(url);
-                    return { action: 'deny' };
-                }
-
-                // Internal domains: allow in new Electron window
-                if (isInternalDomain(hostname)) {
-                    return { action: 'allow' };
-                }
-            } catch (e) {
-                logger.error('Invalid URL in window open handler:', url);
-            }
-
-            // External links: open in system browser
-            if (url.startsWith('http:') || url.startsWith('https:')) {
-                shell.openExternal(url);
-            }
-            return { action: 'deny' };
-        });
+        return this.mainWindow.create();
     }
 
     /**
@@ -298,46 +73,7 @@ export default class WindowManager extends EventEmitter {
      * @returns The options window
      */
     createOptionsWindow(tab?: 'settings' | 'about'): BrowserWindow {
-        // Build hash fragment for tab
-        const hash = tab ? `#${tab}` : '';
-
-        if (this.optionsWindow) {
-            // If window exists, navigate to the requested tab
-            if (tab) {
-                const currentUrl = this.optionsWindow.webContents.getURL();
-                const baseUrl = currentUrl.split('#')[0];
-                this.optionsWindow.loadURL(`${baseUrl}${hash}`);
-            }
-            this.optionsWindow.focus();
-            return this.optionsWindow;
-        }
-
-        this.optionsWindow = new BrowserWindow({
-            ...OPTIONS_WINDOW_CONFIG,
-            titleBarStyle: getTitleBarStyle(),
-            webPreferences: {
-                ...OPTIONS_WINDOW_CONFIG.webPreferences,
-                preload: getPreloadPath(),
-            },
-        });
-
-        const distOptionsPath = getDistHtmlPath('options.html');
-
-        if (this.isDev) {
-            this.optionsWindow.loadURL(getDevUrl('options.html') + hash);
-        } else {
-            this.optionsWindow.loadFile(distOptionsPath, { hash: tab });
-        }
-
-        this.optionsWindow.once('ready-to-show', () => {
-            this.optionsWindow?.show();
-        });
-
-        this.optionsWindow.on('closed', () => {
-            this.optionsWindow = null;
-        });
-
-        return this.optionsWindow;
+        return this.optionsWindow.create(tab);
     }
 
     /**
@@ -345,181 +81,57 @@ export default class WindowManager extends EventEmitter {
      * @returns The main window or null
      */
     getMainWindow(): BrowserWindow | null {
-        return this.mainWindow;
+        return this.mainWindow.getWindow();
     }
 
     /**
      * Minimize the main window.
      */
-    minimizeMainWindow() {
-        if (this.mainWindow) {
-            this.mainWindow.minimize();
-        }
+    minimizeMainWindow(): void {
+        this.mainWindow.minimize();
     }
 
     /**
-     * Hide the main window to tray (minimize to tray behavior).
-     * Hides window and sets skipTaskbar to remove from taskbar.
+     * Hide the main window to tray.
      */
     hideToTray(): void {
-        try {
-            if (!this.mainWindow) {
-                logger.warn('Cannot hide to tray: no main window');
-                return;
-            }
-
-            // Close auxiliary windows when hiding main window (dependent window pattern)
-            // This prevents orphaned windows when user closes to tray
-            if (this.optionsWindow) {
-                this.optionsWindow.close();
-                this.optionsWindow = null;
-            }
-            if (this.authWindow && !this.authWindow.isDestroyed()) {
-                this.authWindow.close();
-                this.authWindow = null;
-            }
-
-            this.mainWindow.hide();
-            // On Windows/Linux, also remove from taskbar
-            if (!isMacOS) {
-                this.mainWindow.setSkipTaskbar(true);
-            }
-            logger.log('Main window hidden to tray');
-        } catch (error) {
-            logger.error('Failed to hide window to tray:', error);
-        }
+        this.mainWindow.hideToTray();
     }
 
     /**
      * Restore the main window from tray.
      */
     restoreFromTray(): void {
-        try {
-            if (!this.mainWindow) {
-                logger.warn('Cannot restore from tray: no main window');
-                return;
-            }
-
-            this.mainWindow.show();
-            this.mainWindow.focus();
-            // Restore taskbar visibility on Windows/Linux
-            if (!isMacOS) {
-                this.mainWindow.setSkipTaskbar(false);
-            }
-            logger.log('Main window restored from tray');
-        } catch (error) {
-            logger.error('Failed to restore window from tray:', error);
-        }
+        this.mainWindow.restoreFromTray();
     }
 
     /**
      * Create the Quick Chat floating window.
-     * Centers on the active display, transparent and always-on-top.
      * @returns The Quick Chat window
      */
     createQuickChatWindow(): BrowserWindow {
-        if (this.quickChatWindow) {
-            return this.quickChatWindow;
-        }
-
-        // Center the window horizontally, position it in upper third vertically
-        /* v8 ignore next 2 -- fallback for undefined constants, always defined */
-        const { x, y } = this._calculateQuickChatPosition();
-
-        this.quickChatWindow = new BrowserWindow({
-            ...QUICK_CHAT_WINDOW_CONFIG,
-            x,
-            y,
-            webPreferences: {
-                ...QUICK_CHAT_WINDOW_CONFIG.webPreferences,
-                preload: getPreloadPath(),
-            },
-        });
-
-        const distQuickChatPath = getDistHtmlPath('quickchat.html');
-
-        if (this.isDev) {
-            this.quickChatWindow.loadURL(getDevUrl('quickchat.html'));
-        } else {
-            this.quickChatWindow.loadFile(distQuickChatPath);
-        }
-
-        this.quickChatWindow.once('ready-to-show', () => {
-            this.quickChatWindow?.show();
-            this.quickChatWindow?.focus();
-        });
-
-        // Auto-hide when window loses focus (Spotlight behavior)
-        this.quickChatWindow.on('blur', () => {
-            this.hideQuickChat();
-        });
-
-        this.quickChatWindow.on('closed', () => {
-            this.quickChatWindow = null;
-        });
-
-        logger.log('Quick Chat window created');
-        return this.quickChatWindow;
+        return this.quickChatWindow.create();
     }
 
     /**
      * Show and focus the Quick Chat window.
-     * Creates the window if it doesn't exist.
      */
     showQuickChat(): void {
-        if (!this.quickChatWindow) {
-            this.createQuickChatWindow();
-        } else {
-            // Reposition to current cursor display
-            const { x, y } = this._calculateQuickChatPosition();
-
-            if (this.quickChatWindow && !this.quickChatWindow.isDestroyed()) {
-                this.quickChatWindow.setPosition(x, y);
-                this.quickChatWindow.show();
-                this.quickChatWindow.focus();
-            }
-        }
-        logger.log('Quick Chat window shown');
-    }
-
-    /**
-     * Calculate position for Quick Chat window based on cursor location.
-     * Centers horizontally on the active display, upper third vertically.
-     * @private
-     */
-    private _calculateQuickChatPosition(): { x: number; y: number } {
-        const cursorPoint = screen.getCursorScreenPoint();
-        const display = screen.getDisplayNearestPoint(cursorPoint);
-        const { width: displayWidth, height: displayHeight } = display.workAreaSize;
-        const { x: displayX, y: displayY } = display.workArea;
-
-        /* v8 ignore next -- fallback for undefined constant, always defined */
-        const windowWidth = QUICK_CHAT_WINDOW_CONFIG.width ?? QUICK_CHAT_WIDTH;
-        const x = displayX + Math.round((displayWidth - windowWidth) / 2);
-        const y = displayY + Math.round(displayHeight / 4);
-
-        return { x, y };
+        this.quickChatWindow.showAndFocus();
     }
 
     /**
      * Hide the Quick Chat window.
      */
     hideQuickChat(): void {
-        if (this.quickChatWindow && !this.quickChatWindow.isDestroyed()) {
-            this.quickChatWindow.hide();
-            logger.log('Quick Chat window hidden');
-        }
+        this.quickChatWindow.hide();
     }
 
     /**
      * Toggle Quick Chat window visibility.
      */
     toggleQuickChat(): void {
-        if (this.quickChatWindow && this.quickChatWindow.isVisible()) {
-            this.hideQuickChat();
-        } else {
-            this.showQuickChat();
-        }
+        this.quickChatWindow.toggle();
     }
 
     /**
@@ -527,27 +139,24 @@ export default class WindowManager extends EventEmitter {
      * @returns The Quick Chat window or null
      */
     getQuickChatWindow(): BrowserWindow | null {
-        return this.quickChatWindow;
+        return this.quickChatWindow.getWindow();
     }
 
     /**
      * Focus the main window and bring to front.
      */
     focusMainWindow(): void {
-        if (this.mainWindow) {
-            this.mainWindow.show();
-            this.mainWindow.focus();
-            logger.log('Main window focused');
-        }
+        this.mainWindow.show();
+        this.mainWindow.focus();
+        logger.log('Main window focused');
     }
 
     /**
      * Set the quitting state.
-     * Used to distinguish between closing to tray (user X) and quitting app (Cmd+Q/Menu).
      * @param state - Whether the app is quitting
      */
     setQuitting(state: boolean): void {
-        this.isQuitting = state;
+        this.mainWindow.setQuitting(state);
     }
 
     /**
@@ -555,18 +164,14 @@ export default class WindowManager extends EventEmitter {
      * @param enabled - Whether to enable always-on-top
      */
     setAlwaysOnTop(enabled: boolean): void {
-        if (this.mainWindow) {
-            this.mainWindow.setAlwaysOnTop(enabled);
-            this.emit('always-on-top-changed', enabled);
-            logger.log(`Always on top ${enabled ? 'enabled' : 'disabled'}`);
-        }
+        this.mainWindow.setAlwaysOnTop(enabled);
     }
 
     /**
      * Get the current always-on-top state.
-     * @returns True if always-on-top is enabled, false otherwise
+     * @returns True if always-on-top is enabled
      */
     isAlwaysOnTop(): boolean {
-        return this.mainWindow?.isAlwaysOnTop() ?? false;
+        return this.mainWindow.isAlwaysOnTop();
     }
 }

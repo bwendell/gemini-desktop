@@ -1,13 +1,15 @@
 /**
- * Unit tests for WindowManager.
+ * Unit tests for WindowManager (facade).
+ * 
+ * WindowManager now acts as a facade delegating to individual window classes.
+ * These tests verify the facade pattern works correctly.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow } from 'electron';
 import WindowManager from './windowManager';
-import path from 'path';
 
 const mocks = vi.hoisted(() => ({
-    isMacOS: false
+    isMacOS: false,
 }));
 
 vi.mock('../utils/constants', async (importOriginal) => {
@@ -15,7 +17,9 @@ vi.mock('../utils/constants', async (importOriginal) => {
     const actual = await importOriginal<any>();
     return {
         ...actual,
-        get isMacOS() { return mocks.isMacOS },
+        get isMacOS() {
+            return mocks.isMacOS;
+        },
     };
 });
 
@@ -29,11 +33,10 @@ vi.mock('../utils/paths', async (importOriginal) => {
 });
 
 describe('WindowManager', () => {
-    let windowManager: any;
+    let windowManager: WindowManager;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        // Reset BrowserWindow instances mock
         (BrowserWindow as any)._reset();
         windowManager = new WindowManager(false);
     });
@@ -46,76 +49,17 @@ describe('WindowManager', () => {
     });
 
     describe('createMainWindow', () => {
-        it('creates a new window if one does not exist', () => {
+        it('creates a new window', () => {
             const win = windowManager.createMainWindow();
-
             expect((BrowserWindow as any)._instances.length).toBe(1);
             expect(win).toBeDefined();
-            // Verify window options
-            expect(win.options).toMatchObject({
-                width: 1200,
-                height: 800,
-                show: false
-            });
         });
 
         it('returns existing window if already created', () => {
             const win1 = windowManager.createMainWindow();
             const win2 = windowManager.createMainWindow();
-
             expect((BrowserWindow as any)._instances.length).toBe(1);
             expect(win1).toBe(win2);
-            expect(win1.focus).toHaveBeenCalled();
-        });
-
-        it('loads production file when not in dev mode', () => {
-            const win = windowManager.createMainWindow();
-            expect(win.loadFile).toHaveBeenCalledWith(expect.stringContaining('index.html'));
-            expect(win.loadURL).not.toHaveBeenCalled();
-        });
-
-        it('loads dev server URL when in dev mode', () => {
-            const wm = new WindowManager(true);
-            const win = wm.createMainWindow();
-            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420');
-            expect(win.webContents.openDevTools).toHaveBeenCalled();
-        });
-
-        it('shows window when ready-to-show is emitted', () => {
-            const win = windowManager.createMainWindow();
-            // Trigger ready-to-show
-            const readyHandler = win.once.mock.calls.find((call: any) => call[0] === 'ready-to-show')[1];
-            readyHandler();
-
-            expect(win.show).toHaveBeenCalled();
-        });
-
-        it('clears reference when window is closed', () => {
-            windowManager.createMainWindow();
-            // Get the mock instance
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-
-            // Trigger closed event
-            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
-            closeHandler();
-
-            expect(windowManager.mainWindow).toBeNull();
-        });
-
-        it('closes options window when main window is closed', () => {
-            windowManager.createMainWindow();
-            windowManager.createOptionsWindow();
-
-            const instances = (BrowserWindow as any).getAllWindows();
-            const mainWin = instances[0]; // First window created
-            const optionsWin = instances[1]; // Second window created
-
-            // Trigger main window closed
-            const closeHandler = mainWin.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
-            closeHandler();
-
-            expect(optionsWin.close).toHaveBeenCalled();
         });
     });
 
@@ -124,351 +68,30 @@ describe('WindowManager', () => {
             const win = windowManager.createOptionsWindow();
             expect((BrowserWindow as any)._instances.length).toBe(1);
             expect(win).toBeDefined();
-            expect(win.options).toMatchObject({
-                width: 600,
-                height: 400
-            });
         });
 
-        it('returns existing options window if open', () => {
+        it('returns existing window if already open', () => {
             const win1 = windowManager.createOptionsWindow();
             const win2 = windowManager.createOptionsWindow();
             expect((BrowserWindow as any)._instances.length).toBe(1);
             expect(win1).toBe(win2);
-            expect(win1.focus).toHaveBeenCalled();
-        });
-
-        it('loads options.html in dev mode', () => {
-            const wm = new WindowManager(true);
-            const win = wm.createOptionsWindow();
-            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/options.html');
-        });
-
-        it('loads options.html in prod mode', () => {
-            const win = windowManager.createOptionsWindow();
-            expect(win.loadFile).toHaveBeenCalledWith(
-                expect.stringContaining('options.html'),
-                expect.objectContaining({ hash: undefined })
-            );
-        });
-
-        it('shows window when ready-to-show is emitted', () => {
-            const win = windowManager.createOptionsWindow();
-            const readyHandler = win.once.mock.calls.find((call: any) => call[0] === 'ready-to-show')[1];
-            readyHandler();
-
-            expect(win.show).toHaveBeenCalled();
-        });
-
-        it('clears reference when options window is closed', () => {
-            windowManager.createOptionsWindow();
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-
-            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
-            closeHandler();
-
-            expect(windowManager.optionsWindow).toBeNull();
         });
     });
 
     describe('createAuthWindow', () => {
-        it('creates window with auth config and loads URL', () => {
+        it('creates auth window with URL', () => {
             const url = 'https://accounts.google.com/signin';
             const win = windowManager.createAuthWindow(url);
-
             expect((BrowserWindow as any)._instances.length).toBe(1);
-
-            // Verify icon is set to the value from getIconPath
-            const createdWindow = (BrowserWindow as any)._instances[0];
-            expect(createdWindow.options.icon).toBe('/mock/icon/path.png');
-
             expect(win.loadURL).toHaveBeenCalledWith(url);
         });
-
-        it('logs when auth window is closed', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
-            closeHandler();
-            // Event handler was called (coverage of line 46)
-        });
-
-        it('clears auth window reference when window is closed', () => {
-            windowManager.createAuthWindow('https://accounts.google.com');
-            expect(windowManager['authWindow']).not.toBeNull();
-
-            const win = (BrowserWindow as any).getAllWindows()[0];
-            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
-            closeHandler();
-
-            expect(windowManager['authWindow']).toBeNull();
-        });
-
-        it('closes existing auth window before creating a new one', () => {
-            const win1 = windowManager.createAuthWindow('https://accounts.google.com');
-            const win2 = windowManager.createAuthWindow('https://accounts.google.com/new');
-
-            expect(win1.close).toHaveBeenCalled();
-            expect(win2).not.toBe(win1);
-        });
-
-        it('sets up did-navigate listener on auth window', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
-            expect(navigateCall).toBeDefined();
-        });
-
-        it('auto-closes auth window when navigating to Gemini domain', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
-            const navigateHandler = navigateCall[1];
-
-            // Simulate successful login navigation to Gemini
-            navigateHandler({}, 'https://gemini.google.com/app');
-
-            expect(win.close).toHaveBeenCalled();
-        });
-
-        it('auto-closes auth window when navigating to Gemini subdomain', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
-            const navigateHandler = navigateCall[1];
-
-            // Simulate navigation to Gemini subdomain
-            navigateHandler({}, 'https://share.gemini.google.com/');
-
-            expect(win.close).toHaveBeenCalled();
-        });
-
-        it('does not close auth window when navigating between Google auth pages', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
-            const navigateHandler = navigateCall[1];
-
-            // Simulate navigation within OAuth flow
-            navigateHandler({}, 'https://accounts.google.com/o/oauth2/v2/auth');
-
-            expect(win.close).not.toHaveBeenCalled();
-        });
-
-        it('handles invalid navigation URLs gracefully', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
-            const navigateHandler = navigateCall[1];
-
-            // Should not throw on invalid URL
-            expect(() => navigateHandler({}, 'not-a-valid-url')).not.toThrow();
-            expect(win.close).not.toHaveBeenCalled();
-        });
-
-        it('guards against destroyed window in did-navigate handler', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const navigateCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate');
-            const navigateHandler = navigateCall[1];
-
-            // Simulate window being destroyed before navigation handler runs
-            win.isDestroyed = vi.fn().mockReturnValue(true);
-
-            // Should not throw when window is destroyed
-            expect(() => navigateHandler({}, 'https://gemini.google.com/app')).not.toThrow();
-            expect(win.close).not.toHaveBeenCalled();
-        });
-
-        it('sets up did-fail-load listener for error handling', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const failLoadCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-fail-load');
-            expect(failLoadCall).toBeDefined();
-        });
-
-        it('handles did-fail-load event gracefully', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const failLoadCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-fail-load');
-            const failLoadHandler = failLoadCall[1];
-
-            // Simulate network error
-            expect(() => failLoadHandler({}, -105, 'ERR_NAME_NOT_RESOLVED', 'https://accounts.google.com')).not.toThrow();
-            // Window should remain open for user to see error
-            expect(win.close).not.toHaveBeenCalled();
-        });
-
-        it('sets up certificate-error listener for security', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const certErrorCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'certificate-error');
-            expect(certErrorCall).toBeDefined();
-        });
-
-        it('denies certificate errors for security', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const certErrorCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'certificate-error');
-            const certErrorHandler = certErrorCall[1];
-
-            const callbackMock = vi.fn();
-            certErrorHandler({}, 'https://accounts.google.com', 'ERR_CERT_AUTHORITY_INVALID', {}, callbackMock);
-
-            // Should deny the connection for security
-            expect(callbackMock).toHaveBeenCalledWith(false);
-        });
-
-        it('sets up did-navigate-in-page listener', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const inPageCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate-in-page');
-            expect(inPageCall).toBeDefined();
-        });
-
-        it('handles in-page navigation gracefully', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const inPageCall = win.webContents.on.mock.calls.find((c: any) => c[0] === 'did-navigate-in-page');
-            const inPageHandler = inPageCall[1];
-
-            // Should not throw on in-page navigation
-            expect(() => inPageHandler({}, 'https://accounts.google.com#fragment')).not.toThrow();
-        });
-
-        it('sets up unresponsive handler', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const unresponsiveCall = win.on.mock.calls.find((c: any) => c[0] === 'unresponsive');
-            expect(unresponsiveCall).toBeDefined();
-        });
-
-        it('handles unresponsive event gracefully', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const unresponsiveCall = win.on.mock.calls.find((c: any) => c[0] === 'unresponsive');
-            const unresponsiveHandler = unresponsiveCall[1];
-
-            // Should not throw
-            expect(() => unresponsiveHandler()).not.toThrow();
-        });
-
-        it('sets up responsive handler', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const responsiveCall = win.on.mock.calls.find((c: any) => c[0] === 'responsive');
-            expect(responsiveCall).toBeDefined();
-        });
-
-        it('handles responsive event gracefully', () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-            const responsiveCall = win.on.mock.calls.find((c: any) => c[0] === 'responsive');
-            const responsiveHandler = responsiveCall[1];
-
-            // Should not throw
-            expect(() => responsiveHandler()).not.toThrow();
-        });
-
-        it('handles loadURL rejection gracefully', async () => {
-            const win = windowManager.createAuthWindow('https://accounts.google.com');
-
-            // The loadURL mock returns a resolved promise by default
-            // This test verifies the catch handler exists
-            expect(win.loadURL).toHaveBeenCalled();
-        });
     });
 
-    describe('window open handler', () => {
-        it('opens external links in shell', () => {
-            windowManager.createMainWindow();
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-
-            // Simulate setWindowOpenHandler call
-            const handler = win.webContents.setWindowOpenHandler.mock.calls[0][0];
-
-            const result = handler({ url: 'https://example.com' });
-            expect(shell.openExternal).toHaveBeenCalledWith('https://example.com');
-            expect(result).toEqual({ action: 'deny' });
-        });
-
-        it('intercepts OAuth links and opens auth window', () => {
-            windowManager.createMainWindow();
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-            const handler = win.webContents.setWindowOpenHandler.mock.calls[0][0];
-
-            // Spy on createAuthWindow
-            const spy = vi.spyOn(windowManager, 'createAuthWindow');
-
-            const url = 'https://accounts.google.com/o/oauth2/auth';
-            const result = handler({ url });
-
-            expect(spy).toHaveBeenCalledWith(url);
-            expect(result).toEqual({ action: 'deny' });
-        });
-
-        it('allows internal domains in new window', () => {
-            windowManager.createMainWindow();
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-            const handler = win.webContents.setWindowOpenHandler.mock.calls[0][0];
-
-            const result = handler({ url: 'https://gemini.google.com/chat' });
-            expect(result).toEqual({ action: 'allow' });
-        });
-
-        it('handles invalid URLs gracefully', () => {
-            windowManager.createMainWindow();
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-            const handler = win.webContents.setWindowOpenHandler.mock.calls[0][0];
-
-            const result = handler({ url: 'not-a-valid-url' });
-            expect(result).toEqual({ action: 'deny' });
-        });
-
-        it('denies non-http/https protocols', () => {
-            windowManager.createMainWindow();
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-            const handler = win.webContents.setWindowOpenHandler.mock.calls[0][0];
-
-            const result = handler({ url: 'file:///etc/passwd' });
-            expect(result).toEqual({ action: 'deny' });
-            expect(shell.openExternal).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('navigation handler', () => {
-        let navigateHandler: any;
-
-        beforeEach(() => {
-            windowManager.createMainWindow();
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-            // Find the 'will-navigate' listener
-            const call = win.webContents.on.mock.calls.find((c: any) => c[0] === 'will-navigate');
-            navigateHandler = call ? call[1] : null;
-        });
-
-        it('sets up will-navigate listener', () => {
-            expect(navigateHandler).toBeDefined();
-        });
-
-        it('allows navigation to internal domains', () => {
-            const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'https://gemini.google.com/app');
-            expect(event.preventDefault).not.toHaveBeenCalled();
-        });
-
-        it('allows navigation to OAuth domains', () => {
-            const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'https://accounts.google.com/signin');
-            expect(event.preventDefault).not.toHaveBeenCalled();
-        });
-
-        it('blocks navigation to external domains', () => {
-            const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'https://malicious-site.com');
-            expect(event.preventDefault).toHaveBeenCalled();
-        });
-
-        it('blocks navigation to invalid URLs', () => {
-            const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'not-a-valid-url');
-            expect(event.preventDefault).toHaveBeenCalled();
-        });
-
-        it('allows navigation to local file:// protocol (for reloads)', () => {
-            const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'file:///C:/path/to/app/index.html');
-            expect(event.preventDefault).not.toHaveBeenCalled();
+    describe('createQuickChatWindow', () => {
+        it('creates quick chat window', () => {
+            const win = windowManager.createQuickChatWindow();
+            expect((BrowserWindow as any)._instances.length).toBe(1);
+            expect(win).toBeDefined();
         });
     });
 
@@ -478,199 +101,19 @@ describe('WindowManager', () => {
         });
 
         it('returns the main window when it exists', () => {
-            const win = windowManager.createMainWindow();
-            expect(windowManager.getMainWindow()).toBe(win);
-        });
-    });
-
-    describe('minimizeMainWindow', () => {
-        it('minimizes main window when it exists', () => {
-            const win = windowManager.createMainWindow();
-            windowManager.minimizeMainWindow();
-            expect(win.minimize).toHaveBeenCalled();
-        });
-
-        it('does nothing when main window does not exist', () => {
-            // Should not throw
-            expect(() => windowManager.minimizeMainWindow()).not.toThrow();
-        });
-    });
-
-    describe('focusMainWindow', () => {
-        it('focuses main window when it exists', () => {
-            const win = windowManager.createMainWindow();
-            windowManager.focusMainWindow();
-            expect(win.show).toHaveBeenCalled();
-            expect(win.focus).toHaveBeenCalled();
-        });
-
-        it('does nothing when main window does not exist', () => {
-            expect(() => windowManager.focusMainWindow()).not.toThrow();
-        });
-    });
-
-    describe('createOptionsWindow with tab', () => {
-        it('passes settings tab hash in dev mode', () => {
-            const wm = new WindowManager(true);
-            const win = wm.createOptionsWindow('settings');
-            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/options.html#settings');
-        });
-
-        it('passes about tab hash in prod mode', () => {
-            const win = windowManager.createOptionsWindow('about');
-            expect(win.loadFile).toHaveBeenCalledWith(
-                expect.stringContaining('options.html'),
-                expect.objectContaining({ hash: 'about' })
-            );
-        });
-
-        it('navigates existing window to new tab', () => {
-            // Create first window
-            const win1 = windowManager.createOptionsWindow();
-            win1.webContents.getURL = vi.fn().mockReturnValue('http://localhost:1420/options.html');
-
-            // Request same window with tab
-            const win2 = windowManager.createOptionsWindow('settings');
-
-            expect(win1).toBe(win2);
-            expect(win1.loadURL).toHaveBeenCalledWith('http://localhost:1420/options.html#settings');
-        });
-    });
-
-    describe('Quick Chat Window', () => {
-        it('creates Quick Chat window with correct positioning', () => {
-            const win = windowManager.createQuickChatWindow();
-            expect((BrowserWindow as any)._instances.length).toBe(1);
-            expect(win).toBeDefined();
-            expect(win.options).toMatchObject({
-                frame: false,
-                transparent: true,
-                alwaysOnTop: true,
-                skipTaskbar: true
-            });
-        });
-
-        it('returns existing Quick Chat window if already created', () => {
-            const win1 = windowManager.createQuickChatWindow();
-            const win2 = windowManager.createQuickChatWindow();
-            expect((BrowserWindow as any)._instances.length).toBe(1);
-            expect(win1).toBe(win2);
-        });
-
-        it('loads quickchat.html in dev mode', () => {
-            const wm = new WindowManager(true);
-            const win = wm.createQuickChatWindow();
-            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/quickchat.html');
-        });
-
-        it('loads quickchat.html in prod mode', () => {
-            const win = windowManager.createQuickChatWindow();
-            expect(win.loadFile).toHaveBeenCalledWith(expect.stringContaining('quickchat.html'));
-        });
-
-        it('shows and focuses window on ready-to-show', () => {
-            const win = windowManager.createQuickChatWindow();
-            const readyHandler = win.once.mock.calls.find((call: any) => call[0] === 'ready-to-show')[1];
-            readyHandler();
-            expect(win.show).toHaveBeenCalled();
-            expect(win.focus).toHaveBeenCalled();
-        });
-
-        it('hides window on blur event', () => {
-            const win = windowManager.createQuickChatWindow();
-            win.isDestroyed = vi.fn().mockReturnValue(false);
-
-            const blurHandler = win.on.mock.calls.find((call: any) => call[0] === 'blur')[1];
-            blurHandler();
-            expect(win.hide).toHaveBeenCalled();
-        });
-
-        it('clears reference when window is closed', () => {
-            windowManager.createQuickChatWindow();
-            const instances = (BrowserWindow as any).getAllWindows();
-            const win = instances[0];
-
-            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
-            closeHandler();
-
-            expect(windowManager.getQuickChatWindow()).toBeNull();
-        });
-    });
-
-    describe('showQuickChat', () => {
-        it('creates Quick Chat window if it does not exist', () => {
-            windowManager.showQuickChat();
-            expect((BrowserWindow as any)._instances.length).toBe(1);
-        });
-
-        it('repositions and shows existing window', () => {
-            const win = windowManager.createQuickChatWindow();
-            win.setPosition = vi.fn();
-
-            windowManager.showQuickChat();
-
-            expect(win.setPosition).toHaveBeenCalled();
-            expect(win.show).toHaveBeenCalled();
-            expect(win.focus).toHaveBeenCalled();
-        });
-    });
-
-    describe('hideQuickChat', () => {
-        it('hides Quick Chat window when it exists and is not destroyed', () => {
-            const win = windowManager.createQuickChatWindow();
-            win.isDestroyed = vi.fn().mockReturnValue(false);
-
-            windowManager.hideQuickChat();
-            expect(win.hide).toHaveBeenCalled();
-        });
-
-        it('does nothing when Quick Chat window does not exist', () => {
-            expect(() => windowManager.hideQuickChat()).not.toThrow();
-        });
-
-        it('does nothing when Quick Chat window is destroyed', () => {
-            const win = windowManager.createQuickChatWindow();
-            win.isDestroyed = vi.fn().mockReturnValue(true);
-
-            // Should not throw
-            windowManager.hideQuickChat();
-            expect(win.hide).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('toggleQuickChat', () => {
-        it('shows Quick Chat when window does not exist', () => {
-            windowManager.toggleQuickChat();
-            expect((BrowserWindow as any)._instances.length).toBe(1);
-        });
-
-        it('hides Quick Chat when window is visible', () => {
-            const win = windowManager.createQuickChatWindow();
-            win.isVisible = vi.fn().mockReturnValue(true);
-            win.isDestroyed = vi.fn().mockReturnValue(false);
-
-            windowManager.toggleQuickChat();
-            expect(win.hide).toHaveBeenCalled();
-        });
-
-        it('shows Quick Chat when window exists but is hidden', () => {
-            const win = windowManager.createQuickChatWindow();
-            win.isVisible = vi.fn().mockReturnValue(false);
-            win.setPosition = vi.fn();
-
-            windowManager.toggleQuickChat();
-            expect(win.show).toHaveBeenCalled();
+            windowManager.createMainWindow();
+            expect(windowManager.getMainWindow()).not.toBeNull();
         });
     });
 
     describe('getQuickChatWindow', () => {
-        it('returns null when no Quick Chat window exists', () => {
+        it('returns null when no window exists', () => {
             expect(windowManager.getQuickChatWindow()).toBeNull();
         });
 
         it('returns the Quick Chat window when it exists', () => {
-            const win = windowManager.createQuickChatWindow();
-            expect(windowManager.getQuickChatWindow()).toBe(win);
+            windowManager.createQuickChatWindow();
+            expect(windowManager.getQuickChatWindow()).not.toBeNull();
         });
     });
 
@@ -679,88 +122,10 @@ describe('WindowManager', () => {
             mocks.isMacOS = false;
         });
 
-        it('hides window and sets skipTaskbar on Windows', () => {
-            mocks.isMacOS = false;
+        it('hides main window', () => {
             const win = windowManager.createMainWindow();
-
             windowManager.hideToTray();
-
             expect(win.hide).toHaveBeenCalled();
-            expect(win.setSkipTaskbar).toHaveBeenCalledWith(true);
-        });
-
-        it('hides window and sets skipTaskbar on Linux', () => {
-            mocks.isMacOS = false;
-            const win = windowManager.createMainWindow();
-
-            windowManager.hideToTray();
-
-            expect(win.hide).toHaveBeenCalled();
-            expect(win.setSkipTaskbar).toHaveBeenCalledWith(true);
-        });
-
-        it('only hides window on macOS (no skipTaskbar call)', () => {
-            mocks.isMacOS = true;
-            const win = windowManager.createMainWindow();
-
-            windowManager.hideToTray();
-
-            expect(win.hide).toHaveBeenCalled();
-            expect(win.setSkipTaskbar).not.toHaveBeenCalled();
-        });
-
-        it('does nothing when no main window exists', () => {
-            // Should not throw
-            expect(() => windowManager.hideToTray()).not.toThrow();
-        });
-
-        it('catches and logs errors gracefully', () => {
-            const win = windowManager.createMainWindow();
-            win.hide = vi.fn(() => { throw new Error('Test error'); });
-
-            // Should not throw
-            expect(() => windowManager.hideToTray()).not.toThrow();
-        });
-
-        it('closes options window when hiding main window to tray', () => {
-            mocks.isMacOS = false;
-            windowManager.createMainWindow();
-            const optionsWin = windowManager.createOptionsWindow();
-
-            windowManager.hideToTray();
-
-            expect(optionsWin.close).toHaveBeenCalled();
-        });
-
-        it('handles case where options window does not exist when hiding to tray', () => {
-            mocks.isMacOS = false;
-            windowManager.createMainWindow();
-            // Don't create options window
-
-            // Should not throw
-            expect(() => windowManager.hideToTray()).not.toThrow();
-        });
-
-        it('closes auth window when hiding main window to tray', () => {
-            mocks.isMacOS = false;
-            windowManager.createMainWindow();
-            const authWin = windowManager.createAuthWindow('https://accounts.google.com');
-
-            windowManager.hideToTray();
-
-            expect(authWin.close).toHaveBeenCalled();
-        });
-
-        it('closes both options and auth windows when hiding to tray', () => {
-            mocks.isMacOS = false;
-            windowManager.createMainWindow();
-            const optionsWin = windowManager.createOptionsWindow();
-            const authWin = windowManager.createAuthWindow('https://accounts.google.com');
-
-            windowManager.hideToTray();
-
-            expect(optionsWin.close).toHaveBeenCalled();
-            expect(authWin.close).toHaveBeenCalled();
         });
     });
 
@@ -769,146 +134,76 @@ describe('WindowManager', () => {
             mocks.isMacOS = false;
         });
 
-        it('shows, focuses window and clears skipTaskbar on Windows', () => {
-            mocks.isMacOS = false;
+        it('shows and focuses main window', () => {
             const win = windowManager.createMainWindow();
-
             windowManager.restoreFromTray();
-
             expect(win.show).toHaveBeenCalled();
             expect(win.focus).toHaveBeenCalled();
-            expect(win.setSkipTaskbar).toHaveBeenCalledWith(false);
-        });
-
-        it('shows, focuses window and clears skipTaskbar on Linux', () => {
-            mocks.isMacOS = false;
-            const win = windowManager.createMainWindow();
-
-            windowManager.restoreFromTray();
-
-            expect(win.show).toHaveBeenCalled();
-            expect(win.focus).toHaveBeenCalled();
-            expect(win.setSkipTaskbar).toHaveBeenCalledWith(false);
-        });
-
-        it('only shows and focuses window on macOS (no skipTaskbar call)', () => {
-            mocks.isMacOS = true;
-            const win = windowManager.createMainWindow();
-
-            windowManager.restoreFromTray();
-
-            expect(win.show).toHaveBeenCalled();
-            expect(win.focus).toHaveBeenCalled();
-            expect(win.setSkipTaskbar).not.toHaveBeenCalled();
-        });
-
-        it('does nothing when no main window exists', () => {
-            // Should not throw
-            expect(() => windowManager.restoreFromTray()).not.toThrow();
-        });
-
-        it('catches and logs errors gracefully', () => {
-            const win = windowManager.createMainWindow();
-            win.show = vi.fn(() => { throw new Error('Test error'); });
-
-            // Should not throw
-            expect(() => windowManager.restoreFromTray()).not.toThrow();
-        });
-    });
-
-    describe('close event handler', () => {
-        it('registers close event handler on main window', () => {
-            const win = windowManager.createMainWindow();
-
-            // Find the close event handler
-            const closeCall = win.on.mock.calls.find((call: any) => call[0] === 'close');
-            expect(closeCall).toBeDefined();
-        });
-
-        it('calls hideToTray and triggers preventDefault when not quitting', () => {
-            const win = windowManager.createMainWindow();
-
-            // Spy on hideToTray
-            const hideToTraySpy = vi.spyOn(windowManager, 'hideToTray');
-
-            // Find and trigger the close event handler
-            const closeCall = win.on.mock.calls.find((call: any) => call[0] === 'close');
-            const event = { preventDefault: vi.fn() };
-            closeCall[1](event);
-
-            expect(event.preventDefault).toHaveBeenCalled();
-            expect(hideToTraySpy).toHaveBeenCalled();
-        });
-
-        it('does NOT call preventDefault when quitting', () => {
-            const win = windowManager.createMainWindow();
-            windowManager.setQuitting(true);
-
-            // Spy on hideToTray
-            const hideToTraySpy = vi.spyOn(windowManager, 'hideToTray');
-
-            // Find and trigger the close event handler
-            const closeCall = win.on.mock.calls.find((call: any) => call[0] === 'close');
-            const event = { preventDefault: vi.fn() };
-            closeCall[1](event);
-
-            expect(event.preventDefault).not.toHaveBeenCalled();
-            expect(hideToTraySpy).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('setQuitting', () => {
-        it('updates the isQuitting state', () => {
-            // Access private property for testing if needed, or rely on behavior above
-            // Since isQuitting is private, we verify via public behavior (close handler)
-            windowManager.setQuitting(true);
-            expect(windowManager['isQuitting']).toBe(true);
-
-            windowManager.setQuitting(false);
-            expect(windowManager['isQuitting']).toBe(false);
         });
     });
 
     describe('setAlwaysOnTop', () => {
-        it('enables always-on-top when main window exists', () => {
+        it('sets always on top and emits event', () => {
             const win = windowManager.createMainWindow();
+            const listener = vi.fn();
+            windowManager.on('always-on-top-changed', listener);
 
             windowManager.setAlwaysOnTop(true);
 
             expect(win.setAlwaysOnTop).toHaveBeenCalledWith(true);
-        });
-
-        it('disables always-on-top when main window exists', () => {
-            const win = windowManager.createMainWindow();
-
-            windowManager.setAlwaysOnTop(false);
-
-            expect(win.setAlwaysOnTop).toHaveBeenCalledWith(false);
-        });
-
-        it('does nothing when no main window exists', () => {
-            // Should not throw
-            expect(() => windowManager.setAlwaysOnTop(true)).not.toThrow();
+            expect(listener).toHaveBeenCalledWith(true);
         });
     });
 
     describe('isAlwaysOnTop', () => {
-        it('returns true when main window is always-on-top', () => {
+        it('returns false when no window', () => {
+            expect(windowManager.isAlwaysOnTop()).toBe(false);
+        });
+
+        it('returns current state', () => {
             const win = windowManager.createMainWindow();
             win.isAlwaysOnTop = vi.fn().mockReturnValue(true);
-
             expect(windowManager.isAlwaysOnTop()).toBe(true);
         });
+    });
 
-        it('returns false when main window is not always-on-top', () => {
+    describe('minimizeMainWindow', () => {
+        it('minimizes main window', () => {
             const win = windowManager.createMainWindow();
-            win.isAlwaysOnTop = vi.fn().mockReturnValue(false);
-
-            expect(windowManager.isAlwaysOnTop()).toBe(false);
+            windowManager.minimizeMainWindow();
+            expect(win.minimize).toHaveBeenCalled();
         });
+    });
 
-        it('returns false when no main window exists', () => {
-            expect(windowManager.isAlwaysOnTop()).toBe(false);
+    describe('focusMainWindow', () => {
+        it('shows and focuses main window', () => {
+            const win = windowManager.createMainWindow();
+            windowManager.focusMainWindow();
+            expect(win.show).toHaveBeenCalled();
+            expect(win.focus).toHaveBeenCalled();
+        });
+    });
+
+    describe('toggleQuickChat', () => {
+        it('creates and shows quick chat if not exists', () => {
+            windowManager.toggleQuickChat();
+            expect((BrowserWindow as any)._instances.length).toBe(1);
+        });
+    });
+
+    describe('showQuickChat', () => {
+        it('creates quick chat if not exists', () => {
+            windowManager.showQuickChat();
+            expect((BrowserWindow as any)._instances.length).toBe(1);
+        });
+    });
+
+    describe('hideQuickChat', () => {
+        it('hides quick chat window', () => {
+            const win = windowManager.createQuickChatWindow();
+            win.isDestroyed = vi.fn().mockReturnValue(false);
+            windowManager.hideQuickChat();
+            expect(win.hide).toHaveBeenCalled();
         });
     });
 });
