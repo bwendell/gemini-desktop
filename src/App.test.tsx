@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import App from './App';
+import * as hooks from './hooks/useNetworkStatus';
 
 describe('App', () => {
     beforeEach(() => {
@@ -96,6 +97,33 @@ describe('App', () => {
             // Verify the data-theme attribute was set (default should be 'system' which resolves to 'dark' or 'light')
             const themeAttr = document.documentElement.getAttribute('data-theme');
             expect(themeAttr).toBeTruthy();
+        });
+
+        describe('offline state', () => {
+            it('renders OfflineOverlay when offline', async () => {
+                vi.spyOn(hooks, 'useNetworkStatus').mockReturnValue(false);
+
+                await act(async () => {
+                    render(<App />);
+                });
+
+                const overlay = screen.getByTestId('offline-overlay');
+                expect(overlay).toBeInTheDocument();
+
+                // Verify it's inside main-layout
+                const layout = screen.getByTestId('main-layout');
+                expect(layout).toContainElement(overlay);
+            });
+
+            it('does not render OfflineOverlay when online', async () => {
+                vi.spyOn(hooks, 'useNetworkStatus').mockReturnValue(true);
+
+                await act(async () => {
+                    render(<App />);
+                });
+
+                expect(screen.queryByTestId('offline-overlay')).not.toBeInTheDocument();
+            });
         });
     });
 });

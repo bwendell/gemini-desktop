@@ -44,8 +44,8 @@ function App() {
 
   return (
     <ThemeProvider>
-      {!isOnline && <OfflineOverlay />}
       <MainLayout>
+        {!isOnline && <OfflineOverlay />}
         <div className="webview-container" data-testid="webview-container">
           {isLoading && (
             <div className="webview-loading" data-testid="webview-loading">
