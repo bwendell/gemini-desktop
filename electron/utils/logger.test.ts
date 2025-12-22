@@ -101,14 +101,15 @@ describe('createLogger', () => {
             mockConsole.mockRestore();
         });
 
-        it('should rethrow non-EPIPE errors', () => {
+        it('should swallow all errors to prevent crashes', () => {
             vi.restoreAllMocks();
             const mockConsole = vi.spyOn(console, 'log').mockImplementation(() => {
                 throw new Error('Some other error');
             });
 
             const logger = createLogger('[Test]');
-            expect(() => logger.log('test')).toThrow('Some other error');
+            // All errors should be swallowed to prevent logging from crashing the app
+            expect(() => logger.log('test')).not.toThrow();
             mockConsole.mockRestore();
         });
 

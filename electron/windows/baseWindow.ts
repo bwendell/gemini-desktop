@@ -73,18 +73,27 @@ export default abstract class BaseWindow extends EventEmitter {
             return this.window;
         }
 
-        this.window = new BrowserWindow({
-            ...this.windowConfig,
-            webPreferences: {
-                ...this.windowConfig.webPreferences,
-                preload: getPreloadPath(),
-            },
-        });
+        try {
+            this.window = new BrowserWindow({
+                ...this.windowConfig,
+                webPreferences: {
+                    ...this.windowConfig.webPreferences,
+                    preload: getPreloadPath(),
+                },
+            });
 
-        this.loadContent();
-        this.setupBaseHandlers();
+            this.loadContent();
+            this.setupBaseHandlers();
 
-        return this.window;
+            return this.window;
+        } catch (error) {
+            this.logger.error('Failed to create window:', {
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+            // Re-throw so the caller (WindowManager) can handle gracefully
+            throw error;
+        }
     }
 
     /**
@@ -118,7 +127,7 @@ export default abstract class BaseWindow extends EventEmitter {
      */
     close(): void {
         if (this.isValid()) {
-            this.window!.close();
+            this.window?.close();
         }
     }
 
@@ -127,7 +136,7 @@ export default abstract class BaseWindow extends EventEmitter {
      */
     show(): void {
         if (this.isValid()) {
-            this.window!.show();
+            this.window?.show();
         }
     }
 
@@ -136,7 +145,7 @@ export default abstract class BaseWindow extends EventEmitter {
      */
     hide(): void {
         if (this.isValid()) {
-            this.window!.hide();
+            this.window?.hide();
         }
     }
 
@@ -145,7 +154,7 @@ export default abstract class BaseWindow extends EventEmitter {
      */
     focus(): void {
         if (this.isValid()) {
-            this.window!.focus();
+            this.window?.focus();
         }
     }
 }

@@ -30,22 +30,10 @@ export function createLogger(prefix: string): Logger {
     ): void => {
         try {
             console[method](`${prefix} ${message}`, ...args);
-        } catch (e: any) {
-            // Ignore EPIPE errors - they occur when stdout/stderr is closed (e.g. detached process)
-            // Check for 'code' (Node.js system errors) or message string
-            const isEpipe =
-                e?.code === 'EPIPE' ||
-                (e?.message && typeof e.message === 'string' && e.message.includes('EPIPE'));
-
-            // If it's not an EPIPE error, rethrow. Otherwise, suppress it.
-            if (!isEpipe) {
-                // Determine if we should really crash on a log error. 
-                // For safety, we will just suppress console errors in production to avoid crashes.
-                // But following the existing pattern, we only swallow EPIPE.
-                // However, let's log to stderr just in case if possible, or just swallow if really needed.
-                // The safest fix for the reported issue is to be robust about EPIPE.
-                throw e;
-            }
+        } catch {
+            // Swallow all console errors to prevent logging failures from crashing the app.
+            // Common cases include EPIPE errors when stdout/stderr is closed (e.g., detached process).
+            // In production, it's safer to silently fail logging than to crash.
         }
     };
 

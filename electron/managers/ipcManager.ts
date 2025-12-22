@@ -157,12 +157,12 @@ export default class IpcManager {
         // Minimize window
         ipcMain.on(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
             const win = this._getWindowFromEvent(event);
-            if (win) {
+            if (win && !win.isDestroyed()) {
                 try {
                     win.minimize();
                 } catch (error) {
                     this.logger.error('Error minimizing window:', {
-                        error: (error as Error).message,
+                        error: error instanceof Error ? error.message : String(error),
                         windowId: win.id
                     });
                 }
@@ -172,7 +172,7 @@ export default class IpcManager {
         // Maximize/restore window
         ipcMain.on(IPC_CHANNELS.WINDOW_MAXIMIZE, (event) => {
             const win = this._getWindowFromEvent(event);
-            if (win) {
+            if (win && !win.isDestroyed()) {
                 try {
                     if (win.isMaximized()) {
                         win.unmaximize();
@@ -181,7 +181,7 @@ export default class IpcManager {
                     }
                 } catch (error) {
                     this.logger.error('Error toggling maximize:', {
-                        error: (error as Error).message,
+                        error: error instanceof Error ? error.message : String(error),
                         windowId: win.id
                     });
                 }
@@ -191,12 +191,12 @@ export default class IpcManager {
         // Close window
         ipcMain.on(IPC_CHANNELS.WINDOW_CLOSE, (event) => {
             const win = this._getWindowFromEvent(event);
-            if (win) {
+            if (win && !win.isDestroyed()) {
                 try {
                     win.close();
                 } catch (error) {
                     this.logger.error('Error closing window:', {
-                        error: (error as Error).message,
+                        error: error instanceof Error ? error.message : String(error),
                         windowId: win.id
                     });
                 }
@@ -215,7 +215,7 @@ export default class IpcManager {
         // Check if window is maximized
         ipcMain.handle(IPC_CHANNELS.WINDOW_IS_MAXIMIZED, (event): boolean => {
             const win = this._getWindowFromEvent(event);
-            if (!win) return false;
+            if (!win || win.isDestroyed()) return false;
 
             try {
                 return win.isMaximized();

@@ -64,7 +64,7 @@ export const E2E_TIMING = {
     EXTENDED_PAUSE_MS: 500,
 
     /** Time to wait for Quick Chat window to appear */
-    QUICK_CHAT_SHOW_DELAY_MS: 300,
+    QUICK_CHAT_SHOW_DELAY_MS: 500,
 
     /** Time to wait for Quick Chat window to hide */
     QUICK_CHAT_HIDE_DELAY_MS: 200,

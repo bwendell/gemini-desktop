@@ -42,7 +42,7 @@ export default class OptionsWindow extends BaseWindow {
     create(tab?: 'settings' | 'about'): BrowserWindow {
         const hash = tab ? `#${tab}` : '';
 
-        if (this.window) {
+        if (this.window && !this.window.isDestroyed()) {
             // If window exists, navigate to the requested tab
             if (tab) {
                 const currentUrl = this.window.webContents.getURL();
@@ -57,13 +57,13 @@ export default class OptionsWindow extends BaseWindow {
 
         // Override default content loading to handle hash
         if (this.isDev) {
-            this.window?.loadURL(getDevUrl(this.htmlFile) + hash);
+            win.loadURL(getDevUrl(this.htmlFile) + hash);
         } else {
-            this.window?.loadFile(getDistHtmlPath(this.htmlFile), { hash: tab });
+            win.loadFile(getDistHtmlPath(this.htmlFile), { hash: tab });
         }
 
-        this.window?.once('ready-to-show', () => {
-            this.window?.show();
+        win.once('ready-to-show', () => {
+            win.show();
         });
 
         return win;

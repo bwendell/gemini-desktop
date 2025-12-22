@@ -205,13 +205,11 @@ export default class MainWindow extends BaseWindow {
         });
 
         // Close to tray behavior
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.window as any).on('close', (event: Electron.Event) => {
+        this.window.on('close', (event) => {
             if (!this.isQuitting) {
                 event.preventDefault();
                 this.hideToTray();
             }
-            return false;
         });
     }
 
@@ -274,7 +272,7 @@ export default class MainWindow extends BaseWindow {
      * Minimize the main window.
      */
     minimize(): void {
-        if (this.window) {
+        if (this.window && !this.window.isDestroyed()) {
             this.window.minimize();
         }
     }
@@ -284,7 +282,7 @@ export default class MainWindow extends BaseWindow {
      * @param enabled - Whether to enable always-on-top
      */
     setAlwaysOnTop(enabled: boolean): void {
-        if (this.window) {
+        if (this.window && !this.window.isDestroyed()) {
             this.window.setAlwaysOnTop(enabled);
             this.emit('always-on-top-changed', enabled);
             this.logger.log(`Always on top ${enabled ? 'enabled' : 'disabled'}`);

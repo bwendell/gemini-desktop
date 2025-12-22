@@ -56,7 +56,12 @@ export default class WindowManager extends EventEmitter {
      * @returns The created auth window
      */
     createAuthWindow(url: string): BrowserWindow {
-        return this.authWindow.create(url);
+        try {
+            return this.authWindow.create(url);
+        } catch (error) {
+            logger.error('Failed to create auth window:', error);
+            throw error; // Re-throw as auth is critical for sign-in
+        }
     }
 
     /**
@@ -64,7 +69,12 @@ export default class WindowManager extends EventEmitter {
      * @returns The main window
      */
     createMainWindow(): BrowserWindow {
-        return this.mainWindow.create();
+        try {
+            return this.mainWindow.create();
+        } catch (error) {
+            logger.error('CRITICAL: Failed to create main window:', error);
+            throw error; // Re-throw as main window is essential
+        }
     }
 
     /**
@@ -73,7 +83,12 @@ export default class WindowManager extends EventEmitter {
      * @returns The options window
      */
     createOptionsWindow(tab?: 'settings' | 'about'): BrowserWindow {
-        return this.optionsWindow.create(tab);
+        try {
+            return this.optionsWindow.create(tab);
+        } catch (error) {
+            logger.error('Failed to create options window:', error);
+            throw error;
+        }
     }
 
     /**
@@ -110,7 +125,12 @@ export default class WindowManager extends EventEmitter {
      * @returns The Quick Chat window
      */
     createQuickChatWindow(): BrowserWindow {
-        return this.quickChatWindow.create();
+        try {
+            return this.quickChatWindow.create();
+        } catch (error) {
+            logger.error('Failed to create Quick Chat window:', error);
+            throw error;
+        }
     }
 
     /**

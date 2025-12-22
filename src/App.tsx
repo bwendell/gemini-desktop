@@ -1,12 +1,8 @@
-import { useState, useCallback } from 'react';
-import { MainLayout, OfflineOverlay } from './components';
+import { MainLayout, OfflineOverlay, GeminiErrorBoundary } from './components';
 import { ThemeProvider } from './context/ThemeContext';
-import { useNetworkStatus } from './hooks';
+import { useGeminiIframe } from './hooks';
 import { GEMINI_APP_URL } from './utils/constants';
-import { createRendererLogger } from './utils';
 import './App.css';
-
-const logger = createRendererLogger('[App]');
 
 /**
  * Root application component.
@@ -16,62 +12,41 @@ const logger = createRendererLogger('[App]');
  */
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const isOnline = useNetworkStatus();
-
-  /**
-   * Handle successful iframe load.
-   * Hides the loading spinner.
-   */
-  const handleIframeLoad = useCallback(() => {
-    setIsLoading(false);
-  }, []);
-
-  /**
-   * Handle iframe load error.
-   * Hides loading spinner and displays error message.
-   * 
-   * Note: This handler cannot be tested in JSDOM because iframe error events
-   * don't trigger React's synthetic onError. Manually verified in Electron.
-   */
-  /* c8 ignore next -- @preserve JSDOM limitation */
-  const handleIframeError = useCallback(() => {
-    setIsLoading(false);
-    setError('Failed to load Gemini');
-    logger.error('Failed to load Gemini iframe');
-  }, []);
+  const { isLoading, error, isOnline, handleLoad, handleError } = useGeminiIframe();
 
   return (
     <ThemeProvider>
       <MainLayout>
         {!isOnline && <OfflineOverlay />}
-        <div className="webview-container" data-testid="webview-container">
-          {isLoading && (
-            <div className="webview-loading" data-testid="webview-loading">
-              <div className="webview-loading-spinner" />
-              <span>Loading Gemini...</span>
-            </div>
-          )}
-          {/* c8 ignore next 4 -- JSDOM cannot trigger iframe errors */}
-          {error && (
-            <div className="webview-error" data-testid="webview-error">
-              <span>Failed to load: {error}</span>
-            </div>
-          )}
-          <iframe
-            src={GEMINI_APP_URL}
-            className="gemini-iframe"
-            title="Gemini"
-            onLoad={handleIframeLoad}
-            onError={handleIframeError}
-            data-testid="gemini-iframe"
-          />
+        <GeminiErrorBoundary>
+          <div className="webview-container" data-testid="webview-container">
+            {isLoading && (
+              <div className="webview-loading" data-testid="webview-loading">
+                <div className="webview-loading-spinner" />
+                <span>Loading Gemini...</span>
+              </div>
+            )}
+            {/* c8 ignore next 4 -- JSDOM cannot trigger iframe errors */}
+            {error && (
+              <div className="webview-error" data-testid="webview-error">
+                <span>Failed to load: {error}</span>
+              </div>
+            )}
+            <iframe
+              src={GEMINI_APP_URL}
+              className="gemini-iframe"
+              title="Gemini"
+              onLoad={handleLoad}
+              onError={handleError}
+              data-testid="gemini-iframe"
+            />
 
-        </div>
+          </div>
+        </GeminiErrorBoundary>
       </MainLayout>
     </ThemeProvider>
   );
 }
 
 export default App;
+

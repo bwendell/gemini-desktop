@@ -34,6 +34,8 @@ export default class QuickChatWindow extends BaseWindow {
         this.windowConfig = QUICK_CHAT_WINDOW_CONFIG;
     }
 
+    private _isReady = false;
+
     /**
      * Create the Quick Chat window.
      * @returns The created BrowserWindow
@@ -54,6 +56,12 @@ export default class QuickChatWindow extends BaseWindow {
             },
         });
 
+        // Track when window is actually ready
+        this.window.webContents.once('did-finish-load', () => {
+            this._isReady = true;
+            this.emit('quick-chat-ready');
+        });
+
         // Use parent class content loading
         this.loadContent();
 
@@ -69,6 +77,7 @@ export default class QuickChatWindow extends BaseWindow {
 
         this.window.on('closed', () => {
             this.window = null;
+            this._isReady = false;
             this.emit('closed');
         });
 
@@ -93,7 +102,6 @@ export default class QuickChatWindow extends BaseWindow {
                 this.window.focus();
             }
         }
-        this.logger.log('Quick Chat window shown');
     }
 
     /**
@@ -133,5 +141,12 @@ export default class QuickChatWindow extends BaseWindow {
         const y = displayY + Math.round(displayHeight / 4);
 
         return { x, y };
+    }
+
+    /**
+     * Check if window content is fully loaded.
+     */
+    isReady(): boolean {
+        return this._isReady;
     }
 }

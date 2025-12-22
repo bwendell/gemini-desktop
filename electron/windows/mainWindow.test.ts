@@ -10,8 +10,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../utils/constants', async (importOriginal) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const actual = await importOriginal<any>();
+    type ConstantsModule = typeof import('../utils/constants');
+    const actual = await importOriginal<ConstantsModule>();
     return {
         ...actual,
         get isMacOS() {
@@ -21,8 +21,8 @@ vi.mock('../utils/constants', async (importOriginal) => {
 });
 
 vi.mock('../utils/paths', async (importOriginal) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const actual = await importOriginal<any>();
+    type PathsModule = typeof import('../utils/paths');
+    const actual = await importOriginal<PathsModule>();
     return {
         ...actual,
         getIconPath: vi.fn().mockReturnValue('/mock/icon/path.png'),
@@ -75,21 +75,22 @@ describe('MainWindow', () => {
 
         it('shows window when ready-to-show is emitted', () => {
             const win = mainWindow.create();
-            const readyHandler = win.once.mock.calls.find((call: any) => call[0] === 'ready-to-show')[1];
-            readyHandler();
+            const readyHandler = win.once.mock.calls.find((call: [string, () => void]) => call[0] === 'ready-to-show')?.[1];
+            readyHandler?.();
 
             expect(win.show).toHaveBeenCalled();
         });
     });
 
     describe('navigation handler', () => {
-        let navigateHandler: any;
+        type NavigateHandler = (event: { preventDefault: () => void }, url: string) => void;
+        let navigateHandler: NavigateHandler | null;
 
         beforeEach(() => {
             mainWindow.create();
             const instances = (BrowserWindow as any).getAllWindows();
             const win = instances[0];
-            const call = win.webContents.on.mock.calls.find((c: any) => c[0] === 'will-navigate');
+            const call = win.webContents.on.mock.calls.find((c: [string, NavigateHandler]) => c[0] === 'will-navigate');
             navigateHandler = call ? call[1] : null;
         });
 

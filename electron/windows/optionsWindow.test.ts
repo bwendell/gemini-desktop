@@ -6,8 +6,8 @@ import { BrowserWindow } from 'electron';
 import OptionsWindow from './optionsWindow';
 
 vi.mock('../utils/paths', async (importOriginal) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const actual = await importOriginal<any>();
+    type PathsModule = typeof import('../utils/paths');
+    const actual = await importOriginal<PathsModule>();
     return {
         ...actual,
         getIconPath: vi.fn().mockReturnValue('/mock/icon/path.png'),
@@ -58,8 +58,8 @@ describe('OptionsWindow', () => {
 
         it('shows window when ready-to-show is emitted', () => {
             const win = optionsWindow.create();
-            const readyHandler = win.once.mock.calls.find((call: any) => call[0] === 'ready-to-show')[1];
-            readyHandler();
+            const readyHandler = win.once.mock.calls.find((call: [string, () => void]) => call[0] === 'ready-to-show')?.[1];
+            readyHandler?.();
 
             expect(win.show).toHaveBeenCalled();
         });
@@ -69,8 +69,8 @@ describe('OptionsWindow', () => {
             const instances = (BrowserWindow as any).getAllWindows();
             const win = instances[0];
 
-            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
-            closeHandler();
+            const closeHandler = win.on.mock.calls.find((call: [string, () => void]) => call[0] === 'closed')?.[1];
+            closeHandler?.();
 
             expect(optionsWindow.getWindow()).toBeNull();
         });

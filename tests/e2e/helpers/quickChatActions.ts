@@ -70,6 +70,8 @@ export interface QuickChatState extends HotkeyActionState {
     windowVisible: boolean;
     /** Whether the Quick Chat window is focused */
     windowFocused: boolean;
+    /** Whether the Quick Chat window content is fully loaded */
+    windowReady: boolean;
     /** Number of windows in the app (for debugging) */
     windowCount: number;
 }
@@ -138,10 +140,14 @@ export async function getQuickChatState(): Promise<QuickChatState> {
         const quickChatWindow = windowManager?.getQuickChatWindow?.();
         const allWindows = BrowserWindow.getAllWindows();
 
+        // Check for isReady() method if it exists (it might not on the base BrowserWindow type)
+        const isReady = (quickChatWindow as any)?.isReady?.() ?? false;
+
         return {
             windowExists: quickChatWindow != null && !quickChatWindow.isDestroyed(),
             windowVisible: quickChatWindow?.isVisible() ?? false,
             windowFocused: quickChatWindow?.isFocused() ?? false,
+            windowReady: isReady,
             windowCount: allWindows.length,
         };
     });

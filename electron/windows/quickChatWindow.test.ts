@@ -6,8 +6,8 @@ import { BrowserWindow } from 'electron';
 import QuickChatWindow from './quickChatWindow';
 
 vi.mock('../utils/paths', async (importOriginal) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const actual = await importOriginal<any>();
+    type PathsModule = typeof import('../utils/paths');
+    const actual = await importOriginal<PathsModule>();
     return {
         ...actual,
         getIconPath: vi.fn().mockReturnValue('/mock/icon/path.png'),
@@ -56,8 +56,8 @@ describe('QuickChatWindow', () => {
 
         it('shows and focuses window on ready-to-show', () => {
             const win = quickChatWindow.create();
-            const readyHandler = win.once.mock.calls.find((call: any) => call[0] === 'ready-to-show')[1];
-            readyHandler();
+            const readyHandler = win.once.mock.calls.find((call: [string, () => void]) => call[0] === 'ready-to-show')?.[1];
+            readyHandler?.();
             expect(win.show).toHaveBeenCalled();
             expect(win.focus).toHaveBeenCalled();
         });
@@ -66,8 +66,8 @@ describe('QuickChatWindow', () => {
             const win = quickChatWindow.create();
             win.isDestroyed = vi.fn().mockReturnValue(false);
 
-            const blurHandler = win.on.mock.calls.find((call: any) => call[0] === 'blur')[1];
-            blurHandler();
+            const blurHandler = win.on.mock.calls.find((call: [string, () => void]) => call[0] === 'blur')?.[1];
+            blurHandler?.();
             expect(win.hide).toHaveBeenCalled();
         });
 
@@ -76,8 +76,8 @@ describe('QuickChatWindow', () => {
             const instances = (BrowserWindow as any).getAllWindows();
             const win = instances[0];
 
-            const closeHandler = win.on.mock.calls.find((call: any) => call[0] === 'closed')[1];
-            closeHandler();
+            const closeHandler = win.on.mock.calls.find((call: [string, () => void]) => call[0] === 'closed')?.[1];
+            closeHandler?.();
 
             expect(quickChatWindow.getWindow()).toBeNull();
         });

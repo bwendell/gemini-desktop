@@ -33,6 +33,7 @@ export const mockApp = {
 export const createMockWebContents = () => ({
     send: vi.fn(),
     on: vi.fn(),
+    once: vi.fn(),
     openDevTools: vi.fn(),
     setWindowOpenHandler: vi.fn(),
 });

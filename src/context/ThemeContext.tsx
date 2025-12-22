@@ -112,15 +112,16 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
     // Initialize theme from Electron on mount
     useEffect(() => {
-        let isMounted = true;
+        const abortController = new AbortController();
+        const { signal } = abortController;
 
-        const initTheme = async () => {
+        const initTheme = async (): Promise<void> => {
             // No Electron API - use browser defaults
             /* v8 ignore start -- browser-only fallback path */
             if (!window.electronAPI) {
                 logger.log('No Electron API, using browser defaults');
                 const systemTheme = getSystemThemePreference();
-                if (isMounted) {
+                if (!signal.aborted) {
                     setEffectiveTheme(systemTheme);
                     applyThemeToDom(systemTheme);
                 }
@@ -132,7 +133,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
                 const result = await window.electronAPI.getTheme();
 
                 /* v8 ignore next -- race condition guard for async unmount */
-                if (!isMounted) return;
+                if (signal.aborted) return;
 
                 if (isThemeData(result)) {
                     setThemeState(result.preference);
@@ -159,7 +160,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
                 // Fall back to system preference on error
                 const systemTheme = getSystemThemePreference();
                 /* v8 ignore next 4 -- race condition guard for async error fallback */
-                if (isMounted) {
+                if (!signal.aborted) {
                     setEffectiveTheme(systemTheme);
                     applyThemeToDom(systemTheme);
                 }
@@ -172,9 +173,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         let cleanup: (() => void) | undefined;
 
         if (window.electronAPI) {
-            cleanup = window.electronAPI.onThemeChanged((data) => {
+            cleanup = window.electronAPI.onThemeChanged((data): void => {
                 /* v8 ignore next -- race condition guard for callback after unmount */
-                if (!isMounted) return;
+                if (signal.aborted) return;
 
                 if (isThemeData(data)) {
                     setThemeState(data.preference);
@@ -193,8 +194,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
             });
         }
 
-        return () => {
-            isMounted = false;
+        return (): void => {
+            abortController.abort();
             if (cleanup) cleanup();
         };
     }, []);

@@ -40,17 +40,70 @@ const useProductionBuild = app.isPackaged ||
 // For E2E tests, always use production build if it exists
 const isDev = !useProductionBuild;
 
-// Initialize Managers
-const windowManager = new WindowManager(isDev);
-const hotkeyManager = new HotkeyManager(windowManager);
-const ipcManager = new IpcManager(windowManager, hotkeyManager);
-const trayManager = new TrayManager(windowManager);
+/**
+ * Manager instances - initialized lazily to allow for declarative pattern.
+ */
+let windowManager: WindowManager;
+let hotkeyManager: HotkeyManager;
+let ipcManager: IpcManager;
+let trayManager: TrayManager;
 
-// Expose managers globally for E2E testing
-// Using global instead of app to avoid side effects (extra window creation)
-(global as any).windowManager = windowManager;
-(global as any).ipcManager = ipcManager;
-(global as any).trayManager = trayManager;
+/**
+ * Initialize all application managers.
+ * This function encapsulates manager creation for better testability and clarity.
+ */
+function initializeManagers(): void {
+    windowManager = new WindowManager(isDev);
+    hotkeyManager = new HotkeyManager(windowManager);
+    ipcManager = new IpcManager(windowManager, hotkeyManager);
+    trayManager = new TrayManager(windowManager);
+
+    // Expose managers globally for E2E testing
+    (global as any).windowManager = windowManager;
+    (global as any).ipcManager = ipcManager;
+    (global as any).trayManager = trayManager;
+
+    logger.log('All managers initialized');
+}
+
+/**
+ * Gracefully shut down the application.
+ * Cleans up all managers before exiting.
+ * @param exitCode - The exit code to use when exiting
+ */
+function gracefulShutdown(exitCode: number = 0): void {
+    logger.log(`Initiating graceful shutdown with exit code ${exitCode}...`);
+
+    try {
+        // Unregister hotkeys first to prevent new interactions
+        if (hotkeyManager) {
+            hotkeyManager.unregisterAll();
+        }
+
+        // Destroy tray
+        if (trayManager) {
+            trayManager.destroyTray();
+        }
+
+        // Set quitting flag so windows don't try to prevent close
+        if (windowManager) {
+            windowManager.setQuitting(true);
+        }
+
+        logger.log('Graceful shutdown completed');
+    } catch (cleanupError) {
+        // Log cleanup errors but don't throw - we still need to exit
+        console.error('[Main] Error during graceful shutdown:', cleanupError);
+    }
+
+    // Give logs time to flush, then exit
+    setTimeout(() => {
+        process.exit(exitCode);
+    }, 500);
+}
+
+// Initialize managers before requesting instance lock
+initializeManagers();
 
 // Single Instance Lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -118,4 +171,38 @@ app.on('before-quit', () => {
 app.on('will-quit', () => {
     hotkeyManager.unregisterAll();
     trayManager.destroyTray();
+});
+
+// Global error handlers for unhandled promises and exceptions
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Promise Rejection:', {
+        reason: reason instanceof Error ? reason.message : String(reason),
+        stack: reason instanceof Error ? reason.stack : undefined,
+        promise: String(promise)
+    });
+});
+
+process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', {
+        error: error.message,
+        stack: error.stack
+    });
+
+    // Also log to console as a backup in case logger fails
+    console.error('[Main] FATAL: Uncaught Exception:', error);
+
+    // Perform graceful shutdown
+    gracefulShutdown(1);
+});
+
+// Handle SIGTERM for containerized/CI environments
+process.on('SIGTERM', () => {
+    logger.log('Received SIGTERM signal');
+    gracefulShutdown(0);
+});
+
+// Handle SIGINT (Ctrl+C) for development
+process.on('SIGINT', () => {
+    logger.log('Received SIGINT signal');
+    gracefulShutdown(0);
 });

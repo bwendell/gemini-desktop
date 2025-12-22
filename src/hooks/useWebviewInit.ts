@@ -34,6 +34,6 @@ export function useWebviewInit(): UseWebviewInitResult {
         isReady: true,
         error: null,
         isLoading: false,
-        retry: () => { },
+        retry: (): void => { },
     };
 }
