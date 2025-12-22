@@ -43,13 +43,13 @@ jobs:
         run: npm ci
 
       - name: Download Frontend Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-dist
           path: dist/
       
       - name: Download Electron Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: electron-dist
           path: dist-electron/
@@ -105,13 +105,13 @@ jobs:
         run: npm ci
 
       - name: Download Frontend Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-dist
           path: dist/
       
       - name: Download Electron Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: electron-dist
           path: dist-electron/
@@ -165,13 +165,13 @@ jobs:
         run: npm ci
 
       - name: Download Frontend Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-dist
           path: dist/
       
       - name: Download Electron Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: electron-dist
           path: dist-electron/
@@ -222,13 +222,13 @@ jobs:
         run: npm ci
 
       - name: Download Frontend Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-dist
           path: dist/
       
       - name: Download Electron Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: electron-dist
           path: dist-electron/
