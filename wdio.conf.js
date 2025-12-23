@@ -48,7 +48,8 @@ export const config = {
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
-                '--enable-logging'
+                '--enable-logging',
+                '--remote-debugging-port=9222'
             ] : [],
         }],
     ],
