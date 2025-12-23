@@ -283,6 +283,30 @@ export default class UpdateManager {
         }
     }
 
+    // =========================================================================
+    // Dev Testing Methods (only for manual testing in development)
+    // =========================================================================
+
+    /**
+     * Show the update badge for dev testing.
+     * This allows testing the native badge without a real update.
+     * @param version - Optional version string for tray tooltip
+     */
+    devShowBadge(version: string = '2.0.0-test'): void {
+        logger.log('[DEV] Showing test update badge');
+        this.badgeManager?.showUpdateBadge();
+        this.trayManager?.setUpdateTooltip(version);
+    }
+
+    /**
+     * Clear the update badge for dev testing.
+     */
+    devClearBadge(): void {
+        logger.log('[DEV] Clearing test update badge');
+        this.badgeManager?.clearUpdateBadge();
+        this.trayManager?.clearUpdateTooltip();
+    }
+
     /**
      * Clean up resources when the manager is destroyed.
      */

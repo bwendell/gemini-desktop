@@ -26,7 +26,7 @@ export interface Logger {
  * logger.log('Component mounted');
  * logger.error('Failed to load data');
  */
-export function createRendererLogger(prefix: string, envOverride?: { DEV: boolean }): Logger {
+export function createRendererLogger(prefix: string, envOverride?: { DEV?: boolean; MODE?: string }): Logger {
     const isDev = getIsDev(envOverride);
 
     return {

@@ -72,20 +72,55 @@ export default class BadgeManager {
     }
 
     /**
-     * Create a default red dot badge icon programmatically.
+     * Create a default green dot badge icon programmatically.
+     * Uses raw pixel data in BGRA format (Windows native format).
      * @private
-     * @returns NativeImage of a red dot
+     * @returns NativeImage of a green dot
      */
     private createDefaultBadgeIcon(): Electron.NativeImage {
-        // Create a 16x16 red dot as data URL
         const size = 16;
-        const canvas = `
-            <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="#ff4444" stroke="#cc0000" stroke-width="1"/>
-            </svg>
-        `;
-        const base64 = Buffer.from(canvas).toString('base64');
-        return nativeImage.createFromDataURL(`data:image/svg+xml;base64,${base64}`);
+        const radius = 3; // Small, compact dot
+        const centerX = size / 2;
+        const centerY = size / 2;
+
+        // Create BGRA buffer (Windows native format - 4 bytes per pixel)
+        const buffer = Buffer.alloc(size * size * 4);
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const index = (y * size + x) * 4;
+
+                // Calculate distance from center
+                const dx = x - centerX + 0.5;
+                const dy = y - centerY + 0.5;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance <= radius) {
+                    // Google Green (#34a853) - solid color, no anti-aliasing for cleaner look
+                    // BGRA format for Windows: #34a853 = R:52, G:168, B:83
+                    buffer[index] = 83;      // B
+                    buffer[index + 1] = 168; // G
+                    buffer[index + 2] = 52;  // R
+                    buffer[index + 3] = 255; // A - fully opaque
+                } else {
+                    // Transparent
+                    buffer[index] = 0;
+                    buffer[index + 1] = 0;
+                    buffer[index + 2] = 0;
+                    buffer[index + 3] = 0;
+                }
+            }
+        }
+
+        try {
+            return nativeImage.createFromBuffer(buffer, {
+                width: size,
+                height: size
+            });
+        } catch (error) {
+            logger.error('Failed to create badge icon from buffer:', error);
+            return nativeImage.createEmpty();
+        }
     }
 
     /**

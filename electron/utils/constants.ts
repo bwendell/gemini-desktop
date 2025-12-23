@@ -146,6 +146,10 @@ export const IPC_CHANNELS = {
     AUTO_UPDATE_AVAILABLE: 'auto-update:available',
     AUTO_UPDATE_DOWNLOADED: 'auto-update:downloaded',
     AUTO_UPDATE_ERROR: 'auto-update:error',
+
+    // Dev Testing (only used in development for manual testing)
+    DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
+    DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',
 } as const;
 
 /**

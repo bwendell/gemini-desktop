@@ -82,6 +82,10 @@ const mockElectronAPI = {
     onUpdateDownloaded: vi.fn().mockReturnValue(() => { }),
     onUpdateError: vi.fn().mockReturnValue(() => { }),
 
+    // Dev Testing API
+    devShowBadge: vi.fn(),
+    devClearBadge: vi.fn(),
+
     platform: 'win32', // Default to Windows
     isElectron: true,
 };

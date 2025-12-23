@@ -39,6 +39,10 @@ interface Window {
         onUpdateDownloaded: (callback: (info: { version: string; releaseName?: string; releaseNotes?: string | Array<{ version: string; note: string }> }) => void) => () => void;
         onUpdateError: (callback: (error: string) => void) => () => void;
 
+        // Dev Testing API (only for manual testing in development)
+        devShowBadge: (version?: string) => void;
+        devClearBadge: () => void;
+
         platform: string;
         isElectron: boolean;
     };

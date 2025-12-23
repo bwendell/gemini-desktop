@@ -50,7 +50,7 @@ describe('createRendererLogger', () => {
     });
 
     it('always logs errors regardless of environment', () => {
-        const logger = createRendererLogger('[TestComponent]', { DEV: false });
+        const logger = createRendererLogger('[TestComponent]', { DEV: false, MODE: 'production' });
 
         logger.error('critical error');
 
@@ -59,7 +59,7 @@ describe('createRendererLogger', () => {
     });
 
     it('does not log in production environment', () => {
-        const logger = createRendererLogger('[TestComponent]', { DEV: false });
+        const logger = createRendererLogger('[TestComponent]', { DEV: false, MODE: 'production' });
 
         logger.log('test log');
         logger.warn('test warn');

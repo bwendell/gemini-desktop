@@ -687,5 +687,27 @@ export default class IpcManager {
                 this.logger.error('Error installing update:', error);
             }
         });
+
+        // Dev Testing: Show badge (only for manual testing)
+        ipcMain.on(IPC_CHANNELS.DEV_TEST_SHOW_BADGE, (_event, version?: string) => {
+            try {
+                if (this.updateManager) {
+                    this.updateManager.devShowBadge(version);
+                }
+            } catch (error) {
+                this.logger.error('Error showing dev test badge:', error);
+            }
+        });
+
+        // Dev Testing: Clear badge (only for manual testing)
+        ipcMain.on(IPC_CHANNELS.DEV_TEST_CLEAR_BADGE, () => {
+            try {
+                if (this.updateManager) {
+                    this.updateManager.devClearBadge();
+                }
+            } catch (error) {
+                this.logger.error('Error clearing dev test badge:', error);
+            }
+        });
     }
 }

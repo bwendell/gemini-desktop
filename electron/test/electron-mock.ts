@@ -145,17 +145,35 @@ export const contextBridge = {
 };
 
 export const nativeImage = {
-    createFromPath: vi.fn().mockReturnValue({
+    createFromPath: vi.fn((path) => ({
         isEmpty: vi.fn().mockReturnValue(false),
         getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
-    }),
-    createFromDataURL: vi.fn().mockReturnValue({
+        toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+        toDataURL: vi.fn().mockReturnValue('data:image/png;base64,mock'),
+    })),
+    createFromDataURL: vi.fn((url) => ({
         isEmpty: vi.fn().mockReturnValue(false),
         getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
-    }),
+        toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+        toDataURL: vi.fn().mockReturnValue(url),
+    })),
+    createFromBuffer: vi.fn((buffer) => ({
+        isEmpty: vi.fn().mockReturnValue(false),
+        getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
+        toPNG: vi.fn().mockReturnValue(buffer),
+        toDataURL: vi.fn().mockReturnValue('data:image/png;base64,mock'),
+    })),
+    createEmpty: vi.fn(() => ({
+        isEmpty: vi.fn().mockReturnValue(true),
+        getSize: vi.fn().mockReturnValue({ width: 0, height: 0 }),
+        toPNG: vi.fn().mockReturnValue(Buffer.alloc(0)),
+        toDataURL: vi.fn().mockReturnValue(''),
+    })),
     _reset: () => {
         nativeImage.createFromPath.mockClear();
         nativeImage.createFromDataURL.mockClear();
+        nativeImage.createFromBuffer.mockClear();
+        nativeImage.createEmpty.mockClear();
     }
 };
 

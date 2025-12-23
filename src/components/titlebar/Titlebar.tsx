@@ -44,9 +44,10 @@ export function Titlebar({ config = {} }: TitlebarProps) {
         const updateToast = useUpdateToast();
         hasPendingUpdate = updateToast.hasPendingUpdate;
         installUpdate = updateToast.installUpdate;
-    } catch {
+    } catch (e) {
         // Context not available (e.g., in tests without provider)
         // Badge will not be shown
+        console.warn('[Titlebar] UpdateToastContext not available:', e);
     }
 
     const handleBadgeClick = () => {

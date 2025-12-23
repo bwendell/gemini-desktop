@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { UpdateInfo } from '../components/toast';
+import { isDevMode } from '../utils/platform';
 
 /**
  * Update notification state
@@ -147,8 +148,14 @@ export function useUpdateNotifications() {
      */
     /* v8 ignore start -- dev-only code for manual testing */
     useEffect(() => {
-        const isDev = import.meta.env.DEV || import.meta.env.MODE !== 'production';
-        if (isDev) {
+        const devMode = isDevMode();
+        console.log('[useUpdateNotifications] Dev mode check:', devMode, {
+            DEV: import.meta.env.DEV,
+            MODE: import.meta.env.MODE,
+            hostname: window.location.hostname
+        });
+        if (devMode) {
+            console.log('[useUpdateNotifications] Creating __testUpdateToast helper');
             (window as unknown as Record<string, unknown>).__testUpdateToast = {
                 /* v8 ignore next 8 */
                 showAvailable: (version = '2.0.0') => {
@@ -159,8 +166,10 @@ export function useUpdateNotifications() {
                         visible: true,
                         hasPendingUpdate: false
                     });
+                    // Also trigger native badge in main process
+                    window.electronAPI?.devShowBadge(version);
                 },
-                /* v8 ignore next 8 */
+                /* v8 ignore next 10 */
                 showDownloaded: (version = '2.0.0') => {
                     setState({
                         type: 'downloaded',
@@ -169,6 +178,8 @@ export function useUpdateNotifications() {
                         visible: true,
                         hasPendingUpdate: true
                     });
+                    // Also trigger native badge in main process
+                    window.electronAPI?.devShowBadge(version);
                 },
                 /* v8 ignore next 8 */
                 showError: (message = 'Test error message') => {
@@ -180,9 +191,18 @@ export function useUpdateNotifications() {
                         hasPendingUpdate: false
                     });
                 },
-                /* v8 ignore next 3 */
+                /* v8 ignore next 11 */
                 hide: () => {
-                    setState(prev => ({ ...prev, visible: false }));
+                    // Reset all state including hasPendingUpdate (for titlebar badge)
+                    setState({
+                        type: null,
+                        updateInfo: null,
+                        errorMessage: null,
+                        visible: false,
+                        hasPendingUpdate: false
+                    });
+                    // Also clear native badge in main process
+                    window.electronAPI?.devClearBadge();
                 }
             };
 
