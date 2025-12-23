@@ -60,16 +60,19 @@ export default class UpdateManager {
      */
     constructor(settings: SettingsStore<AutoUpdateSettings>) {
         this.settings = settings;
-        this.autoUpdater = getAutoUpdater();
 
-        // Check if we should disable updates FIRST before any autoUpdater configuration
+        // Check if we should disable updates FIRST before any autoUpdater initialization
         // This prevents electron-updater from initializing native resources on unsupported platforms
         if (this.shouldDisableUpdates()) {
             this.enabled = false;
+            this.autoUpdater = null as unknown as AppUpdater; // Will never be used
             logger.log('Auto-updates disabled for this platform/install type');
             logger.log(`UpdateManager initialized (enabled: ${this.enabled})`);
-            return; // Exit early - don't configure autoUpdater at all
+            return; // Exit early - don't import/configure autoUpdater at all
         }
+
+        // Only now do we initialize autoUpdater - after confirming updates are supported
+        this.autoUpdater = getAutoUpdater();
 
         // Load user preference (default to enabled)
         this.enabled = this.settings.get('autoUpdateEnabled') ?? true;
@@ -260,7 +263,10 @@ export default class UpdateManager {
      */
     destroy(): void {
         this.stopPeriodicChecks();
-        this.autoUpdater.removeAllListeners();
+        // Only remove listeners if autoUpdater was initialized
+        if (this.autoUpdater) {
+            this.autoUpdater.removeAllListeners();
+        }
         logger.log('UpdateManager destroyed');
     }
 }
