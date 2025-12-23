@@ -90,18 +90,13 @@ export function usesCustomWindowControls(): boolean {
  * @param envOverride - Optional environment object for testing
  * @returns true if in development mode, false otherwise
  */
-export function isDevMode(envOverride?: { DEV?: boolean; MODE?: string }): boolean {
-    if (envOverride) {
-        // If DEV is explicitly false, it's not dev mode
-        if (envOverride.DEV === false) return false;
-        // If MODE is explicitly production, it's not dev mode
-        if (envOverride.MODE === 'production') return false;
-        // If DEV is true or MODE is not production, it's dev mode
-        return envOverride.DEV === true || (envOverride.MODE !== undefined && envOverride.MODE !== 'production');
-    }
+export function isDevMode(env?: { DEV?: boolean; MODE?: string }): boolean {
+    // Use overrides if provided, otherwise fall back to import.meta.env
+    const dev = env?.DEV ?? import.meta.env.DEV;
+    const mode = env?.MODE ?? import.meta.env.MODE;
 
     // Vite dev mode signals
-    if (import.meta.env.DEV || import.meta.env.MODE !== 'production') {
+    if (dev || mode !== 'production') {
         return true;
     }
 

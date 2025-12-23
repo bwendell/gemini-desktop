@@ -33,6 +33,9 @@ export default class TrayManager {
     /** The system tray instance */
     private tray: Tray | null = null;
 
+    /** Track current tooltip for E2E testing */
+    private currentToolTip: string = TRAY_TOOLTIP;
+
     /**
      * Creates a new TrayManager instance.
      * @param windowManager - The WindowManager instance for window control
@@ -61,7 +64,7 @@ export default class TrayManager {
             this.tray = new Tray(iconPath);
 
             // Set tooltip
-            this.tray.setToolTip(TRAY_TOOLTIP);
+            this.tray.setToolTip(this.currentToolTip);
 
             // Build and set context menu
             const contextMenu = this._buildContextMenu();
@@ -150,12 +153,21 @@ export default class TrayManager {
     }
 
     /**
+     * Get current tooltip text.
+     * @returns The current tooltip string
+     */
+    getToolTip(): string {
+        return this.currentToolTip;
+    }
+
+    /**
      * Set the tray tooltip to show an update notification.
      * @param version - The update version available
      */
     setUpdateTooltip(version: string): void {
         if (this.tray && !this.tray.isDestroyed()) {
-            this.tray.setToolTip(`${TRAY_TOOLTIP} - Update v${version} available`);
+            this.currentToolTip = `${TRAY_TOOLTIP} - Update v${version} available`;
+            this.tray.setToolTip(this.currentToolTip);
             logger.log('Tray tooltip updated for version:', version);
         }
     }
@@ -165,7 +177,8 @@ export default class TrayManager {
      */
     clearUpdateTooltip(): void {
         if (this.tray && !this.tray.isDestroyed()) {
-            this.tray.setToolTip(TRAY_TOOLTIP);
+            this.currentToolTip = TRAY_TOOLTIP;
+            this.tray.setToolTip(this.currentToolTip);
             logger.log('Tray tooltip reset to default');
         }
     }

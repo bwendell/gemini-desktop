@@ -123,6 +123,11 @@ export interface ElectronAPI {
     // Dev Testing API (only for manual testing in development)
     devShowBadge: (version?: string) => void;
     devClearBadge: () => void;
+
+    // E2E Testing Helpers
+    getTrayTooltip: () => Promise<string>;
+    onCheckingForUpdate: (callback: () => void) => () => void;
+    getLastUpdateCheckTime: () => Promise<number>;
 }
 
 /**

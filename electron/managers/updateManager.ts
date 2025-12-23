@@ -62,6 +62,7 @@ export default class UpdateManager {
     private autoUpdater: AppUpdater;
     private enabled: boolean = true;
     private checkInterval: ReturnType<typeof setInterval> | null = null;
+    private lastCheckTime: number = 0;
     private readonly settings: SettingsStore<AutoUpdateSettings>;
     private readonly badgeManager?: BadgeManager;
     private readonly trayManager?: TrayManager;
@@ -96,6 +97,10 @@ export default class UpdateManager {
         this.autoUpdater.autoDownload = true;
         this.autoUpdater.autoInstallOnAppQuit = true;
 
+        if (process.argv.includes('--test-auto-update')) {
+            this.autoUpdater.forceDevUpdateConfig = true;
+        }
+
         // Configure logging
         this.autoUpdater.logger = log;
         log.transports.file.level = 'info';
@@ -115,6 +120,12 @@ export default class UpdateManager {
      * @returns true if updates should be disabled
      */
     private shouldDisableUpdates(): boolean {
+        // Allow updates if running in E2E test mode
+        if (process.argv.includes('--test-auto-update')) {
+            logger.log('Test mode detected - enabling updates');
+            return false;
+        }
+
         // Development mode - skip updates
         if (!app.isPackaged) {
             logger.log('Development mode detected - updates disabled');
@@ -165,7 +176,7 @@ export default class UpdateManager {
             return;
         }
 
-        if (!app.isPackaged) {
+        if (!app.isPackaged && !process.argv.includes('--test-auto-update')) {
             logger.log('Update check skipped - development mode');
             return;
         }
@@ -183,9 +194,9 @@ export default class UpdateManager {
 
     /**
      * Start periodic update checks.
-     * @param intervalMs - Interval between checks in milliseconds (default: 1 hour)
+     * @param intervalMs - Interval between checks in milliseconds (default: 6 hours)
      */
-    startPeriodicChecks(intervalMs: number = 60 * 60 * 1000): void {
+    startPeriodicChecks(intervalMs: number = 6 * 60 * 60 * 1000): void {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
         }
@@ -233,6 +244,20 @@ export default class UpdateManager {
     }
 
     /**
+     * Get the timestamp of the last update check.
+     */
+    getLastCheckTime(): number {
+        return this.lastCheckTime;
+    }
+
+    /**
+     * Get the current tray tooltip (for E2E testing).
+     */
+    getTrayTooltip(): string {
+        return this.trayManager?.getToolTip() || '';
+    }
+
+    /**
      * Set up event listeners for auto-updater events.
      */
     private setupEventListeners(): void {
@@ -243,6 +268,8 @@ export default class UpdateManager {
 
         this.autoUpdater.on('checking-for-update', () => {
             logger.log('Checking for update...');
+            this.lastCheckTime = Date.now();
+            this.broadcastToWindows('auto-update:checking', null);
         });
 
         this.autoUpdater.on('update-available', (info: UpdateInfo) => {
