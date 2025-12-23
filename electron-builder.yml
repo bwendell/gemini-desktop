@@ -116,7 +116,7 @@ rpm:
 
 publish:
   provider: github
-  releaseType: draft
+  releaseType: release
   # Increase timeout to 10 minutes (600000ms) to prevent upload timeouts
   # Default is ~60 seconds which is too short for large Windows installers
   timeout: 600000

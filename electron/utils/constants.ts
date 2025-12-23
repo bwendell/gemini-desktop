@@ -137,6 +137,15 @@ export const IPC_CHANNELS = {
     HOTKEYS_INDIVIDUAL_GET: 'hotkeys:individual:get',
     HOTKEYS_INDIVIDUAL_SET: 'hotkeys:individual:set',
     HOTKEYS_INDIVIDUAL_CHANGED: 'hotkeys:individual:changed',
+
+    // Auto-Update
+    AUTO_UPDATE_GET_ENABLED: 'auto-update:get-enabled',
+    AUTO_UPDATE_SET_ENABLED: 'auto-update:set-enabled',
+    AUTO_UPDATE_CHECK: 'auto-update:check',
+    AUTO_UPDATE_INSTALL: 'auto-update:install',
+    AUTO_UPDATE_AVAILABLE: 'auto-update:available',
+    AUTO_UPDATE_DOWNLOADED: 'auto-update:downloaded',
+    AUTO_UPDATE_ERROR: 'auto-update:error',
 } as const;
 
 /**

@@ -22,6 +22,7 @@ import { InjectionScriptBuilder, DEFAULT_INJECTION_CONFIG, InjectionResult } fro
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type HotkeyManager from './hotkeyManager';
+import type UpdateManager from './updateManager';
 import type { ThemePreference, ThemeData, IndividualHotkeySettings, HotkeyId, Logger } from '../types';
 
 /**
@@ -33,6 +34,8 @@ interface UserPreferences extends Record<string, unknown> {
     // Individual hotkey settings
     hotkeyAlwaysOnTop: boolean;
     hotkeyBossKey: boolean;
+    // Auto-update settings
+    autoUpdateEnabled: boolean;
     hotkeyQuickChat: boolean;
 }
 
@@ -43,6 +46,7 @@ interface UserPreferences extends Record<string, unknown> {
 export default class IpcManager {
     private windowManager: WindowManager;
     private hotkeyManager: HotkeyManager | null = null;
+    private updateManager: UpdateManager | null = null;
     private store: SettingsStore<UserPreferences>;
     private logger: Logger;
 
@@ -55,11 +59,13 @@ export default class IpcManager {
     constructor(
         windowManager: WindowManager,
         hotkeyManager?: HotkeyManager | null,
+        updateManager?: UpdateManager | null,
         store?: SettingsStore<UserPreferences>,
         logger?: Logger
     ) {
         this.windowManager = windowManager;
         this.hotkeyManager = hotkeyManager || null;
+        this.updateManager = updateManager || null;
         /* v8 ignore next 6 -- production fallback, tests always inject dependencies */
         this.store = store || new SettingsStore<UserPreferences>({
             configName: 'user-preferences',
@@ -69,6 +75,8 @@ export default class IpcManager {
                 // Individual hotkey defaults
                 hotkeyAlwaysOnTop: true,
                 hotkeyBossKey: true,
+                // Auto-update defaults
+                autoUpdateEnabled: true,
                 hotkeyQuickChat: true,
             }
         });
@@ -123,6 +131,7 @@ export default class IpcManager {
         this._setupAlwaysOnTopHandlers();
         this._setupAppHandlers();
         this._setupQuickChatHandlers();
+        this._setupAutoUpdateHandlers();
 
         // Listen for internal changes (from hotkeys or menu)
         this.windowManager.on('always-on-top-changed', this._handleAlwaysOnTopChanged.bind(this));
@@ -611,6 +620,71 @@ export default class IpcManager {
                 this.logger.log('Quick Chat cancelled');
             } catch (error) {
                 this.logger.error('Error cancelling quick chat:', error);
+            }
+        });
+    }
+
+    /**
+     * Set up Auto-Update IPC handlers.
+     * Manages auto-update settings and triggers update actions.
+     * @private
+     */
+    private _setupAutoUpdateHandlers(): void {
+        // Get auto-update enabled state
+        ipcMain.handle(IPC_CHANNELS.AUTO_UPDATE_GET_ENABLED, (): boolean => {
+            try {
+                if (this.updateManager) {
+                    return this.updateManager.isEnabled();
+                }
+                return this.store.get('autoUpdateEnabled') ?? true;
+            } catch (error) {
+                this.logger.error('Error getting auto-update state:', error);
+                return true;
+            }
+        });
+
+        // Set auto-update enabled state
+        ipcMain.on(IPC_CHANNELS.AUTO_UPDATE_SET_ENABLED, (_event, enabled: boolean) => {
+            try {
+                if (typeof enabled !== 'boolean') {
+                    this.logger.warn(`Invalid autoUpdateEnabled value: ${enabled}`);
+                    return;
+                }
+
+                if (this.updateManager) {
+                    this.updateManager.setEnabled(enabled);
+                } else {
+                    this.store.set('autoUpdateEnabled', enabled);
+                }
+
+                this.logger.log(`Auto-update set to: ${enabled}`);
+            } catch (error) {
+                this.logger.error('Error setting auto-update state:', {
+                    error: (error as Error).message,
+                    enabled
+                });
+            }
+        });
+
+        // Trigger manual update check
+        ipcMain.on(IPC_CHANNELS.AUTO_UPDATE_CHECK, () => {
+            try {
+                if (this.updateManager) {
+                    this.updateManager.checkForUpdates();
+                }
+            } catch (error) {
+                this.logger.error('Error checking for updates:', error);
+            }
+        });
+
+        // Install downloaded update
+        ipcMain.on(IPC_CHANNELS.AUTO_UPDATE_INSTALL, () => {
+            try {
+                if (this.updateManager) {
+                    this.updateManager.quitAndInstall();
+                }
+            } catch (error) {
+                this.logger.error('Error installing update:', error);
             }
         });
     }

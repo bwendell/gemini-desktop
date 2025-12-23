@@ -103,6 +103,27 @@ describe('IndividualHotkeysContext', () => {
                 expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('true');
             });
         });
+
+        it('should handle invalid settings format from API', async () => {
+            window.electronAPI = {
+                ...window.electronAPI,
+                getIndividualHotkeys: vi.fn().mockResolvedValue({ invalid: 'data' }),
+                onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => { }),
+            } as any;
+
+            render(
+                <IndividualHotkeysProvider>
+                    <TestConsumer />
+                </IndividualHotkeysProvider>
+            );
+
+            // Should still use defaults when data is invalid
+            await waitFor(() => {
+                expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('true');
+                expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+                expect(screen.getByTestId('quickChat')).toHaveTextContent('true');
+            });
+        });
     });
 
     describe('setEnabled', () => {
@@ -134,6 +155,61 @@ describe('IndividualHotkeysContext', () => {
             });
 
             expect(mockSetIndividualHotkey).toHaveBeenCalledWith('quickChat', false);
+            expect(screen.getByTestId('quickChat')).toHaveTextContent('false');
+        });
+
+        it('should handle setEnabled errors gracefully', async () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => { });
+            window.electronAPI = {
+                ...window.electronAPI,
+                getIndividualHotkeys: vi.fn().mockResolvedValue({
+                    alwaysOnTop: true,
+                    bossKey: true,
+                    quickChat: true,
+                }),
+                setIndividualHotkey: vi.fn().mockImplementation(() => {
+                    throw new Error('Set error');
+                }),
+                onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => { }),
+            } as any;
+
+            render(
+                <IndividualHotkeysProvider>
+                    <TestConsumer />
+                </IndividualHotkeysProvider>
+            );
+
+            await waitFor(() => {
+                expect(screen.getByTestId('quickChat')).toHaveTextContent('true');
+            });
+
+            // Should still update local state even if API call fails
+            await act(async () => {
+                screen.getByTestId('disable-quickchat').click();
+            });
+
+            expect(screen.getByTestId('quickChat')).toHaveTextContent('false');
+            consoleError.mockRestore();
+        });
+
+        it('should work when Electron API is unavailable', async () => {
+            window.electronAPI = undefined;
+
+            render(
+                <IndividualHotkeysProvider>
+                    <TestConsumer />
+                </IndividualHotkeysProvider>
+            );
+
+            await waitFor(() => {
+                expect(screen.getByTestId('quickChat')).toHaveTextContent('true');
+            });
+
+            // Should still update local state
+            await act(async () => {
+                screen.getByTestId('disable-quickchat').click();
+            });
+
             expect(screen.getByTestId('quickChat')).toHaveTextContent('false');
         });
     });
@@ -175,6 +251,43 @@ describe('IndividualHotkeysContext', () => {
             });
 
             expect(screen.getByTestId('bossKey')).toHaveTextContent('false');
+        });
+
+        it('should ignore invalid data from change events', async () => {
+            let changeCallback: ((settings: any) => void) | null = null;
+
+            window.electronAPI = {
+                ...window.electronAPI,
+                getIndividualHotkeys: vi.fn().mockResolvedValue({
+                    alwaysOnTop: true,
+                    bossKey: true,
+                    quickChat: true,
+                }),
+                onIndividualHotkeysChanged: vi.fn((cb) => {
+                    changeCallback = cb;
+                    return () => { };
+                }),
+            } as any;
+
+            render(
+                <IndividualHotkeysProvider>
+                    <TestConsumer />
+                </IndividualHotkeysProvider>
+            );
+
+            await waitFor(() => {
+                expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+            });
+
+            // Send invalid data - should be ignored
+            await act(async () => {
+                changeCallback?.({ invalid: 'format' });
+            });
+
+            // Settings should remain unchanged
+            expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('true');
+            expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+            expect(screen.getByTestId('quickChat')).toHaveTextContent('true');
         });
     });
 

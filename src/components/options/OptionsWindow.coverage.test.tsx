@@ -15,6 +15,9 @@ vi.mock('./AboutSection', () => ({
 vi.mock('./IndividualHotkeyToggles', () => ({
     IndividualHotkeyToggles: () => <div data-testid="mock-hotkey-toggles">Hotkey Toggles</div>
 }));
+vi.mock('./AutoUpdateToggle', () => ({
+    AutoUpdateToggle: () => <div data-testid="mock-auto-update-toggle">Auto Update Toggle</div>
+}));
 vi.mock('../ErrorBoundary', () => ({
     ErrorBoundary: ({ children }: any) => <div>{children}</div>
 }));

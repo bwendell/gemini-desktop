@@ -56,6 +56,15 @@ const IPC_CHANNELS = {
     HOTKEYS_INDIVIDUAL_GET: 'hotkeys:individual:get',
     HOTKEYS_INDIVIDUAL_SET: 'hotkeys:individual:set',
     HOTKEYS_INDIVIDUAL_CHANGED: 'hotkeys:individual:changed',
+
+    // Auto-Update
+    AUTO_UPDATE_GET_ENABLED: 'auto-update:get-enabled',
+    AUTO_UPDATE_SET_ENABLED: 'auto-update:set-enabled',
+    AUTO_UPDATE_CHECK: 'auto-update:check',
+    AUTO_UPDATE_INSTALL: 'auto-update:install',
+    AUTO_UPDATE_AVAILABLE: 'auto-update:available',
+    AUTO_UPDATE_DOWNLOADED: 'auto-update:downloaded',
+    AUTO_UPDATE_ERROR: 'auto-update:error',
 } as const;
 
 // Expose window control APIs to renderer
@@ -263,6 +272,77 @@ const electronAPI: ElectronAPI = {
 
         return () => {
             ipcRenderer.removeListener(IPC_CHANNELS.ALWAYS_ON_TOP_CHANGED, subscription);
+        };
+    },
+
+    // =========================================================================
+    // Auto-Update API
+    // =========================================================================
+
+    /**
+     * Get whether auto-updates are enabled.
+     * @returns Promise resolving to boolean
+     */
+    getAutoUpdateEnabled: () => ipcRenderer.invoke(IPC_CHANNELS.AUTO_UPDATE_GET_ENABLED),
+
+    /**
+     * Set whether auto-updates are enabled.
+     * @param enabled - Whether to enable auto-updates
+     */
+    setAutoUpdateEnabled: (enabled) => ipcRenderer.send(IPC_CHANNELS.AUTO_UPDATE_SET_ENABLED, enabled),
+
+    /**
+     * Manually check for updates.
+     */
+    checkForUpdates: () => ipcRenderer.send(IPC_CHANNELS.AUTO_UPDATE_CHECK),
+
+    /**
+     * Install a downloaded update (quits app and installs).
+     */
+    installUpdate: () => ipcRenderer.send(IPC_CHANNELS.AUTO_UPDATE_INSTALL),
+
+    /**
+     * Subscribe to update available events.
+     * @param callback - Function called with UpdateInfo when update is available
+     * @returns Cleanup function to unsubscribe
+     */
+    onUpdateAvailable: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, info: Parameters<typeof callback>[0]) =>
+            callback(info);
+        ipcRenderer.on(IPC_CHANNELS.AUTO_UPDATE_AVAILABLE, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_AVAILABLE, subscription);
+        };
+    },
+
+    /**
+     * Subscribe to update downloaded events.
+     * @param callback - Function called with UpdateInfo when update is downloaded
+     * @returns Cleanup function to unsubscribe
+     */
+    onUpdateDownloaded: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, info: Parameters<typeof callback>[0]) =>
+            callback(info);
+        ipcRenderer.on(IPC_CHANNELS.AUTO_UPDATE_DOWNLOADED, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_DOWNLOADED, subscription);
+        };
+    },
+
+    /**
+     * Subscribe to update error events.
+     * @param callback - Function called with error message
+     * @returns Cleanup function to unsubscribe
+     */
+    onUpdateError: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, error: string) =>
+            callback(error);
+        ipcRenderer.on(IPC_CHANNELS.AUTO_UPDATE_ERROR, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_ERROR, subscription);
         };
     }
 

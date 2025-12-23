@@ -58,6 +58,21 @@ export interface Logger {
 }
 
 /**
+ * Update information from electron-updater.
+ * Simplified version for renderer process.
+ */
+export interface UpdateInfo {
+    /** The version of the update */
+    version: string;
+    /** Release name */
+    releaseName?: string;
+    /** Release notes (may be HTML or markdown) */
+    releaseNotes?: string | Array<{ version: string; note: string }>;
+    /** Release date */
+    releaseDate?: string;
+}
+
+/**
  * Electron API exposed to renderer process via contextBridge.
  * Available as `window.electronAPI` in renderer.
  */
@@ -95,6 +110,15 @@ export interface ElectronAPI {
     getAlwaysOnTop: () => Promise<{ enabled: boolean }>;
     setAlwaysOnTop: (enabled: boolean) => void;
     onAlwaysOnTopChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
+
+    // Auto-Update API
+    getAutoUpdateEnabled: () => Promise<boolean>;
+    setAutoUpdateEnabled: (enabled: boolean) => void;
+    checkForUpdates: () => void;
+    installUpdate: () => void;
+    onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
+    onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => () => void;
+    onUpdateError: (callback: (error: string) => void) => () => void;
 }
 
 /**

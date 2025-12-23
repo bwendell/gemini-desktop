@@ -30,6 +30,15 @@ interface Window {
         setAlwaysOnTop: (enabled: boolean) => void;
         onAlwaysOnTopChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
 
+        // Auto-Update API
+        getAutoUpdateEnabled: () => Promise<boolean>;
+        setAutoUpdateEnabled: (enabled: boolean) => void;
+        checkForUpdates: () => void;
+        installUpdate: () => void;
+        onUpdateAvailable: (callback: (info: { version: string; releaseName?: string; releaseNotes?: string | Array<{ version: string; note: string }> }) => void) => () => void;
+        onUpdateDownloaded: (callback: (info: { version: string; releaseName?: string; releaseNotes?: string | Array<{ version: string; note: string }> }) => void) => () => void;
+        onUpdateError: (callback: (error: string) => void) => () => void;
+
         platform: string;
         isElectron: boolean;
     };
