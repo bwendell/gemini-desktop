@@ -45,7 +45,7 @@ export const config = {
         ['electron', {
             appEntryPoint: electronMainPath,
             appArgs: process.env.CI ? [
-                '--no-sandbox',
+                ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-setuid-sandbox'] : []),
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--enable-logging',

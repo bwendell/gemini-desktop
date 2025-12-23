@@ -124,7 +124,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libnss3 libasound2t64 libgbm1 libayatana-appindicator3-1 libxtst6
+          sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
           # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
           # See: https://github.com/electron/electron/issues/41066
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
