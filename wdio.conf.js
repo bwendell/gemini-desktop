@@ -51,6 +51,9 @@ export const config = {
                 '--enable-logging',
                 '--remote-debugging-port=9222'
             ] : [],
+            // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
+            // See: https://github.com/electron/electron/issues/41066
+            apparmorAutoInstall: (process.env.CI && process.platform === 'linux') ? 'sudo' : false,
         }],
     ],
 
@@ -113,10 +116,12 @@ export const config = {
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
 
-    // Automatic Xvfb for Linux CI (WebdriverIO handles virtual display)
-    autoXvfb: true,
-    xvfbAutoInstall: true,
-    xvfbAutoInstallMode: 'sudo',
+    // Automatic Xvfb for Linux CI only (WebdriverIO handles virtual display)
+    ...(process.platform === 'linux' ? {
+        autoXvfb: true,
+        xvfbAutoInstall: true,
+        xvfbAutoInstallMode: 'sudo',
+    } : {}),
 
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
