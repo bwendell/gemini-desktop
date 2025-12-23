@@ -80,12 +80,14 @@ describe('UpdateManager', () => {
     });
 
     it('initializes with default settings', () => {
+        (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettingsStore);
         expect(updateManager.isEnabled()).toBe(true);
         expect(mockSettingsStore.get).toHaveBeenCalledWith('autoUpdateEnabled');
     });
 
     it('uses default enabled=true if settings.get returns undefined', () => {
+        (app as any).isPackaged = true;
         mockSettingsStore.get = vi.fn().mockReturnValue(undefined);
         updateManager = new UpdateManager(mockSettingsStore);
         expect(updateManager.isEnabled()).toBe(true);
