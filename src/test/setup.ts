@@ -75,6 +75,12 @@ const mockElectronAPI = {
 
     // Auto-Update API
     checkForUpdates: vi.fn(),
+    installUpdate: vi.fn(),
+    getAutoUpdateEnabled: vi.fn().mockResolvedValue(true),
+    setAutoUpdateEnabled: vi.fn(),
+    onUpdateAvailable: vi.fn().mockReturnValue(() => { }),
+    onUpdateDownloaded: vi.fn().mockReturnValue(() => { }),
+    onUpdateError: vi.fn().mockReturnValue(() => { }),
 
     platform: 'win32', // Default to Windows
     isElectron: true,

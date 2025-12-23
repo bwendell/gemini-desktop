@@ -148,4 +148,25 @@ export default class TrayManager {
     getTray(): Tray | null {
         return this.tray;
     }
+
+    /**
+     * Set the tray tooltip to show an update notification.
+     * @param version - The update version available
+     */
+    setUpdateTooltip(version: string): void {
+        if (this.tray && !this.tray.isDestroyed()) {
+            this.tray.setToolTip(`${TRAY_TOOLTIP} - Update v${version} available`);
+            logger.log('Tray tooltip updated for version:', version);
+        }
+    }
+
+    /**
+     * Clear the update tooltip and restore default.
+     */
+    clearUpdateTooltip(): void {
+        if (this.tray && !this.tray.isDestroyed()) {
+            this.tray.setToolTip(TRAY_TOOLTIP);
+            logger.log('Tray tooltip reset to default');
+        }
+    }
 }

@@ -11,6 +11,10 @@ export const app = {
     on: vi.fn(),
     quit: vi.fn(),
     requestSingleInstanceLock: vi.fn().mockReturnValue(true),
+    dock: {
+        setBadge: vi.fn(),
+        getBadge: vi.fn().mockReturnValue(''),
+    },
 };
 
 const createMockWebContents = () => ({
@@ -140,6 +144,21 @@ export const contextBridge = {
     exposeInMainWorld: vi.fn(),
 };
 
+export const nativeImage = {
+    createFromPath: vi.fn().mockReturnValue({
+        isEmpty: vi.fn().mockReturnValue(false),
+        getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
+    }),
+    createFromDataURL: vi.fn().mockReturnValue({
+        isEmpty: vi.fn().mockReturnValue(false),
+        getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
+    }),
+    _reset: () => {
+        nativeImage.createFromPath.mockClear();
+        nativeImage.createFromDataURL.mockClear();
+    }
+};
+
 export const globalShortcut = {
     register: vi.fn().mockReturnValue(true),
     unregisterAll: vi.fn(),
@@ -219,6 +238,7 @@ export default {
     ipcRenderer,
     session,
     nativeTheme,
+    nativeImage,
     screen,
     shell,
     contextBridge,

@@ -17,6 +17,8 @@ import type { AppUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createLogger } from '../utils/logger';
 import type SettingsStore from '../store';
+import type BadgeManager from './badgeManager';
+import type TrayManager from './trayManager';
 
 const logger = createLogger('[UpdateManager]');
 
@@ -28,6 +30,14 @@ export type { UpdateInfo };
  */
 export interface AutoUpdateSettings extends Record<string, unknown> {
     autoUpdateEnabled: boolean;
+}
+
+/**
+ * Optional dependencies for visual notifications
+ */
+export interface UpdateManagerDeps {
+    badgeManager?: BadgeManager;
+    trayManager?: TrayManager;
 }
 
 /**
@@ -53,13 +63,18 @@ export default class UpdateManager {
     private enabled: boolean = true;
     private checkInterval: ReturnType<typeof setInterval> | null = null;
     private readonly settings: SettingsStore<AutoUpdateSettings>;
+    private readonly badgeManager?: BadgeManager;
+    private readonly trayManager?: TrayManager;
 
     /**
      * Creates a new UpdateManager instance.
      * @param settings - Settings store for persisting auto-update preferences
+     * @param deps - Optional dependencies for visual notifications
      */
-    constructor(settings: SettingsStore<AutoUpdateSettings>) {
+    constructor(settings: SettingsStore<AutoUpdateSettings>, deps?: UpdateManagerDeps) {
         this.settings = settings;
+        this.badgeManager = deps?.badgeManager;
+        this.trayManager = deps?.trayManager;
 
         // Check if we should disable updates FIRST before any autoUpdater initialization
         // This prevents electron-updater from initializing native resources on unsupported platforms
@@ -209,6 +224,11 @@ export default class UpdateManager {
      */
     quitAndInstall(): void {
         logger.log('Quitting and installing update...');
+
+        // Clear native indicators before quitting
+        this.badgeManager?.clearUpdateBadge();
+        this.trayManager?.clearUpdateTooltip();
+
         this.autoUpdater.quitAndInstall(false, true);
     }
 
@@ -240,6 +260,11 @@ export default class UpdateManager {
 
         this.autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
             logger.log(`Update downloaded: ${info.version}`);
+
+            // Show native badge and tray tooltip
+            this.badgeManager?.showUpdateBadge();
+            this.trayManager?.setUpdateTooltip(info.version);
+
             this.broadcastToWindows('auto-update:downloaded', info);
         });
     }

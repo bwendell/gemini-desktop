@@ -215,6 +215,25 @@ describe('useMenuDefinitions', () => {
 
             expect(mockCleanup).toHaveBeenCalled();
         });
+
+        it('handles getAlwaysOnTop rejection gracefully', async () => {
+            // Mock getAlwaysOnTop to reject
+            mockElectronAPI.getAlwaysOnTop.mockRejectedValueOnce(new Error('Test error'));
+
+            // Render hook - should not throw
+            const { result } = renderHook(() => useMenuDefinitions());
+
+            // Wait for the promise to settle
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            // Hook should still return valid menus
+            expect(result.current).toHaveLength(3);
+
+            // alwaysOnTop state should remain at default (false)
+            const viewMenu = result.current[1];
+            const alwaysOnTopItem = viewMenu.items[2];
+            expect(alwaysOnTopItem).toHaveProperty('checked', false);
+        });
     });
 
     describe('Help menu', () => {

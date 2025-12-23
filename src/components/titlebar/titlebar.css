@@ -228,3 +228,51 @@
   background-color: #454545;
   margin: 4px 10px;
 }
+
+/* ============================================
+   Update Badge Indicator
+   ============================================ */
+.update-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+
+  background-color: #34a853;
+  /* Success green */
+  border: 2px solid var(--titlebar-bg);
+  border-radius: 50%;
+
+  cursor: pointer;
+  padding: 0;
+
+  /* Pulsing animation */
+  animation: update-badge-pulse 2s ease-in-out infinite;
+}
+
+.update-badge:hover {
+  transform: scale(1.2);
+}
+
+.update-badge:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+@keyframes update-badge-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px rgba(52, 168, 83, 0);
+  }
+}
+
+/* Position titlebar-icon relative for badge positioning */
+.titlebar-icon {
+  position: relative;
+}

@@ -23,6 +23,7 @@ import IpcManager from './managers/ipcManager';
 import MenuManager from './managers/menuManager';
 import HotkeyManager from './managers/hotkeyManager';
 import TrayManager from './managers/trayManager';
+import BadgeManager from './managers/badgeManager';
 import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
 import SettingsStore from './store';
 
@@ -50,6 +51,7 @@ let hotkeyManager: HotkeyManager;
 let ipcManager: IpcManager;
 let trayManager: TrayManager;
 let updateManager: UpdateManager;
+let badgeManager: BadgeManager;
 
 /**
  * Initialize all application managers.
@@ -59,6 +61,10 @@ function initializeManagers(): void {
     windowManager = new WindowManager(isDev);
     hotkeyManager = new HotkeyManager(windowManager);
 
+    // Create tray and badge managers
+    trayManager = new TrayManager(windowManager);
+    badgeManager = new BadgeManager();
+
     // Create settings store for auto-update preferences
     const updateSettings = new SettingsStore<AutoUpdateSettings>({
         configName: 'update-settings',
@@ -66,16 +72,21 @@ function initializeManagers(): void {
             autoUpdateEnabled: true,
         }
     });
-    updateManager = new UpdateManager(updateSettings);
+
+    // Create update manager with optional badge/tray dependencies
+    updateManager = new UpdateManager(updateSettings, {
+        badgeManager,
+        trayManager
+    });
 
     ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager);
-    trayManager = new TrayManager(windowManager);
 
     // Expose managers globally for E2E testing
     (global as any).windowManager = windowManager;
     (global as any).ipcManager = ipcManager;
     (global as any).trayManager = trayManager;
     (global as any).updateManager = updateManager;
+    (global as any).badgeManager = badgeManager;
 
     logger.log('All managers initialized');
 }
@@ -149,6 +160,9 @@ if (!gotTheLock) {
         menuManager.setupContextMenu();
 
         windowManager.createMainWindow();
+
+        // Set main window reference for badge manager (needed for Windows overlay)
+        badgeManager.setMainWindow(windowManager.getMainWindow());
 
         // Create system tray icon
         trayManager.createTray();

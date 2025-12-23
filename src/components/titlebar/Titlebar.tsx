@@ -1,6 +1,7 @@
 import { WindowControls } from './WindowControls';
 import { TitlebarMenu } from './TitlebarMenu';
 import { useMenuDefinitions } from './useMenuDefinitions';
+import { useUpdateToast } from '../../context/UpdateToastContext';
 import type { TitlebarConfig } from '../../types';
 import './titlebar.css';
 
@@ -24,6 +25,7 @@ interface TitlebarProps {
  * - VS Code-style dropdown menus (Windows/Linux only)
  * - App title display
  * - Window control buttons (minimize, maximize, close)
+ * - Update badge indicator when update is pending
  * 
  * Note: The drag region is applied to a dedicated element, not the entire header,
  * to allow menu buttons to receive click events.
@@ -34,6 +36,26 @@ export function Titlebar({ config = {} }: TitlebarProps) {
     const mergedConfig = { ...defaultConfig, ...config };
     const menus = useMenuDefinitions();
 
+    // Get pending update state for badge display
+    let hasPendingUpdate = false;
+    let installUpdate: (() => void) | undefined;
+
+    try {
+        const updateToast = useUpdateToast();
+        hasPendingUpdate = updateToast.hasPendingUpdate;
+        installUpdate = updateToast.installUpdate;
+    } catch {
+        // Context not available (e.g., in tests without provider)
+        // Badge will not be shown
+    }
+
+    const handleBadgeClick = () => {
+        if (installUpdate) {
+            // Open options to About tab to show update info
+            window.electronAPI?.openOptions('about');
+        }
+    };
+
     return (
         <header className="titlebar" data-testid="titlebar">
             <div className="titlebar-left">
@@ -41,6 +63,16 @@ export function Titlebar({ config = {} }: TitlebarProps) {
                     <div className="titlebar-icon">
                         {/* Placeholder for app icon - can be customized later */}
                         <img src="./icon.png" alt="App Icon" style={{ width: 16, height: 16 }} />
+                        {/* Update badge indicator */}
+                        {hasPendingUpdate && (
+                            <button
+                                className="update-badge"
+                                onClick={handleBadgeClick}
+                                title="Update ready - click to install"
+                                aria-label="Update available, click to install"
+                                data-testid="update-badge"
+                            />
+                        )}
                     </div>
                 )}
                 <TitlebarMenu menus={menus} />
@@ -56,5 +88,3 @@ export function Titlebar({ config = {} }: TitlebarProps) {
         </header>
     );
 }
-
-

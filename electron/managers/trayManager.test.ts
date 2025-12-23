@@ -218,5 +218,52 @@ describe('TrayManager', () => {
             expect(trayManager.getTray()).toBe(tray);
         });
     });
+
+    describe('setUpdateTooltip', () => {
+        it('sets tooltip with version info', () => {
+            const tray = trayManager.createTray();
+
+            trayManager.setUpdateTooltip('2.0.0');
+
+            expect(tray.setToolTip).toHaveBeenLastCalledWith('Gemini Desktop - Update v2.0.0 available');
+        });
+
+        it('does nothing if tray does not exist', () => {
+            // No tray created, should not throw
+            expect(() => trayManager.setUpdateTooltip('2.0.0')).not.toThrow();
+        });
+
+        it('does nothing if tray is destroyed', () => {
+            const tray = trayManager.createTray();
+            (tray.isDestroyed as any).mockReturnValue(true);
+
+            // Should not throw
+            expect(() => trayManager.setUpdateTooltip('2.0.0')).not.toThrow();
+        });
+    });
+
+    describe('clearUpdateTooltip', () => {
+        it('resets tooltip to default', () => {
+            const tray = trayManager.createTray();
+            trayManager.setUpdateTooltip('2.0.0');
+
+            trayManager.clearUpdateTooltip();
+
+            expect(tray.setToolTip).toHaveBeenLastCalledWith('Gemini Desktop');
+        });
+
+        it('does nothing if tray does not exist', () => {
+            // No tray created, should not throw
+            expect(() => trayManager.clearUpdateTooltip()).not.toThrow();
+        });
+
+        it('does nothing if tray is destroyed', () => {
+            const tray = trayManager.createTray();
+            (tray.isDestroyed as any).mockReturnValue(true);
+
+            // Should not throw
+            expect(() => trayManager.clearUpdateTooltip()).not.toThrow();
+        });
+    });
 });
 
