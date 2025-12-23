@@ -81,6 +81,11 @@ export default class UpdateManager {
 
         this.setupEventListeners();
         logger.log(`UpdateManager initialized (enabled: ${this.enabled})`);
+
+        // Start periodic checks if enabled
+        if (this.enabled) {
+            this.startPeriodicChecks();
+        }
     }
 
     /**
