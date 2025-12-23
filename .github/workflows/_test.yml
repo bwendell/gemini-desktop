@@ -67,8 +67,8 @@ jobs:
           name: electron-dist
           path: dist-electron/
       
-      - name: Run All Tests
-        run: npm run test:all
+      - name: Run Unit Tests
+        run: npm run test && npm run test:electron
         env:
           FORCE_COLOR: 1
       
