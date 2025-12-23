@@ -116,12 +116,7 @@ export const config = {
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
 
-    // Automatic Xvfb for Linux CI only (WebdriverIO handles virtual display)
-    ...(process.platform === 'linux' ? {
-        autoXvfb: true,
-        xvfbAutoInstall: true,
-        xvfbAutoInstallMode: 'sudo',
-    } : {}),
+    // Xvfb is handled by xvfb-run in CI workflow for Linux
 
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
