@@ -113,6 +113,11 @@ export const config = {
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
 
+    // Automatic Xvfb for Linux CI (WebdriverIO handles virtual display)
+    autoXvfb: true,
+    xvfbAutoInstall: true,
+    xvfbAutoInstallMode: 'sudo',
+
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
         // Add a short delay to ensure React has time to mount

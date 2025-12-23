@@ -119,14 +119,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      # Linux-specific: Setup virtual display for headless Electron
-      - name: Setup Virtual Display (Linux)
+      # Linux-specific: Install dependencies for headless Electron
+      # WebdriverIO handles Xvfb via autoXvfb: true in wdio.conf.js
+      - name: Install Linux Dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libnss3 libasound2t64 libgbm1 libayatana-appindicator3-1 libxtst6
-          Xvfb :99 -screen 0 1920x1080x24 &
-          echo "DISPLAY=:99.0" >> $GITHUB_ENV
 
       - name: Install Dependencies
         run: npm ci
