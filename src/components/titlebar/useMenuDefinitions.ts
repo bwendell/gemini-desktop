@@ -116,6 +116,14 @@ export function useMenuDefinitions(): MenuDefinition[] {
             label: 'Help',
             items: [
                 {
+                    id: 'menu-help-check-updates',
+                    label: 'Check for Updates',
+                    action: () => {
+                        window.electronAPI?.checkForUpdates();
+                    },
+                },
+                { separator: true },
+                {
                     id: 'menu-help-about',
                     label: 'About Gemini Desktop',
                     action: () => {

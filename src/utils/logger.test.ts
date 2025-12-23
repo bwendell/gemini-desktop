@@ -50,11 +50,30 @@ describe('createRendererLogger', () => {
     });
 
     it('always logs errors regardless of environment', () => {
-        const logger = createRendererLogger('[TestComponent]');
+        const logger = createRendererLogger('[TestComponent]', { DEV: false });
 
         logger.error('critical error');
 
-        // Errors should always be logged
+        // Errors should always be logged even in production-like env
         expect(consoleErrorSpy).toHaveBeenCalledWith('[TestComponent] critical error');
+    });
+
+    it('does not log in production environment', () => {
+        const logger = createRendererLogger('[TestComponent]', { DEV: false });
+
+        logger.log('test log');
+        logger.warn('test warn');
+
+        expect(consoleLogSpy).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+
+    it('uses import.meta.env.DEV by default', () => {
+        const logger = createRendererLogger('[TestComponent]');
+
+        logger.log('test log');
+
+        // In Vitest, DEV is typically true by default
+        expect(consoleLogSpy).toHaveBeenCalledWith('[TestComponent] test log');
     });
 });

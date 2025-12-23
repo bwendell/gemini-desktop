@@ -23,6 +23,8 @@ import IpcManager from './managers/ipcManager';
 import MenuManager from './managers/menuManager';
 import HotkeyManager from './managers/hotkeyManager';
 import TrayManager from './managers/trayManager';
+import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
+import SettingsStore from './store';
 
 
 // Path to the production build
@@ -47,6 +49,7 @@ let windowManager: WindowManager;
 let hotkeyManager: HotkeyManager;
 let ipcManager: IpcManager;
 let trayManager: TrayManager;
+let updateManager: UpdateManager;
 
 /**
  * Initialize all application managers.
@@ -55,13 +58,24 @@ let trayManager: TrayManager;
 function initializeManagers(): void {
     windowManager = new WindowManager(isDev);
     hotkeyManager = new HotkeyManager(windowManager);
-    ipcManager = new IpcManager(windowManager, hotkeyManager);
+
+    // Create settings store for auto-update preferences
+    const updateSettings = new SettingsStore<AutoUpdateSettings>({
+        configName: 'update-settings',
+        defaults: {
+            autoUpdateEnabled: true,
+        }
+    });
+    updateManager = new UpdateManager(updateSettings);
+
+    ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager);
     trayManager = new TrayManager(windowManager);
 
     // Expose managers globally for E2E testing
     (global as any).windowManager = windowManager;
     (global as any).ipcManager = ipcManager;
     (global as any).trayManager = trayManager;
+    (global as any).updateManager = updateManager;
 
     logger.log('All managers initialized');
 }
@@ -148,6 +162,11 @@ if (!gotTheLock) {
         });
         hotkeyManager.registerShortcuts();
 
+        // Start auto-update checks (only in production)
+        if (app.isPackaged) {
+            updateManager.startPeriodicChecks();
+        }
+
         app.on('activate', () => {
             // On macOS, recreate window when dock icon is clicked
             if (BrowserWindow.getAllWindows().length === 0) {
@@ -171,6 +190,7 @@ app.on('before-quit', () => {
 app.on('will-quit', () => {
     hotkeyManager.unregisterAll();
     trayManager.destroyTray();
+    updateManager.destroy();
 });
 
 // Global error handlers for unhandled promises and exceptions

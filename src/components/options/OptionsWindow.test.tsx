@@ -37,6 +37,13 @@ vi.mock('./IndividualHotkeyToggles', () => ({
     ),
 }));
 
+// Mock AutoUpdateToggle
+vi.mock('./AutoUpdateToggle', () => ({
+    AutoUpdateToggle: () => (
+        <div data-testid="mock-auto-update-toggle">Auto Update Toggle</div>
+    ),
+}));
+
 // Helper to render with ThemeProvider
 const renderWithTheme = (ui: React.ReactElement) => {
     return render(<ThemeProvider>{ui}</ThemeProvider>);
@@ -103,6 +110,13 @@ describe('OptionsWindow', () => {
 
             // Verify the mocked IndividualHotkeyToggles is rendered
             expect(screen.getByTestId('mock-individual-hotkey-toggles')).toBeInTheDocument();
+        });
+
+        it('should display Updates section', () => {
+            renderWithTheme(<OptionsWindow />);
+            expect(screen.getByText('Updates')).toBeInTheDocument();
+            expect(screen.getByTestId('options-updates')).toBeInTheDocument();
+            expect(screen.getByTestId('mock-auto-update-toggle')).toBeInTheDocument();
         });
 
         /**

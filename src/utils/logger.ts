@@ -6,6 +6,8 @@
  * @module RendererLogger
  */
 
+import { getIsDev } from './platform';
+
 export interface Logger {
     log(message: string, ...args: unknown[]): void;
     error(message: string, ...args: unknown[]): void;
@@ -16,6 +18,7 @@ export interface Logger {
  * Creates a logger instance with a consistent prefix for renderer components.
  * 
  * @param prefix - The prefix to prepend to all log messages (e.g., '[useMenuDefinitions]')
+ * @param envOverride - Optional environment object for testing (defaults to import.meta.env)
  * @returns Logger object with log, error, and warn methods
  * 
  * @example
@@ -23,8 +26,8 @@ export interface Logger {
  * logger.log('Component mounted');
  * logger.error('Failed to load data');
  */
-export function createRendererLogger(prefix: string): Logger {
-    const isDev = import.meta.env.DEV;
+export function createRendererLogger(prefix: string, envOverride?: { DEV: boolean }): Logger {
+    const isDev = getIsDev(envOverride);
 
     return {
         log(message: string, ...args: unknown[]): void {

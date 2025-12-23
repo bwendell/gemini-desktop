@@ -218,10 +218,31 @@ describe('useMenuDefinitions', () => {
     });
 
     describe('Help menu', () => {
+        it('Check for Updates action calls electronAPI.checkForUpdates()', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const helpMenu = result.current[2];
+            const checkUpdatesItem = helpMenu.items[0];
+
+            expect(checkUpdatesItem).toHaveProperty('id', 'menu-help-check-updates');
+            expect(checkUpdatesItem).toHaveProperty('label', 'Check for Updates');
+
+            if ('action' in checkUpdatesItem && checkUpdatesItem.action) {
+                checkUpdatesItem.action();
+                expect(mockElectronAPI.checkForUpdates).toHaveBeenCalledTimes(1);
+            }
+        });
+
+        it('has separator after Check for Updates', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const helpMenu = result.current[2];
+
+            expect(helpMenu.items[1]).toEqual({ separator: true });
+        });
+
         it('About action opens options window', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const helpMenu = result.current[2];
-            const aboutItem = helpMenu.items[0];
+            const aboutItem = helpMenu.items[2]; // After Check for Updates and separator
 
             expect(aboutItem).toHaveProperty('label', 'About Gemini Desktop');
 

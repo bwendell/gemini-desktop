@@ -44,7 +44,7 @@ describe('MainWindow', () => {
 
             expect((BrowserWindow as any)._instances.length).toBe(1);
             expect(win).toBeDefined();
-            expect(win.options).toMatchObject({
+            expect((win as any).options).toMatchObject({
                 width: 1200,
                 height: 800,
                 show: false,
@@ -75,7 +75,7 @@ describe('MainWindow', () => {
 
         it('shows window when ready-to-show is emitted', () => {
             const win = mainWindow.create();
-            const readyHandler = win.once.mock.calls.find((call: [string, () => void]) => call[0] === 'ready-to-show')?.[1];
+            const readyHandler = (win.once as any).mock.calls.find((call: [string, () => void]) => call[0] === 'ready-to-show')?.[1];
             readyHandler?.();
 
             expect(win.show).toHaveBeenCalled();
@@ -100,26 +100,33 @@ describe('MainWindow', () => {
 
         it('allows navigation to internal domains', () => {
             const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'https://gemini.google.com/app');
+            navigateHandler!(event as any, 'https://gemini.google.com/app');
             expect(event.preventDefault).not.toHaveBeenCalled();
         });
 
         it('allows navigation to OAuth domains', () => {
             const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'https://accounts.google.com/signin');
+            navigateHandler!(event as any, 'https://accounts.google.com/signin');
             expect(event.preventDefault).not.toHaveBeenCalled();
         });
 
         it('blocks navigation to external domains', () => {
             const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'https://malicious-site.com');
+            navigateHandler!(event as any, 'https://malicious-site.com');
             expect(event.preventDefault).toHaveBeenCalled();
         });
 
         it('allows navigation to local file:// protocol', () => {
             const event = { preventDefault: vi.fn() };
-            navigateHandler(event, 'file:///C:/path/to/app/index.html');
+            navigateHandler!(event as any, 'file:///C:/path/to/app/index.html');
             expect(event.preventDefault).not.toHaveBeenCalled();
+        });
+
+        it('handles invalid URL in navigation handler', () => {
+            const event = { preventDefault: vi.fn() };
+            // Triggering throw by passing a malformed URL that causes URL constructor to fail
+            navigateHandler!(event as any, 'not-a-url');
+            expect(event.preventDefault).toHaveBeenCalled();
         });
     });
 
@@ -160,6 +167,17 @@ describe('MainWindow', () => {
             const result = handler({ url: 'https://gemini.google.com/chat' });
             expect(result).toEqual({ action: 'allow' });
         });
+
+        it('handles invalid URL in window open handler', () => {
+            mainWindow.create();
+            const instances = (BrowserWindow as any).getAllWindows();
+            const win = instances[0];
+            const openHandler = win.webContents.setWindowOpenHandler.mock.calls[0][0];
+
+            // Malformed URL should be handled gracefully
+            const result = openHandler({ url: '::malformed' });
+            expect(result).toEqual({ action: 'deny' });
+        });
     });
 
     describe('hideToTray', () => {
@@ -196,6 +214,11 @@ describe('MainWindow', () => {
 
             expect(closeOptionsCallback).toHaveBeenCalled();
         });
+
+        it('handles hideToTray when window is not created', () => {
+            mainWindow.hideToTray();
+            // Should just log a warning and return without crashing
+        });
     });
 
     describe('restoreFromTray', () => {
@@ -223,6 +246,19 @@ describe('MainWindow', () => {
             expect(win.show).toHaveBeenCalled();
             expect(win.focus).toHaveBeenCalled();
             expect(win.setSkipTaskbar).not.toHaveBeenCalled();
+        });
+
+        it('handles error in restoreFromTray', () => {
+            const win = mainWindow.create();
+            vi.mocked(win.show).mockImplementation(() => { throw new Error('Show failed'); });
+
+            // Should not crash when show() throws
+            mainWindow.restoreFromTray();
+        });
+
+        it('handles restoreFromTray when window is not created', () => {
+            mainWindow.restoreFromTray();
+            // Should just log a warning and return without crashing
         });
     });
 

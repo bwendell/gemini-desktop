@@ -14,6 +14,7 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { OptionsWindowTitlebar } from './OptionsWindowTitlebar';
 import { ThemeSelector } from './ThemeSelector';
 import { IndividualHotkeyToggles } from './IndividualHotkeyToggles';
+import { AutoUpdateToggle } from './AutoUpdateToggle';
 import { AboutSection } from './AboutSection';
 import './options-window.css';
 
@@ -182,6 +183,11 @@ export function OptionsWindow() {
                             {/* Hotkey Settings */}
                             <OptionsSection title="Hotkey Shortcuts" testId="options-hotkeys">
                                 <IndividualHotkeyToggles />
+                            </OptionsSection>
+
+                            {/* Updates Settings */}
+                            <OptionsSection title="Updates" testId="options-updates">
+                                <AutoUpdateToggle />
                             </OptionsSection>
 
                             {/* 

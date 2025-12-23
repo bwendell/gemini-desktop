@@ -45,11 +45,15 @@ export const config = {
         ['electron', {
             appEntryPoint: electronMainPath,
             appArgs: process.env.CI ? [
-                '--no-sandbox',
+                ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-setuid-sandbox'] : []),
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
-                '--enable-logging'
+                '--enable-logging',
+                '--remote-debugging-port=9222'
             ] : [],
+            // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
+            // See: https://github.com/electron/electron/issues/41066
+            apparmorAutoInstall: (process.env.CI && process.platform === 'linux') ? 'sudo' : false,
         }],
     ],
 
@@ -111,6 +115,8 @@ export const config = {
     // Connection retry settings
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
+
+    // Xvfb is handled by xvfb-run in CI workflow for Linux
 
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {

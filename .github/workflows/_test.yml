@@ -67,8 +67,8 @@ jobs:
           name: electron-dist
           path: dist-electron/
       
-      - name: Run All Tests
-        run: npm run test:all
+      - name: Run Unit Tests
+        run: npm run test && npm run test:electron
         env:
           FORCE_COLOR: 1
       
@@ -119,14 +119,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      # Linux-specific: Setup virtual display for headless Electron
-      - name: Setup Virtual Display (Linux)
+      # Linux-specific: Install dependencies and configure for headless Electron
+      - name: Setup Linux Environment
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb
-          Xvfb :99 -screen 0 1920x1080x24 &
-          echo "DISPLAY=:99.0" >> $GITHUB_ENV
+          sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
+          # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
+          # See: https://github.com/electron/electron/issues/41066
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Install Dependencies
         run: npm ci
@@ -145,10 +146,15 @@ jobs:
           path: dist-electron/
 
       - name: Run E2E Tests
-        run: npm run test:e2e
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e
+          else
+            npm run test:e2e
+          fi
+        shell: bash
         env:
           ELECTRON_USE_DIST: 'true'
-          DISPLAY: ${{ matrix.display }}
           DEBUG: 'wdio:*'
 
       # Upload artifacts on failure for debugging

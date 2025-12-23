@@ -75,3 +75,14 @@ export function isLinux(): boolean {
 export function usesCustomWindowControls(): boolean {
     return !isMacOS();
 }
+
+/**
+ * Determines if the application is running in development mode.
+ * Supports environment override for testing.
+ * 
+ * @param envOverride - Optional environment object for testing
+ * @returns true if in development mode, false otherwise
+ */
+export function getIsDev(envOverride?: { DEV: boolean }): boolean {
+    return envOverride ? envOverride.DEV : import.meta.env.DEV;
+}

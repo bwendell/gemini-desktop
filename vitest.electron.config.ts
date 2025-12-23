@@ -26,6 +26,7 @@ export default defineConfig({
                 'electron/types.ts',        // Type definitions only
                 'electron/test/**',         // Test files themselves
                 'electron/**/*.test.ts',    // Test files
+                'electron/**/index.ts',     // Barrel files (exports only)
             ],
             thresholds: {
                 lines: 90,
