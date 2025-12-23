@@ -49,10 +49,15 @@ describe('UpdateManager', () => {
     let updateManager: UpdateManager;
     let mockSettingsStore: SettingsStore<any>;
     let mockWindows: any[];
+    let originalPlatform: PropertyDescriptor | undefined;
 
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
+
+        // Mock platform to win32 to avoid Linux-specific update disabling in CI
+        originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+        Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
 
         // Setup mock settings
         mockSettingsStore = {
@@ -77,6 +82,10 @@ describe('UpdateManager', () => {
             updateManager.destroy();
         }
         vi.useRealTimers();
+        // Restore original platform
+        if (originalPlatform) {
+            Object.defineProperty(process, 'platform', originalPlatform);
+        }
     });
 
     it('initializes with default settings', () => {
