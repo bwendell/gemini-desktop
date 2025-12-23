@@ -670,7 +670,7 @@ export default class IpcManager {
         ipcMain.on(IPC_CHANNELS.AUTO_UPDATE_CHECK, () => {
             try {
                 if (this.updateManager) {
-                    this.updateManager.checkForUpdates();
+                    this.updateManager.checkForUpdates(true); // manual=true
                 }
             } catch (error) {
                 this.logger.error('Error checking for updates:', error);

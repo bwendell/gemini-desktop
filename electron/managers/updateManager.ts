@@ -62,22 +62,25 @@ export default class UpdateManager {
         this.settings = settings;
         this.autoUpdater = getAutoUpdater();
 
+        // Check if we should disable updates FIRST before any autoUpdater configuration
+        // This prevents electron-updater from initializing native resources on unsupported platforms
+        if (this.shouldDisableUpdates()) {
+            this.enabled = false;
+            logger.log('Auto-updates disabled for this platform/install type');
+            logger.log(`UpdateManager initialized (enabled: ${this.enabled})`);
+            return; // Exit early - don't configure autoUpdater at all
+        }
+
         // Load user preference (default to enabled)
         this.enabled = this.settings.get('autoUpdateEnabled') ?? true;
 
-        // Configure auto-updater
+        // Configure auto-updater - only if updates are supported
         this.autoUpdater.autoDownload = true;
         this.autoUpdater.autoInstallOnAppQuit = true;
 
         // Configure logging
         this.autoUpdater.logger = log;
         log.transports.file.level = 'info';
-
-        // Disable for non-updatable platforms
-        if (this.shouldDisableUpdates()) {
-            this.enabled = false;
-            logger.log('Auto-updates disabled for this platform/install type');
-        }
 
         this.setupEventListeners();
         logger.log(`UpdateManager initialized (enabled: ${this.enabled})`);
@@ -87,6 +90,7 @@ export default class UpdateManager {
             this.startPeriodicChecks();
         }
     }
+
 
     /**
      * Determine if auto-updates should be disabled based on platform and install type.
@@ -134,11 +138,11 @@ export default class UpdateManager {
     }
 
     /**
-     * Manually check for updates.
-     * Safe to call even if updates are disabled (will just log and return).
+     * Check for updates.
+     * @param manual - If true, bypasses the enabled check (for user-initiated checks)
      */
-    async checkForUpdates(): Promise<void> {
-        if (!this.enabled) {
+    async checkForUpdates(manual: boolean = false): Promise<void> {
+        if (!this.enabled && !manual) {
             logger.log('Update check skipped - updates disabled');
             return;
         }
@@ -149,7 +153,7 @@ export default class UpdateManager {
         }
 
         try {
-            logger.log('Checking for updates...');
+            logger.log(manual ? 'Manual update check...' : 'Checking for updates...');
             await this.autoUpdater.checkForUpdatesAndNotify();
         } catch (error) {
             logger.error('Update check failed:', error);

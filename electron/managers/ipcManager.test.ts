@@ -334,7 +334,7 @@ describe('IpcManager', () => {
         it('handles auto-update:check', () => {
             const handler = (ipcMain as any)._listeners.get('auto-update:check');
             handler();
-            expect(mockUpdateManager.checkForUpdates).toHaveBeenCalled();
+            expect(mockUpdateManager.checkForUpdates).toHaveBeenCalledWith(true); // manual=true
         });
 
         it('handles auto-update:check (without manager)', () => {
@@ -847,6 +847,36 @@ describe('IpcManager', () => {
 
             // Should skip the frame with error and find the Gemini frame
             expect(mockMainWindow.webContents.mainFrame.frames[1].executeJavaScript).toHaveBeenCalled();
+        });
+    });
+
+    describe('Missing Branch Coverage', () => {
+        beforeEach(() => {
+            ipcManager.setupIpcHandlers();
+        });
+
+        it('covers all individual hotkey set cases', () => {
+            const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
+
+            // bossKey case
+            handler({}, 'bossKey', true);
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeyBossKey', true);
+
+            // quickChat case
+            handler({}, 'quickChat', false);
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeyQuickChat', false);
+        });
+
+        it('covers invalid always-on-top-set input type', () => {
+            const handler = (ipcMain as any)._listeners.get('always-on-top:set');
+
+            // Clear the call from constructor initialization
+            mockWindowManager.setAlwaysOnTop.mockClear();
+
+            handler({}, 'not-a-boolean' as any);
+
+            expect(mockWindowManager.setAlwaysOnTop).not.toHaveBeenCalled();
+            expect(mockLogger.warn).toHaveBeenCalledWith('Invalid alwaysOnTop value: not-a-boolean');
         });
     });
 });

@@ -73,6 +73,9 @@ const mockElectronAPI = {
     setAlwaysOnTop: vi.fn(),
     onAlwaysOnTopChanged: vi.fn().mockReturnValue(() => { }),
 
+    // Auto-Update API
+    checkForUpdates: vi.fn(),
+
     platform: 'win32', // Default to Windows
     isElectron: true,
 };

@@ -241,11 +241,19 @@ describe('UpdateManager', () => {
 
 
     describe('checkForUpdates scenarios', () => {
-        it('skips if disabled', async () => {
+        it('skips if disabled (automatic check)', async () => {
             updateManager = new UpdateManager(mockSettingsStore);
             updateManager.setEnabled(false);
-            await updateManager.checkForUpdates();
+            await updateManager.checkForUpdates(false); // automatic check
             expect(autoUpdater.checkForUpdatesAndNotify).not.toHaveBeenCalled();
+        });
+
+        it('proceeds if disabled but manual check', async () => {
+            (app as any).isPackaged = true;
+            updateManager = new UpdateManager(mockSettingsStore);
+            updateManager.setEnabled(false);
+            await updateManager.checkForUpdates(true); // manual check
+            expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
         });
 
         it('skips if not packaged', async () => {
