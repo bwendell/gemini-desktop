@@ -117,7 +117,7 @@ export const config = {
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
 
-    // Xvfb is handled by xvfb-run in CI workflow for Linux
+    // Xvfb is handled automatically by wdio-electron-service for headless Linux
 
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {

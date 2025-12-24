@@ -146,12 +146,7 @@ jobs:
           path: dist-electron/
 
       - name: Run E2E Tests
-        run: |
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e
-          else
-            npm run test:e2e
-          fi
+        run: npm run test:e2e
         shell: bash
         env:
           ELECTRON_USE_DIST: 'true'
