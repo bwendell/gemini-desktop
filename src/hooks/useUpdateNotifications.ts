@@ -17,7 +17,7 @@ import { isDevMode } from '../utils/platform';
  */
 export interface UpdateNotificationState {
     /** Type of notification currently showing */
-    type: 'available' | 'downloaded' | 'error' | null;
+    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | null;
     /** Update information from electron-updater */
     updateInfo: UpdateInfo | null;
     /** Error message if type is 'error' */
@@ -26,6 +26,8 @@ export interface UpdateNotificationState {
     visible: boolean;
     /** Whether an update has been downloaded and is pending install */
     hasPendingUpdate: boolean;
+    /** Download progress percentage (0-100) */
+    downloadProgress: number | null;
 }
 
 /**
@@ -36,7 +38,8 @@ const initialState: UpdateNotificationState = {
     updateInfo: null,
     errorMessage: null,
     visible: false,
-    hasPendingUpdate: false
+    hasPendingUpdate: false,
+    downloadProgress: null
 };
 
 /**
@@ -104,7 +107,8 @@ export function useUpdateNotifications() {
                 updateInfo: info,
                 errorMessage: null,
                 visible: true,
-                hasPendingUpdate: false
+                hasPendingUpdate: false,
+                downloadProgress: null
             });
         });
 
@@ -115,7 +119,8 @@ export function useUpdateNotifications() {
                 updateInfo: info,
                 errorMessage: null,
                 visible: true,
-                hasPendingUpdate: true
+                hasPendingUpdate: true,
+                downloadProgress: 100
             });
         });
 
@@ -126,8 +131,31 @@ export function useUpdateNotifications() {
                 updateInfo: null,
                 errorMessage: error,
                 visible: true,
-                hasPendingUpdate: false
+                hasPendingUpdate: false,
+                downloadProgress: null
             });
+        });
+
+        // Update not available - show "you're up to date" toast
+        const cleanupNotAvailable = window.electronAPI.onUpdateNotAvailable?.((info) => {
+            setState({
+                type: 'not-available',
+                updateInfo: info,
+                errorMessage: null,
+                visible: true,
+                hasPendingUpdate: false,
+                downloadProgress: null
+            });
+        });
+
+        // Download progress - update progress state
+        const cleanupProgress = window.electronAPI.onDownloadProgress?.((progress) => {
+            setState(prev => ({
+                ...prev,
+                type: 'progress',
+                downloadProgress: progress.percent,
+                visible: true
+            }));
         });
 
         // Cleanup subscriptions on unmount
@@ -135,6 +163,8 @@ export function useUpdateNotifications() {
             cleanupAvailable?.();
             cleanupDownloaded?.();
             cleanupError?.();
+            cleanupNotAvailable?.();
+            cleanupProgress?.();
         };
     }, []);
 
@@ -164,7 +194,8 @@ export function useUpdateNotifications() {
                         updateInfo: { version },
                         errorMessage: null,
                         visible: true,
-                        hasPendingUpdate: false
+                        hasPendingUpdate: false,
+                        downloadProgress: null
                     });
                     // Also trigger native badge in main process
                     window.electronAPI?.devShowBadge(version);
@@ -176,7 +207,8 @@ export function useUpdateNotifications() {
                         updateInfo: { version },
                         errorMessage: null,
                         visible: true,
-                        hasPendingUpdate: true
+                        hasPendingUpdate: true,
+                        downloadProgress: 100
                     });
                     // Also trigger native badge in main process
                     window.electronAPI?.devShowBadge(version);
@@ -188,8 +220,29 @@ export function useUpdateNotifications() {
                         updateInfo: null,
                         errorMessage: message,
                         visible: true,
-                        hasPendingUpdate: false
+                        hasPendingUpdate: false,
+                        downloadProgress: null
                     });
+                },
+                /* v8 ignore next 8 */
+                showNotAvailable: (version = '1.0.0') => {
+                    setState({
+                        type: 'not-available',
+                        updateInfo: { version },
+                        errorMessage: null,
+                        visible: true,
+                        hasPendingUpdate: false,
+                        downloadProgress: null
+                    });
+                },
+                /* v8 ignore next 8 */
+                showProgress: (percent = 50) => {
+                    setState(prev => ({
+                        ...prev,
+                        type: 'progress',
+                        downloadProgress: percent,
+                        visible: true
+                    }));
                 },
                 /* v8 ignore next 11 */
                 hide: () => {
@@ -199,7 +252,8 @@ export function useUpdateNotifications() {
                         updateInfo: null,
                         errorMessage: null,
                         visible: false,
-                        hasPendingUpdate: false
+                        hasPendingUpdate: false,
+                        downloadProgress: null
                     });
                     // Also clear native badge in main process
                     window.electronAPI?.devClearBadge();

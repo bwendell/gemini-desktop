@@ -119,10 +119,15 @@ export interface ElectronAPI {
     onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
     onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => () => void;
     onUpdateError: (callback: (error: string) => void) => () => void;
+    onUpdateNotAvailable: (callback: (info: UpdateInfo) => void) => () => void;
+    onDownloadProgress: (callback: (progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }) => void) => () => void;
 
     // Dev Testing API (only for manual testing in development)
     devShowBadge: (version?: string) => void;
     devClearBadge: () => void;
+    devSetUpdateEnabled: (enabled: boolean) => void;
+    devEmitUpdateEvent: (event: string, data: any) => void;
+    devMockPlatform: (platform: NodeJS.Platform | null, env: Record<string, string> | null) => void;
 
     // E2E Testing Helpers
     getTrayTooltip: () => Promise<string>;

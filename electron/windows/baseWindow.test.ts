@@ -94,8 +94,9 @@ describe('BaseWindow', () => {
         });
 
         it('calls close when valid', () => {
+            const win = testWindow.getWindow();
             testWindow.close();
-            expect(testWindow.getWindow()?.close).toHaveBeenCalled();
+            expect(win?.close).toHaveBeenCalled();
         });
 
         it('does nothing when invalid', () => {

@@ -47,6 +47,14 @@ function renameJsToCjs(dir) {
     });
 }
 
+// Copy dev-app-update.yml if it exists (for E2E test auto-update support)
+const devUpdateYml = path.join(__dirname, '../electron/dev-app-update.yml');
+const destPath = path.join(distElectronDir, 'dev-app-update.yml');
+if (fs.existsSync(devUpdateYml)) {
+    fs.copyFileSync(devUpdateYml, destPath);
+    console.log('Copied dev-app-update.yml to dist-electron/');
+}
+
 console.log('Renaming .js files to .cjs and updating require statements...');
 renameJsToCjs(distElectronDir);
 console.log('Rename and update complete.');

@@ -209,8 +209,9 @@ export default class MainWindow extends BaseWindow {
         if (!this.window) return;
 
         this.window.on('closed', () => {
-            // Close options window if it exists
+            // Close auxiliary windows if they exist
             this.closeOptionsWindowCallback?.();
+            this.closeAuthWindowCallback?.();
             this.window = null;
         });
 

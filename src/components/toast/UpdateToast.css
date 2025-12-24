@@ -13,22 +13,22 @@
     bottom: 24px;
     left: 24px;
     z-index: 10000;
-    
+
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    
+
     min-width: 320px;
     max-width: 420px;
     padding: 16px;
-    
+
     /* Glassmorphism effect */
     background: var(--bg-secondary);
     backdrop-filter: blur(12px);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    
+
     /* Typography */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: var(--text-primary);
@@ -40,12 +40,18 @@
 }
 
 .update-toast--downloaded {
-    border-left: 4px solid #34a853; /* Success green */
+    border-left: 4px solid #34a853;
+    /* Success green */
 }
 
 .update-toast--error {
     border-left: 4px solid var(--error-color);
 }
+
+.update-toast--progress {
+    border-left: 4px solid var(--accent-color);
+}
+
 
 /* ============================================
    Toast Icon
@@ -76,6 +82,24 @@
     font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.4;
+}
+
+/* ============================================
+   Progress Bar
+   ============================================ */
+.update-toast__progress-container {
+    margin-top: 8px;
+    height: 4px;
+    background-color: var(--bg-tertiary, rgba(255, 255, 255, 0.1));
+    border-radius: 2px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.update-toast__progress-bar {
+    height: 100%;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
 }
 
 /* ============================================

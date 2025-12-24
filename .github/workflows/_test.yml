@@ -90,11 +90,75 @@ jobs:
           retention-days: 7
 
   # ===========================================================================
+  # Integration Tests
+  # ===========================================================================
+  integration-tests:
+    name: Coordinated & Integration Tests (${{ matrix.os }})
+    needs: unit-tests
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: dist/
+      
+      - name: Download Electron Build
+        uses: actions/download-artifact@v7
+        with:
+          name: electron-dist
+          path: dist-electron/
+
+      # Linux-specific: Install dependencies and configure for headless Electron
+      - name: Setup Linux Environment
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
+          # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
+          # See: https://github.com/electron/electron/issues/41066
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Run Coordinated Tests
+        run: npm run test:coordinated
+        env:
+          FORCE_COLOR: 1
+
+      - name: Run Real Integration Tests
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:integration
+          else
+            npm run test:integration
+          fi
+        shell: bash
+        env:
+          FORCE_COLOR: 1
+
+  # ===========================================================================
   # E2E Tests
   # ===========================================================================
   e2e-tests:
     name: E2E Tests (${{ matrix.os }})
-    needs: unit-tests
+    needs: integration-tests
     runs-on: ${{ matrix.os }}
     
     strategy:

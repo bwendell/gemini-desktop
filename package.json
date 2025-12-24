@@ -9,6 +9,7 @@
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite",
+    "clean": "node scripts/clean.cjs",
     "build": "tsc && vite build",
     "build:electron": "tsc -p tsconfig.electron.json && node scripts/rename-electron-output.cjs",
     "preview": "vite preview",
@@ -23,10 +24,13 @@
     "test:coverage": "vitest run --coverage",
     "test:electron": "vitest run --config vitest.electron.config.ts",
     "test:electron:coverage": "vitest run --config vitest.electron.config.ts --coverage",
+    "test:coordinated": "vitest run --config vitest.coordinated.config.ts",
+    "test:integration": "wdio run wdio.integration.conf.js",
+    "test:integration:watch": "wdio run wdio.integration.conf.js --watch",
     "test:e2e": "node scripts/run-e2e-sequential.cjs",
     "test:e2e:lifecycle": "wdio run wdio.lifecycle.conf.js",
     "test:e2e:all": "npm run test:e2e && npm run test:e2e:lifecycle",
-    "test:all": "npm run test && npm run test:electron && npm run test:e2e",
+    "test:all": "npm run test && npm run test:electron && npm run test:coordinated && npm run test:integration && npm run test:e2e:all",
     "docs": "typedoc --out docs src"
   },
   "dependencies": {

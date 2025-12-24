@@ -8,7 +8,7 @@
 
 import { app, BrowserWindow, session } from 'electron';
 import * as fs from 'fs';
-import { setupHeaderStripping } from './utils/security';
+import { setupHeaderStripping, setupWebviewSecurity } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
 
 import { createLogger } from './utils/logger';
@@ -87,6 +87,7 @@ function initializeManagers(): void {
     (global as any).trayManager = trayManager;
     (global as any).updateManager = updateManager;
     (global as any).badgeManager = badgeManager;
+    (global as any).hotkeyManager = hotkeyManager;
 
     logger.log('All managers initialized');
 }
@@ -180,12 +181,7 @@ if (!gotTheLock) {
         }
 
         // Security: Block webview creation attempts from renderer content
-        app.on('web-contents-created', (_, contents) => {
-            contents.on('will-attach-webview', (event) => {
-                event.preventDefault();
-                console.warn('[Security] Blocked webview creation attempt');
-            });
-        });
+        setupWebviewSecurity(app);
         hotkeyManager.registerShortcuts();
         logger.log('Hotkeys registered');
 
