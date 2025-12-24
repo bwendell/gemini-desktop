@@ -741,8 +741,23 @@ export default class IpcManager {
                 }
                 return '';
             } catch (error) {
-                this.logger.error('Error getting tray tooltip:', error);
                 return '';
+            }
+        });
+
+        // Test Only: Get badge state
+        ipcMain.handle('TEST_GET_BADGE_STATE', () => {
+            try {
+                if (this.updateManager) {
+                    // We need to access badgeManager from updateManager.
+                    // UpdateManager doesn't expose it publicly, but we can cast to any for tests.
+                    const updateManagerAny = this.updateManager as any;
+                    return updateManagerAny.badgeManager?.hasBadgeShown() || false;
+                }
+                return false;
+            } catch (error) {
+                this.logger.error('Error getting badge state:', error);
+                return false;
             }
         });
     }
