@@ -120,22 +120,17 @@ export default class UpdateManager {
      * @returns true if updates should be disabled
      */
     private shouldDisableUpdates(): boolean {
-        // Allow updates if running in E2E test mode
-        if (process.argv.includes('--test-auto-update')) {
-            logger.log('Test mode detected - enabling updates');
-            return false;
-        }
-
-        // Development mode - skip updates
-        if (!app.isPackaged) {
-            logger.log('Development mode detected - updates disabled');
+        // Linux: Disable updates in non-AppImage environments FIRST
+        // This MUST come before any other checks to prevent electron-updater
+        // from being accessed on headless Linux (CI), where it hangs on D-Bus
+        if (process.platform === 'linux' && !process.env.APPIMAGE) {
+            logger.log('Linux non-AppImage detected - updates disabled');
             return true;
         }
 
-        // Linux: Only AppImage supports auto-updates
-        // DEB/RPM users expect to update via their package manager
-        if (process.platform === 'linux' && !process.env.APPIMAGE) {
-            logger.log('Linux non-AppImage detected - updates disabled');
+        // Development mode - skip updates (unless testing)
+        if (!app.isPackaged && !process.argv.includes('--test-auto-update')) {
+            logger.log('Development mode detected - updates disabled');
             return true;
         }
 

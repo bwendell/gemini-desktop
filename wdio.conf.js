@@ -21,6 +21,7 @@ const electronMainPath = path.resolve(__dirname, 'dist-electron/main.cjs');
 export const config = {
     specs: [
         './tests/e2e/app-startup.spec.ts',
+        './tests/e2e/auto-update-init.spec.ts',
         './tests/e2e/menu_bar.spec.ts',
         './tests/e2e/hotkeys.spec.ts',
         './tests/e2e/quick-chat.spec.ts',
