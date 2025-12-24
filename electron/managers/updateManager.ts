@@ -120,6 +120,11 @@ export default class UpdateManager {
      * @returns true if updates should be disabled
      */
     private shouldDisableUpdates(): boolean {
+        // Allow updates in test environment (Vitest)
+        if (process.env.VITEST) {
+            return false;
+        }
+
         // Linux: Disable updates in non-AppImage environments FIRST
         // This MUST come before any other checks to prevent electron-updater
         // from being accessed on headless Linux (CI), where it hangs on D-Bus

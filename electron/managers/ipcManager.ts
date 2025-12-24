@@ -16,7 +16,8 @@ import SettingsStore from '../store';
 import {
     GOOGLE_ACCOUNTS_URL,
     IPC_CHANNELS,
-    GEMINI_DOMAIN
+    GEMINI_DOMAIN,
+    isGeminiDomain
 } from '../utils/constants';
 import { InjectionScriptBuilder, DEFAULT_INJECTION_CONFIG, InjectionResult } from '../utils/injectionScript';
 import { createLogger } from '../utils/logger';
@@ -547,10 +548,10 @@ export default class IpcManager {
         const webContents = mainWindow.webContents;
         const frames = webContents.mainFrame.frames;
 
-        // Find the Gemini iframe's WebFrame using constant
+        // Find the Gemini iframe's WebFrame using helper
         const geminiFrame = frames.find(frame => {
             try {
-                return frame.url.includes(GEMINI_DOMAIN);
+                return isGeminiDomain(frame.url);
             } catch {
                 return false;
             }

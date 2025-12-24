@@ -32,25 +32,47 @@ export class BrowserWindow {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(options: any = {}) {
+        // Create stateful behavior
+        let isVisible = true;
+        let isDestroyed = false;
+        let isMaximized = false;
+        let isAlwaysOnTop = false;
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const instance: any = {
             options,
             webContents: createMockWebContents(),
             loadURL: vi.fn().mockResolvedValue(undefined),
             loadFile: vi.fn(),
-            show: vi.fn(),
-            hide: vi.fn(),
-            close: vi.fn(),
-            focus: vi.fn(),
+
+            // Stateful methods
+            show: vi.fn(() => { isVisible = true; }),
+            hide: vi.fn(() => { isVisible = false; }),
+            isVisible: vi.fn(() => isVisible),
+
+            close: vi.fn(() => {
+                isDestroyed = true;
+                if (instance.on.mock.calls.length > 0) {
+                    // Trigger 'closed' event if listener exists
+                    // This is simplified; normally we'd manage listeners properly
+                }
+            }),
+            destroy: vi.fn(() => { isDestroyed = true; }),
+            isDestroyed: vi.fn(() => isDestroyed),
+
+            maximize: vi.fn(() => { isMaximized = true; }),
+            unmaximize: vi.fn(() => { isMaximized = false; }),
+            isMaximized: vi.fn(() => isMaximized),
+
             minimize: vi.fn(),
-            maximize: vi.fn(),
-            unmaximize: vi.fn(),
-            isMaximized: vi.fn().mockReturnValue(false),
-            isDestroyed: vi.fn().mockReturnValue(false),
-            isVisible: vi.fn().mockReturnValue(true),
+
             setSkipTaskbar: vi.fn(),
-            setAlwaysOnTop: vi.fn(),
-            isAlwaysOnTop: vi.fn().mockReturnValue(false),
+            setOverlayIcon: vi.fn(),
+
+            setAlwaysOnTop: vi.fn((flag) => { isAlwaysOnTop = flag; }),
+            isAlwaysOnTop: vi.fn(() => isAlwaysOnTop),
+
+            focus: vi.fn(),
             setPosition: vi.fn(),
             setSize: vi.fn(),
             on: vi.fn(),
@@ -58,9 +80,7 @@ export class BrowserWindow {
             id: Math.random(),
         };
         BrowserWindow._instances.push(instance);
-        // Return a proxy or just the instance properties mixed in? 
-        // In JS class, 'this' is the instance. 
-        // We can just assign mocks to 'this'.
+        // Assign properties to 'this'
         Object.assign(this, instance);
     }
 
@@ -182,10 +202,12 @@ export const nativeImage = {
 
 export const globalShortcut = {
     register: vi.fn().mockReturnValue(true),
+    unregister: vi.fn(),
     unregisterAll: vi.fn(),
     isRegistered: vi.fn().mockReturnValue(false),
     _reset: () => {
         globalShortcut.register.mockClear();
+        globalShortcut.unregister.mockClear();
         globalShortcut.unregisterAll.mockClear();
         globalShortcut.isRegistered.mockClear();
     }
@@ -203,6 +225,7 @@ export class Tray {
     private _contextMenu: any = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private _clickHandler: ((event: any) => void) | null = null;
+    private _isDestroyed: boolean = false;
 
     constructor(iconPath: string) {
         this.iconPath = iconPath;
@@ -218,8 +241,8 @@ export class Tray {
             this._clickHandler = handler;
         }
     });
-    destroy = vi.fn();
-    isDestroyed = vi.fn().mockReturnValue(false);
+    destroy = vi.fn(() => { this._isDestroyed = true; });
+    isDestroyed = vi.fn(() => this._isDestroyed);
 
     // Test helpers
     getTooltip() { return this._tooltip; }
@@ -238,10 +261,42 @@ export class Tray {
 // ============================================================================
 // Menu Mock
 // ============================================================================
+export interface Menu {
+    items: MenuItem[];
+    popup: () => void;
+}
+
+export class MenuItem {
+    label?: string;
+    id?: string;
+    type?: string;
+    checked?: boolean;
+    submenu?: Menu;
+    click?: Function;
+    enabled?: boolean;
+    role?: string;
+    accelerator?: string;
+
+    constructor(options: any) {
+        this.label = options.label;
+        this.id = options.id;
+        this.type = options.type;
+        this.checked = options.checked;
+        this.click = options.click;
+        this.enabled = options.enabled;
+        this.role = options.role;
+        this.accelerator = options.accelerator;
+
+        if (options.submenu) {
+            this.submenu = Menu.buildFromTemplate(options.submenu);
+        }
+    }
+}
+
 export const Menu = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     buildFromTemplate: vi.fn((template: any[]) => ({
-        items: template,
+        items: template.map(item => new MenuItem(item)),
         popup: vi.fn(),
     })),
     setApplicationMenu: vi.fn(),

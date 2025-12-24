@@ -154,7 +154,9 @@ export function findGeminiElement(
  * @returns True if the URL is for Gemini
  */
 export function isGeminiDomain(url: string): boolean {
-    return url.includes(GeminiSelectors.domain) || url.includes(GeminiSelectors.legacyDomain);
+    return url.includes(GeminiSelectors.domain) ||
+        url.includes(GeminiSelectors.legacyDomain) ||
+        url.includes('aistudio.google.com');
 }
 
 // Re-export individual selector arrays for backwards compatibility
