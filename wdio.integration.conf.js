@@ -74,6 +74,18 @@ export const config = {
     },
 
     /**
+     * Gets executed after all tests are done. You still have access to all global
+     * variables from the test.
+     */
+    after: async function (result, capabilities, specs) {
+        try {
+            await browser.closeWindow();
+        } catch (e) {
+            // Window might already be closed
+        }
+    },
+
+    /**
      * Gets executed right after terminating the webdriver session.
      */
     afterSession: function (config, capabilities, specs) {
