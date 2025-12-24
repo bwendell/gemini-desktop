@@ -389,7 +389,27 @@ describe('UpdateManager', () => {
             expect(mockWindows[0].webContents.send).not.toHaveBeenCalled();
         });
 
+        it('broadcasts auto-update:checking when checking-for-update fires', () => {
+            const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'checking-for-update')[1];
+            mockWindows[0].webContents.send.mockClear();
+
+            handler();
+
+            expect(mockWindows[0].webContents.send).toHaveBeenCalledWith('auto-update:checking', null);
+        });
+
+        it('updates lastCheckTime when checking-for-update fires', () => {
+            const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'checking-for-update')[1];
+            const beforeTime = Date.now();
+
+            handler();
+
+            const afterTime = updateManager.getLastCheckTime();
+            expect(afterTime).toBeGreaterThanOrEqual(beforeTime);
+        });
+
         it('broadcasts auto-update:downloaded', () => {
+
             const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'update-downloaded')[1];
             const info = { version: '1.0.1' };
             handler(info);
@@ -448,6 +468,62 @@ describe('UpdateManager', () => {
             expect(autoUpdater.quitAndInstall).toHaveBeenCalledTimes(3);
         });
     });
+
+    describe('multi-window broadcasting', () => {
+        it('broadcasts events to all open windows', () => {
+            // Create multiple mock windows
+            const window1 = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn() }
+            };
+            const window2 = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn() }
+            };
+            const window3 = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn() }
+            };
+
+            (BrowserWindow.getAllWindows as any).mockReturnValue([window1, window2, window3]);
+
+            updateManager = new UpdateManager(mockSettingsStore);
+
+            // Trigger update-available event
+            const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'update-available')[1];
+            const updateInfo = { version: '2.0.0' };
+            handler(updateInfo);
+
+            // All windows should receive the event
+            expect(window1.webContents.send).toHaveBeenCalledWith('auto-update:available', updateInfo);
+            expect(window2.webContents.send).toHaveBeenCalledWith('auto-update:available', updateInfo);
+            expect(window3.webContents.send).toHaveBeenCalledWith('auto-update:available', updateInfo);
+        });
+
+        it('skips destroyed windows when broadcasting', () => {
+            const window1 = {
+                isDestroyed: () => false,
+                webContents: { send: vi.fn() }
+            };
+            const window2 = {
+                isDestroyed: () => true, // This window is destroyed
+                webContents: { send: vi.fn() }
+            };
+
+            (BrowserWindow.getAllWindows as any).mockReturnValue([window1, window2]);
+
+            updateManager = new UpdateManager(mockSettingsStore);
+
+            // Trigger error event
+            const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'error')[1];
+            handler({ message: 'Test error' });
+
+            // Only non-destroyed window should receive event
+            expect(window1.webContents.send).toHaveBeenCalledWith('auto-update:error', 'Test error');
+            expect(window2.webContents.send).not.toHaveBeenCalled();
+        });
+    });
+
 
     describe('manual check race conditions', () => {
         it('handles manual check when periodic check is scheduled', async () => {
