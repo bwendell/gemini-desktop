@@ -23,6 +23,7 @@
     "test:coverage": "vitest run --coverage",
     "test:electron": "vitest run --config vitest.electron.config.ts",
     "test:electron:coverage": "vitest run --config vitest.electron.config.ts --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "node scripts/run-e2e-sequential.cjs",
     "test:e2e:lifecycle": "wdio run wdio.lifecycle.conf.js",
     "test:e2e:all": "npm run test:e2e && npm run test:e2e:lifecycle",
