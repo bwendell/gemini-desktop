@@ -14,6 +14,7 @@ export const app = {
     dock: {
         setBadge: vi.fn(),
         getBadge: vi.fn().mockReturnValue(''),
+        setMenu: vi.fn(),
     },
 };
 
@@ -50,6 +51,8 @@ export class BrowserWindow {
             setSkipTaskbar: vi.fn(),
             setAlwaysOnTop: vi.fn(),
             isAlwaysOnTop: vi.fn().mockReturnValue(false),
+            setPosition: vi.fn(),
+            setSize: vi.fn(),
             on: vi.fn(),
             once: vi.fn(),
             id: Math.random(),
