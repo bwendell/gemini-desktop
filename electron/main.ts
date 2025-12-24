@@ -87,6 +87,7 @@ function initializeManagers(): void {
     (global as any).trayManager = trayManager;
     (global as any).updateManager = updateManager;
     (global as any).badgeManager = badgeManager;
+    (global as any).hotkeyManager = hotkeyManager;
 
     logger.log('All managers initialized');
 }
