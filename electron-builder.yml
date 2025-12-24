@@ -42,6 +42,12 @@ win:
         - x64
   icon: build/icon.png
   artifactName: ${productName}-${version}-${arch}.${ext}
+  # Azure Trusted Signing configuration
+  # Uses environment variables that should be set in GitHub Actions or locally
+  azureSignOptions:
+    endpoint: "${AZURE_SIGN_ENDPOINT}"
+    codeSigningAccountName: "${AZURE_CODE_SIGNING_ACCOUNT_NAME}"
+    certificateProfileName: "${AZURE_CERTIFICATE_PROFILE_NAME}"
 
 # Portable gets a different name to avoid collision with NSIS installer
 portable:
