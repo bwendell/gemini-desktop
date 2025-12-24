@@ -57,8 +57,16 @@ let badgeManager: BadgeManager;
  * Initialize all application managers.
  * This function encapsulates manager creation for better testability and clarity.
  */
+import { WindowState } from './types';
+
 function initializeManagers(): void {
-    windowManager = new WindowManager(isDev);
+    // Create settings store for window state
+    const windowStateStore = new SettingsStore<WindowState>({
+        configName: 'window-state',
+        defaults: {}
+    });
+
+    windowManager = new WindowManager(isDev, windowStateStore);
     hotkeyManager = new HotkeyManager(windowManager);
 
     // Create tray and badge managers
@@ -113,6 +121,7 @@ function gracefulShutdown(exitCode: number = 0): void {
         // Set quitting flag so windows don't try to prevent close
         if (windowManager) {
             windowManager.setQuitting(true);
+            windowManager.saveState();
         }
 
         logger.log('Graceful shutdown completed');
@@ -199,6 +208,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
     windowManager.setQuitting(true);
+    windowManager.saveState();
 });
 
 app.on('will-quit', () => {

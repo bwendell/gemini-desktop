@@ -58,6 +58,19 @@ export interface Logger {
 }
 
 /**
+ * Window state for persistence.
+ */
+export interface WindowState {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    isMaximized?: boolean;
+    isFullScreen?: boolean;
+    [key: string]: unknown;
+}
+
+/**
  * Update information from electron-updater.
  * Simplified version for renderer process.
  */

@@ -21,6 +21,8 @@ import {
     getDevUrl,
 } from '../utils/constants';
 import { getIconPath, getDistHtmlPath } from '../utils/paths';
+import SettingsStore from '../store';
+import { WindowState } from '../types';
 
 /**
  * Main application window.
@@ -29,6 +31,8 @@ import { getIconPath, getDistHtmlPath } from '../utils/paths';
 export default class MainWindow extends BaseWindow {
     protected readonly windowConfig: BrowserWindowConstructorOptions;
     protected readonly htmlFile = 'index.html';
+    private readonly windowStateStore: SettingsStore<WindowState>;
+    private saveStateTimeout: NodeJS.Timeout | null = null;
 
     /** Whether the app is quitting (vs closing to tray) */
     private isQuitting = false;
@@ -45,13 +49,22 @@ export default class MainWindow extends BaseWindow {
     /**
      * Creates a new MainWindow instance.
      * @param isDev - Whether running in development mode
+     * @param windowStateStore - Store for persisting window state
      */
-    constructor(isDev: boolean) {
+    constructor(isDev: boolean, windowStateStore: SettingsStore<WindowState>) {
         super(isDev, '[MainWindow]');
+        this.windowStateStore = windowStateStore;
+
+        const savedState = this.windowStateStore.getAll();
+
         this.windowConfig = {
             ...MAIN_WINDOW_CONFIG,
             titleBarStyle: getTitleBarStyle(),
             icon: getIconPath(),
+            x: savedState.x,
+            y: savedState.y,
+            width: savedState.width,
+            height: savedState.height,
         };
     }
 
@@ -86,19 +99,85 @@ export default class MainWindow extends BaseWindow {
     create(): BrowserWindow {
         const win = this.createWindow();
 
+        // Restore maximized state if applicable
+        const savedState = this.windowStateStore.getAll();
+        if (savedState.isMaximized) {
+            win.maximize();
+        }
+        if (savedState.isFullScreen) {
+            win.setFullScreen(true);
+        }
+
         if (this.isDev && this.window) {
             this.window.webContents.openDevTools();
         }
 
+        // Show window when ready, with fallback for headless environments
+        let shown = false;
         this.window?.once('ready-to-show', () => {
+            shown = true;
             this.window?.show();
         });
+
+        // Fallback: show window after timeout if ready-to-show didn't fire
+        // This is needed for headless Linux environments (xvfb) where
+        // ready-to-show may not fire reliably
+        setTimeout(() => {
+            if (!shown && this.window && !this.window.isDestroyed()) {
+                this.logger.warn('ready-to-show timeout - showing window via fallback');
+                this.window.show();
+            }
+        }, 3000);
 
         this.setupWindowOpenHandler();
         this.setupNavigationHandler();
         this.setupCloseHandler();
 
+        // Setup state persistence
+        win.on('resize', () => this.saveState());
+        win.on('move', () => this.saveState());
+
         return win;
+    }
+
+    /**
+     * Save window state to store with debounce.
+     * @param immediate - If true, save immediately without debounce
+     */
+    public saveState(immediate = false): void {
+        if (!this.window || this.window.isDestroyed()) return;
+
+        if (this.saveStateTimeout) {
+            clearTimeout(this.saveStateTimeout);
+            this.saveStateTimeout = null;
+        }
+
+        const save = () => {
+            if (!this.window || this.window.isDestroyed()) return;
+
+            try {
+                const bounds = this.window.getBounds();
+                const isMaximized = this.window.isMaximized();
+                const isFullScreen = this.window.isFullScreen();
+
+                this.windowStateStore.set('x', bounds.x);
+                this.windowStateStore.set('y', bounds.y);
+                this.windowStateStore.set('width', bounds.width);
+                this.windowStateStore.set('height', bounds.height);
+                this.windowStateStore.set('isMaximized', isMaximized);
+                this.windowStateStore.set('isFullScreen', isFullScreen);
+
+                this.logger.log('Window state saved', bounds);
+            } catch (e) {
+                this.logger.error('Failed to save window state:', e);
+            }
+        };
+
+        if (immediate) {
+            save();
+        } else {
+            this.saveStateTimeout = setTimeout(save, 500);
+        }
     }
 
     /**
@@ -206,6 +285,9 @@ export default class MainWindow extends BaseWindow {
 
         // Close to tray behavior
         this.window.on('close', (event) => {
+            // Always save state before closing/hiding
+            this.saveState(true);
+
             if (!this.isQuitting) {
                 event.preventDefault();
                 this.hideToTray();

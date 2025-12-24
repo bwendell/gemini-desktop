@@ -15,6 +15,8 @@ import MainWindow from '../windows/mainWindow';
 import AuthWindow from '../windows/authWindow';
 import OptionsWindow from '../windows/optionsWindow';
 import QuickChatWindow from '../windows/quickChatWindow';
+import SettingsStore from '../store';
+import { WindowState } from '../types';
 
 const logger = createLogger('[WindowManager]');
 
@@ -24,17 +26,20 @@ export default class WindowManager extends EventEmitter {
     private optionsWindow: OptionsWindow;
     private authWindow: AuthWindow;
     private quickChatWindow: QuickChatWindow;
+    private windowStateStore: SettingsStore<WindowState>;
 
     /**
      * Creates a new WindowManager instance.
      * @param isDev - Whether running in development mode
+     * @param windowStateStore - Store for persisting window state
      */
-    constructor(isDev: boolean) {
+    constructor(isDev: boolean, windowStateStore: SettingsStore<WindowState>) {
         super();
         this.isDev = isDev;
+        this.windowStateStore = windowStateStore;
 
         // Initialize window instances
-        this.mainWindow = new MainWindow(isDev);
+        this.mainWindow = new MainWindow(isDev, this.windowStateStore);
         this.optionsWindow = new OptionsWindow(isDev);
         this.authWindow = new AuthWindow(isDev);
         this.quickChatWindow = new QuickChatWindow(isDev);
@@ -193,5 +198,13 @@ export default class WindowManager extends EventEmitter {
      */
     isAlwaysOnTop(): boolean {
         return this.mainWindow.isAlwaysOnTop();
+    }
+
+    /**
+     * Force save of window state.
+     * Called during graceful shutdown.
+     */
+    saveState(): void {
+        this.mainWindow.saveState(true);
     }
 }

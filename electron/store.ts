@@ -48,6 +48,7 @@ export default class SettingsStore<T extends Record<string, unknown> = Record<st
         const userDataPath = app.getPath('userData');
         this._path = path.join(userDataPath, opts.configName + '.json');
         this._defaults = (opts.defaults as Partial<T>) || {};
+
         /* v8 ignore next -- production fallback, tests always inject mock fs */
         this._fs = opts.fs || fs;
         this._data = this._loadData();

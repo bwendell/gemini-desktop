@@ -31,11 +31,27 @@ vi.mock('../utils/paths', async (importOriginal) => {
 
 describe('MainWindow', () => {
     let mainWindow: MainWindow;
+    let mockWindowStateStore: any;
 
     beforeEach(() => {
         vi.clearAllMocks();
         (BrowserWindow as any)._reset();
-        mainWindow = new MainWindow(false);
+
+        // Mock SettingsStore for window state
+        mockWindowStateStore = {
+            get: vi.fn(),
+            set: vi.fn(),
+            getAll: vi.fn().mockReturnValue({
+                x: 100,
+                y: 100,
+                width: 1200,
+                height: 800,
+                isMaximized: false,
+                isFullScreen: false,
+            }),
+        };
+
+        mainWindow = new MainWindow(false, mockWindowStateStore);
     });
 
     describe('create', () => {
@@ -67,7 +83,7 @@ describe('MainWindow', () => {
         });
 
         it('loads dev server URL when in dev mode', () => {
-            const devWindow = new MainWindow(true);
+            const devWindow = new MainWindow(true, mockWindowStateStore);
             const win = devWindow.create();
             expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420');
             expect(win.webContents.openDevTools).toHaveBeenCalled();
