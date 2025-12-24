@@ -22,7 +22,7 @@ export const GEMINI_SELECTORS_VERSION = '1.0.0';
  * Date when selectors were last manually verified against gemini.google.com.
  * Update this after confirming selectors work on the live site.
  */
-export const GEMINI_SELECTORS_LAST_VERIFIED = '2024-12-18';
+export const GEMINI_SELECTORS_LAST_VERIFIED = '2025-12-23';
 
 /**
  * Gemini selector configuration organized by component.

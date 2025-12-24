@@ -104,14 +104,21 @@ describe('UpdateManager', () => {
 
 
     it('disables updates in development mode', () => {
-        (app as any).isPackaged = false;
-        updateManager = new UpdateManager(mockSettingsStore);
-        // Even if settings say true, shouldDisableUpdates logic might be internal
-        // The manager internal logic disables it but 'enabled' property might reflect the setting or effective state.
-        // Looking at code: this.enabled = false if shouldDisableUpdates() returns true
+        const originalVitest = process.env.VITEST;
+        delete process.env.VITEST;
 
-        // Wait, the constructor initializes this.enabled from settings first, then overrides if shouldDisableUpdates is true.
-        expect(updateManager.isEnabled()).toBe(false);
+        try {
+            (app as any).isPackaged = false;
+            updateManager = new UpdateManager(mockSettingsStore);
+            // Even if settings say true, shouldDisableUpdates logic might be internal
+            // The manager internal logic disables it but 'enabled' property might reflect the setting or effective state.
+            // Looking at code: this.enabled = false if shouldDisableUpdates() returns true
+
+            // Wait, the constructor initializes this.enabled from settings first, then overrides if shouldDisableUpdates is true.
+            expect(updateManager.isEnabled()).toBe(false);
+        } finally {
+            process.env.VITEST = originalVitest;
+        }
     });
 
     it('starts periodic checks if enabled', () => {
@@ -165,15 +172,22 @@ describe('UpdateManager', () => {
     });
 
     it('handles initialization when updates are disabled by platform (Linux non-AppImage)', () => {
-        Object.defineProperty(process, 'platform', { value: 'linux' });
-        process.env.APPIMAGE = ''; // Not an AppImage
-        (app as any).isPackaged = true;
+        const originalVitest = process.env.VITEST;
+        delete process.env.VITEST;
 
-        updateManager = new UpdateManager(mockSettingsStore);
-        expect(updateManager.isEnabled()).toBe(false);
+        try {
+            Object.defineProperty(process, 'platform', { value: 'linux' });
+            process.env.APPIMAGE = ''; // Not an AppImage
+            (app as any).isPackaged = true;
 
-        // Restore platform
-        Object.defineProperty(process, 'platform', { value: 'win32' });
+            updateManager = new UpdateManager(mockSettingsStore);
+            expect(updateManager.isEnabled()).toBe(false);
+
+            // Restore platform
+            Object.defineProperty(process, 'platform', { value: 'win32' });
+        } finally {
+            process.env.VITEST = originalVitest;
+        }
     });
 
     it('enables updates on Linux if APPIMAGE is present', () => {

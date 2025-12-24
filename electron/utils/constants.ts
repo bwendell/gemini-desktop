@@ -79,6 +79,16 @@ export const GOOGLE_GENAI_TERMS_URL = 'https://policies.google.com/terms/generat
  */
 export const GEMINI_APP_URL = 'https://gemini.google.com/app' as const;
 
+/**
+ * AI Studio domain (for checking URL).
+ */
+export const AI_STUDIO_DOMAIN = 'aistudio.google.com' as const;
+
+/**
+ * AI Studio URL.
+ */
+export const AI_STUDIO_URL = `https://${AI_STUDIO_DOMAIN}` as const;
+
 // =========================================================================
 // Gemini DOM Selectors
 // =========================================================================
