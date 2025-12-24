@@ -151,6 +151,8 @@ if (!gotTheLock) {
 
     // App lifecycle
     app.whenReady().then(() => {
+        logger.log('App ready - starting initialization');
+
         setupHeaderStripping(session.defaultSession);
         ipcManager.setupIpcHandlers();
 
@@ -158,14 +160,24 @@ if (!gotTheLock) {
         const menuManager = new MenuManager(windowManager);
         menuManager.buildMenu();
         menuManager.setupContextMenu();
+        logger.log('Menu setup complete');
 
         windowManager.createMainWindow();
+        logger.log('Main window created');
 
         // Set main window reference for badge manager (needed for Windows overlay)
         badgeManager.setMainWindow(windowManager.getMainWindow());
+        logger.log('Badge manager configured');
 
-        // Create system tray icon
-        trayManager.createTray();
+        // Create system tray icon (may fail on headless Linux environments)
+        try {
+            trayManager.createTray();
+            logger.log('System tray created successfully');
+        } catch (error) {
+            // Tray creation can fail on headless Linux (e.g., Ubuntu CI with Xvfb)
+            // This is non-fatal - the app should continue without tray functionality
+            logger.warn('Failed to create system tray (expected in headless environments):', error);
+        }
 
         // Security: Block webview creation attempts from renderer content
         app.on('web-contents-created', (_, contents) => {
@@ -175,6 +187,7 @@ if (!gotTheLock) {
             });
         });
         hotkeyManager.registerShortcuts();
+        logger.log('Hotkeys registered');
 
         // Start auto-update checks (only in production)
         if (app.isPackaged) {
