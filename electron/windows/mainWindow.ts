@@ -94,6 +94,16 @@ export default class MainWindow extends BaseWindow {
             this.window?.show();
         });
 
+        // Fallback: show window after timeout in case ready-to-show doesn't fire
+        // This is particularly important for headless Linux environments (e.g., Ubuntu CI)
+        // where ready-to-show may not fire reliably with Xvfb
+        setTimeout(() => {
+            if (this.window && !this.window.isVisible()) {
+                this.logger.warn('ready-to-show timeout - showing window via fallback');
+                this.window.show();
+            }
+        }, 3000);
+
         this.setupWindowOpenHandler();
         this.setupNavigationHandler();
         this.setupCloseHandler();

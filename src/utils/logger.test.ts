@@ -6,14 +6,32 @@ describe('createRendererLogger', () => {
     let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
     let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
+    let originalLocation: Location;
+
     beforeEach(() => {
         consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
         consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
         consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+
+        // Mock window.location to ensure we don't accidentally trigger dev mode via localhost
+        originalLocation = window.location;
+        Object.defineProperty(window, 'location', {
+            value: {
+                ...originalLocation,
+                hostname: 'example.com',
+                protocol: 'https:',
+            },
+            writable: true,
+        });
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
+        // Restore location
+        Object.defineProperty(window, 'location', {
+            value: originalLocation,
+            writable: true,
+        });
     });
 
     it('creates a logger with correct prefix', () => {
@@ -50,7 +68,7 @@ describe('createRendererLogger', () => {
     });
 
     it('always logs errors regardless of environment', () => {
-        const logger = createRendererLogger('[TestComponent]', { DEV: false });
+        const logger = createRendererLogger('[TestComponent]', { DEV: false, MODE: 'production' });
 
         logger.error('critical error');
 
@@ -59,7 +77,7 @@ describe('createRendererLogger', () => {
     });
 
     it('does not log in production environment', () => {
-        const logger = createRendererLogger('[TestComponent]', { DEV: false });
+        const logger = createRendererLogger('[TestComponent]', { DEV: false, MODE: 'production' });
 
         logger.log('test log');
         logger.warn('test warn');

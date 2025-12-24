@@ -119,6 +119,15 @@ export interface ElectronAPI {
     onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
     onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => () => void;
     onUpdateError: (callback: (error: string) => void) => () => void;
+
+    // Dev Testing API (only for manual testing in development)
+    devShowBadge: (version?: string) => void;
+    devClearBadge: () => void;
+
+    // E2E Testing Helpers
+    getTrayTooltip: () => Promise<string>;
+    onCheckingForUpdate: (callback: () => void) => () => void;
+    getLastUpdateCheckTime: () => Promise<number>;
 }
 
 /**

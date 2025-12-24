@@ -170,6 +170,29 @@ describe('Auto-Update Platform Behavior', () => {
             }
         });
 
+        it('should have UpdateManager disabled on Linux non-AppImage (CI environment)', async () => {
+            // On Linux CI (non-AppImage), UpdateManager should be disabled
+            // to prevent electron-updater from hanging on D-Bus access
+            const isEnabled = await browser.electron.execute((electron) => {
+                const updateManager = (global as any).updateManager;
+                return updateManager ? updateManager.isEnabled() : null;
+            });
+
+            // In CI (non-AppImage), updates should be disabled
+            expect(isEnabled).toBe(false);
+            E2ELogger.info('auto-update-platform', 'Linux non-AppImage: UpdateManager correctly disabled');
+        });
+
+        it('should verify APPIMAGE env var is not set in CI', async () => {
+            // Verify that APPIMAGE is not set (confirming we're in CI, not an AppImage)
+            const appImagePath = await browser.electron.execute(() => {
+                return process.env.APPIMAGE;
+            });
+
+            expect(appImagePath).toBeFalsy();
+            E2ELogger.info('auto-update-platform', 'Linux CI: APPIMAGE env var not set (expected)');
+        });
+
         it('should show auto-update toggle on Linux', async () => {
             await openOptionsWindow();
 

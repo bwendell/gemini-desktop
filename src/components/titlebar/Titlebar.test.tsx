@@ -2,15 +2,31 @@
  * Unit tests for Titlebar component.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Titlebar } from './Titlebar';
-import { setMockPlatform } from '../../test/setup';
+import { setMockPlatform, mockElectronAPI } from '../../test/setup';
+
+// Mock the useUpdateToast hook
+vi.mock('../../context/UpdateToastContext', () => ({
+    useUpdateToast: vi.fn(() => ({
+        hasPendingUpdate: false,
+        installUpdate: vi.fn()
+    }))
+}));
+
+// Import after mocking
+import { useUpdateToast } from '../../context/UpdateToastContext';
 
 describe('Titlebar', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         setMockPlatform('win32');
+        // Reset mock to default value
+        (useUpdateToast as Mock).mockReturnValue({
+            hasPendingUpdate: false,
+            installUpdate: vi.fn()
+        });
     });
 
     describe('default rendering', () => {
@@ -140,6 +156,69 @@ describe('Titlebar', () => {
             expect(screen.getByText('Help')).toBeInTheDocument();
             // Edit menu should not exist
             expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('update badge', () => {
+        it('does not render update badge when no pending update', () => {
+            render(<Titlebar />);
+
+            expect(screen.queryByTestId('update-badge')).not.toBeInTheDocument();
+        });
+
+        it('does not crash when UpdateToastContext is not available', () => {
+            // Mock throws to simulate context not available
+            (useUpdateToast as Mock).mockImplementation(() => {
+                throw new Error('Context not available');
+            });
+
+            // The try-catch in Titlebar should handle missing context gracefully
+            render(<Titlebar />);
+
+            // Component should render without errors
+            expect(screen.getByTestId('titlebar')).toBeInTheDocument();
+        });
+
+        it('renders update badge when hasPendingUpdate is true', () => {
+            const mockInstallUpdate = vi.fn();
+            (useUpdateToast as Mock).mockReturnValue({
+                hasPendingUpdate: true,
+                installUpdate: mockInstallUpdate
+            });
+
+            render(<Titlebar />);
+
+            expect(screen.getByTestId('update-badge')).toBeInTheDocument();
+        });
+
+        it('calls openOptions with about tab when badge is clicked', () => {
+            const mockInstallUpdate = vi.fn();
+            (useUpdateToast as Mock).mockReturnValue({
+                hasPendingUpdate: true,
+                installUpdate: mockInstallUpdate
+            });
+
+            render(<Titlebar />);
+
+            const badge = screen.getByTestId('update-badge');
+            fireEvent.click(badge);
+
+            expect(mockElectronAPI.openOptions).toHaveBeenCalledWith('about');
+        });
+
+        it('does not call openOptions when installUpdate is not available', () => {
+            // This tests the if (installUpdate) check in handleBadgeClick
+            (useUpdateToast as Mock).mockReturnValue({
+                hasPendingUpdate: true,
+                installUpdate: undefined
+            });
+
+            render(<Titlebar />);
+
+            const badge = screen.getByTestId('update-badge');
+            fireEvent.click(badge);
+
+            expect(mockElectronAPI.openOptions).not.toHaveBeenCalled();
         });
     });
 });

@@ -23,6 +23,7 @@ import IpcManager from './managers/ipcManager';
 import MenuManager from './managers/menuManager';
 import HotkeyManager from './managers/hotkeyManager';
 import TrayManager from './managers/trayManager';
+import BadgeManager from './managers/badgeManager';
 import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
 import SettingsStore from './store';
 
@@ -50,6 +51,7 @@ let hotkeyManager: HotkeyManager;
 let ipcManager: IpcManager;
 let trayManager: TrayManager;
 let updateManager: UpdateManager;
+let badgeManager: BadgeManager;
 
 /**
  * Initialize all application managers.
@@ -59,6 +61,10 @@ function initializeManagers(): void {
     windowManager = new WindowManager(isDev);
     hotkeyManager = new HotkeyManager(windowManager);
 
+    // Create tray and badge managers
+    trayManager = new TrayManager(windowManager);
+    badgeManager = new BadgeManager();
+
     // Create settings store for auto-update preferences
     const updateSettings = new SettingsStore<AutoUpdateSettings>({
         configName: 'update-settings',
@@ -66,16 +72,21 @@ function initializeManagers(): void {
             autoUpdateEnabled: true,
         }
     });
-    updateManager = new UpdateManager(updateSettings);
+
+    // Create update manager with optional badge/tray dependencies
+    updateManager = new UpdateManager(updateSettings, {
+        badgeManager,
+        trayManager
+    });
 
     ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager);
-    trayManager = new TrayManager(windowManager);
 
     // Expose managers globally for E2E testing
     (global as any).windowManager = windowManager;
     (global as any).ipcManager = ipcManager;
     (global as any).trayManager = trayManager;
     (global as any).updateManager = updateManager;
+    (global as any).badgeManager = badgeManager;
 
     logger.log('All managers initialized');
 }
@@ -140,6 +151,8 @@ if (!gotTheLock) {
 
     // App lifecycle
     app.whenReady().then(() => {
+        logger.log('App ready - starting initialization');
+
         setupHeaderStripping(session.defaultSession);
         ipcManager.setupIpcHandlers();
 
@@ -147,11 +160,24 @@ if (!gotTheLock) {
         const menuManager = new MenuManager(windowManager);
         menuManager.buildMenu();
         menuManager.setupContextMenu();
+        logger.log('Menu setup complete');
 
         windowManager.createMainWindow();
+        logger.log('Main window created');
 
-        // Create system tray icon
-        trayManager.createTray();
+        // Set main window reference for badge manager (needed for Windows overlay)
+        badgeManager.setMainWindow(windowManager.getMainWindow());
+        logger.log('Badge manager configured');
+
+        // Create system tray icon (may fail on headless Linux environments)
+        try {
+            trayManager.createTray();
+            logger.log('System tray created successfully');
+        } catch (error) {
+            // Tray creation can fail on headless Linux (e.g., Ubuntu CI with Xvfb)
+            // This is non-fatal - the app should continue without tray functionality
+            logger.warn('Failed to create system tray (expected in headless environments):', error);
+        }
 
         // Security: Block webview creation attempts from renderer content
         app.on('web-contents-created', (_, contents) => {
@@ -161,6 +187,7 @@ if (!gotTheLock) {
             });
         });
         hotkeyManager.registerShortcuts();
+        logger.log('Hotkeys registered');
 
         // Start auto-update checks (only in production)
         if (app.isPackaged) {

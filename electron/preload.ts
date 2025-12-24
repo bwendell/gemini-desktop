@@ -62,9 +62,18 @@ const IPC_CHANNELS = {
     AUTO_UPDATE_SET_ENABLED: 'auto-update:set-enabled',
     AUTO_UPDATE_CHECK: 'auto-update:check',
     AUTO_UPDATE_INSTALL: 'auto-update:install',
+    AUTO_UPDATE_GET_LAST_CHECK: 'auto-update:get-last-check',
     AUTO_UPDATE_AVAILABLE: 'auto-update:available',
     AUTO_UPDATE_DOWNLOADED: 'auto-update:downloaded',
     AUTO_UPDATE_ERROR: 'auto-update:error',
+    AUTO_UPDATE_CHECKING: 'auto-update:checking',
+
+    // Tray
+    TRAY_GET_TOOLTIP: 'tray:get-tooltip',
+
+    // Dev Testing (only used in development for manual testing)
+    DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
+    DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',
 } as const;
 
 // Expose window control APIs to renderer
@@ -344,8 +353,47 @@ const electronAPI: ElectronAPI = {
         return () => {
             ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_ERROR, subscription);
         };
-    }
+    },
 
+    // =========================================================================
+    // Dev Testing API (only for manual testing in development)
+    // =========================================================================
+
+    /**
+     * Show the native update badge for dev testing.
+     * @param version - Optional version string for tray tooltip
+     */
+    devShowBadge: (version?: string) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_SHOW_BADGE, version),
+
+    /**
+     * Clear the native update badge for dev testing.
+     */
+    devClearBadge: () => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_CLEAR_BADGE),
+
+    // =========================================================================
+    // E2E Testing Helpers
+    // =========================================================================
+
+    /**
+     * Get the current tray tooltip text.
+     */
+    getTrayTooltip: () => ipcRenderer.invoke(IPC_CHANNELS.TRAY_GET_TOOLTIP),
+
+    /**
+     * Subscribe to checking-for-update events.
+     */
+    onCheckingForUpdate: (callback) => {
+        const subscription = () => callback();
+        ipcRenderer.on(IPC_CHANNELS.AUTO_UPDATE_CHECKING, subscription);
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_CHECKING, subscription);
+        };
+    },
+
+    /**
+     * Get timestamp of last update check.
+     */
+    getLastUpdateCheckTime: () => ipcRenderer.invoke(IPC_CHANNELS.AUTO_UPDATE_GET_LAST_CHECK),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

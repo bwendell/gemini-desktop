@@ -76,6 +76,8 @@ describe('IpcManager', () => {
             setEnabled: vi.fn(),
             checkForUpdates: vi.fn(),
             quitAndInstall: vi.fn(),
+            devShowBadge: vi.fn(),
+            devClearBadge: vi.fn(),
         };
 
         ipcManager = new IpcManager(mockWindowManager, null, mockUpdateManager, mockStore as any, mockLogger);
@@ -122,6 +124,9 @@ describe('IpcManager', () => {
             expect(hasListener('auto-update:set-enabled')).toBe(true);
             expect(hasListener('auto-update:check')).toBe(true);
             expect(hasListener('auto-update:install')).toBe(true);
+            // Dev testing handlers
+            expect(hasListener('dev:test:show-badge')).toBe(true);
+            expect(hasListener('dev:test:clear-badge')).toBe(true);
         });
     });
 
@@ -379,6 +384,55 @@ describe('IpcManager', () => {
             mockUpdateManager.isEnabled.mockImplementation(() => { throw new Error('Dead manager'); });
             const result = await handler();
             expect(result).toBe(true); // Default fallback
+            expect(mockLogger.error).toHaveBeenCalled();
+        });
+
+        // Dev Testing Badge Handlers
+        it('handles dev:test:show-badge', () => {
+            const handler = (ipcMain as any)._listeners.get('dev:test:show-badge');
+            handler({}, '2.0.0-test');
+            expect(mockUpdateManager.devShowBadge).toHaveBeenCalledWith('2.0.0-test');
+        });
+
+        it('handles dev:test:show-badge without version', () => {
+            const handler = (ipcMain as any)._listeners.get('dev:test:show-badge');
+            handler({});
+            expect(mockUpdateManager.devShowBadge).toHaveBeenCalledWith(undefined);
+        });
+
+        it('handles dev:test:show-badge without manager', () => {
+            ipcManager = new IpcManager(mockWindowManager, null, null, mockStore as any, mockLogger);
+            ipcManager.setupIpcHandlers();
+            const handler = (ipcMain as any)._listeners.get('dev:test:show-badge');
+            handler({}, '2.0.0-test'); // Should not crash
+            expect(mockUpdateManager.devShowBadge).not.toHaveBeenCalled();
+        });
+
+        it('handles dev:test:show-badge error', () => {
+            const handler = (ipcMain as any)._listeners.get('dev:test:show-badge');
+            mockUpdateManager.devShowBadge.mockImplementation(() => { throw new Error('Badge error'); });
+            handler({}, '2.0.0-test');
+            expect(mockLogger.error).toHaveBeenCalled();
+        });
+
+        it('handles dev:test:clear-badge', () => {
+            const handler = (ipcMain as any)._listeners.get('dev:test:clear-badge');
+            handler();
+            expect(mockUpdateManager.devClearBadge).toHaveBeenCalled();
+        });
+
+        it('handles dev:test:clear-badge without manager', () => {
+            ipcManager = new IpcManager(mockWindowManager, null, null, mockStore as any, mockLogger);
+            ipcManager.setupIpcHandlers();
+            const handler = (ipcMain as any)._listeners.get('dev:test:clear-badge');
+            handler(); // Should not crash
+            expect(mockUpdateManager.devClearBadge).not.toHaveBeenCalled();
+        });
+
+        it('handles dev:test:clear-badge error', () => {
+            const handler = (ipcMain as any)._listeners.get('dev:test:clear-badge');
+            mockUpdateManager.devClearBadge.mockImplementation(() => { throw new Error('Clear error'); });
+            handler();
             expect(mockLogger.error).toHaveBeenCalled();
         });
     });

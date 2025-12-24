@@ -677,6 +677,20 @@ export default class IpcManager {
             }
         });
 
+        // Get last update check time (for E2E startup verification)
+        ipcMain.handle(IPC_CHANNELS.AUTO_UPDATE_GET_LAST_CHECK, () => {
+            // We need to track this in UpdateManager or IpcManager. 
+            // Simplest is to track it here when we trigger check? 
+            // BUT the automatic check is triggered inside UpdateManager.
+            // So UpdateManager needs to expose it.
+            // Let's assume UpdateManager tracks it? It doesn't yet.
+            // I'll modify UpdateManager to track `lastCheckTime`.
+            if (this.updateManager) {
+                return (this.updateManager as any).getLastCheckTime?.() || 0;
+            }
+            return 0;
+        });
+
         // Install downloaded update
         ipcMain.on(IPC_CHANNELS.AUTO_UPDATE_INSTALL, () => {
             try {
@@ -685,6 +699,50 @@ export default class IpcManager {
                 }
             } catch (error) {
                 this.logger.error('Error installing update:', error);
+            }
+        });
+
+        // Dev Testing: Show badge (only for manual testing)
+        ipcMain.on(IPC_CHANNELS.DEV_TEST_SHOW_BADGE, (_event, version?: string) => {
+            try {
+                if (this.updateManager) {
+                    this.updateManager.devShowBadge(version);
+                }
+            } catch (error) {
+                this.logger.error('Error showing dev test badge:', error);
+            }
+        });
+
+        // Dev Testing: Clear badge (only for manual testing)
+        ipcMain.on(IPC_CHANNELS.DEV_TEST_CLEAR_BADGE, () => {
+            try {
+                if (this.updateManager) {
+                    this.updateManager.devClearBadge();
+                }
+            } catch (error) {
+                this.logger.error('Error clearing dev test badge:', error);
+            }
+        });
+
+        // Get tray tooltip (for E2E testing)
+        ipcMain.handle(IPC_CHANNELS.TRAY_GET_TOOLTIP, () => {
+            try {
+                // Access private trayManager via updateManager if possible, or we need a direct ref
+                // For now, assume updateManager has public access or we modify this class to access it
+                // Actually UpdateManager.trayManager is private but exposed via getter? No.
+                // But we can check UpdateManager implementation in UpdateManager.ts - it has private trayManager.
+                // We should probably rely on WindowManager or just handle it here if we have access.
+                // Wait, TrayManager is NOT passed to IpcManager directly. It IS passed to UpdateManager.
+                // UpdateManager.ts shows trayManager is private propert with no getter.
+                // Let's check UpdateManager again to see if we can add a getter or if we should add TrayManager to IpcManager.
+                // Actually, IpcManager.ts imports UpdateManager.
+                if (this.updateManager) {
+                    return (this.updateManager as any).getTrayTooltip?.() || '';
+                }
+                return '';
+            } catch (error) {
+                this.logger.error('Error getting tray tooltip:', error);
+                return '';
             }
         });
     }

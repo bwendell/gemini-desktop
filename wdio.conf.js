@@ -21,6 +21,7 @@ const electronMainPath = path.resolve(__dirname, 'dist-electron/main.cjs');
 export const config = {
     specs: [
         './tests/e2e/app-startup.spec.ts',
+        './tests/e2e/auto-update-init.spec.ts',
         './tests/e2e/menu_bar.spec.ts',
         './tests/e2e/hotkeys.spec.ts',
         './tests/e2e/quick-chat.spec.ts',
@@ -49,8 +50,8 @@ export const config = {
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--enable-logging',
-                '--remote-debugging-port=9222'
-            ] : [],
+                '--test-auto-update'
+            ] : ['--test-auto-update'],
             // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
             // See: https://github.com/electron/electron/issues/41066
             apparmorAutoInstall: (process.env.CI && process.platform === 'linux') ? 'sudo' : false,

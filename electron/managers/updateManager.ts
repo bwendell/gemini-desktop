@@ -17,6 +17,8 @@ import type { AppUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createLogger } from '../utils/logger';
 import type SettingsStore from '../store';
+import type BadgeManager from './badgeManager';
+import type TrayManager from './trayManager';
 
 const logger = createLogger('[UpdateManager]');
 
@@ -28,6 +30,14 @@ export type { UpdateInfo };
  */
 export interface AutoUpdateSettings extends Record<string, unknown> {
     autoUpdateEnabled: boolean;
+}
+
+/**
+ * Optional dependencies for visual notifications
+ */
+export interface UpdateManagerDeps {
+    badgeManager?: BadgeManager;
+    trayManager?: TrayManager;
 }
 
 /**
@@ -52,14 +62,20 @@ export default class UpdateManager {
     private autoUpdater: AppUpdater;
     private enabled: boolean = true;
     private checkInterval: ReturnType<typeof setInterval> | null = null;
+    private lastCheckTime: number = 0;
     private readonly settings: SettingsStore<AutoUpdateSettings>;
+    private readonly badgeManager?: BadgeManager;
+    private readonly trayManager?: TrayManager;
 
     /**
      * Creates a new UpdateManager instance.
      * @param settings - Settings store for persisting auto-update preferences
+     * @param deps - Optional dependencies for visual notifications
      */
-    constructor(settings: SettingsStore<AutoUpdateSettings>) {
+    constructor(settings: SettingsStore<AutoUpdateSettings>, deps?: UpdateManagerDeps) {
         this.settings = settings;
+        this.badgeManager = deps?.badgeManager;
+        this.trayManager = deps?.trayManager;
 
         // Check if we should disable updates FIRST before any autoUpdater initialization
         // This prevents electron-updater from initializing native resources on unsupported platforms
@@ -81,6 +97,10 @@ export default class UpdateManager {
         this.autoUpdater.autoDownload = true;
         this.autoUpdater.autoInstallOnAppQuit = true;
 
+        if (process.argv.includes('--test-auto-update')) {
+            this.autoUpdater.forceDevUpdateConfig = true;
+        }
+
         // Configure logging
         this.autoUpdater.logger = log;
         log.transports.file.level = 'info';
@@ -100,16 +120,17 @@ export default class UpdateManager {
      * @returns true if updates should be disabled
      */
     private shouldDisableUpdates(): boolean {
-        // Development mode - skip updates
-        if (!app.isPackaged) {
-            logger.log('Development mode detected - updates disabled');
+        // Linux: Disable updates in non-AppImage environments FIRST
+        // This MUST come before any other checks to prevent electron-updater
+        // from being accessed on headless Linux (CI), where it hangs on D-Bus
+        if (process.platform === 'linux' && !process.env.APPIMAGE) {
+            logger.log('Linux non-AppImage detected - updates disabled');
             return true;
         }
 
-        // Linux: Only AppImage supports auto-updates
-        // DEB/RPM users expect to update via their package manager
-        if (process.platform === 'linux' && !process.env.APPIMAGE) {
-            logger.log('Linux non-AppImage detected - updates disabled');
+        // Development mode - skip updates (unless testing)
+        if (!app.isPackaged && !process.argv.includes('--test-auto-update')) {
+            logger.log('Development mode detected - updates disabled');
             return true;
         }
 
@@ -150,7 +171,7 @@ export default class UpdateManager {
             return;
         }
 
-        if (!app.isPackaged) {
+        if (!app.isPackaged && !process.argv.includes('--test-auto-update')) {
             logger.log('Update check skipped - development mode');
             return;
         }
@@ -168,9 +189,9 @@ export default class UpdateManager {
 
     /**
      * Start periodic update checks.
-     * @param intervalMs - Interval between checks in milliseconds (default: 1 hour)
+     * @param intervalMs - Interval between checks in milliseconds (default: 6 hours)
      */
-    startPeriodicChecks(intervalMs: number = 60 * 60 * 1000): void {
+    startPeriodicChecks(intervalMs: number = 6 * 60 * 60 * 1000): void {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
         }
@@ -209,7 +230,26 @@ export default class UpdateManager {
      */
     quitAndInstall(): void {
         logger.log('Quitting and installing update...');
+
+        // Clear native indicators before quitting
+        this.badgeManager?.clearUpdateBadge();
+        this.trayManager?.clearUpdateTooltip();
+
         this.autoUpdater.quitAndInstall(false, true);
+    }
+
+    /**
+     * Get the timestamp of the last update check.
+     */
+    getLastCheckTime(): number {
+        return this.lastCheckTime;
+    }
+
+    /**
+     * Get the current tray tooltip (for E2E testing).
+     */
+    getTrayTooltip(): string {
+        return this.trayManager?.getToolTip() || '';
     }
 
     /**
@@ -223,6 +263,8 @@ export default class UpdateManager {
 
         this.autoUpdater.on('checking-for-update', () => {
             logger.log('Checking for update...');
+            this.lastCheckTime = Date.now();
+            this.broadcastToWindows('auto-update:checking', null);
         });
 
         this.autoUpdater.on('update-available', (info: UpdateInfo) => {
@@ -240,6 +282,11 @@ export default class UpdateManager {
 
         this.autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
             logger.log(`Update downloaded: ${info.version}`);
+
+            // Show native badge and tray tooltip
+            this.badgeManager?.showUpdateBadge();
+            this.trayManager?.setUpdateTooltip(info.version);
+
             this.broadcastToWindows('auto-update:downloaded', info);
         });
     }
@@ -256,6 +303,30 @@ export default class UpdateManager {
                 win.webContents.send(channel, data);
             }
         }
+    }
+
+    // =========================================================================
+    // Dev Testing Methods (only for manual testing in development)
+    // =========================================================================
+
+    /**
+     * Show the update badge for dev testing.
+     * This allows testing the native badge without a real update.
+     * @param version - Optional version string for tray tooltip
+     */
+    devShowBadge(version: string = '2.0.0-test'): void {
+        logger.log('[DEV] Showing test update badge');
+        this.badgeManager?.showUpdateBadge();
+        this.trayManager?.setUpdateTooltip(version);
+    }
+
+    /**
+     * Clear the update badge for dev testing.
+     */
+    devClearBadge(): void {
+        logger.log('[DEV] Clearing test update badge');
+        this.badgeManager?.clearUpdateBadge();
+        this.trayManager?.clearUpdateTooltip();
     }
 
     /**

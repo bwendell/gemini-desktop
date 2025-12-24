@@ -78,11 +78,51 @@ export function usesCustomWindowControls(): boolean {
 
 /**
  * Determines if the application is running in development mode.
+ * 
+ * Uses multiple signals to detect dev mode across different environments:
+ * - Vite's DEV flag (works when Vite is serving)
+ * - MODE not production (Vite build mode)
+ * - localhost URL (Electron loading from dev server)
+ * - file:// protocol with Electron (local dev without server)
+ * 
  * Supports environment override for testing.
  * 
  * @param envOverride - Optional environment object for testing
  * @returns true if in development mode, false otherwise
  */
-export function getIsDev(envOverride?: { DEV: boolean }): boolean {
-    return envOverride ? envOverride.DEV : import.meta.env.DEV;
+export function isDevMode(env?: { DEV?: boolean; MODE?: string }): boolean {
+    // Use overrides if provided, otherwise fall back to import.meta.env
+    const dev = env?.DEV ?? import.meta.env.DEV;
+    const mode = env?.MODE ?? import.meta.env.MODE;
+
+    // Vite dev mode signals
+    if (dev || mode !== 'production') {
+        return true;
+    }
+
+    // Localhost check (Electron loading from dev server)
+    if (window.location.hostname === 'localhost') {
+        return true;
+    }
+
+    // file:// protocol with Electron = local development
+    // (production Electron apps also use file://, but we check for specific dev indicators)
+    if (window.location.protocol === 'file:' && window.electronAPI?.isElectron) {
+        // Check if app is NOT packaged (dev mode indicator)
+        // In production, app.isPackaged would be true, but we can't check that from renderer
+        // Instead, check if we're loading from a typical dev path pattern
+        const pathname = window.location.pathname;
+        // Dev builds typically load from dist/ in project directory, 
+        // Production loads from app.asar or resources/app/
+        if (!pathname.includes('app.asar') && !pathname.includes('resources')) {
+            return true;
+        }
+    }
+
+    return false;
 }
+
+/**
+ * @deprecated Use isDevMode() instead
+ */
+export const getIsDev = isDevMode;
