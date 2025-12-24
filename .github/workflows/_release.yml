@@ -176,12 +176,32 @@ jobs:
           name: electron-dist
           path: dist-electron/
 
+
+      - name: Install Azure Trusted Signing
+        if: env.AZURE_TENANT_ID != ''
+        run: |
+          az extension add --name trusted-signing
+      
+      - name: Login to Azure
+        if: env.AZURE_TENANT_ID != ''
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+
       - name: Build (without publish)
         run: npm run dist:win
         shell: bash
         env:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
+          AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
