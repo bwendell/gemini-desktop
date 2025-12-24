@@ -123,6 +123,9 @@ export interface ElectronAPI {
     // Dev Testing API (only for manual testing in development)
     devShowBadge: (version?: string) => void;
     devClearBadge: () => void;
+    devSetUpdateEnabled: (enabled: boolean) => void;
+    devEmitUpdateEvent: (event: string, data: any) => void;
+    devMockPlatform: (platform: NodeJS.Platform | null, env: Record<string, string> | null) => void;
 
     // E2E Testing Helpers
     getTrayTooltip: () => Promise<string>;

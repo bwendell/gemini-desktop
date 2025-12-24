@@ -48,8 +48,7 @@ export default class AuthWindow extends BaseWindow {
             this.window.close();
         }
 
-        this.window = new BrowserWindow(this.windowConfig);
-        const authWindow = this.window;
+        const authWindow = this.createWindow();
 
         // Load the URL and handle initial load errors
         authWindow.loadURL(url).catch((error) => {
@@ -62,6 +61,13 @@ export default class AuthWindow extends BaseWindow {
         this.setupAuthHandlers(authWindow);
 
         return authWindow;
+    }
+
+    /**
+     * Override loadContent to do nothing as AuthWindow loads external URLs.
+     */
+    protected override loadContent(): void {
+        // No-op: AuthWindow uses loadURL with dynamic URLs in create()
     }
 
     /**

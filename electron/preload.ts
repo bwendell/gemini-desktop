@@ -74,6 +74,9 @@ const IPC_CHANNELS = {
     // Dev Testing (only used in development for manual testing)
     DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
     DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',
+    DEV_TEST_SET_UPDATE_ENABLED: 'dev:test:set-update-enabled',
+    DEV_TEST_EMIT_UPDATE_EVENT: 'dev:test:emit-update-event',
+    DEV_TEST_MOCK_PLATFORM: 'dev:test:mock-platform',
 } as const;
 
 // Expose window control APIs to renderer
@@ -369,6 +372,21 @@ const electronAPI: ElectronAPI = {
      * Clear the native update badge for dev testing.
      */
     devClearBadge: () => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_CLEAR_BADGE),
+
+    /**
+     * Set update enabled state for testing.
+     */
+    devSetUpdateEnabled: (enabled) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_SET_UPDATE_ENABLED, enabled),
+
+    /**
+     * Emit simulated update event.
+     */
+    devEmitUpdateEvent: (event, data) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, event, data),
+
+    /**
+     * Mock platform/env for testing logic.
+     */
+    devMockPlatform: (platform, env) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_MOCK_PLATFORM, platform, env),
 
     // =========================================================================
     // E2E Testing Helpers

@@ -120,21 +120,24 @@ export default class UpdateManager {
      * @returns true if updates should be disabled
      */
     private shouldDisableUpdates(): boolean {
+        const currentPlatform = this.mockPlatform || process.platform;
+        const currentEnv = this.mockEnv || process.env;
+
         // Allow updates in test environment (Vitest)
-        if (process.env.VITEST) {
+        if (currentEnv.VITEST) {
             return false;
         }
 
         // Linux: Disable updates in non-AppImage environments FIRST
         // This MUST come before any other checks to prevent electron-updater
         // from being accessed on headless Linux (CI), where it hangs on D-Bus
-        if (process.platform === 'linux' && !process.env.APPIMAGE) {
-            logger.log('Linux non-AppImage detected - updates disabled');
+        if (currentPlatform === 'linux' && !currentEnv.APPIMAGE) {
+            logger.log('Linux non-AppImage detected (or simulated) - updates disabled');
             return true;
         }
 
         // Development mode - skip updates (unless testing)
-        if (!app.isPackaged && !process.argv.includes('--test-auto-update')) {
+        if (!app.isPackaged && !process.argv.includes('--test-auto-update') && !currentEnv.TEST_AUTO_UPDATE) {
             logger.log('Development mode detected - updates disabled');
             return true;
         }
@@ -314,6 +317,9 @@ export default class UpdateManager {
     // Dev Testing Methods (only for manual testing in development)
     // =========================================================================
 
+    private mockPlatform: NodeJS.Platform | null = null;
+    private mockEnv: Record<string, string> | null = null;
+
     /**
      * Show the update badge for dev testing.
      * This allows testing the native badge without a real update.
@@ -332,6 +338,54 @@ export default class UpdateManager {
         logger.log('[DEV] Clearing test update badge');
         this.badgeManager?.clearUpdateBadge();
         this.trayManager?.clearUpdateTooltip();
+    }
+
+    /**
+     * Mock the platform for testing logic.
+     */
+    devMockPlatform(platform: NodeJS.Platform | null): void {
+        this.mockPlatform = platform;
+        this.devReevaluate();
+    }
+
+    /**
+     * Mock env vars for testing logic.
+     */
+    devMockEnv(env: Record<string, string> | null): void {
+        this.mockEnv = env;
+        this.devReevaluate();
+    }
+
+    /**
+     * Emit a simulated update event.
+     */
+    devEmitUpdateEvent(event: string, data: any): void {
+        logger.log(`[DEV] Emitting mock event: ${event}`);
+        if (event === 'error') {
+            this.broadcastToWindows('auto-update:error', data instanceof Error ? data.message : String(data));
+        } else if (event === 'checking-for-update') {
+            this.broadcastToWindows('auto-update:checking', null);
+        } else {
+            this.broadcastToWindows(`auto-update:${event.replace('update-', '')}`, data);
+        }
+
+        // Also update internal state if needed
+        if (event === 'update-downloaded') {
+            this.badgeManager?.showUpdateBadge();
+            this.trayManager?.setUpdateTooltip(data.version);
+        }
+    }
+
+    /**
+     * Re-evaluate enabled state based on current (potentially mocked) platform/env.
+     */
+    private devReevaluate(): void {
+        if (this.shouldDisableUpdates()) {
+            this.enabled = false;
+        } else {
+            // Restore enabled from settings if valid platform
+            this.enabled = this.settings.get('autoUpdateEnabled') ?? true;
+        }
     }
 
     /**

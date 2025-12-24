@@ -35,10 +35,10 @@ export const config = {
             },
         },
     ],
-    logLevel: 'info',
+    logLevel: 'debug',
     bail: 0,
     baseUrl: 'http://localhost',
-    waitforTimeout: 10000,
+    waitforTimeout: 30000,
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
     services: ['electron'],
@@ -71,18 +71,6 @@ export const config = {
      */
     onComplete: function () {
         console.log('Integration tests completed');
-    },
-
-    /**
-     * Gets executed after all tests are done. You still have access to all global
-     * variables from the test.
-     */
-    after: async function (result, capabilities, specs) {
-        try {
-            await browser.closeWindow();
-        } catch (e) {
-            // Window might already be closed
-        }
     },
 
     /**

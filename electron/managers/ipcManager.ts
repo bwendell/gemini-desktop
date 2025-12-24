@@ -652,10 +652,12 @@ export default class IpcManager {
                     return;
                 }
 
+                // Always persist to IpcManager's store for consistency
+                this.store.set('autoUpdateEnabled', enabled);
+
+                // Also update UpdateManager if available
                 if (this.updateManager) {
                     this.updateManager.setEnabled(enabled);
-                } else {
-                    this.store.set('autoUpdateEnabled', enabled);
                 }
 
                 this.logger.log(`Auto-update set to: ${enabled}`);
@@ -722,6 +724,29 @@ export default class IpcManager {
                 }
             } catch (error) {
                 this.logger.error('Error clearing dev test badge:', error);
+            }
+        });
+
+        // Dev Testing: Set Update Enabled (bypass settings/platform logic checks if forced here?)
+        // Actually this tests setEnabled logic
+        ipcMain.on(IPC_CHANNELS.DEV_TEST_SET_UPDATE_ENABLED, (_event, enabled: boolean) => {
+            if (this.updateManager) {
+                this.updateManager.setEnabled(enabled);
+            }
+        });
+
+        // Dev Testing: Emit Update Event
+        ipcMain.on(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, (_event, eventName: string, data: any) => {
+            if (this.updateManager) {
+                this.updateManager.devEmitUpdateEvent(eventName, data);
+            }
+        });
+
+        // Dev Testing: Mock Platform/Env
+        ipcMain.on(IPC_CHANNELS.DEV_TEST_MOCK_PLATFORM, (_event, platform: NodeJS.Platform | null, env: Record<string, string> | null) => {
+            if (this.updateManager) {
+                if (platform !== undefined) this.updateManager.devMockPlatform(platform);
+                if (env !== undefined) this.updateManager.devMockEnv(env);
             }
         });
 

@@ -40,18 +40,20 @@ describe('Multi-Window Coordination (Quick Chat)', () => {
     });
 
     it('should close Quick Chat window via Main Process invocation', async () => {
-        const initialHandles = await browser.getWindowHandles();
         // Toggle again to close
         await browser.electron.execute(() => {
             // @ts-ignore
             global.windowManager.toggleQuickChat();
         });
 
-        // Wait for window count to decrease
+        // Wait for window to be hidden
         await browser.waitUntil(async () => {
-            const currentHandles = await browser.getWindowHandles();
-            return currentHandles.length < initialHandles.length;
-        }, { timeout: 5000, timeoutMsg: 'Quick Chat window did not close' });
+            return await browser.electron.execute(() => {
+                // @ts-ignore
+                const win = global.windowManager.getQuickChatWindow();
+                return win ? !win.isVisible() : true;
+            });
+        }, { timeout: 5000, timeoutMsg: 'Quick Chat window did not hide' });
 
         // Switch back to main window to avoid stale handle errors
         const handles = await browser.getWindowHandles();

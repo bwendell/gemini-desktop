@@ -165,6 +165,9 @@ export const IPC_CHANNELS = {
     // Dev Testing (only used in development for manual testing)
     DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
     DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',
+    DEV_TEST_SET_UPDATE_ENABLED: 'dev:test:set-update-enabled',
+    DEV_TEST_EMIT_UPDATE_EVENT: 'dev:test:emit-update-event',
+    DEV_TEST_MOCK_PLATFORM: 'dev:test:mock-platform',
 } as const;
 
 /**
@@ -222,8 +225,10 @@ export function isOAuthDomain(hostname: string): boolean {
 export const BASE_WEB_PREFERENCES: BrowserWindowConstructorOptions['webPreferences'] = {
     contextIsolation: true,
     nodeIntegration: false,
-    sandbox: true,
-    webSecurity: true, // Explicit is better than implicit
+    // Allow disabling sandbox via command line (for testing)
+    sandbox: !process.argv.includes('--no-sandbox'),
+    // Allow disabling webSecurity via command line (for testing)
+    webSecurity: !process.argv.includes('--disable-web-security'),
 } as const;
 
 /**
