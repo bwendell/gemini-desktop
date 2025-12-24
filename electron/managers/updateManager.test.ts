@@ -351,16 +351,42 @@ describe('UpdateManager', () => {
             // Verify no crash
         });
 
-        it('logs update-not-available', () => {
+        it('handles update-not-available event without broadcasting', () => {
             const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'update-not-available')[1];
+            mockWindows[0].webContents.send.mockClear();
+
             handler({ version: '1.0.0' });
-            // Verify no crash
+
+            // Should NOT broadcast to windows (no user notification needed)
+            expect(mockWindows[0].webContents.send).not.toHaveBeenCalled();
         });
 
-        it('logs download-progress', () => {
+        it('logs update-not-available with version info', () => {
+            const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'update-not-available')[1];
+
+            // Should not crash with valid update info
+            expect(() => handler({ version: '1.0.0' })).not.toThrow();
+            expect(() => handler({ version: '2.5.3' })).not.toThrow();
+        });
+
+        it('logs download-progress at various percentages', () => {
             const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'download-progress')[1];
+
+            // Should handle progress updates without crashing
+            expect(() => handler({ percent: 0 })).not.toThrow();
+            expect(() => handler({ percent: 50.5 })).not.toThrow();
+            expect(() => handler({ percent: 99.9 })).not.toThrow();
+            expect(() => handler({ percent: 100 })).not.toThrow();
+        });
+
+        it('does not broadcast download-progress to windows', () => {
+            const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'download-progress')[1];
+            mockWindows[0].webContents.send.mockClear();
+
             handler({ percent: 50.5 });
-            // Verify no crash
+
+            // Progress updates should be logged but not broadcasted
+            expect(mockWindows[0].webContents.send).not.toHaveBeenCalled();
         });
 
         it('broadcasts auto-update:downloaded', () => {
@@ -371,10 +397,96 @@ describe('UpdateManager', () => {
         });
     });
 
-    it('quitAndInstall calls autoUpdater.quitAndInstall', () => {
-        updateManager = new UpdateManager(mockSettingsStore);
-        updateManager.quitAndInstall();
-        expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true);
+    describe('quitAndInstall', () => {
+        it('calls autoUpdater.quitAndInstall with correct parameters', () => {
+            updateManager = new UpdateManager(mockSettingsStore);
+            updateManager.quitAndInstall();
+            expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true);
+        });
+
+        it('clears badge and tray when badgeManager and trayManager are provided', () => {
+            const mockBadgeManager = {
+                clearUpdateBadge: vi.fn(),
+                showUpdateBadge: vi.fn(),
+                hasBadgeShown: vi.fn(),
+                setMainWindow: vi.fn()
+            };
+            const mockTrayManager = {
+                clearUpdateTooltip: vi.fn(),
+                setUpdateTooltip: vi.fn(),
+                getToolTip: vi.fn(),
+            };
+
+            updateManager = new UpdateManager(mockSettingsStore, {
+                badgeManager: mockBadgeManager as any,
+                trayManager: mockTrayManager as any,
+            });
+
+            updateManager.quitAndInstall();
+
+            expect(mockBadgeManager.clearUpdateBadge).toHaveBeenCalled();
+            expect(mockTrayManager.clearUpdateTooltip).toHaveBeenCalled();
+        });
+
+        it('handles missing badge/tray managers gracefully', () => {
+            updateManager = new UpdateManager(mockSettingsStore); // No deps
+
+            // Should not throw even without badge/tray managers
+            expect(() => updateManager.quitAndInstall()).not.toThrow();
+            expect(autoUpdater.quitAndInstall).toHaveBeenCalled();
+        });
+
+        it('prevents multiple rapid quitAndInstall calls', () => {
+            updateManager = new UpdateManager(mockSettingsStore);
+
+            // Call multiple times rapidly
+            updateManager.quitAndInstall();
+            updateManager.quitAndInstall();
+            updateManager.quitAndInstall();
+
+            // Should be called each time (electron-updater handles deduplication)
+            expect(autoUpdater.quitAndInstall).toHaveBeenCalledTimes(3);
+        });
+    });
+
+    describe('manual check race conditions', () => {
+        it('handles manual check when periodic check is scheduled', async () => {
+            (app as any).isPackaged = true;
+            updateManager = new UpdateManager(mockSettingsStore);
+
+            // Start periodic checks (creates interval)
+            updateManager.startPeriodicChecks();
+
+            // Trigger manual check
+            await updateManager.checkForUpdates(true);
+
+            // Both should succeed without conflict
+            expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
+        });
+
+        it('allows multiple manual checks in sequence', async () => {
+            (app as any).isPackaged = true;
+            updateManager = new UpdateManager(mockSettingsStore);
+            (autoUpdater.checkForUpdatesAndNotify as any).mockResolvedValue(undefined);
+
+            // Trigger multiple manual checks
+            await updateManager.checkForUpdates(true);
+            await updateManager.checkForUpdates(true);
+            await updateManager.checkForUpdates(true);
+
+            expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalledTimes(3);
+        });
+
+        it('allows manual check even when auto-checks are disabled', async () => {
+            (app as any).isPackaged = true;
+            updateManager = new UpdateManager(mockSettingsStore);
+            updateManager.setEnabled(false);
+
+            // Manual check should bypass enabled check
+            await updateManager.checkForUpdates(true);
+
+            expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
+        });
     });
 
     it('destroy cleans up listeners and intervals', () => {

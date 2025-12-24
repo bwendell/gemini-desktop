@@ -439,6 +439,98 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
             });
         });
 
+        describe('Download Progress Events', () => {
+            it('should log download progress without triggering badge or tray updates', () => {
+                const mainWindow = windowManager.createMainWindow();
+                badgeManager.setMainWindow(mainWindow);
+                trayManager.createTray();
+
+                const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+                (BrowserWindow.getAllWindows as any).mockReturnValue([mockWin]);
+
+                // Clear any previous log calls
+                mockLogger.log.mockClear();
+
+                // Trigger download-progress events
+                emitAutoUpdaterEvent('download-progress', { percent: 0 });
+                emitAutoUpdaterEvent('download-progress', { percent: 25.5 });
+                emitAutoUpdaterEvent('download-progress', { percent: 50 });
+                emitAutoUpdaterEvent('download-progress', { percent: 75.3 });
+                emitAutoUpdaterEvent('download-progress', { percent: 100 });
+
+                // Verify logging occurred
+                const progressLogs = mockLogger.log.mock.calls.filter(
+                    (call: any) => call[0]?.includes('Download progress')
+                );
+                expect(progressLogs.length).toBeGreaterThan(0);
+
+                // Badge and tray should NOT update during progress
+                // (they only show on update-downloaded)
+                expect(badgeManager.hasBadgeShown()).toBe(false);
+
+                // Progress events are NOT broadcasted to renderers
+                const progressBroadcasts = mockWin.webContents.send.mock.calls.filter(
+                    (call: any) => call[0]?.includes('progress')
+                );
+                expect(progressBroadcasts.length).toBe(0);
+            });
+
+            it('should handle download progress at various percentages', () => {
+                const percentages = [0, 10.5, 25, 33.33, 50, 66.67, 75, 90.1, 99.9, 100];
+
+                percentages.forEach(percent => {
+                    expect(() => {
+                        emitAutoUpdaterEvent('download-progress', { percent });
+                    }).not.toThrow();
+                });
+
+                // All progress events should be logged
+                const progressLogs = mockLogger.log.mock.calls.filter(
+                    (call: any) => call[0]?.includes('Download progress')
+                );
+                expect(progressLogs.length).toBe(percentages.length);
+            });
+
+            it('should not interfere with other update events', () => {
+                const mainWindow = windowManager.createMainWindow();
+                badgeManager.setMainWindow(mainWindow);
+                trayManager.createTray();
+
+                const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+                (BrowserWindow.getAllWindows as any).mockReturnValue([mockWin]);
+
+                const updateInfo: UpdateInfo = {
+                    version: '2.0.0',
+                    releaseDate: '2024-01-01',
+                    releaseName: 'Test Release',
+                    releaseNotes: 'Test notes',
+                    files: [],
+                    path: '/test/path',
+                    sha512: 'test-sha',
+                };
+
+                // Typical update flow with progress
+                emitAutoUpdaterEvent('update-available', updateInfo);
+                emitAutoUpdaterEvent('download-progress', { percent: 25 });
+                emitAutoUpdaterEvent('download-progress', { percent: 50 });
+                emitAutoUpdaterEvent('download-progress', { percent: 75 });
+                emitAutoUpdaterEvent('update-downloaded', updateInfo);
+
+                // Badge should only show on downloaded, not during progress
+                expect(badgeManager.hasBadgeShown()).toBe(true);
+
+                // Verify only update events were broadcasted (not progress)
+                const availableCalls = mockWin.webContents.send.mock.calls.filter(
+                    (call: any) => call[0] === 'auto-update:available'
+                );
+                const downloadedCalls = mockWin.webContents.send.mock.calls.filter(
+                    (call: any) => call[0] === 'auto-update:downloaded'
+                );
+                expect(availableCalls.length).toBe(1);
+                expect(downloadedCalls.length).toBe(1);
+            });
+        });
+
         describe('Error handling in notification chain', () => {
             it('should handle autoUpdater error gracefully', () => {
                 const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
