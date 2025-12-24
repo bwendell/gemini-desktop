@@ -31,7 +31,7 @@ export const config = {
             'wdio:electronServiceOptions': {
                 appBinaryPath: join(__dirname, 'node_modules', 'electron', 'dist', electronBinary),
                 appEntryPoint: join(__dirname, 'dist-electron', 'main.cjs'),
-                appArgs: ['--disable-web-security'], // Disable security to allow localhost fetch and bypass CSP in tests
+                appArgs: ['--disable-web-security', '--no-sandbox', '--disable-gpu'], // flags for CI/Linux stability
             },
         },
     ],
