@@ -468,11 +468,14 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                 // (they only show on update-downloaded)
                 expect(badgeManager.hasBadgeShown()).toBe(false);
 
-                // Progress events are NOT broadcasted to renderers
+                // Progress events ARE broadcasted to renderers (feature added in #100)
                 const progressBroadcasts = mockWin.webContents.send.mock.calls.filter(
-                    (call: any) => call[0]?.includes('progress')
+                    (call: any) => call[0] === 'auto-update:download-progress'
                 );
-                expect(progressBroadcasts.length).toBe(0);
+                expect(progressBroadcasts.length).toBe(5);
+
+                // Verify content of one broadcast
+                expect(progressBroadcasts[2][1]).toEqual({ percent: 50 });
             });
 
             it('should handle download progress at various percentages', () => {

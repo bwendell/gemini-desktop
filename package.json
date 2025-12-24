@@ -9,6 +9,7 @@
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite",
+    "clean": "node scripts/clean.cjs",
     "build": "tsc && vite build",
     "build:electron": "tsc -p tsconfig.electron.json && node scripts/rename-electron-output.cjs",
     "preview": "vite preview",
