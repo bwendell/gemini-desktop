@@ -35,4 +35,7 @@ release/
 # GitHub App credentials
 gha-creds-*.json
 
+# Local secrets
+scripts/set-release-env.ps1
+
 .wdio-test-data/
