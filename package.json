@@ -40,6 +40,11 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
+  "build": {
+    "win": {
+      "sign": "./scripts/sign-windows.cjs"
+    }
+  },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.9.1",

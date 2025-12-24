@@ -40,7 +40,6 @@ win:
     - target: portable
       arch:
         - x64
-  sign: "./scripts/sign-windows.cjs"
   icon: build/icon.png
   artifactName: ${productName}-${version}-${arch}.${ext}
 
