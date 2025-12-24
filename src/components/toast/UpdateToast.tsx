@@ -16,7 +16,7 @@ import './UpdateToast.css';
 /**
  * Update notification types
  */
-export type UpdateNotificationType = 'available' | 'downloaded' | 'error';
+export type UpdateNotificationType = 'available' | 'downloaded' | 'error' | 'not-available' | 'progress';
 
 /**
  * Update information from electron-updater
@@ -45,6 +45,8 @@ export interface UpdateToastProps {
     onInstall?: () => void;
     /** Callback when user clicks "Later" (download complete only) */
     onLater?: () => void;
+    /** Download progress percentage (0-100) */
+    downloadProgress?: number | null;
 }
 
 /**
@@ -83,6 +85,10 @@ function getIcon(type: UpdateNotificationType): string {
             return '✅';
         case 'error':
             return '⚠️';
+        case 'not-available':
+            return 'ℹ️';
+        case 'progress':
+            return '⏳';
     }
 }
 
@@ -97,6 +103,10 @@ function getTitle(type: UpdateNotificationType): string {
             return 'Update Ready';
         case 'error':
             return 'Update Error';
+        case 'not-available':
+            return 'Up to Date';
+        case 'progress':
+            return 'Downloading Update';
     }
 }
 
@@ -108,6 +118,7 @@ export function UpdateToast({
     updateInfo,
     errorMessage,
     visible,
+    downloadProgress,
     onDismiss,
     onInstall,
     onLater
@@ -122,6 +133,12 @@ export function UpdateToast({
                 return `Version ${version} is ready to install.`;
             case 'error':
                 return errorMessage || 'An error occurred while updating.';
+            case 'not-available':
+                return `Gemini Desktop is up to date (v${version}).`;
+            case 'progress':
+                return typeof downloadProgress === 'number'
+                    ? `Downloading... ${Math.round(downloadProgress)}%`
+                    : 'Downloading...';
         }
     };
 
@@ -149,6 +166,15 @@ export function UpdateToast({
                         <div className="update-toast__message" data-testid="update-toast-message">
                             {getMessage()}
                         </div>
+
+                        {type === 'progress' && typeof downloadProgress === 'number' && (
+                            <div className="update-toast__progress-container" role="progressbar" aria-valuenow={downloadProgress} aria-valuemin={0} aria-valuemax={100}>
+                                <div
+                                    className="update-toast__progress-bar"
+                                    style={{ width: `${downloadProgress}%` }}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="update-toast__actions">

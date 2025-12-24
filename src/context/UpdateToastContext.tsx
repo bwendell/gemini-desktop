@@ -56,6 +56,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         errorMessage,
         visible,
         hasPendingUpdate,
+        downloadProgress,
         dismissNotification,
         handleLater,
         installUpdate
@@ -67,6 +68,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         errorMessage,
         visible,
         hasPendingUpdate,
+        downloadProgress,
         dismissNotification,
         handleLater,
         installUpdate
@@ -83,6 +85,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
                     updateInfo={updateInfo ?? undefined}
                     errorMessage={errorMessage ?? undefined}
                     visible={visible}
+                    downloadProgress={downloadProgress}
                     onDismiss={dismissNotification}
                     onInstall={installUpdate}
                     onLater={handleLater}

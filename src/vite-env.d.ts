@@ -38,10 +38,15 @@ interface Window {
         onUpdateAvailable: (callback: (info: { version: string; releaseName?: string; releaseNotes?: string | Array<{ version: string; note: string }> }) => void) => () => void;
         onUpdateDownloaded: (callback: (info: { version: string; releaseName?: string; releaseNotes?: string | Array<{ version: string; note: string }> }) => void) => () => void;
         onUpdateError: (callback: (error: string) => void) => () => void;
+        onUpdateNotAvailable: (callback: (info: { version: string; releaseName?: string; releaseNotes?: string | Array<{ version: string; note: string }> }) => void) => () => void;
+        onDownloadProgress: (callback: (progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }) => void) => () => void;
 
         // Dev Testing API (only for manual testing in development)
         devShowBadge: (version?: string) => void;
         devClearBadge: () => void;
+        devSetUpdateEnabled: (enabled: boolean) => void;
+        devEmitUpdateEvent: (event: string, data: any) => void;
+        devMockPlatform: (platform: string | null, env: Record<string, string> | null) => void;
 
         platform: string;
         isElectron: boolean;

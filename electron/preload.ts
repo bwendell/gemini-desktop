@@ -64,9 +64,11 @@ const IPC_CHANNELS = {
     AUTO_UPDATE_INSTALL: 'auto-update:install',
     AUTO_UPDATE_GET_LAST_CHECK: 'auto-update:get-last-check',
     AUTO_UPDATE_AVAILABLE: 'auto-update:available',
+    AUTO_UPDATE_NOT_AVAILABLE: 'auto-update:not-available',
     AUTO_UPDATE_DOWNLOADED: 'auto-update:downloaded',
     AUTO_UPDATE_ERROR: 'auto-update:error',
     AUTO_UPDATE_CHECKING: 'auto-update:checking',
+    AUTO_UPDATE_DOWNLOAD_PROGRESS: 'auto-update:download-progress',
 
     // Tray
     TRAY_GET_TOOLTIP: 'tray:get-tooltip',
@@ -355,6 +357,36 @@ const electronAPI: ElectronAPI = {
 
         return () => {
             ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_ERROR, subscription);
+        };
+    },
+
+    /**
+     * Subscribe to update-not-available events.
+     * @param callback - Function called with UpdateInfo when no update is available
+     * @returns Cleanup function to unsubscribe
+     */
+    onUpdateNotAvailable: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, info: Parameters<typeof callback>[0]) =>
+            callback(info);
+        ipcRenderer.on(IPC_CHANNELS.AUTO_UPDATE_NOT_AVAILABLE, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_NOT_AVAILABLE, subscription);
+        };
+    },
+
+    /**
+     * Subscribe to download-progress events.
+     * @param callback - Function called with progress data during download
+     * @returns Cleanup function to unsubscribe
+     */
+    onDownloadProgress: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, progress: Parameters<typeof callback>[0]) =>
+            callback(progress);
+        ipcRenderer.on(IPC_CHANNELS.AUTO_UPDATE_DOWNLOAD_PROGRESS, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_DOWNLOAD_PROGRESS, subscription);
         };
     },
 

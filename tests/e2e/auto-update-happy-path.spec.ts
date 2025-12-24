@@ -14,7 +14,7 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { $, expect } from '@wdio/globals';
+import { browser, $, expect } from '@wdio/globals';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
@@ -82,8 +82,33 @@ describe('Auto-Update Happy Path', () => {
             await dismissBtn.click();
             await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
-            // STEP 3: Update downloaded (auto-download in background)
-            E2ELogger.info('auto-update-happy-path', 'Step 3: Simulating update downloaded...');
+            // STEP 3: Download Progress
+            E2ELogger.info('auto-update-happy-path', 'Step 3: Simulating download progress...');
+
+            await browser.execute(() => {
+                // @ts-ignore
+                window.__testUpdateToast.showProgress(45);
+            });
+
+            const progressToast = await $('[data-testid="update-toast"]');
+            await progressToast.waitForDisplayed();
+
+            const progressTitle = await $('[data-testid="update-toast-title"]');
+            expect(await progressTitle.getText()).toBe('Downloading Update');
+
+            const progressMessage = await $('[data-testid="update-toast-message"]');
+            expect(await progressMessage.getText()).toContain('45%');
+
+            const progressBar = await $('[role="progressbar"]');
+            expect(await progressBar.isDisplayed()).toBe(true);
+            expect(await progressBar.getAttribute('aria-valuenow')).toBe('45');
+
+            E2ELogger.info('auto-update-happy-path', '  ✓ Download progress toast displayed');
+
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+
+            // STEP 4: Update downloaded (auto-download in background)
+            E2ELogger.info('auto-update-happy-path', 'Step 4: Simulating update downloaded...');
 
             await browser.execute(() => {
                 // @ts-ignore
@@ -171,6 +196,34 @@ describe('Auto-Update Happy Path', () => {
             expect(await toast.isDisplayed()).toBe(false);
 
             E2ELogger.info('auto-update-happy-path', 'Dismiss functionality verified');
+        });
+    });
+
+    describe('Download Progress Stage', () => {
+        it('should display progress bar with correct percentage', async () => {
+            await browser.execute(() => {
+                // @ts-ignore
+                window.__testUpdateToast.showProgress(75);
+            });
+
+            const toast = await $('[data-testid="update-toast"]');
+            await toast.waitForDisplayed();
+
+            const title = await $('[data-testid="update-toast-title"]');
+            expect(await title.getText()).toBe('Downloading Update');
+
+            const message = await $('[data-testid="update-toast-message"]');
+            expect(await message.getText()).toContain('75%');
+
+            const progressBar = await $('[role="progressbar"]');
+            expect(await progressBar.isDisplayed()).toBe(true);
+            expect(await progressBar.getAttribute('aria-valuenow')).toBe('75');
+
+            // Verify width style
+            const style = await progressBar.getAttribute('style');
+            expect(style).toContain('width: 75%');
+
+            E2ELogger.info('auto-update-happy-path', 'Download progress verified');
         });
     });
 

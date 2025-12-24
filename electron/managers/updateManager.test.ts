@@ -351,14 +351,15 @@ describe('UpdateManager', () => {
             // Verify no crash
         });
 
-        it('handles update-not-available event without broadcasting', () => {
+        it('broadcasts auto-update:not-available to windows', () => {
             const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'update-not-available')[1];
             mockWindows[0].webContents.send.mockClear();
 
-            handler({ version: '1.0.0' });
+            const updateInfo = { version: '1.0.0' };
+            handler(updateInfo);
 
-            // Should NOT broadcast to windows (no user notification needed)
-            expect(mockWindows[0].webContents.send).not.toHaveBeenCalled();
+            // Should NOW broadcast to windows (after our change)
+            expect(mockWindows[0].webContents.send).toHaveBeenCalledWith('auto-update:not-available', updateInfo);
         });
 
         it('logs update-not-available with version info', () => {
@@ -369,6 +370,17 @@ describe('UpdateManager', () => {
             expect(() => handler({ version: '2.5.3' })).not.toThrow();
         });
 
+        it('broadcasts download-progress to windows', () => {
+            const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'download-progress')[1];
+            mockWindows[0].webContents.send.mockClear();
+
+            const progressInfo = { percent: 50.5, bytesPerSecond: 100000, transferred: 5000000, total: 10000000 };
+            handler(progressInfo);
+
+            // Should NOW broadcast progress updates
+            expect(mockWindows[0].webContents.send).toHaveBeenCalledWith('auto-update:download-progress', progressInfo);
+        });
+
         it('logs download-progress at various percentages', () => {
             const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'download-progress')[1];
 
@@ -377,16 +389,6 @@ describe('UpdateManager', () => {
             expect(() => handler({ percent: 50.5 })).not.toThrow();
             expect(() => handler({ percent: 99.9 })).not.toThrow();
             expect(() => handler({ percent: 100 })).not.toThrow();
-        });
-
-        it('does not broadcast download-progress to windows', () => {
-            const handler = (autoUpdater.on as any).mock.calls.find((call: any) => call[0] === 'download-progress')[1];
-            mockWindows[0].webContents.send.mockClear();
-
-            handler({ percent: 50.5 });
-
-            // Progress updates should be logged but not broadcasted
-            expect(mockWindows[0].webContents.send).not.toHaveBeenCalled();
         });
 
         it('broadcasts auto-update:checking when checking-for-update fires', () => {

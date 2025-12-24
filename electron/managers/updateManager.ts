@@ -282,10 +282,12 @@ export default class UpdateManager {
 
         this.autoUpdater.on('update-not-available', (info: UpdateInfo) => {
             logger.log(`No update available (current: ${info.version})`);
+            this.broadcastToWindows('auto-update:not-available', info);
         });
 
         this.autoUpdater.on('download-progress', (progress) => {
             logger.log(`Download progress: ${progress.percent.toFixed(1)}%`);
+            this.broadcastToWindows('auto-update:download-progress', progress);
         });
 
         this.autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
