@@ -32,18 +32,32 @@ vi.mock('../utils/paths', async (importOriginal) => {
     };
 });
 
+// Mock windowStateStore for MainWindow
+const mockWindowStateStore = {
+    getAll: vi.fn().mockReturnValue({
+        x: 100,
+        y: 100,
+        width: 1200,
+        height: 800,
+        isMaximized: false,
+        isFullScreen: false,
+    }),
+    set: vi.fn(),
+    get: vi.fn(),
+};
+
 describe('WindowManager', () => {
     let windowManager: WindowManager;
 
     beforeEach(() => {
         vi.clearAllMocks();
         (BrowserWindow as any)._reset();
-        windowManager = new WindowManager(false);
+        windowManager = new WindowManager(false, mockWindowStateStore as any);
     });
 
     describe('constructor', () => {
         it('initializes with isDev flag', () => {
-            const wm = new WindowManager(true);
+            const wm = new WindowManager(true, mockWindowStateStore as any);
             expect(wm.isDev).toBe(true);
         });
     });

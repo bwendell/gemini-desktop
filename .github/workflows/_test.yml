@@ -5,7 +5,8 @@
 # This reusable workflow handles test execution.
 # It supports both CI and Release configurations via inputs:
 #   - Unit Tests (with optional coverage)
-#   - E2E Tests (with optional fail-fast)
+#   - Integration Tests (cross-platform, Vitest + Playwright)
+#   - E2E Tests (cross-platform)
 #   - Artifact Download/Management
 #
 # =============================================================================
@@ -90,7 +91,74 @@ jobs:
           retention-days: 7
 
   # ===========================================================================
-  # E2E Tests
+  # Integration Tests (Cross-Platform)
+  # ===========================================================================
+  integration-tests:
+    name: Integration Tests (${{ matrix.os }})
+    needs: unit-tests
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # Linux-specific: Install dependencies for headless Electron
+      - name: Setup Linux Environment
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
+          # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
+          # See: https://github.com/electron/electron/issues/41066
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Download build artifacts from _build.yml
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: dist/
+      
+      - name: Download Electron Build
+        uses: actions/download-artifact@v7
+        with:
+          name: electron-dist
+          path: dist-electron/
+
+      # Run Vitest-based integration tests (mocked Electron)
+      - name: Run Vitest Integration Tests
+        run: npm run test:integration:vitest
+        env:
+          FORCE_COLOR: 1
+
+      # Run Playwright-based integration tests (real Electron)
+      - name: Run Playwright Integration Tests
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:integration:playwright
+          else
+            npm run test:integration:playwright
+          fi
+        shell: bash
+        env:
+          ELECTRON_USE_DIST: 'true'
+
+  # ===========================================================================
+  # E2E Tests (Cross-Platform)
   # ===========================================================================
   e2e-tests:
     name: E2E Tests (${{ matrix.os }})

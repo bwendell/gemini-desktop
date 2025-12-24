@@ -3,6 +3,23 @@ import { Menu, shell } from 'electron';
 import MenuManager from './menuManager';
 import WindowManager from './windowManager';
 
+// Hoisted mock for isMacOS
+const mocks = vi.hoisted(() => ({
+    isMacOS: false,
+}));
+
+// Mock constants to allow toggling isMacOS during tests
+vi.mock('../utils/constants', async (importOriginal) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const actual = await importOriginal<any>();
+    return {
+        ...actual,
+        get isMacOS() {
+            return mocks.isMacOS;
+        },
+    };
+});
+
 // Mock electron
 vi.mock('electron', () => ({
     app: {
@@ -65,6 +82,8 @@ describe('MenuManager', () => {
             configurable: true,
             writable: true
         });
+        // Also update the mocked isMacOS constant
+        mocks.isMacOS = platform === 'darwin';
     };
 
     const findMenuItem = (template: any[], label: string) => {
@@ -81,6 +100,7 @@ describe('MenuManager', () => {
             menuManager.buildMenu();
 
             const buildCall = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            // macOS: App menu is prepended to [File, View, Help]
             expect(buildCall.length).toBe(4); // App, File, View, Help
             expect(buildCall[0].label).toBe('Gemini Desktop');
         });
@@ -90,6 +110,7 @@ describe('MenuManager', () => {
             menuManager.buildMenu();
 
             const buildCall = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            // Windows/Linux: No App menu, just [File, View, Help]
             expect(buildCall.length).toBe(3); // File, View, Help
             expect(buildCall[0].label).toBe('File');
         });

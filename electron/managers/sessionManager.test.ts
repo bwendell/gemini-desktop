@@ -16,13 +16,27 @@ import { BrowserWindow, session } from 'electron';
 import WindowManager from '../managers/windowManager';
 import { AUTH_WINDOW_CONFIG, MAIN_WINDOW_CONFIG } from '../utils/constants';
 
+// Mock windowStateStore for MainWindow
+const mockWindowStateStore = {
+    getAll: vi.fn().mockReturnValue({
+        x: 100,
+        y: 100,
+        width: 1200,
+        height: 800,
+        isMaximized: false,
+        isFullScreen: false,
+    }),
+    set: vi.fn(),
+    get: vi.fn(),
+};
+
 describe('Session Sharing', () => {
     let windowManager: WindowManager;
 
     beforeEach(() => {
         vi.clearAllMocks();
         (BrowserWindow as any)._reset?.();
-        windowManager = new WindowManager();
+        windowManager = new WindowManager(false, mockWindowStateStore as any);
     });
 
     afterEach(() => {
@@ -164,7 +178,7 @@ describe('Session cookie flow integration', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         (BrowserWindow as any)._reset?.();
-        windowManager = new WindowManager();
+        windowManager = new WindowManager(false, mockWindowStateStore as any);
     });
 
     afterEach(() => {

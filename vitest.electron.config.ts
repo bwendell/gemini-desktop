@@ -10,7 +10,7 @@ export default defineConfig({
         globals: true,
         environment: 'node',
         setupFiles: ['./electron/test/setup.ts'],
-        include: ['electron/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+        include: ['electron/**/*.test.ts'],
         exclude: ['node_modules', 'dist'],
         alias: {
             electron: path.resolve(__dirname, 'electron/test/electron-mock.ts'),
