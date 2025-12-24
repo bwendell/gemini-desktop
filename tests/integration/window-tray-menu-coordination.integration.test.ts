@@ -5,7 +5,7 @@
  * These tests use REAL manager instances (not mocked) while mocking Electron APIs.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { BrowserWindow, app, Tray, Menu } from 'electron';
+import { BrowserWindow, Tray, Menu, app } from 'electron';
 import WindowManager from '../../electron/managers/windowManager';
 import TrayManager from '../../electron/managers/trayManager';
 import MenuManager from '../../electron/managers/menuManager';
@@ -32,6 +32,9 @@ vi.mock('../../electron/utils/constants', async (importOriginal) => {
     const actual = await importOriginal() as any;
     return {
         ...actual,
+        get isMacOS() { return process.platform === 'darwin'; },
+        get isWindows() { return process.platform === 'win32'; },
+        get isLinux() { return process.platform === 'linux'; },
         getDevUrl: (page: string = '') => `http://localhost:1420/${page}`,
     };
 });
@@ -59,9 +62,6 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
         if ((BW as any)._reset) (BW as any)._reset();
         if ((T as any)._reset) (T as any)._reset();
         if ((M as any)._reset) (M as any)._reset();
-
-        // Create REAL WindowManager
-        windowManager = new WindowManager(false);
     });
 
     afterEach(() => {
@@ -72,6 +72,9 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
         beforeEach(() => {
             // Mock platform
             vi.stubGlobal('process', { ...process, platform });
+
+            // Create REAL WindowManager after platform stub
+            windowManager = new WindowManager(false);
 
             // Create REAL TrayManager and MenuManager
             trayManager = new TrayManager(windowManager);

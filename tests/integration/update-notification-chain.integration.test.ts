@@ -128,10 +128,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
             }),
         };
 
-        // Create REAL managers
-        windowManager = new WindowManager(false);
-        badgeManager = new BadgeManager();
-        trayManager = new TrayManager(windowManager);
     });
 
     afterEach(() => {
@@ -145,6 +141,11 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
         beforeEach(() => {
             // Mock platform
             vi.stubGlobal('process', { ...process, platform });
+
+            // Create REAL managers after platform stub
+            windowManager = new WindowManager(false);
+            badgeManager = new BadgeManager();
+            trayManager = new TrayManager(windowManager);
 
             // Create UpdateManager with dependencies
             updateManager = new UpdateManager(mockStore, {

@@ -64,8 +64,6 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
             devClearBadge: vi.fn(),
         };
 
-        // Create REAL WindowManager
-        windowManager = new WindowManager(false);
     });
 
     afterEach(() => {
@@ -76,6 +74,9 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         beforeEach(() => {
             // Mock platform
             vi.stubGlobal('process', { ...process, platform });
+
+            // Create REAL WindowManager after platform stub
+            windowManager = new WindowManager(false);
 
             // Create REAL HotkeyManager with initial settings from store
             const initialSettings: IndividualHotkeySettings = {
