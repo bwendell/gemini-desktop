@@ -49,7 +49,6 @@ export const config = {
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--enable-logging',
-                '--remote-debugging-port=9222',
                 '--test-auto-update'
             ] : ['--test-auto-update'],
             // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
