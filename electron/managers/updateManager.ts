@@ -123,8 +123,8 @@ export default class UpdateManager {
         const currentPlatform = this.mockPlatform || process.platform;
         const currentEnv = this.mockEnv || process.env;
 
-        // Allow updates in test environment (Vitest)
-        if (currentEnv.VITEST) {
+        // Allow updates in test environment (Vitest or Integration Tests)
+        if (currentEnv.VITEST || currentEnv.TEST_AUTO_UPDATE) {
             return false;
         }
 
@@ -133,6 +133,12 @@ export default class UpdateManager {
         // from being accessed on headless Linux (CI), where it hangs on D-Bus
         if (currentPlatform === 'linux' && !currentEnv.APPIMAGE) {
             logger.log('Linux non-AppImage detected (or simulated) - updates disabled');
+            return true;
+        }
+
+        // Windows: Disable updates if running as Portable
+        if (currentPlatform === 'win32' && currentEnv.PORTABLE_EXECUTABLE_DIR) {
+            logger.log('Windows Portable detected - updates disabled');
             return true;
         }
 
@@ -195,6 +201,8 @@ export default class UpdateManager {
         }
     }
 
+    private startupTimeout: ReturnType<typeof setTimeout> | null = null;
+
     /**
      * Start periodic update checks.
      * @param intervalMs - Interval between checks in milliseconds (default: 6 hours)
@@ -216,8 +224,14 @@ export default class UpdateManager {
         logger.log(`Periodic update checks started (interval: ${intervalMs / 1000}s)`);
 
         // Also check immediately on startup (with a small delay)
-        setTimeout(() => {
+        // Clear any existing startup timeout first
+        if (this.startupTimeout) {
+            clearTimeout(this.startupTimeout);
+        }
+
+        this.startupTimeout = setTimeout(() => {
             this.checkForUpdates();
+            this.startupTimeout = null;
         }, 10000); // Wait 10 seconds after startup
     }
 
@@ -228,8 +242,14 @@ export default class UpdateManager {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
             this.checkInterval = null;
-            logger.log('Periodic update checks stopped');
         }
+
+        if (this.startupTimeout) {
+            clearTimeout(this.startupTimeout);
+            this.startupTimeout = null;
+        }
+
+        logger.log('Periodic (and startup) update checks stopped');
     }
 
     /**

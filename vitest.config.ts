@@ -8,10 +8,17 @@ export default defineConfig({
         environment: 'jsdom',
         setupFiles: ['./src/test/setup.ts'],
         include: ['src/**/*.{test,spec}.{ts,tsx}'],
+        exclude: [
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/cypress/**',
+            '**/.{idea,git,cache,output,temp}/**',
+            '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
+        ],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
-            include: ['src/**/*.{ts,tsx}'],
+            include: ['src/**/*.{ts,tsx}', 'electron/**/*.{ts,tsx}'],
             exclude: [
                 'src/main.tsx',
                 'src/options-main.tsx', // Entry point bootstrap, not testable

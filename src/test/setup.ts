@@ -81,6 +81,8 @@ const mockElectronAPI = {
     onUpdateAvailable: vi.fn().mockReturnValue(() => { }),
     onUpdateDownloaded: vi.fn().mockReturnValue(() => { }),
     onUpdateError: vi.fn().mockReturnValue(() => { }),
+    onUpdateNotAvailable: vi.fn().mockReturnValue(() => { }),
+    onDownloadProgress: vi.fn().mockReturnValue(() => { }),
 
     // Dev Testing API
     devShowBadge: vi.fn(),

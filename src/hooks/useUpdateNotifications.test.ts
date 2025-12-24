@@ -57,14 +57,30 @@ describe('useUpdateNotifications', () => {
             expect(mockElectronAPI.onUpdateError).toHaveBeenCalledTimes(1);
         });
 
+        it('subscribes to onUpdateNotAvailable on mount', () => {
+            renderHook(() => useUpdateNotifications());
+
+            expect(mockElectronAPI.onUpdateNotAvailable).toHaveBeenCalledTimes(1);
+        });
+
+        it('subscribes to onDownloadProgress on mount', () => {
+            renderHook(() => useUpdateNotifications());
+
+            expect(mockElectronAPI.onDownloadProgress).toHaveBeenCalledTimes(1);
+        });
+
         it('calls cleanup functions on unmount', () => {
             const cleanupAvailable = vi.fn();
             const cleanupDownloaded = vi.fn();
             const cleanupError = vi.fn();
+            const cleanupNotAvailable = vi.fn();
+            const cleanupProgress = vi.fn();
 
             mockElectronAPI.onUpdateAvailable.mockReturnValue(cleanupAvailable);
             mockElectronAPI.onUpdateDownloaded.mockReturnValue(cleanupDownloaded);
             mockElectronAPI.onUpdateError.mockReturnValue(cleanupError);
+            mockElectronAPI.onUpdateNotAvailable.mockReturnValue(cleanupNotAvailable);
+            mockElectronAPI.onDownloadProgress.mockReturnValue(cleanupProgress);
 
             const { unmount } = renderHook(() => useUpdateNotifications());
             unmount();
@@ -72,6 +88,8 @@ describe('useUpdateNotifications', () => {
             expect(cleanupAvailable).toHaveBeenCalledTimes(1);
             expect(cleanupDownloaded).toHaveBeenCalledTimes(1);
             expect(cleanupError).toHaveBeenCalledTimes(1);
+            expect(cleanupNotAvailable).toHaveBeenCalledTimes(1);
+            expect(cleanupProgress).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -141,6 +159,85 @@ describe('useUpdateNotifications', () => {
                 expect(result.current.visible).toBe(true);
                 expect(result.current.hasPendingUpdate).toBe(false);
             });
+        });
+    });
+
+    describe('update not available event', () => {
+        it('sets notification state when no update is available', async () => {
+            let capturedCallback: ((info: { version: string }) => void) | undefined;
+            mockElectronAPI.onUpdateNotAvailable.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => { };
+            });
+
+            const { result } = renderHook(() => useUpdateNotifications());
+
+            // Simulate IPC event
+            act(() => {
+                capturedCallback?.({ version: '1.0.0' });
+            });
+
+            await waitFor(() => {
+                expect(result.current.type).toBe('not-available');
+                expect(result.current.updateInfo?.version).toBe('1.0.0');
+                expect(result.current.visible).toBe(true);
+                expect(result.current.hasPendingUpdate).toBe(false);
+            });
+        });
+    });
+
+    describe('download progress event', () => {
+        it('sets progress state when download is in progress', async () => {
+            let capturedCallback: ((progress: { percent: number }) => void) | undefined;
+            mockElectronAPI.onDownloadProgress.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => { };
+            });
+
+            const { result } = renderHook(() => useUpdateNotifications());
+
+            // Simulate IPC event
+            act(() => {
+                capturedCallback?.({ percent: 45 });
+            });
+
+            await waitFor(() => {
+                expect(result.current.type).toBe('progress');
+                expect(result.current.downloadProgress).toBe(45);
+                expect(result.current.visible).toBe(true);
+                expect(result.current.hasPendingUpdate).toBe(false);
+            });
+        });
+
+        it('handles progress updates from 0 to 100', async () => {
+            let capturedCallback: ((progress: { percent: number }) => void) | undefined;
+            mockElectronAPI.onDownloadProgress.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => { };
+            });
+
+            const { result } = renderHook(() => useUpdateNotifications());
+
+            // Test different progress values
+            act(() => {
+                capturedCallback?.({ percent: 0 });
+            });
+            await waitFor(() => expect(result.current.downloadProgress).toBe(0));
+
+            act(() => {
+                capturedCallback?.({ percent: 50 });
+            });
+            await waitFor(() => expect(result.current.downloadProgress).toBe(50));
+
+            act(() => {
+                capturedCallback?.({ percent: 99 });
+            });
+            await waitFor(() => expect(result.current.downloadProgress).toBe(99));
+
+            act(() => {
+                capturedCallback?.({ percent: 100 });
+            });
+            await waitFor(() => expect(result.current.downloadProgress).toBe(100));
         });
     });
 

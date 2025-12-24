@@ -30,7 +30,7 @@
     "test:e2e": "node scripts/run-e2e-sequential.cjs",
     "test:e2e:lifecycle": "wdio run wdio.lifecycle.conf.js",
     "test:e2e:all": "npm run test:e2e && npm run test:e2e:lifecycle",
-    "test:all": "npm run test && npm run test:electron && npm run test:e2e",
+    "test:all": "npm run test && npm run test:electron && npm run test:coordinated && npm run test:integration && npm run test:e2e:all",
     "docs": "typedoc --out docs src"
   },
   "dependencies": {

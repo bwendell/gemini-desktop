@@ -179,7 +179,7 @@ describe('Auto-Update Integration', () => {
         it('should disable updates on Linux (RPM/Deb simulation)', async () => {
             // Mock Linux without APPIMAGE
             await browser.execute(() => {
-                window.electronAPI.devMockPlatform('linux', { 'APPIMAGE': '', TEST_AUTO_UPDATE: 'true' }); // Empty APPIMAGE
+                window.electronAPI.devMockPlatform('linux', { 'APPIMAGE': '' }); // Empty APPIMAGE
             });
 
             const enabled = await browser.execute(() => window.electronAPI.getAutoUpdateEnabled());
