@@ -12,8 +12,25 @@ import { browser, expect } from '@wdio/globals';
 
 describe('Preload Security Integration', () => {
     before(async () => {
-        // Wait for Electron app to fully load
-        await browser.pause(2000);
+        // Wait for Electron app to fully load and electronAPI to be available
+        // This ensures the preload script has executed and window.electronAPI exists
+        await browser.waitUntil(
+            async () => {
+                try {
+                    const hasElectronAPI = await browser.execute(() => {
+                        return typeof (window as any).electronAPI !== 'undefined';
+                    });
+                    return hasElectronAPI;
+                } catch {
+                    return false;
+                }
+            },
+            {
+                timeout: 30000, // 30 seconds max wait
+                timeoutMsg: 'electronAPI not available after 30 seconds',
+                interval: 500, // Check every 500ms
+            }
+        );
     });
 
     describe('Context Isolation', () => {

@@ -1,6 +1,24 @@
-import { config } from 'dotenv';
+import { config as dotenvConfig } from 'dotenv';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-config();
+dotenvConfig();
+
+// Get directory of this config file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Determine platform-specific Electron binary path
+const platform = process.platform;
+let electronBinary = 'electron';
+
+if (platform === 'win32') {
+    electronBinary = 'electron.exe';
+} else if (platform === 'darwin') {
+    electronBinary = 'Electron.app/Contents/MacOS/Electron';
+} else {
+    electronBinary = 'electron';
+}
 
 export const config = {
     runner: 'local',
@@ -11,8 +29,9 @@ export const config = {
         {
             browserName: 'electron',
             'wdio:electronServiceOptions': {
-                appBinaryPath: './node_modules/electron/dist/electron.exe',
-                appArgs: ['./dist-electron/main.cjs'],
+                appBinaryPath: join(__dirname, 'node_modules', 'electron', 'dist', electronBinary),
+                appEntryPoint: join(__dirname, 'dist-electron', 'main.cjs'),
+                appArgs: ['--disable-web-security'], // Disable security to allow localhost fetch and bypass CSP in tests
             },
         },
     ],
@@ -52,5 +71,24 @@ export const config = {
      */
     onComplete: function () {
         console.log('Integration tests completed');
+    },
+
+    /**
+     * Gets executed right after terminating the webdriver session.
+     */
+    afterSession: function (config, capabilities, specs) {
+        // Ensure we don't leave lingering Electron processes
+        const { execSync } = require('child_process');
+        const platform = process.platform;
+
+        try {
+            if (platform === 'win32') {
+                execSync('taskkill /F /IM electron.exe /T', { stdio: 'ignore' });
+            } else {
+                execSync('pkill -f electron', { stdio: 'ignore' });
+            }
+        } catch (e) {
+            // Process might already be gone, which is fine
+        }
     },
 };

@@ -25,7 +25,10 @@ export function setupHeaderStripping(session: Session): void {
         '*://aistudio.google.com/*',
         '*://*.google.com/gemini/*',
         '*://accounts.google.com/*',
-        '*://ogs.google.com/*'
+        '*://ogs.google.com/*',
+        // Allow localhost for integration testing
+        '*://localhost:*/*',
+        '*://127.0.0.1:*/*'
     ];
 
     session.webRequest.onHeadersReceived(
