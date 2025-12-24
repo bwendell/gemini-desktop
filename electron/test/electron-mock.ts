@@ -11,6 +11,9 @@ export const app = {
     on: vi.fn(),
     quit: vi.fn(),
     requestSingleInstanceLock: vi.fn().mockReturnValue(true),
+    getVersion: vi.fn().mockReturnValue('1.0.0'),
+    setName: vi.fn(),
+    getName: vi.fn().mockReturnValue('Gemini Desktop'),
     dock: {
         setBadge: vi.fn(),
         getBadge: vi.fn().mockReturnValue(''),
@@ -24,6 +27,7 @@ const createMockWebContents = () => ({
     once: vi.fn(),
     openDevTools: vi.fn(),
     setWindowOpenHandler: vi.fn(),
+    getURL: vi.fn().mockReturnValue(''),
 });
 
 export class BrowserWindow {
@@ -44,6 +48,7 @@ export class BrowserWindow {
             webContents: createMockWebContents(),
             loadURL: vi.fn().mockResolvedValue(undefined),
             loadFile: vi.fn(),
+            _listeners: new Map<string, Function>(),
 
             // Stateful methods
             show: vi.fn(() => { isVisible = true; }),
@@ -52,12 +57,14 @@ export class BrowserWindow {
 
             close: vi.fn(() => {
                 isDestroyed = true;
-                if (instance.on.mock.calls.length > 0) {
-                    // Trigger 'closed' event if listener exists
-                    // This is simplified; normally we'd manage listeners properly
-                }
+                const handler = instance._listeners.get('closed');
+                if (handler) handler();
             }),
-            destroy: vi.fn(() => { isDestroyed = true; }),
+            destroy: vi.fn(() => {
+                isDestroyed = true;
+                const handler = instance._listeners.get('closed');
+                if (handler) handler();
+            }),
             isDestroyed: vi.fn(() => isDestroyed),
 
             maximize: vi.fn(() => { isMaximized = true; }),
@@ -75,8 +82,12 @@ export class BrowserWindow {
             focus: vi.fn(),
             setPosition: vi.fn(),
             setSize: vi.fn(),
-            on: vi.fn(),
-            once: vi.fn(),
+            on: vi.fn((event, handler) => {
+                instance._listeners.set(event, handler);
+            }),
+            once: vi.fn((event, handler) => {
+                instance._listeners.set(event, handler);
+            }),
             id: Math.random(),
         };
         BrowserWindow._instances.push(instance);
