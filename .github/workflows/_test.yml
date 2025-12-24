@@ -93,7 +93,7 @@ jobs:
   # Integration Tests
   # ===========================================================================
   integration-tests:
-    name: Integration Tests (${{ matrix.os }})
+    name: Coordinated & Integration Tests (${{ matrix.os }})
     needs: unit-tests
     runs-on: ${{ matrix.os }}
     
@@ -127,7 +127,12 @@ jobs:
           name: electron-dist
           path: dist-electron/
 
-      - name: Run Integration Tests
+      - name: Run Coordinated Tests
+        run: npm run test:coordinated
+        env:
+          FORCE_COLOR: 1
+
+      - name: Run Real Integration Tests
         run: npm run test:integration
         env:
           FORCE_COLOR: 1

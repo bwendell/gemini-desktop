@@ -306,10 +306,30 @@ export class MenuItem {
 
 export const Menu = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    buildFromTemplate: vi.fn((template: any[]) => ({
-        items: template.map(item => new MenuItem(item)),
-        popup: vi.fn(),
-    })),
+    buildFromTemplate: vi.fn((template: any[]) => {
+        const items = template.map(item => new MenuItem(item));
+
+        const getMenuItemById = (id: string): MenuItem | undefined => {
+            const find = (list: MenuItem[]): MenuItem | undefined => {
+                for (const item of list) {
+                    if (item.id === id) return item;
+                    if (item.submenu) {
+                        // submenu is a Menu-like object with items
+                        const found = find(item.submenu.items);
+                        if (found) return found;
+                    }
+                }
+                return undefined;
+            };
+            return find(items);
+        };
+
+        return {
+            items,
+            popup: vi.fn(),
+            getMenuItemById: getMenuItemById
+        };
+    }),
     setApplicationMenu: vi.fn(),
     _reset: () => {
         Menu.buildFromTemplate.mockClear();
