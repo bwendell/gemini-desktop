@@ -4,7 +4,7 @@
  * @module SecurityManager
  */
 
-import type { Session } from 'electron';
+import type { Session, App } from 'electron';
 import { createLogger } from './logger';
 
 const logger = createLogger('[SecurityManager]');
@@ -52,4 +52,20 @@ export function setupHeaderStripping(session: Session): void {
     );
 
     logger.log('Header stripping enabled for Gemini domains only');
+}
+
+/**
+ * Block the creation of secure webviews to prevent unauthorized content embedding
+ * or potential security bypasses within the renderer.
+ * 
+ * @param app - The Electron app instance
+ */
+export function setupWebviewSecurity(app: App): void {
+    app.on('web-contents-created', (_, contents) => {
+        contents.on('will-attach-webview', (event) => {
+            event.preventDefault();
+            logger.warn('Blocked webview creation attempt in renderer');
+        });
+    });
+    logger.log('Webview creation blocking enabled');
 }
