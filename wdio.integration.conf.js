@@ -88,19 +88,21 @@ export const config = {
     /**
      * Gets executed right after terminating the webdriver session.
      */
-    afterSession: function (config, capabilities, specs) {
+    afterSession: async function (config, capabilities, specs) {
         // Ensure we don't leave lingering Electron processes
-        const { execSync } = require('child_process');
+        const { execSync } = await import('child_process');
         const platform = process.platform;
 
         try {
             if (platform === 'win32') {
                 execSync('taskkill /F /IM electron.exe /T', { stdio: 'ignore' });
             } else {
+                // On macOS/Linux, be a bit more specific if possible, 
+                // but pkill -f is common in CI for this app.
                 execSync('pkill -f electron', { stdio: 'ignore' });
             }
         } catch (e) {
-            // Process might already be gone, which is fine
+            // Process might already be gone
         }
     },
 };
