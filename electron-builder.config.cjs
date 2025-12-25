@@ -34,7 +34,10 @@ module.exports = {
     ],
     icon: "build/icon.png",
     artifactName: "${productName}-${version}-${arch}.${ext}",
-    ...(process.env.AZURE_SIGN_ENDPOINT ? {
+    ...(process.env.AZURE_SIGN_ENDPOINT &&
+      process.env.AZURE_CODE_SIGNING_ACCOUNT_NAME &&
+      process.env.AZURE_CERT_PROFILE_NAME &&
+      process.env.AZURE_PUBLISHER_NAME ? {
       azureSignOptions: {
         endpoint: process.env.AZURE_SIGN_ENDPOINT,
         codeSigningAccountName: process.env.AZURE_CODE_SIGNING_ACCOUNT_NAME,
