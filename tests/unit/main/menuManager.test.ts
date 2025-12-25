@@ -121,6 +121,77 @@ describe('MenuManager', () => {
     });
   });
 
+  describe('Dock Menu (macOS)', () => {
+    it('should call app.dock.setMenu on macOS', async () => {
+      const { app } = await import('electron');
+      const mockDock = {
+        setMenu: vi.fn(),
+      };
+      (app as any).dock = mockDock;
+
+      setPlatform('darwin');
+      menuManager.buildMenu();
+
+      expect(mockDock.setMenu).toHaveBeenCalled();
+    });
+
+    it('should NOT call app.dock.setMenu on Windows', async () => {
+      const { app } = await import('electron');
+      const mockDock = {
+        setMenu: vi.fn(),
+      };
+      (app as any).dock = mockDock;
+
+      setPlatform('win32');
+      menuManager.buildMenu();
+
+      expect(mockDock.setMenu).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call app.dock.setMenu on Linux', async () => {
+      const { app } = await import('electron');
+      const mockDock = {
+        setMenu: vi.fn(),
+      };
+      (app as any).dock = mockDock;
+
+      setPlatform('linux');
+      menuManager.buildMenu();
+
+      expect(mockDock.setMenu).not.toHaveBeenCalled();
+    });
+
+    it('should build dock menu with correct structure on macOS', async () => {
+      setPlatform('darwin');
+      const { Menu: MenuModule } = await import('electron');
+      
+      // Clear previous calls
+      vi.clearAllMocks();
+      
+      menuManager.buildMenu();
+
+      // Find the dock menu template call (will be the last buildFromTemplate call)
+      const allCalls = (MenuModule.buildFromTemplate as any).mock.calls;
+      // The dock menu is built after the app menu, so it's the last call
+      const dockMenuTemplate = allCalls[allCalls.length - 1][0];
+
+      // Verify dock menu structure
+      expect(Array.isArray(dockMenuTemplate)).toBe(true);
+      const labels = dockMenuTemplate.map((item: any) => item.label);
+      expect(labels).toContain('Show Gemini');
+      expect(labels).toContain('Settings');
+    });
+
+    it('should handle missing app.dock gracefully', async () => {
+      setPlatform('darwin');
+      const { app } = await import('electron');
+      (app as any).dock = undefined;
+
+      // Should not throw even if dock is undefined
+      expect(() => menuManager.buildMenu()).not.toThrow();
+    });
+  });
+
   describe('File Menu', () => {
     it('Sign in item calls createAuthWindow and reloads', async () => {
       setPlatform('darwin');
