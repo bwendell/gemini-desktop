@@ -47,7 +47,7 @@ win:
   azureSignOptions:
     endpoint: "${AZURE_SIGN_ENDPOINT}"
     codeSigningAccountName: "${AZURE_CODE_SIGNING_ACCOUNT_NAME}"
-    certificateProfileName: "${AZURE_CERTIFICATE_PROFILE_NAME}"
+    certificateProfileName: "${AZURE_CERT_PROFILE_NAME}"
     publisherName: "${AZURE_PUBLISHER_NAME}"
 
 # Portable gets a different name to avoid collision with NSIS installer
