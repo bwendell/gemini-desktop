@@ -62,7 +62,7 @@ export class GeminiErrorBoundary extends Component<
       return (
         <div className="gemini-error-fallback" data-testid="gemini-error-fallback">
           <div className="gemini-error-content">
-            <h3>Gemini couldn't load</h3>
+            <h3>Gemini couldn&apos;t load</h3>
             <p>There was a problem displaying the Gemini interface.</p>
             {this.state.error && (
               <details>

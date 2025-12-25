@@ -7,7 +7,6 @@ import electron from 'electron';
 import { setupHeaderStripping } from '../../../src/main/utils/security';
 
 describe('setupHeaderStripping', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mockSession = electron.session as any;
   console.log('DEBUG: electron import:', electron);
   console.log('DEBUG: session:', mockSession);

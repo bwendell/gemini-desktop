@@ -61,7 +61,6 @@ describe('Constants', () => {
   });
 
   describe('AUTH_WINDOW_CONFIG', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config = AUTH_WINDOW_CONFIG as any;
 
     it('has correct dimensions', () => {

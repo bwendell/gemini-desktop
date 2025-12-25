@@ -80,12 +80,21 @@ function initializeManagers(): void {
   ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager);
 
   // Expose managers globally for E2E testing
-  (global as any).windowManager = windowManager;
-  (global as any).ipcManager = ipcManager;
-  (global as any).trayManager = trayManager;
-  (global as any).updateManager = updateManager;
-  (global as any).badgeManager = badgeManager;
-  (global as any).hotkeyManager = hotkeyManager;
+  // Type-safe global exposure for E2E tests
+  const globalWithManagers = global as typeof globalThis & {
+    windowManager: WindowManager;
+    ipcManager: IpcManager;
+    trayManager: TrayManager;
+    updateManager: UpdateManager;
+    badgeManager: BadgeManager;
+    hotkeyManager: HotkeyManager;
+  };
+  globalWithManagers.windowManager = windowManager;
+  globalWithManagers.ipcManager = ipcManager;
+  globalWithManagers.trayManager = trayManager;
+  globalWithManagers.updateManager = updateManager;
+  globalWithManagers.badgeManager = badgeManager;
+  globalWithManagers.hotkeyManager = hotkeyManager;
 
   logger.log('All managers initialized');
 }

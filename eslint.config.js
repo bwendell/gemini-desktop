@@ -28,13 +28,11 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-require-imports': 'off',
       'react/display-name': 'off',
-      'react/no-unescaped-entities': 'off',
       'prefer-rest-params': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/no-unsafe-function-type': 'warn',
       '@typescript-eslint/no-empty-object-type': 'warn',
       '@typescript-eslint/triple-slash-reference': 'off',
-      'react-hooks/rules-of-hooks': 'warn',
       'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -49,6 +47,13 @@ export default tseslint.config(
       react: {
         version: 'detect',
       },
+    },
+  },
+  // Allow 'any' in test files - mocking often requires flexibility that strict typing prevents
+  {
+    files: ['**/*.test.{ts,tsx}', '**/tests/**/*.{ts,tsx}', '**/test/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   eslintConfigPrettier

@@ -31,10 +31,8 @@ const createMockWebContents = () => ({
 });
 
 export class BrowserWindow {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static _instances: any[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(options: any = {}) {
     // Create stateful behavior
     let isVisible = true;
@@ -42,7 +40,6 @@ export class BrowserWindow {
     let isMaximized = false;
     let isAlwaysOnTop = false;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const instance: any = {
       options,
       webContents: createMockWebContents(),
@@ -238,13 +235,10 @@ export const globalShortcut = {
 // Tray Mock
 // ============================================================================
 export class Tray {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static _instances: any[] = [];
   iconPath: string;
   private _tooltip: string = '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _contextMenu: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _clickHandler: ((event: any) => void) | null = null;
   private _isDestroyed: boolean = false;
 
@@ -256,11 +250,9 @@ export class Tray {
   setToolTip = vi.fn((tip: string) => {
     this._tooltip = tip;
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setContextMenu = vi.fn((menu: any) => {
     this._contextMenu = menu;
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   on = vi.fn((event: string, handler: (event: any) => void) => {
     if (event === 'click') {
       this._clickHandler = handler;
@@ -325,7 +317,6 @@ export class MenuItem {
 }
 
 export const Menu = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildFromTemplate: vi.fn((template: any[]) => {
     const items = template.map((item) => new MenuItem(item));
 

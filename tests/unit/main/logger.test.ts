@@ -12,7 +12,6 @@ describe('createLogger', () => {
   });
 
   it('creates logger with prefix', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const logger = createLogger('[Test]') as any;
     expect(logger).toHaveProperty('log');
     expect(logger).toHaveProperty('error');
@@ -21,7 +20,6 @@ describe('createLogger', () => {
 
   describe('log', () => {
     it('logs message with prefix', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logger = createLogger('[TestModule]') as any;
       logger.log('Hello world');
 
@@ -29,7 +27,6 @@ describe('createLogger', () => {
     });
 
     it('logs message with additional arguments', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logger = createLogger('[Test]') as any;
       logger.log('Value:', 42, { key: 'value' });
 
@@ -39,7 +36,6 @@ describe('createLogger', () => {
 
   describe('error', () => {
     it('logs error with prefix', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logger = createLogger('[ErrorTest]') as any;
       logger.error('Something went wrong');
 
@@ -47,7 +43,6 @@ describe('createLogger', () => {
     });
 
     it('logs error with error object', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logger = createLogger('[Test]') as any;
       const error = new Error('Test error');
       logger.error('Failed:', error);
@@ -58,7 +53,6 @@ describe('createLogger', () => {
 
   describe('warn', () => {
     it('logs warning with prefix', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logger = createLogger('[WarnTest]') as any;
       logger.warn('This is a warning');
 
@@ -66,7 +60,6 @@ describe('createLogger', () => {
     });
 
     it('logs warning with additional arguments', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logger = createLogger('[Test]') as any;
       logger.warn('Deprecated:', 'oldMethod');
 

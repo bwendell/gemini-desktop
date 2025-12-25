@@ -53,7 +53,7 @@ export const AboutSection = memo(function AboutSection() {
       {/* Trademark Notice */}
       <div className="about-trademarks">
         <p className="about-trademark-text">
-          "Gemini" and "Google" are registered trademarks of Google LLC. This software is a
+          &quot;Gemini&quot; and &quot;Google&quot; are registered trademarks of Google LLC. This software is a
           third-party client and is not a Google product.
         </p>
       </div>

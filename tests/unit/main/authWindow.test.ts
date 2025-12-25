@@ -6,8 +6,7 @@ import { BrowserWindow } from 'electron';
 import AuthWindow from '../../../src/main/windows/authWindow';
 
 vi.mock('../../../src/main/utils/paths', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = await importOriginal<any>();
+  const actual = await importOriginal<typeof import('../../../src/main/utils/paths')>();
   return {
     ...actual,
     getIconPath: vi.fn().mockReturnValue('/mock/icon/path.png'),
