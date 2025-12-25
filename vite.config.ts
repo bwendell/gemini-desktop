@@ -25,8 +25,8 @@ export default defineConfig(async () => ({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        options: resolve(__dirname, 'options.html'),
-        quickchat: resolve(__dirname, 'quickchat.html'),
+        options: resolve(__dirname, 'src/windows/options/options.html'),
+        quickchat: resolve(__dirname, 'src/windows/quickchat/quickchat.html'),
       },
     },
   },

@@ -290,10 +290,10 @@ describe('getDevUrl', () => {
     });
 
     it('returns URL with page when page is provided', () => {
-        expect(getDevUrl('options.html')).toBe('http://localhost:1420/options.html');
+        expect(getDevUrl('src/windows/options/options.html')).toBe('http://localhost:1420/src/windows/options/options.html');
     });
 
     it('returns URL with quickchat.html', () => {
-        expect(getDevUrl('quickchat.html')).toBe('http://localhost:1420/quickchat.html');
+        expect(getDevUrl('src/windows/quickchat/quickchat.html')).toBe('http://localhost:1420/src/windows/quickchat/quickchat.html');
     });
 });

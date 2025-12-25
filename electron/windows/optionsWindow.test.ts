@@ -45,7 +45,7 @@ describe('OptionsWindow', () => {
         it('loads options.html in dev mode', () => {
             const devWindow = new OptionsWindow(true);
             const win = devWindow.create();
-            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/options.html');
+            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/src/windows/options/options.html');
         });
 
         it('loads options.html in prod mode', () => {
@@ -80,7 +80,7 @@ describe('OptionsWindow', () => {
         it('passes settings tab hash in dev mode', () => {
             const devWindow = new OptionsWindow(true);
             const win = devWindow.create('settings');
-            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/options.html#settings');
+            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/src/windows/options/options.html#settings');
         });
 
         it('passes about tab hash in prod mode', () => {
@@ -93,12 +93,12 @@ describe('OptionsWindow', () => {
 
         it('navigates existing window to new tab', () => {
             const win1 = optionsWindow.create();
-            win1.webContents.getURL = vi.fn().mockReturnValue('http://localhost:1420/options.html');
+            win1.webContents.getURL = vi.fn().mockReturnValue('http://localhost:1420/src/windows/options/options.html');
 
             const win2 = optionsWindow.create('settings');
 
             expect(win1).toBe(win2);
-            expect(win1.loadURL).toHaveBeenCalledWith('http://localhost:1420/options.html#settings');
+            expect(win1.loadURL).toHaveBeenCalledWith('http://localhost:1420/src/windows/options/options.html#settings');
         });
     });
 

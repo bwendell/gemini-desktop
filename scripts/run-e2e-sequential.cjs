@@ -27,7 +27,7 @@ for (const spec of specs) {
     console.log(`Running spec: ${spec}`);
     console.log(`---------------------------------------------------------\n`);
 
-    const result = spawnSync('npx', ['wdio', 'run', 'wdio.conf.js', '--spec', spec], {
+    const result = spawnSync('npx', ['wdio', 'run', 'config/wdio/wdio.conf.js', '--spec', spec], {
         stdio: 'inherit',
         shell: true,
         cwd: process.cwd()

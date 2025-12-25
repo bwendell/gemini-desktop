@@ -1,12 +1,27 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, '../..');
 
 export default defineConfig({
     plugins: [react()],
+    resolve: {
+        alias: {
+            '@': path.resolve(projectRoot, './src'),
+            '@components': path.resolve(projectRoot, './src/components'),
+            '@hooks': path.resolve(projectRoot, './src/hooks'),
+            '@context': path.resolve(projectRoot, './src/context'),
+            '@utils': path.resolve(projectRoot, './src/utils'),
+        },
+    },
     test: {
+        root: projectRoot,
         globals: true,
         environment: 'jsdom',
-        setupFiles: ['./src/test/setup.ts'],
+        setupFiles: ['src/test/setup.ts'],
         include: ['src/**/*.{test,spec}.{ts,tsx}'],
         exclude: [
             '**/node_modules/**',
@@ -21,8 +36,8 @@ export default defineConfig({
             include: ['src/**/*.{ts,tsx}', 'electron/**/*.{ts,tsx}'],
             exclude: [
                 'src/main.tsx',
-                'src/options-main.tsx', // Entry point bootstrap, not testable
-                'src/quickchat-main.tsx', // Entry point bootstrap, not testable
+                'src/windows/options/main.tsx', // Entry point bootstrap, not testable
+                'src/windows/quickchat/main.tsx', // Entry point bootstrap, not testable
                 'src/vite-env.d.ts',
                 'src/test/**',
                 'src/**/*.test.{ts,tsx}',

@@ -3,6 +3,8 @@ import { TitlebarMenu } from './TitlebarMenu';
 import { useMenuDefinitions } from './useMenuDefinitions';
 import { useUpdateToast } from '../../context/UpdateToastContext';
 import type { TitlebarConfig } from '../../types';
+import { TITLEBAR_TEST_IDS } from '../../utils/testIds';
+import icon from '@/assets/icon.png';
 import './titlebar.css';
 
 /**
@@ -63,7 +65,7 @@ export function Titlebar({ config = {} }: TitlebarProps) {
                 {mergedConfig.showIcon && (
                     <div className="titlebar-icon">
                         {/* Placeholder for app icon - can be customized later */}
-                        <img src="./icon.png" alt="App Icon" style={{ width: 16, height: 16 }} />
+                        <img src={icon} alt="App Icon" style={{ width: 16, height: 16 }} data-testid={TITLEBAR_TEST_IDS.APP_ICON} />
                         {/* Update badge indicator */}
                         {hasPendingUpdate && (
                             <button

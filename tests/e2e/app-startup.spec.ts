@@ -93,12 +93,12 @@ describe('Application Startup', () => {
         await titlebar.waitForExist({ timeout: 10000 });
 
         // Find the icon img element
-        const iconImg = await titlebar.$('img[alt="App Icon"]');
+        const iconImg = await titlebar.$(Selectors.titlebarIcon);
         await expect(iconImg).toBeExisting();
 
-        // Verify the icon has the correct src attribute
+        // Verify the icon has the correct src attribute (allow for hashing)
         const iconSrc = await iconImg.getAttribute('src');
-        expect(iconSrc).toContain('icon.png');
+        expect(iconSrc).toMatch(/icon(-.*)?\.png/);
 
         // Verify the image actually loaded (not broken)
         // naturalWidth > 0 means the image loaded successfully

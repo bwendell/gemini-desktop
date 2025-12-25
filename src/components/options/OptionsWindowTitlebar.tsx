@@ -16,6 +16,8 @@
 
 import { memo } from 'react';
 import { useWindowControls } from '../../hooks/useWindowControls';
+import { TITLEBAR_TEST_IDS } from '../../utils/testIds';
+import icon from '@/assets/icon.png';
 import './options-window.css';
 
 interface OptionsWindowTitlebarProps {
@@ -40,7 +42,7 @@ export const OptionsWindowTitlebar = memo(function OptionsWindowTitlebar({ title
         <header className="options-titlebar" data-testid="options-titlebar">
             {/* Icon - Left justified */}
             <div className="options-titlebar-icon">
-                <img src="./icon.png" alt="App Icon" style={{ width: 16, height: 16 }} />
+                <img src={icon} alt="App Icon" data-testid={TITLEBAR_TEST_IDS.APP_ICON} style={{ width: 16, height: 16 }} />
             </div>
 
             {/* Drag region - Centered title */}

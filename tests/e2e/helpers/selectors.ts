@@ -31,6 +31,8 @@ export const Selectors = {
     titlebar: 'header.titlebar',
     /** The title text within the titlebar */
     titlebarTitle: '.titlebar-title',
+    /** The app icon in the titlebar */
+    titlebarIcon: testId(TITLEBAR_TEST_IDS.APP_ICON),
     /** The container holding the official Gemini webview */
     webviewContainer: '.webview-container',
 

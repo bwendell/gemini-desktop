@@ -37,6 +37,7 @@ export const TITLEBAR_TEST_IDS = {
     MINIMIZE_BUTTON: 'minimize-button',
     MAXIMIZE_BUTTON: 'maximize-button',
     CLOSE_BUTTON: 'close-button',
+    APP_ICON: 'app-icon',
     /** Dynamic: Use with menu label, e.g., "File" */
     menuButton: (label: string) => `menu-button-${label}`,
     /** Dynamic: Use with menu item label, e.g., "Options" */

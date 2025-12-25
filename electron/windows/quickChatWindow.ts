@@ -23,7 +23,7 @@ import {
  */
 export default class QuickChatWindow extends BaseWindow {
     protected readonly windowConfig: BrowserWindowConstructorOptions;
-    protected readonly htmlFile = 'quickchat.html';
+    protected readonly htmlFile = 'src/windows/quickchat/quickchat.html';
 
     /**
      * Creates a new QuickChatWindow instance.

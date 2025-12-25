@@ -14,12 +14,12 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 // Path to the Electron main entry (compiled from TypeScript)
-const electronMainPath = path.resolve(__dirname, 'dist-electron/main.cjs');
+const electronMainPath = path.resolve(__dirname, '../../dist-electron/main.cjs');
 
 export const config = {
     // Lifecycle tests only - these close the app intentionally
     specs: [
-        './tests/e2e/lifecycle.spec.ts',
+        '../../tests/e2e/lifecycle.spec.ts',
     ],
     maxInstances: 1,
 

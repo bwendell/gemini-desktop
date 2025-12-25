@@ -57,16 +57,14 @@ describe('paths utilities', () => {
 
         it('should handle options.html', async () => {
             const { getDistHtmlPath } = await import('./paths');
-            const result = getDistHtmlPath('options.html');
-
-            expect(result).toContain('options.html');
+            const result = getDistHtmlPath('src/windows/options/options.html');
+            expect(result).toContain('src/windows/options/options.html');
         });
 
         it('should handle quickchat.html', async () => {
             const { getDistHtmlPath } = await import('./paths');
-            const result = getDistHtmlPath('quickchat.html');
-
-            expect(result).toContain('quickchat.html');
+            const result = getDistHtmlPath('src/windows/quickchat/quickchat.html');
+            expect(result).toContain('src/windows/quickchat/quickchat.html');
         });
     });
 

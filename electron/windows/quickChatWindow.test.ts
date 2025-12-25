@@ -46,7 +46,7 @@ describe('QuickChatWindow', () => {
         it('loads quickchat.html in dev mode', () => {
             const devWindow = new QuickChatWindow(true);
             const win = devWindow.create();
-            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/quickchat.html');
+            expect(win.loadURL).toHaveBeenCalledWith('http://localhost:1420/src/windows/quickchat/quickchat.html');
         });
 
         it('loads quickchat.html in prod mode', () => {

@@ -16,28 +16,28 @@ import { fileURLToPath } from 'url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 // Path to the Electron main entry (compiled from TypeScript)
-const electronMainPath = path.resolve(__dirname, 'dist-electron/main.cjs');
+const electronMainPath = path.resolve(__dirname, '../../dist-electron/main.cjs');
 
 export const config = {
     specs: [
-        './tests/e2e/app-startup.spec.ts',
-        './tests/e2e/auto-update-init.spec.ts',
-        './tests/e2e/menu_bar.spec.ts',
-        './tests/e2e/hotkeys.spec.ts',
-        './tests/e2e/quick-chat.spec.ts',
-        './tests/e2e/quick-chat-injection.spec.ts',
-        './tests/e2e/options-window.spec.ts',
-        './tests/e2e/menu-interactions.spec.ts',
-        './tests/e2e/theme.spec.ts',
-        './tests/e2e/theme-selector-visual.spec.ts',
-        './tests/e2e/theme-selector-keyboard.spec.ts',
-        './tests/e2e/external-links.spec.ts',
-        './tests/e2e/auth.spec.ts',
-        './tests/e2e/oauth-links.spec.ts',
-        './tests/e2e/single-instance.spec.ts',
-        './tests/e2e/window-management-edge-cases.spec.ts',
-        './tests/e2e/offline-behavior.spec.ts',
-        './tests/e2e/session-persistence.spec.ts',
+        '../../tests/e2e/app-startup.spec.ts',
+        '../../tests/e2e/auto-update-init.spec.ts',
+        '../../tests/e2e/menu_bar.spec.ts',
+        '../../tests/e2e/hotkeys.spec.ts',
+        '../../tests/e2e/quick-chat.spec.ts',
+        '../../tests/e2e/quick-chat-injection.spec.ts',
+        '../../tests/e2e/options-window.spec.ts',
+        '../../tests/e2e/menu-interactions.spec.ts',
+        '../../tests/e2e/theme.spec.ts',
+        '../../tests/e2e/theme-selector-visual.spec.ts',
+        '../../tests/e2e/theme-selector-keyboard.spec.ts',
+        '../../tests/e2e/external-links.spec.ts',
+        '../../tests/e2e/auth.spec.ts',
+        '../../tests/e2e/oauth-links.spec.ts',
+        '../../tests/e2e/single-instance.spec.ts',
+        '../../tests/e2e/window-management-edge-cases.spec.ts',
+        '../../tests/e2e/offline-behavior.spec.ts',
+        '../../tests/e2e/session-persistence.spec.ts',
     ],
     maxInstances: 1,
 

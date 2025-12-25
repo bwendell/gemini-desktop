@@ -20,7 +20,7 @@ import { getDistHtmlPath } from '../utils/paths';
  */
 export default class OptionsWindow extends BaseWindow {
     protected readonly windowConfig: BrowserWindowConstructorOptions;
-    protected readonly htmlFile = 'options.html';
+    protected readonly htmlFile = 'src/windows/options/options.html';
 
     /**
      * Creates a new OptionsWindow instance.

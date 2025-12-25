@@ -42,8 +42,10 @@ describe('Options Window Features', () => {
         await expect(titlebar).toExist();
 
         // 3a. Verify Titlebar Icon is present
-        const icon = await titlebar.$('img[src*="icon.png"]');
+        const icon = await titlebar.$(Selectors.titlebarIcon);
         await expect(icon).toExist();
+        const iconSrc = await icon.getAttribute('src');
+        expect(iconSrc).toMatch(/icon(-.*)?\.png/);
         const width = await icon.getProperty('naturalWidth');
         expect(width).toBeGreaterThan(0);
 
