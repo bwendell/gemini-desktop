@@ -150,3 +150,117 @@ describe('setupHeaderStripping', () => {
     });
   });
 });
+
+describe('setupMediaPermissions', () => {
+  const mockSession = electron.session as any;
+  let permissionHandler: (
+    webContents: any,
+    permission: string,
+    callback: (granted: boolean) => void,
+    details: { requestingUrl?: string }
+  ) => void;
+
+  beforeEach(() => {
+    // Reset mocks
+    mockSession.defaultSession.setPermissionRequestHandler.mockClear();
+
+    // Capture the permission handler when it's set
+    mockSession.defaultSession.setPermissionRequestHandler.mockImplementation(
+      (handler: any) => {
+        permissionHandler = handler;
+      }
+    );
+  });
+
+  it('registers permission handler on session', async () => {
+    const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+    setupMediaPermissions(mockSession.defaultSession);
+
+    expect(mockSession.defaultSession.setPermissionRequestHandler).toHaveBeenCalled();
+  });
+
+  it('grants media permission to gemini.google.com', async () => {
+    const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+    setupMediaPermissions(mockSession.defaultSession);
+
+    let granted: boolean | undefined;
+    permissionHandler(
+      {} as any,
+      'media',
+      (result) => {
+        granted = result;
+      },
+      { requestingUrl: 'https://gemini.google.com/app' }
+    );
+
+    expect(granted).toBe(true);
+  });
+
+  it('grants media permission to google.com subdomains', async () => {
+    const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+    setupMediaPermissions(mockSession.defaultSession);
+
+    let granted: boolean | undefined;
+    permissionHandler(
+      {} as any,
+      'media',
+      (result) => {
+        granted = result;
+      },
+      { requestingUrl: 'https://accounts.google.com/signin' }
+    );
+
+    expect(granted).toBe(true);
+  });
+
+  it('denies media permission to non-Google domains', async () => {
+    const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+    setupMediaPermissions(mockSession.defaultSession);
+
+    let granted: boolean | undefined;
+    permissionHandler(
+      {} as any,
+      'media',
+      (result) => {
+        granted = result;
+      },
+      { requestingUrl: 'https://example.com' }
+    );
+
+    expect(granted).toBe(false);
+  });
+
+  it('denies non-media permissions from any domain', async () => {
+    const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+    setupMediaPermissions(mockSession.defaultSession);
+
+    let granted: boolean | undefined;
+    permissionHandler(
+      {} as any,
+      'notifications',
+      (result) => {
+        granted = result;
+      },
+      { requestingUrl: 'https://gemini.google.com/app' }
+    );
+
+    expect(granted).toBe(false);
+  });
+
+  it('handles missing requestingUrl gracefully', async () => {
+    const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+    setupMediaPermissions(mockSession.defaultSession);
+
+    let granted: boolean | undefined;
+    permissionHandler(
+      {} as any,
+      'media',
+      (result) => {
+        granted = result;
+      },
+      {}
+    );
+
+    expect(granted).toBe(false);
+  });
+});

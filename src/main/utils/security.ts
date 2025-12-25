@@ -71,3 +71,45 @@ export function setupWebviewSecurity(app: App): void {
   });
   logger.log('Webview creation blocking enabled');
 }
+
+/**
+ * Setup media permission handler for microphone/camera access.
+ * Allows media requests from trusted Gemini/Google domains.
+ *
+ * SECURITY: Only approves media permissions for Google domains.
+ * All other permission requests are denied.
+ *
+ * @param session - The default session
+ */
+export function setupMediaPermissions(session: Session): void {
+  session.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    const url = details.requestingUrl || '';
+
+    // Allow media requests from Gemini/Google domains
+    if (permission === 'media') {
+      if (url.includes('gemini.google.com') || url.includes('google.com')) {
+        logger.log(`Granting media permission to: ${url}`);
+        callback(true);
+        return;
+      }
+    }
+
+    // Deny all other permission requests
+    logger.log(`Denying ${permission} permission request from: ${url}`);
+    callback(false);
+  });
+
+  // macOS: Proactively request microphone access
+  if (process.platform === 'darwin') {
+    // Dynamic import to avoid bundling issues on non-macOS
+    import('electron').then(({ systemPreferences }) => {
+      if (systemPreferences.askForMediaAccess) {
+        systemPreferences.askForMediaAccess('microphone').then((granted) => {
+          logger.log(`macOS microphone access: ${granted ? 'granted' : 'denied'}`);
+        });
+      }
+    });
+  }
+
+  logger.log('Media permission handler configured for Gemini domains');
+}

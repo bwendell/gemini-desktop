@@ -90,6 +90,54 @@ export const GeminiSelectors = {
   },
 
   /**
+   * Microphone button configuration.
+   * Used for speech dictation / voice input.
+   */
+  microphoneButton: {
+    /**
+     * CSS selectors for finding the microphone button.
+     * Ordered by specificity - first match wins.
+     */
+    selectors: [
+      'button[data-node-type="speech_dictation_mic_button"]',
+      'button[aria-label="Microphone"]',
+      'speech-dictation-mic-button button',
+    ] as const,
+
+    /**
+     * Description for logging/debugging.
+     */
+    description: 'Speech dictation microphone button',
+  },
+
+  /**
+   * Error toast / snackbar configuration.
+   * Used to detect permission errors displayed to the user.
+   */
+  errorToast: {
+    /**
+     * CSS selectors for finding error toast messages.
+     * Gemini uses Angular Material snackbar for toasts.
+     */
+    selectors: [
+      '[matsnackbarlabel]',
+      '.mat-mdc-snack-bar-label',
+      '.mdc-snackbar__label',
+    ] as const,
+
+    /**
+     * Error message text for microphone permission denied.
+     * Used to detect if microphone access failed.
+     */
+    microphoneErrorText: 'Unable to access the microphone',
+
+    /**
+     * Description for logging/debugging.
+     */
+    description: 'Error toast / snackbar message',
+  },
+
+  /**
    * Timing configuration for DOM interactions.
    */
   timing: {
@@ -169,3 +217,6 @@ export const GEMINI_EDITOR_SELECTORS = GeminiSelectors.editor.selectors;
 export const GEMINI_SUBMIT_BUTTON_SELECTORS = GeminiSelectors.submitButton.selectors;
 export const GEMINI_EDITOR_BLANK_CLASS = GeminiSelectors.editor.blankClass;
 export const GEMINI_SUBMIT_DELAY_MS = GeminiSelectors.timing.submitDelayMs;
+export const GEMINI_MICROPHONE_BUTTON_SELECTORS = GeminiSelectors.microphoneButton.selectors;
+export const GEMINI_ERROR_TOAST_SELECTORS = GeminiSelectors.errorToast.selectors;
+export const GEMINI_MICROPHONE_ERROR_TEXT = GeminiSelectors.errorToast.microphoneErrorText;

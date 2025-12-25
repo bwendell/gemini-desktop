@@ -18,6 +18,9 @@ export {
   GEMINI_SUBMIT_BUTTON_SELECTORS,
   GEMINI_EDITOR_BLANK_CLASS,
   GEMINI_SUBMIT_DELAY_MS,
+  GEMINI_MICROPHONE_BUTTON_SELECTORS,
+  GEMINI_ERROR_TOAST_SELECTORS,
+  GEMINI_MICROPHONE_ERROR_TEXT,
 } from '../../../src/main/utils/constants';
 
 // Import locally for use in other constants

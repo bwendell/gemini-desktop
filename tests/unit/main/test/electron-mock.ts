@@ -151,6 +151,7 @@ export const session = {
       set: vi.fn(),
       remove: vi.fn(),
     },
+    setPermissionRequestHandler: vi.fn(),
   },
 };
 

@@ -90,6 +90,16 @@ describe('App', () => {
       expect(iframe).toBeInTheDocument();
       expect(iframe.src).toBe('https://gemini.google.com/app');
     });
+
+    it('renders iframe with media permission attributes', async () => {
+      await act(async () => {
+        render(<App />);
+      });
+
+      const iframe = screen.getByTestId('gemini-iframe') as HTMLIFrameElement;
+      const allowAttr = iframe.getAttribute('allow');
+      expect(allowAttr).toBe('microphone; camera; display-capture');
+    });
   });
 
   describe('theme integration', () => {

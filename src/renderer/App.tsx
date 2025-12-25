@@ -40,6 +40,7 @@ function App() {
                 onLoad={handleLoad}
                 onError={handleError}
                 data-testid="gemini-iframe"
+                allow="microphone; camera; display-capture"
               />
             </div>
           </GeminiErrorBoundary>

@@ -58,6 +58,12 @@ module.exports = {
     icon: 'build/icon.png',
     identity: null,
     artifactName: '${productName}-${version}-${arch}.${ext}',
+    extendInfo: {
+      NSMicrophoneUsageDescription:
+        'Gemini Desktop needs microphone access for voice input features.',
+    },
+    entitlements: 'build/entitlements.mac.plist',
+    entitlementsInherit: 'build/entitlements.mac.plist',
   },
   dmg: {
     sign: false,

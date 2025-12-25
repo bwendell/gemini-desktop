@@ -8,7 +8,7 @@
 
 import { app, BrowserWindow, session } from 'electron';
 import * as fs from 'fs';
-import { setupHeaderStripping, setupWebviewSecurity } from './utils/security';
+import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
 
 import { createLogger } from './utils/logger';
@@ -162,6 +162,7 @@ if (!gotTheLock) {
     logger.log('App ready - starting initialization');
 
     setupHeaderStripping(session.defaultSession);
+    setupMediaPermissions(session.defaultSession);
     ipcManager.setupIpcHandlers();
 
     // Setup native application menu (critical for macOS)
