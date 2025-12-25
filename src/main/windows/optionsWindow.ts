@@ -22,6 +22,9 @@ export default class OptionsWindow extends BaseWindow {
     protected readonly windowConfig: BrowserWindowConstructorOptions;
     protected readonly htmlFile = 'src/renderer/windows/options/options.html';
 
+    /** Pending tab to open upon window creation */
+    private pendingTab: string | null = null;
+
     /**
      * Creates a new OptionsWindow instance.
      * @param isDev - Whether running in development mode
@@ -53,7 +56,15 @@ export default class OptionsWindow extends BaseWindow {
             return this.window;
         }
 
+        // Store tab for loadContent
+        if (tab) {
+            this.pendingTab = tab;
+        }
+
         const win = this.createWindow();
+
+        // Reset pending tab
+        this.pendingTab = null;
 
         win.once('ready-to-show', () => {
             win.show();
@@ -68,16 +79,14 @@ export default class OptionsWindow extends BaseWindow {
     protected override loadContent(): void {
         if (!this.window) return;
 
-        // Note: Hash is handled in create() for existing windows,
-        // but for a new window we load it here.
-        // Since loadContent doesn't take arguments, we'll just load the base file
-        // and let create() handle the navigation if needed, OR we could
-        // use a private property to store the pending tab.
+        const hash = this.pendingTab || undefined;
 
         if (this.isDev) {
-            this.window.loadURL(getDevUrl(this.htmlFile));
+            const devUrl = getDevUrl(this.htmlFile);
+            const urlWithHash = hash ? `${devUrl}#${hash}` : devUrl;
+            this.window.loadURL(urlWithHash);
         } else {
-            this.window.loadFile(getDistHtmlPath(this.htmlFile));
+            this.window.loadFile(getDistHtmlPath(this.htmlFile), { hash });
         }
     }
 }
