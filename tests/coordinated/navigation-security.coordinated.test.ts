@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow, shell } from 'electron';
-import WindowManager from '../../electron/managers/windowManager';
-import MainWindow from '../../electron/windows/mainWindow';
+import WindowManager from '../../src/main/managers/windowManager';
+import MainWindow from '../../src/main/windows/mainWindow';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -13,12 +13,12 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
 // Mock constants to be dynamic for platform testing
-vi.mock('../../electron/utils/constants', async (importOriginal) => {
+vi.mock('../../src/main/utils/constants', async (importOriginal) => {
     const actual = await importOriginal() as any;
     return {
         ...actual,
@@ -166,3 +166,5 @@ describe('Navigation Security Integration', () => {
         });
     });
 });
+
+

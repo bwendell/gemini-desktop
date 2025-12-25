@@ -3,7 +3,7 @@
  * Verifies that header stripping and webview blocking are correctly configured.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { setupHeaderStripping, setupWebviewSecurity } from '../../electron/utils/security';
+import { setupHeaderStripping, setupWebviewSecurity } from '../../src/main/utils/security';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -11,7 +11,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -130,3 +130,5 @@ describe('Security Integration', () => {
         });
     });
 });
+
+

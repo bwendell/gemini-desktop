@@ -10,19 +10,19 @@ export default defineConfig({
     plugins: [react()],
     resolve: {
         alias: {
-            '@': path.resolve(projectRoot, './src'),
-            '@components': path.resolve(projectRoot, './src/components'),
-            '@hooks': path.resolve(projectRoot, './src/hooks'),
-            '@context': path.resolve(projectRoot, './src/context'),
-            '@utils': path.resolve(projectRoot, './src/utils'),
+            '@': path.resolve(projectRoot, './src/renderer'),
+            '@components': path.resolve(projectRoot, './src/renderer/components'),
+            '@hooks': path.resolve(projectRoot, './src/renderer/hooks'),
+            '@context': path.resolve(projectRoot, './src/renderer/context'),
+            '@utils': path.resolve(projectRoot, './src/renderer/utils'),
         },
     },
     test: {
         root: projectRoot,
         globals: true,
         environment: 'jsdom',
-        setupFiles: ['src/test/setup.ts'],
-        include: ['src/**/*.{test,spec}.{ts,tsx}'],
+        setupFiles: ['tests/unit/renderer/test/setup.ts'],
+        include: ['tests/unit/renderer/**/*.{test,spec}.{ts,tsx}'],
         exclude: [
             '**/node_modules/**',
             '**/dist/**',
@@ -33,17 +33,17 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
-            include: ['src/**/*.{ts,tsx}', 'electron/**/*.{ts,tsx}'],
+            include: ['src/renderer/**/*.{ts,tsx}'],
             exclude: [
-                'src/main.tsx',
-                'src/windows/options/main.tsx', // Entry point bootstrap, not testable
-                'src/windows/quickchat/main.tsx', // Entry point bootstrap, not testable
-                'src/vite-env.d.ts',
-                'src/test/**',
-                'src/**/*.test.{ts,tsx}',
-                'src/**/*.spec.{ts,tsx}',
-                'src/**/index.ts', // Barrel files are just re-exports
-                'src/types/**', // Type-only files
+                'src/renderer/main.tsx',
+                'src/renderer/windows/options/main.tsx', // Entry point bootstrap, not testable
+                'src/renderer/windows/quickchat/main.tsx', // Entry point bootstrap, not testable
+                'src/renderer/vite-env.d.ts',
+                'tests/unit/renderer/test/**',
+                'tests/unit/renderer/**/*.test.{ts,tsx}',
+                'tests/unit/renderer/**/*.spec.{ts,tsx}',
+                'src/renderer/**/index.ts', // Barrel files are just re-exports
+                'src/renderer/types/**', // Type-only files
             ],
             thresholds: {
                 // Note: Reduced from 98% while ThemeContext browser-only fallback tests are skipped

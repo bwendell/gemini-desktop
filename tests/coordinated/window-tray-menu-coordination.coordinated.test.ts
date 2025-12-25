@@ -6,9 +6,9 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow, Tray, Menu, app } from 'electron';
-import WindowManager from '../../electron/managers/windowManager';
-import TrayManager from '../../electron/managers/trayManager';
-import MenuManager from '../../electron/managers/menuManager';
+import WindowManager from '../../src/main/managers/windowManager';
+import TrayManager from '../../src/main/managers/trayManager';
+import MenuManager from '../../src/main/managers/menuManager';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -16,19 +16,19 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
 // Mock paths
-vi.mock('../../electron/utils/paths', () => ({
+vi.mock('../../src/main/utils/paths', () => ({
     getIconPath: () => '/mock/icon.png',
     getPreloadPath: () => '/mock/preload.js',
     getDistHtmlPath: (filename: string) => `/mock/dist/${filename}`,
 }));
 
 // Mock constants for getDevUrl
-vi.mock('../../electron/utils/constants', async (importOriginal) => {
+vi.mock('../../src/main/utils/constants', async (importOriginal) => {
     const actual = await importOriginal() as any;
     return {
         ...actual,
@@ -370,3 +370,5 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
         });
     });
 });
+
+

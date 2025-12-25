@@ -30,7 +30,7 @@ export const config = {
             browserName: 'electron',
             'wdio:electronServiceOptions': {
                 appBinaryPath: join(__dirname, '../../node_modules', 'electron', 'dist', electronBinary),
-                appEntryPoint: join(__dirname, '../../dist-electron', 'main.cjs'),
+                appEntryPoint: join(__dirname, '../../dist-electron', 'main/main.cjs'),
                 appArgs: ['--disable-web-security', '--no-sandbox', '--disable-gpu'], // flags for CI/Linux stability
             },
         },

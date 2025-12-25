@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow, ipcMain } from 'electron';
-import WindowManager from '../../electron/managers/windowManager';
+import WindowManager from '../../src/main/managers/windowManager';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -18,7 +18,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -144,3 +144,5 @@ describe('Multi-Window Coordination Integration', () => {
         });
     });
 });
+
+

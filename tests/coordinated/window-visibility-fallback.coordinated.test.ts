@@ -4,7 +4,7 @@
  * This is critical for reliability on headless Linux environments.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import MainWindow from '../../electron/windows/mainWindow';
+import MainWindow from '../../src/main/windows/mainWindow';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -12,12 +12,12 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
 // Mock constants to be dynamic for platform testing
-vi.mock('../../electron/utils/constants', async (importOriginal) => {
+vi.mock('../../src/main/utils/constants', async (importOriginal) => {
     const actual = await importOriginal() as any;
     return {
         ...actual,
@@ -117,3 +117,5 @@ describe('Window Visibility Fallback Integration', () => {
         });
     });
 });
+
+

@@ -4,9 +4,9 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain } from 'electron';
-import IpcManager from '../../electron/managers/ipcManager';
-import WindowManager from '../../electron/managers/windowManager';
-import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS } from '../../electron/utils/constants';
+import IpcManager from '../../src/main/managers/ipcManager';
+import WindowManager from '../../src/main/managers/windowManager';
+import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS } from '../../src/main/utils/constants';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -14,7 +14,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -120,3 +120,5 @@ describe('Auth Coordination Integration', () => {
         });
     });
 });
+
+

@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Menu, app } from 'electron';
-import MenuManager from '../../electron/managers/menuManager';
-import WindowManager from '../../electron/managers/windowManager';
+import MenuManager from '../../src/main/managers/menuManager';
+import WindowManager from '../../src/main/managers/windowManager';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -13,7 +13,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -327,3 +327,5 @@ describe('MenuManager Coordinated Tests', () => {
         });
     });
 });
+
+

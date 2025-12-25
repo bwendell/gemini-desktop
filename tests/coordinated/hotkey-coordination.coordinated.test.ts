@@ -6,11 +6,11 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { globalShortcut, BrowserWindow } from 'electron';
-import HotkeyManager from '../../electron/managers/hotkeyManager';
-import WindowManager from '../../electron/managers/windowManager';
-import IpcManager from '../../electron/managers/ipcManager';
-import SettingsStore from '../../electron/store';
-import type { IndividualHotkeySettings } from '../../electron/types';
+import HotkeyManager from '../../src/main/managers/hotkeyManager';
+import WindowManager from '../../src/main/managers/windowManager';
+import IpcManager from '../../src/main/managers/ipcManager';
+import SettingsStore from '../../src/main/store';
+import type { IndividualHotkeySettings } from '../../src/main/types';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -18,7 +18,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -308,3 +308,5 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         });
     });
 });
+
+

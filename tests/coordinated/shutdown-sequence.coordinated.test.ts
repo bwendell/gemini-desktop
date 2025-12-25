@@ -4,10 +4,10 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, globalShortcut, Tray, BrowserWindow } from 'electron';
-import WindowManager from '../../electron/managers/windowManager';
-import HotkeyManager from '../../electron/managers/hotkeyManager';
-import TrayManager from '../../electron/managers/trayManager';
-import UpdateManager from '../../electron/managers/updateManager';
+import WindowManager from '../../src/main/managers/windowManager';
+import HotkeyManager from '../../src/main/managers/hotkeyManager';
+import TrayManager from '../../src/main/managers/trayManager';
+import UpdateManager from '../../src/main/managers/updateManager';
 
 // Mock electron-updater
 vi.mock('electron-updater', () => ({
@@ -27,7 +27,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -115,3 +115,5 @@ describe('Shutdown Sequence Integration', () => {
         });
     });
 });
+
+

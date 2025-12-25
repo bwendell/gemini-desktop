@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
-import BadgeManager from '../../electron/managers/badgeManager';
-import WindowManager from '../../electron/managers/windowManager';
+import BadgeManager from '../../src/main/managers/badgeManager';
+import WindowManager from '../../src/main/managers/windowManager';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -13,7 +13,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -44,7 +44,7 @@ describe('BadgeManager Coordinated Tests', () => {
     }));
 
     // Mock constants
-    vi.mock('../../electron/utils/constants', async (importOriginal) => {
+    vi.mock('../../src/main/utils/constants', async (importOriginal) => {
         const actual = await importOriginal<any>();
         return {
             ...actual,
@@ -278,3 +278,5 @@ describe('BadgeManager Coordinated Tests', () => {
         });
     });
 });
+
+

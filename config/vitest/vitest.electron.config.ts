@@ -14,24 +14,24 @@ export default defineConfig({
         root: projectRoot,
         globals: true,
         environment: 'node',
-        setupFiles: ['electron/test/setup.ts'],
-        include: ['electron/**/*.test.ts'],
+        setupFiles: ['tests/unit/main/test/setup.ts'],
+        include: ['tests/unit/main/**/*.test.ts'],
         exclude: ['node_modules', 'dist'],
         alias: {
-            electron: path.resolve(projectRoot, 'electron/test/electron-mock.ts'),
+            electron: path.resolve(projectRoot, 'tests/unit/main/test/electron-mock.ts'),
         },
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
             reportsDirectory: 'coverage-electron',
-            include: ['electron/**/*.ts'],
+            include: ['src/main/**/*.ts', 'src/preload/**/*.ts'],
             exclude: [
-                'electron/main.ts',         // Entry point, tested by E2E
-                'electron/preload.ts',      // contextBridge, tested by E2E
-                'electron/types.ts',        // Type definitions only
-                'electron/test/**',         // Test files themselves
-                'electron/**/*.test.ts',    // Test files
-                'electron/**/index.ts',     // Barrel files (exports only)
+                'src/main/main.ts',         // Entry point, tested by E2E
+                'src/preload/preload.ts',   // contextBridge, tested by E2E
+                'src/main/types.ts',        // Type definitions only
+                'tests/unit/main/test/**',  // Test files themselves
+                'tests/unit/main/**/*.test.ts',    // Test files
+                'src/main/**/index.ts',     // Barrel files (exports only)
             ],
             thresholds: {
                 lines: 90,

@@ -9,8 +9,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { globalShortcut, ipcMain } from 'electron';
-import HotkeyManager from '../../electron/managers/hotkeyManager';
-import WindowManager from '../../electron/managers/windowManager';
+import HotkeyManager from '../../src/main/managers/hotkeyManager';
+import WindowManager from '../../src/main/managers/windowManager';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -18,7 +18,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -115,3 +115,5 @@ describe('Hotkey Collision and Coordination Integration', () => {
         });
     });
 });
+
+

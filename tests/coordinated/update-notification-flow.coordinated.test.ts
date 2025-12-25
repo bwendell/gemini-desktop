@@ -13,9 +13,9 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
-import BadgeManager from '../../electron/managers/badgeManager';
-import TrayManager from '../../electron/managers/trayManager';
-import WindowManager from '../../electron/managers/windowManager';
+import BadgeManager from '../../src/main/managers/badgeManager';
+import TrayManager from '../../src/main/managers/trayManager';
+import WindowManager from '../../src/main/managers/windowManager';
 
 // Mock logger - must use hoisted to avoid initialization issues
 const mockLogger = vi.hoisted(() => ({
@@ -23,7 +23,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -174,3 +174,5 @@ describe('Update Notification Flow Integration', () => {
         });
     });
 });
+
+

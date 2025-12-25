@@ -4,10 +4,10 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app } from 'electron';
-import HotkeyManager from '../../electron/managers/hotkeyManager';
-import TrayManager from '../../electron/managers/trayManager';
-import WindowManager from '../../electron/managers/windowManager';
-import UpdateManager from '../../electron/managers/updateManager';
+import HotkeyManager from '../../src/main/managers/hotkeyManager';
+import TrayManager from '../../src/main/managers/trayManager';
+import WindowManager from '../../src/main/managers/windowManager';
+import UpdateManager from '../../src/main/managers/updateManager';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -15,7 +15,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -119,3 +119,5 @@ describe('App Lifecycle Integration', () => {
         });
     });
 });
+
+

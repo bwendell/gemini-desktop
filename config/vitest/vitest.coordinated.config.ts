@@ -14,11 +14,11 @@ export default defineConfig({
         root: projectRoot,
         globals: true,
         environment: 'node',
-        setupFiles: ['electron/test/setup.ts'],
+        setupFiles: ['tests/unit/main/test/setup.ts'],
         include: ['tests/coordinated/**/*.test.ts'],
         exclude: ['node_modules', 'dist'],
         alias: {
-            electron: path.resolve(projectRoot, 'electron/test/electron-mock.ts'),
+            electron: path.resolve(projectRoot, 'tests/unit/main/test/electron-mock.ts'),
         },
         testTimeout: 30000, // Integration tests may need longer timeouts
     },

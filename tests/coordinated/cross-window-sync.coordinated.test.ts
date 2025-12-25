@@ -4,9 +4,9 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, BrowserWindow } from 'electron';
-import IpcManager from '../../electron/managers/ipcManager';
-import WindowManager from '../../electron/managers/windowManager';
-import HotkeyManager from '../../electron/managers/hotkeyManager';
+import IpcManager from '../../src/main/managers/ipcManager';
+import WindowManager from '../../src/main/managers/windowManager';
+import HotkeyManager from '../../src/main/managers/hotkeyManager';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -14,7 +14,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -143,3 +143,5 @@ describe('Cross-Window Sync Integration', () => {
         });
     });
 });
+
+

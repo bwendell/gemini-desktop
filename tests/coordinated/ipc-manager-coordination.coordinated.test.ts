@@ -6,9 +6,9 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
-import IpcManager from '../../electron/managers/ipcManager';
-import WindowManager from '../../electron/managers/windowManager';
-import SettingsStore from '../../electron/store';
+import IpcManager from '../../src/main/managers/ipcManager';
+import WindowManager from '../../src/main/managers/windowManager';
+import SettingsStore from '../../src/main/store';
 
 // Mock logger - must use hoisted to avoid initialization issues
 const mockLogger = vi.hoisted(() => ({
@@ -16,7 +16,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -208,3 +208,5 @@ describe('IPC Manager Coordination', () => {
         });
     });
 });
+
+

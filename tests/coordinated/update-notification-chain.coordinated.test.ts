@@ -6,11 +6,11 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow, app } from 'electron';
-import UpdateManager from '../../electron/managers/updateManager';
-import BadgeManager from '../../electron/managers/badgeManager';
-import TrayManager from '../../electron/managers/trayManager';
-import WindowManager from '../../electron/managers/windowManager';
-import IpcManager from '../../electron/managers/ipcManager';
+import UpdateManager from '../../src/main/managers/updateManager';
+import BadgeManager from '../../src/main/managers/badgeManager';
+import TrayManager from '../../src/main/managers/trayManager';
+import WindowManager from '../../src/main/managers/windowManager';
+import IpcManager from '../../src/main/managers/ipcManager';
 import type { UpdateInfo } from 'electron-updater';
 
 // Mock logger
@@ -19,7 +19,7 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     warn: vi.fn()
 }));
-vi.mock('../../electron/utils/logger', () => ({
+vi.mock('../../src/main/utils/logger', () => ({
     createLogger: () => mockLogger
 }));
 
@@ -69,7 +69,7 @@ vi.mock('electron-updater', () => ({
 }));
 
 // Mock constants to support changing platform dynamically
-vi.mock('../../electron/utils/constants', async (importOriginal) => {
+vi.mock('../../src/main/utils/constants', async (importOriginal) => {
     return {
         ...(await importOriginal<any>()),
         get isMacOS() { return process.platform === 'darwin'; },
@@ -576,3 +576,5 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
         });
     });
 });
+
+

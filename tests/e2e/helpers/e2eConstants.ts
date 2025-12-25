@@ -18,10 +18,10 @@ export {
     GEMINI_SUBMIT_BUTTON_SELECTORS,
     GEMINI_EDITOR_BLANK_CLASS,
     GEMINI_SUBMIT_DELAY_MS,
-} from '../../../electron/utils/constants';
+} from '../../../src/main/utils/constants';
 
 // Import locally for use in other constants
-import { GEMINI_DOMAIN as _GEMINI_DOMAIN } from '../../../electron/utils/constants';
+import { GEMINI_DOMAIN as _GEMINI_DOMAIN } from '../../../src/main/utils/constants';
 
 /**
  * Alternative domain patterns that might appear in Gemini URLs.
@@ -153,3 +153,4 @@ export function findElementBySelectors(
 export function isGeminiUrl(url: string): boolean {
     return GEMINI_DOMAIN_PATTERNS.some(domain => url.includes(domain));
 }
+

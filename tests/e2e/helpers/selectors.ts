@@ -16,7 +16,7 @@ import {
     TITLEBAR_TEST_IDS,
     OPTIONS_TEST_IDS,
     QUICK_CHAT_TEST_IDS,
-} from '../../../src/utils/testIds';
+} from '../../../src/renderer/utils/testIds';
 
 /**
  * Helper to create a data-testid selector from an ID string.

@@ -20,19 +20,19 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "src/renderer/*"
       ],
       "@components/*": [
-        "src/components/*"
+        "src/renderer/components/*"
       ],
       "@hooks/*": [
-        "src/hooks/*"
+        "src/renderer/hooks/*"
       ],
       "@context/*": [
-        "src/context/*"
+        "src/renderer/context/*"
       ],
       "@utils/*": [
-        "src/utils/*"
+        "src/renderer/utils/*"
       ]
     },
     /* Linting */
@@ -45,14 +45,15 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src"
+    "src/renderer",
+    "src/shared"
   ],
   "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/**/*.spec.ts",
-    "src/**/*.spec.tsx",
-    "src/test/**"
+    "src/renderer/**/*.test.ts",
+    "src/renderer/**/*.test.tsx",
+    "src/renderer/**/*.spec.ts",
+    "src/renderer/**/*.spec.tsx",
+    "src/renderer/test/**"
   ],
   "references": [
     {
