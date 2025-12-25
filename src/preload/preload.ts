@@ -16,15 +16,18 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ElectronAPI } from '../main/types';
-
+import type { ElectronAPI } from '../shared/types';
 /**
  * IPC channel names used for main process <-> renderer communication.
- * NOTE: These are duplicated from utils/constants.ts because preload scripts
- * running in sandbox mode cannot use relative imports. If you update these,
- * also update the constants in utils/constants.ts to keep them in sync.
+ * 
+ * IMPORTANT: This object is inlined in the preload script because sandboxed 
+ * renderer processes cannot 'require' external modules. To keep this in sync
+ * with the rest of the app, update src/shared/constants/ipc-channels.ts as well.
+ * 
+ * TODO: Implement a proper bundling step for the preload script (e.g. using Vite or esbuild)
+ * to allow sharing code without duplication.
  */
-const IPC_CHANNELS = {
+export const IPC_CHANNELS = {
     // Window controls
     WINDOW_MINIMIZE: 'window-minimize',
     WINDOW_MAXIMIZE: 'window-maximize',
@@ -64,10 +67,10 @@ const IPC_CHANNELS = {
     AUTO_UPDATE_INSTALL: 'auto-update:install',
     AUTO_UPDATE_GET_LAST_CHECK: 'auto-update:get-last-check',
     AUTO_UPDATE_AVAILABLE: 'auto-update:available',
-    AUTO_UPDATE_NOT_AVAILABLE: 'auto-update:not-available',
     AUTO_UPDATE_DOWNLOADED: 'auto-update:downloaded',
     AUTO_UPDATE_ERROR: 'auto-update:error',
     AUTO_UPDATE_CHECKING: 'auto-update:checking',
+    AUTO_UPDATE_NOT_AVAILABLE: 'auto-update:not-available',
     AUTO_UPDATE_DOWNLOAD_PROGRESS: 'auto-update:download-progress',
 
     // Tray
@@ -80,6 +83,7 @@ const IPC_CHANNELS = {
     DEV_TEST_EMIT_UPDATE_EVENT: 'dev:test:emit-update-event',
     DEV_TEST_MOCK_PLATFORM: 'dev:test:mock-platform',
 } as const;
+
 
 // Expose window control APIs to renderer
 const electronAPI: ElectronAPI = {

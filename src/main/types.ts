@@ -1,40 +1,38 @@
 /**
  * Shared TypeScript type definitions for Electron application.
- * These types are used across main process, preload scripts, and renderer process.
+ * 
+ * This file re-exports shared types and defines main-process-specific types.
+ * For new code, consider importing directly from '@shared/types' instead.
  */
 
-/**
- * Valid theme preference values.
- */
-export type ThemePreference = 'light' | 'dark' | 'system';
+// =========================================================================
+// Re-exports from Shared Types
+// =========================================================================
 
 /**
- * Theme data returned from main process.
+ * Re-export all shared types for backward compatibility.
+ * These types are now defined in src/shared/types/ and shared between processes.
  */
-export interface ThemeData {
-    /** User's theme preference (light, dark, or system) */
-    preference: ThemePreference;
-    /** Resolved effective theme based on system settings */
-    effectiveTheme: 'light' | 'dark';
-}
+export type {
+    // Theme types
+    ThemePreference,
+    ThemeData,
 
-/**
- * Identifiers for individual hotkey features.
- */
-export type HotkeyId = 'alwaysOnTop' | 'bossKey' | 'quickChat';
+    // Hotkey types
+    HotkeyId,
+    IndividualHotkeySettings,
 
-/**
- * Individual hotkey settings returned from main process.
- * Each key represents a hotkey feature's enabled state.
- */
-export interface IndividualHotkeySettings {
-    /** Always on Top toggle hotkey (Ctrl/Cmd+Shift+T) */
-    alwaysOnTop: boolean;
-    /** Boss Key / Minimize hotkey (Ctrl/Cmd+Alt+E) */
-    bossKey: boolean;
-    /** Quick Chat toggle hotkey (Ctrl/Cmd+Shift+Space) */
-    quickChat: boolean;
-}
+    // Update types
+    UpdateInfo,
+    DownloadProgress,
+
+    // IPC types
+    ElectronAPI,
+} from '../shared/types';
+
+// =========================================================================
+// Main Process Specific Types
+// =========================================================================
 
 /**
  * Settings store options.
@@ -57,83 +55,9 @@ export interface Logger {
     warn(message: string, ...args: unknown[]): void;
 }
 
-/**
- * Update information from electron-updater.
- * Simplified version for renderer process.
- */
-export interface UpdateInfo {
-    /** The version of the update */
-    version: string;
-    /** Release name */
-    releaseName?: string;
-    /** Release notes (may be HTML or markdown) */
-    releaseNotes?: string | Array<{ version: string; note: string }>;
-    /** Release date */
-    releaseDate?: string;
-}
-
-/**
- * Electron API exposed to renderer process via contextBridge.
- * Available as `window.electronAPI` in renderer.
- */
-export interface ElectronAPI {
-    // Window Controls
-    minimizeWindow: () => void;
-    maximizeWindow: () => void;
-    closeWindow: () => void;
-    showWindow: () => void;
-    isMaximized: () => Promise<boolean>;
-    openOptions: (tab?: 'settings' | 'about') => void;
-    openGoogleSignIn: () => Promise<void>;
-
-    // Platform Detection
-    platform: NodeJS.Platform;
-    isElectron: true;
-
-    // Theme API
-    getTheme: () => Promise<ThemeData>;
-    setTheme: (theme: ThemePreference) => void;
-    onThemeChanged: (callback: (themeData: ThemeData) => void) => () => void;
-
-    // Quick Chat API
-    submitQuickChat: (text: string) => void;
-    hideQuickChat: () => void;
-    cancelQuickChat: () => void;
-    onQuickChatExecute: (callback: (text: string) => void) => () => void;
-
-    // Individual Hotkeys API
-    getIndividualHotkeys: () => Promise<IndividualHotkeySettings>;
-    setIndividualHotkey: (id: HotkeyId, enabled: boolean) => void;
-    onIndividualHotkeysChanged: (callback: (settings: IndividualHotkeySettings) => void) => () => void;
-
-    // Always On Top API
-    getAlwaysOnTop: () => Promise<{ enabled: boolean }>;
-    setAlwaysOnTop: (enabled: boolean) => void;
-    onAlwaysOnTopChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
-
-    // Auto-Update API
-    getAutoUpdateEnabled: () => Promise<boolean>;
-    setAutoUpdateEnabled: (enabled: boolean) => void;
-    checkForUpdates: () => void;
-    installUpdate: () => void;
-    onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
-    onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => () => void;
-    onUpdateError: (callback: (error: string) => void) => () => void;
-    onUpdateNotAvailable: (callback: (info: UpdateInfo) => void) => () => void;
-    onDownloadProgress: (callback: (progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }) => void) => () => void;
-
-    // Dev Testing API (only for manual testing in development)
-    devShowBadge: (version?: string) => void;
-    devClearBadge: () => void;
-    devSetUpdateEnabled: (enabled: boolean) => void;
-    devEmitUpdateEvent: (event: string, data: any) => void;
-    devMockPlatform: (platform: NodeJS.Platform | null, env: Record<string, string> | null) => void;
-
-    // E2E Testing Helpers
-    getTrayTooltip: () => Promise<string>;
-    onCheckingForUpdate: (callback: () => void) => () => void;
-    getLastUpdateCheckTime: () => Promise<number>;
-}
+// =========================================================================
+// Global Type Augmentation
+// =========================================================================
 
 /**
  * Augment Window interface to include our Electron API.
@@ -141,6 +65,6 @@ export interface ElectronAPI {
  */
 declare global {
     interface Window {
-        electronAPI: ElectronAPI;
+        electronAPI: import('../shared/types').ElectronAPI;
     }
 }

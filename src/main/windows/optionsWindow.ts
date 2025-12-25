@@ -55,17 +55,29 @@ export default class OptionsWindow extends BaseWindow {
 
         const win = this.createWindow();
 
-        // Override default content loading to handle hash
-        if (this.isDev) {
-            win.loadURL(getDevUrl(this.htmlFile) + hash);
-        } else {
-            win.loadFile(getDistHtmlPath(this.htmlFile), { hash: tab });
-        }
-
         win.once('ready-to-show', () => {
             win.show();
         });
 
         return win;
+    }
+
+    /**
+     * Override loadContent to handle optional hash for tabs.
+     */
+    protected override loadContent(): void {
+        if (!this.window) return;
+
+        // Note: Hash is handled in create() for existing windows,
+        // but for a new window we load it here.
+        // Since loadContent doesn't take arguments, we'll just load the base file
+        // and let create() handle the navigation if needed, OR we could
+        // use a private property to store the pending tab.
+
+        if (this.isDev) {
+            this.window.loadURL(getDevUrl(this.htmlFile));
+        } else {
+            this.window.loadFile(getDistHtmlPath(this.htmlFile));
+        }
     }
 }

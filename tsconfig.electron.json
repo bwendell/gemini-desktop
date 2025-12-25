@@ -10,7 +10,13 @@
     "strict": true,
     "noImplicitAny": false,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": [
+        "src/shared/*"
+      ]
+    }
   },
   "include": [
     "src/main/**/*",
