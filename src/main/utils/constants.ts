@@ -13,18 +13,13 @@ import type { BrowserWindowConstructorOptions } from 'electron';
  * Domains that should open inside Electron windows.
  * These URLs open in new Electron windows instead of the system browser.
  */
-export const INTERNAL_DOMAINS = [
-    'gemini.google.com'
-] as const;
+export const INTERNAL_DOMAINS = ['gemini.google.com'] as const;
 
 /**
  * OAuth domains that require special handling.
  * These are intercepted and opened in a BrowserWindow with shared session.
  */
-export const OAUTH_DOMAINS = [
-    'accounts.google.com',
-    'accounts.youtube.com'
-] as const;
+export const OAUTH_DOMAINS = ['accounts.google.com', 'accounts.youtube.com'] as const;
 
 // =========================================================================
 // Window Configuration
@@ -97,14 +92,14 @@ export const AI_STUDIO_URL = `https://${AI_STUDIO_DOMAIN}` as const;
 // See geminiSelectors.ts for version tracking and selector documentation.
 
 export {
-    GEMINI_DOMAIN,
-    GEMINI_EDITOR_SELECTORS,
-    GEMINI_SUBMIT_BUTTON_SELECTORS,
-    GEMINI_EDITOR_BLANK_CLASS,
-    GEMINI_SUBMIT_DELAY_MS,
-    GeminiSelectors,
-    findGeminiElement,
-    isGeminiDomain,
+  GEMINI_DOMAIN,
+  GEMINI_EDITOR_SELECTORS,
+  GEMINI_SUBMIT_BUTTON_SELECTORS,
+  GEMINI_EDITOR_BLANK_CLASS,
+  GEMINI_SUBMIT_DELAY_MS,
+  GeminiSelectors,
+  findGeminiElement,
+  isGeminiDomain,
 } from './geminiSelectors';
 
 // IPC Channel Names
@@ -113,7 +108,7 @@ export {
 /**
  * IPC channel names used for main process <-> renderer communication.
  * Now imported from shared location for consistency across all processes.
- * 
+ *
  * @deprecated Import directly from '@shared/constants' for new code.
  * This re-export is provided for backward compatibility.
  */
@@ -123,15 +118,15 @@ export { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
  * Configuration for the authentication window.
  */
 export const AUTH_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
-    width: 500,
-    height: 700,
-    title: 'Sign in to Google',
-    autoHideMenuBar: true,
-    webPreferences: {
-        // Uses default session (shared with main window)
-        contextIsolation: true,
-        nodeIntegration: false,
-    },
+  width: 500,
+  height: 700,
+  title: 'Sign in to Google',
+  autoHideMenuBar: true,
+  webPreferences: {
+    // Uses default session (shared with main window)
+    contextIsolation: true,
+    nodeIntegration: false,
+  },
 };
 
 // =========================================================================
@@ -140,27 +135,23 @@ export const AUTH_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
 
 /**
  * Check if a hostname should be handled internally (in Electron) vs externally (system browser).
- * 
+ *
  * @param hostname - The hostname to check
  * @returns True if the URL should open in Electron
  */
 export function isInternalDomain(hostname: string): boolean {
-    return INTERNAL_DOMAINS.some(domain =>
-        hostname === domain || hostname.endsWith('.' + domain)
-    );
+  return INTERNAL_DOMAINS.some((domain) => hostname === domain || hostname.endsWith('.' + domain));
 }
 
 /**
  * Check if a hostname is a Google OAuth domain.
  * OAuth domains are opened in a dedicated BrowserWindow with shared session.
- * 
+ *
  * @param hostname - The hostname to check
  * @returns True if the URL is an OAuth domain
  */
 export function isOAuthDomain(hostname: string): boolean {
-    return OAUTH_DOMAINS.some(domain =>
-        hostname === domain || hostname.endsWith('.' + domain)
-    );
+  return OAUTH_DOMAINS.some((domain) => hostname === domain || hostname.endsWith('.' + domain));
 }
 
 // =============================================================================
@@ -172,58 +163,58 @@ export function isOAuthDomain(hostname: string): boolean {
  * Enforces security best practices across the application.
  */
 export const BASE_WEB_PREFERENCES: BrowserWindowConstructorOptions['webPreferences'] = {
-    contextIsolation: true,
-    nodeIntegration: false,
-    // Allow disabling sandbox via command line (for testing)
-    sandbox: !process.argv.includes('--no-sandbox'),
-    // Allow disabling webSecurity via command line (for testing)
-    webSecurity: !process.argv.includes('--disable-web-security'),
+  contextIsolation: true,
+  nodeIntegration: false,
+  // Allow disabling sandbox via command line (for testing)
+  sandbox: !process.argv.includes('--no-sandbox'),
+  // Allow disabling webSecurity via command line (for testing)
+  webSecurity: !process.argv.includes('--disable-web-security'),
 } as const;
 
 /**
  * Get titleBarStyle based on platform.
  * macOS uses 'hidden' for custom titlebar, others use default frame.
- * 
+ *
  * @returns 'hidden' on macOS, undefined on other platforms
  */
 export function getTitleBarStyle(): 'hidden' | undefined {
-    /* v8 ignore next */
-    return process.platform === 'darwin' ? 'hidden' : undefined;
+  /* v8 ignore next */
+  return process.platform === 'darwin' ? 'hidden' : undefined;
 }
 
 /**
  * Base configuration shared by all application windows.
  */
 export const BASE_WINDOW_CONFIG: Partial<BrowserWindowConstructorOptions> = {
-    backgroundColor: '#1a1a1a',
-    show: false, // Prevent flash, show on ready-to-show event
-    webPreferences: BASE_WEB_PREFERENCES,
+  backgroundColor: '#1a1a1a',
+  show: false, // Prevent flash, show on ready-to-show event
+  webPreferences: BASE_WEB_PREFERENCES,
 } as const;
 
 /**
  * Configuration for the main application window.
  */
 export const MAIN_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
-    width: 1200,
-    height: 800,
-    minWidth: 350,
-    minHeight: 600,
-    frame: false,
-    ...BASE_WINDOW_CONFIG,
+  width: 1200,
+  height: 800,
+  minWidth: 350,
+  minHeight: 600,
+  frame: false,
+  ...BASE_WINDOW_CONFIG,
 };
 
 /**
  * Configuration for the options/settings window.
  */
 export const OPTIONS_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
-    width: 600,
-    height: 400,
-    resizable: true,
-    minimizable: true,
-    maximizable: false,
-    frame: false,
-    ...BASE_WINDOW_CONFIG,
-    show: true, // Options window shows immediately
+  width: 600,
+  height: 400,
+  resizable: true,
+  minimizable: true,
+  maximizable: false,
+  frame: false,
+  ...BASE_WINDOW_CONFIG,
+  show: true, // Options window shows immediately
 };
 
 /**
@@ -234,18 +225,18 @@ export const QUICK_CHAT_WIDTH = 600;
 export const QUICK_CHAT_HEIGHT = 80;
 
 export const QUICK_CHAT_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
-    width: QUICK_CHAT_WIDTH,
-    height: QUICK_CHAT_HEIGHT,
-    resizable: false,
-    minimizable: false,
-    maximizable: false,
-    frame: false,
-    transparent: true,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    ...BASE_WINDOW_CONFIG,
-    backgroundColor: undefined, // Override for transparency
-    show: false, // Show when ready
+  width: QUICK_CHAT_WIDTH,
+  height: QUICK_CHAT_HEIGHT,
+  resizable: false,
+  minimizable: false,
+  maximizable: false,
+  frame: false,
+  transparent: true,
+  alwaysOnTop: true,
+  skipTaskbar: true,
+  ...BASE_WINDOW_CONFIG,
+  backgroundColor: undefined, // Override for transparency
+  show: false, // Show when ready
 };
 
 // =============================================================================
@@ -264,7 +255,7 @@ export const DEV_SERVER_PORT = 1420;
 
 /**
  * Get URL for a dev server page.
- * 
+ *
  * @param page - Optional page path (e.g., 'options.html')
  * @returns Full dev server URL
  * @example
@@ -272,7 +263,7 @@ export const DEV_SERVER_PORT = 1420;
  * getDevUrl('options.html') // 'http://localhost:1420/options.html'
  */
 export function getDevUrl(page: string = ''): string {
-    return page ? `${DEV_SERVER_URL}/${page}` : DEV_SERVER_URL;
+  return page ? `${DEV_SERVER_URL}/${page}` : DEV_SERVER_URL;
 }
 
 // =============================================================================
@@ -291,7 +282,7 @@ export const isDev = process.env.NODE_ENV === 'development';
 /**
  * Menu item configuration for system tray context menu.
  * Designed for extensibility - add new items here and TrayManager will pick them up.
- * 
+ *
  * @example Adding a new menu item:
  * ```typescript
  * export const TRAY_MENU_ITEMS = {
@@ -301,14 +292,14 @@ export const isDev = process.env.NODE_ENV === 'development';
  * ```
  */
 export interface TrayMenuItem {
-    /** Display label for the menu item */
-    label: string;
-    /** Unique identifier for the menu item (used in handlers) */
-    id: string;
-    /** Optional keyboard accelerator */
-    accelerator?: string;
-    /** Whether this is a separator (label ignored if true) */
-    isSeparator?: boolean;
+  /** Display label for the menu item */
+  label: string;
+  /** Unique identifier for the menu item (used in handlers) */
+  id: string;
+  /** Optional keyboard accelerator */
+  accelerator?: string;
+  /** Whether this is a separator (label ignored if true) */
+  isSeparator?: boolean;
 }
 
 /**
@@ -316,9 +307,9 @@ export interface TrayMenuItem {
  * TrayManager iterates over these to build the context menu.
  */
 export const TRAY_MENU_ITEMS: Record<string, TrayMenuItem> = {
-    SHOW: { label: 'Show Gemini Desktop', id: 'show' },
-    SEPARATOR: { label: '', id: 'separator', isSeparator: true },
-    QUIT: { label: 'Quit', id: 'quit' },
+  SHOW: { label: 'Show Gemini Desktop', id: 'show' },
+  SEPARATOR: { label: '', id: 'separator', isSeparator: true },
+  QUIT: { label: 'Quit', id: 'quit' },
 };
 
 /**

@@ -8,159 +8,160 @@
 /* Reset body styles for transparent window */
 html,
 body {
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    height: 100%;
-    overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  height: 100%;
+  overflow: hidden;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 #root {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px;
-    box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 /* Main container with glassmorphism effect */
 .quick-chat-container {
-    width: 100%;
-    max-width: 580px;
-    background: rgba(30, 30, 30, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        0 2px 8px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    overflow: hidden;
+  width: 100%;
+  max-width: 580px;
+  background: rgba(30, 30, 30, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
 }
 
 /* Light theme adjustments */
 [data-theme='light'] .quick-chat-container {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.15),
-        0 2px 8px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 /* Input wrapper for layout */
 .quick-chat-input-wrapper {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
 }
 
 /* Search/Gemini icon */
 .quick-chat-icon {
-    flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 [data-theme='light'] .quick-chat-icon {
-    color: rgba(0, 0, 0, 0.4);
+  color: rgba(0, 0, 0, 0.4);
 }
 
 /* Main input field */
 .quick-chat-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    font-size: 18px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.95);
-    caret-color: #8ab4f8;
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 18px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.95);
+  caret-color: #8ab4f8;
 }
 
 .quick-chat-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 [data-theme='light'] .quick-chat-input {
-    color: rgba(0, 0, 0, 0.9);
-    caret-color: #1a73e8;
+  color: rgba(0, 0, 0, 0.9);
+  caret-color: #1a73e8;
 }
 
 [data-theme='light'] .quick-chat-input::placeholder {
-    color: rgba(0, 0, 0, 0.4);
+  color: rgba(0, 0, 0, 0.4);
 }
 
 /* Submit button */
 .quick-chat-submit {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    transition: all 0.15s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .quick-chat-submit:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .quick-chat-submit:active:not(:disabled) {
-    transform: scale(0.95);
+  transform: scale(0.95);
 }
 
 .quick-chat-submit:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 [data-theme='light'] .quick-chat-submit {
-    background: rgba(0, 0, 0, 0.06);
-    color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.5);
 }
 
 [data-theme='light'] .quick-chat-submit:hover:not(:disabled) {
-    background: rgba(0, 0, 0, 0.12);
-    color: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.8);
 }
 
 /* Focus styles for accessibility */
 /* Input focus is handled by the container, so no visible ring needed */
 .quick-chat-submit:focus-visible {
-    outline: 2px solid #8ab4f8;
-    outline-offset: 2px;
+  outline: 2px solid #8ab4f8;
+  outline-offset: 2px;
 }
 
 [data-theme='light'] .quick-chat-submit:focus-visible {
-    outline-color: #1a73e8;
+  outline-color: #1a73e8;
 }
 
 /* Smooth animation on window show */
 @keyframes quickchat-appear {
-    from {
-        opacity: 0;
-        transform: scale(0.95) translateY(-10px);
-    }
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
 
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .quick-chat-container {
-    animation: quickchat-appear 0.15s ease-out;
+  animation: quickchat-appear 0.15s ease-out;
 }

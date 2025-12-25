@@ -13,117 +13,117 @@ const mockMaximize = vi.fn();
 const mockClose = vi.fn();
 
 vi.mock('../../hooks/useWindowControls', () => ({
-    useWindowControls: () => ({
-        minimize: mockMinimize,
-        maximize: mockMaximize,
-        close: mockClose,
-    }),
+  useWindowControls: () => ({
+    minimize: mockMinimize,
+    maximize: mockMaximize,
+    close: mockClose,
+  }),
 }));
 
 describe('WindowControls', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        setMockPlatform('win32');
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setMockPlatform('win32');
+  });
+
+  describe('platform behavior', () => {
+    it('renders controls on Windows', () => {
+      setMockPlatform('win32');
+      render(<WindowControls />);
+
+      expect(screen.getByRole('button', { name: /minimize/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /maximize/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
     });
 
-    describe('platform behavior', () => {
-        it('renders controls on Windows', () => {
-            setMockPlatform('win32');
-            render(<WindowControls />);
+    it('renders controls on Linux', () => {
+      setMockPlatform('linux');
+      render(<WindowControls />);
 
-            expect(screen.getByRole('button', { name: /minimize/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /maximize/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
-        });
-
-        it('renders controls on Linux', () => {
-            setMockPlatform('linux');
-            render(<WindowControls />);
-
-            expect(screen.getByRole('button', { name: /minimize/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /maximize/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
-        });
-
-        it('returns null on macOS', () => {
-            setMockPlatform('darwin');
-            const { container } = render(<WindowControls />);
-
-            expect(container.firstChild).toBeNull();
-        });
+      expect(screen.getByRole('button', { name: /minimize/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /maximize/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
     });
 
-    describe('button interactions', () => {
-        it('clicking minimize button calls minimize handler', () => {
-            render(<WindowControls />);
-            const minimizeBtn = screen.getByRole('button', { name: /minimize/i });
+    it('returns null on macOS', () => {
+      setMockPlatform('darwin');
+      const { container } = render(<WindowControls />);
 
-            fireEvent.click(minimizeBtn);
+      expect(container.firstChild).toBeNull();
+    });
+  });
 
-            expect(mockMinimize).toHaveBeenCalledTimes(1);
-        });
+  describe('button interactions', () => {
+    it('clicking minimize button calls minimize handler', () => {
+      render(<WindowControls />);
+      const minimizeBtn = screen.getByRole('button', { name: /minimize/i });
 
-        it('clicking maximize button calls maximize handler', () => {
-            render(<WindowControls />);
-            const maximizeBtn = screen.getByRole('button', { name: /maximize/i });
+      fireEvent.click(minimizeBtn);
 
-            fireEvent.click(maximizeBtn);
-
-            expect(mockMaximize).toHaveBeenCalledTimes(1);
-        });
-
-        it('clicking close button calls close handler', () => {
-            render(<WindowControls />);
-            const closeBtn = screen.getByRole('button', { name: /close/i });
-
-            fireEvent.click(closeBtn);
-
-            expect(mockClose).toHaveBeenCalledTimes(1);
-        });
+      expect(mockMinimize).toHaveBeenCalledTimes(1);
     });
 
-    describe('accessibility', () => {
-        it('minimize button has correct aria-label', () => {
-            render(<WindowControls />);
-            const btn = screen.getByRole('button', { name: 'Minimize window' });
+    it('clicking maximize button calls maximize handler', () => {
+      render(<WindowControls />);
+      const maximizeBtn = screen.getByRole('button', { name: /maximize/i });
 
-            expect(btn).toBeInTheDocument();
-        });
+      fireEvent.click(maximizeBtn);
 
-        it('maximize button has correct aria-label', () => {
-            render(<WindowControls />);
-            const btn = screen.getByRole('button', { name: 'Maximize window' });
-
-            expect(btn).toBeInTheDocument();
-        });
-
-        it('close button has correct aria-label', () => {
-            render(<WindowControls />);
-            const btn = screen.getByRole('button', { name: 'Close window' });
-
-            expect(btn).toBeInTheDocument();
-        });
-
-        it('buttons have title attributes for tooltips', () => {
-            render(<WindowControls />);
-
-            expect(screen.getByTitle('Minimize')).toBeInTheDocument();
-            expect(screen.getByTitle('Maximize')).toBeInTheDocument();
-            expect(screen.getByTitle('Close')).toBeInTheDocument();
-        });
+      expect(mockMaximize).toHaveBeenCalledTimes(1);
     });
 
-    describe('CSS classes', () => {
-        it('has correct CSS classes for styling', () => {
-            render(<WindowControls />);
+    it('clicking close button calls close handler', () => {
+      render(<WindowControls />);
+      const closeBtn = screen.getByRole('button', { name: /close/i });
 
-            const minimizeBtn = screen.getByRole('button', { name: /minimize/i });
-            const maximizeBtn = screen.getByRole('button', { name: /maximize/i });
-            const closeBtn = screen.getByRole('button', { name: /close/i });
+      fireEvent.click(closeBtn);
 
-            expect(minimizeBtn).toHaveClass('window-control-button', 'minimize');
-            expect(maximizeBtn).toHaveClass('window-control-button', 'maximize');
-            expect(closeBtn).toHaveClass('window-control-button', 'close');
-        });
+      expect(mockClose).toHaveBeenCalledTimes(1);
     });
+  });
+
+  describe('accessibility', () => {
+    it('minimize button has correct aria-label', () => {
+      render(<WindowControls />);
+      const btn = screen.getByRole('button', { name: 'Minimize window' });
+
+      expect(btn).toBeInTheDocument();
+    });
+
+    it('maximize button has correct aria-label', () => {
+      render(<WindowControls />);
+      const btn = screen.getByRole('button', { name: 'Maximize window' });
+
+      expect(btn).toBeInTheDocument();
+    });
+
+    it('close button has correct aria-label', () => {
+      render(<WindowControls />);
+      const btn = screen.getByRole('button', { name: 'Close window' });
+
+      expect(btn).toBeInTheDocument();
+    });
+
+    it('buttons have title attributes for tooltips', () => {
+      render(<WindowControls />);
+
+      expect(screen.getByTitle('Minimize')).toBeInTheDocument();
+      expect(screen.getByTitle('Maximize')).toBeInTheDocument();
+      expect(screen.getByTitle('Close')).toBeInTheDocument();
+    });
+  });
+
+  describe('CSS classes', () => {
+    it('has correct CSS classes for styling', () => {
+      render(<WindowControls />);
+
+      const minimizeBtn = screen.getByRole('button', { name: /minimize/i });
+      const maximizeBtn = screen.getByRole('button', { name: /maximize/i });
+      const closeBtn = screen.getByRole('button', { name: /close/i });
+
+      expect(minimizeBtn).toHaveClass('window-control-button', 'minimize');
+      expect(maximizeBtn).toHaveClass('window-control-button', 'maximize');
+      expect(closeBtn).toHaveClass('window-control-button', 'close');
+    });
+  });
 });

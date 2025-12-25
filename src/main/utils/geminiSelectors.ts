@@ -32,78 +32,78 @@ export const GEMINI_SELECTORS_LAST_VERIFIED = '2025-12-23';
  * - Additional component-specific properties
  */
 export const GeminiSelectors = {
+  /**
+   * Domain for matching Gemini iframe URLs.
+   */
+  domain: 'gemini.google.com',
+
+  /**
+   * Legacy domain that may still appear in some URLs.
+   */
+  legacyDomain: 'bard.google.com',
+
+  /**
+   * Chat input editor configuration.
+   * Gemini uses Quill.js for the rich text editor.
+   */
+  editor: {
     /**
-     * Domain for matching Gemini iframe URLs.
+     * CSS selectors for finding the chat input editor.
+     * Ordered by specificity - first match wins.
      */
-    domain: 'gemini.google.com',
-
-    /**
-     * Legacy domain that may still appear in some URLs.
-     */
-    legacyDomain: 'bard.google.com',
-
-    /**
-     * Chat input editor configuration.
-     * Gemini uses Quill.js for the rich text editor.
-     */
-    editor: {
-        /**
-         * CSS selectors for finding the chat input editor.
-         * Ordered by specificity - first match wins.
-         */
-        selectors: [
-            '.ql-editor[contenteditable="true"]',
-            '.ql-editor',
-            '[contenteditable="true"][role="textbox"]',
-        ] as const,
-
-        /**
-         * CSS class that indicates the editor is empty/blank.
-         * Must be removed when injecting text.
-         */
-        blankClass: 'ql-blank',
-
-        /**
-         * Description for logging/debugging.
-         */
-        description: 'Quill-based rich text editor',
-    },
+    selectors: [
+      '.ql-editor[contenteditable="true"]',
+      '.ql-editor',
+      '[contenteditable="true"][role="textbox"]',
+    ] as const,
 
     /**
-     * Submit/send button configuration.
+     * CSS class that indicates the editor is empty/blank.
+     * Must be removed when injecting text.
      */
-    submitButton: {
-        /**
-         * CSS selectors for finding the send message button.
-         * Ordered by specificity - first match wins.
-         */
-        selectors: [
-            'button.send-button[aria-label="Send message"]',
-            'button.send-button',
-            'button[aria-label="Send message"]',
-        ] as const,
-
-        /**
-         * Description for logging/debugging.
-         */
-        description: 'Send message button',
-    },
+    blankClass: 'ql-blank',
 
     /**
-     * Timing configuration for DOM interactions.
+     * Description for logging/debugging.
      */
-    timing: {
-        /**
-         * Delay in milliseconds before clicking submit after text injection.
-         * Allows Angular/Quill to process the text injection.
-         */
-        submitDelayMs: 200,
+    description: 'Quill-based rich text editor',
+  },
 
-        /**
-         * Description for logging/debugging.
-         */
-        description: 'Delay timings for DOM interactions',
-    },
+  /**
+   * Submit/send button configuration.
+   */
+  submitButton: {
+    /**
+     * CSS selectors for finding the send message button.
+     * Ordered by specificity - first match wins.
+     */
+    selectors: [
+      'button.send-button[aria-label="Send message"]',
+      'button.send-button',
+      'button[aria-label="Send message"]',
+    ] as const,
+
+    /**
+     * Description for logging/debugging.
+     */
+    description: 'Send message button',
+  },
+
+  /**
+   * Timing configuration for DOM interactions.
+   */
+  timing: {
+    /**
+     * Delay in milliseconds before clicking submit after text injection.
+     * Allows Angular/Quill to process the text injection.
+     */
+    submitDelayMs: 200,
+
+    /**
+     * Description for logging/debugging.
+     */
+    description: 'Delay timings for DOM interactions',
+  },
 } as const;
 
 /**
@@ -122,29 +122,31 @@ export type GeminiSelectorsConfig = typeof GeminiSelectors;
  * @returns The first matching element or null
  */
 export function findGeminiElement(
-    document: Document,
-    selectors: readonly string[],
-    componentName: string,
-    logger?: (message: string) => void
+  document: Document,
+  selectors: readonly string[],
+  componentName: string,
+  logger?: (message: string) => void
 ): Element | null {
-    const log = logger || console.log;
+  const log = logger || console.log;
 
-    for (let i = 0; i < selectors.length; i++) {
-        const selector = selectors[i];
-        const element = document.querySelector(selector);
+  for (let i = 0; i < selectors.length; i++) {
+    const selector = selectors[i];
+    const element = document.querySelector(selector);
 
-        if (element) {
-            if (i === 0) {
-                log(`[GeminiSelectors] ${componentName}: Found with primary selector`);
-            } else {
-                log(`[GeminiSelectors] ${componentName}: Found with fallback selector #${i + 1}: "${selector}"`);
-            }
-            return element;
-        }
+    if (element) {
+      if (i === 0) {
+        log(`[GeminiSelectors] ${componentName}: Found with primary selector`);
+      } else {
+        log(
+          `[GeminiSelectors] ${componentName}: Found with fallback selector #${i + 1}: "${selector}"`
+        );
+      }
+      return element;
     }
+  }
 
-    log(`[GeminiSelectors] ${componentName}: No matching element found`);
-    return null;
+  log(`[GeminiSelectors] ${componentName}: No matching element found`);
+  return null;
 }
 
 /**
@@ -154,9 +156,11 @@ export function findGeminiElement(
  * @returns True if the URL is for Gemini
  */
 export function isGeminiDomain(url: string): boolean {
-    return url.includes(GeminiSelectors.domain) ||
-        url.includes(GeminiSelectors.legacyDomain) ||
-        url.includes('aistudio.google.com');
+  return (
+    url.includes(GeminiSelectors.domain) ||
+    url.includes(GeminiSelectors.legacyDomain) ||
+    url.includes('aistudio.google.com')
+  );
 }
 
 // Re-export individual selector arrays for backwards compatibility

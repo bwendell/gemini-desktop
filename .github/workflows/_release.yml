@@ -3,7 +3,7 @@
 # =============================================================================
 #
 # This reusable workflow handles the packaging and publishing process.
-# 
+#
 # Strategy: Build with --publish never, then upload via softprops/action-gh-release
 # This avoids electron-builder's buggy GitHub upload mechanism that causes
 # "already_exists" errors on blockmap files.
@@ -47,7 +47,7 @@ jobs:
         with:
           name: frontend-dist
           path: dist/
-      
+
       - name: Download Electron Build
         uses: actions/download-artifact@v7
         with:
@@ -103,7 +103,7 @@ jobs:
         with:
           name: frontend-dist
           path: dist/
-      
+
       - name: Download Electron Build
         uses: actions/download-artifact@v7
         with:
@@ -157,7 +157,7 @@ jobs:
         with:
           name: frontend-dist
           path: dist/
-      
+
       - name: Download Electron Build
         uses: actions/download-artifact@v7
         with:
@@ -220,7 +220,7 @@ jobs:
         with:
           name: frontend-dist
           path: dist/
-      
+
       - name: Download Electron Build
         uses: actions/download-artifact@v7
         with:

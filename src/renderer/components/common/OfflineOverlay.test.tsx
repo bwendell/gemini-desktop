@@ -3,28 +3,30 @@ import { render, screen } from '@testing-library/react';
 import { OfflineOverlay } from './OfflineOverlay';
 
 describe('OfflineOverlay', () => {
-    it('renders overlay container', () => {
-        render(<OfflineOverlay />);
-        const overlay = document.querySelector('.offline-overlay');
-        expect(overlay).toBeInTheDocument();
-    });
+  it('renders overlay container', () => {
+    render(<OfflineOverlay />);
+    const overlay = document.querySelector('.offline-overlay');
+    expect(overlay).toBeInTheDocument();
+  });
 
-    it('renders offline message', () => {
-        render(<OfflineOverlay />);
-        expect(screen.getByText('Network Unavailable')).toBeInTheDocument();
-        expect(screen.getByText('Please check your internet connection to continue using Gemini.')).toBeInTheDocument();
-    });
+  it('renders offline message', () => {
+    render(<OfflineOverlay />);
+    expect(screen.getByText('Network Unavailable')).toBeInTheDocument();
+    expect(
+      screen.getByText('Please check your internet connection to continue using Gemini.')
+    ).toBeInTheDocument();
+  });
 
-    it('renders offline image', () => {
-        render(<OfflineOverlay />);
-        const image = document.querySelector('.offline-image');
-        expect(image).toBeInTheDocument();
-        expect(image).toHaveAttribute('alt', 'Network Unavailable');
-    });
+  it('renders offline image', () => {
+    render(<OfflineOverlay />);
+    const image = document.querySelector('.offline-image');
+    expect(image).toBeInTheDocument();
+    expect(image).toHaveAttribute('alt', 'Network Unavailable');
+  });
 
-    it('has correct class for styling', () => {
-        render(<OfflineOverlay />);
-        const overlay = document.querySelector('.offline-overlay');
-        expect(overlay).toHaveClass('offline-overlay');
-    });
+  it('has correct class for styling', () => {
+    render(<OfflineOverlay />);
+    const overlay = document.querySelector('.offline-overlay');
+    expect(overlay).toHaveClass('offline-overlay');
+  });
 });

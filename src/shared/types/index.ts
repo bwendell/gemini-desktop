@@ -1,6 +1,6 @@
 /**
  * Shared Types
- * 
+ *
  * Barrel export for all shared type definitions that are used across
  * main, renderer, and preload processes.
  */

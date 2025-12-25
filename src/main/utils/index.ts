@@ -1,7 +1,7 @@
 /**
  * Electron utility modules barrel export.
  * Centralizes all utility exports for cleaner imports.
- * 
+ *
  * @module electron/utils
  */
 

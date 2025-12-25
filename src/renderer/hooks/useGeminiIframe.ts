@@ -17,18 +17,18 @@ const logger = createRendererLogger('[useGeminiIframe]');
  * State and handlers for the Gemini iframe.
  */
 export interface GeminiIframeState {
-    /** Whether the iframe is currently loading */
-    isLoading: boolean;
-    /** Error message if loading failed, null otherwise */
-    error: string | null;
-    /** Whether the network is online */
-    isOnline: boolean;
-    /** Callback for iframe onLoad event */
-    handleLoad: () => void;
-    /** Callback for iframe onError event */
-    handleError: () => void;
-    /** Function to retry loading */
-    retry: () => void;
+  /** Whether the iframe is currently loading */
+  isLoading: boolean;
+  /** Error message if loading failed, null otherwise */
+  error: string | null;
+  /** Whether the network is online */
+  isOnline: boolean;
+  /** Callback for iframe onLoad event */
+  handleLoad: () => void;
+  /** Callback for iframe onError event */
+  handleError: () => void;
+  /** Function to retry loading */
+  retry: () => void;
 }
 
 /**
@@ -37,43 +37,43 @@ export interface GeminiIframeState {
  * @returns {GeminiIframeState} State and handlers for the iframe
  */
 export function useGeminiIframe(): GeminiIframeState {
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const isOnline = useNetworkStatus();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const isOnline = useNetworkStatus();
 
-    /**
-     * Handle successful iframe load.
-     */
-    const handleLoad = useCallback(() => {
-        setIsLoading(false);
-        setError(null);
-        logger.log('Gemini iframe loaded successfully');
-    }, []);
+  /**
+   * Handle successful iframe load.
+   */
+  const handleLoad = useCallback(() => {
+    setIsLoading(false);
+    setError(null);
+    logger.log('Gemini iframe loaded successfully');
+  }, []);
 
-    /**
-     * Handle iframe load error.
-     */
-    const handleError = useCallback(() => {
-        setIsLoading(false);
-        setError('Failed to load Gemini');
-        logger.error('Failed to load Gemini iframe');
-    }, []);
+  /**
+   * Handle iframe load error.
+   */
+  const handleError = useCallback(() => {
+    setIsLoading(false);
+    setError('Failed to load Gemini');
+    logger.error('Failed to load Gemini iframe');
+  }, []);
 
-    /**
-     * Retry loading the iframe by resetting state.
-     */
-    const retry = useCallback(() => {
-        setIsLoading(true);
-        setError(null);
-        logger.log('Retrying Gemini iframe load');
-    }, []);
+  /**
+   * Retry loading the iframe by resetting state.
+   */
+  const retry = useCallback(() => {
+    setIsLoading(true);
+    setError(null);
+    logger.log('Retrying Gemini iframe load');
+  }, []);
 
-    return {
-        isLoading,
-        error,
-        isOnline,
-        handleLoad,
-        handleError,
-        retry,
-    };
+  return {
+    isLoading,
+    error,
+    isOnline,
+    handleLoad,
+    handleError,
+    retry,
+  };
 }

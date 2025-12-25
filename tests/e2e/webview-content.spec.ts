@@ -23,188 +23,188 @@ import { E2ELogger } from './helpers/logger';
  * Get information about the webview/iframe frames.
  */
 async function getWebviewInfo(): Promise<{
-    hasWebview: boolean;
-    frameCount: number;
-    geminiFrameFound: boolean;
-    geminiUrl: string | null;
+  hasWebview: boolean;
+  frameCount: number;
+  geminiFrameFound: boolean;
+  geminiUrl: string | null;
 }> {
-    return browser.electron.execute((electron: typeof import('electron')) => {
-        const windows = electron.BrowserWindow.getAllWindows();
-        const mainWindow = windows[0];
+  return browser.electron.execute((electron: typeof import('electron')) => {
+    const windows = electron.BrowserWindow.getAllWindows();
+    const mainWindow = windows[0];
 
-        if (!mainWindow) {
-            return {
-                hasWebview: false,
-                frameCount: 0,
-                geminiFrameFound: false,
-                geminiUrl: null,
-            };
-        }
+    if (!mainWindow) {
+      return {
+        hasWebview: false,
+        frameCount: 0,
+        geminiFrameFound: false,
+        geminiUrl: null,
+      };
+    }
 
-        const webContents = mainWindow.webContents;
-        const frames = webContents.mainFrame.frames;
+    const webContents = mainWindow.webContents;
+    const frames = webContents.mainFrame.frames;
 
-        // Find Gemini frame
-        const geminiFrame = frames.find(frame => {
-            try {
-                return frame.url.includes('gemini.google.com');
-            } catch {
-                return false;
-            }
-        });
-
-        return {
-            hasWebview: frames.length > 0,
-            frameCount: frames.length,
-            geminiFrameFound: !!geminiFrame,
-            geminiUrl: geminiFrame?.url ?? null,
-        };
+    // Find Gemini frame
+    const geminiFrame = frames.find((frame) => {
+      try {
+        return frame.url.includes('gemini.google.com');
+      } catch {
+        return false;
+      }
     });
+
+    return {
+      hasWebview: frames.length > 0,
+      frameCount: frames.length,
+      geminiFrameFound: !!geminiFrame,
+      geminiUrl: geminiFrame?.url ?? null,
+    };
+  });
 }
 
 /**
  * Check if the webview has sandbox enabled.
  */
 async function checkWebviewSecurity(): Promise<{
-    sandboxEnabled: boolean;
-    webSecurityEnabled: boolean;
-    contextIsolationEnabled: boolean;
+  sandboxEnabled: boolean;
+  webSecurityEnabled: boolean;
+  contextIsolationEnabled: boolean;
 }> {
-    return browser.electron.execute((electron: typeof import('electron')) => {
-        const windows = electron.BrowserWindow.getAllWindows();
-        const mainWindow = windows[0];
+  return browser.electron.execute((electron: typeof import('electron')) => {
+    const windows = electron.BrowserWindow.getAllWindows();
+    const mainWindow = windows[0];
 
-        if (!mainWindow) {
-            return {
-                sandboxEnabled: false,
-                webSecurityEnabled: false,
-                contextIsolationEnabled: false,
-            };
-        }
+    if (!mainWindow) {
+      return {
+        sandboxEnabled: false,
+        webSecurityEnabled: false,
+        contextIsolationEnabled: false,
+      };
+    }
 
-        const webPreferences = mainWindow.webContents.getWebPreferences();
+    const webPreferences = mainWindow.webContents.getWebPreferences();
 
-        return {
-            sandboxEnabled: webPreferences.sandbox === true,
-            webSecurityEnabled: webPreferences.webSecurity !== false,
-            contextIsolationEnabled: webPreferences.contextIsolation === true,
-        };
-    });
+    return {
+      sandboxEnabled: webPreferences.sandbox === true,
+      webSecurityEnabled: webPreferences.webSecurity !== false,
+      contextIsolationEnabled: webPreferences.contextIsolation === true,
+    };
+  });
 }
 
 describe('Webview Content Verification', () => {
-    beforeEach(async () => {
-        // Ensure app is loaded
-        const mainLayout = await $(Selectors.mainLayout);
-        await mainLayout.waitForExist({ timeout: 15000 });
+  beforeEach(async () => {
+    // Ensure app is loaded
+    const mainLayout = await $(Selectors.mainLayout);
+    await mainLayout.waitForExist({ timeout: 15000 });
+  });
+
+  describe('Webview Container', () => {
+    it('should have webview container in the main window', async () => {
+      const webviewContainer = await $(Selectors.webviewContainer);
+      await expect(webviewContainer).toBeExisting();
+
+      E2ELogger.info('webview', 'Webview container exists');
     });
 
-    describe('Webview Container', () => {
-        it('should have webview container in the main window', async () => {
-            const webviewContainer = await $(Selectors.webviewContainer);
-            await expect(webviewContainer).toBeExisting();
+    it('should have at least one frame (for Gemini content)', async () => {
+      const info = await getWebviewInfo();
 
-            E2ELogger.info('webview', 'Webview container exists');
-        });
+      expect(info.hasWebview).toBe(true);
+      expect(info.frameCount).toBeGreaterThanOrEqual(0); // May be 0 if loading
 
-        it('should have at least one frame (for Gemini content)', async () => {
-            const info = await getWebviewInfo();
+      E2ELogger.info('webview', `Frame count: ${info.frameCount}`);
+    });
+  });
 
-            expect(info.hasWebview).toBe(true);
-            expect(info.frameCount).toBeGreaterThanOrEqual(0); // May be 0 if loading
+  describe('Gemini Content Loading', () => {
+    it('should load Gemini iframe (may be flaky due to network)', async () => {
+      // Wait for content to load (give network time)
+      await browser.pause(3000);
 
-            E2ELogger.info('webview', `Frame count: ${info.frameCount}`);
-        });
+      const info = await getWebviewInfo();
+
+      // Log the result regardless of pass/fail for debugging
+      E2ELogger.info('webview', `Gemini frame found: ${info.geminiFrameFound}`);
+      if (info.geminiUrl) {
+        E2ELogger.info('webview', `Gemini URL: ${info.geminiUrl}`);
+      }
+
+      // NOTE: This may fail in CI without network access
+      // We use a soft assertion pattern here
+      if (!info.geminiFrameFound) {
+        console.warn('[E2E] Gemini frame not found - may be network issue');
+      }
+
+      // At minimum, verify the structure is correct
+      expect(info.hasWebview).toBe(true);
     });
 
-    describe('Gemini Content Loading', () => {
-        it('should load Gemini iframe (may be flaky due to network)', async () => {
-            // Wait for content to load (give network time)
-            await browser.pause(3000);
+    it('should have valid Gemini URL when frame is loaded', async () => {
+      await browser.pause(3000);
 
-            const info = await getWebviewInfo();
+      const info = await getWebviewInfo();
 
-            // Log the result regardless of pass/fail for debugging
-            E2ELogger.info('webview', `Gemini frame found: ${info.geminiFrameFound}`);
-            if (info.geminiUrl) {
-                E2ELogger.info('webview', `Gemini URL: ${info.geminiUrl}`);
-            }
+      if (info.geminiFrameFound) {
+        expect(info.geminiUrl).toContain('gemini.google.com');
+        E2ELogger.info('webview', `Validated Gemini URL: ${info.geminiUrl}`);
+      } else {
+        // Skip this assertion if frame not loaded
+        E2ELogger.info('webview', 'Skipping URL validation - frame not loaded');
+      }
+    });
+  });
 
-            // NOTE: This may fail in CI without network access
-            // We use a soft assertion pattern here
-            if (!info.geminiFrameFound) {
-                console.warn('[E2E] Gemini frame not found - may be network issue');
-            }
+  describe('Content Security', () => {
+    it('should have sandbox enabled for security', async () => {
+      const security = await checkWebviewSecurity();
 
-            // At minimum, verify the structure is correct
-            expect(info.hasWebview).toBe(true);
-        });
+      // Sandbox should be enabled
+      expect(security.sandboxEnabled).toBe(true);
 
-        it('should have valid Gemini URL when frame is loaded', async () => {
-            await browser.pause(3000);
-
-            const info = await getWebviewInfo();
-
-            if (info.geminiFrameFound) {
-                expect(info.geminiUrl).toContain('gemini.google.com');
-                E2ELogger.info('webview', `Validated Gemini URL: ${info.geminiUrl}`);
-            } else {
-                // Skip this assertion if frame not loaded
-                E2ELogger.info('webview', 'Skipping URL validation - frame not loaded');
-            }
-        });
+      E2ELogger.info('webview', `Sandbox enabled: ${security.sandboxEnabled}`);
     });
 
-    describe('Content Security', () => {
-        it('should have sandbox enabled for security', async () => {
-            const security = await checkWebviewSecurity();
+    it('should have web security enabled', async () => {
+      const security = await checkWebviewSecurity();
 
-            // Sandbox should be enabled
-            expect(security.sandboxEnabled).toBe(true);
+      // Web security should NOT be disabled
+      expect(security.webSecurityEnabled).toBe(true);
 
-            E2ELogger.info('webview', `Sandbox enabled: ${security.sandboxEnabled}`);
-        });
-
-        it('should have web security enabled', async () => {
-            const security = await checkWebviewSecurity();
-
-            // Web security should NOT be disabled
-            expect(security.webSecurityEnabled).toBe(true);
-
-            E2ELogger.info('webview', `Web security enabled: ${security.webSecurityEnabled}`);
-        });
-
-        it('should have context isolation enabled', async () => {
-            const security = await checkWebviewSecurity();
-
-            // Context isolation should be enabled
-            expect(security.contextIsolationEnabled).toBe(true);
-
-            E2ELogger.info('webview', `Context isolation: ${security.contextIsolationEnabled}`);
-        });
+      E2ELogger.info('webview', `Web security enabled: ${security.webSecurityEnabled}`);
     });
 
-    describe('Navigation Behavior', () => {
-        it('should maintain webview after window focus changes', async () => {
-            // Get initial state
-            const initialInfo = await getWebviewInfo();
+    it('should have context isolation enabled', async () => {
+      const security = await checkWebviewSecurity();
 
-            // Perform some action that might affect webview
-            await browser.execute(() => {
-                // Trigger a focus cycle
-                window.blur();
-                window.focus();
-            });
+      // Context isolation should be enabled
+      expect(security.contextIsolationEnabled).toBe(true);
 
-            await browser.pause(500);
-
-            // Verify webview still exists
-            const afterInfo = await getWebviewInfo();
-
-            expect(afterInfo.hasWebview).toBe(true);
-            expect(afterInfo.frameCount).toBeGreaterThanOrEqual(0);
-
-            E2ELogger.info('webview', 'Webview persists after focus change');
-        });
+      E2ELogger.info('webview', `Context isolation: ${security.contextIsolationEnabled}`);
     });
+  });
+
+  describe('Navigation Behavior', () => {
+    it('should maintain webview after window focus changes', async () => {
+      // Get initial state
+      const initialInfo = await getWebviewInfo();
+
+      // Perform some action that might affect webview
+      await browser.execute(() => {
+        // Trigger a focus cycle
+        window.blur();
+        window.focus();
+      });
+
+      await browser.pause(500);
+
+      // Verify webview still exists
+      const afterInfo = await getWebviewInfo();
+
+      expect(afterInfo.hasWebview).toBe(true);
+      expect(afterInfo.frameCount).toBeGreaterThanOrEqual(0);
+
+      E2ELogger.info('webview', 'Webview persists after focus change');
+    });
+  });
 });

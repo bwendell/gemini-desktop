@@ -7,7 +7,7 @@ import './App.css';
 
 /**
  * Root application component.
- * 
+ *
  * Uses an iframe to embed Gemini. Electron's main process
  * strips security headers that would normally block iframe embedding.
  */
@@ -41,7 +41,6 @@ function App() {
                 onError={handleError}
                 data-testid="gemini-iframe"
               />
-
             </div>
           </GeminiErrorBoundary>
         </MainLayout>
@@ -51,4 +50,3 @@ function App() {
 }
 
 export default App;
-

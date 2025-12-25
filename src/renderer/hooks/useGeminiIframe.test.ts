@@ -5,116 +5,116 @@ import * as useNetworkStatusModule from './useNetworkStatus';
 
 // Mock useNetworkStatus
 vi.mock('./useNetworkStatus', () => ({
-    useNetworkStatus: vi.fn(() => true)
+  useNetworkStatus: vi.fn(() => true),
 }));
 
 describe('useGeminiIframe', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        // Default to online
-        vi.mocked(useNetworkStatusModule.useNetworkStatus).mockReturnValue(true);
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Default to online
+    vi.mocked(useNetworkStatusModule.useNetworkStatus).mockReturnValue(true);
+  });
+
+  it('initializes with loading state', () => {
+    const { result } = renderHook(() => useGeminiIframe());
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.isOnline).toBe(true);
+  });
+
+  it('provides network status from useNetworkStatus', () => {
+    vi.mocked(useNetworkStatusModule.useNetworkStatus).mockReturnValue(false);
+
+    const { result } = renderHook(() => useGeminiIframe());
+
+    expect(result.current.isOnline).toBe(false);
+  });
+
+  it('handleLoad sets loading to false and clears error', () => {
+    const { result } = renderHook(() => useGeminiIframe());
+
+    act(() => {
+      result.current.handleLoad();
     });
 
-    it('initializes with loading state', () => {
-        const { result } = renderHook(() => useGeminiIframe());
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
 
-        expect(result.current.isLoading).toBe(true);
-        expect(result.current.error).toBeNull();
-        expect(result.current.isOnline).toBe(true);
+  it('handleError sets loading to false and sets error message', () => {
+    const { result } = renderHook(() => useGeminiIframe());
+
+    act(() => {
+      result.current.handleError();
     });
 
-    it('provides network status from useNetworkStatus', () => {
-        vi.mocked(useNetworkStatusModule.useNetworkStatus).mockReturnValue(false);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBe('Failed to load Gemini');
+  });
 
-        const { result } = renderHook(() => useGeminiIframe());
+  it('retry resets loading state and clears error', () => {
+    const { result } = renderHook(() => useGeminiIframe());
 
-        expect(result.current.isOnline).toBe(false);
+    // First set error state
+    act(() => {
+      result.current.handleError();
     });
 
-    it('handleLoad sets loading to false and clears error', () => {
-        const { result } = renderHook(() => useGeminiIframe());
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBe('Failed to load Gemini');
 
-        act(() => {
-            result.current.handleLoad();
-        });
-
-        expect(result.current.isLoading).toBe(false);
-        expect(result.current.error).toBeNull();
+    // Then retry
+    act(() => {
+      result.current.retry();
     });
 
-    it('handleError sets loading to false and sets error message', () => {
-        const { result } = renderHook(() => useGeminiIframe());
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.error).toBeNull();
+  });
 
-        act(() => {
-            result.current.handleError();
-        });
+  it('handleLoad after error clears error state', () => {
+    const { result } = renderHook(() => useGeminiIframe());
 
-        expect(result.current.isLoading).toBe(false);
-        expect(result.current.error).toBe('Failed to load Gemini');
+    // Set error
+    act(() => {
+      result.current.handleError();
     });
 
-    it('retry resets loading state and clears error', () => {
-        const { result } = renderHook(() => useGeminiIframe());
+    expect(result.current.error).toBe('Failed to load Gemini');
 
-        // First set error state
-        act(() => {
-            result.current.handleError();
-        });
-
-        expect(result.current.isLoading).toBe(false);
-        expect(result.current.error).toBe('Failed to load Gemini');
-
-        // Then retry
-        act(() => {
-            result.current.retry();
-        });
-
-        expect(result.current.isLoading).toBe(true);
-        expect(result.current.error).toBeNull();
+    // Then load successfully
+    act(() => {
+      result.current.handleLoad();
     });
 
-    it('handleLoad after error clears error state', () => {
-        const { result } = renderHook(() => useGeminiIframe());
+    expect(result.current.error).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+  });
 
-        // Set error
-        act(() => {
-            result.current.handleError();
-        });
+  it('provides stable callback references', () => {
+    const { result, rerender } = renderHook(() => useGeminiIframe());
 
-        expect(result.current.error).toBe('Failed to load Gemini');
+    const initialHandleLoad = result.current.handleLoad;
+    const initialHandleError = result.current.handleError;
+    const initialRetry = result.current.retry;
 
-        // Then load successfully
-        act(() => {
-            result.current.handleLoad();
-        });
+    rerender();
 
-        expect(result.current.error).toBeNull();
-        expect(result.current.isLoading).toBe(false);
-    });
+    expect(result.current.handleLoad).toBe(initialHandleLoad);
+    expect(result.current.handleError).toBe(initialHandleError);
+    expect(result.current.retry).toBe(initialRetry);
+  });
 
-    it('provides stable callback references', () => {
-        const { result, rerender } = renderHook(() => useGeminiIframe());
+  it('network status updates are reflected', () => {
+    const { result, rerender } = renderHook(() => useGeminiIframe());
 
-        const initialHandleLoad = result.current.handleLoad;
-        const initialHandleError = result.current.handleError;
-        const initialRetry = result.current.retry;
+    expect(result.current.isOnline).toBe(true);
 
-        rerender();
+    // Change network status
+    vi.mocked(useNetworkStatusModule.useNetworkStatus).mockReturnValue(false);
+    rerender();
 
-        expect(result.current.handleLoad).toBe(initialHandleLoad);
-        expect(result.current.handleError).toBe(initialHandleError);
-        expect(result.current.retry).toBe(initialRetry);
-    });
-
-    it('network status updates are reflected', () => {
-        const { result, rerender } = renderHook(() => useGeminiIframe());
-
-        expect(result.current.isOnline).toBe(true);
-
-        // Change network status
-        vi.mocked(useNetworkStatusModule.useNetworkStatus).mockReturnValue(false);
-        rerender();
-
-        expect(result.current.isOnline).toBe(false);
-    });
+    expect(result.current.isOnline).toBe(false);
+  });
 });

@@ -11,109 +11,107 @@ import UpdateManager from '../../src/main/managers/updateManager';
 
 // Mock electron-updater
 vi.mock('electron-updater', () => ({
-    autoUpdater: {
-        on: vi.fn(),
-        checkForUpdates: vi.fn(),
-        checkForUpdatesAndNotify: vi.fn(),
-        downloadUpdate: vi.fn(),
-        quitAndInstall: vi.fn(),
-        removeAllListeners: vi.fn(),
-    }
+  autoUpdater: {
+    on: vi.fn(),
+    checkForUpdates: vi.fn(),
+    checkForUpdatesAndNotify: vi.fn(),
+    downloadUpdate: vi.fn(),
+    quitAndInstall: vi.fn(),
+    removeAllListeners: vi.fn(),
+  },
 }));
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
-    log: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn()
+  log: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
 }));
 vi.mock('../../src/main/utils/logger', () => ({
-    createLogger: () => mockLogger
+  createLogger: () => mockLogger,
 }));
 
 // Mock fs
 vi.mock('fs', () => ({
-    existsSync: vi.fn().mockReturnValue(true),
-    readFileSync: vi.fn().mockReturnValue(Buffer.from('mock')),
-    writeFileSync: vi.fn(),
+  existsSync: vi.fn().mockReturnValue(true),
+  readFileSync: vi.fn().mockReturnValue(Buffer.from('mock')),
+  writeFileSync: vi.fn(),
 }));
 
 describe('Shutdown Sequence Integration', () => {
-    let windowManager: WindowManager;
-    let hotkeyManager: HotkeyManager;
-    let trayManager: TrayManager;
-    let updateManager: UpdateManager;
-    let mockStore: any;
+  let windowManager: WindowManager;
+  let hotkeyManager: HotkeyManager;
+  let trayManager: TrayManager;
+  let updateManager: UpdateManager;
+  let mockStore: any;
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+    if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
+    if ((Tray as any)._reset) (Tray as any)._reset();
+
+    mockStore = {
+      get: vi.fn().mockReturnValue(true),
+      set: vi.fn(),
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
     beforeEach(() => {
-        vi.clearAllMocks();
-        if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
-        if ((Tray as any)._reset) (Tray as any)._reset();
+      // Mock platform
+      vi.stubGlobal('process', { ...process, platform });
 
-        mockStore = {
-            get: vi.fn().mockReturnValue(true),
-            set: vi.fn(),
-        };
+      // Create REAL managers after platform stub
+      windowManager = new WindowManager(false);
+      hotkeyManager = new HotkeyManager(windowManager);
+      trayManager = new TrayManager(windowManager);
+      updateManager = new UpdateManager(mockStore);
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
+      vi.unstubAllGlobals();
     });
 
-    describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
-        beforeEach(() => {
-            // Mock platform
-            vi.stubGlobal('process', { ...process, platform });
+    it('should perform coordinated cleanup on app shutdown', () => {
+      // Setup some state
+      windowManager.createMainWindow();
+      hotkeyManager.registerShortcuts();
+      trayManager.createTray();
 
-            // Create REAL managers after platform stub
-            windowManager = new WindowManager(false);
-            hotkeyManager = new HotkeyManager(windowManager);
-            trayManager = new TrayManager(windowManager);
-            updateManager = new UpdateManager(mockStore);
-        });
+      // Simulate "will-quit" sequence (as seen in main.ts)
+      hotkeyManager.unregisterAll();
+      trayManager.destroyTray();
+      updateManager.destroy();
+      windowManager.setQuitting(true);
 
-        afterEach(() => {
-            vi.unstubAllGlobals();
-        });
+      // Verify Hotkeys unregistration
+      expect(globalShortcut.unregisterAll).toHaveBeenCalled();
 
-        it('should perform coordinated cleanup on app shutdown', () => {
-            // Setup some state
-            windowManager.createMainWindow();
-            hotkeyManager.registerShortcuts();
-            trayManager.createTray();
+      // Verify Tray destruction
+      const instances = (Tray as any)._instances;
+      expect(instances.length).toBeGreaterThan(0);
+      expect(instances[0].destroy).toHaveBeenCalled();
 
-            // Simulate "will-quit" sequence (as seen in main.ts)
-            hotkeyManager.unregisterAll();
-            trayManager.destroyTray();
-            updateManager.destroy();
-            windowManager.setQuitting(true);
-
-            // Verify Hotkeys unregistration
-            expect(globalShortcut.unregisterAll).toHaveBeenCalled();
-
-            // Verify Tray destruction
-            const instances = (Tray as any)._instances;
-            expect(instances.length).toBeGreaterThan(0);
-            expect(instances[0].destroy).toHaveBeenCalled();
-
-            // Verify WindowManager is in quitting state (prevents hiding to tray)
-            const mainWindow = windowManager.getMainWindow() as any;
-            const closeEvent = { preventDefault: vi.fn() };
-            mainWindow._listeners.get('close')(closeEvent);
-            expect(closeEvent.preventDefault).not.toHaveBeenCalled();
-        });
-
-        it('should handle shutdown even if some managers are not initialized', () => {
-            // Simulate missing tray manager or failed initialization
-            // (We've already initialized them in beforeEach, but we can test partial cleanup)
-
-            // This should not throw
-            expect(() => {
-                hotkeyManager.unregisterAll();
-                windowManager.setQuitting(true);
-            }).not.toThrow();
-        });
+      // Verify WindowManager is in quitting state (prevents hiding to tray)
+      const mainWindow = windowManager.getMainWindow() as any;
+      const closeEvent = { preventDefault: vi.fn() };
+      mainWindow._listeners.get('close')(closeEvent);
+      expect(closeEvent.preventDefault).not.toHaveBeenCalled();
     });
+
+    it('should handle shutdown even if some managers are not initialized', () => {
+      // Simulate missing tray manager or failed initialization
+      // (We've already initialized them in beforeEach, but we can test partial cleanup)
+
+      // This should not throw
+      expect(() => {
+        hotkeyManager.unregisterAll();
+        windowManager.setQuitting(true);
+      }).not.toThrow();
+    });
+  });
 });
-
-

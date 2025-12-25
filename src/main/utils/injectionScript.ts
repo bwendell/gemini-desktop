@@ -1,21 +1,21 @@
 /**
  * Injection Script Builder for Quick Chat.
- * 
+ *
  * Provides a modular, configurable system for building JavaScript injection
  * scripts that run inside the Gemini iframe. Features include:
  * - Builder pattern for flexible configuration
  * - Structured logging with configurable levels
  * - Defensive programming with safe DOM operations
  * - Proper text escaping for injection safety
- * 
+ *
  * @module InjectionScript
  */
 
 import {
-    GEMINI_EDITOR_SELECTORS,
-    GEMINI_SUBMIT_BUTTON_SELECTORS,
-    GEMINI_EDITOR_BLANK_CLASS,
-    GEMINI_SUBMIT_DELAY_MS
+  GEMINI_EDITOR_SELECTORS,
+  GEMINI_SUBMIT_BUTTON_SELECTORS,
+  GEMINI_EDITOR_BLANK_CLASS,
+  GEMINI_SUBMIT_DELAY_MS,
 } from './constants';
 
 // =============================================================================
@@ -31,29 +31,29 @@ export type InjectionLogLevel = 'debug' | 'info' | 'warn' | 'error' | 'none';
  * Configuration for the injection script.
  */
 export interface InjectionConfig {
-    /** CSS selectors to find the editor element (tried in order) */
-    editorSelectors: readonly string[];
-    /** CSS selectors to find the submit button (tried in order) */
-    submitButtonSelectors: readonly string[];
-    /** CSS class that indicates the editor is empty/blank */
-    editorBlankClass: string;
-    /** Delay in ms before clicking submit button */
-    submitDelayMs: number;
-    /** Minimum log level to output */
-    logLevel: InjectionLogLevel;
+  /** CSS selectors to find the editor element (tried in order) */
+  editorSelectors: readonly string[];
+  /** CSS selectors to find the submit button (tried in order) */
+  submitButtonSelectors: readonly string[];
+  /** CSS class that indicates the editor is empty/blank */
+  editorBlankClass: string;
+  /** Delay in ms before clicking submit button */
+  submitDelayMs: number;
+  /** Minimum log level to output */
+  logLevel: InjectionLogLevel;
 }
 
 /**
  * Result returned by the injection script.
  */
 export interface InjectionResult {
-    success: boolean;
-    error?: string;
-    details?: {
-        editorFound: boolean;
-        textInjected: boolean;
-        submitScheduled: boolean;
-    };
+  success: boolean;
+  error?: string;
+  details?: {
+    editorFound: boolean;
+    textInjected: boolean;
+    submitScheduled: boolean;
+  };
 }
 
 // =============================================================================
@@ -64,11 +64,11 @@ export interface InjectionResult {
  * Default injection configuration using constants.
  */
 export const DEFAULT_INJECTION_CONFIG: InjectionConfig = {
-    editorSelectors: GEMINI_EDITOR_SELECTORS,
-    submitButtonSelectors: GEMINI_SUBMIT_BUTTON_SELECTORS,
-    editorBlankClass: GEMINI_EDITOR_BLANK_CLASS,
-    submitDelayMs: GEMINI_SUBMIT_DELAY_MS,
-    logLevel: 'info',
+  editorSelectors: GEMINI_EDITOR_SELECTORS,
+  submitButtonSelectors: GEMINI_SUBMIT_BUTTON_SELECTORS,
+  editorBlankClass: GEMINI_EDITOR_BLANK_CLASS,
+  submitDelayMs: GEMINI_SUBMIT_DELAY_MS,
+  logLevel: 'info',
 } as const;
 
 // =============================================================================
@@ -78,19 +78,19 @@ export const DEFAULT_INJECTION_CONFIG: InjectionConfig = {
 /**
  * Escape text for safe inclusion in JavaScript string literals.
  * Handles backslashes, quotes, and newlines to prevent injection issues.
- * 
+ *
  * @param text - Raw text to escape
  * @returns Escaped text safe for JS string interpolation
  */
 export function escapeForInjection(text: string): string {
-    return text
-        .replace(/\\/g, '\\\\')   // Escape backslashes first
-        .replace(/'/g, "\\'")     // Escape single quotes
-        .replace(/"/g, '\\"')     // Escape double quotes
-        .replace(/\n/g, '\\n')    // Escape newlines
-        .replace(/\r/g, '\\r')    // Escape carriage returns
-        .replace(/\t/g, '\\t')    // Escape tabs
-        .replace(/\0/g, '\\0');   // Escape null bytes
+  return text
+    .replace(/\\/g, '\\\\') // Escape backslashes first
+    .replace(/'/g, "\\'") // Escape single quotes
+    .replace(/"/g, '\\"') // Escape double quotes
+    .replace(/\n/g, '\\n') // Escape newlines
+    .replace(/\r/g, '\\r') // Escape carriage returns
+    .replace(/\t/g, '\\t') // Escape tabs
+    .replace(/\0/g, '\\0'); // Escape null bytes
 }
 
 // =============================================================================
@@ -101,14 +101,14 @@ export function escapeForInjection(text: string): string {
  * Get numeric priority for log level comparison.
  */
 function getLogLevelPriority(level: InjectionLogLevel): number {
-    const priorities: Record<InjectionLogLevel, number> = {
-        debug: 0,
-        info: 1,
-        warn: 2,
-        error: 3,
-        none: 4,
-    };
-    return priorities[level];
+  const priorities: Record<InjectionLogLevel, number> = {
+    debug: 0,
+    info: 1,
+    warn: 2,
+    error: 3,
+    none: 4,
+  };
+  return priorities[level];
 }
 
 // =============================================================================
@@ -117,10 +117,10 @@ function getLogLevelPriority(level: InjectionLogLevel): number {
 
 /**
  * Builder class for constructing injection scripts.
- * 
+ *
  * Uses the builder pattern to allow flexible configuration of the
  * injection script before generating the final JavaScript code.
- * 
+ *
  * @example
  * ```typescript
  * const script = new InjectionScriptBuilder()
@@ -130,103 +130,103 @@ function getLogLevelPriority(level: InjectionLogLevel): number {
  * ```
  */
 export class InjectionScriptBuilder {
-    private text: string = '';
-    private config: InjectionConfig = DEFAULT_INJECTION_CONFIG;
-    private autoSubmit: boolean = true;
+  private text: string = '';
+  private config: InjectionConfig = DEFAULT_INJECTION_CONFIG;
+  private autoSubmit: boolean = true;
 
-    /**
-     * Set the text to inject into the editor.
-     * 
-     * @param text - The text to inject (will be escaped automatically)
-     * @returns this (for chaining)
-     */
-    withText(text: string): this {
-        this.text = text;
-        return this;
-    }
+  /**
+   * Set the text to inject into the editor.
+   *
+   * @param text - The text to inject (will be escaped automatically)
+   * @returns this (for chaining)
+   */
+  withText(text: string): this {
+    this.text = text;
+    return this;
+  }
 
-    /**
-     * Set the injection configuration.
-     * Merges with default config, so partial configs are supported.
-     * 
-     * @param config - Partial or full injection configuration
-     * @returns this (for chaining)
-     */
-    withConfig(config: Partial<InjectionConfig>): this {
-        this.config = { ...DEFAULT_INJECTION_CONFIG, ...config };
-        return this;
-    }
+  /**
+   * Set the injection configuration.
+   * Merges with default config, so partial configs are supported.
+   *
+   * @param config - Partial or full injection configuration
+   * @returns this (for chaining)
+   */
+  withConfig(config: Partial<InjectionConfig>): this {
+    this.config = { ...DEFAULT_INJECTION_CONFIG, ...config };
+    return this;
+  }
 
-    /**
-     * Set the log level for the injected script.
-     * 
-     * @param level - Minimum log level to output
-     * @returns this (for chaining)
-     */
-    withLogLevel(level: InjectionLogLevel): this {
-        this.config = { ...this.config, logLevel: level };
-        return this;
-    }
+  /**
+   * Set the log level for the injected script.
+   *
+   * @param level - Minimum log level to output
+   * @returns this (for chaining)
+   */
+  withLogLevel(level: InjectionLogLevel): this {
+    this.config = { ...this.config, logLevel: level };
+    return this;
+  }
 
-    /**
-     * Set whether to automatically submit after injection.
-     * 
-     * @param autoSubmit - If true, clicks submit button after injection
-     * @returns this (for chaining)
-     */
-    withAutoSubmit(autoSubmit: boolean): this {
-        this.autoSubmit = autoSubmit;
-        return this;
-    }
+  /**
+   * Set whether to automatically submit after injection.
+   *
+   * @param autoSubmit - If true, clicks submit button after injection
+   * @returns this (for chaining)
+   */
+  withAutoSubmit(autoSubmit: boolean): this {
+    this.autoSubmit = autoSubmit;
+    return this;
+  }
 
-    /**
-     * Set custom editor selectors.
-     * 
-     * @param selectors - Array of CSS selectors to try (in order)
-     * @returns this (for chaining)
-     */
-    withEditorSelectors(selectors: readonly string[]): this {
-        this.config = { ...this.config, editorSelectors: selectors };
-        return this;
-    }
+  /**
+   * Set custom editor selectors.
+   *
+   * @param selectors - Array of CSS selectors to try (in order)
+   * @returns this (for chaining)
+   */
+  withEditorSelectors(selectors: readonly string[]): this {
+    this.config = { ...this.config, editorSelectors: selectors };
+    return this;
+  }
 
-    /**
-     * Set custom submit button selectors.
-     * 
-     * @param selectors - Array of CSS selectors to try (in order)
-     * @returns this (for chaining)
-     */
-    withSubmitButtonSelectors(selectors: readonly string[]): this {
-        this.config = { ...this.config, submitButtonSelectors: selectors };
-        return this;
-    }
+  /**
+   * Set custom submit button selectors.
+   *
+   * @param selectors - Array of CSS selectors to try (in order)
+   * @returns this (for chaining)
+   */
+  withSubmitButtonSelectors(selectors: readonly string[]): this {
+    this.config = { ...this.config, submitButtonSelectors: selectors };
+    return this;
+  }
 
-    /**
-     * Set the submit delay.
-     * 
-     * @param delayMs - Delay in milliseconds before clicking submit
-     * @returns this (for chaining)
-     */
-    withSubmitDelay(delayMs: number): this {
-        this.config = { ...this.config, submitDelayMs: delayMs };
-        return this;
-    }
+  /**
+   * Set the submit delay.
+   *
+   * @param delayMs - Delay in milliseconds before clicking submit
+   * @returns this (for chaining)
+   */
+  withSubmitDelay(delayMs: number): this {
+    this.config = { ...this.config, submitDelayMs: delayMs };
+    return this;
+  }
 
-    /**
-     * Build the injection script.
-     * 
-     * @returns JavaScript code string ready for execution in an iframe
-     */
-    build(): string {
-        const escapedText = escapeForInjection(this.text);
-        const editorSelectorsJson = JSON.stringify(this.config.editorSelectors);
-        const buttonSelectorsJson = JSON.stringify(this.config.submitButtonSelectors);
-        const blankClass = this.config.editorBlankClass;
-        const submitDelay = this.config.submitDelayMs;
-        const logLevelPriority = getLogLevelPriority(this.config.logLevel);
-        const autoSubmit = this.autoSubmit;
+  /**
+   * Build the injection script.
+   *
+   * @returns JavaScript code string ready for execution in an iframe
+   */
+  build(): string {
+    const escapedText = escapeForInjection(this.text);
+    const editorSelectorsJson = JSON.stringify(this.config.editorSelectors);
+    const buttonSelectorsJson = JSON.stringify(this.config.submitButtonSelectors);
+    const blankClass = this.config.editorBlankClass;
+    const submitDelay = this.config.submitDelayMs;
+    const logLevelPriority = getLogLevelPriority(this.config.logLevel);
+    const autoSubmit = this.autoSubmit;
 
-        return `
+    return `
 (function() {
     'use strict';
 
@@ -516,5 +516,5 @@ export class InjectionScriptBuilder {
     return result;
 })();
         `.trim();
-    }
+  }
 }

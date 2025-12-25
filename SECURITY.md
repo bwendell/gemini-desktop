@@ -2,9 +2,9 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| Latest  | ✅ Yes             |
+| Version  | Supported              |
+| -------- | ---------------------- |
+| Latest   | ✅ Yes                 |
 | < Latest | ❌ No (please upgrade) |
 
 We only provide security updates for the latest release. Please keep your installation up to date.
@@ -37,12 +37,12 @@ Or use GitHub's private vulnerability reporting:
 
 ### Response Timeline
 
-| Action | Timeframe |
-|--------|-----------|
-| Initial response | Within 48 hours |
-| Vulnerability assessment | Within 1 week |
-| Fix development | Depends on severity |
-| Public disclosure | After fix is released |
+| Action                   | Timeframe             |
+| ------------------------ | --------------------- |
+| Initial response         | Within 48 hours       |
+| Vulnerability assessment | Within 1 week         |
+| Fix development          | Depends on severity   |
+| Public disclosure        | After fix is released |
 
 ---
 
@@ -52,15 +52,15 @@ Gemini Desktop follows Electron security best practices:
 
 ### ✅ What We Do
 
-| Practice | Implementation |
-|----------|---------------|
+| Practice              | Implementation                           |
+| --------------------- | ---------------------------------------- |
 | **Context Isolation** | Enabled - renderer cannot access Node.js |
-| **Sandbox Mode** | Enabled - process isolation enforced |
-| **Node Integration** | Disabled in renderer |
-| **Remote Module** | Disabled |
-| **Web Security** | Enabled |
-| **HTTPS Only** | Only connects to google.com over HTTPS |
-| **IPC Validation** | All IPC messages are validated |
+| **Sandbox Mode**      | Enabled - process isolation enforced     |
+| **Node Integration**  | Disabled in renderer                     |
+| **Remote Module**     | Disabled                                 |
+| **Web Security**      | Enabled                                  |
+| **HTTPS Only**        | Only connects to google.com over HTTPS   |
+| **IPC Validation**    | All IPC messages are validated           |
 
 ### 🔒 Data Handling
 

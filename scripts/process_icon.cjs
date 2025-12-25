@@ -6,24 +6,25 @@ const path = require('path');
 app.disableHardwareAcceleration();
 
 app.whenReady().then(() => {
-    const win = new BrowserWindow({
-        show: false,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
-    });
+  const win = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
 
-    const sourcePath = 'C:/Users/bwend/.gemini/antigravity/brain/b4c73ec3-179e-4f24-9934-d052c8bb0b7d/icon_variant_minimalist_1765900850889.png';
-    // Ensure build dir exists (we did it in step before, but good practice)
-    const destPath = path.join(process.cwd(), 'build', 'icon.png');
+  const sourcePath =
+    'C:/Users/bwend/.gemini/antigravity/brain/b4c73ec3-179e-4f24-9934-d052c8bb0b7d/icon_variant_minimalist_1765900850889.png';
+  // Ensure build dir exists (we did it in step before, but good practice)
+  const destPath = path.join(process.cwd(), 'build', 'icon.png');
 
-    console.log(`Processing ${sourcePath} -> ${destPath}`);
+  console.log(`Processing ${sourcePath} -> ${destPath}`);
 
-    const fileData = fs.readFileSync(sourcePath).toString('base64');
-    const dataUrl = `data:image/png;base64,${fileData}`;
+  const fileData = fs.readFileSync(sourcePath).toString('base64');
+  const dataUrl = `data:image/png;base64,${fileData}`;
 
-    const html = `
+  const html = `
     <html>
     <body>
     <script>
@@ -66,17 +67,17 @@ app.whenReady().then(() => {
     </html>
     `;
 
-    ipcMain.once('done', (event, outUrl) => {
-        const base64Data = outUrl.replace(/^data:image\/png;base64,/, "");
-        fs.writeFileSync(destPath, base64Data, 'base64');
-        console.log('SUCCESS: Icon saved to ' + destPath);
-        app.quit();
-    });
+  ipcMain.once('done', (event, outUrl) => {
+    const base64Data = outUrl.replace(/^data:image\/png;base64,/, '');
+    fs.writeFileSync(destPath, base64Data, 'base64');
+    console.log('SUCCESS: Icon saved to ' + destPath);
+    app.quit();
+  });
 
-    ipcMain.once('error', (event, err) => {
-        console.error('ERROR:', err);
-        app.quit();
-    });
+  ipcMain.once('error', (event, err) => {
+    console.error('ERROR:', err);
+    app.quit();
+  });
 
-    win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+  win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
 });

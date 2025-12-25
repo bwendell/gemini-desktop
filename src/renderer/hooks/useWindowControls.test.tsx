@@ -8,109 +8,109 @@ import { useWindowControls } from './useWindowControls';
 import { mockElectronAPI } from '../test/setup';
 
 describe('useWindowControls', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('minimize', () => {
+    it('calls electronAPI.minimizeWindow()', () => {
+      const { result } = renderHook(() => useWindowControls());
+
+      act(() => {
+        result.current.minimize();
+      });
+
+      expect(mockElectronAPI.minimizeWindow).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('maximize', () => {
+    it('calls electronAPI.maximizeWindow()', async () => {
+      const { result } = renderHook(() => useWindowControls());
+
+      await act(async () => {
+        await result.current.maximize();
+      });
+
+      expect(mockElectronAPI.maximizeWindow).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('close', () => {
+    it('calls electronAPI.closeWindow()', () => {
+      const { result } = renderHook(() => useWindowControls());
+
+      act(() => {
+        result.current.close();
+      });
+
+      expect(mockElectronAPI.closeWindow).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('when API is not available', () => {
+    it('logs warning when minimize is called without API', () => {
+      const originalAPI = window.electronAPI;
+      // @ts-ignore - Testing undefined case
+      delete window.electronAPI;
+
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { result } = renderHook(() => useWindowControls());
+
+      act(() => {
+        result.current.minimize();
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
+      consoleSpy.mockRestore();
+
+      // Restore API
+      window.electronAPI = originalAPI;
     });
 
-    afterEach(() => {
-        vi.clearAllMocks();
+    it('logs warning when maximize is called without API', () => {
+      const originalAPI = window.electronAPI;
+      // @ts-ignore - Testing undefined case
+      delete window.electronAPI;
+
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { result } = renderHook(() => useWindowControls());
+
+      act(() => {
+        result.current.maximize();
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
+      consoleSpy.mockRestore();
+
+      // Restore API
+      window.electronAPI = originalAPI;
     });
 
-    describe('minimize', () => {
-        it('calls electronAPI.minimizeWindow()', () => {
-            const { result } = renderHook(() => useWindowControls());
+    it('logs warning when close is called without API', () => {
+      const originalAPI = window.electronAPI;
+      // @ts-ignore - Testing undefined case
+      delete window.electronAPI;
 
-            act(() => {
-                result.current.minimize();
-            });
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-            expect(mockElectronAPI.minimizeWindow).toHaveBeenCalledTimes(1);
-        });
+      const { result } = renderHook(() => useWindowControls());
+
+      act(() => {
+        result.current.close();
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
+      consoleSpy.mockRestore();
+
+      // Restore API
+      window.electronAPI = originalAPI;
     });
-
-    describe('maximize', () => {
-        it('calls electronAPI.maximizeWindow()', async () => {
-            const { result } = renderHook(() => useWindowControls());
-
-            await act(async () => {
-                await result.current.maximize();
-            });
-
-            expect(mockElectronAPI.maximizeWindow).toHaveBeenCalledTimes(1);
-        });
-    });
-
-    describe('close', () => {
-        it('calls electronAPI.closeWindow()', () => {
-            const { result } = renderHook(() => useWindowControls());
-
-            act(() => {
-                result.current.close();
-            });
-
-            expect(mockElectronAPI.closeWindow).toHaveBeenCalledTimes(1);
-        });
-    });
-
-    describe('when API is not available', () => {
-        it('logs warning when minimize is called without API', () => {
-            const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
-            delete window.electronAPI;
-
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
-
-            const { result } = renderHook(() => useWindowControls());
-
-            act(() => {
-                result.current.minimize();
-            });
-
-            expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
-            consoleSpy.mockRestore();
-
-            // Restore API
-            window.electronAPI = originalAPI;
-        });
-
-        it('logs warning when maximize is called without API', () => {
-            const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
-            delete window.electronAPI;
-
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
-
-            const { result } = renderHook(() => useWindowControls());
-
-            act(() => {
-                result.current.maximize();
-            });
-
-            expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
-            consoleSpy.mockRestore();
-
-            // Restore API
-            window.electronAPI = originalAPI;
-        });
-
-        it('logs warning when close is called without API', () => {
-            const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
-            delete window.electronAPI;
-
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
-
-            const { result } = renderHook(() => useWindowControls());
-
-            act(() => {
-                result.current.close();
-            });
-
-            expect(consoleSpy).toHaveBeenCalledWith('[useWindowControls] Window controls not available');
-            consoleSpy.mockRestore();
-
-            // Restore API
-            window.electronAPI = originalAPI;
-        });
-    });
+  });
 });

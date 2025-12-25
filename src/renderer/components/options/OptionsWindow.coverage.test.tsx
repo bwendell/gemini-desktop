@@ -4,56 +4,55 @@ import { OptionsWindow } from './OptionsWindow';
 
 // Mock child components to isolate window logic
 vi.mock('./OptionsWindowTitlebar', () => ({
-    OptionsWindowTitlebar: ({ title }: any) => <div data-testid="mock-titlebar">{title}</div>
+  OptionsWindowTitlebar: ({ title }: any) => <div data-testid="mock-titlebar">{title}</div>,
 }));
 vi.mock('./ThemeSelector', () => ({
-    ThemeSelector: () => <div data-testid="mock-theme-selector">Theme Selector</div>
+  ThemeSelector: () => <div data-testid="mock-theme-selector">Theme Selector</div>,
 }));
 vi.mock('./AboutSection', () => ({
-    AboutSection: () => <div data-testid="mock-about-section">About Section</div>
+  AboutSection: () => <div data-testid="mock-about-section">About Section</div>,
 }));
 vi.mock('./IndividualHotkeyToggles', () => ({
-    IndividualHotkeyToggles: () => <div data-testid="mock-hotkey-toggles">Hotkey Toggles</div>
+  IndividualHotkeyToggles: () => <div data-testid="mock-hotkey-toggles">Hotkey Toggles</div>,
 }));
 vi.mock('./AutoUpdateToggle', () => ({
-    AutoUpdateToggle: () => <div data-testid="mock-auto-update-toggle">Auto Update Toggle</div>
+  AutoUpdateToggle: () => <div data-testid="mock-auto-update-toggle">Auto Update Toggle</div>,
 }));
 vi.mock('../ErrorBoundary', () => ({
-    ErrorBoundary: ({ children }: any) => <div>{children}</div>
+  ErrorBoundary: ({ children }: any) => <div>{children}</div>,
 }));
 
 describe('OptionsWindow Coverage', () => {
+  beforeEach(() => {
+    window.location.hash = '';
+  });
 
-    beforeEach(() => {
-        window.location.hash = '';
+  it('initializes to "about" tab when hash is #about', () => {
+    window.location.hash = '#about';
+    render(<OptionsWindow />);
+    expect(screen.getByTestId('mock-about-section')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-titlebar')).toHaveTextContent('About');
+  });
+
+  it('updates tab when hash changes externally', async () => {
+    render(<OptionsWindow />);
+    expect(screen.queryByTestId('mock-theme-selector')).toBeInTheDocument();
+
+    // Simulate external hash change
+    await act(async () => {
+      window.location.hash = '#about';
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
 
-    it('initializes to "about" tab when hash is #about', () => {
-        window.location.hash = '#about';
-        render(<OptionsWindow />);
-        expect(screen.getByTestId('mock-about-section')).toBeInTheDocument();
-        expect(screen.getByTestId('mock-titlebar')).toHaveTextContent('About');
-    });
+    expect(screen.getByTestId('mock-about-section')).toBeInTheDocument();
+  });
 
-    it('updates tab when hash changes externally', async () => {
-        render(<OptionsWindow />);
-        expect(screen.queryByTestId('mock-theme-selector')).toBeInTheDocument();
+  it('updates hash when tab is clicked', () => {
+    render(<OptionsWindow />);
 
-        // Simulate external hash change
-        await act(async () => {
-            window.location.hash = '#about';
-            window.dispatchEvent(new HashChangeEvent('hashchange'));
-        });
+    fireEvent.click(screen.getByText('About'));
 
-        expect(screen.getByTestId('mock-about-section')).toBeInTheDocument();
-    });
-
-    it('updates hash when tab is clicked', () => {
-        render(<OptionsWindow />);
-
-        fireEvent.click(screen.getByText('About'));
-
-        expect(window.location.hash).toBe('#about');
-        expect(screen.getByTestId('mock-about-section')).toBeInTheDocument();
-    });
+    expect(window.location.hash).toBe('#about');
+    expect(screen.getByTestId('mock-about-section')).toBeInTheDocument();
+  });
 });

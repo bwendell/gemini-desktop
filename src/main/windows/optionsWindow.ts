@@ -25,25 +25,26 @@ export default class OptionsWindow extends BaseWindow {
     /** Pending tab to open upon window creation */
     private pendingTab: string | null = null;
 
-    /**
-     * Creates a new OptionsWindow instance.
-     * @param isDev - Whether running in development mode
-     */
-    constructor(isDev: boolean) {
-        super(isDev, '[OptionsWindow]');
-        this.windowConfig = {
-            ...OPTIONS_WINDOW_CONFIG,
-            titleBarStyle: getTitleBarStyle(),
-        };
-    }
+  /**
+   * Creates a new OptionsWindow instance.
+   * @param isDev - Whether running in development mode
+   */
+  constructor(isDev: boolean) {
+    super(isDev, '[OptionsWindow]');
+    this.windowConfig = {
+      ...OPTIONS_WINDOW_CONFIG,
+      titleBarStyle: getTitleBarStyle(),
+    };
+  }
 
-    /**
-     * Create or focus the options window.
-     * @param tab - Optional tab to open ('settings' or 'about')
-     * @returns The options window
-     */
-    create(tab?: 'settings' | 'about'): BrowserWindow {
-        const hash = tab ? `#${tab}` : '';
+  /**
+   * Create or focus the options window.
+   * @param tab - Optional tab to open ('settings' or 'about')
+   * @returns The options window
+   */
+  create(tab?: 'settings' | 'about'): BrowserWindow {
+    this.pendingTab = tab;
+    const hash = tab ? `#${tab}` : '';
 
         if (this.window && !this.window.isDestroyed()) {
             // If window exists, navigate to the requested tab
@@ -66,12 +67,12 @@ export default class OptionsWindow extends BaseWindow {
         // Reset pending tab
         this.pendingTab = null;
 
-        win.once('ready-to-show', () => {
-            win.show();
-        });
+    win.once('ready-to-show', () => {
+      win.show();
+    });
 
-        return win;
-    }
+    return win;
+  }
 
     /**
      * Override loadContent to handle optional hash for tabs.

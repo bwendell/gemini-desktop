@@ -11,120 +11,118 @@ import UpdateManager from '../../src/main/managers/updateManager';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
-    log: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn()
+  log: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
 }));
 vi.mock('../../src/main/utils/logger', () => ({
-    createLogger: () => mockLogger
+  createLogger: () => mockLogger,
 }));
 
 // Mock electron-updater to avoid side effects
 vi.mock('electron-updater', () => ({
-    autoUpdater: {
-        on: vi.fn(),
-        removeAllListeners: vi.fn(),
-    }
+  autoUpdater: {
+    on: vi.fn(),
+    removeAllListeners: vi.fn(),
+  },
 }));
 
 describe('IPC Sanitization Integration', () => {
-    let ipcManager: IpcManager;
-    let windowManager: WindowManager;
-    let hotkeyManager: HotkeyManager;
-    let updateManager: UpdateManager;
-    let mockStore: any;
+  let ipcManager: IpcManager;
+  let windowManager: WindowManager;
+  let hotkeyManager: HotkeyManager;
+  let updateManager: UpdateManager;
+  let mockStore: any;
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+    if ((ipcMain as any)._reset) (ipcMain as any)._reset();
+
+    mockStore = {
+      get: vi.fn().mockReturnValue(true),
+      set: vi.fn(),
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
     beforeEach(() => {
-        vi.clearAllMocks();
-        if ((ipcMain as any)._reset) (ipcMain as any)._reset();
+      // Mock platform
+      vi.stubGlobal('process', { ...process, platform });
 
-        mockStore = {
-            get: vi.fn().mockReturnValue(true),
-            set: vi.fn(),
-        };
+      // Create REAL managers after platform stub
+      windowManager = new WindowManager(false);
+      hotkeyManager = new HotkeyManager(windowManager);
+      updateManager = new UpdateManager(mockStore);
+
+      ipcManager = new IpcManager(
+        windowManager,
+        hotkeyManager,
+        updateManager,
+        mockStore,
+        mockLogger as any
+      );
+      ipcManager.setupIpcHandlers();
     });
 
     afterEach(() => {
-        vi.restoreAllMocks();
+      vi.unstubAllGlobals();
     });
 
-    describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
-        beforeEach(() => {
-            // Mock platform
-            vi.stubGlobal('process', { ...process, platform });
+    describe('Auto-Update Sanitization', () => {
+      it('should block non-boolean input for auto-update:set-enabled', () => {
+        const handler = (ipcMain as any)._listeners.get('auto-update:set-enabled');
+        expect(handler).toBeDefined();
 
-            // Create REAL managers after platform stub
-            windowManager = new WindowManager(false);
-            hotkeyManager = new HotkeyManager(windowManager);
-            updateManager = new UpdateManager(mockStore);
+        // Simulate malicious/invalid input
+        handler({}, 'not-a-boolean');
 
-            ipcManager = new IpcManager(
-                windowManager,
-                hotkeyManager,
-                updateManager,
-                mockStore,
-                mockLogger as any
-            );
-            ipcManager.setupIpcHandlers();
-        });
+        // Verify it was blocked and logged
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid autoUpdateEnabled value: not-a-boolean')
+        );
 
-        afterEach(() => {
-            vi.unstubAllGlobals();
-        });
-
-        describe('Auto-Update Sanitization', () => {
-            it('should block non-boolean input for auto-update:set-enabled', () => {
-                const handler = (ipcMain as any)._listeners.get('auto-update:set-enabled');
-                expect(handler).toBeDefined();
-
-                // Simulate malicious/invalid input
-                handler({}, 'not-a-boolean');
-
-                // Verify it was blocked and logged
-                expect(mockLogger.warn).toHaveBeenCalledWith(
-                    expect.stringContaining('Invalid autoUpdateEnabled value: not-a-boolean')
-                );
-
-                // Verify updateManager was NOT called
-                const setEnabledSpy = vi.spyOn(updateManager, 'setEnabled');
-                handler({}, 123);
-                expect(setEnabledSpy).not.toHaveBeenCalled();
-            });
-        });
-
-        describe('Hotkey Sanitization', () => {
-            it('should block invalid payload for hotkeys:individual:set', () => {
-                const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
-                expect(handler).toBeDefined();
-
-                // Missing fields or wrong types
-                // handler signature: (_event, id, enabled)
-                handler({}, 'bossKey', 'yes'); // Wrong type for enabled
-
-                expect(mockLogger.warn).toHaveBeenCalledWith(
-                    expect.stringContaining('Invalid enabled value: yes')
-                );
-
-                handler({}, { malicious: 'data' }, true); // Invalid ID
-                expect(mockLogger.warn).toHaveBeenCalledWith(
-                    expect.stringContaining('Invalid hotkey id: [object Object]')
-                );
-            });
-        });
-
-        describe('Window Control Sanitization', () => {
-            it('should handle missing main window gracefully on window controls', () => {
-                // Unset main window
-                (windowManager as any).mainWindow.window = null;
-
-                const handler = (ipcMain as any)._listeners.get('window-minimize');
-                expect(handler).toBeDefined();
-
-                // Should not crash even if window is null
-                expect(() => handler({})).not.toThrow();
-            });
-        });
+        // Verify updateManager was NOT called
+        const setEnabledSpy = vi.spyOn(updateManager, 'setEnabled');
+        handler({}, 123);
+        expect(setEnabledSpy).not.toHaveBeenCalled();
+      });
     });
+
+    describe('Hotkey Sanitization', () => {
+      it('should block invalid payload for hotkeys:individual:set', () => {
+        const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
+        expect(handler).toBeDefined();
+
+        // Missing fields or wrong types
+        // handler signature: (_event, id, enabled)
+        handler({}, 'bossKey', 'yes'); // Wrong type for enabled
+
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid enabled value: yes')
+        );
+
+        handler({}, { malicious: 'data' }, true); // Invalid ID
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid hotkey id: [object Object]')
+        );
+      });
+    });
+
+    describe('Window Control Sanitization', () => {
+      it('should handle missing main window gracefully on window controls', () => {
+        // Unset main window
+        (windowManager as any).mainWindow.window = null;
+
+        const handler = (ipcMain as any)._listeners.get('window-minimize');
+        expect(handler).toBeDefined();
+
+        // Should not crash even if window is null
+        expect(() => handler({})).not.toThrow();
+      });
+    });
+  });
 });
-
-

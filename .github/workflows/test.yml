@@ -39,7 +39,7 @@ jobs:
   # Build application
   build:
     uses: ./.github/workflows/_build.yml
-  
+
   # Run tests with coverage uploads enabled
   test:
     needs: build
@@ -48,27 +48,27 @@ jobs:
       upload-coverage: true
       e2e-fail-fast: false
       artifact-suffix: ''
-  
+
   # Aggregate results
   test-complete:
     name: Test Complete
     needs: [build, test]
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
       - name: Check Job Results
         run: |
           echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Check build
           if [ "${{ needs.build.result }}" == "success" ]; then
             echo "✅ Build: Passed" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Check tests
           if [ "${{ needs.test.result }}" == "success" ]; then
             echo "✅ Tests: Passed (all platforms)" >> $GITHUB_STEP_SUMMARY
@@ -83,4 +83,3 @@ jobs:
         run: |
           echo "One or more jobs failed. See summary above for details."
           exit 1
-

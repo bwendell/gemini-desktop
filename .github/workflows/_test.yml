@@ -40,38 +40,38 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install Dependencies
         run: npm ci
-      
+
       # Download build artifacts from _build.yml
       - name: Download Frontend Build
         uses: actions/download-artifact@v7
         with:
           name: frontend-dist
           path: dist/
-      
+
       - name: Download Electron Build
         uses: actions/download-artifact@v7
         with:
           name: electron-dist
           path: dist-electron/
-      
+
       - name: Run Unit Tests
         run: npm run test && npm run test:electron
         env:
           FORCE_COLOR: 1
-      
+
       # Optionally upload coverage (CI workflow only)
       - name: Upload Frontend Coverage Report
         uses: actions/upload-artifact@v4
@@ -80,7 +80,7 @@ jobs:
           name: coverage-frontend
           path: coverage/
           retention-days: 7
-      
+
       - name: Upload Electron Coverage Report
         uses: actions/upload-artifact@v4
         if: inputs.upload-coverage
@@ -96,7 +96,7 @@ jobs:
     name: Coordinated & Integration Tests (${{ matrix.os }})
     needs: unit-tests
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       fail-fast: false
       matrix:
@@ -120,7 +120,7 @@ jobs:
         with:
           name: frontend-dist
           path: dist/
-      
+
       - name: Download Electron Build
         uses: actions/download-artifact@v7
         with:
@@ -160,7 +160,7 @@ jobs:
     name: E2E Tests (${{ matrix.os }})
     needs: integration-tests
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       fail-fast: ${{ inputs.e2e-fail-fast }}
       matrix:
@@ -202,7 +202,7 @@ jobs:
         with:
           name: frontend-dist
           path: dist/
-      
+
       - name: Download Electron Build
         uses: actions/download-artifact@v7
         with:

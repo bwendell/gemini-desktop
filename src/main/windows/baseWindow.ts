@@ -20,141 +20,141 @@ import { getDevUrl } from '../utils/constants';
  * @abstract
  */
 export default abstract class BaseWindow extends EventEmitter {
-    /** The underlying BrowserWindow instance */
-    protected window: BrowserWindow | null = null;
+  /** The underlying BrowserWindow instance */
+  protected window: BrowserWindow | null = null;
 
-    /** Whether running in development mode */
-    protected readonly isDev: boolean;
+  /** Whether running in development mode */
+  protected readonly isDev: boolean;
 
-    /** Logger instance for this window */
-    protected readonly logger: ReturnType<typeof createLogger>;
+  /** Logger instance for this window */
+  protected readonly logger: ReturnType<typeof createLogger>;
 
-    /** Window configuration options */
-    protected abstract readonly windowConfig: BrowserWindowConstructorOptions;
+  /** Window configuration options */
+  protected abstract readonly windowConfig: BrowserWindowConstructorOptions;
 
-    /** HTML file to load (e.g., 'index.html', 'options.html') */
-    protected abstract readonly htmlFile: string;
+  /** HTML file to load (e.g., 'index.html', 'options.html') */
+  protected abstract readonly htmlFile: string;
 
-    /**
-     * Creates a new BaseWindow instance.
-     * @param isDev - Whether running in development mode
-     * @param loggerPrefix - Prefix for log messages
-     */
-    constructor(isDev: boolean, loggerPrefix: string) {
-        super();
-        this.isDev = isDev;
-        this.logger = createLogger(loggerPrefix);
+  /**
+   * Creates a new BaseWindow instance.
+   * @param isDev - Whether running in development mode
+   * @param loggerPrefix - Prefix for log messages
+   */
+  constructor(isDev: boolean, loggerPrefix: string) {
+    super();
+    this.isDev = isDev;
+    this.logger = createLogger(loggerPrefix);
+  }
+
+  /**
+   * Get the underlying BrowserWindow instance.
+   * @returns The BrowserWindow or null if not created
+   */
+  getWindow(): BrowserWindow | null {
+    return this.window;
+  }
+
+  /**
+   * Check if the window exists and is not destroyed.
+   * @returns True if window is valid
+   */
+  isValid(): boolean {
+    return this.window !== null && !this.window.isDestroyed();
+  }
+
+  /**
+   * Create and show the window.
+   * Subclasses should call this and then set up additional handlers.
+   * @returns The created BrowserWindow
+   */
+  protected createWindow(): BrowserWindow {
+    if (this.window && !this.window.isDestroyed()) {
+      this.window.focus();
+      return this.window;
     }
 
-    /**
-     * Get the underlying BrowserWindow instance.
-     * @returns The BrowserWindow or null if not created
-     */
-    getWindow(): BrowserWindow | null {
-        return this.window;
+    try {
+      this.window = new BrowserWindow({
+        ...this.windowConfig,
+        webPreferences: {
+          ...this.windowConfig.webPreferences,
+          preload: getPreloadPath(),
+        },
+      });
+
+      this.loadContent();
+      this.setupBaseHandlers();
+
+      return this.window;
+    } catch (error) {
+      this.logger.error('Failed to create window:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      // Re-throw so the caller (WindowManager) can handle gracefully
+      throw error;
     }
+  }
 
-    /**
-     * Check if the window exists and is not destroyed.
-     * @returns True if window is valid
-     */
-    isValid(): boolean {
-        return this.window !== null && !this.window.isDestroyed();
+  /**
+   * Load the appropriate content based on dev/prod mode.
+   */
+  protected loadContent(): void {
+    if (!this.window) return;
+
+    if (this.isDev) {
+      this.window.loadURL(getDevUrl(this.htmlFile));
+    } else {
+      this.window.loadFile(getDistHtmlPath(this.htmlFile));
     }
+  }
 
-    /**
-     * Create and show the window.
-     * Subclasses should call this and then set up additional handlers.
-     * @returns The created BrowserWindow
-     */
-    protected createWindow(): BrowserWindow {
-        if (this.window && !this.window.isDestroyed()) {
-            this.window.focus();
-            return this.window;
-        }
+  /**
+   * Set up base event handlers common to all windows.
+   */
+  protected setupBaseHandlers(): void {
+    if (!this.window) return;
 
-        try {
-            this.window = new BrowserWindow({
-                ...this.windowConfig,
-                webPreferences: {
-                    ...this.windowConfig.webPreferences,
-                    preload: getPreloadPath(),
-                },
-            });
+    this.window.on('closed', () => {
+      this.logger.log('Window closed');
+      this.window = null;
+      this.emit('closed');
+    });
+  }
 
-            this.loadContent();
-            this.setupBaseHandlers();
-
-            return this.window;
-        } catch (error) {
-            this.logger.error('Failed to create window:', {
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            });
-            // Re-throw so the caller (WindowManager) can handle gracefully
-            throw error;
-        }
+  /**
+   * Close the window if it exists.
+   */
+  close(): void {
+    if (this.isValid()) {
+      this.window?.close();
     }
+  }
 
-    /**
-     * Load the appropriate content based on dev/prod mode.
-     */
-    protected loadContent(): void {
-        if (!this.window) return;
-
-        if (this.isDev) {
-            this.window.loadURL(getDevUrl(this.htmlFile));
-        } else {
-            this.window.loadFile(getDistHtmlPath(this.htmlFile));
-        }
+  /**
+   * Show the window.
+   */
+  show(): void {
+    if (this.isValid()) {
+      this.window?.show();
     }
+  }
 
-    /**
-     * Set up base event handlers common to all windows.
-     */
-    protected setupBaseHandlers(): void {
-        if (!this.window) return;
-
-        this.window.on('closed', () => {
-            this.logger.log('Window closed');
-            this.window = null;
-            this.emit('closed');
-        });
+  /**
+   * Hide the window.
+   */
+  hide(): void {
+    if (this.isValid()) {
+      this.window?.hide();
     }
+  }
 
-    /**
-     * Close the window if it exists.
-     */
-    close(): void {
-        if (this.isValid()) {
-            this.window?.close();
-        }
+  /**
+   * Focus the window.
+   */
+  focus(): void {
+    if (this.isValid()) {
+      this.window?.focus();
     }
-
-    /**
-     * Show the window.
-     */
-    show(): void {
-        if (this.isValid()) {
-            this.window?.show();
-        }
-    }
-
-    /**
-     * Hide the window.
-     */
-    hide(): void {
-        if (this.isValid()) {
-            this.window?.hide();
-        }
-    }
-
-    /**
-     * Focus the window.
-     */
-    focus(): void {
-        if (this.isValid()) {
-            this.window?.focus();
-        }
-    }
+  }
 }

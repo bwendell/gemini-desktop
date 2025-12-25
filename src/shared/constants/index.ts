@@ -1,6 +1,6 @@
 /**
  * Shared Constants
- * 
+ *
  * Barrel export for all shared constants.
  */
 

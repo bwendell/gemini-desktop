@@ -23,14 +23,14 @@
 
 Users have been asking for a desktop Gemini client with these features—**we deliver on all of them**:
 
-| What Users Want | Status |
-|-----------------|--------|
-| 🖥️ Native desktop app (not just a browser tab) | ✅ **You got it** |
-| ⌨️ Global keyboard shortcuts | ✅ **Ctrl+Shift+Space** |
-| 📌 Always-on-top window | ✅ **Quick Chat has this** |
-| 💻 Cross-platform (Windows, macOS, Linux) | ✅ **All three** |
-| 🔐 Stable login & persistent sessions | ✅ **OAuth done right** |
-| 🔒 No data collection | ✅ **Zero telemetry** |
+| What Users Want                                | Status                     |
+| ---------------------------------------------- | -------------------------- |
+| 🖥️ Native desktop app (not just a browser tab) | ✅ **You got it**          |
+| ⌨️ Global keyboard shortcuts                   | ✅ **Ctrl+Shift+Space**    |
+| 📌 Always-on-top window                        | ✅ **Quick Chat has this** |
+| 💻 Cross-platform (Windows, macOS, Linux)      | ✅ **All three**           |
+| 🔐 Stable login & persistent sessions          | ✅ **OAuth done right**    |
+| 🔒 No data collection                          | ✅ **Zero telemetry**      |
 
 ---
 
@@ -83,30 +83,30 @@ sudo dpkg -i gemini-desktop-x.x.x.deb
 
 **One table. Complete transparency.**
 
-| Category | Practice | Details |
-|----------|----------|---------|
-| **🔐 Data** | No collection | Zero analytics, telemetry, or tracking |
-| | Direct connection | Only connects to `google.com` domains |
-| | No password storage | Auth handled entirely by Google |
-| **🛡️ Security** | Context Isolation | Renderer cannot access Node.js |
-| | Sandboxed Renderer | Process isolation enforced |
-| | Minimal Permissions | Restricted system access |
-| **💾 Storage** | Encrypted cookies | Standard Chromium session storage |
-| | Local cache only | Standard browser caching |
-| | No cloud sync | All data stays on your machine |
-| **🔍 Transparency** | Open source | [Full code available](https://github.com/bwendell/gemini-desktop) for audit |
-| | No paywall bypass | Respects Google's terms |
+| Category            | Practice            | Details                                                                     |
+| ------------------- | ------------------- | --------------------------------------------------------------------------- |
+| **🔐 Data**         | No collection       | Zero analytics, telemetry, or tracking                                      |
+|                     | Direct connection   | Only connects to `google.com` domains                                       |
+|                     | No password storage | Auth handled entirely by Google                                             |
+| **🛡️ Security**     | Context Isolation   | Renderer cannot access Node.js                                              |
+|                     | Sandboxed Renderer  | Process isolation enforced                                                  |
+|                     | Minimal Permissions | Restricted system access                                                    |
+| **💾 Storage**      | Encrypted cookies   | Standard Chromium session storage                                           |
+|                     | Local cache only    | Standard browser caching                                                    |
+|                     | No cloud sync       | All data stays on your machine                                              |
+| **🔍 Transparency** | Open source         | [Full code available](https://github.com/bwendell/gemini-desktop) for audit |
+|                     | No paywall bypass   | Respects Google's terms                                                     |
 
 ---
 
 ## ⌨️ Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
+| Shortcut           | Action            |
+| ------------------ | ----------------- |
 | `Ctrl+Shift+Space` | Toggle Quick Chat |
-| `Ctrl+Alt+E` | Minimize to tray |
-| `Ctrl+,` | Open Settings |
-| `Escape` | Close Quick Chat |
+| `Ctrl+Alt+E`       | Minimize to tray  |
+| `Ctrl+,`           | Open Settings     |
+| `Escape`           | Close Quick Chat  |
 
 > 💡 Hotkeys can be disabled in Settings if they conflict with other apps.
 

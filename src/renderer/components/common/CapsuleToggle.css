@@ -10,16 +10,16 @@
    ============================================================================ */
 
 .capsule-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
 }
 
 .capsule-toggle--disabled {
-    opacity: 0.5;
-    pointer-events: none;
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 /* ============================================================================
@@ -27,25 +27,25 @@
    ============================================================================ */
 
 .capsule-toggle__content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-    min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .capsule-toggle__label {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-    cursor: pointer;
-    user-select: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
 }
 
 .capsule-toggle__description {
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.4;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 /* ============================================================================
@@ -53,45 +53,47 @@
    ============================================================================ */
 
 .capsule-toggle__switch {
-    position: relative;
-    width: 44px;
-    height: 24px;
-    border-radius: 12px;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    flex-shrink: 0;
-    
-    /* Default (unchecked) state */
-    background-color: var(--bg-tertiary, #4a4a4a);
-    
-    /* Smooth transition */
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    
-    /* Remove default button styles */
-    outline: none;
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  /* Default (unchecked) state */
+  background-color: var(--bg-tertiary, #4a4a4a);
+
+  /* Smooth transition */
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  /* Remove default button styles */
+  outline: none;
 }
 
 /* Checked state */
 .capsule-toggle__switch--checked {
-    background-color: var(--accent-color);
+  background-color: var(--accent-color);
 }
 
 /* Hover state */
 .capsule-toggle__switch:hover:not(:disabled) {
-    box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3);
+  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3);
 }
 
 /* Focus-visible state */
 .capsule-toggle__switch:focus-visible {
-    box-shadow: 
-        0 0 0 2px var(--bg-primary),
-        0 0 0 4px var(--accent-color);
+  box-shadow:
+    0 0 0 2px var(--bg-primary),
+    0 0 0 4px var(--accent-color);
 }
 
 /* Disabled state */
 .capsule-toggle__switch:disabled {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
 
 /* ============================================================================
@@ -99,24 +101,24 @@
    ============================================================================ */
 
 .capsule-toggle__thumb {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: white;
-    
-    /* Shadow for depth */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    
-    /* Smooth slide animation */
-    transition: transform 0.2s ease;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+
+  /* Shadow for depth */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+  /* Smooth slide animation */
+  transition: transform 0.2s ease;
 }
 
 /* Move thumb to right when checked */
 .capsule-toggle__switch--checked .capsule-toggle__thumb {
-    transform: translateX(20px);
+  transform: translateX(20px);
 }
 
 /* ============================================================================
@@ -124,13 +126,13 @@
    ============================================================================ */
 
 [data-theme='light'] .capsule-toggle__switch {
-    background-color: #c4c4c4;
+  background-color: #c4c4c4;
 }
 
 [data-theme='light'] .capsule-toggle__switch--checked {
-    background-color: var(--accent-color);
+  background-color: var(--accent-color);
 }
 
 [data-theme='light'] .capsule-toggle__switch:hover:not(:disabled) {
-    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.3);
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.3);
 }

@@ -7,17 +7,17 @@ import { renderHook } from '@testing-library/react';
 import { useWebviewInit } from './useWebviewInit';
 
 describe('useWebviewInit', () => {
-    it('returns ready state immediately', () => {
-        const { result } = renderHook(() => useWebviewInit());
+  it('returns ready state immediately', () => {
+    const { result } = renderHook(() => useWebviewInit());
 
-        expect(result.current.isReady).toBe(true);
-        expect(result.current.isLoading).toBe(false);
-        expect(result.current.error).toBeNull();
-    });
+    expect(result.current.isReady).toBe(true);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
 
-    it('retry function calls are safe', () => {
-        const { result } = renderHook(() => useWebviewInit());
+  it('retry function calls are safe', () => {
+    const { result } = renderHook(() => useWebviewInit());
 
-        expect(() => result.current.retry()).not.toThrow();
-    });
+    expect(() => result.current.retry()).not.toThrow();
+  });
 });

@@ -147,7 +147,6 @@
   -webkit-app-region: no-drag;
 }
 
-
 .titlebar-menu-backdrop {
   position: fixed;
   top: 0;
@@ -261,7 +260,6 @@
 }
 
 @keyframes update-badge-pulse {
-
   0%,
   100% {
     box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.4);
