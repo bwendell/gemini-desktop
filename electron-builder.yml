@@ -45,10 +45,10 @@ win:
   # Azure Trusted Signing configuration
   # Uses environment variables that should be set in GitHub Actions or locally
   azureSignOptions:
-    endpoint: "${AZURE_SIGN_ENDPOINT}"
-    codeSigningAccountName: "${AZURE_CODE_SIGNING_ACCOUNT_NAME}"
-    certificateProfileName: "${AZURE_CERT_PROFILE_NAME}"
-    publisherName: "${AZURE_PUBLISHER_NAME}"
+    endpoint: AZURE_SIGN_ENDPOINT
+    codeSigningAccountName: AZURE_CODE_SIGNING_ACCOUNT_NAME
+    certificateProfileName: AZURE_CERT_PROFILE_NAME
+    publisherName: AZURE_PUBLISHER_NAME
 
 # Portable gets a different name to avoid collision with NSIS installer
 portable:
