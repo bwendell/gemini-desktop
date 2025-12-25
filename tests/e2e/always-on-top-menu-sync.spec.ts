@@ -9,7 +9,7 @@
  * - Cross-platform synchronization
  */
 
-import { browser, $, expect } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';

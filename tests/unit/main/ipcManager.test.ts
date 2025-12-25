@@ -4,7 +4,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
 import IpcManager from '../../../src/main/managers/ipcManager';
-import SettingsStore from '../../../src/main/store';
 
 // Mock SettingsStore to prevent side effects during import
 vi.mock('../../../src/main/store', () => {

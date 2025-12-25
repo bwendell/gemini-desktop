@@ -17,14 +17,6 @@ import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 
 /**
- * Default settings that should be used on first run.
- */
-const DEFAULT_SETTINGS = {
-  theme: 'system',
-  hotkeysEnabled: true,
-};
-
-/**
  * Get the current settings from the store.
  */
 async function getCurrentSettings(): Promise<{ theme: string; hotkeysEnabled: boolean }> {
@@ -49,7 +41,7 @@ async function getCurrentSettings(): Promise<{ theme: string; hotkeysEnabled: bo
         theme: settings.theme || 'system',
         hotkeysEnabled: settings.hotkeysEnabled !== false,
       };
-    } catch (error) {
+    } catch {
       // Error reading = treat as defaults
       return {
         theme: 'system',
@@ -115,8 +107,8 @@ describe('First-Run Experience', () => {
 
     it('should start with main window visible', async () => {
       // Main window should be visible on startup
-      const isVisible = await browser.electron.execute((electron: typeof import('electron')) => {
-        const windows = electron.BrowserWindow.getAllWindows();
+      const isVisible = await browser.electron.execute((_electron: typeof import('electron')) => {
+        const windows = _electron.BrowserWindow.getAllWindows();
         const mainWindow = windows[0];
         return mainWindow?.isVisible() ?? false;
       });

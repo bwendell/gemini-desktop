@@ -9,7 +9,7 @@ import { globalShortcut, BrowserWindow } from 'electron';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import IpcManager from '../../src/main/managers/ipcManager';
-import SettingsStore from '../../src/main/store';
+
 import type { IndividualHotkeySettings } from '../../src/main/types';
 
 // Mock logger

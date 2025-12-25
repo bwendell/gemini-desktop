@@ -28,7 +28,7 @@ describe('Quick Chat Full Submission Workflow', () => {
   describe('Complete User Workflow', () => {
     it('should complete full Quick Chat submission flow', async () => {
       // 1. Trigger Quick Chat to open
-      await browser.electron.execute((electron: typeof import('electron')) => {
+      await browser.electron.execute((_electron: typeof import('electron')) => {
         // Access the quick chat window manager from global
         const { windowManager } = global as any;
         if (windowManager?.toggleQuickChat) {
@@ -40,11 +40,7 @@ describe('Quick Chat Full Submission Workflow', () => {
 
       // 2. Wait for Quick Chat window to appear
       const handles = await browser.getWindowHandles();
-      const quickChatHandle = handles.find(async (h) => {
-        await browser.switchToWindow(h);
-        const container = await $(Selectors.quickChatContainer);
-        return container.isExisting();
-      });
+
 
       if (handles.length > 1) {
         // Find and switch to Quick Chat window
@@ -68,8 +64,8 @@ describe('Quick Chat Full Submission Workflow', () => {
           'Quick Chat window not visible - may need different triggering mechanism'
         );
         // Try alternative: use IPC
-        await browser.electron.execute((electron: typeof import('electron')) => {
-          const wins = electron.BrowserWindow.getAllWindows();
+        await browser.electron.execute((_electron: typeof import('electron')) => {
+          const wins = _electron.BrowserWindow.getAllWindows();
           for (const win of wins) {
             win.webContents.send('show-quick-chat');
           }
@@ -118,7 +114,7 @@ describe('Quick Chat Full Submission Workflow', () => {
 
     it('should cancel Quick Chat with Escape key', async () => {
       // 1. Open Quick Chat
-      await browser.electron.execute((electron: typeof import('electron')) => {
+      await browser.electron.execute((_electron: typeof import('electron')) => {
         const { windowManager } = global as any;
         if (windowManager?.toggleQuickChat) {
           windowManager.toggleQuickChat();
@@ -154,7 +150,7 @@ describe('Quick Chat Full Submission Workflow', () => {
 
     it('should preserve input content when hidden and reshown', async () => {
       // 1. Open Quick Chat
-      await browser.electron.execute((electron: typeof import('electron')) => {
+      await browser.electron.execute((_electron: typeof import('electron')) => {
         const { windowManager } = global as any;
         if (windowManager?.toggleQuickChat) {
           windowManager.toggleQuickChat();
@@ -174,7 +170,7 @@ describe('Quick Chat Full Submission Workflow', () => {
           await browser.pause(300);
 
           // 3. Hide Quick Chat (toggle)
-          await browser.electron.execute((electron: typeof import('electron')) => {
+          await browser.electron.execute((_electron: typeof import('electron')) => {
             const { windowManager } = global as any;
             if (windowManager?.toggleQuickChat) {
               windowManager.toggleQuickChat();
@@ -183,7 +179,7 @@ describe('Quick Chat Full Submission Workflow', () => {
           await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
           // 4. Show Quick Chat again
-          await browser.electron.execute((electron: typeof import('electron')) => {
+          await browser.electron.execute((_electron: typeof import('electron')) => {
             const { windowManager } = global as any;
             if (windowManager?.toggleQuickChat) {
               windowManager.toggleQuickChat();

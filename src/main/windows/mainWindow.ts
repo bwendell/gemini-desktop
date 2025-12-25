@@ -160,7 +160,7 @@ export default class MainWindow extends BaseWindow {
         // Block navigation to external URLs
         this.logger.warn('Blocked navigation to external URL:', url);
         event.preventDefault();
-      } catch (e) {
+      } catch {
         this.logger.error('Invalid navigation URL, blocking:', url);
         event.preventDefault();
       }
@@ -175,14 +175,24 @@ export default class MainWindow extends BaseWindow {
     if (!this.window) return;
 
     this.window.webContents.setWindowOpenHandler(({ url }) => {
+      let hostname: string;
       try {
         const urlObj = new URL(url);
-        const hostname = urlObj.hostname;
+        hostname = urlObj.hostname;
+      } catch (error) {
+        this.logger.error('Invalid URL in window open handler:', { url, error });
+        return { action: 'deny' };
+      }
 
+      try {
         // OAuth domains: open in dedicated auth window
         if (isOAuthDomain(hostname)) {
           this.logger.log('Intercepting OAuth popup:', url);
-          this.createAuthWindowCallback?.(url);
+          if (this.createAuthWindowCallback) {
+            this.createAuthWindowCallback(url);
+          } else {
+            this.logger.error('Auth window callback not set');
+          }
           return { action: 'deny' };
         }
 
@@ -190,8 +200,9 @@ export default class MainWindow extends BaseWindow {
         if (isInternalDomain(hostname)) {
           return { action: 'allow' };
         }
-      } catch (e) {
-        this.logger.error('Invalid URL in window open handler:', url);
+      } catch (error) {
+        this.logger.error('Error handling window open:', error);
+        return { action: 'deny' };
       }
 
       // External links: open in system browser

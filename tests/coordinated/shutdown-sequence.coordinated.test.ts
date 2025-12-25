@@ -3,7 +3,7 @@
  * Verifies that all managers coordinate their destruction and cleanup correctly.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { app, globalShortcut, Tray, BrowserWindow } from 'electron';
+import { globalShortcut, Tray, BrowserWindow } from 'electron';
 import WindowManager from '../../src/main/managers/windowManager';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import TrayManager from '../../src/main/managers/trayManager';

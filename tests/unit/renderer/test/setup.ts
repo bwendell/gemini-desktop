@@ -16,6 +16,7 @@ vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef<HTMLDivElement, any>(({ children, ...props }, ref) => {
       // Filter out framer-motion specific props to avoid warnings
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { variants, initial, whileHover, whileTap, animate, exit, transition, ...domProps } =
         props;
       return React.createElement('div', { ...domProps, ref }, children);
@@ -100,7 +101,7 @@ Object.defineProperty(window, 'electronAPI', {
 // Helper to change platform in tests
 export function setMockPlatform(platform: string): void {
   if (window.electronAPI) {
-    window.electronAPI.platform = platform;
+    (window.electronAPI as any).platform = platform;
   }
 }
 
@@ -136,6 +137,6 @@ Object.defineProperty(globalThis, 'performance', {
 beforeEach(() => {
   vi.clearAllMocks();
   if (window.electronAPI) {
-    window.electronAPI.platform = 'win32';
+    (window.electronAPI as any).platform = 'win32';
   }
 });

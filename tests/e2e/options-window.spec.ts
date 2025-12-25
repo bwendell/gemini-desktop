@@ -7,10 +7,9 @@
  */
 
 import { browser, $, expect } from '@wdio/globals';
-import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount, switchToWindowByIndex } from './helpers/windowActions';
+import { waitForWindowCount } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
 
 declare global {

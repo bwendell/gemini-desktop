@@ -352,12 +352,12 @@ describe('Quick Chat Text Injection', () => {
       // but we can pass invalid selectors to our injectTextOnly helper.
       // (The helper uses constants by default, but we can modify it or
       // use electron.execute directly for this test)
-      const invalidResult = await browser.electron.execute((_electron, textToInject) => {
+      const invalidResult = await browser.electron.execute((_electron, _textToInject) => {
         const windowManager = (global as any).windowManager;
         const mainWindow = windowManager?.getMainWindow?.();
         if (!mainWindow) return { error: 'Main window not found' };
 
-        const frame = mainWindow.webContents.mainFrame.frames.find((f) =>
+        const frame = mainWindow.webContents.mainFrame.frames.find((f: any) =>
           f.url.includes('google.com')
         );
         if (!frame) return { error: 'Iframe not found' };
@@ -375,7 +375,7 @@ describe('Quick Chat Text Injection', () => {
                         })();
                     `
           )
-          .then((res) => ({ ...res, iframeFound: true }));
+          .then((res: any) => ({ ...res, iframeFound: true }));
       }, 'failure test text');
 
       E2ELogger.info(

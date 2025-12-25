@@ -2,7 +2,7 @@
  * Integration tests for Application Security features.
  * Verifies that header stripping and webview blocking are correctly configured.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { setupHeaderStripping, setupWebviewSecurity } from '../../src/main/utils/security';
 
 // Mock logger

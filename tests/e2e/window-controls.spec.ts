@@ -12,11 +12,10 @@
  */
 
 import { browser, $, expect } from '@wdio/globals';
-import { usesCustomControls, isMacOS, isLinux, E2EPlatform } from './helpers/platform';
+import { usesCustomControls, isMacOS, isLinux } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
-import { sendKeyboardShortcut, KeyboardShortcuts } from './helpers/keyboardActions';
 import {
   isWindowMaximized,
   isWindowMinimized,
@@ -274,9 +273,6 @@ describe('Window Controls Functionality', () => {
         E2ELogger.info('window-controls', 'Skipping - Linux CI uses headless Xvfb');
         return;
       }
-
-      // 1. Record initial state
-      const initialState = await isWindowMaximized();
 
       // 2. Maximize via API
       await maximizeWindow();

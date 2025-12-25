@@ -16,7 +16,6 @@ import SettingsStore from '../store';
 import {
   GOOGLE_ACCOUNTS_URL,
   IPC_CHANNELS,
-  GEMINI_DOMAIN,
   isGeminiDomain,
 } from '../utils/constants';
 import {

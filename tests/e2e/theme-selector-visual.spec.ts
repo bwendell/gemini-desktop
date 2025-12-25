@@ -8,7 +8,6 @@
  */
 
 import { browser, $, $$, expect } from '@wdio/globals';
-import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';

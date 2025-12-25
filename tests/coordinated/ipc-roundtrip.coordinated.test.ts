@@ -16,7 +16,6 @@ import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import UpdateManager from '../../src/main/managers/updateManager';
-import SettingsStore from '../../src/main/store';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -260,8 +259,6 @@ describe('IPC Round-Trip Integration', () => {
 
   describe('Window Controls IPC Round-Trip', () => {
     let mockWindow: any;
-    let mockEvent: any;
-
     beforeEach(() => {
       mockWindow = {
         id: 1,
@@ -273,7 +270,6 @@ describe('IPC Round-Trip Integration', () => {
         isDestroyed: vi.fn().mockReturnValue(false),
         webContents: { send: vi.fn() },
       };
-      mockEvent = { sender: {} };
       (BrowserWindow as any).fromWebContents = vi.fn().mockReturnValue(mockWindow);
     });
 

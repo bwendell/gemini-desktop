@@ -189,7 +189,7 @@ export const contextBridge = {
 };
 
 export const nativeImage = {
-  createFromPath: vi.fn((path) => ({
+  createFromPath: vi.fn((_path) => ({
     isEmpty: vi.fn().mockReturnValue(false),
     getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
     toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),

@@ -66,7 +66,6 @@ describe('Session Sharing', () => {
     it('auth window closes after navigation to Gemini, allowing main window to access cookies', () => {
       // Create main window first
       windowManager.createMainWindow();
-      const mainWindow = windowManager.getMainWindow();
 
       // Create auth window
       const authWindow = windowManager.createAuthWindow('https://accounts.google.com');

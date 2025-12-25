@@ -42,7 +42,7 @@ async function getWindowCount(): Promise<number> {
  * Check if the app would quit on all windows closed (platform behavior).
  */
 async function checkQuitOnAllWindowsClosed(): Promise<boolean> {
-  return browser.electron.execute((electron: typeof import('electron')) => {
+  return browser.electron.execute((_electron: typeof import('electron')) => {
     // On macOS, app should NOT quit when all windows closed
     return process.platform !== 'darwin';
   });
@@ -122,7 +122,7 @@ describe('macOS Dock and Menubar Behavior', () => {
 
       const dockMenuState = await browser.electron.execute((electron) => {
         // In Electron, app.dock.getMenu() can be used to retrieve the menu
-        const menu = electron.app.dock.getMenu();
+        const menu = electron.app.dock?.getMenu();
         if (!menu) return { exists: false, items: [] };
 
         return {

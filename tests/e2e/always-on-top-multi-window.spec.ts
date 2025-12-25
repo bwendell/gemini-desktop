@@ -65,7 +65,7 @@ describe('Always On Top - Multi-Window Interactions', () => {
         try {
           await browser.switchToWindow(handle);
           await browser.execute(() => window.electronAPI?.closeWindow?.());
-        } catch (e) {
+        } catch {
           // Window might already be closed
         }
       }

@@ -80,7 +80,7 @@ describe('Gemini Selectors Module', () => {
         badSelectors.forEach((s) => {
           try {
             doc.querySelector(s);
-          } catch (e) {
+          } catch {
             /* Expected for bad selector */
           }
         });
@@ -194,7 +194,7 @@ describe('Gemini Selectors Module', () => {
     it('handles empty selector list', () => {
       const { JSDOM } = require('jsdom');
       const dom = new JSDOM('<html><body><div class="test"></div></body></html>');
-      const logger = (msg: string) => {};
+      const logger = (_msg: string) => {};
 
       const element = findGeminiElement(dom.window.document, [], 'test', logger);
 
@@ -204,7 +204,7 @@ describe('Gemini Selectors Module', () => {
     it('handles malformed selectors in list', () => {
       const { JSDOM } = require('jsdom');
       const dom = new JSDOM('<html><body><div class="test"></div></body></html>');
-      const logger = (msg: string) => {};
+      const logger = (_msg: string) => {};
 
       const element = findGeminiElement(
         dom.window.document,

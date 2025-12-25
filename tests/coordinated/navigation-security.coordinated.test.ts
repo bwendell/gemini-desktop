@@ -3,8 +3,8 @@
  * Verifies that the window manager correctly blocks/allows URLs based on security policies.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { BrowserWindow, shell } from 'electron';
-import WindowManager from '../../src/main/managers/windowManager';
+import { shell } from 'electron';
+
 import MainWindow from '../../src/main/windows/mainWindow';
 
 // Mock logger

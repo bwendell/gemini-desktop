@@ -73,11 +73,11 @@ describe('Quick Chat Injection Flow Integration', () => {
       };
 
       // Create mock Quick Chat window
-      const mockQuickChatWindow = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        hide: vi.fn(),
-        close: vi.fn(),
-      };
+      // const mockQuickChatWindow = {
+      //   isDestroyed: vi.fn().mockReturnValue(false),
+      //   hide: vi.fn(),
+      //   close: vi.fn(),
+      // };
 
       // Spy on WindowManager methods
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue(mockMainWindow as any);

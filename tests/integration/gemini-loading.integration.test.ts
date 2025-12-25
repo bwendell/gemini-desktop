@@ -44,7 +44,7 @@ describe('Gemini Loading & Webview Security', () => {
 
   it('should strip X-Frame-Options for Gemini domains', async () => {
     // We can verify this via Main Process session inspection
-    const isHeaderStripped = await browser.electron.execute(async (electron) => {
+    await browser.electron.execute(async (_electron) => {
       // We can manually trigger a fetch using net module to a URL that usually has headers
       // and see if our session handler intercepts it?
       // Actually, the handler is on 'session.defaultSession.webRequest.onHeadersReceived'.

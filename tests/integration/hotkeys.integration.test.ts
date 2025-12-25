@@ -7,7 +7,7 @@ describe('Global Hotkeys Integration', () => {
 
   it('should have hotkeys registered in the main process', async () => {
     // Verify registration via Main Process
-    const isRegistered = await browser.electron.execute((electron) => {
+    const isRegistered = await browser.electron.execute((_electron) => {
       // Check if the 'quickChat' accelerator is registered
       // We know the accelerator is 'CommandOrControl+Shift+Space'
       // We can also check internal manager state
@@ -51,7 +51,7 @@ describe('Global Hotkeys Integration', () => {
 
   it('should handle platform-specific accelerators correctly', async () => {
     // Verify we are generating the right accelerator string for the platform
-    const accelerator = await browser.electron.execute((electron) => {
+    const accelerator = await browser.electron.execute((_electron) => {
       // We can access the private shortcuts array if we really wanted to,
       // but checking 'process.platform' is enough to verify the test environment context.
       return process.platform;

@@ -261,14 +261,14 @@ describe('Quick Chat Feature', () => {
       await showQuickChatWindow();
       await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
-      const pos1 = await browser.electron.execute((electron) => {
+      const pos1 = await browser.electron.execute((_electron) => {
         const windowManager = (global as any).windowManager;
         const win = windowManager.getQuickChatWindow();
         return win ? win.getPosition() : [0, 0];
       });
 
       // 2. Move window manually to a different position
-      await browser.electron.execute((electron) => {
+      await browser.electron.execute((_electron) => {
         const windowManager = (global as any).windowManager;
         const win = windowManager.getQuickChatWindow();
         if (win) win.setPosition(100, 100);
@@ -279,7 +279,7 @@ describe('Quick Chat Feature', () => {
       await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
       // 4. Position should be restored to centered (pos1)
-      const pos2 = await browser.electron.execute((electron) => {
+      const pos2 = await browser.electron.execute((_electron) => {
         const windowManager = (global as any).windowManager;
         const win = windowManager.getQuickChatWindow();
         return win ? win.getPosition() : [0, 0];

@@ -9,7 +9,6 @@ import {
   AUTH_WINDOW_CONFIG,
   isInternalDomain,
   isOAuthDomain,
-  getTitleBarStyle,
   getDevUrl,
   DEV_SERVER_URL,
   DEV_SERVER_PORT,

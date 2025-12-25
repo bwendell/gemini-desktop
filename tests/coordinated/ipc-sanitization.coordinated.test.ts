@@ -3,7 +3,7 @@
  * Verifies that IpcManager acts as a security boundary, sanitizing data from the renderer.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';

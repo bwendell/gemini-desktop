@@ -155,7 +155,7 @@ export async function simulateTrayRightClick(): Promise<void> {
  * @returns Promise<TrayMenuItem[]> - Array of menu items
  */
 export async function getTrayContextMenuItems(): Promise<TrayMenuItem[]> {
-  return browser.electron.execute((electron: typeof import('electron')) => {
+  return browser.electron.execute((_electron: typeof import('electron')) => {
     const trayManager = (global as any).trayManager as
       | {
           getTray?: () => Electron.Tray | null;

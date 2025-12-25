@@ -217,8 +217,8 @@ describe('Preload Security Integration', () => {
           const api = (window as any).electronAPI;
           api.setTheme('light');
           return true;
-        } catch (error) {
-          console.error('setTheme failed:', error);
+        } catch {
+          console.error('setTheme failed:');
           return false;
         }
       });
@@ -241,7 +241,7 @@ describe('Preload Security Integration', () => {
           if (hasCleanup) cleanup();
 
           return hasCleanup;
-        } catch (error) {
+        } catch {
           return false;
         }
       });
@@ -257,7 +257,7 @@ describe('Preload Security Integration', () => {
           const hasCleanup = typeof cleanup === 'function';
           if (hasCleanup) cleanup();
           return hasCleanup;
-        } catch (error) {
+        } catch {
           return false;
         }
       });

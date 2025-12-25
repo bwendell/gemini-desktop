@@ -229,9 +229,9 @@ describe('Individual Hotkey Toggles', () => {
       await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
       // Second hotkey should be unaffected
-      const config2 = HOTKEY_CONFIGS[1];
-      const toggle2 = await $(`[data-testid="${config2.testId}-switch"]`);
-      const state2 = await toggle2.getAttribute('aria-checked');
+      // const config2 = HOTKEY_CONFIGS[1];
+      // const toggle2 = await $(`[data-testid="${config2.testId}-switch"]`);
+      // const state2 = await toggle2.getAttribute('aria-checked'); // Unused
 
       // First should have changed
       const new1 = await toggle1.getAttribute('aria-checked');

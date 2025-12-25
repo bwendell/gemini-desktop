@@ -5,7 +5,7 @@
  * These tests use REAL manager instances (not mocked) while mocking Electron APIs.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { BrowserWindow, Tray, Menu, app } from 'electron';
+import { Menu, app } from 'electron';
 import WindowManager from '../../src/main/managers/windowManager';
 import TrayManager from '../../src/main/managers/trayManager';
 import MenuManager from '../../src/main/managers/menuManager';
@@ -224,7 +224,7 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
           return;
         }
 
-        const mainWindow = windowManager.createMainWindow();
+        windowManager.createMainWindow();
 
         // Build menu (includes dock menu on macOS)
         menuManager.buildMenu();
@@ -270,7 +270,7 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
       });
 
       it('should update application menu to reflect always-on-top state', () => {
-        const mainWindow = windowManager.createMainWindow();
+        windowManager.createMainWindow();
 
         // Initially not always-on-top
         expect(windowManager.isAlwaysOnTop()).toBe(false);

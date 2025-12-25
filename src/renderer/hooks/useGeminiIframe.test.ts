@@ -1,5 +1,5 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGeminiIframe } from './useGeminiIframe';
 import * as useNetworkStatusModule from './useNetworkStatus';
 

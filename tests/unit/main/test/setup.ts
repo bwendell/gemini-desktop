@@ -19,7 +19,7 @@ export const mockApp = {
       temp: '/mock/temp',
       home: '/mock/home',
     };
-    return paths[name] || `/mock/${name}`;
+    return (paths as Record<string, string>)[name] || `/mock/${name}`;
   }),
   isPackaged: false,
   whenReady: vi.fn().mockResolvedValue(undefined),
@@ -60,7 +60,8 @@ export const createMockBrowserWindow = () => {
 };
 
 export class MockBrowserWindow {
-  static _instances = [];
+  static _instances: MockBrowserWindow[] = [];
+  options: any;
 
   constructor(options = {}) {
     const mock = createMockBrowserWindow();
@@ -140,7 +141,7 @@ export const mockIpcRenderer = {
 // Vitest alias works for ESM import, but not for CJS require.
 // We patch Module.prototype.require to capture require('electron') calls.
 
-import { createRequire } from 'module';
+
 import electronMock from './electron-mock';
 
 const Module = require('module');
@@ -150,6 +151,7 @@ Module.prototype.require = function (id: string) {
   if (id === 'electron') {
     return electronMock;
   }
+  // eslint-disable-next-line prefer-rest-params
   return originalRequire.apply(this, arguments);
 };
 

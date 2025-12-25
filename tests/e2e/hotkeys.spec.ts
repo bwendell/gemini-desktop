@@ -145,7 +145,7 @@ describe('Global Hotkeys', () => {
     it('should report correct platform information', async () => {
       // Log platform info for CI visibility
       const electronPlatform = await browser.electron.execute(
-        (electron: typeof import('electron')) => process.platform
+        (_electron: typeof import('electron')) => process.platform
       );
 
       console.log(`\nPlatform Information:`);

@@ -186,9 +186,6 @@ describe('Webview Content Verification', () => {
 
   describe('Navigation Behavior', () => {
     it('should maintain webview after window focus changes', async () => {
-      // Get initial state
-      const initialInfo = await getWebviewInfo();
-
       // Perform some action that might affect webview
       await browser.execute(() => {
         // Trigger a focus cycle

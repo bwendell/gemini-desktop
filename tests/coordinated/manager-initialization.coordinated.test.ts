@@ -3,10 +3,10 @@
  * Tests that managers handle null optional dependencies gracefully.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ipcMain, BrowserWindow, nativeTheme, app } from 'electron';
+import { ipcMain, BrowserWindow, nativeTheme } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
-import UpdateManager from '../../src/main/managers/updateManager';
+
 
 // Mock logger - must use hoisted to avoid initialization issues
 const mockLogger = vi.hoisted(() => ({

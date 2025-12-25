@@ -6,8 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
-import UpdateManager from '../../src/main/managers/updateManager';
-import SettingsStore from '../../src/main/store';
+
 
 // Mock logger - must use hoisted to avoid initialization issues
 const mockLogger = vi.hoisted(() => ({
@@ -90,7 +89,7 @@ describe('Settings Persistence Across Managers', () => {
         const windowManager2 = new WindowManager(false);
 
         // On construction, IpcManager should read persisted theme
-        const ipcManager2 = new IpcManager(windowManager2, null, null, mockStore, mockLogger);
+        new IpcManager(windowManager2, null, null, mockStore, mockLogger);
 
         // Verify nativeTheme was initialized from persisted value
         expect(nativeTheme.themeSource).toBe('dark');

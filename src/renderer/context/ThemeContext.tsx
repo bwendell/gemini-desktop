@@ -199,15 +199,6 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   // Handle theme changes when Electron API is unavailable (browser-only fallback)
   /* v8 ignore start -- browser-only fallback path */
-  useEffect(() => {
-    if (window.electronAPI) return;
-    const computed = theme === 'system' ? getSystemThemePreference() : theme;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    setEffectiveTheme(computed);
-    applyThemeToDom(computed);
-  }, [theme]);
-  /* v8 ignore stop */
-
   // Memoized theme setter to prevent unnecessary re-renders
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
@@ -218,6 +209,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       } catch (error) {
         logger.error('Failed to set theme:', error);
       }
+    } else {
+      // Browser fallback
+      const computed = newTheme === 'system' ? getSystemThemePreference() : newTheme;
+      setEffectiveTheme(computed);
+      applyThemeToDom(computed);
     }
   }, []);
 

@@ -6,7 +6,7 @@
  * Platform-aware: Skips on macOS since custom menu bar is not rendered.
  */
 
-import { browser, $, expect } from '@wdio/globals';
+import { $, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';

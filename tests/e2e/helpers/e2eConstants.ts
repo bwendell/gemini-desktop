@@ -101,6 +101,9 @@ export const E2E_TIMING = {
 
   /** Interval for polling window state */
   WINDOW_STATE_POLL_INTERVAL: 200,
+
+  /** Time to wait for animation settling */
+  ANIMATION_SETTLE: 500,
 } as const;
 
 // =============================================================================

@@ -14,7 +14,7 @@ import electronPath from 'electron';
 import { fileURLToPath } from 'url';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount } from './helpers/windowActions';
-import { closeWindow, isWindowVisible } from './helpers/windowStateActions';
+import { closeWindow } from './helpers/windowStateActions';
 import { E2ELogger } from './helpers/logger';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -89,7 +89,7 @@ describe('Window Management Edge Cases', () => {
 
       // Verify options is NOT focused
       await browser.switchToWindow(optionsHandle);
-      const isOptionsFocusedInitial = await browser.electron.execute((electron) => {
+      await browser.electron.execute((electron) => {
         const win = electron.BrowserWindow.getFocusedWindow();
         return win ? !win.getTitle().includes('Gemini') : false;
       });

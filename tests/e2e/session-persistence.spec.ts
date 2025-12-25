@@ -94,7 +94,7 @@ describe('Session Persistence', () => {
     }, testCookie);
 
     // 2. Open Options window
-    await browser.electron.execute((electron) => {
+    await browser.electron.execute((_electron) => {
       // Use the global windowManager if available, or just create a window
       if ((global as any).windowManager) {
         (global as any).windowManager.createOptionsWindow();

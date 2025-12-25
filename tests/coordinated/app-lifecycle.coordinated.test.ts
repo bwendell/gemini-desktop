@@ -2,8 +2,8 @@
  * Integration tests for Application Lifecycle.
  * Verifies graceful shutdown procedures and manager cleanup.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { app } from 'electron';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import TrayManager from '../../src/main/managers/trayManager';
 import WindowManager from '../../src/main/managers/windowManager';

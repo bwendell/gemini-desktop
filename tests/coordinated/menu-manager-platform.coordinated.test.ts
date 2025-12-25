@@ -3,7 +3,7 @@
  * Tests platform-specific menu structures and action callbacks.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Menu, app, BrowserWindow } from 'electron';
+import { Menu, BrowserWindow } from 'electron';
 import MenuManager from '../../src/main/managers/menuManager';
 import WindowManager from '../../src/main/managers/windowManager';
 

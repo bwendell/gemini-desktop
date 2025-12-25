@@ -23,7 +23,7 @@ export default class OptionsWindow extends BaseWindow {
     protected readonly htmlFile = 'src/renderer/windows/options/options.html';
 
     /** Pending tab to open upon window creation */
-    private pendingTab: string | null = null;
+    private pendingTab: string | null | undefined = null;
 
   /**
    * Creates a new OptionsWindow instance.

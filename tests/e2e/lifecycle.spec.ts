@@ -9,7 +9,7 @@
  * its session. We handle this gracefully by catching expected errors.
  */
 
-import { browser, $, expect } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';

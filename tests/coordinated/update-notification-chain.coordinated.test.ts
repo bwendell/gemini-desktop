@@ -84,14 +84,9 @@ vi.mock('../../src/main/utils/constants', async (importOriginal) => {
   };
 });
 
-// Platform detection (helpers for test file)
-const isMacOS = process.platform === 'darwin';
-const isWindows = process.platform === 'win32';
-const isLinux = process.platform === 'linux';
-
 // Helper to get registered IPC listeners
-const getListener = (channel: string) =>
-  (require('electron').ipcMain as any)._listeners.get(channel);
+// const getListener = (channel: string) =>
+//   (require('electron').ipcMain as any)._listeners.get(channel);
 
 describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notification Chain', () => {
   let updateManager: UpdateManager;

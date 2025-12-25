@@ -21,40 +21,7 @@ import {
   GEMINI_EDITOR_SELECTORS,
   GEMINI_SUBMIT_BUTTON_SELECTORS,
   GEMINI_EDITOR_BLANK_CLASS,
-  E2E_ERROR_MESSAGES,
 } from './e2eConstants';
-
-// =============================================================================
-// Type Definitions for WindowManager Access
-// =============================================================================
-
-/**
- * WindowManager interface for E2E testing.
- * Defines the expected shape of the windowManager on the app instance.
- */
-interface E2EWindowManager {
-  showQuickChat?: () => void;
-  hideQuickChat?: () => void;
-  toggleQuickChat?: () => void;
-  focusMainWindow?: () => void;
-  getQuickChatWindow?: () => Electron.BrowserWindow | null;
-  getMainWindow?: () => Electron.BrowserWindow | null;
-}
-
-/**
- * IpcManager interface for E2E testing.
- */
-interface E2EIpcManager {
-  _injectTextIntoGemini?: (text: string) => Promise<void>;
-}
-
-/**
- * Extended app type with exposed managers for E2E testing.
- */
-interface E2EApp {
-  windowManager?: E2EWindowManager;
-  ipcManager?: E2EIpcManager;
-}
 
 // =============================================================================
 // Quick Chat State Interface

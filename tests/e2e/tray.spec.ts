@@ -25,7 +25,7 @@ import {
   getTrayTooltip,
   verifyTrayCreated,
 } from './helpers/trayActions';
-import { isWindowVisible, isWindowMinimized } from './helpers/windowStateActions';
+import { isWindowVisible } from './helpers/windowStateActions';
 import { closeWindow } from './helpers/windowStateActions';
 
 describe('System Tray Functionality', () => {

@@ -8,7 +8,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
-import SettingsStore from '../../src/main/store';
 
 // Mock logger - must use hoisted to avoid initialization issues
 const mockLogger = vi.hoisted(() => ({
@@ -21,7 +20,6 @@ vi.mock('../../src/main/utils/logger', () => ({
 }));
 
 // Helper to get registered IPC handlers
-const getHandler = (channel: string) => (ipcMain as any)._handlers.get(channel);
 const getListener = (channel: string) => (ipcMain as any)._listeners.get(channel);
 
 describe('IPC Manager Coordination', () => {

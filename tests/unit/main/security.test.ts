@@ -2,7 +2,7 @@
  * Unit tests for security utilities.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import electron from 'electron';
 import { setupHeaderStripping } from '../../../src/main/utils/security';
 

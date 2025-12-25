@@ -11,7 +11,7 @@
  */
 
 import { browser, $, expect } from '@wdio/globals';
-import { getPlatform, usesCustomControls } from './helpers/platform';
+import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 
