@@ -15,7 +15,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['tests/unit/main/test/setup.ts'],
-    include: ['tests/unit/main/**/*.test.ts'],
+    include: ['tests/unit/main/**/*.test.ts', 'tests/unit/preload/**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
     alias: {
       electron: path.resolve(projectRoot, 'tests/unit/main/test/electron-mock.ts'),
@@ -31,6 +31,7 @@ export default defineConfig({
         'src/main/types.ts', // Type definitions only
         'tests/unit/main/test/**', // Test files themselves
         'tests/unit/main/**/*.test.ts', // Test files
+        'tests/unit/preload/**/*.test.ts', // Test files
         'src/main/**/index.ts', // Barrel files (exports only)
       ],
       thresholds: {
