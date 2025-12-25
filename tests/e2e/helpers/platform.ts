@@ -11,11 +11,11 @@ export type E2EPlatform = 'windows' | 'linux' | 'macos';
  * @returns {Promise<E2EPlatform>} 'windows', 'linux', or 'macos'
  */
 export async function getPlatform(): Promise<E2EPlatform> {
-    const navPlatform = await browser.execute(() => navigator.platform);
-    const lower = navPlatform.toLowerCase();
-    if (lower.includes('mac') || lower.includes('darwin')) return 'macos';
-    if (lower.includes('win')) return 'windows';
-    return 'linux';
+  const navPlatform = await browser.execute(() => navigator.platform);
+  const lower = navPlatform.toLowerCase();
+  if (lower.includes('mac') || lower.includes('darwin')) return 'macos';
+  if (lower.includes('win')) return 'windows';
+  return 'linux';
 }
 
 /**
@@ -23,7 +23,7 @@ export async function getPlatform(): Promise<E2EPlatform> {
  * @returns {Promise<boolean>} True if running on macOS
  */
 export async function isMacOS(): Promise<boolean> {
-    return (await getPlatform()) === 'macos';
+  return (await getPlatform()) === 'macos';
 }
 
 /**
@@ -31,7 +31,7 @@ export async function isMacOS(): Promise<boolean> {
  * @returns {Promise<boolean>} True if running on Windows
  */
 export async function isWindows(): Promise<boolean> {
-    return (await getPlatform()) === 'windows';
+  return (await getPlatform()) === 'windows';
 }
 
 /**
@@ -39,7 +39,7 @@ export async function isWindows(): Promise<boolean> {
  * @returns {Promise<boolean>} True if running on Linux
  */
 export async function isLinux(): Promise<boolean> {
-    return (await getPlatform()) === 'linux';
+  return (await getPlatform()) === 'linux';
 }
 
 /**
@@ -48,5 +48,5 @@ export async function isLinux(): Promise<boolean> {
  * @returns {Promise<boolean>} True if custom controls should be visible
  */
 export async function usesCustomControls(): Promise<boolean> {
-    return !(await isMacOS());
+  return !(await isMacOS());
 }

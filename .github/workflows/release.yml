@@ -26,12 +26,11 @@ concurrency:
 permissions:
   contents: write # Required for creating releases
 
-
 jobs:
   # Build application
   build:
     uses: ./.github/workflows/_build.yml
-  
+
   # Run tests (no coverage uploads, fail-fast enabled for release quality gate)
   test:
     needs: build
@@ -40,7 +39,7 @@ jobs:
       upload-coverage: false
       e2e-fail-fast: true
       artifact-suffix: '-release'
-  
+
   # Build and publish release after tests pass
   release:
     needs: [build, test]

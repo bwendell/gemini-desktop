@@ -4,19 +4,18 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "dist-electron",
-    "rootDir": "electron",
+    "rootDir": "src",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "strict": true,
     "noImplicitAny": false,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/shared/*"]
+    }
   },
-  "include": [
-    "electron/**/*"
-  ],
-  "exclude": [
-    "electron/**/*.test.ts",
-    "electron/test/**"
-  ]
+  "include": ["src/main/**/*", "src/preload/**/*", "src/shared/**/*"],
+  "exclude": ["src/main/**/*.test.ts", "src/main/test/**"]
 }

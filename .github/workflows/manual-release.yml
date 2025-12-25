@@ -27,7 +27,7 @@ jobs:
   # Build application
   build:
     uses: ./.github/workflows/_build.yml
-  
+
   # Build and publish release (skip tests)
   release:
     needs: build

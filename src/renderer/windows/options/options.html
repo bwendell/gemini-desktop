@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Content Security Policy (CSP) for Options Window
+      More restrictive than main window since it doesn't need external frames.
+      
+      - default-src 'self': Only allow resources from same origin
+      - script-src 'self': Scripts only from same origin
+      - style-src 'self' 'unsafe-inline': Styles from same origin + inline
+      - img-src 'self' data:: Images from same origin and data URIs
+      - font-src 'self': Fonts only from same origin
+      - connect-src 'self': No external API calls needed
+      - frame-src 'none': No iframes allowed in options window
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; 
+                   script-src 'self'; 
+                   style-src 'self' 'unsafe-inline'; 
+                   img-src 'self' data:; 
+                   font-src 'self'; 
+                   connect-src 'self'; 
+                   frame-src 'none';"
+    />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Options - Gemini Desktop Settings" />
+    <title>Options - Gemini Desktop</title>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

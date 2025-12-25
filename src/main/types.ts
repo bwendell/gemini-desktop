@@ -1,0 +1,70 @@
+/**
+ * Shared TypeScript type definitions for Electron application.
+ *
+ * This file re-exports shared types and defines main-process-specific types.
+ * For new code, consider importing directly from '@shared/types' instead.
+ */
+
+// =========================================================================
+// Re-exports from Shared Types
+// =========================================================================
+
+/**
+ * Re-export all shared types for backward compatibility.
+ * These types are now defined in src/shared/types/ and shared between processes.
+ */
+export type {
+  // Theme types
+  ThemePreference,
+  ThemeData,
+
+  // Hotkey types
+  HotkeyId,
+  IndividualHotkeySettings,
+
+  // Update types
+  UpdateInfo,
+  DownloadProgress,
+
+  // IPC types
+  ElectronAPI,
+} from '../shared/types';
+
+// =========================================================================
+// Main Process Specific Types
+// =========================================================================
+
+/**
+ * Settings store options.
+ */
+export interface SettingsStoreOptions {
+  /** Name of the config file (without extension) */
+  configName?: string;
+  /** Default values for settings */
+  defaults?: Record<string, unknown>;
+  /** File system module (for testing) */
+  fs?: typeof import('fs');
+}
+
+/**
+ * Logger interface for consistent logging across modules.
+ */
+export interface Logger {
+  log(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+}
+
+// =========================================================================
+// Global Type Augmentation
+// =========================================================================
+
+/**
+ * Augment Window interface to include our Electron API.
+ * This provides type safety in renderer process.
+ */
+declare global {
+  interface Window {
+    electronAPI: import('../shared/types').ElectronAPI;
+  }
+}

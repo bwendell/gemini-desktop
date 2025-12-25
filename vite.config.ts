@@ -1,6 +1,6 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { resolve } from "path";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
@@ -9,11 +9,11 @@ export default defineConfig(async () => ({
   // Path aliases matching tsconfig.json
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
-      '@components': resolve(__dirname, './src/components'),
-      '@hooks': resolve(__dirname, './src/hooks'),
-      '@context': resolve(__dirname, './src/context'),
-      '@utils': resolve(__dirname, './src/utils'),
+      '@': resolve(__dirname, './src/renderer'),
+      '@components': resolve(__dirname, './src/renderer/components'),
+      '@hooks': resolve(__dirname, './src/renderer/hooks'),
+      '@context': resolve(__dirname, './src/renderer/context'),
+      '@utils': resolve(__dirname, './src/renderer/utils'),
     },
   },
 
@@ -25,8 +25,8 @@ export default defineConfig(async () => ({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        options: resolve(__dirname, 'options.html'),
-        quickchat: resolve(__dirname, 'quickchat.html'),
+        options: resolve(__dirname, 'src/renderer/windows/options/options.html'),
+        quickchat: resolve(__dirname, 'src/renderer/windows/quickchat/quickchat.html'),
       },
     },
   },
@@ -37,8 +37,7 @@ export default defineConfig(async () => ({
     port: 1420,
     strictPort: true,
     watch: {
-      ignored: ["**/electron/**", "**/dist/**"],
+      ignored: ['**/src/main/**', '**/dist/**'],
     },
   },
 }));
-

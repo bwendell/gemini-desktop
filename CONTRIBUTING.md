@@ -92,14 +92,14 @@ npm run electron:dev
 
 ### Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run electron:dev` | Start development mode |
-| `npm run electron:build` | Build for production |
-| `npm run test` | Run React unit tests |
-| `npm run test:electron` | Run Electron unit tests |
-| `npm run test:e2e` | Run E2E tests |
-| `npm run test:all` | Run all tests |
+| Script                   | Description             |
+| ------------------------ | ----------------------- |
+| `npm run electron:dev`   | Start development mode  |
+| `npm run electron:build` | Build for production    |
+| `npm run test`           | Run React unit tests    |
+| `npm run test:electron`  | Run Electron unit tests |
+| `npm run test:e2e`       | Run E2E tests           |
+| `npm run test:all`       | Run all tests           |
 
 ---
 
