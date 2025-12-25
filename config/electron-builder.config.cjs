@@ -24,7 +24,7 @@ module.exports = {
         arch: ['x64'],
       },
       {
-        target: 'portable',
+        target: 'msi',
         arch: ['x64'],
       },
     ],
@@ -43,9 +43,6 @@ module.exports = {
           },
         }
       : {}),
-  },
-  portable: {
-    artifactName: '${productName}-${version}-${arch}-portable.${ext}',
   },
   nsis: {
     oneClick: false,
