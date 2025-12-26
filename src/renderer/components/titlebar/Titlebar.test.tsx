@@ -127,6 +127,32 @@ describe('Titlebar', () => {
     });
   });
 
+  describe('macOS-specific styling', () => {
+    it('applies macos class on macOS platform', () => {
+      setMockPlatform('darwin');
+      render(<Titlebar />);
+
+      const header = document.querySelector('header.titlebar');
+      expect(header).toHaveClass('macos');
+    });
+
+    it('does not apply macos class on Windows', () => {
+      setMockPlatform('win32');
+      render(<Titlebar />);
+
+      const header = document.querySelector('header.titlebar');
+      expect(header).not.toHaveClass('macos');
+    });
+
+    it('does not apply macos class on Linux', () => {
+      setMockPlatform('linux');
+      render(<Titlebar />);
+
+      const header = document.querySelector('header.titlebar');
+      expect(header).not.toHaveClass('macos');
+    });
+  });
+
   describe('layout structure', () => {
     it('has titlebar-left section', () => {
       render(<Titlebar />);

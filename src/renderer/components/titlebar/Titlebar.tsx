@@ -4,6 +4,7 @@ import { useMenuDefinitions } from './useMenuDefinitions';
 import { useUpdateToast } from '../../context/UpdateToastContext';
 import type { TitlebarConfig } from '../../types';
 import { TITLEBAR_TEST_IDS } from '../../utils/testIds';
+import { isMacOS } from '../../utils/platform';
 import icon from '@/assets/icon.png';
 import './titlebar.css';
 
@@ -60,7 +61,7 @@ export function Titlebar({ config = {} }: TitlebarProps) {
   };
 
   return (
-    <header className="titlebar" data-testid="titlebar">
+    <header className={`titlebar${isMacOS() ? ' macos' : ''}`} data-testid="titlebar">
       <div className="titlebar-left">
         {mergedConfig.showIcon && (
           <div className="titlebar-icon">

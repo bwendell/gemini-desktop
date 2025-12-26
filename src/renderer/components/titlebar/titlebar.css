@@ -36,6 +36,11 @@
   -webkit-app-region: no-drag;
 }
 
+/* macOS: Add padding to avoid traffic light buttons (Close, Minimize, Maximize) */
+.macos .titlebar-left {
+  padding-left: 70px;
+}
+
 .titlebar-drag-region {
   flex: 1;
   display: flex;
