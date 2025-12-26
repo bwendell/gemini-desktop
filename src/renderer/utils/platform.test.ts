@@ -11,7 +11,7 @@ import {
   usesCustomWindowControls,
   isDevMode,
 } from './platform';
-import { setMockPlatform } from '../test/setup';
+import { setMockPlatform } from '../../../tests/unit/renderer/test/setup';
 
 describe('platform utilities', () => {
   beforeEach(() => {

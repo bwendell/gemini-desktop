@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useMenuDefinitions } from './useMenuDefinitions';
-import { mockElectronAPI } from '../../test/setup';
+import { mockElectronAPI } from '../../../../tests/unit/renderer/test/setup';
 
 describe('useMenuDefinitions', () => {
   beforeEach(() => {

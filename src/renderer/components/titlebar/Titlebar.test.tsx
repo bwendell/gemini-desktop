@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Titlebar } from './Titlebar';
-import { setMockPlatform, mockElectronAPI } from '../../test/setup';
+import { setMockPlatform, mockElectronAPI } from '../../../../tests/unit/renderer/test/setup';
 
 // Mock the useUpdateToast hook
 vi.mock('../../context/UpdateToastContext', () => ({

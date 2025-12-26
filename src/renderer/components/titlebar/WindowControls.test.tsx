@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WindowControls } from './WindowControls';
-import { setMockPlatform } from '../../test/setup';
+import { setMockPlatform } from '../../../../tests/unit/renderer/test/setup';
 
 // Mock dependencies
 const mockMinimize = vi.fn();

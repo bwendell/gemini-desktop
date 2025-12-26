@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderHook } from '@testing-library/react';
 import { UpdateToastProvider, useUpdateToast } from './UpdateToastContext';
-import { mockElectronAPI } from '../test/setup';
+import { mockElectronAPI } from '../../../tests/unit/renderer/test/setup';
 import React from 'react';
 
 describe('UpdateToastContext', () => {

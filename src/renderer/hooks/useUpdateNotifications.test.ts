@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useUpdateNotifications } from './useUpdateNotifications';
-import { mockElectronAPI } from '../test/setup';
+import { mockElectronAPI } from '../../../tests/unit/renderer/test/setup';
 
 describe('useUpdateNotifications', () => {
   beforeEach(() => {

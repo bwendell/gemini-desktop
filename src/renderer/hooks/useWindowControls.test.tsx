@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useWindowControls } from './useWindowControls';
-import { mockElectronAPI } from '../test/setup';
+import { mockElectronAPI } from '../../../tests/unit/renderer/test/setup';
 
 describe('useWindowControls', () => {
   beforeEach(() => {

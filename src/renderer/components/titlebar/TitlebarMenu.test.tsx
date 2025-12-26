@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TitlebarMenu } from './TitlebarMenu';
 import type { MenuDefinition } from './menuTypes';
-import { setMockPlatform } from '../../test/setup';
+import { setMockPlatform } from '../../../../tests/unit/renderer/test/setup';
 import '@testing-library/jest-dom'; // Ensure jest-dom matchers are available
 
 describe('TitlebarMenu', () => {

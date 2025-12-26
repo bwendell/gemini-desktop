@@ -5,6 +5,7 @@
  * It provides a centralized way to:
  * - Register/unregister individual global keyboard shortcuts
  * - Enable/disable each shortcut independently
+ * - Configure custom accelerators for each shortcut
  * - Integrate with the WindowManager for shortcut actions
  *
  * ## Architecture
@@ -23,6 +24,11 @@
  * Each hotkey can be individually enabled/disabled via `setIndividualEnabled()`.
  * Settings are persisted and synced via IpcManager.
  *
+ * ## Custom Accelerators
+ *
+ * Users can configure custom accelerators via `setAccelerator()`.
+ * Accelerators are validated before registration.
+ *
  * @module HotkeyManager
  * @see {@link WindowManager} - Used for shortcut actions
  * @see {@link IpcManager} - Manages IPC for hotkey state synchronization
@@ -31,7 +37,14 @@
 import { globalShortcut } from 'electron';
 import type WindowManager from './windowManager';
 import { createLogger } from '../utils/logger';
-import type { HotkeyId, IndividualHotkeySettings } from '../types';
+import {
+  type HotkeyId,
+  type IndividualHotkeySettings,
+  type HotkeyAccelerators,
+  type HotkeySettings,
+  DEFAULT_ACCELERATORS,
+  HOTKEY_IDS,
+} from '../types';
 
 const logger = createLogger('[HotkeyManager]');
 
@@ -43,13 +56,21 @@ const logger = createLogger('[HotkeyManager]');
  * Defines a keyboard shortcut configuration.
  *
  * @property id - Unique identifier for the shortcut
- * @property accelerator - The Electron accelerator string (e.g., 'CommandOrControl+Alt+E')
  * @property action - The callback function to execute when the shortcut is triggered
  */
-interface Shortcut {
+interface ShortcutAction {
   id: HotkeyId;
-  accelerator: string;
   action: () => void;
+}
+
+/**
+ * Initial settings for HotkeyManager construction.
+ */
+export interface HotkeyManagerInitialSettings {
+  /** Individual enabled states */
+  enabled?: Partial<IndividualHotkeySettings>;
+  /** Custom accelerators */
+  accelerators?: Partial<HotkeyAccelerators>;
 }
 
 // ============================================================================
@@ -62,6 +83,7 @@ interface Shortcut {
  * ## Features
  * - Registers global shortcuts that work system-wide
  * - Supports individual enable/disable per hotkey
+ * - Supports custom accelerators per hotkey
  * - Prevents duplicate registrations
  * - Logs all shortcut events for debugging
  *
@@ -70,6 +92,7 @@ interface Shortcut {
  * const hotkeyManager = new HotkeyManager(windowManager);
  * hotkeyManager.registerShortcuts(); // Register enabled shortcuts
  * hotkeyManager.setIndividualEnabled('quickChat', false); // Disable Quick Chat hotkey
+ * hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H'); // Change accelerator
  * ```
  *
  * @class HotkeyManager
@@ -78,8 +101,8 @@ export default class HotkeyManager {
   /** Reference to the window manager for shortcut actions */
   private windowManager: WindowManager;
 
-  /** Array of shortcut configurations */
-  private shortcuts: Shortcut[];
+  /** Array of shortcut action configurations (id -> action mapping) */
+  private shortcutActions: ShortcutAction[];
 
   /**
    * Individual enabled state for each hotkey.
@@ -92,10 +115,17 @@ export default class HotkeyManager {
   };
 
   /**
-   * Tracks which shortcuts are currently registered with the system.
-   * Prevents duplicate registration calls.
+   * Current accelerators for each hotkey.
+   * Can be customized by the user.
    */
-  private _registeredShortcuts: Set<HotkeyId> = new Set();
+  private _accelerators: HotkeyAccelerators = { ...DEFAULT_ACCELERATORS };
+
+  /**
+   * Tracks which shortcuts are currently registered with the system.
+   * Maps hotkey ID to the accelerator that was registered.
+   * Prevents duplicate registration calls and enables proper unregistration.
+   */
+  private _registeredShortcuts: Map<HotkeyId, string> = new Map();
 
   /**
    * Creates a new HotkeyManager instance.
@@ -104,52 +134,61 @@ export default class HotkeyManager {
    * Shortcuts are not registered until `registerShortcuts()` is called.
    *
    * @param windowManager - The WindowManager instance for executing shortcut actions
-   * @param initialSettings - Optional initial settings for individual hotkeys
+   * @param initialSettings - Optional initial settings for enabled states and accelerators
    *
    * @example
    * ```typescript
    * const windowManager = new WindowManager();
-   * const hotkeyManager = new HotkeyManager(windowManager);
+   * const hotkeyManager = new HotkeyManager(windowManager, {
+   *   enabled: { quickChat: false },
+   *   accelerators: { bossKey: 'CommandOrControl+Alt+H' }
+   * });
    * ```
    */
-  constructor(windowManager: WindowManager, initialSettings?: Partial<IndividualHotkeySettings>) {
+  constructor(windowManager: WindowManager, initialSettings?: HotkeyManagerInitialSettings | Partial<IndividualHotkeySettings>) {
     this.windowManager = windowManager;
 
-    // Apply initial settings if provided
+    // Handle both old-style (Partial<IndividualHotkeySettings>) and new-style (HotkeyManagerInitialSettings) arguments
     if (initialSettings) {
-      this._individualSettings = { ...this._individualSettings, ...initialSettings };
+      // Check if it's the new-style settings object
+      if ('enabled' in initialSettings || 'accelerators' in initialSettings) {
+        const newSettings = initialSettings as HotkeyManagerInitialSettings;
+        if (newSettings.enabled) {
+          this._individualSettings = { ...this._individualSettings, ...newSettings.enabled };
+        }
+        if (newSettings.accelerators) {
+          this._accelerators = { ...this._accelerators, ...newSettings.accelerators };
+        }
+      } else {
+        // Old-style: treat as Partial<IndividualHotkeySettings> for backwards compatibility
+        this._individualSettings = { ...this._individualSettings, ...initialSettings as Partial<IndividualHotkeySettings> };
+      }
     }
 
-    // Define shortcuts configuration
-    // Each shortcut has an id, accelerator string and an action callback
-    this.shortcuts = [
+    // Define shortcut actions
+    // Each shortcut maps an id to an action callback
+    this.shortcutActions = [
       {
         id: 'bossKey',
-        // Minimize Window Shortcut
-        // Ctrl+Alt+E (Windows/Linux) or Cmd+Alt+E (macOS)
-        accelerator: 'CommandOrControl+Alt+E',
         action: () => {
-          logger.log('Hotkey pressed: CommandOrControl+Alt+E (Boss Key)');
+          const accelerator = this._accelerators.bossKey;
+          logger.log(`Hotkey pressed: ${accelerator} (Boss Key)`);
           this.windowManager.minimizeMainWindow();
         },
       },
       {
         id: 'quickChat',
-        // Quick Chat Shortcut - toggles the floating prompt window
-        // Ctrl+Shift+Space (Windows/Linux) or Cmd+Shift+Space (macOS)
-        accelerator: 'CommandOrControl+Shift+Space',
         action: () => {
-          logger.log('Hotkey pressed: CommandOrControl+Shift+Space (Quick Chat)');
+          const accelerator = this._accelerators.quickChat;
+          logger.log(`Hotkey pressed: ${accelerator} (Quick Chat)`);
           this.windowManager.toggleQuickChat();
         },
       },
       {
         id: 'alwaysOnTop',
-        // Always On Top Toggle
-        // Ctrl+Shift+T (Windows/Linux) or Cmd+Shift+T (macOS)
-        accelerator: 'CommandOrControl+Shift+T',
         action: () => {
-          logger.log('Hotkey pressed: CommandOrControl+Shift+T (Always On Top)');
+          const accelerator = this._accelerators.alwaysOnTop;
+          logger.log(`Hotkey pressed: ${accelerator} (Always On Top)`);
           const current = this.windowManager.isAlwaysOnTop();
           logger.log(`Current always-on-top state: ${current}, toggling to: ${!current}`);
           this.windowManager.setAlwaysOnTop(!current);
@@ -168,6 +207,47 @@ export default class HotkeyManager {
   }
 
   /**
+   * Get the current accelerator settings.
+   *
+   * @returns Copy of the current accelerators object
+   */
+  getAccelerators(): HotkeyAccelerators {
+    return { ...this._accelerators };
+  }
+
+  /**
+   * Get the accelerator for a specific hotkey.
+   *
+   * @param id - The hotkey identifier
+   * @returns The current accelerator string
+   */
+  getAccelerator(id: HotkeyId): string {
+    return this._accelerators[id];
+  }
+
+  /**
+   * Get full settings including both enabled states and accelerators.
+   *
+   * @returns Complete hotkey settings
+   */
+  getFullSettings(): HotkeySettings {
+    return {
+      alwaysOnTop: {
+        enabled: this._individualSettings.alwaysOnTop,
+        accelerator: this._accelerators.alwaysOnTop,
+      },
+      bossKey: {
+        enabled: this._individualSettings.bossKey,
+        accelerator: this._accelerators.bossKey,
+      },
+      quickChat: {
+        enabled: this._individualSettings.quickChat,
+        accelerator: this._accelerators.quickChat,
+      },
+    };
+  }
+
+  /**
    * Check if a specific hotkey is enabled.
    *
    * @param id - The hotkey identifier
@@ -175,6 +255,45 @@ export default class HotkeyManager {
    */
   isIndividualEnabled(id: HotkeyId): boolean {
     return this._individualSettings[id];
+  }
+
+  /**
+   * Set the accelerator for a specific hotkey.
+   *
+   * If the hotkey is currently registered, it will be unregistered with the old
+   * accelerator and re-registered with the new one.
+   *
+   * @param id - The hotkey identifier
+   * @param accelerator - The new accelerator string
+   * @returns True if the accelerator was set successfully
+   */
+  setAccelerator(id: HotkeyId, accelerator: string): boolean {
+    const oldAccelerator = this._accelerators[id];
+    if (oldAccelerator === accelerator) {
+      return true; // No change needed
+    }
+
+    // If currently registered, unregister with old accelerator
+    const wasRegistered = this._registeredShortcuts.has(id);
+    if (wasRegistered) {
+      const registeredAccelerator = this._registeredShortcuts.get(id);
+      if (registeredAccelerator) {
+        globalShortcut.unregister(registeredAccelerator);
+        this._registeredShortcuts.delete(id);
+        logger.log(`Hotkey ${id} unregistered for accelerator change`);
+      }
+    }
+
+    // Update the accelerator
+    this._accelerators[id] = accelerator;
+    logger.log(`Accelerator changed for ${id}: ${oldAccelerator} -> ${accelerator}`);
+
+    // Re-register if it was registered and is still enabled
+    if (wasRegistered && this._individualSettings[id]) {
+      this._registerShortcutById(id);
+    }
+
+    return true;
   }
 
   /**
@@ -197,17 +316,11 @@ export default class HotkeyManager {
 
     this._individualSettings[id] = enabled;
 
-    const shortcut = this.shortcuts.find((s) => s.id === id);
-    if (!shortcut) {
-      logger.warn(`Unknown hotkey id: ${id}`);
-      return;
-    }
-
     if (enabled) {
-      this._registerShortcut(shortcut);
+      this._registerShortcutById(id);
       logger.log(`Hotkey enabled: ${id}`);
     } else {
-      this._unregisterShortcut(shortcut);
+      this._unregisterShortcutById(id);
       logger.log(`Hotkey disabled: ${id}`);
     }
   }
@@ -224,6 +337,19 @@ export default class HotkeyManager {
   }
 
   /**
+   * Update all accelerators at once.
+   *
+   * @param accelerators - New accelerators to apply
+   */
+  updateAllAccelerators(accelerators: HotkeyAccelerators): void {
+    for (const id of HOTKEY_IDS) {
+      if (accelerators[id]) {
+        this.setAccelerator(id, accelerators[id]);
+      }
+    }
+  }
+
+  /**
    * Register all enabled global shortcuts with the system.
    *
    * This method is called:
@@ -235,51 +361,60 @@ export default class HotkeyManager {
    * @see setIndividualEnabled - For enabling/disabling individual hotkeys
    */
   registerShortcuts(): void {
-    this.shortcuts.forEach((shortcut) => {
-      if (this._individualSettings[shortcut.id]) {
-        this._registerShortcut(shortcut);
+    for (const id of HOTKEY_IDS) {
+      if (this._individualSettings[id]) {
+        this._registerShortcutById(id);
       }
-    });
+    }
   }
 
   /**
-   * Register a single shortcut with the system.
+   * Register a shortcut by its ID.
    *
-   * @param shortcut - The shortcut to register
+   * @param id - The hotkey identifier
    * @private
    */
-  private _registerShortcut(shortcut: Shortcut): void {
+  private _registerShortcutById(id: HotkeyId): void {
     // Guard: Don't register if already registered
-    if (this._registeredShortcuts.has(shortcut.id)) {
-      logger.log(`Hotkey already registered: ${shortcut.id}`);
+    if (this._registeredShortcuts.has(id)) {
+      logger.log(`Hotkey already registered: ${id}`);
       return;
     }
 
-    const success = globalShortcut.register(shortcut.accelerator, shortcut.action);
+    const accelerator = this._accelerators[id];
+    const shortcutAction = this.shortcutActions.find((s) => s.id === id);
+
+    if (!shortcutAction) {
+      logger.error(`No action defined for hotkey: ${id}`);
+      return;
+    }
+
+    const success = globalShortcut.register(accelerator, shortcutAction.action);
 
     if (!success) {
       // Registration can fail if another app has claimed the shortcut
-      logger.error(`Registration failed for hotkey: ${shortcut.id} (${shortcut.accelerator})`);
+      logger.error(`Registration failed for hotkey: ${id} (${accelerator})`);
     } else {
-      this._registeredShortcuts.add(shortcut.id);
-      logger.log(`Hotkey registered: ${shortcut.id} (${shortcut.accelerator})`);
+      this._registeredShortcuts.set(id, accelerator);
+      logger.log(`Hotkey registered: ${id} (${accelerator})`);
     }
   }
 
   /**
-   * Unregister a single shortcut from the system.
+   * Unregister a shortcut by its ID.
    *
-   * @param shortcut - The shortcut to unregister
+   * @param id - The hotkey identifier
    * @private
    */
-  private _unregisterShortcut(shortcut: Shortcut): void {
-    if (!this._registeredShortcuts.has(shortcut.id)) {
+  private _unregisterShortcutById(id: HotkeyId): void {
+    const registeredAccelerator = this._registeredShortcuts.get(id);
+    if (!registeredAccelerator) {
       return; // Not registered, nothing to do
     }
 
-    globalShortcut.unregister(shortcut.accelerator);
-    this._registeredShortcuts.delete(shortcut.id);
-    logger.log(`Hotkey unregistered: ${shortcut.id} (${shortcut.accelerator})`);
+    globalShortcut.unregister(registeredAccelerator);
+    this._registeredShortcuts.delete(id);
+    logger.log(`Hotkey unregistered: ${id} (${registeredAccelerator})`);
   }
 
   /**

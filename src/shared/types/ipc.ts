@@ -6,7 +6,7 @@
  */
 
 import type { ThemeData, ThemePreference } from './theme';
-import type { HotkeyId, IndividualHotkeySettings } from './hotkeys';
+import type { HotkeyId, IndividualHotkeySettings, HotkeyAccelerators, HotkeySettings } from './hotkeys';
 import type { UpdateInfo, DownloadProgress } from './updates';
 
 /**
@@ -93,6 +93,24 @@ export interface ElectronAPI {
   /** Listen for individual hotkey changes. Returns unsubscribe function. */
   onIndividualHotkeysChanged: (
     callback: (settings: IndividualHotkeySettings) => void
+  ) => () => void;
+
+  // =========================================================================
+  // Hotkey Accelerators API
+  // =========================================================================
+
+  /** Get current hotkey accelerators */
+  getHotkeyAccelerators: () => Promise<HotkeyAccelerators>;
+
+  /** Get full hotkey settings (enabled states + accelerators) */
+  getFullHotkeySettings: () => Promise<HotkeySettings>;
+
+  /** Set accelerator for a specific hotkey */
+  setHotkeyAccelerator: (id: HotkeyId, accelerator: string) => void;
+
+  /** Listen for hotkey accelerator changes. Returns unsubscribe function. */
+  onHotkeyAcceleratorsChanged: (
+    callback: (accelerators: HotkeyAccelerators) => void
   ) => () => void;
 
   // =========================================================================

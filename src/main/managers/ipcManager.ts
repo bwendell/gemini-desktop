@@ -32,8 +32,11 @@ import type {
   ThemeData,
   IndividualHotkeySettings,
   HotkeyId,
+  HotkeyAccelerators,
+  HotkeySettings,
   Logger,
 } from '../types';
+import { DEFAULT_ACCELERATORS, HOTKEY_IDS } from '../types';
 
 /**
  * User preferences structure for settings store.
@@ -44,9 +47,13 @@ interface UserPreferences extends Record<string, unknown> {
   // Individual hotkey settings
   hotkeyAlwaysOnTop: boolean;
   hotkeyBossKey: boolean;
+  hotkeyQuickChat: boolean;
+  // Hotkey accelerators
+  acceleratorAlwaysOnTop: string;
+  acceleratorBossKey: string;
+  acceleratorQuickChat: string;
   // Auto-update settings
   autoUpdateEnabled: boolean;
-  hotkeyQuickChat: boolean;
 }
 
 /**
@@ -140,6 +147,7 @@ export default class IpcManager {
     this._setupWindowHandlers();
     this._setupThemeHandlers();
     this._setupIndividualHotkeyHandlers();
+    this._setupAcceleratorHandlers();
     this._setupAlwaysOnTopHandlers();
     this._setupAppHandlers();
     this._setupQuickChatHandlers();
@@ -420,6 +428,146 @@ export default class IpcManager {
         }
       } catch (error) {
         this.logger.error('Error broadcasting individual hotkey change to window:', {
+          error: (error as Error).message,
+          windowId: win.id,
+        });
+      }
+    });
+  }
+
+  /**
+   * Set up Hotkey Accelerator IPC handlers.
+   * @private
+   */
+  private _setupAcceleratorHandlers(): void {
+    // Get current accelerator settings
+    ipcMain.handle(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET, (): HotkeyAccelerators => {
+      try {
+        return this._getHotkeyAccelerators();
+      } catch (error) {
+        this.logger.error('Error getting hotkey accelerators:', error);
+        return { ...DEFAULT_ACCELERATORS };
+      }
+    });
+
+    // Get full hotkey settings (enabled + accelerators)
+    ipcMain.handle(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET, (): HotkeySettings => {
+      try {
+        return this._getFullHotkeySettings();
+      } catch (error) {
+        this.logger.error('Error getting full hotkey settings:', error);
+        return {
+          alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
+          bossKey: { enabled: true, accelerator: DEFAULT_ACCELERATORS.bossKey },
+          quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
+        };
+      }
+    });
+
+    // Set accelerator for a specific hotkey
+    ipcMain.on(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET, (_event, id: HotkeyId, accelerator: string) => {
+      try {
+        // Validate inputs
+        if (!HOTKEY_IDS.includes(id)) {
+          this.logger.warn(`Invalid hotkey id: ${id}`);
+          return;
+        }
+        if (typeof accelerator !== 'string' || accelerator.trim().length === 0) {
+          this.logger.warn(`Invalid accelerator value: ${accelerator}`);
+          return;
+        }
+
+        // Persist preference
+        this._setHotkeyAccelerator(id, accelerator);
+
+        // Update HotkeyManager if available
+        if (this.hotkeyManager) {
+          this.hotkeyManager.setAccelerator(id, accelerator);
+        }
+
+        this.logger.log(`Hotkey accelerator ${id} set to: ${accelerator}`);
+
+        // Broadcast to all windows
+        this._broadcastAcceleratorChange();
+      } catch (error) {
+        this.logger.error('Error setting hotkey accelerator:', {
+          error: (error as Error).message,
+          id,
+          accelerator,
+        });
+      }
+    });
+  }
+
+  /**
+   * Get hotkey accelerators from store.
+   * @private
+   */
+  private _getHotkeyAccelerators(): HotkeyAccelerators {
+    return {
+      alwaysOnTop: this.store.get('acceleratorAlwaysOnTop') ?? DEFAULT_ACCELERATORS.alwaysOnTop,
+      bossKey: this.store.get('acceleratorBossKey') ?? DEFAULT_ACCELERATORS.bossKey,
+      quickChat: this.store.get('acceleratorQuickChat') ?? DEFAULT_ACCELERATORS.quickChat,
+    };
+  }
+
+  /**
+   * Set a hotkey accelerator in the store.
+   * @private
+   */
+  private _setHotkeyAccelerator(id: HotkeyId, accelerator: string): void {
+    switch (id) {
+      case 'alwaysOnTop':
+        this.store.set('acceleratorAlwaysOnTop', accelerator);
+        break;
+      case 'bossKey':
+        this.store.set('acceleratorBossKey', accelerator);
+        break;
+      case 'quickChat':
+        this.store.set('acceleratorQuickChat', accelerator);
+        break;
+    }
+  }
+
+  /**
+   * Get full hotkey settings (enabled states + accelerators).
+   * @private
+   */
+  private _getFullHotkeySettings(): HotkeySettings {
+    const enabled = this._getIndividualHotkeySettings();
+    const accelerators = this._getHotkeyAccelerators();
+
+    return {
+      alwaysOnTop: {
+        enabled: enabled.alwaysOnTop,
+        accelerator: accelerators.alwaysOnTop,
+      },
+      bossKey: {
+        enabled: enabled.bossKey,
+        accelerator: accelerators.bossKey,
+      },
+      quickChat: {
+        enabled: enabled.quickChat,
+        accelerator: accelerators.quickChat,
+      },
+    };
+  }
+
+  /**
+   * Broadcast accelerator change to all open windows.
+   * @private
+   */
+  private _broadcastAcceleratorChange(): void {
+    const accelerators = this._getHotkeyAccelerators();
+    const windows = BrowserWindow.getAllWindows();
+
+    windows.forEach((win) => {
+      try {
+        if (!win.isDestroyed()) {
+          win.webContents.send(IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED, accelerators);
+        }
+      } catch (error) {
+        this.logger.error('Error broadcasting accelerator change to window:', {
           error: (error as Error).message,
           windowId: win.id,
         });

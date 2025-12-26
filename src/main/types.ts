@@ -21,6 +21,9 @@ export type {
   // Hotkey types
   HotkeyId,
   IndividualHotkeySettings,
+  HotkeyConfig,
+  HotkeySettings,
+  HotkeyAccelerators,
 
   // Update types
   UpdateInfo,
@@ -29,6 +32,9 @@ export type {
   // IPC types
   ElectronAPI,
 } from '../shared/types';
+
+// Re-export hotkey constants
+export { DEFAULT_ACCELERATORS, HOTKEY_IDS } from '../shared/types/hotkeys';
 
 // =========================================================================
 // Main Process Specific Types

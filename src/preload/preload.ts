@@ -60,6 +60,12 @@ export const IPC_CHANNELS = {
   HOTKEYS_INDIVIDUAL_SET: 'hotkeys:individual:set',
   HOTKEYS_INDIVIDUAL_CHANGED: 'hotkeys:individual:changed',
 
+  // Hotkey Accelerators
+  HOTKEYS_ACCELERATOR_GET: 'hotkeys:accelerator:get',
+  HOTKEYS_ACCELERATOR_SET: 'hotkeys:accelerator:set',
+  HOTKEYS_ACCELERATOR_CHANGED: 'hotkeys:accelerator:changed',
+  HOTKEYS_FULL_SETTINGS_GET: 'hotkeys:full-settings:get',
+
   // Auto-Update
   AUTO_UPDATE_GET_ENABLED: 'auto-update:get-enabled',
   AUTO_UPDATE_SET_ENABLED: 'auto-update:set-enabled',
@@ -262,6 +268,51 @@ const electronAPI: ElectronAPI = {
 
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_CHANGED, subscription);
+    };
+  },
+
+  // =========================================================================
+  // Hotkey Accelerator API
+  // =========================================================================
+
+  /**
+   * Get the current hotkey accelerators from the backend.
+   *
+   * @returns Promise resolving to HotkeyAccelerators (Record<HotkeyId, string>)
+   */
+  getHotkeyAccelerators: () => ipcRenderer.invoke(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET),
+
+  /**
+   * Get full hotkey settings (enabled states + accelerators).
+   *
+   * @returns Promise resolving to HotkeySettings
+   */
+  getFullHotkeySettings: () => ipcRenderer.invoke(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET),
+
+  /**
+   * Set an accelerator for a specific hotkey.
+   *
+   * @param id - The hotkey identifier ('alwaysOnTop' | 'bossKey' | 'quickChat')
+   * @param accelerator - The new accelerator string (e.g., 'CommandOrControl+Shift+T')
+   */
+  setHotkeyAccelerator: (id, accelerator) =>
+    ipcRenderer.send(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET, id, accelerator),
+
+  /**
+   * Subscribe to hotkey accelerator changes from other windows.
+   *
+   * @param callback - Function called with HotkeyAccelerators when any accelerator changes
+   * @returns Cleanup function to unsubscribe (for use in React useEffect)
+   */
+  onHotkeyAcceleratorsChanged: (callback) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      accelerators: Parameters<typeof callback>[0]
+    ) => callback(accelerators);
+    ipcRenderer.on(IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED, subscription);
+
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED, subscription);
     };
   },
 

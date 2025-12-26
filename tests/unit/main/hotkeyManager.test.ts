@@ -85,15 +85,15 @@ describe('HotkeyManager', () => {
       expect(hotkeyManager).toBeDefined();
     });
 
-    it('should initialize shortcuts with correct IDs', () => {
-      const shortcuts = (
-        hotkeyManager as unknown as { shortcuts: { id: string; accelerator: string }[] }
-      ).shortcuts;
-      expect(shortcuts).toHaveLength(3);
-      expect(shortcuts.map((s) => s.id)).toEqual(['bossKey', 'quickChat', 'alwaysOnTop']);
+    it('should initialize shortcut actions with correct IDs', () => {
+      const shortcutActions = (
+        hotkeyManager as unknown as { shortcutActions: { id: string }[] }
+      ).shortcutActions;
+      expect(shortcutActions).toHaveLength(3);
+      expect(shortcutActions.map((s) => s.id)).toEqual(['bossKey', 'quickChat', 'alwaysOnTop']);
     });
 
-    it('should accept initial settings', () => {
+    it('should accept initial settings (old style)', () => {
       const customManager = new HotkeyManager(mockWindowManager, {
         alwaysOnTop: false,
         bossKey: true,
@@ -105,6 +105,29 @@ describe('HotkeyManager', () => {
         bossKey: true,
         quickChat: false,
       });
+    });
+
+    it('should accept initial settings (new style with accelerators)', () => {
+      const customManager = new HotkeyManager(mockWindowManager, {
+        enabled: {
+          alwaysOnTop: false,
+          bossKey: true,
+          quickChat: false,
+        },
+        accelerators: {
+          bossKey: 'CommandOrControl+Alt+H',
+        },
+      });
+
+      expect(customManager.getIndividualSettings()).toEqual({
+        alwaysOnTop: false,
+        bossKey: true,
+        quickChat: false,
+      });
+      expect(customManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+H');
+      // Others should have defaults
+      expect(customManager.getAccelerator('alwaysOnTop')).toBe('CommandOrControl+Shift+T');
+      expect(customManager.getAccelerator('quickChat')).toBe('CommandOrControl+Shift+Space');
     });
   });
 
@@ -118,6 +141,129 @@ describe('HotkeyManager', () => {
         alwaysOnTop: true,
         bossKey: true,
         quickChat: true,
+      });
+    });
+  });
+
+  // ========================================================================
+  // Accelerator Tests
+  // ========================================================================
+
+  describe('getAccelerators', () => {
+    it('should return default accelerators', () => {
+      expect(hotkeyManager.getAccelerators()).toEqual({
+        alwaysOnTop: 'CommandOrControl+Shift+T',
+        bossKey: 'CommandOrControl+Alt+E',
+        quickChat: 'CommandOrControl+Shift+Space',
+      });
+    });
+  });
+
+  describe('getAccelerator', () => {
+    it('should return accelerator for specific hotkey', () => {
+      expect(hotkeyManager.getAccelerator('alwaysOnTop')).toBe('CommandOrControl+Shift+T');
+      expect(hotkeyManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+E');
+      expect(hotkeyManager.getAccelerator('quickChat')).toBe('CommandOrControl+Shift+Space');
+    });
+  });
+
+  describe('getFullSettings', () => {
+    it('should return combined enabled states and accelerators', () => {
+      expect(hotkeyManager.getFullSettings()).toEqual({
+        alwaysOnTop: {
+          enabled: true,
+          accelerator: 'CommandOrControl+Shift+T',
+        },
+        bossKey: {
+          enabled: true,
+          accelerator: 'CommandOrControl+Alt+E',
+        },
+        quickChat: {
+          enabled: true,
+          accelerator: 'CommandOrControl+Shift+Space',
+        },
+      });
+    });
+
+    it('should reflect changes to enabled states', () => {
+      hotkeyManager.setIndividualEnabled('bossKey', false);
+      const settings = hotkeyManager.getFullSettings();
+      expect(settings.bossKey.enabled).toBe(false);
+      expect(settings.bossKey.accelerator).toBe('CommandOrControl+Alt+E');
+    });
+
+    it('should reflect changes to accelerators', () => {
+      hotkeyManager.setAccelerator('quickChat', 'CommandOrControl+Alt+Q');
+      const settings = hotkeyManager.getFullSettings();
+      expect(settings.quickChat.accelerator).toBe('CommandOrControl+Alt+Q');
+      expect(settings.quickChat.enabled).toBe(true);
+    });
+  });
+
+  describe('setAccelerator', () => {
+    beforeEach(() => {
+      mockGlobalShortcut.register.mockReturnValue(true);
+    });
+
+    it('should update the accelerator for a hotkey', () => {
+      hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H');
+      expect(hotkeyManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+H');
+    });
+
+    it('should re-register with new accelerator if hotkey was registered', () => {
+      // Register all shortcuts
+      hotkeyManager.registerShortcuts();
+      vi.clearAllMocks();
+
+      // Change accelerator for enabled hotkey
+      hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H');
+
+      // Should unregister old accelerator
+      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith('CommandOrControl+Alt+E');
+      // Should register new accelerator
+      expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+        'CommandOrControl+Alt+H',
+        expect.any(Function)
+      );
+    });
+
+    it('should not re-register if hotkey was not registered', () => {
+      // Don't register shortcuts first
+      hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H');
+
+      expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
+      expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+    });
+
+    it('should be idempotent for same accelerator', () => {
+      hotkeyManager.registerShortcuts();
+      vi.clearAllMocks();
+
+      // Set to same value
+      hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+E');
+
+      // Should not trigger any registration changes
+      expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
+      expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateAllAccelerators', () => {
+    beforeEach(() => {
+      mockGlobalShortcut.register.mockReturnValue(true);
+    });
+
+    it('should update all accelerators at once', () => {
+      hotkeyManager.updateAllAccelerators({
+        alwaysOnTop: 'CommandOrControl+Shift+A',
+        bossKey: 'CommandOrControl+Alt+B',
+        quickChat: 'CommandOrControl+Shift+Q',
+      });
+
+      expect(hotkeyManager.getAccelerators()).toEqual({
+        alwaysOnTop: 'CommandOrControl+Shift+A',
+        bossKey: 'CommandOrControl+Alt+B',
+        quickChat: 'CommandOrControl+Shift+Q',
       });
     });
   });

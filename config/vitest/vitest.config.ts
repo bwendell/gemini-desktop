@@ -22,7 +22,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['tests/unit/renderer/test/setup.ts'],
-    include: ['tests/unit/renderer/**/*.{test,spec}.{ts,tsx}'],
+    include: [
+      'tests/unit/renderer/**/*.{test,spec}.{ts,tsx}',
+      'src/renderer/**/*.{test,spec}.{ts,tsx}',
+    ],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
