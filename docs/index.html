@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Desktop - The Better Way to Use Gemini</title>
+    <meta name="description" content="A native desktop experience for Google Gemini with global hotkeys, spotlight-style Quick Chat, and zero data collection.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-sparkles"></i> Gemini Desktop
+        </div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#download">Download</a>
+            <a href="https://github.com/bwendell/gemini-desktop" target="_blank" class="github-link"><i class="fa-brands fa-github"></i> GitHub</a>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Gemini, <span class="gradient-text">but better.</span></h1>
+                <p class="hero-subtitle">Experience Google Gemini as a native desktop app with global hotkeys, seamless workflow integration, and privacy at its core.</p>
+                <div class="cta-group">
+                    <a href="https://github.com/bwendell/gemini-desktop/releases/latest" class="btn btn-primary"><i class="fa-brands fa-windows"></i> Download for Windows</a>
+                    <a href="https://github.com/bwendell/gemini-desktop/releases/latest" class="btn btn-secondary">Other Platforms</a>
+                </div>
+
+            </div>
+            <div class="hero-image-container">
+                <img src="assets/hero.png" alt="Gemini Desktop App Interface" class="hero-img">
+                <div class="glow-effect"></div>
+            </div>
+        </div>
+    </header>
+
+    <section id="features" class="features">
+        <div class="section-header">
+            <h2>Supercharge Your Workflow</h2>
+            <p>Designed for power users who want AI at their fingertips without breaking their flow.</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="card-icon"><i class="fa-solid fa-bolt"></i></div>
+                <h3>Spotlight Quick Chat</h3>
+                <p>Press <code>Ctrl+Shift+Space</code> anywhere to summon a floating command center. Ask, copy, and dismiss without leaving your app.</p>
+                <img src="assets/feature-quick-chat.png" alt="Quick Chat Feature" class="feature-img">
+            </div>
+            <div class="feature-card">
+                <div class="card-icon"><i class="fa-solid fa-user-secret"></i></div>
+                <h3>Stealth Mode</h3>
+                <p>Need privacy? Press <code>Ctrl+Alt+E</code> to instantly vanish the app to the tray. Your chats are safe and out of sight.</p>
+                <img src="assets/feature-stealth.png" alt="Stealth Mode" class="feature-img">
+            </div>
+            <div class="feature-card">
+                <div class="card-icon"><i class="fa-solid fa-layer-group"></i></div>
+                <h3>Native & Fast</h3>
+                <p>Not just a web wrapper. Global hotkeys, always-on-top mode, and system tray integration make it a true desktop citizen.</p>
+                <!-- Placeholder for standard aesthetic if no specific image -->
+                <div class="feature-visual-placeholder">
+                    <i class="fa-brands fa-electron fa-3x"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="details">
+        <div class="detail-row">
+            <div class="detail-text">
+                <h3>Always On Top</h3>
+                <p>Pin the conversation. Keep Gemini visible while you code, write, or research in other windows. Never lose context again.</p>
+            </div>
+            <div class="detail-visual">
+                <div class="mock-window small">
+                    <div class="title-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                    <div class="content">Coding...</div>
+                </div>
+                <div class="mock-window floating">
+                    <div class="title-bar active"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                    <div class="content">Gemini: Here's the fix...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="gallery" class="gallery">
+        <div class="section-header">
+            <h2>Experience the Future</h2>
+        </div>
+        <div class="gallery-grid">
+            <div class="gallery-item">
+                <img src="assets/settings-image.png" alt="Settings Interface">
+                <div class="gallery-caption">Advanced Customization</div>
+            </div>
+            <div class="gallery-item">
+                <img src="assets/coding-mockup.png" alt="Coding Mode">
+                <div class="gallery-caption">Developer Focused</div>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="privacy" id="privacy">
+        <div class="privacy-container">
+            <h2>Zero Telemetry. <br>100% Privacy.</h2>
+            <p>We don't collect your data. Authentication happens directly with Google. The code is open source for you to verify.</p>
+            <div class="privacy-badges">
+                <div class="badge"><i class="fa-solid fa-shield-halved"></i> No Tracking</div>
+                <div class="badge"><i class="fa-solid fa-code"></i> Open Source</div>
+                <div class="badge"><i class="fa-brands fa-google"></i> Direct Auth</div>
+            </div>
+        </div>
+    </section>
+
+    <footer id="download">
+        <div class="footer-content">
+            <div class="footer-logo">Gemini Desktop</div>
+            <p>The unofficial desktop client that gives you superpowers.</p>
+            <div class="social-links">
+                <a href="https://github.com/bwendell/gemini-desktop"><i class="fa-brands fa-github"></i></a>
+
+            </div>
+            <p class="copyright">© 2025 Ben Wendell. Not affiliated with Google.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
