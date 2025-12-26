@@ -166,7 +166,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(true);
 
         // Verify globalShortcut.register was called for the re-enabled hotkey
-        const expectedAccelerator = 'CommandOrControl+Shift+T';
+        const expectedAccelerator = 'CommandOrControl+Alt+T';
 
         expect(globalShortcut.register).toHaveBeenCalledWith(
           expectedAccelerator,
@@ -211,7 +211,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         expect(registeredAccelerators).toContain(quickChatAccelerator);
 
         // Always-on-top should NOT be registered
-        const alwaysOnTopAccelerator = 'CommandOrControl+Shift+T';
+        const alwaysOnTopAccelerator = 'CommandOrControl+Alt+T';
         expect(registeredAccelerators).not.toContain(alwaysOnTopAccelerator);
 
         // Verify state
@@ -280,7 +280,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         // Count register calls - should have 3 registers (for each enable)
         const registerCalls = (globalShortcut.register as any).mock.calls;
         const alwaysOnTopRegisters = registerCalls.filter(
-          (call: any) => call[0] === 'CommandOrControl+Shift+T'
+          (call: any) => call[0] === 'CommandOrControl+Alt+T'
         );
         expect(alwaysOnTopRegisters.length).toBe(3);
       });

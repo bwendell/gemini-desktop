@@ -126,7 +126,7 @@ describe('HotkeyManager', () => {
       });
       expect(customManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+H');
       // Others should have defaults
-      expect(customManager.getAccelerator('alwaysOnTop')).toBe('CommandOrControl+Shift+T');
+      expect(customManager.getAccelerator('alwaysOnTop')).toBe('CommandOrControl+Alt+T');
       expect(customManager.getAccelerator('quickChat')).toBe('CommandOrControl+Shift+Space');
     });
   });
@@ -152,7 +152,7 @@ describe('HotkeyManager', () => {
   describe('getAccelerators', () => {
     it('should return default accelerators', () => {
       expect(hotkeyManager.getAccelerators()).toEqual({
-        alwaysOnTop: 'CommandOrControl+Shift+T',
+        alwaysOnTop: 'CommandOrControl+Alt+T',
         bossKey: 'CommandOrControl+Alt+E',
         quickChat: 'CommandOrControl+Shift+Space',
       });
@@ -161,7 +161,7 @@ describe('HotkeyManager', () => {
 
   describe('getAccelerator', () => {
     it('should return accelerator for specific hotkey', () => {
-      expect(hotkeyManager.getAccelerator('alwaysOnTop')).toBe('CommandOrControl+Shift+T');
+      expect(hotkeyManager.getAccelerator('alwaysOnTop')).toBe('CommandOrControl+Alt+T');
       expect(hotkeyManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+E');
       expect(hotkeyManager.getAccelerator('quickChat')).toBe('CommandOrControl+Shift+Space');
     });
@@ -172,7 +172,7 @@ describe('HotkeyManager', () => {
       expect(hotkeyManager.getFullSettings()).toEqual({
         alwaysOnTop: {
           enabled: true,
-          accelerator: 'CommandOrControl+Shift+T',
+          accelerator: 'CommandOrControl+Alt+T',
         },
         bossKey: {
           enabled: true,
@@ -368,7 +368,7 @@ describe('HotkeyManager', () => {
         expect.any(Function)
       );
       expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-        'CommandOrControl+Shift+T',
+        'CommandOrControl+Alt+T',
         expect.any(Function)
       );
     });
@@ -437,7 +437,7 @@ describe('HotkeyManager', () => {
 
       mockGlobalShortcut.register.mockImplementation(
         (accelerator: string, callback: () => void) => {
-          if (accelerator === 'CommandOrControl+Shift+T') {
+          if (accelerator === 'CommandOrControl+Alt+T') {
             callback();
           }
           return true;

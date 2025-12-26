@@ -57,7 +57,7 @@ export type HotkeyAccelerators = Record<HotkeyId, string>;
  * Used when no custom accelerator is configured.
  */
 export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
-  alwaysOnTop: 'CommandOrControl+Shift+T',
+  alwaysOnTop: 'CommandOrControl+Alt+T',
   bossKey: 'CommandOrControl+Alt+E',
   quickChat: 'CommandOrControl+Shift+Space',
 };
