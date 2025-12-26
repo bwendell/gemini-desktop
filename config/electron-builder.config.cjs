@@ -14,7 +14,7 @@ module.exports = {
     {
       from: 'build',
       to: 'resources',
-      filter: ['*.png'],
+      filter: ['*.png', '*.ico'],
     },
   ],
   win: {

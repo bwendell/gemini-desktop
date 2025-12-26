@@ -2,7 +2,7 @@
  * Unit tests for security utilities.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import electron from 'electron';
 import { setupHeaderStripping } from '../../../src/main/utils/security';
 
@@ -262,5 +262,132 @@ describe('setupMediaPermissions', () => {
     );
 
     expect(granted).toBe(false);
+  });
+
+  describe('macOS microphone access (askForMediaAccess)', () => {
+    let originalPlatform: string;
+
+    beforeEach(() => {
+      originalPlatform = process.platform;
+    });
+
+    afterEach(() => {
+      Object.defineProperty(process, 'platform', {
+        value: originalPlatform,
+        configurable: true,
+        writable: true,
+      });
+    });
+
+    it('calls systemPreferences.askForMediaAccess on macOS', async () => {
+      // Mock platform as darwin
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        configurable: true,
+        writable: true,
+      });
+
+      // Mock systemPreferences.askForMediaAccess
+      const mockAskForMediaAccess = vi.fn().mockResolvedValue(true);
+      const mockSystemPreferences = {
+        askForMediaAccess: mockAskForMediaAccess,
+      };
+
+      // Mock the dynamic import
+      vi.doMock('electron', () => ({
+        ...electron,
+        systemPreferences: mockSystemPreferences,
+      }));
+
+      // Re-import to get the new mock
+      vi.resetModules();
+      const { setupMediaPermissions: setupMediaPermissionsMocked } = await import(
+        '../../../src/main/utils/security'
+      );
+
+      // Create a fresh mock session
+      const freshMockSession = {
+        setPermissionRequestHandler: vi.fn(),
+      };
+
+      setupMediaPermissionsMocked(freshMockSession as any);
+
+      // Wait for the dynamic import inside the function to complete
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(mockAskForMediaAccess).toHaveBeenCalledWith('microphone');
+    });
+
+    it('does NOT call askForMediaAccess on Windows', async () => {
+      // Mock platform as win32
+      Object.defineProperty(process, 'platform', {
+        value: 'win32',
+        configurable: true,
+        writable: true,
+      });
+
+      // Mock systemPreferences.askForMediaAccess
+      const mockAskForMediaAccess = vi.fn().mockResolvedValue(true);
+      const mockSystemPreferences = {
+        askForMediaAccess: mockAskForMediaAccess,
+      };
+
+      // Mock the dynamic import
+      vi.doMock('electron', () => ({
+        ...electron,
+        systemPreferences: mockSystemPreferences,
+      }));
+
+      vi.resetModules();
+      const { setupMediaPermissions: setupMediaPermissionsMocked } = await import(
+        '../../../src/main/utils/security'
+      );
+
+      const freshMockSession = {
+        setPermissionRequestHandler: vi.fn(),
+      };
+
+      setupMediaPermissionsMocked(freshMockSession as any);
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should NOT be called on Windows
+      expect(mockAskForMediaAccess).not.toHaveBeenCalled();
+    });
+
+    it('does NOT call askForMediaAccess on Linux', async () => {
+      // Mock platform as linux
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        configurable: true,
+        writable: true,
+      });
+
+      const mockAskForMediaAccess = vi.fn().mockResolvedValue(true);
+      const mockSystemPreferences = {
+        askForMediaAccess: mockAskForMediaAccess,
+      };
+
+      vi.doMock('electron', () => ({
+        ...electron,
+        systemPreferences: mockSystemPreferences,
+      }));
+
+      vi.resetModules();
+      const { setupMediaPermissions: setupMediaPermissionsMocked } = await import(
+        '../../../src/main/utils/security'
+      );
+
+      const freshMockSession = {
+        setPermissionRequestHandler: vi.fn(),
+      };
+
+      setupMediaPermissionsMocked(freshMockSession as any);
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should NOT be called on Linux
+      expect(mockAskForMediaAccess).not.toHaveBeenCalled();
+    });
   });
 });

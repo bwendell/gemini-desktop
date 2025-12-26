@@ -49,7 +49,6 @@ interface UpdateToastProviderProps {
  * - Exposes update state (including hasPendingUpdate for badge)
  */
 export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
-  console.log('[UpdateToastProvider] Mounting...');
   const {
     type,
     updateInfo,

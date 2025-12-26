@@ -166,7 +166,7 @@
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   padding: 4px 0;
-  z-index: 9999;
+  z-index: var(--z-index-dropdown);
   border-radius: 4px;
 }
 

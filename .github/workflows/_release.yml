@@ -177,6 +177,10 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
+      - name: Run Release E2E Tests
+        run: npm run test:e2e:release
+        shell: bash
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -229,6 +233,9 @@ jobs:
 
       - name: Build (without publish)
         run: npm run dist:linux
+
+      - name: Run Release E2E Tests
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e:release
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2

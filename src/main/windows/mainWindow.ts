@@ -19,6 +19,7 @@ import {
   isOAuthDomain,
   isMacOS,
   getDevUrl,
+  READY_TO_SHOW_FALLBACK_MS,
 } from '../utils/constants';
 import { getIconPath, getDistHtmlPath } from '../utils/paths';
 
@@ -102,7 +103,7 @@ export default class MainWindow extends BaseWindow {
         this.logger.warn('ready-to-show timeout - showing window via fallback');
         this.window.show();
       }
-    }, 3000);
+    }, READY_TO_SHOW_FALLBACK_MS);
 
     this.setupWindowOpenHandler();
     this.setupNavigationHandler();

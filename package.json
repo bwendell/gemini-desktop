@@ -16,7 +16,7 @@
     "format": "prettier --write .",
     "preview": "vite preview",
     "electron:dev": "npm run build:electron && concurrently --kill-others \"npm run dev\" \"wait-on http://localhost:1420 && electron .\"",
-    "electron:build": "npm run build && npm run build:electron && electron-builder",
+    "electron:build": "npm run build && npm run build:electron && electron-builder --config config/electron-builder.config.cjs",
     "dist:mac-x64": "electron-builder --mac --x64 --publish never --config config/electron-builder.config.cjs",
     "dist:mac-arm64": "electron-builder --mac --arm64 --publish never --config config/electron-builder.config.cjs",
     "dist:win": "electron-builder --win --publish never --config config/electron-builder.config.cjs",
@@ -31,6 +31,7 @@
     "test:integration:watch": "wdio run config/wdio/wdio.integration.conf.js --watch",
     "test:e2e": "node scripts/run-e2e-sequential.cjs",
     "test:e2e:lifecycle": "wdio run config/wdio/wdio.lifecycle.conf.js",
+    "test:e2e:release": "wdio run config/wdio/wdio.release.conf.js",
     "test:e2e:all": "npm run test:e2e && npm run test:e2e:lifecycle",
     "test:all": "npm run test && npm run test:electron && npm run test:coordinated && npm run test:integration && npm run test:e2e:all",
     "docs": "typedoc --out docs src"

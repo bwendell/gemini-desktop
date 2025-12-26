@@ -30,6 +30,9 @@
   --titlebar-bg: #1f1f1f;
   --titlebar-text: var(--text-primary);
   --titlebar-height: 32px;
+
+  /* Z-index layering */
+  --z-index-dropdown: 2147483647;
 }
 
 /* Light Mode Override */

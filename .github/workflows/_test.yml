@@ -232,3 +232,89 @@ jobs:
             tests/e2e/logs/
           retention-days: 7
           if-no-files-found: ignore
+
+  # ===========================================================================
+  # Release E2E Tests (Packaged Builds)
+  # ===========================================================================
+  release-e2e-tests:
+    name: Release E2E Tests (${{ matrix.os }})
+    needs: e2e-tests
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            dist-script: 'dist:linux'
+          - os: windows-latest
+            dist-script: 'dist:win'
+          - os: macos-latest
+            dist-script: 'dist:mac-arm64'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # Linux-specific: Install dependencies and configure for headless Electron
+      - name: Setup Linux Environment
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
+          # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Download build artifacts from _build.yml
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: dist/
+
+      - name: Download Electron Build
+        uses: actions/download-artifact@v7
+        with:
+          name: electron-dist
+          path: dist-electron/
+
+      # Package the application for this platform
+      - name: Package Application
+        run: npm run ${{ matrix.dist-script }}
+        shell: bash
+
+      # Run release E2E tests against packaged build
+      - name: Run Release E2E Tests
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e:release
+          else
+            npm run test:e2e:release
+          fi
+        shell: bash
+        env:
+          DEBUG: 'wdio:*'
+
+      # Upload artifacts on failure for debugging
+      - name: Upload Release E2E Screenshots (on failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: release-e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.os }}
+          path: |
+            tests/e2e/screenshots/
+            tests/e2e/logs/
+            release/
+          retention-days: 7
+          if-no-files-found: ignore
+

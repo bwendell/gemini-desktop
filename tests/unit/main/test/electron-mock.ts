@@ -21,6 +21,16 @@ export const app = {
   },
 };
 
+// systemPreferences mock for macOS-specific media access
+export const systemPreferences = {
+  askForMediaAccess: vi.fn().mockResolvedValue(true),
+  getMediaAccessStatus: vi.fn().mockReturnValue('granted'),
+  _reset: () => {
+    systemPreferences.askForMediaAccess.mockClear();
+    systemPreferences.getMediaAccessStatus.mockClear();
+  },
+};
+
 const createMockWebContents = () => ({
   send: vi.fn(),
   on: vi.fn(),
@@ -362,6 +372,7 @@ export default {
   shell,
   contextBridge,
   globalShortcut,
+  systemPreferences,
   Tray,
   Menu,
 };
