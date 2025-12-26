@@ -87,6 +87,7 @@ export class BrowserWindow {
       isMaximized: vi.fn(() => isMaximized),
 
       minimize: vi.fn(),
+      reload: vi.fn(),
 
       setSkipTaskbar: vi.fn(),
       setOverlayIcon: vi.fn(),

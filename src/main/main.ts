@@ -6,8 +6,9 @@
  * strips X-Frame-Options headers to allow embedding Gemini in an iframe.
  */
 
-import { app, BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, crashReporter, session } from 'electron';
 import * as fs from 'fs';
+import * as path from 'path';
 import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
 
@@ -15,6 +16,42 @@ import { createLogger } from './utils/logger';
 
 // Setup Logger
 const logger = createLogger('[Main]');
+
+/**
+ * Initialize crash reporter EARLY (before app ready).
+ * This is critical for preventing OS crash dialogs on Windows/macOS/Linux.
+ *
+ * Crash dumps are saved locally to the 'crashes' directory within userData.
+ * If CRASH_REPORT_URL environment variable is set, reports will also be uploaded.
+ *
+ * @see https://www.electronjs.org/docs/latest/api/crash-reporter
+ */
+
+// Configure custom crash dumps directory for organized storage
+const crashDumpsPath = path.join(app.getPath('userData'), 'crashes');
+app.setPath('crashDumps', crashDumpsPath);
+
+// Check for optional crash report server URL (for future use or enterprise deployments)
+const crashReportUrl = process.env.CRASH_REPORT_URL || '';
+
+crashReporter.start({
+  productName: 'Gemini Desktop',
+  submitURL: crashReportUrl,
+  uploadToServer: !!crashReportUrl, // Only upload if URL is configured
+  ignoreSystemCrashHandler: true, // Prevents OS crash dialogs (Windows Error Reporting, etc.)
+  rateLimit: true, // Limit to 1 crash report per hour (macOS/Windows)
+  globalExtra: {
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+  },
+});
+
+logger.log('Crash reporter initialized', {
+  crashDumpsPath,
+  uploadToServer: !!crashReportUrl,
+  ignoreSystemCrashHandler: true,
+});
 
 // Set application name for Windows/Linux
 app.setName('Gemini Desktop');
@@ -222,6 +259,46 @@ app.on('will-quit', () => {
   hotkeyManager.unregisterAll();
   trayManager.destroyTray();
   updateManager.destroy();
+});
+
+// App-level crash handlers to prevent OS crash dialogs
+// These handle crashes in renderer and child processes gracefully
+
+/**
+ * Handle renderer process crashes.
+ * This fires when a renderer process crashes or is killed.
+ * @see https://electronjs.org/docs/api/app#event-render-process-gone
+ */
+app.on('render-process-gone', (_event, webContents, details) => {
+  logger.error('Renderer process gone:', {
+    reason: details.reason,
+    exitCode: details.exitCode,
+    title: webContents.getTitle(),
+  });
+
+  // If not killed intentionally, try to recover by reloading the window
+  if (details.reason !== 'killed') {
+    const win = BrowserWindow.fromWebContents(webContents);
+    if (win && !win.isDestroyed()) {
+      logger.log('Attempting to reload crashed renderer...');
+      win.reload();
+    }
+  }
+});
+
+/**
+ * Handle child process crashes.
+ * This fires when a child process (GPU, utility, etc.) crashes.
+ * @see https://electronjs.org/docs/api/app#event-child-process-gone
+ */
+app.on('child-process-gone', (_event, details) => {
+  logger.error('Child process gone:', {
+    type: details.type,
+    reason: details.reason,
+    exitCode: details.exitCode,
+    serviceName: details.serviceName || 'N/A',
+    name: details.name || 'N/A',
+  });
 });
 
 // Global error handlers for unhandled promises and exceptions

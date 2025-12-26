@@ -108,8 +108,52 @@ export default class MainWindow extends BaseWindow {
     this.setupWindowOpenHandler();
     this.setupNavigationHandler();
     this.setupCloseHandler();
+    this.setupCrashHandlers();
 
     return win;
+  }
+
+  /**
+   * Set up crash and error handlers for the main window.
+   * These prevent OS crash dialogs and handle errors gracefully.
+   */
+  private setupCrashHandlers(): void {
+    if (!this.window) return;
+
+    // Handle renderer process crash
+    this.window.webContents.on('render-process-gone', (_event, details) => {
+      this.logger.error('Main window renderer process gone:', {
+        reason: details.reason,
+        exitCode: details.exitCode,
+      });
+
+      // If not killed intentionally, try to recover by reloading
+      if (details.reason !== 'killed' && this.window && !this.window.isDestroyed()) {
+        this.logger.log('Attempting to reload crashed main window renderer...');
+        this.window.reload();
+      }
+    });
+
+    // Handle page load failures (network errors, DNS failures, etc.)
+    this.window.webContents.on(
+      'did-fail-load',
+      (_event, errorCode, errorDescription, validatedURL) => {
+        this.logger.error('Main window failed to load:', {
+          errorCode,
+          errorDescription,
+          url: validatedURL,
+        });
+      }
+    );
+
+    // Handle unresponsive renderer
+    this.window.on('unresponsive', () => {
+      this.logger.warn('Main window became unresponsive');
+    });
+
+    this.window.on('responsive', () => {
+      this.logger.log('Main window became responsive again');
+    });
   }
 
   /**
