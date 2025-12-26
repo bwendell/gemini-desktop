@@ -173,6 +173,29 @@ describe('Auto-Update Integration', () => {
       // Default tooltip is 'Gemini Desktop'
       expect(tooltip).toBe('Gemini Desktop');
     });
+
+    it('should clear badges and tooltips when installing update', async () => {
+      // This test validates the REAL observable side effects of the restart flow
+      // 1. Setup: Show a test badge/tooltip to simulate an update being available
+      await browser.execute(() => window.electronAPI.devShowBadge('9.9.9'));
+
+      // 2. Verify badge was set (observable via tray tooltip)
+      let tooltip = await browser.execute(() => window.electronAPI.getTrayTooltip());
+      expect(tooltip).toContain('9.9.9');
+
+      // 3. Trigger install (which internally calls UpdateManager.quitAndInstall)
+      // In production, this would quit the app and install the update
+      // In testing, the app continues running, but badges/tooltips should still clear
+      await browser.execute(() => window.electronAPI.installUpdate());
+
+      // Small pause to allow IPC round-trip and manager updates
+      await browser.pause(200);
+
+      // 4. Verify badges/tooltips were cleared as part of the quitAndInstall sequence
+      // This is what users would observe: the update indicator disappears
+      tooltip = await browser.execute(() => window.electronAPI.getTrayTooltip());
+      expect(tooltip).toBe('Gemini Desktop'); // Default tooltip, no version
+    });
   });
 
   describe('Platform & Install Type Logic', () => {

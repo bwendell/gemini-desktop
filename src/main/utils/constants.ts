@@ -278,6 +278,12 @@ export const isWindows = process.platform === 'win32';
 export const isLinux = process.platform === 'linux';
 export const isDev = process.env.NODE_ENV === 'development';
 
+/**
+ * Fallback timeout (ms) if ready-to-show event doesn't fire.
+ * Used in headless environments like CI where the event may not be reliable.
+ */
+export const READY_TO_SHOW_FALLBACK_MS = 3000;
+
 // =============================================================================
 // Tray Configuration
 // =============================================================================

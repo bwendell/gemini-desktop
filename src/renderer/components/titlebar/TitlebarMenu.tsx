@@ -140,7 +140,6 @@ export function TitlebarMenu({ menus }: TitlebarMenuProps) {
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
-            zIndex: 2147483647, // Max z-index
           }}
         >
           {menu.items.map((item, itemIndex) => {
