@@ -1,0 +1,107 @@
+/**
+ * Styles for HotkeyAcceleratorInput component.
+ */
+
+.hotkey-accelerator-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hotkey-accelerator-input.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.accelerator-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 0.25rem 0.5rem;
+  background: var(--background-secondary, #2a2a2a);
+  border: 1px solid var(--border-color, #444);
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.accelerator-display:hover:not(.recording) {
+  border-color: var(--accent-color, #4a9eff);
+  background: var(--background-hover, #333);
+}
+
+.accelerator-display:focus {
+  outline: none;
+  border-color: var(--accent-color, #4a9eff);
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
+}
+
+.accelerator-display.recording {
+  border-color: var(--accent-color, #4a9eff);
+  background: var(--accent-background, rgba(74, 158, 255, 0.15));
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(74, 158, 255, 0.2);
+  }
+}
+
+.accelerator-text {
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+}
+
+.recording-prompt {
+  color: var(--accent-color, #4a9eff);
+  font-style: italic;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.reset-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background: var(--background-hover, #333);
+  border-color: var(--border-color, #444);
+}
+
+.reset-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reset-button:focus {
+  outline: none;
+  border-color: var(--accent-color, #4a9eff);
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
+}

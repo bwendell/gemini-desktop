@@ -1,0 +1,62 @@
+/**
+ * Styles for IndividualHotkeyToggles component.
+ */
+
+.individual-hotkey-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hotkey-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--background-secondary, #1e1e1e);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #333);
+}
+
+.hotkey-label-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.hotkey-label {
+  font-weight: 500;
+  color: var(--text-primary, #fff);
+}
+
+.hotkey-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #999);
+}
+
+.hotkey-accelerator-wrapper {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.hotkey-toggle-wrapper {
+  flex-shrink: 0;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 500px) {
+  .hotkey-row {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .hotkey-label-wrapper {
+    flex-basis: 100%;
+  }
+
+  .hotkey-accelerator-wrapper {
+    margin-left: 0;
+  }
+}

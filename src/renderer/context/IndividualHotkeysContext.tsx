@@ -1,8 +1,9 @@
 /**
  * Individual Hotkeys Context for the application.
  *
- * Provides individual hotkey enabled state management and synchronization with the Electron backend.
- * Each hotkey can be independently enabled/disabled.
+ * Provides individual hotkey enabled state and accelerator management
+ * with synchronization to the Electron backend.
+ * Each hotkey can be independently enabled/disabled and have its accelerator customized.
  *
  * @module IndividualHotkeysContext
  * @example
@@ -12,35 +13,48 @@
  * </IndividualHotkeysProvider>
  *
  * // Use the hotkey state in components
- * const { settings, setEnabled } = useIndividualHotkeys();
+ * const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
  * setEnabled('quickChat', false);
+ * setAccelerator('bossKey', 'CommandOrControl+Alt+H');
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createRendererLogger } from '../utils';
+import type {
+  HotkeyId as SharedHotkeyId,
+  IndividualHotkeySettings as SharedIndividualHotkeySettings,
+  HotkeyAccelerators as SharedHotkeyAccelerators,
+} from '../../shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS as SHARED_DEFAULT_ACCELERATORS } from '../../shared/types/hotkeys';
 
 const logger = createRendererLogger('[IndividualHotkeysContext]');
 
 // ============================================================================
-// Types
+// Types - Re-exported from shared for convenience
 // ============================================================================
 
 /** Hotkey identifier */
-export type HotkeyId = 'alwaysOnTop' | 'bossKey' | 'quickChat';
+export type HotkeyId = SharedHotkeyId;
 
-/** Individual hotkey settings */
-export interface IndividualHotkeySettings {
-  alwaysOnTop: boolean;
-  bossKey: boolean;
-  quickChat: boolean;
-}
+/** Individual hotkey settings (enabled states) */
+export type IndividualHotkeySettings = SharedIndividualHotkeySettings;
+
+/** Hotkey accelerators (keyboard shortcuts) */
+export type HotkeyAccelerators = SharedHotkeyAccelerators;
+
+/** Default accelerators for each hotkey */
+export const DEFAULT_ACCELERATORS: HotkeyAccelerators = SHARED_DEFAULT_ACCELERATORS;
 
 /** Individual hotkeys context value exposed to consumers */
 interface IndividualHotkeysContextType {
-  /** Current settings for each hotkey */
+  /** Current enabled state for each hotkey */
   settings: IndividualHotkeySettings;
+  /** Current accelerator for each hotkey */
+  accelerators: HotkeyAccelerators;
   /** Function to update a specific hotkey's enabled state */
   setEnabled: (id: HotkeyId, enabled: boolean) => void;
+  /** Function to update a specific hotkey's accelerator */
+  setAccelerator: (id: HotkeyId, accelerator: string) => void;
 }
 
 // ============================================================================
@@ -80,6 +94,22 @@ function isValidSettings(data: unknown): data is IndividualHotkeySettings {
   );
 }
 
+/**
+ * Type guard to check if data is valid accelerators.
+ */
+function isValidAccelerators(data: unknown): data is HotkeyAccelerators {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'alwaysOnTop' in data &&
+    'bossKey' in data &&
+    'quickChat' in data &&
+    typeof (data as HotkeyAccelerators).alwaysOnTop === 'string' &&
+    typeof (data as HotkeyAccelerators).bossKey === 'string' &&
+    typeof (data as HotkeyAccelerators).quickChat === 'string'
+  );
+}
+
 // ============================================================================
 // Provider Component
 // ============================================================================
@@ -89,11 +119,13 @@ function isValidSettings(data: unknown): data is IndividualHotkeySettings {
  *
  * Features:
  * - Syncs individual hotkey settings with Electron backend
+ * - Syncs hotkey accelerators with Electron backend
  * - Listens for changes from other windows
  * - Falls back to defaults when Electron is unavailable
  */
 export function IndividualHotkeysProvider({ children }: IndividualHotkeysProviderProps) {
   const [settings, setSettingsState] = useState<IndividualHotkeySettings>(DEFAULT_SETTINGS);
+  const [accelerators, setAcceleratorsState] = useState<HotkeyAccelerators>(DEFAULT_ACCELERATORS);
 
   // Initialize state from Electron on mount
   useEffect(() => {
@@ -107,16 +139,32 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
       }
 
       try {
-        const result = await window.electronAPI.getIndividualHotkeys();
+        // Fetch enabled settings
+        const settingsResult = await window.electronAPI.getIndividualHotkeys();
 
         /* v8 ignore next -- race condition guard for async unmount */
         if (!isMounted) return;
 
-        if (isValidSettings(result)) {
-          setSettingsState(result);
-          logger.log('Individual hotkeys initialized:', result);
+        if (isValidSettings(settingsResult)) {
+          setSettingsState(settingsResult);
+          logger.log('Individual hotkeys initialized:', settingsResult);
         } else {
-          logger.log('Unexpected data format:', result);
+          logger.log('Unexpected settings format:', settingsResult);
+        }
+
+        // Fetch accelerators
+        if (window.electronAPI?.getHotkeyAccelerators) {
+          const acceleratorsResult = await window.electronAPI.getHotkeyAccelerators();
+          
+          /* v8 ignore next -- race condition guard for async unmount */
+          if (!isMounted) return;
+
+          if (isValidAccelerators(acceleratorsResult)) {
+            setAcceleratorsState(acceleratorsResult);
+            logger.log('Accelerators initialized:', acceleratorsResult);
+          } else {
+            logger.log('Unexpected accelerators format:', acceleratorsResult);
+          }
         }
       } catch (error) {
         logger.error('Failed to initialize individual hotkeys:', error);
@@ -125,11 +173,11 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
 
     initHotkeys();
 
-    // Subscribe to hotkeys changes from other windows
-    let cleanup: (() => void) | undefined;
+    // Subscribe to settings changes from other windows
+    const cleanups: (() => void)[] = [];
 
     if (window.electronAPI?.onIndividualHotkeysChanged) {
-      cleanup = window.electronAPI.onIndividualHotkeysChanged((data) => {
+      const cleanup = window.electronAPI.onIndividualHotkeysChanged((data) => {
         /* v8 ignore next -- race condition guard for callback after unmount */
         if (!isMounted) return;
 
@@ -138,15 +186,30 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
           logger.log('Individual hotkeys updated from external source:', data);
         }
       });
+      cleanups.push(cleanup);
+    }
+
+    // Subscribe to accelerator changes from other windows
+    if (window.electronAPI?.onHotkeyAcceleratorsChanged) {
+      const cleanup = window.electronAPI.onHotkeyAcceleratorsChanged((data) => {
+        /* v8 ignore next -- race condition guard for callback after unmount */
+        if (!isMounted) return;
+
+        if (isValidAccelerators(data)) {
+          setAcceleratorsState(data);
+          logger.log('Accelerators updated from external source:', data);
+        }
+      });
+      cleanups.push(cleanup);
     }
 
     return () => {
       isMounted = false;
-      if (cleanup) cleanup();
+      cleanups.forEach((cleanup) => cleanup());
     };
   }, []);
 
-  // Memoized setter to prevent unnecessary re-renders
+  // Memoized setter for enabled state
   const setEnabled = useCallback((id: HotkeyId, enabled: boolean) => {
     setSettingsState((prev) => ({ ...prev, [id]: enabled }));
 
@@ -159,8 +222,21 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
     }
   }, []);
 
+  // Memoized setter for accelerator
+  const setAccelerator = useCallback((id: HotkeyId, accelerator: string) => {
+    setAcceleratorsState((prev) => ({ ...prev, [id]: accelerator }));
+
+    if (window.electronAPI?.setHotkeyAccelerator) {
+      try {
+        window.electronAPI.setHotkeyAccelerator(id, accelerator);
+      } catch (error) {
+        logger.error('Failed to set hotkey accelerator:', error);
+      }
+    }
+  }, []);
+
   return (
-    <IndividualHotkeysContext.Provider value={{ settings, setEnabled }}>
+    <IndividualHotkeysContext.Provider value={{ settings, accelerators, setEnabled, setAccelerator }}>
       {children}
     </IndividualHotkeysContext.Provider>
   );
@@ -174,12 +250,13 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
  * Hook to access the individual hotkeys context.
  * Must be used within an IndividualHotkeysProvider.
  *
- * @returns Individual hotkeys context with settings and setEnabled
+ * @returns Individual hotkeys context with settings, accelerators, setEnabled, setAccelerator
  * @throws Error if used outside of IndividualHotkeysProvider
  *
  * @example
- * const { settings, setEnabled } = useIndividualHotkeys();
+ * const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
  * setEnabled('quickChat', false); // Disable Quick Chat hotkey
+ * setAccelerator('bossKey', 'CommandOrControl+Alt+H'); // Change Boss Key shortcut
  */
 export function useIndividualHotkeys(): IndividualHotkeysContextType {
   const context = useContext(IndividualHotkeysContext);

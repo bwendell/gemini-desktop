@@ -39,6 +39,22 @@ interface Window {
       callback: (settings: { alwaysOnTop: boolean; bossKey: boolean; quickChat: boolean }) => void
     ) => () => void;
 
+    // Hotkey Accelerators API
+    getHotkeyAccelerators: () => Promise<{
+      alwaysOnTop: string;
+      bossKey: string;
+      quickChat: string;
+    }>;
+    getFullHotkeySettings: () => Promise<{
+      alwaysOnTop: { enabled: boolean; accelerator: string };
+      bossKey: { enabled: boolean; accelerator: string };
+      quickChat: { enabled: boolean; accelerator: string };
+    }>;
+    setHotkeyAccelerator: (id: 'alwaysOnTop' | 'bossKey' | 'quickChat', accelerator: string) => void;
+    onHotkeyAcceleratorsChanged: (
+      callback: (accelerators: { alwaysOnTop: string; bossKey: string; quickChat: string }) => void
+    ) => () => void;
+
     // Always On Top API
     getAlwaysOnTop: () => Promise<{ enabled: boolean }>;
     setAlwaysOnTop: (enabled: boolean) => void;
