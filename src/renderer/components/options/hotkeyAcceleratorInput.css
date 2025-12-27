@@ -1,6 +1,11 @@
 /**
  * Styles for HotkeyAcceleratorInput component.
+ * Professional keycap styling with gradients, shadows, and animations.
  */
+
+/* ============================================================================
+   Container
+   ============================================================================ */
 
 .hotkey-accelerator-input {
   display: flex;
@@ -13,95 +18,220 @@
   pointer-events: none;
 }
 
-.accelerator-display {
+/* ============================================================================
+   Keycap Container (clickable area)
+   ============================================================================ */
+
+.keycap-container {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.625rem;
+  background: linear-gradient(180deg, 
+    rgba(40, 40, 45, 0.95) 0%, 
+    rgba(28, 28, 32, 0.98) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.keycap-container:hover:not(.recording) {
+  border-color: rgba(74, 158, 255, 0.4);
+  background: linear-gradient(180deg, 
+    rgba(50, 50, 55, 0.95) 0%, 
+    rgba(35, 35, 40, 0.98) 100%
+  );
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(74, 158, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.keycap-container:focus {
+  outline: none;
+  border-color: rgba(74, 158, 255, 0.6);
+  box-shadow: 
+    0 0 0 3px rgba(74, 158, 255, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.keycap-container.recording {
+  border-color: rgba(74, 158, 255, 0.7);
+  background: linear-gradient(180deg, 
+    rgba(74, 158, 255, 0.15) 0%, 
+    rgba(74, 158, 255, 0.08) 100%
+  );
+  animation: container-pulse 2s ease-in-out infinite;
+}
+
+@keyframes container-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 0 3px rgba(74, 158, 255, 0.2),
+      0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  50% {
+    box-shadow: 
+      0 0 0 5px rgba(74, 158, 255, 0.15),
+      0 2px 8px rgba(0, 0, 0, 0.4),
+      0 0 20px rgba(74, 158, 255, 0.1);
+  }
+}
+
+/* ============================================================================
+   Keycaps Row
+   ============================================================================ */
+
+.keycaps {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.key-separator {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.7rem;
+  font-weight: 300;
+  margin: 0 0.125rem;
+}
+
+/* ============================================================================
+   Individual Keycap
+   ============================================================================ */
+
+.keycap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 120px;
-  padding: 0.25rem 0.5rem;
-  background: var(--background-secondary, #2a2a2a);
-  border: 1px solid var(--border-color, #444);
-  border-radius: 4px;
-  font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
+  min-width: 1.75rem;
+  height: 1.625rem;
+  padding: 0 0.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(180deg, 
+    rgba(70, 70, 78, 0.9) 0%, 
+    rgba(50, 50, 56, 0.95) 50%,
+    rgba(45, 45, 50, 0.95) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  box-shadow: 
+    0 2px 0 rgba(0, 0, 0, 0.4),
+    0 3px 4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: all 0.15s ease;
 }
 
-.accelerator-display:hover:not(.recording) {
-  border-color: var(--accent-color, #4a9eff);
-  background: var(--background-hover, #333);
+/* Modifier keys - slightly different style */
+.keycap.modifier {
+  background: linear-gradient(180deg, 
+    rgba(60, 60, 68, 0.9) 0%, 
+    rgba(45, 45, 52, 0.95) 50%,
+    rgba(40, 40, 46, 0.95) 100%
+  );
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.accelerator-display:focus {
-  outline: none;
-  border-color: var(--accent-color, #4a9eff);
-  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
+/* Symbol keys (⌘, ⌥, etc.) */
+.keycap.symbol {
+  font-size: 0.95rem;
+  font-weight: 400;
+  min-width: 1.625rem;
+  padding: 0 0.375rem;
 }
 
-.accelerator-display.recording {
-  border-color: var(--accent-color, #4a9eff);
-  background: var(--accent-background, rgba(74, 158, 255, 0.15));
-  animation: pulse 1.5s ease-in-out infinite;
+/* Hover effect for keycaps (via parent hover) */
+.keycap-container:hover:not(.recording) .keycap {
+  background: linear-gradient(180deg, 
+    rgba(80, 80, 88, 0.9) 0%, 
+    rgba(58, 58, 64, 0.95) 50%,
+    rgba(52, 52, 58, 0.95) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(74, 158, 255, 0.2);
-  }
-}
-
-.accelerator-text {
-  color: var(--text-primary, #fff);
-  white-space: nowrap;
-}
+/* ============================================================================
+   Recording State
+   ============================================================================ */
 
 .recording-prompt {
-  color: var(--accent-color, #4a9eff);
-  font-style: italic;
-  animation: blink 1s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(74, 158, 255, 0.95);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0 0.25rem;
 }
 
-@keyframes blink {
+.recording-dot {
+  width: 6px;
+  height: 6px;
+  background: #4a9eff;
+  border-radius: 50%;
+  animation: dot-pulse 1s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
     opacity: 0.5;
+    transform: scale(0.8);
   }
 }
+
+/* ============================================================================
+   Reset Button
+   ============================================================================ */
 
 .reset-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   padding: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  font-size: 0.9rem;
   transition: all 0.2s ease;
 }
 
 .reset-button:hover {
-  background: var(--background-hover, #333);
-  border-color: var(--border-color, #444);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.reset-button:active {
+  transform: scale(0.95);
 }
 
 .reset-button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .reset-button:focus {
   outline: none;
-  border-color: var(--accent-color, #4a9eff);
-  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
+  border-color: rgba(74, 158, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+.reset-button svg {
+  width: 14px;
+  height: 14px;
 }

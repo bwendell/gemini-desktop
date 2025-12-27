@@ -2,8 +2,7 @@
  * HotkeyAcceleratorInput Component
  *
  * An input component for editing hotkey accelerators with a recording mode.
- * When recording, the user can press their desired key combination
- * and it will be captured and formatted as an Electron accelerator string.
+ * Displays keys as individual styled "keycaps" for a polished, professional look.
  *
  * @module HotkeyAcceleratorInput
  */
@@ -106,31 +105,60 @@ function keyEventToAccelerator(event: React.KeyboardEvent): string | null {
 }
 
 /**
- * Format an accelerator for display based on platform.
+ * Parse an accelerator string into individual key parts for display.
  */
-function formatAcceleratorForDisplay(accelerator: string): string {
-  if (!accelerator) return '';
+function parseAcceleratorParts(accelerator: string): string[] {
+  if (!accelerator) return [];
 
   const isMac = window.electronAPI?.platform === 'darwin';
+  const parts = accelerator.split('+');
 
-  let display = accelerator;
-
-  if (isMac) {
-    display = display.replace(/CommandOrControl|CmdOrCtrl/g, '⌘');
-    display = display.replace(/Control|Ctrl/g, '⌃');
-    display = display.replace(/Alt|Option/g, '⌥');
-    display = display.replace(/Shift/g, '⇧');
-    display = display.replace(/\+/g, '');
-  } else {
-    display = display.replace(/CommandOrControl|CmdOrCtrl/g, 'Ctrl');
-    display = display.replace(/\+/g, ' + ');
-  }
-
-  return display;
+  return parts.map((part) => {
+    // Convert to display-friendly format
+    switch (part) {
+      case 'CommandOrControl':
+      case 'CmdOrCtrl':
+        return isMac ? '⌘' : 'Ctrl';
+      case 'Control':
+      case 'Ctrl':
+        return isMac ? '⌃' : 'Ctrl';
+      case 'Alt':
+      case 'Option':
+        return isMac ? '⌥' : 'Alt';
+      case 'Shift':
+        return isMac ? '⇧' : 'Shift';
+      case 'Meta':
+      case 'Command':
+      case 'Cmd':
+        return '⌘';
+      case 'Space':
+        return '␣';
+      default:
+        return part;
+    }
+  });
 }
 
 // ============================================================================
-// Component
+// Keycap Component
+// ============================================================================
+
+interface KeycapProps {
+  keyLabel: string;
+  isModifier?: boolean;
+}
+
+function Keycap({ keyLabel, isModifier = false }: KeycapProps) {
+  const isSymbol = /^[⌘⌃⌥⇧␣]$/.test(keyLabel);
+  return (
+    <kbd className={`keycap ${isModifier ? 'modifier' : ''} ${isSymbol ? 'symbol' : ''}`}>
+      {keyLabel}
+    </kbd>
+  );
+}
+
+// ============================================================================
+// Main Component
 // ============================================================================
 
 /**
@@ -138,9 +166,9 @@ function formatAcceleratorForDisplay(accelerator: string): string {
  *
  * Features:
  * - Recording mode for capturing key combinations
+ * - Keycap-style display with individual key elements
  * - Platform-aware display formatting
  * - Reset to default functionality
- * - Disabled state when hotkey is disabled
  */
 export function HotkeyAcceleratorInput({
   hotkeyId,
@@ -201,7 +229,7 @@ export function HotkeyAcceleratorInput({
     }
   }, [disabled, currentAccelerator, defaultAccelerator, hotkeyId, onAcceleratorChange]);
 
-  const displayValue = formatAcceleratorForDisplay(currentAccelerator);
+  const keyParts = parseAcceleratorParts(currentAccelerator);
   const isDefault = currentAccelerator === defaultAccelerator;
 
   return (
@@ -214,24 +242,37 @@ export function HotkeyAcceleratorInput({
           aria-label="Reset to default"
           title="Reset to default"
         >
-          ↩️
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
         </button>
       )}
       <div
         ref={inputRef}
-        className={`accelerator-display ${isRecording ? 'recording' : ''}`}
+        className={`keycap-container ${isRecording ? 'recording' : ''}`}
         onClick={startRecording}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         tabIndex={disabled ? -1 : 0}
         role="button"
-        aria-label={`Keyboard shortcut: ${displayValue}. Click to change.`}
+        aria-label={`Keyboard shortcut: ${keyParts.join(' + ')}. Click to change.`}
         aria-disabled={disabled}
       >
         {isRecording ? (
-          <span className="recording-prompt">Press keys...</span>
+          <span className="recording-prompt">
+            <span className="recording-dot" />
+            Press keys...
+          </span>
         ) : (
-          <span className="accelerator-text">{displayValue}</span>
+          <div className="keycaps">
+            {keyParts.map((part, index) => (
+              <React.Fragment key={index}>
+                {index > 0 && <span className="key-separator">+</span>}
+                <Keycap keyLabel={part} isModifier={index < keyParts.length - 1} />
+              </React.Fragment>
+            ))}
+          </div>
         )}
       </div>
     </div>
