@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -10,14 +11,16 @@ const projectRoot = path.resolve(__dirname, '../..');
  * Tests multi-component coordination with mocked Electron APIs.
  */
 export default defineConfig({
+  plugins: [react()],
   test: {
     root: projectRoot,
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
     setupFiles: ['tests/unit/main/test/setup.ts'],
-    include: ['tests/coordinated/**/*.test.ts'],
+    include: ['tests/coordinated/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'dist'],
     alias: {
+      '@': path.resolve(projectRoot, 'src/renderer'),
       electron: path.resolve(projectRoot, 'tests/unit/main/test/electron-mock.ts'),
     },
     testTimeout: 30000, // Integration tests may need longer timeouts
