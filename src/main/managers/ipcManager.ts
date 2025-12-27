@@ -741,6 +741,52 @@ export default class IpcManager {
   }
 
   /**
+   * Navigate to a new chat in Gemini and then inject text.
+   * This ensures Quick Chat submissions always start a fresh conversation.
+   *
+   * @param text - The text to inject after navigating to new chat
+   * @private
+   */
+  private async _navigateToNewChatAndInject(text: string): Promise<void> {
+    const mainWindow = this.windowManager.getMainWindow();
+    if (!mainWindow) {
+      this.logger.error('Cannot navigate: main window not found');
+      return;
+    }
+
+    const newChatUrl = 'https://gemini.google.com/app';
+    this.logger.log('Navigating main window to new chat:', newChatUrl);
+
+    try {
+      // Set up the event listener BEFORE calling loadURL
+      const navigationPromise = new Promise<void>((resolve) => {
+        mainWindow.webContents.once('did-finish-load', () => {
+          this.logger.log('Main window finished loading new chat');
+          resolve();
+        });
+      });
+      
+      // Navigate the main window to Gemini (starts new chat)
+      await mainWindow.loadURL(newChatUrl);
+      
+      // Wait for the did-finish-load event
+      await navigationPromise;
+      
+      // Additional wait for iframe to initialize (Gemini loads in iframe)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      this.logger.log('Navigation complete, injecting text');
+      
+      // Inject the text into the now-loaded Gemini iframe
+      await this._injectTextIntoGemini(text);
+    } catch (error) {
+      this.logger.error('Failed to navigate to new chat:', error);
+      // Try to inject anyway as a fallback
+      await this._injectTextIntoGemini(text);
+    }
+  }
+
+  /**
    * Set up Quick Chat IPC handlers.
    * Handles communication between Quick Chat window and main window.
    * @private
@@ -757,8 +803,8 @@ export default class IpcManager {
         // Focus the main window
         this.windowManager.focusMainWindow();
 
-        // Inject text into Gemini chat and submit
-        await this._injectTextIntoGemini(text);
+        // Navigate to new chat and then inject text
+        await this._navigateToNewChatAndInject(text);
       } catch (error) {
         this.logger.error('Error handling quick chat submit:', error);
       }

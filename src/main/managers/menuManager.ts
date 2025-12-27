@@ -113,6 +113,10 @@ export default class MenuManager {
       this.buildHelpMenu(),
     ];
 
+    if (this.windowManager.isDev) {
+      template.push(this.buildDebugMenu());
+    }
+
     if (isMac()) {
       template.unshift(this.buildAppMenu());
     }
@@ -145,6 +149,34 @@ export default class MenuManager {
     if (app.dock) {
       app.dock.setMenu(dockMenu);
     }
+  }
+
+  private buildDebugMenu(): MenuItemConstructorOptions {
+    return {
+      label: 'Debug',
+      submenu: [
+        {
+          label: 'Crash Renderer',
+          accelerator: 'CmdOrCtrl+Alt+Shift+C',
+          click: () => {
+            const win = this.windowManager.getMainWindow();
+            if (win && !win.isDestroyed()) {
+              win.webContents.forcefullyCrashRenderer();
+            }
+          },
+        },
+        {
+          label: 'Trigger React Error',
+          accelerator: 'CmdOrCtrl+Alt+Shift+E',
+          click: () => {
+            const win = this.windowManager.getMainWindow();
+            if (win && !win.isDestroyed()) {
+              win.webContents.send('debug-trigger-error');
+            }
+          },
+        },
+      ],
+    };
   }
 
   private buildAppMenu(): MenuItemConstructorOptions {

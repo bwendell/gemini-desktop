@@ -103,6 +103,9 @@ interface Window {
     devEmitUpdateEvent: (event: string, data: any) => void;
     devMockPlatform: (platform: string | null, env: Record<string, string> | null) => void;
 
+    // E2E Testing Helpers
+    onDebugTriggerError: (callback: () => void) => () => void;
+
     platform: string;
     isElectron: boolean;
   };

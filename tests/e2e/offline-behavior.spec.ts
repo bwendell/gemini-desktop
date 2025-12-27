@@ -2,8 +2,10 @@
  * E2E Test: Offline Behavior
  *
  * Verifies how the app handles network connectivity issues.
- * USES Electron's session.setOfflineMode(true) to simulate offline state.
+ * USES CDP via Electron Debugger to simulate offline state reliably.
  */
+
+/// <reference path="./helpers/wdio-electron.d.ts" />
 
 import { browser, expect, $ } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
@@ -11,11 +13,18 @@ import { E2ELogger } from './helpers/logger';
 describe('Offline Behavior', () => {
   afterEach(async () => {
     // Ensure network is restored after each test
-    await browser.electron.execute((electron) => {
+    await browser.electron.execute(async (electron) => {
       const wins = electron.BrowserWindow.getAllWindows();
-      wins.forEach((win) => {
-        win.webContents.session.setOfflineMode(false);
-      });
+      const wc = wins[0].webContents;
+      try {
+          if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+          await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
+            offline: false,
+            latency: 0,
+            downloadThroughput: -1,
+            uploadThroughput: -1
+          });
+      } catch (e) { console.error('CDP Error:', e); }
     });
   });
 
@@ -24,29 +33,37 @@ describe('Offline Behavior', () => {
     const title = await browser.getTitle();
     expect(title).not.toBe('');
 
-    // 2. Go offline
-    // We set Electron session to offline AND manually dispatch the event
-    // because setOfflineMode doesn't always trigger the renderer event reliably in tests
-    await browser.electron.execute((electron) => {
+    // 2. Go offline via CDP
+    await browser.electron.execute(async (electron) => {
       const wins = electron.BrowserWindow.getAllWindows();
-      wins.forEach((win) => {
-        win.webContents.session.setOfflineMode(true);
-      });
+      const wc = wins[0].webContents;
+      try {
+          if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+          await wc.debugger.sendCommand('Network.enable');
+          await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
+            offline: true,
+            latency: 0,
+            downloadThroughput: 0,
+            uploadThroughput: 0
+          });
+      } catch (e) { console.error('CDP Error:', e); }
     });
 
-    await browser.execute(() => {
-      window.dispatchEvent(new Event('offline'));
+    // Wait for renderer to recognize offline state
+    await browser.waitUntil(async () => {
+      return await browser.execute(() => !navigator.onLine);
+    }, {
+      timeout: 5000,
+      timeoutMsg: 'Renderer did not update navigator.onLine to false after CDP emulation'
     });
 
-    E2ELogger.info('offline', 'Simulated offline mode');
+    E2ELogger.info('offline', 'Simulated offline mode via CDP');
 
     // 3. Attempt to refresh or navigate (should fail or show offline indicator)
     // Note: Gemini's own UI handles offline, we verify Electron doesn't crash
+    // 3. Attempt to refresh (should show offline indicator)
     await browser.execute(() => {
       window.location.reload();
-      // Dispatch again after reload just in case, though reload might clear it.
-      // But for this test, we just want to see the overlay if the app survives.
-      setTimeout(() => window.dispatchEvent(new Event('offline')), 500);
     });
 
     await browser.pause(2000);
@@ -82,20 +99,43 @@ describe('Offline Behavior', () => {
 
   it('should restore functionality when network returns', async () => {
     // 1. Go offline
-    await browser.electron.execute((electron) => {
-      const wins = electron.BrowserWindow.getAllWindows();
-      wins.forEach((win) => {
-        win.webContents.session.setOfflineMode(true);
+    await browser.electron.execute(async (electron) => {
+        const wins = electron.BrowserWindow.getAllWindows();
+        const wc = wins[0].webContents;
+        try {
+            if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+            await wc.debugger.sendCommand('Network.enable');
+            await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
+              offline: true,
+              latency: 0,
+              downloadThroughput: 0,
+              uploadThroughput: 0
+            });
+        } catch (e) { console.error('CDP Error:', e); }
       });
-    });
+  
+      await browser.waitUntil(async () => {
+        return await browser.execute(() => !navigator.onLine);
+      });
 
     // 2. Go back online
-    await browser.electron.execute((electron) => {
-      const wins = electron.BrowserWindow.getAllWindows();
-      wins.forEach((win) => {
-        win.webContents.session.setOfflineMode(false);
+    await browser.electron.execute(async (electron) => {
+        const wins = electron.BrowserWindow.getAllWindows();
+        const wc = wins[0].webContents;
+        try {
+            if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+            await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
+                offline: false,
+                latency: 0,
+                downloadThroughput: -1,
+                uploadThroughput: -1
+              });
+        } catch (e) { console.error('CDP Error:', e); }
       });
-    });
+      
+      await browser.waitUntil(async () => {
+        return await browser.execute(() => navigator.onLine);
+      });
     E2ELogger.info('offline', 'Restored online mode');
 
     // 3. Refresh and verify app loads
@@ -110,44 +150,62 @@ describe('Offline Behavior', () => {
     E2ELogger.info('offline', 'App successfully recovered after network restoration');
   });
   it('should reload page and recover when retry button is clicked after connection restored', async () => {
-    // 1. Mock connectivity check to fail initially to ensure overlay shows
-    // Note: This relies on the app checking this specific URL
-    const mockFn = await browser.mock('https://gemini.google.com/favicon.ico');
-    mockFn.abort('Failed');
-
-    // 2. Go offline
-    await browser.electron.execute((electron) => {
-      const wins = electron.BrowserWindow.getAllWindows();
-      wins.forEach((win) => {
-        win.webContents.session.setOfflineMode(true);
+    // 1. Go offline
+    await browser.electron.execute(async (electron) => {
+        const wins = electron.BrowserWindow.getAllWindows();
+        const wc = wins[0].webContents;
+        try {
+            if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+            await wc.debugger.sendCommand('Network.enable');
+            await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
+              offline: true,
+              latency: 0,
+              downloadThroughput: 0,
+              uploadThroughput: 0
+            });
+        } catch (e) { console.error('CDP Error:', e); }
       });
-    });
     
-    // Dispatch offline event to update React state immediately
-    await browser.execute(() => {
-      window.dispatchEvent(new Event('offline'));
-    });
-
-    // 3. Verify overlay is visible
+      await browser.waitUntil(async () => {
+        return await browser.execute(() => !navigator.onLine);
+      });
+    
+    // 2. Verify overlay is visible
     const overlay = await $('[data-testid="offline-overlay"]');
     await overlay.waitForDisplayed({ timeout: 10000 });
     expect(await overlay.isDisplayed()).toBe(true);
 
-    // 4. Restore network connectivity
-    await browser.electron.execute((electron) => {
-      const wins = electron.BrowserWindow.getAllWindows();
-      wins.forEach((win) => {
-        win.webContents.session.setOfflineMode(false);
-      });
+    // 2a. Reload page while offline to trigger "start offline" error state
+    // This ensures 'error' state is set in useGeminiIframe, so overlay persists even if isOnline becomes true later
+    await browser.execute(() => {
+        window.location.reload();
     });
 
-    // 5. Update mock to succeed (simulating internet restoration)
-    // We clear the abort and mock a success response (or just let it pass through if real net is avail, but mocking is safer)
-    await mockFn.restore();
-    const mockSuccess = await browser.mock('https://gemini.google.com/favicon.ico');
-    mockSuccess.respond('', { statusCode: 200 });
+    // Wait for reload and overlay to reappear
+    const overlayAfterReload = await $('[data-testid="offline-overlay"]');
+    await overlayAfterReload.waitForDisplayed({ timeout: 10000 });
 
-    // 6. Verify overlay persists until retry
+    // 3. Restore network connectivity
+    await browser.electron.execute(async (electron) => {
+        const wins = electron.BrowserWindow.getAllWindows();
+        const wc = wins[0].webContents;
+        try {
+            if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+            await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
+                offline: false,
+                latency: 0,
+                downloadThroughput: -1,
+                uploadThroughput: -1
+              });
+        } catch (e) { console.error('CDP Error:', e); }
+      });
+      
+      await browser.waitUntil(async () => {
+        return await browser.execute(() => navigator.onLine);
+      });
+
+    // 4. Verify overlay persists until retry
+    // The overlay should stay until the user explicitly attempts to reconnect or autoreload triggers
     expect(await overlay.isDisplayed()).toBe(true);
 
     // 7. Click retry

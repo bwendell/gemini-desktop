@@ -65,7 +65,14 @@ describe('Quick Chat Injection Flow Integration', () => {
         executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
       };
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [mockFrame],
           },
@@ -103,7 +110,14 @@ describe('Quick Chat Injection Flow Integration', () => {
         executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
       };
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [mockFrame],
           },
@@ -133,12 +147,19 @@ describe('Quick Chat Injection Flow Integration', () => {
       await sendMessage('quick-chat:submit', 'test prompt');
 
       // Should log error and not crash
-      expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: main window not found');
+      expect(mockLogger.error).toHaveBeenCalledWith('Cannot navigate: main window not found');
     });
 
     it('should handle Gemini iframe not found', async () => {
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [
               { url: 'https://example.com' }, // Wrong URL
@@ -167,7 +188,14 @@ describe('Quick Chat Injection Flow Integration', () => {
         }),
       };
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [mockFrame],
           },
@@ -194,7 +222,14 @@ describe('Quick Chat Injection Flow Integration', () => {
         executeJavaScript: vi.fn().mockRejectedValue(new Error('Script execution failed')),
       };
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [mockFrame],
           },
@@ -221,7 +256,14 @@ describe('Quick Chat Injection Flow Integration', () => {
         executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
       };
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [mockFrame],
           },
@@ -251,7 +293,14 @@ describe('Quick Chat Injection Flow Integration', () => {
         executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
       };
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [mockFrame],
           },
@@ -285,7 +334,14 @@ describe('Quick Chat Injection Flow Integration', () => {
         executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
       };
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [mockFrame],
           },
@@ -391,7 +447,14 @@ describe('Quick Chat Injection Flow Integration', () => {
         executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
       };
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [
               { url: 'https://example.com' },
@@ -416,7 +479,14 @@ describe('Quick Chat Injection Flow Integration', () => {
 
     it('should handle empty frames array', async () => {
       const mockMainWindow = {
+        loadURL: vi.fn().mockResolvedValue(undefined),
         webContents: {
+          once: vi.fn((event, callback) => {
+            // Immediately call the callback to simulate did-finish-load
+            if (event === 'did-finish-load') {
+              setTimeout(() => callback(), 0);
+            }
+          }),
           mainFrame: {
             frames: [],
           },
@@ -452,7 +522,14 @@ describe('Quick Chat Injection Flow Integration', () => {
           executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
         };
         const mockMainWindow = {
+          loadURL: vi.fn().mockResolvedValue(undefined),
           webContents: {
+            once: vi.fn((event, callback) => {
+              // Immediately call the callback to simulate did-finish-load
+              if (event === 'did-finish-load') {
+                setTimeout(() => callback(), 0);
+              }
+            }),
             mainFrame: {
               frames: [mockFrame],
             },

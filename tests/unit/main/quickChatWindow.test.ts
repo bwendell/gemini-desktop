@@ -36,6 +36,17 @@ describe('QuickChatWindow', () => {
       });
     });
 
+    it('creates Quick Chat window with preload script for electronAPI', () => {
+      // CRITICAL: This test would have caught the preload script bug
+      // where electronAPI was undefined in the Quick Chat window.
+      // Without the preload script, window.electronAPI?.submitQuickChat()
+      // silently fails due to optional chaining.
+      const win = quickChatWindow.create();
+      expect(win.options.webPreferences).toBeDefined();
+      expect(win.options.webPreferences.preload).toBeDefined();
+      expect(win.options.webPreferences.preload).toContain('preload');
+    });
+
     it('returns existing Quick Chat window if already created', () => {
       const win1 = quickChatWindow.create();
       const win2 = quickChatWindow.create();

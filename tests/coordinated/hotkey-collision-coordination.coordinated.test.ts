@@ -69,7 +69,7 @@ describe('Hotkey Collision and Coordination Integration', () => {
 
         // Verify error was logged for collision
         expect(mockLogger.error).toHaveBeenCalledWith(
-          expect.stringContaining('Registration failed for hotkey: quickChat')
+          expect.stringContaining('FAILED to register hotkey: quickChat')
         );
 
         // Verify other shortcuts were still registered

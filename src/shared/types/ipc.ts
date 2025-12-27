@@ -188,4 +188,7 @@ export interface ElectronAPI {
 
   /** Get last update check timestamp */
   getLastUpdateCheckTime: () => Promise<number>;
+
+  /** Listen for debug error trigger (dev only) */
+  onDebugTriggerError: (callback: () => void) => () => void;
 }

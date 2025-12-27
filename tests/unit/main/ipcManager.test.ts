@@ -476,6 +476,7 @@ describe('IpcManager', () => {
       const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
       const mockMainWindow = {
         webContents: {
+          once: vi.fn((event, cb) => cb()),
           mainFrame: {
             frames: [
               {
@@ -485,6 +486,7 @@ describe('IpcManager', () => {
             ],
           },
         },
+        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
@@ -501,17 +503,19 @@ describe('IpcManager', () => {
 
       await handler({}, 'test message');
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: main window not found');
+      expect(mockLogger.error).toHaveBeenCalledWith('Cannot navigate: main window not found');
     });
 
     it('handles quick-chat:submit without Gemini iframe', async () => {
       const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
       const mockMainWindow = {
         webContents: {
+          once: vi.fn((event, cb) => cb()),
           mainFrame: {
             frames: [{ url: 'https://example.com', executeJavaScript: vi.fn() }],
           },
         },
+        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
@@ -524,6 +528,7 @@ describe('IpcManager', () => {
       const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
       const mockMainWindow = {
         webContents: {
+          once: vi.fn((event, cb) => cb()),
           mainFrame: {
             frames: [
               {
@@ -535,6 +540,7 @@ describe('IpcManager', () => {
             ],
           },
         },
+        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
@@ -550,6 +556,7 @@ describe('IpcManager', () => {
       const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
       const mockMainWindow = {
         webContents: {
+          once: vi.fn((event, cb) => cb()),
           mainFrame: {
             frames: [
               {
@@ -559,6 +566,7 @@ describe('IpcManager', () => {
             ],
           },
         },
+        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
@@ -1056,6 +1064,7 @@ describe('IpcManager', () => {
       const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
       const mockMainWindow = {
         webContents: {
+          once: vi.fn((event, cb) => cb()),
           mainFrame: {
             frames: [
               {
@@ -1071,6 +1080,7 @@ describe('IpcManager', () => {
             ],
           },
         },
+        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 

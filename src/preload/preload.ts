@@ -88,6 +88,7 @@ export const IPC_CHANNELS = {
   DEV_TEST_SET_UPDATE_ENABLED: 'dev:test:set-update-enabled',
   DEV_TEST_EMIT_UPDATE_EVENT: 'dev:test:emit-update-event',
   DEV_TEST_MOCK_PLATFORM: 'dev:test:mock-platform',
+  DEBUG_TRIGGER_ERROR: 'debug-trigger-error',
 } as const;
 
 // Expose window control APIs to renderer
@@ -515,6 +516,17 @@ const electronAPI: ElectronAPI = {
    * Get timestamp of last update check.
    */
   getLastUpdateCheckTime: () => ipcRenderer.invoke(IPC_CHANNELS.AUTO_UPDATE_GET_LAST_CHECK),
+
+  /**
+   * Listen for debug error trigger (dev only).
+   */
+  onDebugTriggerError: (callback) => {
+    const subscription = () => callback();
+    ipcRenderer.on(IPC_CHANNELS.DEBUG_TRIGGER_ERROR, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.DEBUG_TRIGGER_ERROR, subscription);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

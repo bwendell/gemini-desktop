@@ -328,5 +328,48 @@ describe('Quick Chat Injection Integration', () => {
       expect(methods.cancelQuickChat).toBe('function');
       expect(methods.onQuickChatExecute).toBe('function');
     });
+
+    it('should expose electronAPI in Quick Chat window specifically', async () => {
+      // CRITICAL: This test catches the preload script bug.
+      // The old bug: electronAPI was exposed in main window but NOT in Quick Chat window
+      // because QuickChatWindow.create() was missing the preload script.
+
+      // 1. Show Quick Chat window
+      await browser.electron.execute(() => {
+        // @ts-ignore
+        global.windowManager.showQuickChat();
+      });
+
+      await browser.waitUntil(
+        async () => {
+          return await browser.electron.execute(() => {
+            // @ts-ignore
+            const win = global.windowManager.getQuickChatWindow();
+            return win && !win.isDestroyed() && win.isVisible();
+          });
+        },
+        { timeout: 5000, timeoutMsg: 'Quick Chat window did not appear' }
+      );
+
+      // 2. Execute in Quick Chat window's webContents to verify electronAPI
+      const hasSubmitQuickChat = await browser.electron.execute((electron) => {
+        const wins = electron.BrowserWindow.getAllWindows();
+        const qcWin = wins.find((w) => w.getTitle().includes('Quick Chat'));
+        if (!qcWin) return false;
+
+        // Check if electronAPI exists in the Quick Chat renderer
+        return qcWin.webContents.executeJavaScript(
+          'typeof window.electronAPI?.submitQuickChat === "function"'
+        );
+      });
+
+      expect(hasSubmitQuickChat).toBe(true);
+
+      // 3. Cleanup
+      await browser.electron.execute(() => {
+        // @ts-ignore
+        global.windowManager.hideQuickChat();
+      });
+    });
   });
 });

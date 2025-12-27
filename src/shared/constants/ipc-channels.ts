@@ -72,6 +72,7 @@ export const IPC_CHANNELS = {
   DEV_TEST_SET_UPDATE_ENABLED: 'dev:test:set-update-enabled',
   DEV_TEST_EMIT_UPDATE_EVENT: 'dev:test:emit-update-event',
   DEV_TEST_MOCK_PLATFORM: 'dev:test:mock-platform',
+  DEBUG_TRIGGER_ERROR: 'debug-trigger-error',
 } as const;
 
 /**

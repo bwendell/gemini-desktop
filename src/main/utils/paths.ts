@@ -6,6 +6,7 @@
  */
 
 import * as path from 'path';
+import { app } from 'electron';
 import { isWindows } from './constants';
 
 /**
@@ -30,12 +31,20 @@ export function getDistHtmlPath(filename: string): string {
 
 /**
  * Get the application icon path.
+ * In development: uses the build/ directory relative to source
+ * In production: uses process.resourcesPath where electron-builder copies icons
  *
  * @returns Absolute path to app icon
  */
 export function getIconPath(): string {
-  if (isWindows) {
-    return path.join(__dirname, '../../../build/icon.ico');
+  const iconFilename = isWindows ? 'icon.ico' : 'icon.png';
+
+  // In packaged app, icons are in resources/ directory (via electron-builder extraFiles)
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, iconFilename);
   }
-  return path.join(__dirname, '../../../build/icon.png');
+
+  // In development, icons are in build/ directory
+  return path.join(__dirname, '../../../build', iconFilename);
 }
+

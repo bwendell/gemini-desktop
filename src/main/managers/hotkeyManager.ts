@@ -393,10 +393,11 @@ export default class HotkeyManager {
 
     if (!success) {
       // Registration can fail if another app has claimed the shortcut
-      logger.error(`Registration failed for hotkey: ${id} (${accelerator})`);
+      // OR if on Wayland without GlobalShortcutsPortal enabled
+      logger.error(`FAILED to register hotkey: ${id} (${accelerator}). This may be due to a conflict or platform restriction.`);
     } else {
       this._registeredShortcuts.set(id, accelerator);
-      logger.log(`Hotkey registered: ${id} (${accelerator})`);
+      logger.log(`Successfully registered hotkey: ${id} (${accelerator})`);
     }
   }
 

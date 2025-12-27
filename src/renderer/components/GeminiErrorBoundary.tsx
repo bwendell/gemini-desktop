@@ -27,9 +27,37 @@ export class GeminiErrorBoundary extends Component<
   GeminiErrorBoundaryProps,
   GeminiErrorBoundaryState
 > {
+  private unsubscribeDebug?: () => void;
+
   constructor(props: GeminiErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: undefined };
+  }
+
+  componentDidMount(): void {
+    // Listen for debug error triggers (e2e testing)
+    if (window.electronAPI?.onDebugTriggerError) {
+      this.unsubscribeDebug = window.electronAPI.onDebugTriggerError(() => {
+        // Simulate an error state for testing
+        this.setState({
+          hasError: true,
+          error: new Error('Debug Manual Error Triggered'),
+        });
+      });
+    }
+
+    // Expose direct trigger for E2E tests (bypasses IPC channel complexity)
+    // @ts-ignore
+    window.__GEMINI_TRIGGER_FATAL_ERROR__ = () => {
+       this.setState({
+          hasError: true,
+          error: new Error('Global Trigger Manual Error'),
+       });
+    };
+  }
+
+  componentWillUnmount(): void {
+    this.unsubscribeDebug?.();
   }
 
   static getDerivedStateFromError(error: Error): GeminiErrorBoundaryState {

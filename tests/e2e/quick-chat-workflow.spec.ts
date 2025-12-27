@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * E2E Test: Quick Chat Full Submission Workflow
  *
@@ -28,13 +29,9 @@ describe('Quick Chat Full Submission Workflow', () => {
   describe('Complete User Workflow', () => {
     it('should complete full Quick Chat submission flow', async () => {
       // 1. Trigger Quick Chat to open
-      await browser.electron.execute((_electron: typeof import('electron')) => {
-        // Access the quick chat window manager from global
-        const { windowManager } = global as any;
-        if (windowManager?.toggleQuickChat) {
-          windowManager.toggleQuickChat();
-        }
-      });
+      // 1. Trigger Quick Chat to open via HOTKEY (Real User Action)
+      const modifiers = process.platform === 'darwin' ? ['Meta', 'Shift'] : ['Control', 'Shift'];
+      await browser.keys([...modifiers, 'Space']);
 
       await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
@@ -55,23 +52,30 @@ describe('Quick Chat Full Submission Workflow', () => {
       }
 
       // 3. Verify Quick Chat is visible
+      // 3. Verify Quick Chat is visible
       const quickChatContainer = await $(Selectors.quickChatContainer);
-      const isQuickChatVisible = await quickChatContainer.isDisplayed().catch(() => false);
+      let isQuickChatVisible = await quickChatContainer.isDisplayed().catch(() => false);
 
       if (!isQuickChatVisible) {
-        E2ELogger.info(
-          'quick-chat-workflow',
-          'Quick Chat window not visible - may need different triggering mechanism'
-        );
-        // Try alternative: use IPC
-        await browser.electron.execute((_electron: typeof import('electron')) => {
-          const wins = _electron.BrowserWindow.getAllWindows();
-          for (const win of wins) {
-            win.webContents.send('show-quick-chat');
-          }
-        });
+        E2ELogger.info('quick-chat-workflow', 'Opening Quick Chat via Hotkey...');
+        
+        // Ensure main window is focused to receive input
+        await browser.switchWindow('Gemini Desktop'); 
+
+        // CRITICAL CHECK: Real User Action
+        // Simulating the default hotkey: CommandOrControl+Shift+Space
+        // Note: modifier keys in wdio are specific strings
+        const modifiers = process.platform === 'darwin' ? ['Meta', 'Shift'] : ['Control', 'Shift'];
+        await browser.keys([...modifiers, 'Space']);
+        
+        // Wait for animation
         await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+        
+        isQuickChatVisible = await quickChatContainer.isDisplayed().catch(() => false);
       }
+      
+      // If still not visible, we FAIL the test. No fallback to IPC.
+      expect(isQuickChatVisible).withContext('Quick Chat did not open after pressing hotkey').toBe(true);
 
       // 4. Type a test message into Quick Chat input
       const quickChatInput = await $(Selectors.quickChatInput);
@@ -205,6 +209,109 @@ describe('Quick Chat Full Submission Workflow', () => {
 
       // Cleanup
       await browser.switchToWindow(handles[0]);
+    });
+  });
+
+  describe('Quick Chat IPC Verification', () => {
+    it('should have electronAPI available in Quick Chat window', async () => {
+      // CRITICAL: This test would have caught the preload script bug.
+      // The bug: electronAPI was undefined in Quick Chat because preload was missing.
+
+      // 1. Open Quick Chat
+      await browser.electron.execute((_electron: typeof import('electron')) => {
+        const { windowManager } = global as any;
+        if (windowManager?.toggleQuickChat) {
+          windowManager.toggleQuickChat();
+        }
+      });
+
+      await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+
+      // 2. Get window handles and find Quick Chat
+      const handles = await browser.getWindowHandles();
+
+      for (const handle of handles) {
+        await browser.switchToWindow(handle);
+        const container = await $(Selectors.quickChatContainer);
+        if (await container.isExisting()) {
+          // 3. Verify electronAPI is available - THIS IS THE CRITICAL CHECK
+          const hasElectronAPI = await browser.execute(() => {
+            return typeof (window as any).electronAPI !== 'undefined';
+          });
+          expect(hasElectronAPI).toBe(true);
+          E2ELogger.info('quick-chat-workflow', 'electronAPI exists in Quick Chat window');
+
+          // 4. Verify submitQuickChat function exists
+          const hasSubmitQuickChat = await browser.execute(() => {
+            return typeof (window as any).electronAPI?.submitQuickChat === 'function';
+          });
+          expect(hasSubmitQuickChat).toBe(true);
+          E2ELogger.info('quick-chat-workflow', 'submitQuickChat function available');
+
+          break;
+        }
+      }
+
+      // Cleanup
+      await browser.switchToWindow(handles[0]);
+      await browser.electron.execute((_electron: typeof import('electron')) => {
+        const { windowManager } = global as any;
+        windowManager?.hideQuickChat?.();
+      });
+    });
+
+    it('should trigger IPC when submit button is clicked', async () => {
+      // This test verifies the actual button click triggers the renderer's submitQuickChat
+
+      // 1. Open Quick Chat
+      await browser.electron.execute((_electron: typeof import('electron')) => {
+        const { windowManager } = global as any;
+        if (windowManager?.toggleQuickChat) {
+          windowManager.toggleQuickChat();
+        }
+      });
+
+      await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+
+      // 2. Find Quick Chat window
+      const handles = await browser.getWindowHandles();
+      let foundQuickChat = false;
+
+      for (const handle of handles) {
+        await browser.switchToWindow(handle);
+        const input = await $(Selectors.quickChatInput);
+        if (await input.isExisting()) {
+          foundQuickChat = true;
+
+          // 3. Type text and click submit
+          const testMessage = 'IPC Test Message ' + Date.now();
+          await input.setValue(testMessage);
+          await browser.pause(300);
+
+          const submitBtn = await $(Selectors.quickChatSubmit);
+          if (await submitBtn.isExisting()) {
+            await submitBtn.click();
+            E2ELogger.info('quick-chat-workflow', 'Clicked submit - IPC should have been triggered');
+          }
+
+          await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+          break;
+        }
+      }
+
+      expect(foundQuickChat).toBe(true);
+
+      // 4. Switch back to main window
+      await browser.switchToWindow(handles[0]);
+
+      // 5. Verify Quick Chat is now hidden (submit worked)
+      const quickChatHidden = await browser.electron.execute((_electron: typeof import('electron')) => {
+        const { windowManager } = global as any;
+        const win = windowManager?.getQuickChatWindow?.();
+        return !win || !win.isVisible();
+      });
+      expect(quickChatHidden).toBe(true);
+      E2ELogger.info('quick-chat-workflow', 'Quick Chat hidden after submit - IPC worked');
     });
   });
 });

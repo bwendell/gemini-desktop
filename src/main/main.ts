@@ -11,11 +11,23 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
+import { isLinux } from './utils/constants';
 
 import { createLogger } from './utils/logger';
 
 // Setup Logger
 const logger = createLogger('[Main]');
+
+// Fix for Linux Wayland Global Hotkeys:
+// Electron's globalShortcut API relies on X11. On Wayland, this fails.
+// We enable the 'GlobalShortcutsPortal' feature to use the XDG Desktop Portal backing.
+if (isLinux) {
+  app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
+  logger.log('Enabled GlobalShortcutsPortal for Linux/Wayland support');
+  
+  // Log session type for debugging purposes
+  logger.log(`XDG_SESSION_TYPE: ${process.env.XDG_SESSION_TYPE}`);
+}
 
 /**
  * Initialize crash reporter EARLY (before app ready).
@@ -180,7 +192,7 @@ const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   logger.log('Another instance is already running. Quitting...');
-  app.quit();
+  app.exit(0);
 } else {
   app.on('second-instance', () => {
     // Someone tried to run a second instance, we should focus our window.

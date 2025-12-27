@@ -86,6 +86,11 @@ export const config = {
 
   // Build the frontend and Electron backend before tests
   onPrepare: () => {
+    if (process.env.SKIP_BUILD) {
+      console.log('Skipping build (SKIP_BUILD is set)...');
+      return;
+    }
+
     console.log('Building frontend for E2E tests...');
     let result = spawnSync('npm', ['run', 'build'], {
       stdio: 'inherit',

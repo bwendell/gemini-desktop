@@ -13,6 +13,7 @@
 import { BrowserWindow, screen, type BrowserWindowConstructorOptions } from 'electron';
 import BaseWindow from './baseWindow';
 import { QUICK_CHAT_WINDOW_CONFIG, QUICK_CHAT_WIDTH } from '../utils/constants';
+import { getPreloadPath } from '../utils/paths';
 
 /**
  * Quick Chat floating window.
@@ -50,6 +51,7 @@ export default class QuickChatWindow extends BaseWindow {
       y,
       webPreferences: {
         ...this.windowConfig.webPreferences,
+        preload: getPreloadPath(),
       },
     });
 
