@@ -13,24 +13,23 @@ import './App.css';
  */
 
 function App() {
-  const { isLoading, error, isOnline, handleLoad, handleError } = useGeminiIframe();
+  const { isLoading, error, isOnline, handleLoad, handleError, retry } = useGeminiIframe();
+
+  // Show offline overlay if network is offline OR if iframe failed to load
+  // This handles cases where navigator.onLine is true but Gemini is unreachable
+  const showOfflineOverlay = !isOnline || !!error;
+
   return (
     <ThemeProvider>
       <UpdateToastProvider>
         <MainLayout>
-          {!isOnline && <OfflineOverlay />}
+          {showOfflineOverlay && <OfflineOverlay onRetry={retry} />}
           <GeminiErrorBoundary>
             <div className="webview-container" data-testid="webview-container">
-              {isLoading && (
+              {isLoading && !showOfflineOverlay && (
                 <div className="webview-loading" data-testid="webview-loading">
                   <div className="webview-loading-spinner" />
                   <span>Loading Gemini...</span>
-                </div>
-              )}
-              {/* c8 ignore next 4 -- JSDOM cannot trigger iframe errors */}
-              {error && (
-                <div className="webview-error" data-testid="webview-error">
-                  <span>Failed to load: {error}</span>
                 </div>
               )}
               <iframe

@@ -12,11 +12,17 @@ vi.mock('../../../src/renderer/hooks/useNetworkStatus', () => ({
   useNetworkStatus: vi.fn(),
 }));
 
+// Mock global fetch for connectivity checks
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default to online
     (useNetworkStatus as Mock).mockReturnValue(true);
+    // Mock fetch to succeed (simulates Gemini is reachable)
+    mockFetch.mockResolvedValue({ ok: true });
   });
 
   describe('loading state', () => {

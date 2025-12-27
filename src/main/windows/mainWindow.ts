@@ -190,6 +190,12 @@ export default class MainWindow extends BaseWindow {
           return;
         }
 
+        // Allow navigation to localhost (needed for dev mode reload/retry)
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          this.logger.log('Allowing navigation to localhost:', url);
+          return;
+        }
+
         // Allow navigation to internal domains
         if (isInternalDomain(hostname)) {
           this.logger.log('Allowing navigation to internal URL:', url);
