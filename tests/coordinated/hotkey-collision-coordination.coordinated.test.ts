@@ -8,6 +8,13 @@
  * - Maintaining internal state despite registration failures
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Mock electron module FIRST (before importing from 'electron')
+vi.mock('electron', async () => {
+  const mockModule = await import('../unit/main/test/electron-mock');
+  return mockModule.default;
+});
+
 import { globalShortcut } from 'electron';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import WindowManager from '../../src/main/managers/windowManager';

@@ -321,7 +321,7 @@ describe('UpdateManager', () => {
       await updateManager.checkForUpdates();
       expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
         'update-error',
-        'Something went wrong'
+        'The auto-update service encountered an error. Please try again later.'
       );
     });
 
@@ -331,7 +331,10 @@ describe('UpdateManager', () => {
       (autoUpdater.checkForUpdatesAndNotify as any).mockRejectedValue(null);
 
       await updateManager.checkForUpdates();
-      expect(mockWindows[0].webContents.send).toHaveBeenCalledWith('update-error', 'null');
+      expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
+        'update-error',
+        'The auto-update service encountered an error. Please try again later.'
+      );
     });
 
     it('handles update check error with undefined', async () => {
@@ -340,7 +343,10 @@ describe('UpdateManager', () => {
       (autoUpdater.checkForUpdatesAndNotify as any).mockRejectedValue(undefined);
 
       await updateManager.checkForUpdates();
-      expect(mockWindows[0].webContents.send).toHaveBeenCalledWith('update-error', 'undefined');
+      expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
+        'update-error',
+        'The auto-update service encountered an error. Please try again later.'
+      );
     });
 
     it('handles update check error with custom object', async () => {
@@ -355,7 +361,7 @@ describe('UpdateManager', () => {
       await updateManager.checkForUpdates();
       expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
         'update-error',
-        'Custom network error occurred'
+        'The auto-update service encountered an error. Please try again later.'
       );
     });
   });
@@ -414,7 +420,7 @@ describe('UpdateManager', () => {
       errorHandler({ message: 'Sync error' });
       expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
         'auto-update:error',
-        'Sync error'
+        'The auto-update service encountered an error. Please try again later.'
       );
     });
 
@@ -679,7 +685,10 @@ describe('UpdateManager', () => {
       handler({ message: 'Test error' });
 
       // Only non-destroyed window should receive event
-      expect(window1.webContents.send).toHaveBeenCalledWith('auto-update:error', 'Test error');
+      expect(window1.webContents.send).toHaveBeenCalledWith(
+        'auto-update:error',
+        'The auto-update service encountered an error. Please try again later.'
+      );
       expect(window2.webContents.send).not.toHaveBeenCalled();
     });
   });

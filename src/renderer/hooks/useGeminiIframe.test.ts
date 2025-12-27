@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGeminiIframe } from './useGeminiIframe';
 import * as useNetworkStatusModule from './useNetworkStatus';
@@ -8,11 +8,20 @@ vi.mock('./useNetworkStatus', () => ({
   useNetworkStatus: vi.fn(() => true),
 }));
 
+// Mock window.location.reload
+const mockReload = vi.fn();
+Object.defineProperty(window, 'location', {
+  value: { reload: mockReload },
+  writable: true,
+});
+
 describe('useGeminiIframe', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default to online
     vi.mocked(useNetworkStatusModule.useNetworkStatus).mockReturnValue(true);
+    // Mock fetch for connectivity checks - default to success
+    global.fetch = vi.fn(() => Promise.resolve({} as Response));
   });
 
   it('initializes with loading state', () => {
@@ -31,11 +40,11 @@ describe('useGeminiIframe', () => {
     expect(result.current.isOnline).toBe(false);
   });
 
-  it('handleLoad sets loading to false and clears error', () => {
+  it('handleLoad sets loading to false and clears error', async () => {
     const { result } = renderHook(() => useGeminiIframe());
 
-    act(() => {
-      result.current.handleLoad();
+    await act(async () => {
+      await result.current.handleLoad();
     });
 
     expect(result.current.isLoading).toBe(false);
@@ -53,7 +62,7 @@ describe('useGeminiIframe', () => {
     expect(result.current.error).toBe('Failed to load Gemini');
   });
 
-  it('retry resets loading state and clears error', () => {
+  it('retry calls window.location.reload', () => {
     const { result } = renderHook(() => useGeminiIframe());
 
     // First set error state
@@ -69,11 +78,10 @@ describe('useGeminiIframe', () => {
       result.current.retry();
     });
 
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.error).toBeNull();
+    expect(mockReload).toHaveBeenCalledTimes(1);
   });
 
-  it('handleLoad after error clears error state', () => {
+  it('handleLoad after error clears error state', async () => {
     const { result } = renderHook(() => useGeminiIframe());
 
     // Set error
@@ -84,8 +92,8 @@ describe('useGeminiIframe', () => {
     expect(result.current.error).toBe('Failed to load Gemini');
 
     // Then load successfully
-    act(() => {
-      result.current.handleLoad();
+    await act(async () => {
+      await result.current.handleLoad();
     });
 
     expect(result.current.error).toBeNull();

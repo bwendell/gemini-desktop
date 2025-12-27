@@ -5,6 +5,13 @@
  * These tests use REAL manager instances (not mocked) while mocking Electron APIs and electron-updater.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Mock electron module FIRST (before importing from 'electron')
+vi.mock('electron', async () => {
+  const mockModule = await import('../unit/main/test/electron-mock');
+  return mockModule.default;
+});
+
 import { BrowserWindow, app } from 'electron';
 import UpdateManager from '../../src/main/managers/updateManager';
 import BadgeManager from '../../src/main/managers/badgeManager';
@@ -545,10 +552,10 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
         const error = new Error('Update check failed');
         emitAutoUpdaterEvent('error', error);
 
-        // Should broadcast error
+        // Should broadcast error (masked for security)
         expect(mockWin.webContents.send).toHaveBeenCalledWith(
           'auto-update:error',
-          'Update check failed'
+          'The auto-update service encountered an error. Please try again later.'
         );
 
         // Badge should not be shown on error

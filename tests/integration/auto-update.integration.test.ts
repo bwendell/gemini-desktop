@@ -73,9 +73,8 @@ describe('Auto-Update Integration', () => {
         return await Promise.race([(window as any)._updateErrorPromise, timeout]);
       });
 
-      // The mock emits the error generic message or the error object?
-      // UpdateManager emits `error.message`.
-      expect(errorMsg).toBe('Simulated Network Error');
+      // UpdateManager now masks error messages for security
+      expect(errorMsg).toBe('The auto-update service encountered an error. Please try again later.');
     });
 
     it('should receive auto-update:checking event when check starts', async () => {

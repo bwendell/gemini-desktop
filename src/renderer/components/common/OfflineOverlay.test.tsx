@@ -17,11 +17,11 @@ describe('OfflineOverlay', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders offline image', () => {
+  it('renders offline icon', () => {
     render(<OfflineOverlay />);
-    const image = document.querySelector('.offline-image');
-    expect(image).toBeInTheDocument();
-    expect(image).toHaveAttribute('alt', 'Network Unavailable');
+    const icon = document.querySelector('.offline-icon');
+    expect(icon).toBeInTheDocument();
+    expect(icon?.tagName.toLowerCase()).toBe('svg');
   });
 
   it('has correct class for styling', () => {

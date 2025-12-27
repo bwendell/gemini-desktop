@@ -198,9 +198,10 @@ export default class UpdateManager {
       await this.autoUpdater.checkForUpdatesAndNotify();
     } catch (error) {
       logger.error('Update check failed:', error);
+      // MASKED ERROR: Do NOT send the raw error message to the renderer/user.
       this.broadcastToWindows(
         'update-error',
-        error instanceof Error ? error.message : String(error)
+        'The auto-update service encountered an error. Please try again later.'
       );
     }
   }
@@ -290,7 +291,14 @@ export default class UpdateManager {
   private setupEventListeners(): void {
     this.autoUpdater.on('error', (error) => {
       logger.error('Auto-updater error:', error);
-      this.broadcastToWindows('auto-update:error', error.message);
+      // MASKED ERROR: Do NOT send the raw error message to the renderer/user.
+      // Raw errors from electron-updater can be massive (HTML, full stack traces) and
+      // cause UI rendering issues (toasts going off-screen).
+      // We log the real error above for debugging, but tell the user a generic message.
+      this.broadcastToWindows(
+        'auto-update:error',
+        'The auto-update service encountered an error. Please try again later.'
+      );
     });
 
     this.autoUpdater.on('checking-for-update', () => {
@@ -388,9 +396,13 @@ export default class UpdateManager {
   devEmitUpdateEvent(event: string, data: any): void {
     logger.log(`[DEV] Emitting mock event: ${event}`);
     if (event === 'error') {
+      // MASKED ERROR: Do NOT send the raw error message to the renderer/user.
+      // Raw errors from electron-updater can be massive (HTML, full stack traces) and
+      // cause UI rendering issues (toasts going off-screen).
+      // We log the real error above for debugging, but tell the user a generic message.
       this.broadcastToWindows(
         'auto-update:error',
-        data instanceof Error ? data.message : String(data)
+        'The auto-update service encountered an error. Please try again later.'
       );
     } else if (event === 'checking-for-update') {
       this.broadcastToWindows('auto-update:checking', null);
