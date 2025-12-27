@@ -342,7 +342,11 @@ export default class UpdateManager {
     const windows = BrowserWindow.getAllWindows();
     for (const win of windows) {
       if (!win.isDestroyed()) {
-        win.webContents.send(channel, data);
+        try {
+          win.webContents.send(channel, data);
+        } catch (error) {
+          logger.warn(`Failed to send ${channel} to window:`, error);
+        }
       }
     }
   }

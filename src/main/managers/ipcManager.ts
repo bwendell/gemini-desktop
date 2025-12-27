@@ -18,6 +18,7 @@ import {
   IPC_CHANNELS,
   isGeminiDomain,
 } from '../utils/constants';
+import { GEMINI_APP_URL } from '../../shared/constants/index';
 import {
   InjectionScriptBuilder,
   DEFAULT_INJECTION_CONFIG,
@@ -754,7 +755,7 @@ export default class IpcManager {
       return;
     }
 
-    const newChatUrl = 'https://gemini.google.com/app';
+    const newChatUrl = GEMINI_APP_URL;
     this.logger.log('Navigating main window to new chat:', newChatUrl);
 
     try {

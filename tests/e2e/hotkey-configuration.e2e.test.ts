@@ -19,17 +19,20 @@ describe('Hotkey Configuration E2E', () => {
   });
 
   beforeEach(async () => {
-    // Navigate to options page
-    await browser.execute(async () => {
-      const api = (window as any).electronAPI;
-      await api.openOptionsWindow();
-    });
+    // Use keyboard shortcut to open options (Ctrl+, or Cmd+,)
+    const isMac = process.platform === 'darwin';
+    const modifier = isMac ? 'Meta' : 'Control';
+    
+    // Ensure we are focused on the main window before pressing keys
+    const handles = await browser.getWindowHandles();
+    await browser.switchToWindow(handles[0]);
+    await browser.keys([modifier, ',']);
 
     // Wait for options window to open
     await browser.pause(500);
 
     // Switch to options window
-    const handles = await browser.getWindowHandles();
+    handles = await browser.getWindowHandles();
     if (handles.length > 1) {
       await browser.switchToWindow(handles[handles.length - 1]);
     }
@@ -357,11 +360,14 @@ describe('Hotkey Configuration E2E', () => {
       await browser.switchToWindow((await browser.getWindowHandles())[0]);
       await browser.pause(500);
 
-      // Reopen options
-      await browser.execute(async () => {
-        const api = (window as any).electronAPI;
-        await api.openOptionsWindow();
-      });
+      // Reopen options using shortcut
+      const isMac = process.platform === 'darwin';
+      const modifier = isMac ? 'Meta' : 'Control';
+      
+      // Ensure we are focused on the main window
+      const mainHandles = await browser.getWindowHandles();
+      await browser.switchToWindow(mainHandles[0]);
+      await browser.keys([modifier, ',']);
 
       await browser.pause(500);
       const handles = await browser.getWindowHandles();

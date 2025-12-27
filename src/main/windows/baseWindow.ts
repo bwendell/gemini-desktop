@@ -74,6 +74,8 @@ export default abstract class BaseWindow extends EventEmitter {
     }
 
     try {
+      this.logger.log(`Creating window with props: partition=${this.windowConfig.webPreferences?.partition}`);
+
       this.window = new BrowserWindow({
         ...this.windowConfig,
         webPreferences: {

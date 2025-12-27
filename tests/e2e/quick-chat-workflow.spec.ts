@@ -75,7 +75,9 @@ describe('Quick Chat Full Submission Workflow', () => {
       }
       
       // If still not visible, we FAIL the test. No fallback to IPC.
-      expect(isQuickChatVisible).withContext('Quick Chat did not open after pressing hotkey').toBe(true);
+      if (!isQuickChatVisible) {
+        throw new Error('Quick Chat did not open after pressing hotkey');
+      }
 
       // 4. Type a test message into Quick Chat input
       const quickChatInput = await $(Selectors.quickChatInput);
@@ -117,81 +119,80 @@ describe('Quick Chat Full Submission Workflow', () => {
     });
 
     it('should cancel Quick Chat with Escape key', async () => {
-      // 1. Open Quick Chat
-      await browser.electron.execute((_electron: typeof import('electron')) => {
-        const { windowManager } = global as any;
-        if (windowManager?.toggleQuickChat) {
-          windowManager.toggleQuickChat();
-        }
-      });
+      // 1. Open Quick Chat via hotkey (Real User Action)
+      await browser.switchWindow('Gemini Desktop');
+      const modifiers = process.platform === 'darwin' ? ['Meta', 'Shift'] : ['Control', 'Shift'];
+      await browser.keys([...modifiers, 'Space']);
 
       await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
-      // 2. Get window handles
+      // 2. Get window handles and verify Quick Chat opened
       const handles = await browser.getWindowHandles();
+      let foundQuickChat = false;
 
       // 3. Find Quick Chat window and press Escape
       for (const handle of handles) {
         await browser.switchToWindow(handle);
         const container = await $(Selectors.quickChatContainer);
         if (await container.isExisting()) {
+          foundQuickChat = true;
           await browser.keys(['Escape']);
           E2ELogger.info('quick-chat-workflow', 'Pressed Escape to cancel');
           break;
         }
       }
 
+      if (!foundQuickChat) {
+        throw new Error('Quick Chat did not open via hotkey');
+      }
       await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
-      // 4. Verify Quick Chat closed
-      // (Check that window count decreased or container is no longer visible)
-      const postEscapeHandles = await browser.getWindowHandles();
-      E2ELogger.info('quick-chat-workflow', `Windows after Escape: ${postEscapeHandles.length}`);
+      // 4. Verify Quick Chat closed (user-visible outcome)
+      const container = await $(Selectors.quickChatContainer);
+      const isVisible = await container.isDisplayed().catch(() => false);
+      expect(isVisible).toBe(false);
+      E2ELogger.info('quick-chat-workflow', 'Quick Chat closed after Escape');
 
       // Switch back to main window
-      await browser.switchToWindow(postEscapeHandles[0]);
+      await browser.switchWindow('Gemini Desktop');
     });
 
     it('should preserve input content when hidden and reshown', async () => {
-      // 1. Open Quick Chat
-      await browser.electron.execute((_electron: typeof import('electron')) => {
-        const { windowManager } = global as any;
-        if (windowManager?.toggleQuickChat) {
-          windowManager.toggleQuickChat();
-        }
-      });
+      // 1. Open Quick Chat via hotkey (Real User Action)
+      await browser.switchWindow('Gemini Desktop');
+      const modifiers = process.platform === 'darwin' ? ['Meta', 'Shift'] : ['Control', 'Shift'];
+      await browser.keys([...modifiers, 'Space']);
 
       await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
       // 2. Type partial message
       const handles = await browser.getWindowHandles();
+      let foundQuickChat = false;
+      const partialMessage = 'Partial input';
+
       for (const handle of handles) {
         await browser.switchToWindow(handle);
         const input = await $(Selectors.quickChatInput);
         if (await input.isExisting()) {
-          const partialMessage = 'Partial input';
+          foundQuickChat = true;
           await input.setValue(partialMessage);
           await browser.pause(300);
 
-          // 3. Hide Quick Chat (toggle)
-          await browser.electron.execute((_electron: typeof import('electron')) => {
-            const { windowManager } = global as any;
-            if (windowManager?.toggleQuickChat) {
-              windowManager.toggleQuickChat();
-            }
-          });
+          // 3. Hide Quick Chat via hotkey (toggle)
+          await browser.keys([...modifiers, 'Space']);
           await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
-          // 4. Show Quick Chat again
-          await browser.electron.execute((_electron: typeof import('electron')) => {
-            const { windowManager } = global as any;
-            if (windowManager?.toggleQuickChat) {
-              windowManager.toggleQuickChat();
-            }
-          });
+          // Verify Quick Chat hidden
+          const container = await $(Selectors.quickChatContainer);
+          const isHidden = !(await container.isDisplayed().catch(() => false));
+          expect(isHidden).toBe(true);
+          E2ELogger.info('quick-chat-workflow', 'Quick Chat hidden via hotkey');
+
+          // 4. Show Quick Chat again via hotkey
+          await browser.keys([...modifiers, 'Space']);
           await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
-          // 5. Verify content preserved
+          // 5. Verify content preserved (user-visible outcome)
           const newHandles = await browser.getWindowHandles();
           for (const h of newHandles) {
             await browser.switchToWindow(h);
@@ -207,8 +208,13 @@ describe('Quick Chat Full Submission Workflow', () => {
         }
       }
 
-      // Cleanup
-      await browser.switchToWindow(handles[0]);
+      if (!foundQuickChat) {
+        throw new Error('Quick Chat did not open via hotkey');
+      }
+
+      // Cleanup - close Quick Chat via Escape
+      await browser.keys(['Escape']);
+      await browser.switchWindow('Gemini Desktop');
     });
   });
 
@@ -217,23 +223,23 @@ describe('Quick Chat Full Submission Workflow', () => {
       // CRITICAL: This test would have caught the preload script bug.
       // The bug: electronAPI was undefined in Quick Chat because preload was missing.
 
-      // 1. Open Quick Chat
-      await browser.electron.execute((_electron: typeof import('electron')) => {
-        const { windowManager } = global as any;
-        if (windowManager?.toggleQuickChat) {
-          windowManager.toggleQuickChat();
-        }
-      });
+      // 1. Open Quick Chat via hotkey (Real User Action)
+      await browser.switchWindow('Gemini Desktop');
+      const modifiers = process.platform === 'darwin' ? ['Meta', 'Shift'] : ['Control', 'Shift'];
+      await browser.keys([...modifiers, 'Space']);
 
       await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
       // 2. Get window handles and find Quick Chat
       const handles = await browser.getWindowHandles();
+      let foundQuickChat = false;
 
       for (const handle of handles) {
         await browser.switchToWindow(handle);
         const container = await $(Selectors.quickChatContainer);
         if (await container.isExisting()) {
+          foundQuickChat = true;
+
           // 3. Verify electronAPI is available - THIS IS THE CRITICAL CHECK
           const hasElectronAPI = await browser.execute(() => {
             return typeof (window as any).electronAPI !== 'undefined';
@@ -252,24 +258,22 @@ describe('Quick Chat Full Submission Workflow', () => {
         }
       }
 
-      // Cleanup
-      await browser.switchToWindow(handles[0]);
-      await browser.electron.execute((_electron: typeof import('electron')) => {
-        const { windowManager } = global as any;
-        windowManager?.hideQuickChat?.();
-      });
+      if (!foundQuickChat) {
+        throw new Error('Quick Chat did not open via hotkey');
+      }
+
+      // Cleanup - close via Escape key (Real User Action)
+      await browser.keys(['Escape']);
+      await browser.switchWindow('Gemini Desktop');
     });
 
     it('should trigger IPC when submit button is clicked', async () => {
       // This test verifies the actual button click triggers the renderer's submitQuickChat
 
-      // 1. Open Quick Chat
-      await browser.electron.execute((_electron: typeof import('electron')) => {
-        const { windowManager } = global as any;
-        if (windowManager?.toggleQuickChat) {
-          windowManager.toggleQuickChat();
-        }
-      });
+      // 1. Open Quick Chat via hotkey (Real User Action)
+      await browser.switchWindow('Gemini Desktop');
+      const modifiers = process.platform === 'darwin' ? ['Meta', 'Shift'] : ['Control', 'Shift'];
+      await browser.keys([...modifiers, 'Space']);
 
       await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
 
@@ -283,7 +287,7 @@ describe('Quick Chat Full Submission Workflow', () => {
         if (await input.isExisting()) {
           foundQuickChat = true;
 
-          // 3. Type text and click submit
+          // 3. Type text and click submit (Real User Actions)
           const testMessage = 'IPC Test Message ' + Date.now();
           await input.setValue(testMessage);
           await browser.pause(300);
@@ -299,19 +303,32 @@ describe('Quick Chat Full Submission Workflow', () => {
         }
       }
 
-      expect(foundQuickChat).toBe(true);
+      if (!foundQuickChat) {
+        throw new Error('Quick Chat did not open via hotkey');
+      }
 
       // 4. Switch back to main window
-      await browser.switchToWindow(handles[0]);
+      await browser.switchWindow('Gemini Desktop');
 
-      // 5. Verify Quick Chat is now hidden (submit worked)
-      const quickChatHidden = await browser.electron.execute((_electron: typeof import('electron')) => {
-        const { windowManager } = global as any;
-        const win = windowManager?.getQuickChatWindow?.();
-        return !win || !win.isVisible();
-      });
-      expect(quickChatHidden).toBe(true);
+      // 5. Verify Quick Chat is now hidden (user-visible outcome)
+      // Try to find the Quick Chat container - it should NOT be visible
+      const allHandles = await browser.getWindowHandles();
+      let quickChatStillVisible = false;
+      
+      for (const handle of allHandles) {
+        await browser.switchToWindow(handle);
+        const container = await $(Selectors.quickChatContainer);
+        if (await container.isExisting() && await container.isDisplayed()) {
+          quickChatStillVisible = true;
+          break;
+        }
+      }
+
+      expect(quickChatStillVisible).toBe(false);
       E2ELogger.info('quick-chat-workflow', 'Quick Chat hidden after submit - IPC worked');
+
+      // Return to main window
+      await browser.switchWindow('Gemini Desktop');
     });
   });
 });

@@ -210,8 +210,10 @@ if (!gotTheLock) {
   app.whenReady().then(() => {
     logger.log('App ready - starting initialization');
 
+    // Apply security settings to default session (used by all windows)
     setupHeaderStripping(session.defaultSession);
     setupMediaPermissions(session.defaultSession);
+
     ipcManager.setupIpcHandlers();
 
     // Setup native application menu (critical for macOS)
