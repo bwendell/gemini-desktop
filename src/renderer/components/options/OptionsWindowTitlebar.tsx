@@ -17,6 +17,7 @@
 import { memo } from 'react';
 import { useWindowControls } from '../../hooks/useWindowControls';
 import { TITLEBAR_TEST_IDS } from '../../utils/testIds';
+import { isMacOS } from '../../utils/platform';
 import icon from '@/assets/icon.png';
 import './options-window.css';
 
@@ -40,7 +41,7 @@ export const OptionsWindowTitlebar = memo(function OptionsWindowTitlebar({
   const { minimize, close } = useWindowControls();
 
   return (
-    <header className="options-titlebar" data-testid="options-titlebar">
+    <header className={`options-titlebar${isMacOS() ? ' macos' : ''}`} data-testid="options-titlebar">
       {/* Icon - Left justified */}
       <div className="options-titlebar-icon">
         <img

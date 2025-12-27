@@ -182,7 +182,7 @@ export default class MenuManager {
         {
           label: 'New Window',
           accelerator: 'CmdOrCtrl+Shift+N',
-          enabled: false, // Request to add later
+          visible: false, // Hidden until functionality is implemented
         },
         { type: 'separator' },
         {

@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { OptionsWindowTitlebar } from './OptionsWindowTitlebar';
+import { setMockPlatform } from '../../../../tests/unit/renderer/test/setup';
 
 // Mock the useWindowControls hook
 const mockMinimize = vi.fn();
@@ -19,16 +20,10 @@ vi.mock('../../hooks/useWindowControls', () => ({
   }),
 }));
 
-// Mock the platform utility
-let mockUsesCustomWindowControls = true;
-vi.mock('../../utils', () => ({
-  usesCustomWindowControls: () => mockUsesCustomWindowControls,
-}));
-
 describe('OptionsWindowTitlebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsesCustomWindowControls = true;
+    setMockPlatform('win32'); // Default to Windows
   });
 
   describe('rendering', () => {
@@ -46,7 +41,7 @@ describe('OptionsWindowTitlebar', () => {
     });
 
     it('should render window controls on Windows/Linux', () => {
-      mockUsesCustomWindowControls = true;
+      setMockPlatform('win32');
       render(<OptionsWindowTitlebar />);
 
       expect(screen.getByTestId('options-window-controls')).toBeInTheDocument();
@@ -58,7 +53,7 @@ describe('OptionsWindowTitlebar', () => {
     });
 
     it('should render window controls on all platforms (including macOS)', () => {
-      mockUsesCustomWindowControls = false; // Simulating macOS
+      setMockPlatform('darwin'); // macOS
       render(<OptionsWindowTitlebar />);
 
       // Controls should still be present for consistent UX and testability
@@ -72,6 +67,24 @@ describe('OptionsWindowTitlebar', () => {
 
       const dragRegion = screen.getByTestId('options-titlebar-title').parentElement;
       expect(dragRegion).toHaveClass('options-titlebar-drag-region');
+    });
+  });
+
+  describe('macOS specific styling', () => {
+    it('should apply macos class when running on macOS', () => {
+      setMockPlatform('darwin');
+      render(<OptionsWindowTitlebar />);
+      
+      const header = screen.getByTestId('options-titlebar');
+      expect(header).toHaveClass('macos');
+    });
+
+    it('should NOT apply macos class when running on Windows', () => {
+      setMockPlatform('win32');
+      render(<OptionsWindowTitlebar />);
+      
+      const header = screen.getByTestId('options-titlebar');
+      expect(header).not.toHaveClass('macos');
     });
   });
 
