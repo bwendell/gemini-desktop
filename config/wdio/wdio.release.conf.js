@@ -88,7 +88,7 @@ export const config = {
 
     // Tray functionality tests
     '../../tests/e2e/tray.spec.ts',
-    '../../tests/e2e/tray-quit.spec.ts',
+    // NOTE: tray-quit.spec.ts excluded - it quits the app which terminates WebDriverIO session
     '../../tests/e2e/minimize-to-tray.spec.ts',
 
     // Options and settings tests
@@ -107,6 +107,7 @@ export const config = {
   // - auth.spec.ts: May try to spawn additional windows with dev paths
   // - quick-chat*.spec.ts: May have timing issues with packaged builds
   // - hotkeys.spec.ts: Global hotkey registration may differ in packaged builds
+  // - tray-quit.spec.ts: Quits app, terminating WebDriverIO session
   exclude: [],
   maxInstances: 1,
 

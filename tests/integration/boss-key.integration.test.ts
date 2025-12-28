@@ -359,7 +359,17 @@ describe('Boss Key / Stealth Mode Integration', () => {
         global.windowManager.hideToTray();
       });
 
-      await browser.pause(300);
+      // Wait for window to hide (use waitUntil for reliable cross-platform timing)
+      await browser.waitUntil(
+        async () => {
+          return await browser.electron.execute(() => {
+            // @ts-ignore
+            const win = global.windowManager.getMainWindow();
+            return win && !win.isVisible();
+          });
+        },
+        { timeout: 5000, timeoutMsg: 'Main window did not hide to tray' }
+      );
 
       const isHidden = await browser.electron.execute(() => {
         // @ts-ignore
