@@ -3,15 +3,31 @@
  * Import all utilities from this single entry point.
  */
 
+// Core utilities
 export * from './platform';
-export * from './menuActions';
-export * from './windowActions';
-export * from './selectors';
 export * from './logger';
-export * from './hotkeyHelpers';
-export * from './quickChatActions';
-export * from './alwaysOnTopActions';
-export * from './windowStateActions';
+export * from './selectors';
+export * from './e2eConstants';
 import './types';
 
+// Window management
+export * from './windowActions';
+export * from './windowStateActions';
+export * from './optionsWindowActions';
 
+// Input actions
+export * from './menuActions';
+export * from './keyboardActions';
+export * from './hotkeyHelpers';
+export * from './trayActions';
+
+// Feature-specific actions
+export * from './quickChatActions';
+export * from './alwaysOnTopActions';
+
+// NEW: Reusable test patterns
+export * from './assertions';
+export * from './workflows';
+
+// Page Object Model
+export * from '../pages';

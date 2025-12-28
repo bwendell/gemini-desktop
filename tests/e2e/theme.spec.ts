@@ -3,33 +3,30 @@
  *
  * Tests theme switching and color verification.
  *
- * Platform-aware: Uses clickMenuItem helper for cross-platform menu access.
+ * Platform-aware: Uses Page Object Model for cleaner test structure.
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
-import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
-import { waitForOptionsWindow, closeOptionsWindow, switchToOptionsWindow } from './helpers/optionsWindowActions';
+import { browser, expect } from '@wdio/globals';
+import { MainWindowPage, OptionsPage } from './pages';
+import { waitForWindowCount } from './helpers/windowActions';
 
 describe('Theme Feature', () => {
+  // Create page object instances
+  const mainWindow = new MainWindowPage();
+  const optionsPage = new OptionsPage();
+
   it('should apply correct text colors to Options titlebar in light and dark modes', async () => {
-    // 1. Open Options Window
-    await clickMenuItemById('menu-file-options');
-
-    // Wait for Options Window
+    // 1. Open Options Window via menu
+    await mainWindow.openOptionsViaMenu();
     await waitForWindowCount(2);
-
-    // Switch to Options Window
-    await switchToOptionsWindow();
+    await optionsPage.waitForLoad();
 
     // Wait for titlebar to be present
-    const titleElement = await $('[data-testid="options-titlebar-title"]');
+    const titleElement = await browser.$('[data-testid="options-titlebar-title"]');
     await titleElement.waitForExist();
 
-    // Select Light Theme (using new card-based selector)
-    const lightThemeCard = await $(Selectors.themeCard('light'));
-    await lightThemeCard.click();
+    // 2. Select Light Theme using Page Object
+    await optionsPage.selectTheme('light');
 
     // Small delay for CSS to apply
     await browser.pause(500);
@@ -71,8 +68,9 @@ describe('Theme Feature', () => {
     console.log('=== DEBUG: Light Theme Title Bar Info ===');
     console.log(JSON.stringify(lightDebugInfo, null, 2));
 
-    // Verify the data-theme attribute is set
-    expect(lightDebugInfo.dataTheme).toBe('light');
+    // Verify theme using Page Object
+    const lightTheme = await optionsPage.getCurrentTheme();
+    expect(lightTheme).toBe('light');
 
     // In light mode, title color should be dark (black-ish)
     // rgb(32, 33, 36) is #202124 which is --text-primary in light mode
@@ -88,9 +86,8 @@ describe('Theme Feature', () => {
     // #202124 = rgb(32, 33, 36)
     expect(lightDebugInfo.titleColor).toBe('rgb(32, 33, 36)');
 
-    // Now switch to dark theme and verify (using new card-based selector)
-    const darkThemeCard = await $(Selectors.themeCard('dark'));
-    await darkThemeCard.click();
+    // 3. Switch to dark theme using Page Object
+    await optionsPage.selectTheme('dark');
     await browser.pause(500);
 
     const darkDebugInfo = await browser.execute(() => {
@@ -110,11 +107,14 @@ describe('Theme Feature', () => {
     console.log(JSON.stringify(darkDebugInfo, null, 2));
     console.log(`Dark mode - Title computed color: ${darkDebugInfo.titleColor}`);
 
-    expect(darkDebugInfo.dataTheme).toBe('dark');
+    // Verify theme using Page Object
+    const darkTheme = await optionsPage.getCurrentTheme();
+    expect(darkTheme).toBe('dark');
+
     // In dark mode, text should be light: #e8eaed = rgb(232, 234, 237)
     expect(darkDebugInfo.titleColor).toBe('rgb(232, 234, 237)');
 
-    // Verify main window also synced
+    // 4. Verify main window also synced
     const handles = await browser.getWindowHandles();
     await browser.switchToWindow(handles[0]);
     const mainWindowTheme = await browser.execute(() => {
@@ -122,8 +122,8 @@ describe('Theme Feature', () => {
     });
     expect(mainWindowTheme).toBe('dark');
 
-    // Close Options Window
-    await switchToOptionsWindow();
-    await closeOptionsWindow();
+    // 5. Switch back to Options Window and close using Page Object
+    await browser.switchToWindow(handles[1]);
+    await optionsPage.close();
   });
 });
