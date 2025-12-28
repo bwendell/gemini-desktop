@@ -9,10 +9,11 @@
  * @module window-bounds.spec
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
+import { browser, expect } from '@wdio/globals';
+import { MainWindowPage } from './pages';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForAppReady } from './helpers/workflows';
 
 /**
  * Interface for window bounds.
@@ -77,10 +78,10 @@ async function setWindowBounds(bounds: WindowBounds): Promise<void> {
 }
 
 describe('Window State Restoration', () => {
+  const mainWindow = new MainWindowPage();
+
   beforeEach(async () => {
-    // Ensure app is loaded
-    const mainLayout = await $(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout: 15000 });
+    await waitForAppReady();
   });
 
   describe('Window Bounds Persistence', () => {

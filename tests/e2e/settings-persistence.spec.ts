@@ -14,133 +14,83 @@
  * @module settings-persistence.spec
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
+import { expect } from '@wdio/globals';
+import { MainWindowPage, OptionsPage } from './pages';
+import { SettingsHelper } from './helpers/SettingsHelper';
 import { E2ELogger } from './helpers/logger';
-import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount } from './helpers/windowActions';
-import {
-  waitForOptionsWindow,
-  closeOptionsWindow,
-} from './helpers/optionsWindowActions';
-
-/**
- * Interface for the settings file structure.
- */
-interface SettingsData {
-  theme?: 'light' | 'dark' | 'system';
-  hotkeysEnabled?: boolean;
-  hotkeyAlwaysOnTop?: boolean;
-  hotkeyBossKey?: boolean;
-  hotkeyQuickChat?: boolean;
-}
-
-/**
- * Read settings from the settings file.
- */
-async function readSettingsFile(): Promise<SettingsData | null> {
-  return browser.electron.execute((electron: typeof import('electron')) => {
-    const path = require('path');
-    const fs = require('fs');
-
-    const userDataPath = electron.app.getPath('userData');
-    const settingsPath = path.join(userDataPath, 'settings.json');
-
-    try {
-      if (!fs.existsSync(settingsPath)) {
-        return null;
-      }
-      const content = fs.readFileSync(settingsPath, 'utf-8');
-      return JSON.parse(content);
-    } catch (error) {
-      console.error('[E2E] Failed to read settings file:', error);
-      return null;
-    }
-  });
-}
-
-/**
- * Get the path to the settings file.
- */
-async function getSettingsFilePath(): Promise<string> {
-  return browser.electron.execute((electron: typeof import('electron')) => {
-    const path = require('path');
-    const userDataPath = electron.app.getPath('userData');
-    return path.join(userDataPath, 'settings.json');
-  });
-}
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 
 describe('Settings Persistence', () => {
+  const mainWindow = new MainWindowPage();
+  const optionsPage = new OptionsPage();
+  const settings = new SettingsHelper();
+
   beforeEach(async () => {
-    // Ensure app is loaded
-    const mainLayout = await $(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout: 15000 });
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    await ensureSingleWindow();
   });
 
   describe('Theme Preference Persistence', () => {
     it('should save theme preference to settings file', async () => {
       // 1. Open Options window
-      await clickMenuItemById('menu-file-options');
-      await waitForOptionsWindow();
+      await mainWindow.openOptionsViaMenu();
+      await waitForWindowCount(2);
+      await optionsPage.waitForLoad();
 
       // 2. Click dark theme card
-      const darkThemeCard = await $(Selectors.themeCard('dark'));
-      await darkThemeCard.click();
-      await browser.pause(500);
+      await optionsPage.selectTheme('dark');
 
       // 3. Read settings file and verify theme is saved
-      const settings = await readSettingsFile();
+      const theme = await settings.getTheme();
 
-      expect(settings).not.toBeNull();
-      expect(settings?.theme).toBe('dark');
-
-      E2ELogger.info('settings-persistence', `Theme saved: ${settings?.theme}`);
+      expect(theme).toBe('dark');
+      E2ELogger.info('settings-persistence', `Theme saved: ${theme}`);
 
       // 4. Switch to light theme and verify
-      const lightThemeCard = await $(Selectors.themeCard('light'));
-      await lightThemeCard.click();
-      await browser.pause(500);
+      await optionsPage.selectTheme('light');
 
-      const settingsAfterLight = await readSettingsFile();
-      expect(settingsAfterLight?.theme).toBe('light');
+      const themeAfterLight = await settings.getTheme();
+      expect(themeAfterLight).toBe('light');
 
-      E2ELogger.info('settings-persistence', `Theme updated to: ${settingsAfterLight?.theme}`);
+      E2ELogger.info('settings-persistence', `Theme updated to: ${themeAfterLight}`);
 
       // Cleanup: close options window
-      await closeOptionsWindow();
+      await optionsPage.close();
     });
 
     it('should save system theme preference to settings file', async () => {
       // 1. Open Options window
-      await clickMenuItemById('menu-file-options');
-      await waitForOptionsWindow();
+      await mainWindow.openOptionsViaMenu();
+      await waitForWindowCount(2);
+      await optionsPage.waitForLoad();
 
       // 2. Click system theme card
-      const systemThemeCard = await $(Selectors.themeCard('system'));
-      await systemThemeCard.click();
-      await browser.pause(500);
+      await optionsPage.selectTheme('system');
 
       // 3. Verify settings
-      const settings = await readSettingsFile();
-      expect(settings?.theme).toBe('system');
+      const theme = await settings.getTheme();
+      expect(theme).toBe('system');
 
-      E2ELogger.info('settings-persistence', `System theme saved: ${settings?.theme}`);
+      E2ELogger.info('settings-persistence', `System theme saved: ${theme}`);
 
       // Cleanup
-      await closeOptionsWindow();
+      await optionsPage.close();
     });
   });
 
   describe('Hotkey Enabled State Persistence', () => {
     it('should save hotkey enabled state to settings file', async () => {
       // 1. Open Options window
-      await clickMenuItemById('menu-file-options');
-      await waitForOptionsWindow();
+      await mainWindow.openOptionsViaMenu();
+      await waitForWindowCount(2);
+      await optionsPage.waitForLoad();
 
-      // 2. Get initial toggle state
-      const toggleSwitch = await $('[data-testid="hotkey-toggle-switch"]');
-      const initialState = await toggleSwitch.getAttribute('aria-checked');
-      const wasEnabled = initialState === 'true';
+      // 2. Get initial toggle state using OptionsPage's master toggle helper
+      const wasEnabled = await optionsPage.isMasterHotkeyEnabled();
 
       E2ELogger.info(
         'settings-persistence',
@@ -148,48 +98,38 @@ describe('Settings Persistence', () => {
       );
 
       // 3. Click toggle to change state
-      await toggleSwitch.click();
-      await browser.pause(500);
+      await optionsPage.toggleMasterHotkey();
 
       // 4. Verify settings file was updated
-      const settings = await readSettingsFile();
-      expect(settings?.hotkeysEnabled).toBe(!wasEnabled);
+      const hotkeysEnabled = await settings.getHotkeysEnabled();
+      expect(hotkeysEnabled).toBe(!wasEnabled);
 
-      E2ELogger.info('settings-persistence', `Hotkey state saved: ${settings?.hotkeysEnabled}`);
+      E2ELogger.info('settings-persistence', `Hotkey state saved: ${hotkeysEnabled}`);
 
       // 5. Toggle back to original state
-      await toggleSwitch.click();
-      await browser.pause(500);
+      await optionsPage.toggleMasterHotkey();
 
-      const settingsAfterRestore = await readSettingsFile();
-      expect(settingsAfterRestore?.hotkeysEnabled).toBe(wasEnabled);
+      const restoredState = await settings.getHotkeysEnabled();
+      expect(restoredState).toBe(wasEnabled);
 
-      E2ELogger.info(
-        'settings-persistence',
-        `Hotkey state restored: ${settingsAfterRestore?.hotkeysEnabled}`
-      );
+      E2ELogger.info('settings-persistence', `Hotkey state restored: ${restoredState}`);
 
       // Cleanup
-      await closeOptionsWindow();
+      await optionsPage.close();
     });
   });
 
   describe('Individual Hotkey Toggle Persistence', () => {
     it('should save individual hotkey toggle states to settings file', async () => {
       // 1. Open Options window
-      await clickMenuItemById('menu-file-options');
-      await waitForOptionsWindow();
+      await mainWindow.openOptionsViaMenu();
+      await waitForWindowCount(2);
+      await optionsPage.waitForLoad();
 
       // 2. Get initial toggle states for all three hotkeys
-      const alwaysOnTopToggle = await $('[data-testid="hotkey-toggle-alwaysOnTop-switch"]');
-      const bossKeyToggle = await $('[data-testid="hotkey-toggle-bossKey-switch"]');
-      const quickChatToggle = await $('[data-testid="hotkey-toggle-quickChat-switch"]');
-
-      await alwaysOnTopToggle.waitForDisplayed({ timeout: 5000 });
-
-      const initialAlwaysOnTop = (await alwaysOnTopToggle.getAttribute('aria-checked')) === 'true';
-      const initialBossKey = (await bossKeyToggle.getAttribute('aria-checked')) === 'true';
-      const initialQuickChat = (await quickChatToggle.getAttribute('aria-checked')) === 'true';
+      const initialAlwaysOnTop = await optionsPage.isHotkeyEnabled('alwaysOnTop');
+      const initialBossKey = await optionsPage.isHotkeyEnabled('bossKey');
+      const initialQuickChat = await optionsPage.isHotkeyEnabled('quickChat');
 
       E2ELogger.info(
         'settings-persistence',
@@ -197,81 +137,72 @@ describe('Settings Persistence', () => {
       );
 
       // 3. Toggle Always-on-Top hotkey and verify persistence
-      await alwaysOnTopToggle.click();
-      await browser.pause(500);
+      await optionsPage.toggleHotkey('alwaysOnTop');
 
-      let settings = await readSettingsFile();
-      expect(settings?.hotkeyAlwaysOnTop).toBe(!initialAlwaysOnTop);
-      E2ELogger.info('settings-persistence', `AlwaysOnTop saved: ${settings?.hotkeyAlwaysOnTop}`);
+      let hotkeyState = await settings.getHotkeyEnabled('alwaysOnTop');
+      expect(hotkeyState).toBe(!initialAlwaysOnTop);
+      E2ELogger.info('settings-persistence', `AlwaysOnTop saved: ${hotkeyState}`);
 
       // 4. Toggle Boss Key hotkey and verify persistence
-      await bossKeyToggle.click();
-      await browser.pause(500);
+      await optionsPage.toggleHotkey('bossKey');
 
-      settings = await readSettingsFile();
-      expect(settings?.hotkeyBossKey).toBe(!initialBossKey);
-      E2ELogger.info('settings-persistence', `BossKey saved: ${settings?.hotkeyBossKey}`);
+      hotkeyState = await settings.getHotkeyEnabled('bossKey');
+      expect(hotkeyState).toBe(!initialBossKey);
+      E2ELogger.info('settings-persistence', `BossKey saved: ${hotkeyState}`);
 
       // 5. Toggle Quick Chat hotkey and verify persistence
-      await quickChatToggle.click();
-      await browser.pause(500);
+      await optionsPage.toggleHotkey('quickChat');
 
-      settings = await readSettingsFile();
-      expect(settings?.hotkeyQuickChat).toBe(!initialQuickChat);
-      E2ELogger.info('settings-persistence', `QuickChat saved: ${settings?.hotkeyQuickChat}`);
+      hotkeyState = await settings.getHotkeyEnabled('quickChat');
+      expect(hotkeyState).toBe(!initialQuickChat);
+      E2ELogger.info('settings-persistence', `QuickChat saved: ${hotkeyState}`);
 
       // 6. Restore original states
-      await alwaysOnTopToggle.click();
-      await bossKeyToggle.click();
-      await quickChatToggle.click();
-      await browser.pause(500);
+      await optionsPage.toggleHotkey('alwaysOnTop');
+      await optionsPage.toggleHotkey('bossKey');
+      await optionsPage.toggleHotkey('quickChat');
 
       // 7. Verify all states restored
-      const restoredSettings = await readSettingsFile();
-      expect(restoredSettings?.hotkeyAlwaysOnTop).toBe(initialAlwaysOnTop);
-      expect(restoredSettings?.hotkeyBossKey).toBe(initialBossKey);
-      expect(restoredSettings?.hotkeyQuickChat).toBe(initialQuickChat);
+      expect(await settings.getHotkeyEnabled('alwaysOnTop')).toBe(initialAlwaysOnTop);
+      expect(await settings.getHotkeyEnabled('bossKey')).toBe(initialBossKey);
+      expect(await settings.getHotkeyEnabled('quickChat')).toBe(initialQuickChat);
 
       E2ELogger.info('settings-persistence', 'All individual hotkey states restored');
 
       // Cleanup
-      await closeOptionsWindow();
+      await optionsPage.close();
     });
 
     it('should persist each hotkey independently', async () => {
       // 1. Open Options window
-      await clickMenuItemById('menu-file-options');
-      await waitForOptionsWindow();
+      await mainWindow.openOptionsViaMenu();
+      await waitForWindowCount(2);
+      await optionsPage.waitForLoad();
 
       // 2. Toggle only Boss Key (leave others unchanged)
-      const bossKeyToggle = await $('[data-testid="hotkey-toggle-bossKey-switch"]');
-      await bossKeyToggle.waitForDisplayed({ timeout: 5000 });
-
-      const initialBossKey = (await bossKeyToggle.getAttribute('aria-checked')) === 'true';
-      await bossKeyToggle.click();
-      await browser.pause(500);
+      const initialBossKey = await optionsPage.isHotkeyEnabled('bossKey');
+      await optionsPage.toggleHotkey('bossKey');
 
       // 3. Verify only Boss Key changed in settings
-      const settings = await readSettingsFile();
-      expect(settings?.hotkeyBossKey).toBe(!initialBossKey);
+      const bossKeyState = await settings.getHotkeyEnabled('bossKey');
+      expect(bossKeyState).toBe(!initialBossKey);
 
       // 4. Restore and verify
-      await bossKeyToggle.click();
-      await browser.pause(500);
+      await optionsPage.toggleHotkey('bossKey');
 
-      const restoredSettings = await readSettingsFile();
-      expect(restoredSettings?.hotkeyBossKey).toBe(initialBossKey);
+      const restoredBossKey = await settings.getHotkeyEnabled('bossKey');
+      expect(restoredBossKey).toBe(initialBossKey);
 
       E2ELogger.info('settings-persistence', 'Individual hotkey persistence verified');
 
       // Cleanup
-      await closeOptionsWindow();
+      await optionsPage.close();
     });
   });
 
   describe('Settings File Location', () => {
     it('should store settings in the correct user data directory', async () => {
-      const settingsPath = await getSettingsFilePath();
+      const settingsPath = await settings.getFilePath();
 
       // Should be in userData directory
       expect(settingsPath).toContain('settings.json');

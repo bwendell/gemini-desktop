@@ -4,58 +4,29 @@
  * Tests macOS-specific keyboard shortcuts and menu behavior.
  *
  * Since WebDriver cannot simulate OS-level keyboard shortcuts on macOS,
- * we test these via Electron API calls that trigger the same actions.
+ * we test menu actions via the custom menu bar (which is available on all platforms).
  *
  * Verifies:
- * 1. Cmd+, shortcut action opens Options (via menu click simulation)
+ * 1. Opening Options via menu (testing the menu action that Cmd+, would trigger)
+ * 2. Options window reuse behavior
+ * 3. macOS menu integration
  *
  * Platform-specific: macOS only
  *
  * @module macos-menu.spec
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
+import { browser, expect } from '@wdio/globals';
+import { MainWindowPage, OptionsPage } from './pages';
 import { E2ELogger } from './helpers/logger';
 import { isMacOS } from './helpers/platform';
-import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
-
-/**
- * Simulate clicking the "Settings/Preferences" menu item.
- * On macOS, this would normally be triggered by Cmd+,
- */
-async function triggerPreferences(): Promise<void> {
-  await browser.electron.execute(() => {
-    // Directly call the createOptionsWindow function
-    const windowManager = (global as any).windowManager as
-      | {
-          createOptionsWindow?: (tab?: string) => void;
-        }
-      | undefined;
-
-    if (windowManager?.createOptionsWindow) {
-      windowManager.createOptionsWindow();
-    }
-  });
-}
-
-/**
- * Check if Options window is open.
- */
-async function isOptionsWindowOpen(): Promise<boolean> {
-  return browser.electron.execute((electron: typeof import('electron')) => {
-    const windows = electron.BrowserWindow.getAllWindows();
-    return windows.some((w) => {
-      try {
-        return w.webContents.getURL().includes('options');
-      } catch {
-        return false;
-      }
-    });
-  });
-}
+import { waitForWindowCount } from './helpers/windowActions';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 
 describe('macOS Native Menu Shortcuts', () => {
+  const mainWindow = new MainWindowPage();
+  const optionsPage = new OptionsPage();
+
   beforeEach(async () => {
     // Skip all tests if not on macOS
     if (!(await isMacOS())) {
@@ -63,47 +34,39 @@ describe('macOS Native Menu Shortcuts', () => {
     }
 
     // Ensure app is loaded
-    const mainLayout = await $(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout: 15000 });
+    await waitForAppReady();
   });
 
   afterEach(async () => {
-    // Cleanup: close any Options window that may have been opened
-    const handles = await browser.getWindowHandles();
-    if (handles.length > 1) {
-      await browser.switchToWindow(handles[1]);
-      await closeCurrentWindow();
-      await waitForWindowCount(1, 3000);
-    }
-    await browser.switchToWindow(handles[0]);
+    // Cleanup: close any secondary windows
+    await ensureSingleWindow();
   });
 
   describe('Cmd+, (Preferences) Shortcut (macOS only)', () => {
-    it('should open Options window when preferences action is triggered', async () => {
+    it('should open Options window via menu action', async () => {
       if (!(await isMacOS())) {
         E2ELogger.info('macos-menu', 'Skipping - not on macOS');
         return;
       }
 
-      // Verify Options not open initially
-      const initialOptionsOpen = await isOptionsWindowOpen();
-      expect(initialOptionsOpen).toBe(false);
+      // Verify only main window is open initially
+      const initialHandles = await browser.getWindowHandles();
+      expect(initialHandles.length).toBe(1);
 
-      E2ELogger.info('macos-menu', 'Initial state: no Options window');
+      E2ELogger.info('macos-menu', 'Initial state: single main window');
 
-      // Trigger preferences (simulates Cmd+,)
-      await triggerPreferences();
-      await browser.pause(1000);
+      // Open options via menu (simulates what Cmd+, does)
+      await mainWindow.openOptionsViaMenu();
+      await waitForWindowCount(2, 5000);
 
       // Verify Options window opened
-      await waitForWindowCount(2, 5000);
       const handles = await browser.getWindowHandles();
       expect(handles.length).toBe(2);
 
-      const optionsOpen = await isOptionsWindowOpen();
-      expect(optionsOpen).toBe(true);
+      // Switch to options window and verify it loaded
+      await optionsPage.waitForLoad();
 
-      E2ELogger.info('macos-menu', 'Options window opened via preferences action');
+      E2ELogger.info('macos-menu', 'Options window opened via menu action');
     });
 
     it('should focus existing Options window if already open', async () => {
@@ -111,18 +74,20 @@ describe('macOS Native Menu Shortcuts', () => {
         return;
       }
 
-      // Open Options first
-      await triggerPreferences();
+      // Open Options first via menu
+      await mainWindow.openOptionsViaMenu();
       await waitForWindowCount(2, 5000);
+      await optionsPage.waitForLoad();
 
       const firstHandles = await browser.getWindowHandles();
       expect(firstHandles.length).toBe(2);
 
-      // Switch back to main and trigger again
+      // Switch back to main window
       await browser.switchToWindow(firstHandles[0]);
       await browser.pause(300);
 
-      await triggerPreferences();
+      // Try to open options again via menu
+      await mainWindow.openOptionsViaMenu();
       await browser.pause(500);
 
       // Should still have only 2 windows (no duplicate)
@@ -134,23 +99,25 @@ describe('macOS Native Menu Shortcuts', () => {
   });
 
   describe('macOS Menu Integration', () => {
-    it('should have native app menu on macOS', async () => {
+    it('should have functional app and menu on macOS', async () => {
       if (!(await isMacOS())) {
         return;
       }
 
-      // On macOS, the app should use native menu bar
-      // We verify by checking that the custom menu bar is NOT present
-      const customMenuBar = await $(Selectors.menuBar);
-      const hasCustomMenu = await customMenuBar.isExisting();
-
-      // On macOS, custom menu bar should NOT exist (uses native)
-      // Note: This depends on window configuration
-      E2ELogger.info('macos-menu', `Custom menu bar present: ${hasCustomMenu}`);
-
-      // Regardless, app should be running and functional
+      // Verify the app is running and functional
       const title = await browser.getTitle();
       expect(title).toBeTruthy();
+
+      // Verify main window is loaded
+      const isLoaded = await mainWindow.isLoaded();
+      expect(isLoaded).toBe(true);
+
+      // Check if menu bar exists (custom menu on Windows/Linux, may not exist on macOS)
+      const hasMenuBar = await mainWindow.isMenuBarDisplayed();
+      E2ELogger.info('macos-menu', `Custom menu bar present: ${hasMenuBar}`);
+
+      // App functionality is verified by successfully loading the main window
+      E2ELogger.info('macos-menu', 'App is running and functional on macOS');
     });
   });
 });

@@ -7,6 +7,8 @@
 
 export { AuthWindowPage } from './AuthWindowPage';
 export { BasePage } from './BasePage';
+export { ContextMenuPage } from './ContextMenuPage';
+export { MacOSDockPage } from './MacOSDockPage';
 export { MainWindowPage } from './MainWindowPage';
 export { OptionsPage } from './OptionsPage';
 export { QuickChatPage } from './QuickChatPage';

@@ -10,8 +10,12 @@ import { browser, $, $$, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
+import { MainWindowPage } from './pages';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 
 describe('Custom Menu Bar', () => {
+  const mainWindow = new MainWindowPage();
+
   beforeEach(async () => {
     // Skip entire suite on macOS
     if (!(await usesCustomControls())) {
@@ -19,9 +23,16 @@ describe('Custom Menu Bar', () => {
       return;
     }
 
-    // Wait for the main layout to be ready
-    const mainLayout = await $(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout: 15000 });
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    // Skip cleanup on macOS
+    if (!(await usesCustomControls())) {
+      return;
+    }
+
+    await ensureSingleWindow();
   });
 
   it('should have menu buttons', async () => {
@@ -29,8 +40,7 @@ describe('Custom Menu Bar', () => {
       return; // Skip on macOS
     }
 
-    const menuBar = await $(Selectors.menuBar);
-    await expect(menuBar).toBeExisting();
+    expect(await mainWindow.isMenuBarDisplayed()).toBe(true);
 
     const menuButtons = await $$('.titlebar-menu-button');
     expect(menuButtons.length).toBeGreaterThan(0);
@@ -41,7 +51,8 @@ describe('Custom Menu Bar', () => {
       return; // Skip on macOS
     }
 
-    const menuBar = await $(Selectors.menuBar);
+    // Wait for menu bar to exist
+    const menuBar = await $(mainWindow.menuBarSelector);
     await menuBar.waitForExist();
 
     // Check for specific menu buttons by text content
@@ -65,24 +76,16 @@ describe('Custom Menu Bar', () => {
       return; // Skip on macOS
     }
 
-    // Find File button directly in the menu bar
-    const menuBar = await $(Selectors.menuBar);
-    await menuBar.waitForExist();
-
-    // Get all buttons and click the first one (File)
-    const buttons = await $$('.titlebar-menu-button');
-    expect(buttons.length).toBeGreaterThan(0);
-
-    // Click File menu
-    await buttons[0].click();
+    // Open File menu via MainWindowPage
+    await mainWindow.openMenu('File');
 
     // Wait for dropdown - it's rendered via Portal at the end of body
     const dropdown = await $(Selectors.menuDropdown);
     await dropdown.waitForExist({ timeout: 5000 });
     await expect(dropdown).toBeDisplayed();
 
-    // Click again to close
-    await buttons[0].click();
+    // Click File menu again to close
+    await mainWindow.openMenu('File');
   });
 
   it('should close dropdown when clicking outside (on backdrop)', async () => {
@@ -90,10 +93,8 @@ describe('Custom Menu Bar', () => {
       return; // Skip on macOS
     }
 
-    const menuBar = await $(Selectors.menuBar);
-    await menuBar.waitForExist();
-    const buttons = await $$('.titlebar-menu-button');
-    await buttons[0].click(); // Open File menu
+    // Open File menu
+    await mainWindow.openMenu('File');
 
     const dropdown = await $(Selectors.menuDropdown);
     await dropdown.waitForExist();
@@ -115,10 +116,8 @@ describe('Custom Menu Bar', () => {
       return; // Skip on macOS
     }
 
-    const menuBar = await $(Selectors.menuBar);
-    await menuBar.waitForExist();
-    const buttons = await $$('.titlebar-menu-button');
-    await buttons[0].click(); // Open File menu
+    // Open File menu
+    await mainWindow.openMenu('File');
 
     const dropdown = await $(Selectors.menuDropdown);
     await dropdown.waitForExist();
@@ -136,26 +135,22 @@ describe('Custom Menu Bar', () => {
       return; // Skip on macOS
     }
 
-    const menuBar = await $(Selectors.menuBar);
-    await menuBar.waitForExist();
-
     const fileButton = await $(Selectors.menuButton('File'));
     const viewButton = await $(Selectors.menuButton('View'));
 
     // 1. Open File menu
-    await fileButton.click();
+    await mainWindow.openMenu('File');
     const dropdown = await $(Selectors.menuDropdown);
     await dropdown.waitForExist();
 
-    // Check content of first menu
+    // Check content of first menu - Exit item is in File menu
     const exitItem = await $(Selectors.menuItem('Exit'));
     await expect(exitItem).toExist();
 
     // 2. Hover over View menu
     await viewButton.moveTo();
 
-    // 3. Verify dropdown content changes (menu switched)
-    // Wait for potential react state update
+    // 3. Wait for react state update
     await browser.pause(200);
 
     // Check for an item that is in View menu (Reload)

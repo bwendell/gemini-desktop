@@ -3,32 +3,30 @@
  *
  * Tests accessibility and keyboard-only navigation of the theme selector.
  *
- * Platform-aware: Uses clickMenuItem helper for cross-platform menu access.
+ * Platform-aware: Uses Page Objects and workflow helpers for cross-platform support.
  */
 
 import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
-import { clickMenuItemById } from './helpers/menuActions';
+import { OptionsPage } from './pages';
 import {
-  waitForOptionsWindow,
-  closeOptionsWindow,
-} from './helpers/optionsWindowActions';
-
-/**
- * Helper to open options and get handles.
- */
-async function openOptionsAndGetHandles(): Promise<{ mainHandle: string }> {
-  await clickMenuItemById('menu-file-options');
-  await waitForOptionsWindow();
-  const handles = await browser.getWindowHandles();
-  return { mainHandle: handles[0] };
-}
+  waitForAppReady,
+  ensureSingleWindow,
+  withOptionsWindowViaMenu,
+} from './helpers/workflows';
 
 describe('Theme Selector Keyboard Navigation', () => {
-  it('should be focusable via Tab key', async () => {
-    const { mainHandle } = await openOptionsAndGetHandles();
+  const optionsPage = new OptionsPage();
 
-    try {
+  beforeEach(async () => {
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    await ensureSingleWindow();
+  });
+
+  it('should be focusable via Tab key', async () => {
+    await withOptionsWindowViaMenu(async () => {
       // Tab through the window to reach the theme cards
       // Use a loop to be robust against changes in the number of focusable elements before the cards
       let found = false;
@@ -48,24 +46,20 @@ describe('Theme Selector Keyboard Navigation', () => {
 
       // One of the theme cards should be focused
       expect(found).toBe(true);
-    } finally {
-      await closeOptionsWindow();
-    }
+    });
   });
 
   it('should have proper radiogroup and radio ARIA roles', async () => {
-    const { mainHandle } = await openOptionsAndGetHandles();
-
-    try {
+    await withOptionsWindowViaMenu(async () => {
       // Verify container has radiogroup role
-      const themeSelector = await $('[data-testid="theme-selector"]');
+      const themeSelector = await $(optionsPage.themeSelectorSelector);
       await expect(themeSelector).toHaveAttribute('role', 'radiogroup');
       await expect(themeSelector).toHaveAttribute('aria-label', 'Theme selection');
 
       // Verify each card has radio role
-      const systemCard = await $(Selectors.themeCard('system'));
-      const lightCard = await $(Selectors.themeCard('light'));
-      const darkCard = await $(Selectors.themeCard('dark'));
+      const systemCard = await $(optionsPage.themeCardSelector('system'));
+      const lightCard = await $(optionsPage.themeCardSelector('light'));
+      const darkCard = await $(optionsPage.themeCardSelector('dark'));
 
       await expect(systemCard).toHaveAttribute('role', 'radio');
       await expect(lightCard).toHaveAttribute('role', 'radio');
@@ -75,57 +69,40 @@ describe('Theme Selector Keyboard Navigation', () => {
       await expect(systemCard).toHaveAttribute('aria-label', 'System theme');
       await expect(lightCard).toHaveAttribute('aria-label', 'Light theme');
       await expect(darkCard).toHaveAttribute('aria-label', 'Dark theme');
-    } finally {
-      await closeOptionsWindow();
-    }
+    });
   });
 
   it('should select theme with Enter key when card is focused', async () => {
-    const { mainHandle } = await openOptionsAndGetHandles();
+    await withOptionsWindowViaMenu(async () => {
+      // First select light to establish baseline
+      await optionsPage.selectTheme('light');
 
-    try {
-      // Focus on the light card
-      const lightCard = await $(Selectors.themeCard('light'));
-      await lightCard.click(); // First select to establish baseline
-      await browser.pause(200);
-
-      // Now focus on dark card using Tab
-      await browser.keys(['Tab']);
-
-      // Verify dark card is focused (or focus it directly)
-      const darkCard = await $(Selectors.themeCard('dark'));
-
-      // Use JavaScript to focus the element (more reliable in Electron)
-      await browser.execute((selector: string) => {
-        const el = document.querySelector(selector) as HTMLElement;
+      // Use JavaScript to focus the dark card element (reliable in Electron)
+      await browser.execute(() => {
+        const el = document.querySelector('[data-testid="theme-card-dark"]') as HTMLElement;
         el?.focus();
-      }, '[data-testid="theme-card-dark"]');
+      });
 
       // Press Enter to select
       await browser.keys(['Enter']);
       await browser.pause(300);
 
       // Verify dark theme is now selected
+      const darkCard = await $(optionsPage.themeCardSelector('dark'));
       await expect(darkCard).toHaveAttribute('aria-checked', 'true');
 
       // Verify checkmark appears
       const darkCheckmark = await $('[data-testid="theme-checkmark-dark"]');
       await expect(darkCheckmark).toExist();
 
-      // Verify theme actually changed
-      const currentTheme = await browser.execute(() => {
-        return document.documentElement.getAttribute('data-theme');
-      });
+      // Verify theme actually changed via Page Object method
+      const currentTheme = await optionsPage.getCurrentTheme();
       expect(currentTheme).toBe('dark');
-    } finally {
-      await closeOptionsWindow();
-    }
+    });
   });
 
   it('should select theme with Space key when card is focused', async () => {
-    const { mainHandle } = await openOptionsAndGetHandles();
-
-    try {
+    await withOptionsWindowViaMenu(async () => {
       // Focus on light card using JavaScript
       await browser.execute(() => {
         const el = document.querySelector('[data-testid="theme-card-light"]') as HTMLElement;
@@ -137,28 +114,20 @@ describe('Theme Selector Keyboard Navigation', () => {
       await browser.pause(300);
 
       // Verify light theme is now selected
-      const lightCard = await $(Selectors.themeCard('light'));
+      const lightCard = await $(optionsPage.themeCardSelector('light'));
       await expect(lightCard).toHaveAttribute('aria-checked', 'true');
 
-      // Verify theme actually changed
-      const currentTheme = await browser.execute(() => {
-        return document.documentElement.getAttribute('data-theme');
-      });
+      // Verify theme actually changed via Page Object method
+      const currentTheme = await optionsPage.getCurrentTheme();
       expect(currentTheme).toBe('light');
 
       // Clean up: switch back to dark
-      const darkCard = await $(Selectors.themeCard('dark'));
-      await darkCard.click();
-      await browser.pause(200);
-    } finally {
-      await closeOptionsWindow();
-    }
+      await optionsPage.selectTheme('dark');
+    });
   });
 
   it('should show focus-visible styling on keyboard navigation', async () => {
-    const { mainHandle } = await openOptionsAndGetHandles();
-
-    try {
+    await withOptionsWindowViaMenu(async () => {
       // Focus on a card using keyboard
       await browser.execute(() => {
         const el = document.querySelector('[data-testid="theme-card-system"]') as HTMLElement;
@@ -182,15 +151,11 @@ describe('Theme Selector Keyboard Navigation', () => {
       });
 
       expect(hasFocusStyles).toBeDefined();
-    } finally {
-      await closeOptionsWindow();
-    }
+    });
   });
 
   it('should maintain tab order between theme cards', async () => {
-    const { mainHandle } = await openOptionsAndGetHandles();
-
-    try {
+    await withOptionsWindowViaMenu(async () => {
       // Focus first card
       await browser.execute(() => {
         const el = document.querySelector('[data-testid="theme-card-system"]') as HTMLElement;
@@ -217,8 +182,6 @@ describe('Theme Selector Keyboard Navigation', () => {
       await browser.keys(['Shift', 'Tab']);
       focusedId = await browser.execute(() => document.activeElement?.getAttribute('data-testid'));
       expect(focusedId).toBe('theme-card-light');
-    } finally {
-      await closeOptionsWindow();
-    }
+    });
   });
 });

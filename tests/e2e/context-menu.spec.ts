@@ -21,62 +21,25 @@
  * - Menu navigation uses arrow keys which work across all platforms
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
+import { browser, expect } from '@wdio/globals';
+import { ContextMenuPage } from './pages';
 import { E2ELogger } from './helpers/logger';
-import { isMacOS } from './helpers/platform';
-
-/**
- * Helper to get the modifier key for the current platform.
- * @returns 'Meta' for macOS, 'Control' for Windows/Linux
- */
-async function getModifierKey(): Promise<string> {
-  return (await isMacOS()) ? 'Meta' : 'Control';
-}
 
 describe('Context Menu', () => {
+  const contextMenu = new ContextMenuPage();
   let testInput: WebdriverIO.Element;
 
   beforeEach(async () => {
     // Wait for the main layout to be ready
-    const mainLayout = await $(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout: 15000 });
+    await contextMenu.waitForAppReady();
 
-    // Create a test input field via JavaScript injection
-    // This gives us full control over the element for testing
-    await browser.execute(() => {
-      const existingInput = document.getElementById('e2e-context-menu-test-input');
-      if (existingInput) {
-        existingInput.remove();
-      }
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.id = 'e2e-context-menu-test-input';
-      input.style.position = 'fixed';
-      input.style.top = '100px';
-      input.style.left = '100px';
-      input.style.width = '300px';
-      input.style.height = '40px';
-      input.style.zIndex = '99999';
-      input.style.fontSize = '16px';
-      input.style.padding = '8px';
-      document.body.appendChild(input);
-    });
-
-    // Get reference to the test input
-    testInput = await $('#e2e-context-menu-test-input');
-    await testInput.waitForExist({ timeout: 5000 });
+    // Create a test input field
+    testInput = await contextMenu.createTestInput();
   });
 
   afterEach(async () => {
     // Clean up test input
-    await browser.execute(() => {
-      const input = document.getElementById('e2e-context-menu-test-input');
-      if (input) {
-        input.remove();
-      }
-    });
+    await contextMenu.removeTestInput();
   });
 
   it('should show context menu on right-click', async () => {
@@ -85,10 +48,7 @@ describe('Context Menu', () => {
     await testInput.setValue('Test text');
 
     // Right-click on the input to trigger context menu
-    await testInput.click({ button: 'right' });
-
-    // Wait a moment for the menu to appear
-    await browser.pause(500);
+    await contextMenu.openContextMenu(testInput);
 
     // Note: WebDriver cannot directly interact with native Electron menus
     // We verify the context menu functionality by checking that subsequent
@@ -100,79 +60,31 @@ describe('Context Menu', () => {
     const testText = 'Copy this text';
 
     // Type text and select it
-    await testInput.click();
-    await testInput.setValue(testText);
+    await contextMenu.typeAndSelect(testInput, testText);
 
-    // Select all text (Ctrl+A or Cmd+A)
-    const selectAllKey = await getModifierKey();
-    await browser.keys([selectAllKey, 'a']);
-    await browser.pause(200);
-
-    // Right-click to open context menu
-    await testInput.click({ button: 'right' });
-    await browser.pause(300);
-
-    // Use keyboard to select "Copy" from menu (typically second item after Cut)
-    // Press Down arrow to select Copy, then Enter
-    await browser.keys(['ArrowDown']); // Skip Cut
-    await browser.keys(['ArrowDown']); // Select Copy
-    await browser.keys(['Enter']);
-    await browser.pause(300);
+    // Right-click to open context menu and select Copy
+    await contextMenu.openContextMenu(testInput);
+    await contextMenu.selectCopy();
 
     // Verify clipboard content by pasting into a new input
-    await browser.execute(() => {
-      const pasteInput = document.createElement('input');
-      pasteInput.id = 'e2e-paste-verify-input';
-      pasteInput.style.position = 'fixed';
-      pasteInput.style.top = '200px';
-      pasteInput.style.left = '100px';
-      document.body.appendChild(pasteInput);
-    });
-
-    const pasteInput = await $('#e2e-paste-verify-input');
-    await pasteInput.click();
-
-    const pasteKey = await getModifierKey();
-    await browser.keys([pasteKey, 'v']);
-    await browser.pause(200);
-
-    const pastedValue = await pasteInput.getValue();
+    const pastedValue = await contextMenu.verifyClipboardContains(testText);
     expect(pastedValue).toBe(testText);
 
     E2ELogger.info('context-menu', 'Copy operation verified successfully');
-
-    // Cleanup
-    await browser.execute(() => {
-      document.getElementById('e2e-paste-verify-input')?.remove();
-    });
   });
 
   it('should paste text from clipboard via context menu', async () => {
     const testText = 'Paste this text';
 
     // Set clipboard content
-    await browser.execute((text) => {
-      const temp = document.createElement('textarea');
-      temp.value = text;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand('copy');
-      document.body.removeChild(temp);
-    }, testText);
-
-    await browser.pause(300);
+    await contextMenu.setClipboardText(testText);
 
     // Focus the input
     await testInput.click();
 
-    // Right-click to open context menu
-    await testInput.click({ button: 'right' });
-    await browser.pause(300);
-
-    // Navigate to Paste in menu (3rd item: Cut, Copy, Paste)
-    await browser.keys(['ArrowDown', 'ArrowDown', 'ArrowDown']);
-    await browser.keys(['Enter']);
-    await browser.pause(300);
+    // Right-click to open context menu and select Paste
+    await contextMenu.openContextMenu(testInput);
+    await contextMenu.selectPaste();
 
     // Verify the text was pasted
     const inputValue = await testInput.getValue();
@@ -185,30 +97,18 @@ describe('Context Menu', () => {
     const testText = 'Cut this text';
 
     // Type and select text
-    await testInput.click();
-    await testInput.setValue(testText);
+    await contextMenu.typeAndSelect(testInput, testText);
 
-    const selectAllKey = await getModifierKey();
-    await browser.keys([selectAllKey, 'a']);
-    await browser.pause(200);
-
-    // Right-click to open context menu
-    await testInput.click({ button: 'right' });
-    await browser.pause(300);
-
-    // Navigate to Cut (first item)
-    await browser.keys(['ArrowDown']);
-    await browser.keys(['Enter']);
-    await browser.pause(300);
+    // Right-click to open context menu and select Cut
+    await contextMenu.openContextMenu(testInput);
+    await contextMenu.selectCut();
 
     // Verify input is now empty
     const inputValue = await testInput.getValue();
     expect(inputValue).toBe('');
 
     // Verify clipboard has the cut text by pasting
-    const pasteKey = await getModifierKey();
-    await browser.keys([pasteKey, 'v']);
-    await browser.pause(200);
+    await contextMenu.pasteWithKeyboard();
 
     const pastedValue = await testInput.getValue();
     expect(pastedValue).toBe(testText);
@@ -227,67 +127,29 @@ describe('Context Menu', () => {
     await testInput.click();
     await browser.pause(200);
 
-    // Right-click to open context menu
-    await testInput.click({ button: 'right' });
-    await browser.pause(300);
-
-    // Navigate to Select All (after Cut, Copy, Paste, Delete, Separator)
-    for (let i = 0; i < 6; i++) {
-      await browser.keys(['ArrowDown']);
-    }
-    await browser.keys(['Enter']);
-    await browser.pause(300);
+    // Right-click to open context menu and select Select All
+    await contextMenu.openContextMenu(testInput);
+    await contextMenu.selectSelectAll();
 
     // Verify all text is selected by copying and checking clipboard
-    const copyKey = await getModifierKey();
-    await browser.keys([copyKey, 'c']);
-    await browser.pause(200);
+    await contextMenu.copyWithKeyboard();
 
     // Paste into a new input to verify
-    await browser.execute(() => {
-      const verifyInput = document.createElement('input');
-      verifyInput.id = 'e2e-selectall-verify-input';
-      verifyInput.style.position = 'fixed';
-      verifyInput.style.top = '200px';
-      verifyInput.style.left = '100px';
-      document.body.appendChild(verifyInput);
-    });
-
-    const verifyInput = await $('#e2e-selectall-verify-input');
-    await verifyInput.click();
-    await browser.keys([copyKey, 'v']);
-    await browser.pause(200);
-
-    const copiedValue = await verifyInput.getValue();
+    const copiedValue = await contextMenu.verifyClipboardContains(testText);
     expect(copiedValue).toBe(testText);
 
     E2ELogger.info('context-menu', 'Select All operation verified successfully');
-
-    // Cleanup
-    await browser.execute(() => {
-      document.getElementById('e2e-selectall-verify-input')?.remove();
-    });
   });
 
   it('should delete selected text via context menu', async () => {
     const testText = 'Delete this text';
 
     // Type and select text
-    await testInput.click();
-    await testInput.setValue(testText);
+    await contextMenu.typeAndSelect(testInput, testText);
 
-    const selectAllKey = await getModifierKey();
-    await browser.keys([selectAllKey, 'a']);
-    await browser.pause(200);
-
-    // Right-click to open context menu
-    await testInput.click({ button: 'right' });
-    await browser.pause(300);
-
-    // Navigate to Delete (4th item: Cut, Copy, Paste, Delete)
-    await browser.keys(['ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown']);
-    await browser.keys(['Enter']);
-    await browser.pause(300);
+    // Right-click to open context menu and select Delete
+    await contextMenu.openContextMenu(testInput);
+    await contextMenu.selectDelete();
 
     // Verify input is now empty
     const inputValue = await testInput.getValue();
@@ -306,13 +168,10 @@ describe('Context Menu', () => {
       await testInput.click();
 
       // Right-click to open context menu
-      await testInput.click({ button: 'right' });
-      await browser.pause(300);
+      await contextMenu.openContextMenu(testInput);
 
       // Navigate to Cut and try to execute
-      await browser.keys(['ArrowDown']); // Cut
-      await browser.keys(['Enter']);
-      await browser.pause(200);
+      await contextMenu.selectCut();
 
       // If Cut was disabled, the menu should have closed without action
       // Verify nothing was cut by checking clipboard is empty
@@ -326,25 +185,14 @@ describe('Context Menu', () => {
       const testText = 'Clipboard content';
 
       // First, put something in clipboard
-      await browser.execute((text: string) => {
-        const temp = document.createElement('textarea');
-        temp.value = text;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand('copy');
-        document.body.removeChild(temp);
-      }, testText);
-      await browser.pause(200);
+      await contextMenu.setClipboardText(testText);
 
       // Focus the input
       await testInput.click();
 
       // Right-click and paste via context menu
-      await testInput.click({ button: 'right' });
-      await browser.pause(300);
-      await browser.keys(['ArrowDown', 'ArrowDown', 'ArrowDown']); // Navigate to Paste
-      await browser.keys(['Enter']);
-      await browser.pause(300);
+      await contextMenu.openContextMenu(testInput);
+      await contextMenu.selectPaste();
 
       // Verify paste worked
       const inputValue = await testInput.getValue();
@@ -356,48 +204,29 @@ describe('Context Menu', () => {
 
   describe('Read-only Input', () => {
     it('should only allow Copy on read-only text', async () => {
+      const readonlyInputId = 'e2e-readonly-input';
+
       // Create a read-only input with text
-      await browser.execute(() => {
-        const existingReadonly = document.getElementById('e2e-readonly-input');
-        if (existingReadonly) existingReadonly.remove();
-
-        const readonlyInput = document.createElement('input');
-        readonlyInput.type = 'text';
-        readonlyInput.id = 'e2e-readonly-input';
-        readonlyInput.value = 'Read-only text';
-        readonlyInput.readOnly = true;
-        readonlyInput.style.position = 'fixed';
-        readonlyInput.style.top = '150px';
-        readonlyInput.style.left = '100px';
-        readonlyInput.style.width = '300px';
-        readonlyInput.style.zIndex = '99999';
-        document.body.appendChild(readonlyInput);
+      const readonlyInput = await contextMenu.createTestInput(readonlyInputId, {
+        readOnly: true,
+        value: 'Read-only text',
+        top: '150px',
       });
-
-      const readonlyInput = await $('#e2e-readonly-input');
-      await readonlyInput.waitForExist({ timeout: 5000 });
 
       // Select all text
       await readonlyInput.click();
-      const selectAllKey = await getModifierKey();
-      await browser.keys([selectAllKey, 'a']);
-      await browser.pause(200);
+      await contextMenu.selectAllWithKeyboard();
 
       // Right-click and try to copy
-      await readonlyInput.click({ button: 'right' });
-      await browser.pause(300);
-      await browser.keys(['ArrowDown', 'ArrowDown']); // Navigate to Copy
-      await browser.keys(['Enter']);
-      await browser.pause(300);
+      await contextMenu.openContextMenu(readonlyInput);
+      await contextMenu.selectCopy();
 
       // Verify the text is still there (wasn't cut)
       const inputValue = await readonlyInput.getValue();
       expect(inputValue).toBe('Read-only text');
 
       // Cleanup
-      await browser.execute(() => {
-        document.getElementById('e2e-readonly-input')?.remove();
-      });
+      await contextMenu.removeTestInput(readonlyInputId);
 
       E2ELogger.info('context-menu', 'Read-only input Copy test completed');
     });
@@ -410,37 +239,13 @@ describe('Context Menu', () => {
       await testInput.click();
       await testInput.setValue(testText);
 
-      // Select all
-      const modKey = await getModifierKey();
-      await browser.keys([modKey, 'a']);
-      await browser.pause(100);
+      // Select all and copy via keyboard shortcut
+      await contextMenu.selectAllWithKeyboard();
+      await contextMenu.copyWithKeyboard();
 
-      // Copy via keyboard shortcut (not context menu)
-      await browser.keys([modKey, 'c']);
-      await browser.pause(200);
-
-      // Create new input and paste to verify
-      await browser.execute(() => {
-        const verifyInput = document.createElement('input');
-        verifyInput.id = 'e2e-shortcut-verify-input';
-        verifyInput.style.position = 'fixed';
-        verifyInput.style.top = '200px';
-        verifyInput.style.left = '100px';
-        document.body.appendChild(verifyInput);
-      });
-
-      const verifyInput = await $('#e2e-shortcut-verify-input');
-      await verifyInput.click();
-      await browser.keys([modKey, 'v']);
-      await browser.pause(200);
-
-      const pastedValue = await verifyInput.getValue();
+      // Verify by pasting
+      const pastedValue = await contextMenu.verifyClipboardContains(testText);
       expect(pastedValue).toBe(testText);
-
-      // Cleanup
-      await browser.execute(() => {
-        document.getElementById('e2e-shortcut-verify-input')?.remove();
-      });
 
       E2ELogger.info('context-menu', 'Keyboard shortcut Ctrl+C verified');
     });
@@ -449,21 +254,11 @@ describe('Context Menu', () => {
       const testText = 'Shortcut paste test';
 
       // Put text in clipboard
-      await browser.execute((text: string) => {
-        const temp = document.createElement('textarea');
-        temp.value = text;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand('copy');
-        document.body.removeChild(temp);
-      }, testText);
-      await browser.pause(200);
+      await contextMenu.setClipboardText(testText);
 
       // Focus input and paste via keyboard
       await testInput.click();
-      const modKey = await getModifierKey();
-      await browser.keys([modKey, 'v']);
-      await browser.pause(200);
+      await contextMenu.pasteWithKeyboard();
 
       const inputValue = await testInput.getValue();
       expect(inputValue).toBe(testText);
@@ -478,19 +273,15 @@ describe('Context Menu', () => {
       await testInput.setValue(testText);
 
       // Select all and cut
-      const modKey = await getModifierKey();
-      await browser.keys([modKey, 'a']);
-      await browser.pause(100);
-      await browser.keys([modKey, 'x']);
-      await browser.pause(200);
+      await contextMenu.selectAllWithKeyboard();
+      await contextMenu.cutWithKeyboard();
 
       // Verify input is empty
       const inputValue = await testInput.getValue();
       expect(inputValue).toBe('');
 
       // Verify clipboard by pasting
-      await browser.keys([modKey, 'v']);
-      await browser.pause(200);
+      await contextMenu.pasteWithKeyboard();
 
       const pastedValue = await testInput.getValue();
       expect(pastedValue).toBe(testText);
@@ -505,34 +296,12 @@ describe('Context Menu', () => {
       await testInput.setValue(testText);
 
       // Use keyboard shortcut to select all, then copy
-      const modKey = await getModifierKey();
-      await browser.keys([modKey, 'a']);
-      await browser.pause(100);
-      await browser.keys([modKey, 'c']);
-      await browser.pause(200);
+      await contextMenu.selectAllWithKeyboard();
+      await contextMenu.copyWithKeyboard();
 
       // Paste into new input to verify full selection was copied
-      await browser.execute(() => {
-        const verifyInput = document.createElement('input');
-        verifyInput.id = 'e2e-selectall-shortcut-verify';
-        verifyInput.style.position = 'fixed';
-        verifyInput.style.top = '200px';
-        verifyInput.style.left = '100px';
-        document.body.appendChild(verifyInput);
-      });
-
-      const verifyInput = await $('#e2e-selectall-shortcut-verify');
-      await verifyInput.click();
-      await browser.keys([modKey, 'v']);
-      await browser.pause(200);
-
-      const copiedValue = await verifyInput.getValue();
+      const copiedValue = await contextMenu.verifyClipboardContains(testText);
       expect(copiedValue).toBe(testText);
-
-      // Cleanup
-      await browser.execute(() => {
-        document.getElementById('e2e-selectall-shortcut-verify')?.remove();
-      });
 
       E2ELogger.info('context-menu', 'Keyboard shortcut Ctrl+A verified');
     });
@@ -541,52 +310,29 @@ describe('Context Menu', () => {
   describe('Multiple Sequential Operations', () => {
     it('should copy from one input and paste into another', async () => {
       const sourceText = 'Source input text';
+      const targetInputId = 'e2e-target-input';
 
       // Type in first input and copy
-      await testInput.click();
-      await testInput.setValue(sourceText);
-
-      const modKey = await getModifierKey();
-      await browser.keys([modKey, 'a']);
-      await browser.pause(100);
+      await contextMenu.typeAndSelect(testInput, sourceText);
 
       // Copy via context menu
-      await testInput.click({ button: 'right' });
-      await browser.pause(300);
-      await browser.keys(['ArrowDown', 'ArrowDown']); // Navigate to Copy
-      await browser.keys(['Enter']);
-      await browser.pause(300);
+      await contextMenu.openContextMenu(testInput);
+      await contextMenu.selectCopy();
 
       // Create second input
-      await browser.execute(() => {
-        const targetInput = document.createElement('input');
-        targetInput.id = 'e2e-target-input';
-        targetInput.style.position = 'fixed';
-        targetInput.style.top = '200px';
-        targetInput.style.left = '100px';
-        targetInput.style.width = '300px';
-        targetInput.style.zIndex = '99999';
-        document.body.appendChild(targetInput);
-      });
-
-      const targetInput = await $('#e2e-target-input');
+      const targetInput = await contextMenu.createTestInput(targetInputId, { top: '200px' });
       await targetInput.click();
 
       // Paste via context menu
-      await targetInput.click({ button: 'right' });
-      await browser.pause(300);
-      await browser.keys(['ArrowDown', 'ArrowDown', 'ArrowDown']); // Navigate to Paste
-      await browser.keys(['Enter']);
-      await browser.pause(300);
+      await contextMenu.openContextMenu(targetInput);
+      await contextMenu.selectPaste();
 
       // Verify paste worked
       const targetValue = await targetInput.getValue();
       expect(targetValue).toBe(sourceText);
 
       // Cleanup
-      await browser.execute(() => {
-        document.getElementById('e2e-target-input')?.remove();
-      });
+      await contextMenu.removeTestInput(targetInputId);
 
       E2ELogger.info('context-menu', 'Copy-paste between inputs verified');
     });
@@ -599,27 +345,19 @@ describe('Context Menu', () => {
       await testInput.setValue(testText);
 
       // Step 2: Select all
-      const modKey = await getModifierKey();
-      await browser.keys([modKey, 'a']);
-      await browser.pause(100);
+      await contextMenu.selectAllWithKeyboard();
 
       // Step 3: Cut via context menu
-      await testInput.click({ button: 'right' });
-      await browser.pause(300);
-      await browser.keys(['ArrowDown']); // Cut
-      await browser.keys(['Enter']);
-      await browser.pause(300);
+      await contextMenu.openContextMenu(testInput);
+      await contextMenu.selectCut();
 
       // Verify input is empty after cut
       let inputValue = await testInput.getValue();
       expect(inputValue).toBe('');
 
       // Step 4: Paste via context menu
-      await testInput.click({ button: 'right' });
-      await browser.pause(300);
-      await browser.keys(['ArrowDown', 'ArrowDown', 'ArrowDown']); // Paste
-      await browser.keys(['Enter']);
-      await browser.pause(300);
+      await contextMenu.openContextMenu(testInput);
+      await contextMenu.selectPaste();
 
       // Verify text is back
       inputValue = await testInput.getValue();
@@ -632,16 +370,13 @@ describe('Context Menu', () => {
   describe('Webview Context Menu', () => {
     it('should show context menu in the Gemini webview container', async () => {
       // Get the webview container
-      const webviewContainer = await $(Selectors.webviewContainer);
-      await webviewContainer.waitForExist({ timeout: 10000 });
+      const webviewContainer = await contextMenu.getWebviewContainer();
 
       // Right-click on the webview container
-      await webviewContainer.click({ button: 'right' });
-      await browser.pause(500);
+      await contextMenu.openContextMenu(webviewContainer);
 
       // Press Escape to close any menu that opened
-      await browser.keys(['Escape']);
-      await browser.pause(200);
+      await contextMenu.closeContextMenu();
 
       // Test passes if no error occurred - context menu was triggered
       E2ELogger.info('context-menu', 'Webview container context menu triggered');

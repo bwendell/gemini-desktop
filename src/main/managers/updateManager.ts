@@ -207,7 +207,9 @@ export default class UpdateManager {
         errorStr.includes('403') || 
         errorStr.includes('Github') ||
         errorStr.includes('Network') ||
-        errorStr.includes('net::');
+        errorStr.includes('net::') ||
+        errorStr.includes('Cannot find latest') ||
+        errorStr.includes('no published versions');
 
       // If it's a manual check, or if it's NOT a benign/network error, we warn the user.
       // But if it IS a background check AND a network/config error, we stay silent to avoid annoying toasts.
@@ -218,7 +220,8 @@ export default class UpdateManager {
           'The auto-update service encountered an error. Please try again later.'
         );
       } else {
-        logger.log('Suppressing update error notification (background check + network/config error):', error);
+        logger.log('Suppressing update error notification (background check + network/config error)');
+        logger.log('Suppressed error details:', errorStr || error);
       }
     }
   }

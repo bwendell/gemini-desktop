@@ -71,6 +71,36 @@ export class OptionsPage extends BasePage {
     return '[data-testid="about-license-link"]';
   }
 
+  /** Selector for the options window titlebar */
+  get titlebarSelector(): string {
+    return '.options-titlebar';
+  }
+
+  /** Selector for the titlebar icon */
+  get titlebarIconSelector(): string {
+    return '[data-testid="app-icon"]';
+  }
+
+  /** Selector for the window controls container */
+  get windowControlsSelector(): string {
+    return '.options-window-controls';
+  }
+
+  /** Selector for the minimize button */
+  get minimizeButtonSelector(): string {
+    return '[data-testid="options-minimize-button"]';
+  }
+
+  /** Selector for the close button */
+  get closeButtonSelector(): string {
+    return '[data-testid="options-close-button"]';
+  }
+
+  /** Selector for the maximize button (should not exist in options window) */
+  get maximizeButtonSelector(): string {
+    return '[data-testid="options-maximize-button"]';
+  }
+
   /**
    * Get selector for a specific theme card.
    * @param theme - Theme ID (e.g., 'light', 'dark', 'system')
@@ -93,6 +123,11 @@ export class OptionsPage extends BasePage {
    */
   hotkeyRowSelector(hotkeyId: string): string {
     return `[data-testid="hotkey-row-${hotkeyId}"]`;
+  }
+
+  /** Selector for the master hotkey toggle switch */
+  get masterHotkeyToggleSelector(): string {
+    return '[data-testid="hotkey-toggle-switch"]';
   }
 
   // ===========================================================================
@@ -223,6 +258,26 @@ export class OptionsPage extends BasePage {
   }
 
   /**
+   * Check if the master hotkey toggle is enabled.
+   */
+  async isMasterHotkeyEnabled(): Promise<boolean> {
+    const toggle = await this.waitForElement(this.masterHotkeyToggleSelector);
+    const checked = await toggle.getAttribute('aria-checked');
+    const dataChecked = await toggle.getAttribute('data-checked');
+    return checked === 'true' || dataChecked === 'true';
+  }
+
+  /**
+   * Toggle the master hotkey on/off switch.
+   */
+  async toggleMasterHotkey(): Promise<void> {
+    this.log('Toggling master hotkey');
+    const toggle = await this.waitForElement(this.masterHotkeyToggleSelector);
+    await toggle.click();
+    await this.pause();
+  }
+
+  /**
    * Get the hotkey row element.
    * @param hotkeyId - Hotkey ID
    */
@@ -267,6 +322,86 @@ export class OptionsPage extends BasePage {
    */
   async isLicenseLinkPresent(): Promise<boolean> {
     return this.isElementExisting(this.licenseLinkSelector);
+  }
+
+  // ===========================================================================
+  // TITLEBAR AND WINDOW CONTROLS
+  // ===========================================================================
+
+  /**
+   * Check if the titlebar is displayed.
+   */
+  async isTitlebarDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.titlebarSelector);
+  }
+
+  /**
+   * Get the titlebar element.
+   */
+  async getTitlebar(): Promise<WebdriverIO.Element> {
+    return this.waitForElement(this.titlebarSelector);
+  }
+
+  /**
+   * Check if the titlebar icon is displayed with valid src.
+   */
+  async isTitlebarIconValid(): Promise<{ exists: boolean; hasValidSrc: boolean; width: number }> {
+    // Query the titlebar, then find the icon within it
+    const titlebar = await this.getTitlebar();
+    const icon = await titlebar.$(this.titlebarIconSelector);
+    const exists = await icon.isExisting();
+    if (!exists) {
+      return { exists: false, hasValidSrc: false, width: 0 };
+    }
+    const src = await icon.getAttribute('src');
+    const hasValidSrc = src ? /icon(-.*)?\.png/.test(src) : false;
+    const width = (await icon.getProperty('naturalWidth')) as number;
+    return { exists: true, hasValidSrc, width: Number(width) };
+  }
+
+  /**
+   * Check if window controls container is displayed.
+   */
+  async isWindowControlsDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.windowControlsSelector);
+  }
+
+  /**
+   * Get the count of buttons in the window controls container.
+   */
+  async getWindowControlButtonCount(): Promise<number> {
+    const container = await this.$(this.windowControlsSelector);
+    const buttons = await container.$$('button');
+    return buttons.length;
+  }
+
+  /**
+   * Check if the minimize button is displayed.
+   */
+  async isMinimizeButtonDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.minimizeButtonSelector);
+  }
+
+  /**
+   * Check if the close button is displayed.
+   */
+  async isCloseButtonDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.closeButtonSelector);
+  }
+
+  /**
+   * Check if the maximize button exists (should NOT exist in options window).
+   */
+  async isMaximizeButtonExisting(): Promise<boolean> {
+    return this.isElementExisting(this.maximizeButtonSelector);
+  }
+
+  /**
+   * Click the close button.
+   */
+  async clickCloseButton(): Promise<void> {
+    this.log('Clicking close button');
+    await this.clickElement(this.closeButtonSelector);
   }
 
   // ===========================================================================

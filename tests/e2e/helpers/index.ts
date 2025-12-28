@@ -28,6 +28,7 @@ export * from './alwaysOnTopActions';
 // NEW: Reusable test patterns
 export * from './assertions';
 export * from './workflows';
+export { SettingsHelper, SettingsData } from './SettingsHelper';
 
 // Page Object Model
 export * from '../pages';
