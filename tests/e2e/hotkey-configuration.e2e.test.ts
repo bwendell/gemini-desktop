@@ -50,13 +50,13 @@ describe('Hotkey Configuration E2E', () => {
       const hotkeyRows = await hotkeyToggles.$$('.hotkey-row');
       expect(hotkeyRows.length).toBe(3);
 
-      // Verify Always on Top shows Ctrl+Alt+T (or ⌘⌥T on Mac)
+      // Verify Always on Top shows the default accelerator (Ctrl+Alt+P or ⌘⌥P on Mac)
       const alwaysOnTopRow = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]').parentElement();
       const alwaysOnTopAccelerator = await alwaysOnTopRow.$('.keycap-container');
       const acceleratorText = await alwaysOnTopAccelerator.getText();
       
       // Should contain the keys (platform-aware)
-      expect(acceleratorText).toMatch(/(Ctrl|⌘).*(Alt|⌥).*T/);
+      expect(acceleratorText).toMatch(/(Ctrl|⌘).*(Alt|⌥).*P/);
     });
 
     it('should display keycaps with proper styling', async () => {
@@ -585,7 +585,7 @@ describe('Hotkey Configuration E2E', () => {
         return (window as any).electronAPI.platform;
       });
 
-      // Get the Always on Top hotkey which has Alt (CommandOrControl+Alt+T)
+      // Get the Always on Top hotkey which has Alt (default: CommandOrControl+Alt+P)
       const acceleratorDisplay = await browser.$('.keycap-container');
       const keycaps = await acceleratorDisplay.$$('kbd.keycap');
       

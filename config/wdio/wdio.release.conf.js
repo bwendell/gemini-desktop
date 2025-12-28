@@ -81,6 +81,24 @@ export const config = {
     '../../tests/e2e/theme.spec.ts',
     '../../tests/e2e/theme-selector-visual.spec.ts',
     '../../tests/e2e/theme-selector-keyboard.spec.ts',
+
+    // Window management tests
+    '../../tests/e2e/window-controls.spec.ts',
+    '../../tests/e2e/window-bounds.spec.ts',
+
+    // Tray functionality tests
+    '../../tests/e2e/tray.spec.ts',
+    '../../tests/e2e/tray-quit.spec.ts',
+    '../../tests/e2e/minimize-to-tray.spec.ts',
+
+    // Options and settings tests
+    '../../tests/e2e/options-tabs.spec.ts',
+    '../../tests/e2e/settings-persistence.spec.ts',
+
+    // Other core functionality
+    '../../tests/e2e/context-menu.spec.ts',
+    '../../tests/e2e/external-links.spec.ts',
+
     // Release-specific tests (packaging verification)
     '../../tests/e2e/release/*.spec.ts',
   ],

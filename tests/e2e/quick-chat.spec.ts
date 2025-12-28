@@ -198,7 +198,7 @@ describe('Quick Chat Feature', () => {
 
       // Initially, button should be disabled (empty input)
       await quickChatPage.clearInput(); // ensure empty
-      let isDisabled = !(await quickChatPage.isSubmitEnabled());
+      const isDisabled = !(await quickChatPage.isSubmitEnabled());
       expect(isDisabled).toBe(true); // Button is disabled
 
       // Type some text

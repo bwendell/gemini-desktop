@@ -26,6 +26,7 @@ dist-ssr
 
 coverage/
 coverage-electron/
+/release/
 
 # gemini-cli settings
 .gemini/

@@ -9,6 +9,7 @@ import { globalShortcut, BrowserWindow } from 'electron';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import IpcManager from '../../src/main/managers/ipcManager';
+import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
 
 import type { IndividualHotkeySettings } from '../../src/main/types';
 
@@ -21,6 +22,15 @@ const mockLogger = vi.hoisted(() => ({
 vi.mock('../../src/main/utils/logger', () => ({
   createLogger: () => mockLogger,
 }));
+
+// Mock constants to ensure isLinux is false (so hotkey registration tests work on all platforms)
+vi.mock('../../src/main/utils/constants', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/main/utils/constants')>();
+  return {
+    ...actual,
+    isLinux: false,
+  };
+});
 
 // Helper to get registered IPC listeners
 const getListener = (channel: string) =>
@@ -166,10 +176,8 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(true);
 
         // Verify globalShortcut.register was called for the re-enabled hotkey
-        const expectedAccelerator = 'CommandOrControl+Alt+T';
-
         expect(globalShortcut.register).toHaveBeenCalledWith(
-          expectedAccelerator,
+          DEFAULT_ACCELERATORS.alwaysOnTop,
           expect.any(Function)
         );
 
@@ -203,16 +211,13 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         const registeredAccelerators = registerCalls.map((call: any) => call[0]);
 
         // Boss key accelerator
-        const bossKeyAccelerator = 'CommandOrControl+Alt+E';
-        expect(registeredAccelerators).toContain(bossKeyAccelerator);
+        expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.bossKey);
 
         // Quick chat accelerator
-        const quickChatAccelerator = 'CommandOrControl+Shift+Space';
-        expect(registeredAccelerators).toContain(quickChatAccelerator);
+        expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.quickChat);
 
         // Always-on-top should NOT be registered
-        const alwaysOnTopAccelerator = 'CommandOrControl+Alt+T';
-        expect(registeredAccelerators).not.toContain(alwaysOnTopAccelerator);
+        expect(registeredAccelerators).not.toContain(DEFAULT_ACCELERATORS.alwaysOnTop);
 
         // Verify state
         expect(restartedHotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(false);
@@ -280,7 +285,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         // Count register calls - should have 3 registers (for each enable)
         const registerCalls = (globalShortcut.register as any).mock.calls;
         const alwaysOnTopRegisters = registerCalls.filter(
-          (call: any) => call[0] === 'CommandOrControl+Alt+T'
+          (call: any) => call[0] === DEFAULT_ACCELERATORS.alwaysOnTop
         );
         expect(alwaysOnTopRegisters.length).toBe(3);
       });

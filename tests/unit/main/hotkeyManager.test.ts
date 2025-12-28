@@ -47,11 +47,13 @@ vi.mock('../../../src/main/utils/logger', () => ({
  * Mock for constants module.
  * Ensures isLinux returns false during tests so hotkey registration tests work on all platforms.
  */
-vi.mock('../../../src/main/utils/constants', () => ({
-  isLinux: false,
-  isMacOS: false,
-  isWindows: true,
-}));
+vi.mock('../../../src/main/utils/constants', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/main/utils/constants')>();
+  return {
+    ...actual,
+    isLinux: false,
+  };
+});
 
 // Import after mocks are set up
 import HotkeyManager from '../../../src/main/managers/hotkeyManager';

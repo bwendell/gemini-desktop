@@ -1,7 +1,7 @@
 /**
  * E2E Test: Boss Key (Hide All Windows)
  *
- * Tests the Boss Key hotkey functionality (Ctrl+Alt+E / Cmd+Alt+E) which
+ * Tests the Boss Key hotkey functionality (Ctrl+Alt+H / Cmd+Alt+H) which
  * minimizes/hides the main window for quick privacy.
  *
  * The boss key is designed to quickly hide the application when needed.
@@ -53,7 +53,7 @@ describe('Boss Key (Hide All Windows)', () => {
 
       E2ELogger.info('boss-key', `Expected display format on ${platform}: ${expectedDisplay}`);
 
-      // The hotkey should be Ctrl+Alt+E on Windows/Linux, Cmd+Alt+E on macOS
+      // The hotkey should be Ctrl+Alt+H on Windows/Linux, Cmd+Alt+H on macOS
       if (platform === 'darwin') {
         expect(expectedDisplay).toContain('Cmd');
       } else {

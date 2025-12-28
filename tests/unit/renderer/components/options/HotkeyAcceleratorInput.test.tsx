@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { HotkeyAcceleratorInput } from '../../../../../src/renderer/components/options/HotkeyAcceleratorInput';
+import { DEFAULT_ACCELERATORS } from '../../../../../src/shared/types/hotkeys';
 import type { HotkeyId } from '../../../../../src/renderer/context/IndividualHotkeysContext';
 
 // ============================================================================
@@ -18,10 +19,10 @@ const mockOnChange = vi.fn();
 
 const defaultProps = {
   hotkeyId: 'alwaysOnTop' as HotkeyId,
-  currentAccelerator: 'CommandOrControl+Alt+T',
+  currentAccelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
   disabled: false,
   onAcceleratorChange: mockOnChange,
-  defaultAccelerator: 'CommandOrControl+Alt+T',
+  defaultAccelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
 };
 
 // ============================================================================

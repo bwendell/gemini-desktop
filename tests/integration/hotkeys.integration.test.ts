@@ -1,4 +1,5 @@
 import { browser, expect } from '@wdio/globals';
+import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
 
 describe('Global Hotkeys Integration', () => {
   before(async () => {
@@ -124,10 +125,10 @@ describe('Global Hotkeys Integration', () => {
       expect(stored).toBe(customAccelerator);
 
       // Reset to default
-      await browser.execute(async () => {
+      await browser.execute(async (defaultAcc) => {
         const api = (window as any).electronAPI;
-        await api.setHotkeyAccelerator('bossKey', 'CommandOrControl+Alt+E');
-      });
+        await api.setHotkeyAccelerator('bossKey', defaultAcc);
+      }, DEFAULT_ACCELERATORS.bossKey);
     });
 
     // Test that verifies renderer process receives correct platform value

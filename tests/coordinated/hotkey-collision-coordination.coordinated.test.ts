@@ -18,6 +18,7 @@ vi.mock('electron', async () => {
 import { globalShortcut } from 'electron';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import WindowManager from '../../src/main/managers/windowManager';
+import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
 
 // Mock logger
 const mockLogger = vi.hoisted(() => ({
@@ -28,6 +29,16 @@ const mockLogger = vi.hoisted(() => ({
 vi.mock('../../src/main/utils/logger', () => ({
   createLogger: () => mockLogger,
 }));
+
+// Mock constants to ensure isLinux is false (so hotkey registration tests work on all platforms)
+vi.mock('../../src/main/utils/constants', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/main/utils/constants')>();
+  return {
+    ...actual,
+    isLinux: false,
+  };
+});
+
 
 describe('Hotkey Collision and Coordination Integration', () => {
   let hotkeyManager: HotkeyManager;
@@ -98,8 +109,8 @@ describe('Hotkey Collision and Coordination Integration', () => {
         hotkeyManager.setIndividualEnabled('bossKey', false);
 
         // Verify hotkey was unregistered
-        // bossKey uses Alt+E on all platforms currently
-        expect(globalShortcut.unregister).toHaveBeenCalledWith(expect.stringContaining('Alt+E'));
+        // bossKey uses the default accelerator from DEFAULT_ACCELERATORS
+        expect(globalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.bossKey);
 
         // Verify state in manager
         expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(false);

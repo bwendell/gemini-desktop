@@ -61,7 +61,7 @@ describe('Global Hotkeys', () => {
       // 1. Initial State: Quick Chat should be hidden
       // We check if it exists in the DOM/Window list first
       const quickChatContainer = await $(Selectors.quickChatContainer);
-      let isVisibleInitially = await quickChatContainer.isDisplayed().catch(() => false);
+      const isVisibleInitially = await quickChatContainer.isDisplayed().catch(() => false);
       
       // If it's visible, close it first to start clean
       if (isVisibleInitially) {
