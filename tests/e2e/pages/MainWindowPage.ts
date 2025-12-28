@@ -126,6 +126,47 @@ export class MainWindowPage extends BasePage {
     this.log(`Opened menu: ${menuLabel}`);
   }
 
+  /**
+   * Check if the menu dropdown is visible.
+   */
+  async isDropdownVisible(): Promise<boolean> {
+    return this.isElementDisplayed(Selectors.menuDropdown);
+  }
+
+  /**
+   * Wait for the menu dropdown to open.
+   * @param timeout - Timeout in milliseconds (default: 2000)
+   */
+  async waitForDropdownOpen(timeout = 2000): Promise<void> {
+    await this.waitForElementToExist(Selectors.menuDropdown, timeout);
+    this.log('Menu dropdown opened');
+  }
+
+  /**
+   * Wait for the menu dropdown to close.
+   * @param timeout - Timeout in milliseconds (default: 2000)
+   */
+  async waitForDropdownClose(timeout = 2000): Promise<void> {
+    await this.waitForElementToDisappear(Selectors.menuDropdown, timeout);
+    this.log('Menu dropdown closed');
+  }
+
+  /**
+   * Check if a menu item exists in the dropdown.
+   * @param itemLabel - The menu item label (e.g., 'Options', 'About Gemini Desktop')
+   */
+  async isMenuItemExisting(itemLabel: string): Promise<boolean> {
+    return this.isElementExisting(Selectors.menuItem(itemLabel));
+  }
+
+  /**
+   * Close the menu dropdown by clicking the titlebar.
+   */
+  async closeDropdownByClickingTitlebar(): Promise<void> {
+    await this.clickElement(this.titlebarSelector);
+    this.log('Closed dropdown by clicking titlebar');
+  }
+
   // ===========================================================================
   // Window Control Actions
   // ===========================================================================
