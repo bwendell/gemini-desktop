@@ -9,39 +9,24 @@
 import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import {
+  waitForOptionsWindow,
+  closeOptionsWindow,
+} from './helpers/optionsWindowActions';
 
 /**
- * Helper function to open the Options window and switch to it.
+ * Helper to open options and get handles.
  */
-async function openOptionsWindow(): Promise<{ mainHandle: string; optionsHandle: string }> {
+async function openOptionsAndGetHandles(): Promise<{ mainHandle: string }> {
   await clickMenuItemById('menu-file-options');
-
-  await waitForWindowCount(2, 5000);
-
+  await waitForOptionsWindow();
   const handles = await browser.getWindowHandles();
-  const mainHandle = handles[0];
-  const optionsHandle = handles[1];
-
-  await browser.switchToWindow(optionsHandle);
-  await browser.pause(500);
-
-  return { mainHandle, optionsHandle };
-}
-
-/**
- * Helper function to close the Options window.
- */
-async function closeOptionsWindow(mainHandle: string): Promise<void> {
-  await closeCurrentWindow();
-
-  await waitForWindowCount(1, 5000);
-  await browser.switchToWindow(mainHandle);
+  return { mainHandle: handles[0] };
 }
 
 describe('Theme Selector Keyboard Navigation', () => {
   it('should be focusable via Tab key', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Tab through the window to reach the theme cards
@@ -64,12 +49,12 @@ describe('Theme Selector Keyboard Navigation', () => {
       // One of the theme cards should be focused
       expect(found).toBe(true);
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should have proper radiogroup and radio ARIA roles', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Verify container has radiogroup role
@@ -91,12 +76,12 @@ describe('Theme Selector Keyboard Navigation', () => {
       await expect(lightCard).toHaveAttribute('aria-label', 'Light theme');
       await expect(darkCard).toHaveAttribute('aria-label', 'Dark theme');
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should select theme with Enter key when card is focused', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Focus on the light card
@@ -133,12 +118,12 @@ describe('Theme Selector Keyboard Navigation', () => {
       });
       expect(currentTheme).toBe('dark');
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should select theme with Space key when card is focused', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Focus on light card using JavaScript
@@ -166,12 +151,12 @@ describe('Theme Selector Keyboard Navigation', () => {
       await darkCard.click();
       await browser.pause(200);
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should show focus-visible styling on keyboard navigation', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Focus on a card using keyboard
@@ -198,12 +183,12 @@ describe('Theme Selector Keyboard Navigation', () => {
 
       expect(hasFocusStyles).toBeDefined();
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should maintain tab order between theme cards', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Focus first card
@@ -233,7 +218,7 @@ describe('Theme Selector Keyboard Navigation', () => {
       focusedId = await browser.execute(() => document.activeElement?.getAttribute('data-testid'));
       expect(focusedId).toBe('theme-card-light');
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 });

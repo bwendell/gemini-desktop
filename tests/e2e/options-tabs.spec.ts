@@ -14,6 +14,7 @@ import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { waitForOptionsWindow, closeOptionsWindow, switchToOptionsWindow, navigateToOptionsTab } from './helpers/optionsWindowActions';
 
 describe('Options Window Tab Navigation', () => {
   beforeEach(async () => {
@@ -27,10 +28,7 @@ describe('Options Window Tab Navigation', () => {
     try {
       const handles = await browser.getWindowHandles();
       if (handles.length > 1) {
-        // Switch to the last window (Options) and close it
-        await browser.switchToWindow(handles[handles.length - 1]);
-        await closeCurrentWindow();
-        await browser.switchToWindow(handles[0]);
+        await closeOptionsWindow();
       }
     } catch {
       // Ignore cleanup errors
@@ -43,8 +41,7 @@ describe('Options Window Tab Navigation', () => {
       await clickMenuItemById('menu-file-options');
       await waitForWindowCount(2, 5000);
 
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
+      await switchToOptionsWindow();
       await browser.pause(500);
 
       // 2. Verify Settings tab is active
@@ -64,16 +61,11 @@ describe('Options Window Tab Navigation', () => {
     it('should switch to About tab when clicked', async () => {
       // 1. Open Options window
       await clickMenuItemById('menu-file-options');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Click About tab
-      const aboutTab = await $('[data-testid="options-tab-about"]');
-      await aboutTab.waitForDisplayed({ timeout: 5000 });
-      await aboutTab.click();
+      await navigateToOptionsTab('about');
+      const aboutTab = await $('[data-testid="options-tab-about"]'); // Re-select for assertion
       await browser.pause(300);
 
       // 3. Verify About tab is now active
@@ -90,20 +82,15 @@ describe('Options Window Tab Navigation', () => {
     it('should switch back to Settings tab from About', async () => {
       // 1. Open Options window
       await clickMenuItemById('menu-file-options');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Switch to About first
-      const aboutTab = await $('[data-testid="options-tab-about"]');
-      await aboutTab.click();
+      await navigateToOptionsTab('about');
       await browser.pause(300);
 
       // 3. Switch back to Settings
-      const settingsTab = await $('[data-testid="options-tab-settings"]');
-      await settingsTab.click();
+      await navigateToOptionsTab('settings');
+      const settingsTab = await $('[data-testid="options-tab-settings"]'); // Re-select for assertion
       await browser.pause(300);
 
       // 4. Verify Settings tab is active
@@ -120,15 +107,10 @@ describe('Options Window Tab Navigation', () => {
     it('should update URL hash when switching tabs', async () => {
       // 1. Open Options window
       await clickMenuItemById('menu-file-options');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Switch to About
-      const aboutTab = await $('[data-testid="options-tab-about"]');
-      await aboutTab.click();
+      await navigateToOptionsTab('about');
       await browser.pause(300);
 
       // 3. Verify URL contains #about
@@ -136,8 +118,7 @@ describe('Options Window Tab Navigation', () => {
       expect(urlAfterAbout).toContain('#about');
 
       // 4. Switch back to Settings
-      const settingsTab = await $('[data-testid="options-tab-settings"]');
-      await settingsTab.click();
+      await navigateToOptionsTab('settings');
       await browser.pause(300);
 
       // 5. Verify URL contains #settings
@@ -152,11 +133,7 @@ describe('Options Window Tab Navigation', () => {
     it('should open directly to About tab via Help > About menu', async () => {
       // 1. Open About via Help menu
       await clickMenuItemById('menu-help-about');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Verify About tab is active
       const aboutTab = await $('[data-testid="options-tab-about"]');
@@ -186,9 +163,7 @@ describe('About Tab Content Verification', () => {
     try {
       const handles = await browser.getWindowHandles();
       if (handles.length > 1) {
-        await browser.switchToWindow(handles[handles.length - 1]);
-        await closeCurrentWindow();
-        await browser.switchToWindow(handles[0]);
+        await closeOptionsWindow();
       }
     } catch {
       // Ignore cleanup errors
@@ -198,11 +173,7 @@ describe('About Tab Content Verification', () => {
   it('should display app version in About tab', async () => {
     // 1. Open Options to About tab
     await clickMenuItemById('menu-help-about');
-    await waitForWindowCount(2, 5000);
-
-    const handles = await browser.getWindowHandles();
-    await browser.switchToWindow(handles[1]);
-    await browser.pause(500);
+    await waitForOptionsWindow();
 
     // 2. Find version element
     const versionElement = await $('[data-testid="about-version"]');
@@ -221,11 +192,7 @@ describe('About Tab Content Verification', () => {
   it('should display disclaimer information', async () => {
     // 1. Open Options to About tab
     await clickMenuItemById('menu-help-about');
-    await waitForWindowCount(2, 5000);
-
-    const handles = await browser.getWindowHandles();
-    await browser.switchToWindow(handles[1]);
-    await browser.pause(500);
+    await waitForOptionsWindow();
 
     // 2. Check for disclaimer section
     const disclaimer = await $('[data-testid="about-disclaimer"]');
@@ -242,11 +209,7 @@ describe('About Tab Content Verification', () => {
   it('should have clickable license link', async () => {
     // 1. Open Options to About tab
     await clickMenuItemById('menu-help-about');
-    await waitForWindowCount(2, 5000);
-
-    const handles = await browser.getWindowHandles();
-    await browser.switchToWindow(handles[1]);
-    await browser.pause(500);
+    await waitForOptionsWindow();
 
     // 2. Find license link
     const licenseLink = await $('[data-testid="about-license-link"]');
@@ -267,11 +230,7 @@ describe('About Tab Content Verification', () => {
   it('should have external links that are properly configured', async () => {
     // 1. Open Options to About tab
     await clickMenuItemById('menu-help-about');
-    await waitForWindowCount(2, 5000);
-
-    const handles = await browser.getWindowHandles();
-    await browser.switchToWindow(handles[1]);
-    await browser.pause(500);
+    await waitForOptionsWindow();
 
     // 2. Check for About section overall
     const aboutSection = await $('[data-testid="about-section"]');
@@ -303,11 +262,7 @@ describe('About Tab Content Verification', () => {
   it('should contain Google/Gemini references', async () => {
     // 1. Open Options to About tab
     await clickMenuItemById('menu-help-about');
-    await waitForWindowCount(2, 5000);
-
-    const handles = await browser.getWindowHandles();
-    await browser.switchToWindow(handles[1]);
-    await browser.pause(500);
+    await waitForOptionsWindow();
 
     // 2. Get About section text content
     const aboutSection = await $('[data-testid="about-section"]');

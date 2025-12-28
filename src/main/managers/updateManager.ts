@@ -196,13 +196,30 @@ export default class UpdateManager {
     try {
       logger.log(manual ? 'Manual update check...' : 'Checking for updates...');
       await this.autoUpdater.checkForUpdatesAndNotify();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Update check failed:', error);
-      // MASKED ERROR: Do NOT send the raw error message to the renderer/user.
-      this.broadcastToWindows(
-        'update-error',
-        'The auto-update service encountered an error. Please try again later.'
-      );
+
+      // Check if this is a known "benign" error (like 404/403 which means no access/no releases)
+      // or a network error which we should suppress for background checks
+      const errorStr = (error?.message || '').toString();
+      const isNetworkOrConfigError = 
+        errorStr.includes('404') || 
+        errorStr.includes('403') || 
+        errorStr.includes('Github') ||
+        errorStr.includes('Network') ||
+        errorStr.includes('net::');
+
+      // If it's a manual check, or if it's NOT a benign/network error, we warn the user.
+      // But if it IS a background check AND a network/config error, we stay silent to avoid annoying toasts.
+      if (manual || !isNetworkOrConfigError) {
+        // MASKED ERROR: Do NOT send the raw error message to the renderer/user.
+        this.broadcastToWindows(
+          'update-error',
+          'The auto-update service encountered an error. Please try again later.'
+        );
+      } else {
+        logger.log('Suppressing update error notification (background check + network/config error):', error);
+      }
     }
   }
 

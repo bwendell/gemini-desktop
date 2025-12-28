@@ -10,6 +10,7 @@ import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { waitForOptionsWindow, closeOptionsWindow, switchToOptionsWindow } from './helpers/optionsWindowActions';
 
 describe('Theme Feature', () => {
   it('should apply correct text colors to Options titlebar in light and dark modes', async () => {
@@ -19,12 +20,8 @@ describe('Theme Feature', () => {
     // Wait for Options Window
     await waitForWindowCount(2);
 
-    const handles = await browser.getWindowHandles();
-    const mainWindowHandle = handles[0];
-    const optionsWindowHandle = handles[1];
-
     // Switch to Options Window
-    await browser.switchToWindow(optionsWindowHandle);
+    await switchToOptionsWindow();
 
     // Wait for titlebar to be present
     const titleElement = await $('[data-testid="options-titlebar-title"]');
@@ -118,14 +115,15 @@ describe('Theme Feature', () => {
     expect(darkDebugInfo.titleColor).toBe('rgb(232, 234, 237)');
 
     // Verify main window also synced
-    await browser.switchToWindow(mainWindowHandle);
+    const handles = await browser.getWindowHandles();
+    await browser.switchToWindow(handles[0]);
     const mainWindowTheme = await browser.execute(() => {
       return document.documentElement.getAttribute('data-theme');
     });
     expect(mainWindowTheme).toBe('dark');
 
     // Close Options Window
-    await browser.switchToWindow(optionsWindowHandle);
-    await closeCurrentWindow();
+    await switchToOptionsWindow();
+    await closeOptionsWindow();
   });
 });

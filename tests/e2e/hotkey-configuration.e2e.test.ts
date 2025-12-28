@@ -12,6 +12,7 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import { openOptionsWindowViaHotkey, waitForOptionsWindow, closeOptionsWindow, switchToOptionsWindow } from './helpers/optionsWindowActions';
 
 describe('Hotkey Configuration E2E', () => {
   before(async () => {
@@ -19,40 +20,19 @@ describe('Hotkey Configuration E2E', () => {
   });
 
   beforeEach(async () => {
-    // Use keyboard shortcut to open options (Ctrl+, or Cmd+,)
-    const isMac = process.platform === 'darwin';
-    const modifier = isMac ? 'Meta' : 'Control';
-    
     // Ensure we are focused on the main window before pressing keys
     const handles = await browser.getWindowHandles();
     await browser.switchToWindow(handles[0]);
-    await browser.keys([modifier, ',']);
-
-    // Wait for options window to open
-    await browser.pause(500);
-
-    // Switch to options window
-    handles = await browser.getWindowHandles();
-    if (handles.length > 1) {
-      await browser.switchToWindow(handles[handles.length - 1]);
-    }
-
-    // Wait for options content to load
-    await browser.waitUntil(
-      async () => {
-        const content = await browser.$('#options-content');
-        return await content.isExisting();
-      },
-      { timeout: 5000, timeoutMsg: 'Options window did not load' }
-    );
+    
+    await openOptionsWindowViaHotkey();
+    await waitForOptionsWindow();
   });
 
   afterEach(async () => {
     // Close options window if open
     const handles = await browser.getWindowHandles();
     if (handles.length > 1) {
-      await browser.closeWindow();
-      await browser.switchToWindow(handles[0]);
+      await closeOptionsWindow();
     }
   });
 
@@ -356,31 +336,16 @@ describe('Hotkey Configuration E2E', () => {
       await browser.pause(300);
 
       // Close options window
-      await browser.closeWindow();
-      await browser.switchToWindow((await browser.getWindowHandles())[0]);
+      await closeOptionsWindow();
       await browser.pause(500);
 
       // Reopen options using shortcut
-      const isMac = process.platform === 'darwin';
-      const modifier = isMac ? 'Meta' : 'Control';
-      
       // Ensure we are focused on the main window
       const mainHandles = await browser.getWindowHandles();
       await browser.switchToWindow(mainHandles[0]);
-      await browser.keys([modifier, ',']);
-
-      await browser.pause(500);
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[handles.length - 1]);
-
-      // Wait for options to load
-      await browser.waitUntil(
-        async () => {
-          const content = await browser.$('#options-content');
-          return await content.isExisting();
-        },
-        { timeout: 5000 }
-      );
+      
+      await openOptionsWindowViaHotkey();
+      await waitForOptionsWindow();
 
       // Verify accelerator is persisted
       const acceleratorDisplayAfter = await browser.$('.keycap-container');
@@ -664,8 +629,7 @@ describe('Hotkey Configuration E2E', () => {
       });
 
       // Close and reopen options window
-      await browser.closeWindow();
-      await browser.switchToWindow((await browser.getWindowHandles())[0]);
+      await closeOptionsWindow();
       await browser.pause(300);
 
       await browser.execute(async () => {
@@ -674,8 +638,8 @@ describe('Hotkey Configuration E2E', () => {
       });
 
       await browser.pause(500);
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[handles.length - 1]);
+      // Switch to options window
+      await switchToOptionsWindow();
 
       await browser.waitUntil(
         async () => {

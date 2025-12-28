@@ -12,6 +12,7 @@
 import { browser, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { waitForOptionsWindow } from './helpers/optionsWindowActions';
 import { E2ELogger } from './helpers/logger';
 
 /**
@@ -32,7 +33,7 @@ describe.skip('Application Lifecycle', () => {
     await clickMenuItemById('menu-file-options');
 
     // Wait for Options window to appear (2 windows total)
-    await waitForWindowCount(2, 5000);
+    await waitForOptionsWindow();
 
     // 2. Find which handle is the main window
     const handles = await browser.getWindowHandles();

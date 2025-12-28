@@ -99,10 +99,38 @@ describe('UpdateManager', () => {
       'update-error',
       'The auto-update service encountered an error. Please try again later.'
     );
-     // Verify raw message was NOT sent
-     expect(mockWebContents.send).not.toHaveBeenCalledWith(
+    expect(mockWebContents.send).not.toHaveBeenCalledWith(
       'update-error',
       expect.stringContaining('Refused')
+    );
+  });
+
+  it('should suppress error and treat as "not-available" when 404/unreachable', async () => {
+    // Simulate a 404 error from electron-updater (e.g. repo has no releases)
+    const error404 = new Error('HttpError: 404 Not Found"');
+    (mockAutoUpdater.checkForUpdatesAndNotify as any).mockRejectedValueOnce(error404);
+
+    // Call with manual=false (background check) - this is the key scenario to suppress
+    await updateManager.checkForUpdates(false);
+
+    // Should NOT broadcast update-error
+    expect(mockWebContents.send).not.toHaveBeenCalledWith(
+      'update-error',
+      expect.any(String)
+    );
+  });
+
+  it('should SHOW error when manual check fails with 404/unreachable', async () => {
+    const error404 = new Error('HttpError: 404 Not Found"');
+    (mockAutoUpdater.checkForUpdatesAndNotify as any).mockRejectedValueOnce(error404);
+
+    // Call with manual=true
+    await updateManager.checkForUpdates(true);
+
+    // Should broadcast update-error because it's manual
+    expect(mockWebContents.send).toHaveBeenCalledWith(
+      'update-error',
+      expect.any(String)
     );
   });
 });

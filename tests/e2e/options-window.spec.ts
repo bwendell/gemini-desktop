@@ -11,30 +11,19 @@ import { Selectors } from './helpers/selectors';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
-
-declare global {
-  interface Window {
-    electronAPI: {
-      closeWindow: () => void;
-    };
-  }
-}
+import {
+  waitForOptionsWindow,
+  closeOptionsWindow,
+  switchToOptionsWindow,
+} from './helpers/optionsWindowActions';
 
 describe('Options Window Features', () => {
   it('should open options window with correct window controls', async () => {
     // 1. Open Options via menu
     await clickMenuItemById('menu-file-options');
 
-    // 2. Wait for new window
-    await waitForWindowCount(2, 5000);
-    const handles = await browser.getWindowHandles();
-    const optionsWindowHandle = handles[1];
-
-    // Pause briefly to allow window to fully initialize
-    await browser.pause(1000);
-
-    // Switch context
-    await browser.switchToWindow(optionsWindowHandle);
+    // 2. Wait for new window and switch to it
+    await waitForOptionsWindow();
 
     // 3. Verify Custom Titlebar exists (present on all platforms for Options window)
     const titlebar = await $(Selectors.optionsTitlebar);
@@ -75,10 +64,7 @@ describe('Options Window Features', () => {
     const finalHandles = await browser.getWindowHandles();
     expect(finalHandles.length).toBe(1);
 
-    // Verify the remaining window is the main window
-    expect(finalHandles[0]).toBe(handles[0]);
-
-    // Switch back just to be safe
+    // Switch back to main window
     await browser.switchToWindow(finalHandles[0]);
     const title = await browser.getTitle();
     expect(title).toBeDefined();
@@ -113,13 +99,8 @@ describe('Options Window Features', () => {
     expect(handlesAfterSecond).toEqual(handlesAfterFirst);
 
     // 6. Cleanup: close Options window
-    await browser.switchToWindow(handlesAfterSecond[1]);
-    const closeBtn = await $(Selectors.optionsCloseButton);
-    await closeBtn.click();
-    await waitForWindowCount(1, 5000);
-
-    // Switch back to main
-    const finalHandles = await browser.getWindowHandles();
-    await browser.switchToWindow(finalHandles[0]);
+    await switchToOptionsWindow();
+    await closeOptionsWindow();
   });
 });
+

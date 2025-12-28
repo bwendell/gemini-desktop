@@ -11,6 +11,8 @@
  *
  * @module windowStateActions
  */
+/// <reference path="./wdio-electron.d.ts" />
+
 import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
 
@@ -177,6 +179,39 @@ export async function closeWindow(): Promise<void> {
   await browser.execute(() => {
     (window as any).electronAPI?.closeWindow?.();
   });
+}
+
+/**
+ * Hides the current window (e.g., minimize to tray).
+ */
+export async function hideWindow(): Promise<void> {
+  E2ELogger.info('windowStateActions', 'Hiding window via API');
+
+  await browser.electron.execute((electron) => {
+    const win = electron.BrowserWindow.getAllWindows()[0];
+    if (win) {
+      win.hide();
+    }
+  });
+
+  await browser.pause(300);
+}
+
+/**
+ * Shows the current window (e.g., restore from tray).
+ */
+export async function showWindow(): Promise<void> {
+  E2ELogger.info('windowStateActions', 'Showing window via API');
+
+  await browser.electron.execute((electron) => {
+    const win = electron.BrowserWindow.getAllWindows()[0];
+    if (win) {
+      win.show();
+      win.focus();
+    }
+  });
+
+  await browser.pause(300);
 }
 
 // ============================================================================

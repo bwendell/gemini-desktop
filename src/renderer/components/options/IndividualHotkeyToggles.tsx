@@ -72,7 +72,7 @@ export const IndividualHotkeyToggles = memo(function IndividualHotkeyToggles() {
   return (
     <div className="individual-hotkey-toggles" data-testid="individual-hotkey-toggles">
       {HOTKEY_CONFIGS.map((config) => (
-        <div key={config.id} className="hotkey-row">
+        <div key={config.id} className="hotkey-row" data-testid={`hotkey-row-${config.id}`}>
           <div className="hotkey-label-wrapper">
             <span className="hotkey-label">{config.label}</span>
             <span className="hotkey-description">{config.description}</span>

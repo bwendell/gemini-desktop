@@ -10,41 +10,27 @@
 import { browser, $, $$, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { waitForWindowCount } from './helpers/windowActions';
+import {
+  waitForOptionsWindow,
+  closeOptionsWindow,
+  switchToOptionsWindow,
+  getOptionsWindowHandle,
+} from './helpers/optionsWindowActions';
 
 /**
- * Helper function to open the Options window and switch to it.
- * Returns the window handles for cleanup.
+ * Helper to open options and get handles for multi-window tests.
  */
-async function openOptionsWindow(): Promise<{ mainHandle: string; optionsHandle: string }> {
+async function openOptionsAndGetHandles(): Promise<{ mainHandle: string; optionsHandle: string }> {
   await clickMenuItemById('menu-file-options');
-
-  await waitForWindowCount(2, 5000);
-
+  await waitForOptionsWindow();
   const handles = await browser.getWindowHandles();
-  const mainHandle = handles[0];
-  const optionsHandle = handles[1];
-
-  // Switch to Options window and wait for content to load
-  await browser.switchToWindow(optionsHandle);
-  await browser.pause(500);
-
-  return { mainHandle, optionsHandle };
-}
-
-/**
- * Helper function to close the Options window.
- */
-async function closeOptionsWindow(mainHandle: string): Promise<void> {
-  await closeCurrentWindow();
-
-  await waitForWindowCount(1, 5000);
-  await browser.switchToWindow(mainHandle);
+  return { mainHandle: handles[0], optionsHandle: handles[1] };
 }
 
 describe('Theme Selector Visual Verification', () => {
   it('should display three theme cards with visual previews', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Verify theme selector container exists
@@ -77,12 +63,12 @@ describe('Theme Selector Visual Verification', () => {
       await expect(lightText).toHaveText('Light');
       await expect(darkText).toHaveText('Dark');
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should show checkmark indicator on currently selected theme', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Click light theme
@@ -113,12 +99,12 @@ describe('Theme Selector Visual Verification', () => {
       const newLightCheckmark = await $('[data-testid="theme-checkmark-light"]');
       await expect(newLightCheckmark).not.toExist();
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should apply selected class and styling on clicked card', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       const lightCard = await $(Selectors.themeCard('light'));
@@ -140,12 +126,12 @@ describe('Theme Selector Visual Verification', () => {
       const darkCard = await $(Selectors.themeCard('dark'));
       await expect(darkCard).toHaveAttribute('aria-checked', 'false');
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should apply theme change immediately to both windows', async () => {
-    const { mainHandle, optionsHandle } = await openOptionsWindow();
+    const { mainHandle, optionsHandle } = await openOptionsAndGetHandles();
 
     try {
       // Click light theme
@@ -173,12 +159,12 @@ describe('Theme Selector Visual Verification', () => {
       await browser.pause(300);
     } finally {
       await browser.switchToWindow(optionsHandle);
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 
   it('should display correct preview colors for each theme', async () => {
-    const { mainHandle } = await openOptionsWindow();
+    const { mainHandle } = await openOptionsAndGetHandles();
 
     try {
       // Get preview background colors
@@ -206,7 +192,7 @@ describe('Theme Selector Visual Verification', () => {
       expect(previewColors['theme-card-light']).toContain('rgb(255, 255, 255)');
       expect(previewColors['theme-card-dark']).toContain('rgb(26, 26, 26)');
     } finally {
-      await closeOptionsWindow(mainHandle);
+      await closeOptionsWindow();
     }
   });
 });

@@ -18,7 +18,11 @@ import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { waitForWindowCount } from './helpers/windowActions';
+import {
+  waitForOptionsWindow,
+  closeOptionsWindow,
+} from './helpers/optionsWindowActions';
 
 /**
  * Interface for the settings file structure.
@@ -77,12 +81,7 @@ describe('Settings Persistence', () => {
     it('should save theme preference to settings file', async () => {
       // 1. Open Options window
       await clickMenuItemById('menu-file-options');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      const optionsWindowHandle = handles[1];
-      await browser.switchToWindow(optionsWindowHandle);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Click dark theme card
       const darkThemeCard = await $(Selectors.themeCard('dark'));
@@ -108,18 +107,13 @@ describe('Settings Persistence', () => {
       E2ELogger.info('settings-persistence', `Theme updated to: ${settingsAfterLight?.theme}`);
 
       // Cleanup: close options window
-      await closeCurrentWindow();
-      await browser.switchToWindow(handles[0]);
+      await closeOptionsWindow();
     });
 
     it('should save system theme preference to settings file', async () => {
       // 1. Open Options window
       await clickMenuItemById('menu-file-options');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Click system theme card
       const systemThemeCard = await $(Selectors.themeCard('system'));
@@ -133,8 +127,7 @@ describe('Settings Persistence', () => {
       E2ELogger.info('settings-persistence', `System theme saved: ${settings?.theme}`);
 
       // Cleanup
-      await closeCurrentWindow();
-      await browser.switchToWindow(handles[0]);
+      await closeOptionsWindow();
     });
   });
 
@@ -142,11 +135,7 @@ describe('Settings Persistence', () => {
     it('should save hotkey enabled state to settings file', async () => {
       // 1. Open Options window
       await clickMenuItemById('menu-file-options');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Get initial toggle state
       const toggleSwitch = await $('[data-testid="hotkey-toggle-switch"]');
@@ -181,8 +170,7 @@ describe('Settings Persistence', () => {
       );
 
       // Cleanup
-      await closeCurrentWindow();
-      await browser.switchToWindow(handles[0]);
+      await closeOptionsWindow();
     });
   });
 
@@ -190,11 +178,7 @@ describe('Settings Persistence', () => {
     it('should save individual hotkey toggle states to settings file', async () => {
       // 1. Open Options window
       await clickMenuItemById('menu-file-options');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Get initial toggle states for all three hotkeys
       const alwaysOnTopToggle = await $('[data-testid="hotkey-toggle-alwaysOnTop-switch"]');
@@ -251,18 +235,13 @@ describe('Settings Persistence', () => {
       E2ELogger.info('settings-persistence', 'All individual hotkey states restored');
 
       // Cleanup
-      await closeCurrentWindow();
-      await browser.switchToWindow(handles[0]);
+      await closeOptionsWindow();
     });
 
     it('should persist each hotkey independently', async () => {
       // 1. Open Options window
       await clickMenuItemById('menu-file-options');
-      await waitForWindowCount(2, 5000);
-
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[1]);
-      await browser.pause(500);
+      await waitForOptionsWindow();
 
       // 2. Toggle only Boss Key (leave others unchanged)
       const bossKeyToggle = await $('[data-testid="hotkey-toggle-bossKey-switch"]');
@@ -286,8 +265,7 @@ describe('Settings Persistence', () => {
       E2ELogger.info('settings-persistence', 'Individual hotkey persistence verified');
 
       // Cleanup
-      await closeCurrentWindow();
-      await browser.switchToWindow(handles[0]);
+      await closeOptionsWindow();
     });
   });
 

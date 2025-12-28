@@ -13,20 +13,12 @@ import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
+import { setAlwaysOnTop, getAlwaysOnTopState } from './helpers/alwaysOnTopActions';
 
 interface SettingsData {
   alwaysOnTop?: boolean;
   theme?: string;
   hotkeysEnabled?: boolean;
-}
-
-declare global {
-  interface Window {
-    electronAPI: {
-      getAlwaysOnTop: () => Promise<{ enabled: boolean }>;
-      setAlwaysOnTop: (enabled: boolean) => void;
-    };
-  }
 }
 
 /**
@@ -66,10 +58,7 @@ describe('Always On Top - Settings Persistence', () => {
       E2ELogger.info('always-on-top-persistence', 'Testing persistence when enabling');
 
       // Enable always-on-top
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.WINDOW_TRANSITION); // Wait for file write
+      await setAlwaysOnTop(true, E2E_TIMING.WINDOW_TRANSITION); // Wait for file write
 
       // Read settings file
       const settings = await readSettingsFile();
@@ -87,10 +76,7 @@ describe('Always On Top - Settings Persistence', () => {
       E2ELogger.info('always-on-top-persistence', 'Testing persistence when disabling');
 
       // Disable always-on-top
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+      await setAlwaysOnTop(false, E2E_TIMING.WINDOW_TRANSITION);
 
       // Read settings file
       const settings = await readSettingsFile();
@@ -107,36 +93,25 @@ describe('Always On Top - Settings Persistence', () => {
       E2ELogger.info('always-on-top-persistence', 'Testing multiple toggle persistence');
 
       // Get initial state
-      const initialState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      const startEnabled = initialState?.enabled ?? false;
+      const initialState = await getAlwaysOnTopState();
+      const startEnabled = initialState.enabled;
 
       // Toggle ON
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.CYCLE_PAUSE);
+      await setAlwaysOnTop(true, E2E_TIMING.CYCLE_PAUSE);
 
       let settings = await readSettingsFile();
       expect(settings?.alwaysOnTop).toBe(true);
       E2ELogger.info('always-on-top-persistence', 'After enable: alwaysOnTop=true');
 
       // Toggle OFF
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.CYCLE_PAUSE);
+      await setAlwaysOnTop(false, E2E_TIMING.CYCLE_PAUSE);
 
       settings = await readSettingsFile();
       expect(settings?.alwaysOnTop).toBe(false);
       E2ELogger.info('always-on-top-persistence', 'After disable: alwaysOnTop=false');
 
       // Restore to initial state
-      await browser.execute((enabled: boolean) => {
-        window.electronAPI?.setAlwaysOnTop?.(enabled);
-      }, startEnabled);
-      await browser.pause(E2E_TIMING.CYCLE_PAUSE);
+      await setAlwaysOnTop(startEnabled, E2E_TIMING.CYCLE_PAUSE);
 
       settings = await readSettingsFile();
       expect(settings?.alwaysOnTop).toBe(startEnabled);
@@ -152,10 +127,7 @@ describe('Always On Top - Settings Persistence', () => {
       E2ELogger.info('always-on-top-persistence', 'Validating settings file format');
 
       // Set to true
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+      await setAlwaysOnTop(true, E2E_TIMING.WINDOW_TRANSITION);
 
       const settings = await readSettingsFile();
 
@@ -166,10 +138,7 @@ describe('Always On Top - Settings Persistence', () => {
       E2ELogger.info('always-on-top-persistence', 'Settings file format is correct (boolean type)');
 
       // Reset
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await setAlwaysOnTop(false);
     });
 
     it('should not corrupt other settings when updating alwaysOnTop', async () => {
@@ -186,10 +155,7 @@ describe('Always On Top - Settings Persistence', () => {
       );
 
       // Toggle always-on-top
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+      await setAlwaysOnTop(true, E2E_TIMING.WINDOW_TRANSITION);
 
       // Read settings again
       const newSettings = await readSettingsFile();
@@ -201,10 +167,7 @@ describe('Always On Top - Settings Persistence', () => {
       E2ELogger.info('always-on-top-persistence', 'Other settings remain intact');
 
       // Reset
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await setAlwaysOnTop(false);
     });
   });
 
@@ -213,10 +176,7 @@ describe('Always On Top - Settings Persistence', () => {
       E2ELogger.info('always-on-top-persistence', `Testing persistence on ${platform}`);
 
       // Enable
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+      await setAlwaysOnTop(true, E2E_TIMING.WINDOW_TRANSITION);
 
       const settings = await readSettingsFile();
       expect(settings?.alwaysOnTop).toBe(true);
@@ -224,10 +184,7 @@ describe('Always On Top - Settings Persistence', () => {
       E2ELogger.info('always-on-top-persistence', `${platform}: File persistence verified`);
 
       // Reset
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await setAlwaysOnTop(false);
     });
   });
 });

@@ -10,65 +10,49 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { clickMenuItemById } from './helpers/menuActions';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
-
-declare global {
-  interface Window {
-    electronAPI: {
-      getAlwaysOnTop: () => Promise<{ enabled: boolean }>;
-    };
-  }
-}
+import {
+  getAlwaysOnTopState,
+  pressAlwaysOnTopHotkey,
+  toggleAlwaysOnTopViaMenu,
+  getModifierKey,
+} from './helpers/alwaysOnTopActions';
 
 describe('Always On Top - Menu-Hotkey Synchronization', () => {
   let platform: string;
-  let modifierKey: string;
+  let modifierKey: 'Meta' | 'Control';
 
   before(async () => {
     platform = await getPlatform();
-    modifierKey = (await isMacOS()) ? 'Meta' : 'Control';
+    modifierKey = await getModifierKey();
     E2ELogger.info('always-on-top-menu-sync', `Platform: ${platform}, Modifier: ${modifierKey}`);
   });
-
-  /**
-   * Helper to press the always-on-top hotkey.
-   */
-  async function pressAlwaysOnTopHotkey(): Promise<void> {
-    await browser.keys([modifierKey, 'Shift', 't']);
-  }
 
   describe('Hotkey to Menu Synchronization', () => {
     it('should update state when toggled via hotkey', async () => {
       E2ELogger.info('always-on-top-menu-sync', 'Testing hotkey -> state sync');
 
       // Get initial state
-      const initialState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const initialState = await getAlwaysOnTopState();
 
-      const wasEnabled = initialState?.enabled ?? false;
+      const wasEnabled = initialState.enabled;
 
       // Toggle via hotkey
       await pressAlwaysOnTopHotkey();
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
       // Verify state changed
-      const newState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const newState = await getAlwaysOnTopState();
 
-      expect(newState?.enabled).toBe(!wasEnabled);
+      expect(newState.enabled).toBe(!wasEnabled);
       E2ELogger.info(
         'always-on-top-menu-sync',
-        `State after hotkey: ${newState?.enabled ? 'enabled' : 'disabled'}`
+        `State after hotkey: ${newState.enabled ? 'enabled' : 'disabled'}`
       );
 
       // Restore
       await pressAlwaysOnTopHotkey();
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
     });
   });
 
@@ -77,30 +61,24 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
       E2ELogger.info('always-on-top-menu-sync', 'Testing menu -> state sync');
 
       // Get initial state
-      const initialState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const initialState = await getAlwaysOnTopState();
 
-      const wasEnabled = initialState?.enabled ?? false;
+      const wasEnabled = initialState.enabled;
 
       // Toggle via menu
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await toggleAlwaysOnTopViaMenu();
 
       // Verify state changed
-      const newState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const newState = await getAlwaysOnTopState();
 
-      expect(newState?.enabled).toBe(!wasEnabled);
+      expect(newState.enabled).toBe(!wasEnabled);
       E2ELogger.info(
         'always-on-top-menu-sync',
-        `State after menu click: ${newState?.enabled ? 'enabled' : 'disabled'}`
+        `State after menu click: ${newState.enabled ? 'enabled' : 'disabled'}`
       );
 
       // Restore
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await toggleAlwaysOnTopViaMenu();
     });
   });
 
@@ -109,50 +87,36 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
       E2ELogger.info('always-on-top-menu-sync', 'Testing bidirectional sync');
 
       // Get initial state
-      const initialState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const initialState = await getAlwaysOnTopState();
 
-      const startEnabled = initialState?.enabled ?? false;
+      const startEnabled = initialState.enabled;
 
       // 1. Toggle via hotkey
       await pressAlwaysOnTopHotkey();
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
-      let state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(!startEnabled);
-      E2ELogger.info('always-on-top-menu-sync', `After hotkey: ${state?.enabled}`);
+      let state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(!startEnabled);
+      E2ELogger.info('always-on-top-menu-sync', `After hotkey: ${state.enabled}`);
 
       // 2. Toggle via menu
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await toggleAlwaysOnTopViaMenu();
 
-      state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(startEnabled);
-      E2ELogger.info('always-on-top-menu-sync', `After menu: ${state?.enabled}`);
+      state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(startEnabled);
+      E2ELogger.info('always-on-top-menu-sync', `After menu: ${state.enabled}`);
 
       // 3. Toggle via hotkey again
       await pressAlwaysOnTopHotkey();
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
-      state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(!startEnabled);
-      E2ELogger.info('always-on-top-menu-sync', `After hotkey again: ${state?.enabled}`);
+      state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(!startEnabled);
+      E2ELogger.info('always-on-top-menu-sync', `After hotkey again: ${state.enabled}`);
 
       // 4. Toggle via menu to restore
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await toggleAlwaysOnTopViaMenu();
 
-      state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(startEnabled);
+      state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(startEnabled);
       E2ELogger.info(
         'always-on-top-menu-sync',
         'Successfully alternated 4 times, all states correct'
@@ -162,43 +126,29 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
     it('should handle rapid alternation between input methods', async () => {
       E2ELogger.info('always-on-top-menu-sync', 'Testing rapid alternation');
 
-      const initialState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const initialState = await getAlwaysOnTopState();
 
-      const startEnabled = initialState?.enabled ?? false;
+      const startEnabled = initialState.enabled;
 
       // Rapidly alternate: hotkey, menu, hotkey, menu, hotkey
+      await pressAlwaysOnTopHotkey(E2E_TIMING.CLEANUP_PAUSE);
+      await toggleAlwaysOnTopViaMenu(E2E_TIMING.CLEANUP_PAUSE);
+      await pressAlwaysOnTopHotkey(E2E_TIMING.CLEANUP_PAUSE);
+      await toggleAlwaysOnTopViaMenu(E2E_TIMING.CLEANUP_PAUSE);
       await pressAlwaysOnTopHotkey();
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
-
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
-
-      await pressAlwaysOnTopHotkey();
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
-
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
-
-      await pressAlwaysOnTopHotkey();
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
       // After 5 toggles (odd), should be opposite of start
-      const finalState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const finalState = await getAlwaysOnTopState();
 
-      expect(finalState?.enabled).toBe(!startEnabled);
+      expect(finalState.enabled).toBe(!startEnabled);
       E2ELogger.info(
         'always-on-top-menu-sync',
         'Rapid alternation: state correctly reflects 5 toggles'
       );
 
       // Restore
-      if (finalState?.enabled !== startEnabled) {
-        await pressAlwaysOnTopHotkey();
-        await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      if (finalState.enabled !== startEnabled) {
+        await pressAlwaysOnTopHotkey(E2E_TIMING.CLEANUP_PAUSE);
       }
     });
   });
@@ -212,27 +162,20 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
       E2ELogger.info('always-on-top-menu-sync', 'Testing Windows sync');
 
-      const initialState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const initialState = await getAlwaysOnTopState();
 
       // Hotkey
       await browser.keys(['Control', 'Shift', 't']);
       await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
-      let state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(!initialState?.enabled);
+      let state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(!initialState.enabled);
 
       // Menu
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await toggleAlwaysOnTopViaMenu();
 
-      state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(initialState?.enabled);
+      state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(initialState.enabled);
 
       E2ELogger.info('always-on-top-menu-sync', 'Windows: Synchronization verified');
     });
@@ -245,27 +188,20 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
       E2ELogger.info('always-on-top-menu-sync', 'Testing macOS sync');
 
-      const initialState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const initialState = await getAlwaysOnTopState();
 
       // Hotkey
       await browser.keys(['Meta', 'Shift', 't']);
       await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
-      let state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(!initialState?.enabled);
+      let state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(!initialState.enabled);
 
       // Menu
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await toggleAlwaysOnTopViaMenu();
 
-      state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(initialState?.enabled);
+      state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(initialState.enabled);
 
       E2ELogger.info('always-on-top-menu-sync', 'macOS: Synchronization verified');
     });
@@ -278,27 +214,20 @@ describe('Always On Top - Menu-Hotkey Synchronization', () => {
 
       E2ELogger.info('always-on-top-menu-sync', 'Testing Linux sync');
 
-      const initialState = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
+      const initialState = await getAlwaysOnTopState();
 
       // Hotkey
       await browser.keys(['Control', 'Shift', 't']);
       await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
-      let state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(!initialState?.enabled);
+      let state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(!initialState.enabled);
 
       // Menu
-      await clickMenuItemById('menu-view-always-on-top');
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await toggleAlwaysOnTopViaMenu();
 
-      state = await browser.execute(() => {
-        return window.electronAPI?.getAlwaysOnTop?.();
-      });
-      expect(state?.enabled).toBe(initialState?.enabled);
+      state = await getAlwaysOnTopState();
+      expect(state.enabled).toBe(initialState.enabled);
 
       E2ELogger.info('always-on-top-menu-sync', 'Linux: Synchronization verified');
     });

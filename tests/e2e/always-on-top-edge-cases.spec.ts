@@ -13,48 +13,18 @@ import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
-
-declare global {
-  interface Window {
-    electronAPI: {
-      getAlwaysOnTop: () => Promise<{ enabled: boolean }>;
-      setAlwaysOnTop: (enabled: boolean) => void;
-    };
-  }
-}
-
-/**
- * Get window always-on-top state from Electron.
- */
-async function getWindowAlwaysOnTopState(): Promise<boolean> {
-  return browser.electron.execute(() => {
-    const { BrowserWindow } = require('electron');
-    const mainWindow = BrowserWindow.getAllWindows()[0];
-    return mainWindow ? mainWindow.isAlwaysOnTop() : false;
-  });
-}
-
-/**
- * Check if window is minimized.
- */
-async function isWindowMinimized(): Promise<boolean> {
-  return browser.electron.execute(() => {
-    const { BrowserWindow } = require('electron');
-    const mainWindow = BrowserWindow.getAllWindows()[0];
-    return mainWindow ? mainWindow.isMinimized() : false;
-  });
-}
-
-/**
- * Check if window is in fullscreen mode.
- */
-async function isWindowFullScreen(): Promise<boolean> {
-  return browser.electron.execute(() => {
-    const { BrowserWindow } = require('electron');
-    const mainWindow = BrowserWindow.getAllWindows()[0];
-    return mainWindow ? mainWindow.isFullScreen() : false;
-  });
-}
+import {
+  getWindowAlwaysOnTopState,
+  setAlwaysOnTop,
+  resetAlwaysOnTopState,
+  getModifierKey,
+} from './helpers/alwaysOnTopActions';
+import {
+  isWindowMinimized,
+  isWindowFullScreen,
+  minimizeWindow,
+  restoreWindow,
+} from './helpers/windowStateActions';
 
 /**
  * Set fullscreen mode.
@@ -69,39 +39,13 @@ async function setFullScreen(fullscreen: boolean): Promise<void> {
   }, fullscreen);
 }
 
-/**
- * Minimize window.
- */
-async function minimizeWindow(): Promise<void> {
-  await browser.electron.execute(() => {
-    const { BrowserWindow } = require('electron');
-    const mainWindow = BrowserWindow.getAllWindows()[0];
-    if (mainWindow) {
-      mainWindow.minimize();
-    }
-  });
-}
-
-/**
- * Restore window.
- */
-async function restoreWindow(): Promise<void> {
-  await browser.electron.execute(() => {
-    const { BrowserWindow } = require('electron');
-    const mainWindow = BrowserWindow.getAllWindows()[0];
-    if (mainWindow) {
-      mainWindow.restore();
-    }
-  });
-}
-
 describe('Always On Top - Edge Cases', () => {
   let platform: string;
-  let modifierKey: string;
+  let modifierKey: 'Meta' | 'Control';
 
   before(async () => {
     platform = await getPlatform();
-    modifierKey = (await isMacOS()) ? 'Meta' : 'Control';
+    modifierKey = await getModifierKey();
     E2ELogger.info('always-on-top-edge-cases', `Platform: ${platform}, Modifier: ${modifierKey}`);
   });
 
@@ -118,10 +62,7 @@ describe('Always On Top - Edge Cases', () => {
     }
 
     // Reset always-on-top state
-    await browser.execute(() => {
-      window.electronAPI?.setAlwaysOnTop?.(false);
-    });
-    await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+    await resetAlwaysOnTopState();
   });
 
   describe('Toggle During Minimize', () => {
@@ -129,10 +70,7 @@ describe('Always On Top - Edge Cases', () => {
       E2ELogger.info('always-on-top-edge-cases', 'Testing toggle during minimize');
 
       // Start with disabled state
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
 
       // Minimize window
       await minimizeWindow();
@@ -142,11 +80,8 @@ describe('Always On Top - Edge Cases', () => {
       expect(minimized).toBe(true);
       E2ELogger.info('always-on-top-edge-cases', 'Window minimized');
 
-      // Enable always-on-top while minimized (using API directly)
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      // Enable always-on-top while minimized
+      await setAlwaysOnTop(true);
 
       // Restore window
       await restoreWindow();
@@ -166,10 +101,7 @@ describe('Always On Top - Edge Cases', () => {
       E2ELogger.info('always-on-top-edge-cases', 'Testing toggle off during minimize');
 
       // Start with enabled state
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await setAlwaysOnTop(true);
 
       const stateBeforeMinimize = await getWindowAlwaysOnTopState();
       expect(stateBeforeMinimize).toBe(true);
@@ -179,10 +111,7 @@ describe('Always On Top - Edge Cases', () => {
       await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
       // Disable always-on-top while minimized
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await setAlwaysOnTop(false);
 
       // Restore window
       await restoreWindow();
@@ -202,10 +131,7 @@ describe('Always On Top - Edge Cases', () => {
       E2ELogger.info('always-on-top-edge-cases', 'Testing hotkey toggle while minimized');
 
       // Start disabled
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
 
       const initialState = await getWindowAlwaysOnTopState();
       expect(initialState).toBe(false);
@@ -240,10 +166,7 @@ describe('Always On Top - Edge Cases', () => {
       E2ELogger.info('always-on-top-edge-cases', 'Testing fullscreen mode interaction');
 
       // Enable always-on-top
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await setAlwaysOnTop(true);
 
       const stateBeforeFullscreen = await getWindowAlwaysOnTopState();
       expect(stateBeforeFullscreen).toBe(true);
@@ -296,10 +219,7 @@ describe('Always On Top - Edge Cases', () => {
 
       // Toggle always-on-top while in fullscreen
       const initialState = await getWindowAlwaysOnTopState();
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await setAlwaysOnTop(true);
 
       const newState = await getWindowAlwaysOnTopState();
       E2ELogger.info(
@@ -326,10 +246,7 @@ describe('Always On Top - Edge Cases', () => {
 
       E2ELogger.info('always-on-top-edge-cases', 'Testing Windows/Linux fullscreen');
 
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+      await setAlwaysOnTop(true);
 
       // Enter and exit fullscreen
       await setFullScreen(true);
@@ -354,18 +271,12 @@ describe('Always On Top - Edge Cases', () => {
       E2ELogger.info('always-on-top-edge-cases', 'Testing Windows edge cases');
 
       // Toggle during minimize
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      await setAlwaysOnTop(true, E2E_TIMING.CLEANUP_PAUSE);
 
       await minimizeWindow();
       await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
 
       await restoreWindow();
       await browser.pause(E2E_TIMING.CYCLE_PAUSE);
@@ -385,18 +296,12 @@ describe('Always On Top - Edge Cases', () => {
       E2ELogger.info('always-on-top-edge-cases', 'Testing macOS edge cases');
 
       // Same test logic as Windows
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      await setAlwaysOnTop(true, E2E_TIMING.CLEANUP_PAUSE);
 
       await minimizeWindow();
       await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
 
       await restoreWindow();
       await browser.pause(E2E_TIMING.CYCLE_PAUSE);
@@ -415,18 +320,12 @@ describe('Always On Top - Edge Cases', () => {
 
       E2ELogger.info('always-on-top-edge-cases', 'Testing Linux edge cases');
 
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(true);
-      });
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      await setAlwaysOnTop(true, E2E_TIMING.CLEANUP_PAUSE);
 
       await minimizeWindow();
       await browser.pause(E2E_TIMING.CYCLE_PAUSE);
 
-      await browser.execute(() => {
-        window.electronAPI?.setAlwaysOnTop?.(false);
-      });
-      await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+      await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
 
       await restoreWindow();
       await browser.pause(E2E_TIMING.CYCLE_PAUSE);
