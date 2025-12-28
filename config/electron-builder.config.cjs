@@ -91,6 +91,7 @@ module.exports = {
     icon: 'build/icon.png',
     category: 'Utility',
     artifactName: '${productName}-${version}-${arch}.${ext}',
+    executableName: 'gemini-desktop',
   },
   deb: {
     depends: [

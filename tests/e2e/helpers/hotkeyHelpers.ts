@@ -11,16 +11,17 @@
 
 import { browser } from '@wdio/globals';
 import type { E2EPlatform } from './platform';
+import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
 
 /**
  * Hotkey definition for cross-platform testing.
  */
 export interface HotkeyDefinition {
-  /** The Electron accelerator string (e.g., 'CommandOrControl+Alt+E') */
+  /** The Electron accelerator string (e.g., 'CommandOrControl+Alt+H') */
   accelerator: string;
   /** Human-readable description */
   description: string;
-  /** Platform-specific display format */
+  /** Platform-specific display format (derived from accelerator) */
   displayFormat: {
     windows: string;
     macos: string;
@@ -29,29 +30,37 @@ export interface HotkeyDefinition {
 }
 
 /**
+ * Helper to convert an Electron accelerator to platform-specific display format.
+ */
+function acceleratorToDisplayFormat(accelerator: string): HotkeyDefinition['displayFormat'] {
+  const windowsLinux = accelerator.replace('CommandOrControl', 'Ctrl').replace('Option', 'Alt');
+  const macos = accelerator.replace('CommandOrControl', 'Cmd').replace('Option', 'Alt');
+  return {
+    windows: windowsLinux,
+    macos: macos,
+    linux: windowsLinux,
+  };
+}
+
+/**
  * Registered hotkeys in the application.
- * Add new hotkeys here as they are implemented.
+ * Uses DEFAULT_ACCELERATORS from shared types to ensure consistency.
  */
 export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
-  // TODO: Refactor this to use configurable hotkeys
   MINIMIZE_WINDOW: {
-    accelerator: 'CommandOrControl+Alt+E',
-    description: 'Minimize the main window',
-    displayFormat: {
-      windows: 'Ctrl+Alt+E',
-      macos: 'Cmd+Alt+E',
-      linux: 'Ctrl+Alt+E',
-    },
+    accelerator: DEFAULT_ACCELERATORS.bossKey,
+    description: 'Minimize the main window (Boss Key)',
+    displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.bossKey),
   },
-  // TODO: Refactor this to use configurable hotkeys
   QUICK_CHAT: {
-    accelerator: 'CommandOrControl+Shift+Space',
+    accelerator: DEFAULT_ACCELERATORS.quickChat,
     description: 'Toggle Quick Chat floating window',
-    displayFormat: {
-      windows: 'Ctrl+Shift+Space',
-      macos: 'Cmd+Shift+Space',
-      linux: 'Ctrl+Shift+Space',
-    },
+    displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.quickChat),
+  },
+  ALWAYS_ON_TOP: {
+    accelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
+    description: 'Toggle Always on Top',
+    displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.alwaysOnTop),
   },
 };
 

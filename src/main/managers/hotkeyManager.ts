@@ -203,6 +203,7 @@ export default class HotkeyManager {
    * @returns Copy of the current settings object
    */
   getIndividualSettings(): IndividualHotkeySettings {
+    logger.log(`[Version Info] Electron: ${process.versions.electron}, Chrome: ${process.versions.chrome}, Platform: ${process.platform}, Arch: ${process.arch}`);
     return { ...this._individualSettings };
   }
 
@@ -389,15 +390,36 @@ export default class HotkeyManager {
       return;
     }
 
-    const success = globalShortcut.register(accelerator, shortcutAction.action);
+    // Debugging: Check if already registered according to Electron
+    const isAlreadyRegistered = globalShortcut.isRegistered(accelerator);
+    logger.log(`Registering ${id} (${accelerator}). isRegistered pre-check: ${isAlreadyRegistered}`);
 
+    let success = false;
+    try {
+      success = globalShortcut.register(accelerator, () => {
+        try {
+          shortcutAction.action();
+        } catch (actionError) {
+          logger.error(`Error executing action for hotkey ${id}:`, actionError);
+        }
+      });
+    } catch (error) {
+      logger.error(`EXCEPTION during globalShortcut.register for ${id} (${accelerator}):`, error);
+      return;
+    }
+
+    const isRegisteredAfter = globalShortcut.isRegistered(accelerator);
     if (!success) {
       // Registration can fail if another app has claimed the shortcut
-      // OR if on Wayland without GlobalShortcutsPortal enabled
-      logger.error(`FAILED to register hotkey: ${id} (${accelerator}). This may be due to a conflict or platform restriction.`);
+      // OR if on Wayland without GlobalShortcutsPortal enabled correctly
+      logger.error(`FAILED to register hotkey: ${id} (${accelerator}). Success: false. isRegistered post-check: ${isRegisteredAfter}`);
+      
+      if (isRegisteredAfter) {
+        logger.warn(`Hotkey ${id} reflects as registered despite failure return. This may indicate a portal conflict or unexpected Electron behavior on Wayland.`);
+      }
     } else {
       this._registeredShortcuts.set(id, accelerator);
-      logger.log(`Successfully registered hotkey: ${id} (${accelerator})`);
+      logger.log(`Successfully registered hotkey: ${id} (${accelerator}). isRegistered post-check: ${isRegisteredAfter}`);
     }
   }
 

@@ -51,6 +51,9 @@ export default class MainWindow extends BaseWindow {
     super(isDev, '[MainWindow]');
     this.windowConfig = {
       ...MAIN_WINDOW_CONFIG,
+      title: 'Gemini Desktop',
+      // On Linux, the WM_CLASS should match the executable/desktop ID
+      ...(process.platform === 'linux' ? { wmClass: 'gemini-desktop' } : {}),
       titleBarStyle: getTitleBarStyle(),
       icon: getIconPath(),
     };

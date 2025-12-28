@@ -57,7 +57,12 @@ export type HotkeyAccelerators = Record<HotkeyId, string>;
  * Used when no custom accelerator is configured.
  */
 export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
-  alwaysOnTop: 'CommandOrControl+Alt+T',
-  bossKey: 'CommandOrControl+Alt+E',
+  // Ctrl+Alt+P = Pin window (always on top)
+  // Note: Ctrl+Alt+T conflicts with GNOME terminal shortcut
+  alwaysOnTop: 'CommandOrControl+Alt+P',
+  // Ctrl+Alt+H = Hide window (boss key)
+  // Note: Ctrl+Alt+E was not conflicting but H is more intuitive
+  bossKey: 'CommandOrControl+Alt+H',
+  // Ctrl+Shift+Space = Quick Chat toggle
   quickChat: 'CommandOrControl+Shift+Space',
 };

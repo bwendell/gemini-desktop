@@ -18,40 +18,57 @@ import { createLogger } from './utils/logger';
 // Setup Logger
 const logger = createLogger('[Main]');
 
-// Fix for Linux Wayland Global Hotkeys:
-// Electron's globalShortcut API relies on X11. On Wayland, this fails.
-// We enable the 'GlobalShortcutsPortal' feature to use the XDG Desktop Portal backing.
 if (isLinux) {
-  app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
-  logger.log('Enabled GlobalShortcutsPortal for Linux/Wayland support');
+  // On Linux, the internal app name should match the executable/id for better WM_CLASS matching
+  app.setName('gemini-desktop');
   
-  // Log session type for debugging purposes
+  // Set desktop name for portal integration
+  try {
+    if (typeof (app as any).setDesktopName === 'function') {
+      (app as any).setDesktopName('gemini-desktop');
+    }
+  } catch (e) {
+    logger.error('Error calling setDesktopName:', e);
+  }
+
+  // Wayland Global Shortcuts:
+  // Global shortcuts on Wayland are challenging due to its security model.
+  // - Electron's globalShortcut API relies on X11 grab mechanisms
+  // - On pure Wayland, shortcuts require xdg-desktop-portal integration
+  // - XWayland compatibility mode often works but is unreliable on GNOME 46+
+  // 
+  // Current approach: Let Electron/Chromium use default behavior.
+  // If running on Wayland, hotkeys may not work and users should be informed.
+  // 
+  // See: https://github.com/nicolomaioli/gemini-desktop/issues/XXX
+  
+  const isWayland = process.env.XDG_SESSION_TYPE === 'wayland';
   logger.log(`XDG_SESSION_TYPE: ${process.env.XDG_SESSION_TYPE}`);
+  
+  if (isWayland) {
+    logger.warn('Wayland session detected. Global hotkeys may not work due to Wayland security restrictions.');
+    logger.warn('Workaround: Configure shortcuts in your desktop environment settings.');
+  }
+} else {
+  // Set application name for Windows/macOS
+  app.setName('Gemini Desktop');
 }
 
 /**
  * Initialize crash reporter EARLY (before app ready).
  * This is critical for preventing OS crash dialogs on Windows/macOS/Linux.
- *
- * Crash dumps are saved locally to the 'crashes' directory within userData.
- * If CRASH_REPORT_URL environment variable is set, reports will also be uploaded.
- *
- * @see https://www.electronjs.org/docs/latest/api/crash-reporter
  */
-
-// Configure custom crash dumps directory for organized storage
 const crashDumpsPath = path.join(app.getPath('userData'), 'crashes');
 app.setPath('crashDumps', crashDumpsPath);
 
-// Check for optional crash report server URL (for future use or enterprise deployments)
 const crashReportUrl = process.env.CRASH_REPORT_URL || '';
 
 crashReporter.start({
   productName: 'Gemini Desktop',
   submitURL: crashReportUrl,
-  uploadToServer: !!crashReportUrl, // Only upload if URL is configured
-  ignoreSystemCrashHandler: true, // Prevents OS crash dialogs (Windows Error Reporting, etc.)
-  rateLimit: true, // Limit to 1 crash report per hour (macOS/Windows)
+  uploadToServer: !!crashReportUrl,
+  ignoreSystemCrashHandler: true,
+  rateLimit: true,
   globalExtra: {
     version: app.getVersion(),
     platform: process.platform,
@@ -65,8 +82,6 @@ logger.log('Crash reporter initialized', {
   ignoreSystemCrashHandler: true,
 });
 
-// Set application name for Windows/Linux
-app.setName('Gemini Desktop');
 import WindowManager from './managers/windowManager';
 import IpcManager from './managers/ipcManager';
 import MenuManager from './managers/menuManager';

@@ -10,6 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type WindowManager from '../../../src/main/managers/windowManager';
+import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
 
 // ============================================================================
 // Mocks
@@ -23,6 +24,7 @@ const mockGlobalShortcut = vi.hoisted(() => ({
   register: vi.fn(),
   unregister: vi.fn(),
   unregisterAll: vi.fn(),
+  isRegistered: vi.fn().mockReturnValue(false),
 }));
 
 // Mock Electron module
@@ -126,8 +128,8 @@ describe('HotkeyManager', () => {
       });
       expect(customManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+H');
       // Others should have defaults
-      expect(customManager.getAccelerator('alwaysOnTop')).toBe('CommandOrControl+Alt+T');
-      expect(customManager.getAccelerator('quickChat')).toBe('CommandOrControl+Shift+Space');
+      expect(customManager.getAccelerator('alwaysOnTop')).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
+      expect(customManager.getAccelerator('quickChat')).toBe(DEFAULT_ACCELERATORS.quickChat);
     });
   });
 
@@ -152,18 +154,18 @@ describe('HotkeyManager', () => {
   describe('getAccelerators', () => {
     it('should return default accelerators', () => {
       expect(hotkeyManager.getAccelerators()).toEqual({
-        alwaysOnTop: 'CommandOrControl+Alt+T',
-        bossKey: 'CommandOrControl+Alt+E',
-        quickChat: 'CommandOrControl+Shift+Space',
+        alwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
+        bossKey: DEFAULT_ACCELERATORS.bossKey,
+        quickChat: DEFAULT_ACCELERATORS.quickChat,
       });
     });
   });
 
   describe('getAccelerator', () => {
     it('should return accelerator for specific hotkey', () => {
-      expect(hotkeyManager.getAccelerator('alwaysOnTop')).toBe('CommandOrControl+Alt+T');
-      expect(hotkeyManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+E');
-      expect(hotkeyManager.getAccelerator('quickChat')).toBe('CommandOrControl+Shift+Space');
+      expect(hotkeyManager.getAccelerator('alwaysOnTop')).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
+      expect(hotkeyManager.getAccelerator('bossKey')).toBe(DEFAULT_ACCELERATORS.bossKey);
+      expect(hotkeyManager.getAccelerator('quickChat')).toBe(DEFAULT_ACCELERATORS.quickChat);
     });
   });
 
@@ -172,15 +174,15 @@ describe('HotkeyManager', () => {
       expect(hotkeyManager.getFullSettings()).toEqual({
         alwaysOnTop: {
           enabled: true,
-          accelerator: 'CommandOrControl+Alt+T',
+          accelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
         },
         bossKey: {
           enabled: true,
-          accelerator: 'CommandOrControl+Alt+E',
+          accelerator: DEFAULT_ACCELERATORS.bossKey,
         },
         quickChat: {
           enabled: true,
-          accelerator: 'CommandOrControl+Shift+Space',
+          accelerator: DEFAULT_ACCELERATORS.quickChat,
         },
       });
     });
@@ -189,7 +191,7 @@ describe('HotkeyManager', () => {
       hotkeyManager.setIndividualEnabled('bossKey', false);
       const settings = hotkeyManager.getFullSettings();
       expect(settings.bossKey.enabled).toBe(false);
-      expect(settings.bossKey.accelerator).toBe('CommandOrControl+Alt+E');
+      expect(settings.bossKey.accelerator).toBe(DEFAULT_ACCELERATORS.bossKey);
     });
 
     it('should reflect changes to accelerators', () => {
@@ -215,14 +217,14 @@ describe('HotkeyManager', () => {
       hotkeyManager.registerShortcuts();
       vi.clearAllMocks();
 
-      // Change accelerator for enabled hotkey
-      hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H');
+      // Change accelerator for enabled hotkey (use a value that's not the default)
+      hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+B');
 
       // Should unregister old accelerator
-      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith('CommandOrControl+Alt+E');
+      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.bossKey);
       // Should register new accelerator
       expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-        'CommandOrControl+Alt+H',
+        'CommandOrControl+Alt+B',
         expect.any(Function)
       );
     });
@@ -240,7 +242,7 @@ describe('HotkeyManager', () => {
       vi.clearAllMocks();
 
       // Set to same value
-      hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+E');
+      hotkeyManager.setAccelerator('bossKey', DEFAULT_ACCELERATORS.bossKey);
 
       // Should not trigger any registration changes
       expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
@@ -295,7 +297,7 @@ describe('HotkeyManager', () => {
       hotkeyManager.setIndividualEnabled('quickChat', true);
 
       expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-        'CommandOrControl+Shift+Space',
+        DEFAULT_ACCELERATORS.quickChat,
         expect.any(Function)
       );
     });
@@ -307,7 +309,7 @@ describe('HotkeyManager', () => {
       // Now disable one
       hotkeyManager.setIndividualEnabled('bossKey', false);
 
-      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith('CommandOrControl+Alt+E');
+      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.bossKey);
     });
 
     it('should not call unregister if hotkey was never registered', () => {
@@ -360,15 +362,15 @@ describe('HotkeyManager', () => {
 
       expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
       expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-        'CommandOrControl+Alt+E',
+        DEFAULT_ACCELERATORS.bossKey,
         expect.any(Function)
       );
       expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-        'CommandOrControl+Shift+Space',
+        DEFAULT_ACCELERATORS.quickChat,
         expect.any(Function)
       );
       expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-        'CommandOrControl+Alt+T',
+        DEFAULT_ACCELERATORS.alwaysOnTop,
         expect.any(Function)
       );
     });
@@ -381,7 +383,7 @@ describe('HotkeyManager', () => {
 
       expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
       expect(mockGlobalShortcut.register).not.toHaveBeenCalledWith(
-        'CommandOrControl+Shift+Space',
+        DEFAULT_ACCELERATORS.quickChat,
         expect.any(Function)
       );
     });
@@ -405,7 +407,7 @@ describe('HotkeyManager', () => {
     it('should call minimizeMainWindow when boss key is triggered', () => {
       mockGlobalShortcut.register.mockImplementation(
         (accelerator: string, callback: () => void) => {
-          if (accelerator === 'CommandOrControl+Alt+E') {
+          if (accelerator === DEFAULT_ACCELERATORS.bossKey) {
             callback();
           }
           return true;
@@ -420,7 +422,7 @@ describe('HotkeyManager', () => {
     it('should call toggleQuickChat when quick chat hotkey is triggered', () => {
       mockGlobalShortcut.register.mockImplementation(
         (accelerator: string, callback: () => void) => {
-          if (accelerator === 'CommandOrControl+Shift+Space') {
+          if (accelerator === DEFAULT_ACCELERATORS.quickChat) {
             callback();
           }
           return true;
@@ -437,7 +439,7 @@ describe('HotkeyManager', () => {
 
       mockGlobalShortcut.register.mockImplementation(
         (accelerator: string, callback: () => void) => {
-          if (accelerator === 'CommandOrControl+Alt+T') {
+          if (accelerator === DEFAULT_ACCELERATORS.alwaysOnTop) {
             callback();
           }
           return true;
