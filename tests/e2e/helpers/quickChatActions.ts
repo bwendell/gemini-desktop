@@ -4,6 +4,13 @@
  * Provides utilities for testing the Quick Chat floating window feature.
  * Implements HotkeyActionHandler for integration with the hotkey testing infrastructure.
  *
+ * ## E2E Testing Approach
+ * - **Show/Toggle**: Uses hotkeyManager.executeHotkeyAction() to trigger the same
+ *   code path as when a user presses the global hotkey
+ * - **Hide**: Uses Escape key press (real user action) or IPC channel
+ * - **Submit**: Uses IPC channel (same as renderer button click)
+ * - **State Queries**: Uses BrowserWindow APIs (acceptable for reading state)
+ *
  * @module quickChatActions
  */
 
@@ -49,17 +56,38 @@ export interface QuickChatState extends HotkeyActionState {
 
 /**
  * Show the Quick Chat window.
- * Creates the window if it doesn't exist.
+ *
+ * Uses hotkeyManager.executeHotkeyAction() to trigger the same code path
+ * as when a user presses the Quick Chat global hotkey. This tests:
+ * - HotkeyManager action dispatch
+ * - WindowManager.showQuickChat()
+ * - Quick Chat window creation and display
+ *
+ * Note: Global hotkeys cannot be reliably simulated at the OS level in E2E tests,
+ * so we trigger the action handler directly. This still tests most of the stack.
  *
  * @returns Promise<void>
  */
 export async function showQuickChatWindow(): Promise<void> {
-  await browser.electron.execute(() => {
-    // Access windowManager through Node.js global scope
-    const windowManager = (global as any).windowManager;
+  E2ELogger.info('quick-chat-action', 'Showing Quick Chat via hotkey action trigger');
 
-    if (windowManager?.showQuickChat) {
-      windowManager.showQuickChat();
+  await browser.electron.execute(() => {
+    // Trigger via hotkeyManager action execution - same path as real hotkey press
+    const hotkeyManager = (global as any).hotkeyManager as
+      | { executeHotkeyAction?: (id: string) => void }
+      | undefined;
+
+    if (hotkeyManager?.executeHotkeyAction) {
+      // Execute the quickChat action - this calls windowManager.toggleQuickChat()
+      // which is the same code path as when the user presses the global hotkey
+      hotkeyManager.executeHotkeyAction('quickChat');
+    } else {
+      // Fallback: Use windowManager directly (less ideal but necessary for older code)
+      console.warn('[E2E] hotkeyManager.executeHotkeyAction not available, using fallback');
+      const windowManager = (global as any).windowManager;
+      if (windowManager?.showQuickChat) {
+        windowManager.showQuickChat();
+      }
     }
   });
 }
@@ -67,29 +95,50 @@ export async function showQuickChatWindow(): Promise<void> {
 /**
  * Hide the Quick Chat window.
  *
+ * Uses IPC to trigger the hide action, which is the same message that
+ * the Quick Chat renderer sends when Escape is pressed. This approach
+ * works regardless of which window currently has focus.
+ *
  * @returns Promise<void>
  */
 export async function hideQuickChatWindow(): Promise<void> {
-  await browser.electron.execute(() => {
-    const windowManager = (global as any).windowManager;
+  E2ELogger.info('quick-chat-action', 'Hiding Quick Chat via IPC');
 
-    if (windowManager?.hideQuickChat) {
-      windowManager.hideQuickChat();
-    }
+  await browser.electron.execute((electron: typeof import('electron')) => {
+    // Send the same IPC message that the Quick Chat Escape handler sends
+    const { ipcMain } = electron;
+    ipcMain.emit('quick-chat:cancel', { sender: null });
   });
+
+  // Small pause for window animation
+  await browser.pause(100);
 }
 
 /**
  * Toggle the Quick Chat window visibility.
  *
+ * Uses hotkeyManager.executeHotkeyAction() to trigger the toggle action.
+ * This is the same code path as when the user presses the global hotkey.
+ *
  * @returns Promise<void>
  */
 export async function toggleQuickChatWindow(): Promise<void> {
-  await browser.electron.execute(() => {
-    const windowManager = (global as any).windowManager;
+  E2ELogger.info('quick-chat-action', 'Toggling Quick Chat via hotkey action trigger');
 
-    if (windowManager?.toggleQuickChat) {
-      windowManager.toggleQuickChat();
+  await browser.electron.execute(() => {
+    const hotkeyManager = (global as any).hotkeyManager as
+      | { executeHotkeyAction?: (id: string) => void }
+      | undefined;
+
+    if (hotkeyManager?.executeHotkeyAction) {
+      hotkeyManager.executeHotkeyAction('quickChat');
+    } else {
+      // Fallback
+      console.warn('[E2E] hotkeyManager.executeHotkeyAction not available, using fallback');
+      const windowManager = (global as any).windowManager;
+      if (windowManager?.toggleQuickChat) {
+        windowManager.toggleQuickChat();
+      }
     }
   });
 }
@@ -124,84 +173,60 @@ export async function getQuickChatState(): Promise<QuickChatState> {
  * Hide Quick Chat and focus main window WITHOUT injecting any text.
  * Use this to test window lifecycle behavior without sending messages to Gemini.
  *
+ * Uses IPC to cancel Quick Chat then switches browser context to main window.
+ *
  * @returns Promise<void>
  */
 export async function hideAndFocusMainWindow(): Promise<void> {
   E2ELogger.info(
     'quick-chat-action',
-    'Hiding Quick Chat and focusing main window (NO text injection)'
+    'Hiding Quick Chat via IPC and switching to main window'
   );
 
-  await browser.electron.execute(() => {
-    const windowManager = (global as any).windowManager as
-      | {
-          hideQuickChat?: () => void;
-          focusMainWindow?: () => void;
-        }
-      | undefined;
-
-    if (!windowManager) {
-      console.warn('[E2E] WindowManager not available');
-      return;
-    }
-
-    // Hide the Quick Chat window
-    windowManager.hideQuickChat?.();
-
-    // Focus the main window
-    windowManager.focusMainWindow?.();
+  // Send IPC to cancel Quick Chat (works from any window context)
+  await browser.electron.execute((electron: typeof import('electron')) => {
+    const { ipcMain } = electron;
+    ipcMain.emit('quick-chat:cancel', { sender: null });
   });
+
+  // Wait for window animation
+  await browser.pause(150);
+
+  // Switch to main window (first window handle)
+  const handles = await browser.getWindowHandles();
+  if (handles.length > 0) {
+    await browser.switchToWindow(handles[0]);
+  }
 }
 
 /**
- * Simulate submitting text via Quick Chat.
- * This properly emits the IPC event to trigger text injection.
+ * Submit text via Quick Chat.
+ *
+ * Sends the IPC message that the Quick Chat submit button sends. This tests
+ * the same code path as when a user clicks the submit button:
+ * - IPC 'quick-chat:submit' message
+ * - Main process handler in ipcManager
+ * - Text injection into Gemini
+ * - Window hide and main window focus
  *
  * @param text - The text to submit
  * @returns Promise<void>
  */
 export async function submitQuickChatText(text: string): Promise<void> {
-  // Log before execution since we can't use E2ELogger inside browser.electron.execute
-  E2ELogger.info('quick-chat-action', `Submitting text (${text.length} chars)`);
+  E2ELogger.info('quick-chat-action', `Submitting text via IPC (${text.length} chars)`);
 
-  await browser.electron.execute((_electron: typeof import('electron'), submittedText: string) => {
-    // Access managers through Node.js global scope
-    const windowManager = (global as any).windowManager as
-      | {
-          hideQuickChat?: () => void;
-          focusMainWindow?: () => void;
-        }
-      | undefined;
+  // Send the same IPC message that the Quick Chat submit button sends
+  await browser.electron.execute(
+    (electron: typeof import('electron'), submittedText: string) => {
+      // Send via ipcMain emit - same as if renderer called ipcRenderer.send()
+      const { ipcMain } = electron;
+      ipcMain.emit('quick-chat:submit', { sender: null }, submittedText);
+    },
+    text
+  );
 
-    // Defensive: check WindowManager exists
-    if (!windowManager) {
-      console.warn('[E2E] WindowManager not available for Quick Chat submit');
-      return;
-    }
-
-    // Log the submission (console.log is the only option inside execute)
-    console.log('[E2E] Quick Chat submit:', submittedText.substring(0, 50));
-
-    // Hide the Quick Chat window
-    windowManager.hideQuickChat?.();
-
-    // Focus the main window
-    windowManager.focusMainWindow?.();
-
-    // Access IpcManager from global scope
-    const ipcManager = (global as any).ipcManager as
-      | {
-          _injectTextIntoGemini?: (text: string) => Promise<void>;
-        }
-      | undefined;
-
-    // Try to inject directly if the method is exposed
-    if (ipcManager?._injectTextIntoGemini) {
-      ipcManager._injectTextIntoGemini(submittedText);
-    } else {
-      console.warn('[E2E] IpcManager._injectTextIntoGemini not available');
-    }
-  }, text);
+  // Wait for IPC processing
+  await browser.pause(200);
 }
 
 /**

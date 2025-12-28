@@ -15,6 +15,7 @@
 
 import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
+import { E2E_TIMING } from './e2eConstants';
 
 // ============================================================================
 // Types
@@ -129,7 +130,7 @@ export async function maximizeWindow(): Promise<void> {
   });
 
   // Give the window time to transition
-  await browser.pause(300);
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
 }
 
 /**
@@ -142,7 +143,7 @@ export async function minimizeWindow(): Promise<void> {
     (window as any).electronAPI?.minimizeWindow?.();
   });
 
-  await browser.pause(300);
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
 }
 
 /**
@@ -167,7 +168,7 @@ export async function restoreWindow(): Promise<void> {
     }
   });
 
-  await browser.pause(300);
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
 }
 
 /**
@@ -194,7 +195,7 @@ export async function hideWindow(): Promise<void> {
     }
   });
 
-  await browser.pause(300);
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
 }
 
 /**
@@ -211,7 +212,7 @@ export async function showWindow(): Promise<void> {
     }
   });
 
-  await browser.pause(300);
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
 }
 
 // ============================================================================

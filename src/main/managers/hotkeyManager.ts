@@ -419,6 +419,26 @@ export default class HotkeyManager {
   }
 
   /**
+   * Execute a hotkey action programmatically.
+   *
+   * This method exists primarily for E2E testing, allowing tests to trigger
+   * the same code path that would be executed when a user presses the hotkey.
+   *
+   * @param id - The hotkey identifier (e.g., 'quickChat', 'bossKey', 'alwaysOnTop')
+   */
+  executeHotkeyAction(id: HotkeyId): void {
+    const shortcutAction = this.shortcutActions.find((s) => s.id === id);
+
+    if (!shortcutAction) {
+      logger.warn(`No action found for hotkey: ${id}`);
+      return;
+    }
+
+    logger.log(`Executing hotkey action programmatically: ${id}`);
+    shortcutAction.action();
+  }
+
+  /**
    * Unregister all global shortcuts from the system.
    *
    * This method is called:

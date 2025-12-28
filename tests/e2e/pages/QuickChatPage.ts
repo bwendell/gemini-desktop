@@ -221,6 +221,14 @@ export class QuickChatPage extends BasePage {
   }
 
   /**
+   * Check if the submit button is displayed.
+   * @returns True if the submit button is displayed
+   */
+  async isSubmitDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.submitButtonSelector);
+  }
+
+  /**
    * Get the full Quick Chat window state.
    * @returns The QuickChatState object with window state details
    */

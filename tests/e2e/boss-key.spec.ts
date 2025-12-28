@@ -11,17 +11,28 @@
  * @module boss-key.spec
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
+import { expect } from '@wdio/globals';
+import { MainWindowPage } from './pages';
 import { E2ELogger } from './helpers/logger';
 import { isHotkeyRegistered, REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import {
+  isWindowMinimized,
+  isWindowVisible,
+  minimizeWindow,
+  restoreWindow,
+  showWindow,
+} from './helpers/windowStateActions';
 
 describe('Boss Key (Hide All Windows)', () => {
+  const mainWindow = new MainWindowPage();
+
   beforeEach(async () => {
-    // Ensure app is loaded
-    const mainLayout = await $(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout: 15000 });
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    await ensureSingleWindow();
   });
 
   describe('Hotkey Registration', () => {
@@ -54,108 +65,46 @@ describe('Boss Key (Hide All Windows)', () => {
   describe('Boss Key Action', () => {
     it('should minimize main window when boss key is triggered', async () => {
       // 1. Verify main window is visible initially
-      const initialVisibility = await browser.electron.execute(
-        (electron: typeof import('electron')) => {
-          const wins = electron.BrowserWindow.getAllWindows();
-          const mainWindow = wins.find((w) => !w.isDestroyed());
-          return mainWindow?.isVisible() ?? false;
-        }
-      );
+      const initialVisibility = await isWindowVisible();
       expect(initialVisibility).toBe(true);
       E2ELogger.info('boss-key', 'Main window is visible initially');
 
-      // 2. Trigger boss key action via IPC (simulating hotkey)
-      await browser.electron.execute((electron: typeof import('electron')) => {
-        const wins = electron.BrowserWindow.getAllWindows();
-        const mainWindow = wins.find((w) => !w.isDestroyed());
-        if (mainWindow) {
-          mainWindow.minimize();
-        }
-      });
-
-      await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+      // 2. Minimize the window (simulating boss key action)
+      await minimizeWindow();
 
       // 3. Verify window is minimized
-      const afterMinimize = await browser.electron.execute(
-        (electron: typeof import('electron')) => {
-          const wins = electron.BrowserWindow.getAllWindows();
-          const mainWindow = wins.find((w) => !w.isDestroyed());
-          return {
-            minimized: mainWindow?.isMinimized() ?? false,
-            visible: mainWindow?.isVisible() ?? true,
-          };
-        }
-      );
+      const minimized = await isWindowMinimized();
+      const visible = await isWindowVisible();
 
       // Window should be minimized (or hidden on some systems)
-      expect(afterMinimize.minimized || !afterMinimize.visible).toBe(true);
-      E2ELogger.info(
-        'boss-key',
-        `After boss key: minimized=${afterMinimize.minimized}, visible=${afterMinimize.visible}`
-      );
+      expect(minimized || !visible).toBe(true);
+      E2ELogger.info('boss-key', `After boss key: minimized=${minimized}, visible=${visible}`);
 
       // 4. Restore window for cleanup
-      await browser.electron.execute((electron: typeof import('electron')) => {
-        const wins = electron.BrowserWindow.getAllWindows();
-        const mainWindow = wins.find((w) => !w.isDestroyed());
-        if (mainWindow) {
-          mainWindow.restore();
-          mainWindow.show();
-          mainWindow.focus();
-        }
-      });
-
-      await browser.pause(E2E_TIMING.WINDOW_ANIMATION);
+      await restoreWindow();
+      await showWindow();
 
       // 5. Verify window is restored
-      const afterRestore = await browser.electron.execute((electron: typeof import('electron')) => {
-        const wins = electron.BrowserWindow.getAllWindows();
-        const mainWindow = wins.find((w) => !w.isDestroyed());
-        return mainWindow?.isVisible() ?? false;
-      });
+      const afterRestore = await isWindowVisible();
       expect(afterRestore).toBe(true);
       E2ELogger.info('boss-key', 'Window restored successfully');
     });
 
     it('should remain hidden until explicitly restored', async () => {
       // 1. Minimize the window
-      await browser.electron.execute((electron: typeof import('electron')) => {
-        const wins = electron.BrowserWindow.getAllWindows();
-        const mainWindow = wins.find((w) => !w.isDestroyed());
-        if (mainWindow) {
-          mainWindow.minimize();
-        }
-      });
-
-      await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+      await minimizeWindow();
 
       // 2. Wait a moment to ensure it stays hidden
-      await browser.pause(1000);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // 3. Check it's still minimized
-      const stillMinimized = await browser.electron.execute(
-        (electron: typeof import('electron')) => {
-          const wins = electron.BrowserWindow.getAllWindows();
-          const mainWindow = wins.find((w) => !w.isDestroyed());
-          return mainWindow?.isMinimized() ?? false;
-        }
-      );
-
+      const stillMinimized = await isWindowMinimized();
       expect(stillMinimized).toBe(true);
       E2ELogger.info('boss-key', 'Window remained minimized as expected');
 
       // 4. Cleanup - restore
-      await browser.electron.execute((electron: typeof import('electron')) => {
-        const wins = electron.BrowserWindow.getAllWindows();
-        const mainWindow = wins.find((w) => !w.isDestroyed());
-        if (mainWindow) {
-          mainWindow.restore();
-          mainWindow.show();
-          mainWindow.focus();
-        }
-      });
-
-      await browser.pause(E2E_TIMING.WINDOW_ANIMATION);
+      await restoreWindow();
+      await showWindow();
     });
   });
 
@@ -166,14 +115,13 @@ describe('Boss Key (Hide All Windows)', () => {
 
       E2ELogger.info('boss-key', 'Boss key affects main window; options window behavior may vary');
 
-      // Just verify the main window can still be minimized
-      const canMinimize = await browser.electron.execute((electron: typeof import('electron')) => {
-        const wins = electron.BrowserWindow.getAllWindows();
-        const mainWindow = wins.find((w) => !w.isDestroyed() && w.minimizable !== false);
-        return mainWindow !== undefined;
-      });
+      // Verify the main window is loaded and can be minimized
+      const isLoaded = await mainWindow.isLoaded();
+      expect(isLoaded).toBe(true);
 
-      expect(canMinimize).toBe(true);
+      // Verify window is currently visible (minimizable state)
+      const isVisible = await isWindowVisible();
+      expect(isVisible).toBe(true);
     });
   });
 });

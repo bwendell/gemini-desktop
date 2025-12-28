@@ -3,6 +3,11 @@
  *
  * Provides utilities for testing the system tray functionality.
  *
+ * ## E2E Testing Approach
+ * - **Tray Click/Show**: Uses trayManager.executeTrayAction() to trigger the same
+ *   code path as when a user clicks the tray icon
+ * - **State Queries**: Uses trayManager APIs (acceptable for reading state)
+ *
  * @module trayActions
  */
 
@@ -98,42 +103,53 @@ export async function getTrayState(): Promise<TrayState> {
 }
 
 /**
- * Simulate a click on the tray icon.
- * This triggers the 'click' event handler on the tray.
+ * Trigger a tray click action.
+ *
+ * Uses trayManager.executeTrayAction() to trigger the same code path
+ * as when a user clicks the tray icon. This tests:
+ * - TrayManager action dispatch
+ * - WindowManager.restoreFromTray()
+ * - Window show and focus
  *
  * @returns Promise<void>
  */
 export async function simulateTrayClick(): Promise<void> {
-  E2ELogger.info('tray', 'Simulating tray click');
+  E2ELogger.info('tray', 'Triggering tray click via action executor');
 
   await browser.electron.execute(() => {
-    const trayManager = (global as any).trayManager as E2ETrayManager | undefined;
+    const trayManager = (global as any).trayManager as
+      | { executeTrayAction?: (action: string) => void }
+      | undefined;
 
-    if (!trayManager) {
-      console.warn('[E2E] TrayManager not available');
-      return;
-    }
-
-    const tray = trayManager.getTray?.();
-
-    if (tray && !tray.isDestroyed()) {
-      // Emit click event to trigger the handler
-      tray.emit('click');
+    if (trayManager?.executeTrayAction) {
+      trayManager.executeTrayAction('click');
+    } else {
+      // Fallback: emit click event directly (less ideal)
+      console.warn('[E2E] trayManager.executeTrayAction not available, using fallback');
+      const tray = (trayManager as any)?.getTray?.();
+      if (tray && !tray.isDestroyed()) {
+        tray.emit('click');
+      }
     }
   });
 }
 
 /**
- * Simulate a right-click on the tray icon.
- * This triggers the 'right-click' event handler on the tray.
+ * Trigger a tray right-click (context menu) action.
+ *
+ * Note: Right-click typically shows a context menu which cannot be
+ * interacted with via WebDriver. This function triggers the right-click
+ * event handler for testing the event is received.
  *
  * @returns Promise<void>
  */
 export async function simulateTrayRightClick(): Promise<void> {
-  E2ELogger.info('tray', 'Simulating tray right-click');
+  E2ELogger.info('tray', 'Triggering tray right-click event');
 
   await browser.electron.execute(() => {
-    const trayManager = (global as any).trayManager as E2ETrayManager | undefined;
+    const trayManager = (global as any).trayManager as
+      | { getTray?: () => Electron.Tray | null }
+      | undefined;
 
     if (!trayManager) {
       console.warn('[E2E] TrayManager not available');
@@ -143,7 +159,7 @@ export async function simulateTrayRightClick(): Promise<void> {
     const tray = trayManager.getTray?.();
 
     if (tray && !tray.isDestroyed()) {
-      // Emit right-click event
+      // Right-click shows context menu - emit event for testing
       tray.emit('right-click');
     }
   });
@@ -180,27 +196,39 @@ export async function getTrayContextMenuItems(): Promise<TrayMenuItem[]> {
 }
 
 /**
- * Click a tray context menu item by simulating the menu action.
- * Since we can't directly access context menu items, we simulate
- * the action that would be taken.
+ * Execute a tray menu action.
+ *
+ * Uses trayManager.executeTrayAction() to trigger the same code path
+ * as when a user clicks a tray menu item. This tests:
+ * - TrayManager action dispatch
+ * - WindowManager.restoreFromTray() for 'show'
+ * - app.quit() for 'quit'
  *
  * @param action - 'show' or 'quit'
  * @returns Promise<void>
  */
 export async function clickTrayMenuItem(action: 'show' | 'quit'): Promise<void> {
-  E2ELogger.info('tray', `Clicking tray menu item: ${action}`);
+  E2ELogger.info('tray', `Executing tray menu action: ${action}`);
 
-  await browser.electron.execute((electron: typeof import('electron'), menuAction: string) => {
-    const windowManager = (global as any).windowManager as
-      | {
-          restoreFromTray?: () => void;
-        }
+  await browser.electron.execute((_electron: typeof import('electron'), menuAction: string) => {
+    const trayManager = (global as any).trayManager as
+      | { executeTrayAction?: (action: string) => void }
       | undefined;
 
-    if (menuAction === 'show') {
-      windowManager?.restoreFromTray?.();
-    } else if (menuAction === 'quit') {
-      electron.app.quit();
+    if (trayManager?.executeTrayAction) {
+      trayManager.executeTrayAction(menuAction);
+    } else {
+      // Fallback: call windowManager directly (less ideal)
+      console.warn('[E2E] trayManager.executeTrayAction not available, using fallback');
+      const windowManager = (global as any).windowManager as
+        | { restoreFromTray?: () => void }
+        | undefined;
+
+      if (menuAction === 'show') {
+        windowManager?.restoreFromTray?.();
+      } else if (menuAction === 'quit') {
+        _electron.app.quit();
+      }
     }
   }, action);
 }

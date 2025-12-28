@@ -20,7 +20,13 @@ import {
   verifyTrayCreated,
   TrayState,
 } from '../helpers/trayActions';
-import { isWindowVisible, closeWindow } from '../helpers/windowStateActions';
+import {
+  isWindowVisible,
+  isWindowMinimized,
+  closeWindow,
+} from '../helpers/windowStateActions';
+import { isLinux } from '../helpers/platform';
+import { Selectors } from '../helpers/selectors';
 
 /**
  * Page Object for the System Tray.
@@ -178,6 +184,68 @@ export class TrayPage extends BasePage {
    */
   async isWindowVisible(): Promise<boolean> {
     return isWindowVisible();
+  }
+
+  /**
+   * Check if the main window is minimized.
+   * @returns True if the main window is minimized
+   */
+  async isWindowMinimized(): Promise<boolean> {
+    return isWindowMinimized();
+  }
+
+  /**
+   * Check if the window is hidden to tray (not visible AND not minimized).
+   * This distinguishes between minimize-to-taskbar and hide-to-tray states.
+   * @returns True if window is hidden to tray
+   */
+  async isHiddenToTray(): Promise<boolean> {
+    const visible = await isWindowVisible();
+    const minimized = await isWindowMinimized();
+    // Hidden to tray = not visible AND not minimized
+    return !visible && !minimized;
+  }
+
+  /**
+   * Check if the window is skipping the taskbar (Windows/Linux only).
+   * On macOS, this always returns false as there's no taskbar concept.
+   * @returns True if window is set to skip taskbar
+   */
+  async isSkipTaskbar(): Promise<boolean> {
+    return browser.electron.execute((electron: typeof import('electron')) => {
+      const windows = electron.BrowserWindow.getAllWindows();
+      const mainWindow = windows[0];
+
+      if (!mainWindow) return false;
+
+      // This property is only meaningful on Windows/Linux
+      return mainWindow.isSkipTaskbar?.() ?? false;
+    });
+  }
+
+  /**
+   * Check if running on Linux CI (headless Xvfb environment).
+   * Used to skip certain tests that don't work reliably in Xvfb.
+   * @returns True if running on Linux CI
+   */
+  async isLinuxCI(): Promise<boolean> {
+    if (!(await isLinux())) return false;
+
+    return browser.electron.execute(() => {
+      return !!(process.env.CI || process.env.GITHUB_ACTIONS);
+    });
+  }
+
+  /**
+   * Hide the main window to tray by clicking the close button.
+   * This is the preferred method as it simulates real user interaction.
+   */
+  async hideViaCloseButton(): Promise<void> {
+    this.log('Hiding window to tray via close button');
+    const closeBtn = await browser.$(Selectors.closeButton);
+    await closeBtn.waitForClickable({ timeout: 5000 });
+    await closeBtn.click();
+    await this.pause(300);
   }
 
   /**

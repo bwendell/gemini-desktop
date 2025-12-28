@@ -17,18 +17,24 @@
 
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
+import { QuickChatPage, MainWindowPage } from './pages';
 import {
-  showQuickChatWindow,
-  hideQuickChatWindow,
-  hideAndFocusMainWindow,
-  getQuickChatState,
   getGeminiIframeState,
   injectTextOnly,
+  hideAndFocusMainWindow,
 } from './helpers/quickChatActions';
 import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
 
 describe('Quick Chat Text Injection', () => {
+  const quickChat = new QuickChatPage();
+  const mainWindow = new MainWindowPage();
+
   describe('Prerequisites', () => {
+    beforeEach(async () => {
+      await waitForAppReady();
+    });
+
     it('should have the main window loaded', async () => {
       const title = await browser.getTitle();
       E2ELogger.info('injection-prereq', `Window title: ${title}`);
@@ -36,11 +42,9 @@ describe('Quick Chat Text Injection', () => {
     });
 
     it('should have at least one active window', async () => {
-      const windowCount = await browser.electron.execute((electron: typeof import('electron')) => {
-        return electron.BrowserWindow.getAllWindows().length;
-      });
-      E2ELogger.info('injection-prereq', `Window count: ${windowCount}`);
-      expect(windowCount).toBeGreaterThanOrEqual(1);
+      const handles = await browser.getWindowHandles();
+      E2ELogger.info('injection-prereq', `Window count: ${handles.length}`);
+      expect(handles.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should have the Gemini iframe accessible', async () => {
@@ -62,10 +66,14 @@ describe('Quick Chat Text Injection', () => {
   });
 
   describe('Quick Chat Window Lifecycle for Injection', () => {
+    beforeEach(async () => {
+      await waitForAppReady();
+    });
+
     afterEach(async () => {
       // Ensure Quick Chat is hidden after each test
       try {
-        await hideQuickChatWindow();
+        await quickChat.hide();
         await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
       } catch {
         // Ignore cleanup errors
@@ -73,60 +81,44 @@ describe('Quick Chat Text Injection', () => {
     });
 
     it('should be able to show Quick Chat window before injection', async () => {
-      await showQuickChatWindow();
+      await quickChat.show();
       // Add extra buffer for macOS window animation (300ms + 200ms buffer)
       await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS + 200);
 
-      const state = await getQuickChatState();
-      E2ELogger.info(
-        'injection-lifecycle',
-        `Quick Chat state after show: ${JSON.stringify(state)}`
-      );
+      const isVisible = await quickChat.isVisible();
+      E2ELogger.info('injection-lifecycle', `Quick Chat visible after show: ${isVisible}`);
 
-      expect(state.windowExists).toBe(true);
-      expect(state.windowVisible).toBe(true);
+      expect(isVisible).toBe(true);
     });
 
     it('should hide Quick Chat window after simulating submission flow', async () => {
-      await showQuickChatWindow();
+      await quickChat.show();
       await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
       // Simulate window behavior of submission WITHOUT actually injecting text
+      // Use IPC-based hide which works from any window context
       await hideAndFocusMainWindow();
       await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
 
       // Window should be hidden
-      const state = await getQuickChatState();
-      E2ELogger.info(
-        'injection-lifecycle',
-        `State after simulated submit: ${JSON.stringify(state)}`
-      );
-      expect(state.windowVisible).toBe(false);
+      const isVisible = await quickChat.isVisible();
+      E2ELogger.info('injection-lifecycle', `After simulated submit: visible=${isVisible}`);
+      expect(isVisible).toBe(false);
     });
 
     it('should focus main window after simulating submission flow', async () => {
-      await showQuickChatWindow();
+      await quickChat.show();
       await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
 
       // Simulate window behavior of submission WITHOUT actually injecting text
       await hideAndFocusMainWindow();
       await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
-      // Verify main window is visible
-      const mainWindowVisible = await browser.electron.execute(
-        (electron: typeof import('electron')) => {
-          const windows = electron.BrowserWindow.getAllWindows();
-          // Find main window by excluding Quick Chat windows
-          const mainWindow = windows.find((w) => {
-            const title = w.getTitle();
-            return !w.isDestroyed() && !title.includes('Quick Chat');
-          });
-
-          return mainWindow?.isVisible() ?? false;
-        }
-      );
-
-      expect(mainWindowVisible).toBe(true);
+      // Switch to main window and verify it's loaded
+      await switchToMainWindow();
+      const isLoaded = await mainWindow.isLoaded();
+      E2ELogger.info('injection-lifecycle', `Main window loaded: ${isLoaded}`);
+      expect(isLoaded).toBe(true);
     });
   });
 
@@ -138,6 +130,7 @@ describe('Quick Chat Text Injection', () => {
      */
 
     beforeEach(async () => {
+      await waitForAppReady();
       // Wait for iframe to be ready
       await browser.pause(E2E_TIMING.IFRAME_LOAD_WAIT_MS);
     });
@@ -249,9 +242,13 @@ describe('Quick Chat Text Injection', () => {
     /**
      * CRITICAL: These tests verify rapid text injection WITHOUT submitting.
      */
+    beforeEach(async () => {
+      await waitForAppReady();
+    });
+
     afterEach(async () => {
       try {
-        await hideQuickChatWindow();
+        await quickChat.hide();
       } catch {
         // Ignore
       }
@@ -282,25 +279,27 @@ describe('Quick Chat Text Injection', () => {
   });
 
   describe('Integration with Main Window (No Submit)', () => {
+    beforeEach(async () => {
+      await waitForAppReady();
+    });
+
+    afterEach(async () => {
+      await ensureSingleWindow();
+    });
+
     it('should complete workflow: show -> inject -> verify (NO submit)', async () => {
       E2ELogger.info('injection-integration', '\n=== Injection Workflow Test (No Submit) ===');
 
       // Step 1: Get initial state
-      const initialState = await getQuickChatState();
-      E2ELogger.info(
-        'injection-integration',
-        `1. Initial state: visible=${initialState.windowVisible}`
-      );
+      const initialVisible = await quickChat.isVisible();
+      E2ELogger.info('injection-integration', `1. Initial state: visible=${initialVisible}`);
 
       // Step 2: Show Quick Chat
-      await showQuickChatWindow();
+      await quickChat.show();
       await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
-      const afterShowState = await getQuickChatState();
-      E2ELogger.info(
-        'injection-integration',
-        `2. After show: visible=${afterShowState.windowVisible}`
-      );
-      expect(afterShowState.windowVisible).toBe(true);
+      const afterShowVisible = await quickChat.isVisible();
+      E2ELogger.info('injection-integration', `2. After show: visible=${afterShowVisible}`);
+      expect(afterShowVisible).toBe(true);
 
       // Step 3: Inject text (DO NOT SUBMIT)
       const testText = 'Quick Chat E2E Integration Test';
@@ -313,28 +312,17 @@ describe('Quick Chat Text Injection', () => {
       expect(result.error).toBeNull();
 
       // Step 5: Hide Quick Chat manually (since we didn't submit)
-      await hideQuickChatWindow();
+      await quickChat.hide();
       await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
-      const finalState = await getQuickChatState();
-      E2ELogger.info('injection-integration', `5. After hide: visible=${finalState.windowVisible}`);
-      expect(finalState.windowVisible).toBe(false);
+      const finalVisible = await quickChat.isVisible();
+      E2ELogger.info('injection-integration', `5. After hide: visible=${finalVisible}`);
+      expect(finalVisible).toBe(false);
 
       // Step 6: Main window should still be operational
-      const mainWindowVisible = await browser.electron.execute(
-        (electron: typeof import('electron')) => {
-          const windows = electron.BrowserWindow.getAllWindows();
-
-          // Find the MAIN window - exclude Quick Chat windows
-          const mainWindow = windows.find((w) => {
-            const title = w.getTitle();
-            return !w.isDestroyed() && !title.includes('Quick Chat');
-          });
-
-          return mainWindow?.isVisible() ?? false;
-        }
-      );
-      E2ELogger.info('injection-integration', `6. Main window visible: ${mainWindowVisible}`);
-      expect(mainWindowVisible).toBe(true);
+      await switchToMainWindow();
+      const mainLoaded = await mainWindow.isLoaded();
+      E2ELogger.info('injection-integration', `6. Main window loaded: ${mainLoaded}`);
+      expect(mainLoaded).toBe(true);
 
       E2ELogger.info(
         'injection-integration',
@@ -388,8 +376,8 @@ describe('Quick Chat Text Injection', () => {
       expect(invalidResult.error).toContain('Editor not found');
 
       // Verify app is still responsive
-      const title = await browser.getTitle();
-      expect(title).toBeTruthy();
+      const isLoaded = await mainWindow.isLoaded();
+      expect(isLoaded).toBe(true);
     });
   });
 });

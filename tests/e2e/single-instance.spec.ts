@@ -1,14 +1,20 @@
-import { browser, expect, $ } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import { spawn } from 'child_process';
 import path from 'path';
 import electronPath from 'electron';
 import { fileURLToPath } from 'url';
-import { Selectors } from './helpers/selectors';
+import { MainWindowPage } from './pages';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import {
+  minimizeWindow,
+  restoreWindow,
+} from './helpers/windowStateActions';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const mainEntry = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
 
 describe('Single Instance Lock', () => {
+  const mainWindow = new MainWindowPage();
   let userDataPath: string;
 
   before(async () => {
@@ -17,7 +23,13 @@ describe('Single Instance Lock', () => {
     userDataPath = await browser.electron.execute((electron) => electron.app.getPath('userData'));
     
     // Ensure app is loaded
-    await $(Selectors.mainLayout).waitForExist({ timeout: 10000 });
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    // Ensure window is restored after tests that minimize
+    await restoreWindow();
+    await ensureSingleWindow();
   });
 
   it('should focus existing window when second instance is launched', async () => {
@@ -58,14 +70,12 @@ describe('Single Instance Lock', () => {
   it('should restore window from minimized state when second instance is launched', async () => {
     // 1. Action: Minimize the window using the custom titlebar button
     // This simulates a real user hiding the application
-    const minimizeBtn = await $(Selectors.minimizeButton);
-    // If we are on a platform without custom titlebar buttons accessible to WDIO, 
-    // we might need a fallback, but the selectors imply availability.
-    // Minimizing via browser command is also a "User Action" equivalent (clicking OS controls).
-    if (await minimizeBtn.isDisplayed()) {
-        await minimizeBtn.click();
+    const isMinimizeButtonVisible = await mainWindow.isMinimizeButtonDisplayed();
+    if (isMinimizeButtonVisible) {
+      await mainWindow.clickMinimize();
     } else {
-        await browser.minimizeWindow();
+      // On macOS or if custom titlebar is hidden, use the IPC API
+      await minimizeWindow();
     }
 
     // 2. Verify: Window is effectively hidden/minimized

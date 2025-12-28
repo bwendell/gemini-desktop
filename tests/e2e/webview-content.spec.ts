@@ -15,12 +15,14 @@
  * @module webview-content.spec
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
+import { browser, expect } from '@wdio/globals';
+import { MainWindowPage } from './pages';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
 
 /**
  * Get information about the webview/iframe frames.
+ * NOTE: This uses browser.electron.execute to read state, which is acceptable for verification.
  */
 async function getWebviewInfo(): Promise<{
   hasWebview: boolean;
@@ -64,6 +66,7 @@ async function getWebviewInfo(): Promise<{
 
 /**
  * Check if the webview has sandbox enabled.
+ * NOTE: This uses browser.electron.execute to read security state, which is acceptable for verification.
  */
 async function checkWebviewSecurity(): Promise<{
   sandboxEnabled: boolean;
@@ -93,16 +96,20 @@ async function checkWebviewSecurity(): Promise<{
 }
 
 describe('Webview Content Verification', () => {
+  const mainWindow = new MainWindowPage();
+
   beforeEach(async () => {
-    // Ensure app is loaded
-    const mainLayout = await $(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout: 15000 });
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    await ensureSingleWindow();
   });
 
   describe('Webview Container', () => {
     it('should have webview container in the main window', async () => {
-      const webviewContainer = await $(Selectors.webviewContainer);
-      await expect(webviewContainer).toBeExisting();
+      const isDisplayed = await mainWindow.isWebviewDisplayed();
+      expect(isDisplayed).toBe(true);
 
       E2ELogger.info('webview', 'Webview container exists');
     });
@@ -186,9 +193,8 @@ describe('Webview Content Verification', () => {
 
   describe('Navigation Behavior', () => {
     it('should maintain webview after window focus changes', async () => {
-      // Perform some action that might affect webview
+      // Perform focus cycle (simulates user switching windows and back)
       await browser.execute(() => {
-        // Trigger a focus cycle
         window.blur();
         window.focus();
       });
