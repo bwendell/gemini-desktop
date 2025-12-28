@@ -5,14 +5,26 @@
  * Verifies that the application successfully registers global hotkeys with the OS.
  * This is a critical sanity check to ensure the registration code path is executed
  * and accepted by the underlying platform (X11/Wayland/macOS/Windows).
+ *
+ * NOTE: Global hotkeys are disabled on Linux due to Wayland limitations.
+ * These tests are skipped on Linux and will log a message instead.
  */
 
 import { browser, expect } from '@wdio/globals';
 import { E2E_TIMING } from './helpers/e2eConstants';
+import { isLinux } from './helpers/platform';
+import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
 
 describe('Global Hotkey Registration', () => {
   it('should successfully register default hotkeys on startup', async () => {
     await browser.pause(E2E_TIMING.APP_STARTUP);
+
+    // Skip test on Linux - global hotkeys are disabled due to Wayland limitations
+    if (await isLinux()) {
+      console.log('[SKIPPED] Global hotkey registration test skipped on Linux.');
+      console.log('[SKIPPED] Global hotkeys are disabled due to Wayland limitations.');
+      return;
+    }
 
     // Verify registration status directly from the main process
     // This asks the OS (via Electron) "Is this key registered?"
@@ -23,8 +35,8 @@ describe('Global Hotkey Registration', () => {
         const { globalShortcut } = _electron;
         return {
           quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
-          bossKey: globalShortcut.isRegistered('CommandOrControl+Alt+E'),
-          alwaysOnTop: globalShortcut.isRegistered('CommandOrControl+Alt+T'),
+          bossKey: globalShortcut.isRegistered(DEFAULT_ACCELERATORS.bossKey),
+          alwaysOnTop: globalShortcut.isRegistered(DEFAULT_ACCELERATORS.alwaysOnTop),
           status: 'success'
         };
       } catch (error) {

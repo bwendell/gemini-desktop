@@ -37,6 +37,7 @@
 import { globalShortcut } from 'electron';
 import type WindowManager from './windowManager';
 import { createLogger } from '../utils/logger';
+import { isLinux } from '../utils/constants';
 import {
   type HotkeyId,
   type IndividualHotkeySettings,
@@ -47,6 +48,24 @@ import {
 } from '../types';
 
 const logger = createLogger('[HotkeyManager]');
+
+// ============================================================================
+// Feature Flags
+// ============================================================================
+
+/**
+ * Global hotkeys are disabled on Linux due to Wayland limitations.
+ * 
+ * Wayland's security model prevents applications from registering global
+ * shortcuts without explicit desktop portal integration. The current
+ * GlobalShortcutsPortal implementation in Chromium/Electron is unreliable
+ * on GNOME 46+ and other compositors.
+ * 
+ * When Wayland support improves, set this to `true` to re-enable.
+ * 
+ * @see https://github.com/nicolomaioli/gemini-desktop/issues/XXX
+ */
+const ENABLE_GLOBAL_HOTKEYS_ON_LINUX = false;
 
 // ============================================================================
 // Types
@@ -317,6 +336,12 @@ export default class HotkeyManager {
 
     this._individualSettings[id] = enabled;
 
+    // Skip registration on Linux when disabled (Wayland limitations)
+    if (isLinux && !ENABLE_GLOBAL_HOTKEYS_ON_LINUX) {
+      logger.log(`Hotkey setting updated: ${id} = ${enabled} (registration skipped on Linux)`);
+      return;
+    }
+
     if (enabled) {
       this._registerShortcutById(id);
       logger.log(`Hotkey enabled: ${id}`);
@@ -362,6 +387,13 @@ export default class HotkeyManager {
    * @see setIndividualEnabled - For enabling/disabling individual hotkeys
    */
   registerShortcuts(): void {
+    // Skip registration on Linux when disabled (Wayland limitations)
+    if (isLinux && !ENABLE_GLOBAL_HOTKEYS_ON_LINUX) {
+      logger.warn('Global hotkeys are disabled on Linux due to Wayland limitations.');
+      logger.warn('Users can configure shortcuts via their desktop environment settings.');
+      return;
+    }
+
     for (const id of HOTKEY_IDS) {
       if (this._individualSettings[id]) {
         this._registerShortcutById(id);

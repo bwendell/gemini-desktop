@@ -1,6 +1,7 @@
 import { MainLayout, OfflineOverlay, GeminiErrorBoundary } from './components';
 import { ThemeProvider } from './context/ThemeContext';
 import { UpdateToastProvider } from './context/UpdateToastContext';
+import { LinuxHotkeyNotice } from './components/toast';
 import { useGeminiIframe } from './hooks';
 import { GEMINI_APP_URL } from './utils/constants';
 import './App.css';
@@ -44,6 +45,7 @@ function App() {
             </div>
           </GeminiErrorBoundary>
         </MainLayout>
+        <LinuxHotkeyNotice />
       </UpdateToastProvider>
     </ThemeProvider>
   );

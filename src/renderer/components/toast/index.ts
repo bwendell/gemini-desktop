@@ -5,3 +5,5 @@
 
 export { UpdateToast } from './UpdateToast';
 export type { UpdateToastProps, UpdateNotificationType, UpdateInfo } from './UpdateToast';
+
+export { LinuxHotkeyNotice } from './LinuxHotkeyNotice';
