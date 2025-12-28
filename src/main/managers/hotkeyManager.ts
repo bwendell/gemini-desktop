@@ -390,7 +390,6 @@ export default class HotkeyManager {
     // Skip registration on Linux when disabled (Wayland limitations)
     if (isLinux && !ENABLE_GLOBAL_HOTKEYS_ON_LINUX) {
       logger.warn('Global hotkeys are disabled on Linux due to Wayland limitations.');
-      logger.warn('Users can configure shortcuts via their desktop environment settings.');
       return;
     }
 

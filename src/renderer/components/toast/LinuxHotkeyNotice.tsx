@@ -103,8 +103,7 @@ export function LinuxHotkeyNotice() {
             </div>
             <div className="linux-hotkey-notice__message">
               Global keyboard shortcuts are currently unavailable on Linux due to 
-              Wayland limitations. You can configure custom shortcuts in your 
-              desktop environment settings.
+              Wayland limitations.
             </div>
           </div>
 

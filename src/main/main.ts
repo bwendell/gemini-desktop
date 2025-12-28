@@ -46,8 +46,7 @@ if (isLinux) {
   logger.log(`XDG_SESSION_TYPE: ${process.env.XDG_SESSION_TYPE}`);
   
   if (isWayland) {
-    logger.warn('Wayland session detected. Global hotkeys may not work due to Wayland security restrictions.');
-    logger.warn('Workaround: Configure shortcuts in your desktop environment settings.');
+    logger.warn('Wayland session detected. Global hotkeys are disabled due to Wayland limitations.');
   }
 } else {
   // Set application name for Windows/macOS
