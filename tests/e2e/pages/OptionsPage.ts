@@ -286,6 +286,103 @@ export class OptionsPage extends BasePage {
   }
 
   // ===========================================================================
+  // AUTO-UPDATE TOGGLE
+  // ===========================================================================
+
+  /** Selector for the Updates section */
+  get updatesSectionSelector(): string {
+    return '[data-testid="options-updates"]';
+  }
+
+  /** Selector for the auto-update toggle container */
+  get autoUpdateToggleSelector(): string {
+    return '[data-testid="auto-update-toggle"]';
+  }
+
+  /** Selector for the auto-update toggle switch (the actual button with role="switch") */
+  get autoUpdateSwitchSelector(): string {
+    return '[data-testid="auto-update-toggle-switch-switch"]';
+  }
+
+  /**
+   * Check if the Updates section is displayed.
+   */
+  async isUpdatesSectionDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.updatesSectionSelector);
+  }
+
+  /**
+   * Get the Updates section heading text.
+   */
+  async getUpdatesSectionHeading(): Promise<string> {
+    const section = await this.$(this.updatesSectionSelector);
+    const heading = await section.$('h2');
+    return heading.getText();
+  }
+
+  /**
+   * Check if the auto-update toggle is displayed.
+   */
+  async isAutoUpdateToggleDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.autoUpdateToggleSelector);
+  }
+
+  /**
+   * Get the auto-update toggle text (label and description).
+   */
+  async getAutoUpdateToggleText(): Promise<string> {
+    return this.getElementText(this.autoUpdateToggleSelector);
+  }
+
+  /**
+   * Check if the auto-update switch has role="switch".
+   */
+  async getAutoUpdateSwitchRole(): Promise<string | null> {
+    const toggle = await this.$(this.autoUpdateSwitchSelector);
+    return toggle.getAttribute('role');
+  }
+
+  /**
+   * Check if auto-update is enabled.
+   */
+  async isAutoUpdateEnabled(): Promise<boolean> {
+    const toggle = await this.$(this.autoUpdateSwitchSelector);
+    const checked = await toggle.getAttribute('aria-checked');
+    return checked === 'true';
+  }
+
+  /**
+   * Toggle auto-update on or off.
+   */
+  async toggleAutoUpdate(): Promise<void> {
+    this.log('Toggling auto-update');
+    const toggle = await this.waitForElement(this.autoUpdateSwitchSelector);
+    await toggle.click();
+    // Wait for IPC round-trip and state propagation
+    await browser.pause(500);
+  }
+
+  /**
+   * Enable auto-update (if not already enabled).
+   */
+  async enableAutoUpdate(): Promise<void> {
+    const isEnabled = await this.isAutoUpdateEnabled();
+    if (!isEnabled) {
+      await this.toggleAutoUpdate();
+    }
+  }
+
+  /**
+   * Disable auto-update (if not already disabled).
+   */
+  async disableAutoUpdate(): Promise<void> {
+    const isEnabled = await this.isAutoUpdateEnabled();
+    if (isEnabled) {
+      await this.toggleAutoUpdate();
+    }
+  }
+
+  // ===========================================================================
   // ABOUT TAB QUERIES
   // ===========================================================================
 

@@ -256,4 +256,86 @@ export class MainWindowPage extends BasePage {
   async isWebviewDisplayed(): Promise<boolean> {
     return this.isElementDisplayed(this.webviewContainerSelector);
   }
+
+  // ===========================================================================
+  // Window Bounds Operations
+  // ===========================================================================
+
+  /**
+   * Interface for window bounds.
+   */
+  private static readonly WindowBoundsDefault = { x: 0, y: 0, width: 1200, height: 800 };
+
+  /**
+   * Get current window bounds from the main window.
+   */
+  async getWindowBounds(): Promise<{ x: number; y: number; width: number; height: number }> {
+    const bounds = await browser.electron.execute((electron: typeof import('electron')) => {
+      const wins = electron.BrowserWindow.getAllWindows();
+      const mainWindow = wins.find((w) => !w.isDestroyed());
+      if (!mainWindow) {
+        return { x: 0, y: 0, width: 1200, height: 800 };
+      }
+      return mainWindow.getBounds();
+    });
+    this.log(`Got window bounds: ${JSON.stringify(bounds)}`);
+    return bounds;
+  }
+
+  /**
+   * Set window bounds.
+   * @param bounds - The bounds to set (x, y, width, height)
+   */
+  async setWindowBounds(bounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): Promise<void> {
+    await browser.electron.execute(
+      (electron: typeof import('electron'), b: { x: number; y: number; width: number; height: number }) => {
+        const wins = electron.BrowserWindow.getAllWindows();
+        const mainWindow = wins.find((w) => !w.isDestroyed());
+        if (mainWindow) {
+          mainWindow.setBounds(b);
+        }
+      },
+      bounds
+    );
+    await this.pause(E2E_TIMING.ANIMATION_SETTLE);
+    this.log(`Set window bounds: ${JSON.stringify(bounds)}`);
+  }
+
+  /**
+   * Read window bounds settings from the settings file.
+   * @returns The saved window bounds, or null if not found
+   */
+  async readWindowBoundsFromSettings(): Promise<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null> {
+    const bounds = await browser.electron.execute((electron: typeof import('electron')) => {
+      const path = require('path');
+      const fs = require('fs');
+
+      const userDataPath = electron.app.getPath('userData');
+      const settingsPath = path.join(userDataPath, 'settings.json');
+
+      try {
+        if (!fs.existsSync(settingsPath)) {
+          return null;
+        }
+        const content = fs.readFileSync(settingsPath, 'utf-8');
+        const settings = JSON.parse(content);
+        return settings.windowBounds || null;
+      } catch (error) {
+        console.error('[E2E] Failed to read settings file:', error);
+        return null;
+      }
+    });
+    this.log(`Read window bounds from settings: ${JSON.stringify(bounds)}`);
+    return bounds;
+  }
 }

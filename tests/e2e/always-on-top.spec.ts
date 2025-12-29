@@ -14,9 +14,11 @@
  * - Edge cases
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { clickMenuItemById } from './helpers/menuActions';
+import { browser, expect } from '@wdio/globals';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { ensureSingleWindow } from './helpers/workflows';
+import { MainWindowPage } from './pages/MainWindowPage';
+import { OptionsPage } from './pages/OptionsPage';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
@@ -123,6 +125,9 @@ async function setWindowBounds(bounds: {
 // ============================================================================
 
 describe('Always On Top', () => {
+  const mainWindow = new MainWindowPage();
+  const optionsPage = new OptionsPage();
+
   let platform: string;
   let modifierKey: 'Meta' | 'Control';
   let mainWindowHandle: string;
@@ -181,12 +186,12 @@ describe('Always On Top', () => {
 
       E2ELogger.info('always-on-top', 'Verifying menu item exists');
 
-      await clickMenuItemById('menu-view-always-on-top');
+      await mainWindow.clickMenuById('menu-view-always-on-top');
       await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
       E2ELogger.info('always-on-top', 'Menu item exists and is clickable');
 
       // Toggle back to original state
-      await clickMenuItemById('menu-view-always-on-top');
+      await mainWindow.clickMenuById('menu-view-always-on-top');
       await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
     });
 
@@ -693,7 +698,7 @@ describe('Always On Top', () => {
 
         await setAlwaysOnTop(true);
 
-        await clickMenuItemById('menu-file-options');
+        await mainWindow.openOptionsViaMenu();
         await waitForWindowCount(2, 5000);
 
         await browser.switchToWindow(mainWindowHandle);
@@ -706,7 +711,7 @@ describe('Always On Top', () => {
 
         await setAlwaysOnTop(true);
 
-        await clickMenuItemById('menu-file-options');
+        await mainWindow.openOptionsViaMenu();
         await waitForWindowCount(2, 5000);
 
         const handles = await browser.getWindowHandles();
@@ -726,7 +731,7 @@ describe('Always On Top', () => {
       it('should toggle always-on-top while Options window is open', async () => {
         E2ELogger.info('always-on-top', 'Testing toggle with Options open');
 
-        await clickMenuItemById('menu-file-options');
+        await mainWindow.openOptionsViaMenu();
         await waitForWindowCount(2, 5000);
 
         await browser.switchToWindow(mainWindowHandle);
@@ -748,7 +753,7 @@ describe('Always On Top', () => {
 
         await setAlwaysOnTop(true);
 
-        await clickMenuItemById('menu-help-about');
+        await mainWindow.openAboutViaMenu();
         await waitForWindowCount(2, 5000);
 
         await browser.switchToWindow(mainWindowHandle);
@@ -761,7 +766,7 @@ describe('Always On Top', () => {
 
         await setAlwaysOnTop(true);
 
-        await clickMenuItemById('menu-help-about');
+        await mainWindow.openAboutViaMenu();
         await waitForWindowCount(2, 5000);
 
         const handles = await browser.getWindowHandles();
@@ -785,7 +790,7 @@ describe('Always On Top', () => {
 
         await setAlwaysOnTop(true);
 
-        await clickMenuItemById('menu-file-options');
+        await mainWindow.openOptionsViaMenu();
         await waitForWindowCount(2, 5000);
 
         const handles = await browser.getWindowHandles();
@@ -794,11 +799,10 @@ describe('Always On Top', () => {
         await browser.switchToWindow(optionsHandle);
         await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
-        // Interact with Options window
-        const themeCard = await $('[data-testid="theme-card-dark"]');
-        if (await themeCard.isExisting()) {
-          await themeCard.click();
-          await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+        // Interact with Options window using Page Object
+        await optionsPage.waitForLoad();
+        if (await optionsPage.isThemeSelectorDisplayed()) {
+          await optionsPage.selectTheme('dark');
         }
 
         await closeCurrentWindow();
