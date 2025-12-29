@@ -28,6 +28,12 @@ interface Window {
     cancelQuickChat: () => void;
     onQuickChatExecute: (callback: (text: string) => void) => () => void;
 
+    // Gemini Iframe Navigation API (for Quick Chat integration)
+    onGeminiNavigate: (
+      callback: (data: { url: string; text: string }) => void
+    ) => () => void;
+    signalGeminiReady: (text: string) => void;
+
     // Individual Hotkeys API
     getIndividualHotkeys: () => Promise<{
       alwaysOnTop: boolean;

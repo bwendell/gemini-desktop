@@ -106,7 +106,7 @@ describe('Gemini Selectors Module', () => {
     });
 
     it('exports GEMINI_SUBMIT_DELAY_MS', () => {
-      expect(GEMINI_SUBMIT_DELAY_MS).toBe(200);
+      expect(GEMINI_SUBMIT_DELAY_MS).toBe(500);
     });
   });
 

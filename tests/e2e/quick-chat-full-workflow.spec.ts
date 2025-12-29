@@ -1,0 +1,218 @@
+/**
+ * E2E Test: Quick Chat Full Workflow
+ *
+ * Tests the complete Quick Chat workflow from start to finish:
+ * 1. User pushes quick chat hotkey
+ * 2. Quick chat window opens
+ * 3. User types text
+ * 4. User hits enter or clicks submit button
+ * 5. Main window refreshes to gemini.google.com
+ * 6. User's text is automatically pasted in text box
+ * 7. Submit button is visible and clickable (NOT clicked - E2E flag prevents)
+ *
+ * IMPORTANT: This test clicks the REAL submit button, but the E2E flag
+ * (--e2e-disable-auto-submit) prevents actual submission to Gemini.
+ * This tests the full production code path.
+ *
+ * @module quick-chat-full-workflow.spec
+ */
+
+/// <reference path="./helpers/wdio-electron.d.ts" />
+
+import { browser, expect } from '@wdio/globals';
+import { QuickChatPage, MainWindowPage } from './pages';
+import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
+import { verifyGeminiEditorState, waitForTextInGeminiEditor } from './helpers/quickChatActions';
+import { E2ELogger } from './helpers/logger';
+import { E2E_TIMING } from './helpers/e2eConstants';
+
+describe('Quick Chat Full Workflow (E2E)', () => {
+  const quickChat = new QuickChatPage();
+  const mainWindow = new MainWindowPage();
+
+  before(async () => {
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    await ensureSingleWindow();
+  });
+
+  describe('Complete Production Path Test', () => {
+    it('should complete the full Quick Chat workflow with REAL button click', async () => {
+      /**
+       * This test exercises the REAL production code path:
+       * - Actually clicks the Quick Chat submit button
+       * - Actually triggers the IPC flow
+       * - Actually navigates to Gemini and injects text
+       * - Submit button is found but NOT clicked (E2E flag in ipcManager)
+       *
+       * This catches bugs that tests using injectTextOnly() would miss.
+       */
+
+      const testMessage = `E2E Full Workflow Test ${Date.now()}`;
+      E2ELogger.info('full-workflow', '\n=== Starting Full Quick Chat Workflow ===');
+      E2ELogger.info('full-workflow', `Test message: "${testMessage}"`);
+
+      // Step 1: Trigger Quick Chat via hotkey action (same as pressing hotkey)
+      E2ELogger.info('full-workflow', '1. Opening Quick Chat window...');
+      await quickChat.show();
+      await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+
+      // Step 2: Verify Quick Chat window opened
+      const foundQuickChat = await quickChat.switchToQuickChatWindow();
+      expect(foundQuickChat).toBe(true);
+      E2ELogger.info('full-workflow', '2. Quick Chat window opened ✓');
+
+      // Step 3: Type test message
+      E2ELogger.info('full-workflow', '3. Typing message...');
+      await quickChat.typeText(testMessage);
+      await browser.pause(300);
+
+      // Verify text was entered
+      const enteredValue = await quickChat.getInputValue();
+      expect(enteredValue).toBe(testMessage);
+      E2ELogger.info('full-workflow', `   Message entered: "${testMessage}" ✓`);
+
+      // Step 4: Click the REAL submit button (this triggers production IPC flow)
+      E2ELogger.info('full-workflow', '4. Clicking REAL submit button...');
+      const isSubmitEnabled = await quickChat.isSubmitEnabled();
+      expect(isSubmitEnabled).toBe(true);
+      
+      // Click submit - this triggers the production code path:
+      // renderer → IPC → ipcManager → navigate → inject text
+      await quickChat.submit();
+      E2ELogger.info('full-workflow', '   Submit button clicked ✓');
+
+      // Step 5: Wait for Quick Chat to hide and main window to process
+      E2ELogger.info('full-workflow', '5. Waiting for Quick Chat to hide...');
+      await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
+      
+      // Quick Chat should be hidden after submission
+      await quickChat.waitForHidden();
+      E2ELogger.info('full-workflow', '   Quick Chat hidden ✓');
+
+      // Step 6: Switch to main window and wait for Gemini to load
+      E2ELogger.info('full-workflow', '6. Switching to main window...');
+      await switchToMainWindow();
+      
+      // Wait for navigation and iframe loading
+      await browser.pause(E2E_TIMING.IFRAME_LOAD_WAIT_MS);
+      E2ELogger.info('full-workflow', '   Main window focused ✓');
+
+      // Step 7: Verify text was injected into Gemini editor
+      E2ELogger.info('full-workflow', '7. Verifying text injection into Gemini...');
+      
+      // Wait for text to appear in Gemini editor (with timeout)
+      const editorState = await waitForTextInGeminiEditor(testMessage, 10000);
+      
+      E2ELogger.info('full-workflow', `   Editor state: ${JSON.stringify(editorState)}`);
+      
+      // Verify the text was injected
+      expect(editorState.iframeFound).toBe(true);
+      expect(editorState.editorFound).toBe(true);
+      expect(editorState.editorText).toContain(testMessage);
+      E2ELogger.info('full-workflow', '   Text injected into Gemini ✓');
+
+      // Step 8: Verify submit button is visible and clickable (but NOT clicked due to E2E flag)
+      E2ELogger.info('full-workflow', '8. Verifying submit button state...');
+      expect(editorState.submitButtonFound).toBe(true);
+      // The button should be enabled (text is present)
+      expect(editorState.submitButtonEnabled).toBe(true);
+      E2ELogger.info('full-workflow', '   Submit button visible and clickable ✓');
+      E2ELogger.info('full-workflow', '   (NOT clicked due to E2E flag - message NOT sent to Gemini)');
+
+      E2ELogger.info('full-workflow', '\n=== Full Workflow Complete ===');
+      E2ELogger.info('full-workflow', 'Verified: Quick Chat → Type → Submit → Inject → Ready to send');
+      E2ELogger.info('full-workflow', 'E2E flag prevented actual Gemini submission ✓');
+    });
+
+    it('should complete workflow using Enter key instead of button click', async () => {
+      /**
+       * Same workflow but uses Enter key to submit instead of clicking button.
+       */
+
+      const testMessage = `E2E Enter Key Test ${Date.now()}`;
+      E2ELogger.info('enter-workflow', '\n=== Starting Enter Key Workflow ===');
+
+      // Open Quick Chat
+      await quickChat.show();
+      await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+      
+      const foundQuickChat = await quickChat.switchToQuickChatWindow();
+      expect(foundQuickChat).toBe(true);
+
+      // Type message
+      await quickChat.typeText(testMessage);
+      await browser.pause(300);
+
+      // Submit via Enter key
+      E2ELogger.info('enter-workflow', 'Submitting via Enter key...');
+      await quickChat.submitViaEnter();
+
+      // Wait for processing
+      await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
+      await quickChat.waitForHidden();
+
+      // Switch to main and verify
+      await switchToMainWindow();
+      await browser.pause(E2E_TIMING.IFRAME_LOAD_WAIT_MS);
+
+      const editorState = await waitForTextInGeminiEditor(testMessage, 10000);
+      
+      expect(editorState.editorText).toContain(testMessage);
+      expect(editorState.submitButtonFound).toBe(true);
+      
+      E2ELogger.info('enter-workflow', 'Enter key workflow complete ✓');
+    });
+  });
+
+  describe('Workflow Edge Cases', () => {
+    it('should handle rapid hotkey toggle during workflow', async () => {
+      // Open Quick Chat
+      await quickChat.show();
+      await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
+      
+      const initialVisible = await quickChat.isVisible();
+      expect(initialVisible).toBe(true);
+
+      // Toggle hide
+      await quickChat.hide();
+      await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
+      
+      const afterHideVisible = await quickChat.isVisible();
+      expect(afterHideVisible).toBe(false);
+
+      // Toggle show again
+      await quickChat.show();
+      await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
+      
+      const finalVisible = await quickChat.isVisible();
+      expect(finalVisible).toBe(true);
+
+      // Cleanup
+      await quickChat.hide();
+      E2ELogger.info('edge-case', 'Rapid toggle test passed ✓');
+    });
+
+    it('should clear input and reject empty submission', async () => {
+      await quickChat.show();
+      await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+      
+      const found = await quickChat.switchToQuickChatWindow();
+      expect(found).toBe(true);
+
+      // Verify submit is disabled with empty input
+      await quickChat.clearInput();
+      await browser.pause(200);
+      
+      const isEnabled = await quickChat.isSubmitEnabled();
+      expect(isEnabled).toBe(false);
+      
+      E2ELogger.info('edge-case', 'Empty submission rejected ✓');
+
+      // Cleanup
+      await quickChat.cancel();
+    });
+  });
+});

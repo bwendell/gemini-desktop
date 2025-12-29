@@ -34,6 +34,10 @@ export const IPC_CHANNELS = {
   QUICK_CHAT_CANCEL: 'quick-chat:cancel',
   QUICK_CHAT_EXECUTE: 'quick-chat:execute',
 
+  // Gemini Iframe Navigation (for Quick Chat integration)
+  GEMINI_NAVIGATE: 'gemini:navigate',
+  GEMINI_READY: 'gemini:ready',
+
   // Always On Top
   ALWAYS_ON_TOP_GET: 'always-on-top:get',
   ALWAYS_ON_TOP_SET: 'always-on-top:set',

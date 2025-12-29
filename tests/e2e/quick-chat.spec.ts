@@ -20,7 +20,7 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { expect } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { getHotkeyDisplayString, isHotkeyRegistered } from './helpers/hotkeyHelpers';
 import { E2ELogger } from './helpers/logger';
@@ -126,6 +126,37 @@ describe('Quick Chat Feature', () => {
       expect(isFocused).toBe(true);
       
       E2ELogger.info('quick-chat', 'Input field is auto-focused');
+    });
+
+    it('should close when window loses focus (click outside behavior)', async () => {
+      // Show Quick Chat window
+      await quickChatPage.show();
+      await quickChatPage.waitForVisible();
+
+      // Confirm Quick Chat is visible before triggering blur
+      const isVisibleBefore = await quickChatPage.isVisible();
+      expect(isVisibleBefore).toBe(true);
+
+      // Trigger blur by focusing the main window (simulates clicking outside)
+      // This exercises the 'blur' event handler in quickChatWindow.ts
+      // Note: WebDriver window switching doesn't trigger OS-level blur,
+      // so we use mainWindow.focus() which actually steals focus from Quick Chat
+      await browser.electron.execute((electron: typeof import('electron')) => {
+        const windowManager = (global as any).windowManager;
+        const mainWindow = windowManager?.getMainWindow?.();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.focus();
+        }
+      });
+
+      // Wait for the blur event to trigger hide
+      await waitForWindowTransition();
+
+      // Verify Quick Chat is now hidden
+      const isVisible = await quickChatPage.isVisible();
+      expect(isVisible).toBe(false);
+
+      E2ELogger.info('quick-chat', 'Window hidden after losing focus (click outside)');
     });
   });
 

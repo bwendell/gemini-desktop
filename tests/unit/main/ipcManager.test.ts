@@ -472,21 +472,14 @@ describe('IpcManager', () => {
       ipcManager.setupIpcHandlers();
     });
 
-    it('handles quick-chat:submit', async () => {
+    // Option A Flow: quick-chat:submit sends gemini:navigate to renderer
+    it('handles quick-chat:submit by sending gemini:navigate', async () => {
       const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
       const mockMainWindow = {
         webContents: {
-          once: vi.fn((event, cb) => cb()),
-          mainFrame: {
-            frames: [
-              {
-                url: 'https://gemini.google.com/app',
-                executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
-              },
-            ],
-          },
+          send: vi.fn(),
+          mainFrame: { frames: [] },
         },
-        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
@@ -494,7 +487,10 @@ describe('IpcManager', () => {
 
       expect(mockWindowManager.hideQuickChat).toHaveBeenCalled();
       expect(mockWindowManager.focusMainWindow).toHaveBeenCalled();
-      expect(mockMainWindow.webContents.mainFrame.frames[0].executeJavaScript).toHaveBeenCalled();
+      expect(mockMainWindow.webContents.send).toHaveBeenCalledWith('gemini:navigate', {
+        url: 'https://gemini.google.com/app',
+        text: 'test message',
+      });
     });
 
     it('handles quick-chat:submit without main window', async () => {
@@ -506,29 +502,51 @@ describe('IpcManager', () => {
       expect(mockLogger.error).toHaveBeenCalledWith('Cannot navigate: main window not found');
     });
 
-    it('handles quick-chat:submit without Gemini iframe', async () => {
-      const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
+    // Option A Flow: gemini:ready triggers injection into child frame
+    it('handles gemini:ready by injecting into iframe', async () => {
+      const handler = (ipcMain as any)._listeners.get('gemini:ready');
       const mockMainWindow = {
         webContents: {
-          once: vi.fn((event, cb) => cb()),
           mainFrame: {
-            frames: [{ url: 'https://example.com', executeJavaScript: vi.fn() }],
+            frames: [
+              {
+                url: 'https://gemini.google.com/app',
+                executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
+              },
+            ],
           },
         },
-        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
       await handler({}, 'test message');
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: Gemini iframe not found');
+      expect(mockMainWindow.webContents.mainFrame.frames[0].executeJavaScript).toHaveBeenCalled();
+      expect(mockLogger.log).toHaveBeenCalledWith('Text injected into Gemini successfully');
     });
 
-    it('handles quick-chat:submit injection failure', async () => {
-      const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
+    it('handles gemini:ready without Gemini iframe', async () => {
+      const handler = (ipcMain as any)._listeners.get('gemini:ready');
       const mockMainWindow = {
         webContents: {
-          once: vi.fn((event, cb) => cb()),
+          mainFrame: {
+            frames: [{ url: 'https://example.com', executeJavaScript: vi.fn() }],
+          },
+        },
+      };
+      mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
+
+      await handler({}, 'test message');
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Cannot inject text: Gemini iframe not found in child frames'
+      );
+    });
+
+    it('handles gemini:ready injection failure', async () => {
+      const handler = (ipcMain as any)._listeners.get('gemini:ready');
+      const mockMainWindow = {
+        webContents: {
           mainFrame: {
             frames: [
               {
@@ -540,7 +558,6 @@ describe('IpcManager', () => {
             ],
           },
         },
-        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
@@ -552,11 +569,10 @@ describe('IpcManager', () => {
       );
     });
 
-    it('handles quick-chat:submit executeJavaScript error', async () => {
-      const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
+    it('handles gemini:ready executeJavaScript error', async () => {
+      const handler = (ipcMain as any)._listeners.get('gemini:ready');
       const mockMainWindow = {
         webContents: {
-          once: vi.fn((event, cb) => cb()),
           mainFrame: {
             frames: [
               {
@@ -566,7 +582,6 @@ describe('IpcManager', () => {
             ],
           },
         },
-        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
@@ -1061,10 +1076,10 @@ describe('IpcManager', () => {
     });
 
     it('handles frame URL access error when finding Gemini iframe', async () => {
-      const handler = (ipcMain as any)._listeners.get('quick-chat:submit');
+      // Now tests gemini:ready since that's when injection happens
+      const handler = (ipcMain as any)._listeners.get('gemini:ready');
       const mockMainWindow = {
         webContents: {
-          once: vi.fn((event, cb) => cb()),
           mainFrame: {
             frames: [
               {
@@ -1080,7 +1095,6 @@ describe('IpcManager', () => {
             ],
           },
         },
-        loadURL: vi.fn().mockResolvedValue(undefined),
       };
       mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 

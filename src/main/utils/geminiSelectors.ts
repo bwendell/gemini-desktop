@@ -145,7 +145,7 @@ export const GeminiSelectors = {
      * Delay in milliseconds before clicking submit after text injection.
      * Allows Angular/Quill to process the text injection.
      */
-    submitDelayMs: 200,
+    submitDelayMs: 500,
 
     /**
      * Description for logging/debugging.

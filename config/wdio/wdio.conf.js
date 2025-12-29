@@ -25,7 +25,7 @@ export const config = {
     '../../tests/e2e/menu_bar.spec.ts',
     '../../tests/e2e/hotkeys.spec.ts',
     '../../tests/e2e/quick-chat.spec.ts',
-    '../../tests/e2e/quick-chat-injection.spec.ts',
+    '../../tests/e2e/quick-chat-full-workflow.spec.ts',
     '../../tests/e2e/options-window.spec.ts',
     '../../tests/e2e/menu-interactions.spec.ts',
     '../../tests/e2e/theme.spec.ts',
@@ -54,8 +54,9 @@ export const config = {
               '--disable-gpu',
               '--enable-logging',
               '--test-auto-update',
+              '--e2e-disable-auto-submit',
             ]
-          : ['--test-auto-update'],
+          : ['--test-auto-update', '--e2e-disable-auto-submit'],
         // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
         // See: https://github.com/electron/electron/issues/41066
         apparmorAutoInstall: process.env.CI && process.platform === 'linux' ? 'sudo' : false,

@@ -691,109 +691,18 @@ export default class IpcManager {
   }
 
   /**
-   * Inject text into the Gemini chat input and submit it.
-   * Uses WebFrame executeJavaScript to run code inside the iframe's context.
-   *
-   * @param text - The text to inject and submit
-   * @param config - Optional injection configuration override
-   * @private
-   */
-  private async _injectTextIntoGemini(
-    text: string,
-    config: Partial<typeof DEFAULT_INJECTION_CONFIG> = {}
-  ): Promise<void> {
-    const mainWindow = this.windowManager.getMainWindow();
-    if (!mainWindow) {
-      this.logger.error('Cannot inject text: main window not found');
-      return;
-    }
-
-    const webContents = mainWindow.webContents;
-    const frames = webContents.mainFrame.frames;
-
-    // Find the Gemini iframe's WebFrame using helper
-    const geminiFrame = frames.find((frame) => {
-      try {
-        return isGeminiDomain(frame.url);
-      } catch {
-        return false;
-      }
-    });
-
-    if (!geminiFrame) {
-      this.logger.error('Cannot inject text: Gemini iframe not found');
-      return;
-    }
-
-    // Build the injection script using the builder pattern
-    const injectionScript = new InjectionScriptBuilder().withText(text).withConfig(config).build();
-
-    try {
-      const result = (await geminiFrame.executeJavaScript(injectionScript)) as InjectionResult;
-
-      if (result?.success) {
-        this.logger.log('Text injected into Gemini successfully');
-      } else {
-        this.logger.error('Injection script returned failure:', result?.error);
-      }
-    } catch (error) {
-      this.logger.error('Failed to inject text into Gemini:', error);
-    }
-  }
-
-  /**
-   * Navigate to a new chat in Gemini and then inject text.
-   * This ensures Quick Chat submissions always start a fresh conversation.
-   *
-   * @param text - The text to inject after navigating to new chat
-   * @private
-   */
-  private async _navigateToNewChatAndInject(text: string): Promise<void> {
-    const mainWindow = this.windowManager.getMainWindow();
-    if (!mainWindow) {
-      this.logger.error('Cannot navigate: main window not found');
-      return;
-    }
-
-    const newChatUrl = GEMINI_APP_URL;
-    this.logger.log('Navigating main window to new chat:', newChatUrl);
-
-    try {
-      // Set up the event listener BEFORE calling loadURL
-      const navigationPromise = new Promise<void>((resolve) => {
-        mainWindow.webContents.once('did-finish-load', () => {
-          this.logger.log('Main window finished loading new chat');
-          resolve();
-        });
-      });
-      
-      // Navigate the main window to Gemini (starts new chat)
-      await mainWindow.loadURL(newChatUrl);
-      
-      // Wait for the did-finish-load event
-      await navigationPromise;
-      
-      // Additional wait for iframe to initialize (Gemini loads in iframe)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      this.logger.log('Navigation complete, injecting text');
-      
-      // Inject the text into the now-loaded Gemini iframe
-      await this._injectTextIntoGemini(text);
-    } catch (error) {
-      this.logger.error('Failed to navigate to new chat:', error);
-      // Try to inject anyway as a fallback
-      await this._injectTextIntoGemini(text);
-    }
-  }
-
-  /**
    * Set up Quick Chat IPC handlers.
    * Handles communication between Quick Chat window and main window.
+   * 
+   * Flow (Option A - preserves React shell):
+   * 1. Quick Chat submits text → hide Quick Chat, focus main window
+   * 2. Send GEMINI_NAVIGATE to renderer → React app reloads iframe
+   * 3. Renderer signals GEMINI_READY → main process injects text into iframe
+   * 
    * @private
    */
   private _setupQuickChatHandlers(): void {
-    // Submit quick chat text - inject into Gemini and submit
+    // Submit quick chat text - triggers iframe navigation in renderer
     ipcMain.on(IPC_CHANNELS.QUICK_CHAT_SUBMIT, async (_event, text: string) => {
       try {
         this.logger.log('Quick Chat submit received:', text.substring(0, 50));
@@ -804,10 +713,29 @@ export default class IpcManager {
         // Focus the main window
         this.windowManager.focusMainWindow();
 
-        // Navigate to new chat and then inject text
-        await this._navigateToNewChatAndInject(text);
+        // Send navigation request to renderer (React app will reload iframe)
+        const mainWindow = this.windowManager.getMainWindow();
+        if (mainWindow) {
+          this.logger.log('Sending gemini:navigate to renderer');
+          mainWindow.webContents.send(IPC_CHANNELS.GEMINI_NAVIGATE, {
+            url: GEMINI_APP_URL,
+            text: text,
+          });
+        } else {
+          this.logger.error('Cannot navigate: main window not found');
+        }
       } catch (error) {
         this.logger.error('Error handling quick chat submit:', error);
+      }
+    });
+
+    // Gemini iframe ready - renderer signals after iframe loads, triggers injection
+    ipcMain.on(IPC_CHANNELS.GEMINI_READY, async (_event, text: string) => {
+      try {
+        this.logger.log('Gemini ready signal received, injecting text');
+        await this._injectTextIntoGeminiIframe(text);
+      } catch (error) {
+        this.logger.error('Error handling gemini ready:', error);
       }
     });
 
@@ -829,6 +757,70 @@ export default class IpcManager {
         this.logger.error('Error cancelling quick chat:', error);
       }
     });
+  }
+
+  /**
+   * Inject text into the Gemini iframe (child frame of React shell).
+   * This is called after renderer signals that iframe has loaded.
+   * 
+   * @param text - Text to inject into Gemini editor
+   * @private
+   */
+  private async _injectTextIntoGeminiIframe(text: string): Promise<void> {
+    const mainWindow = this.windowManager.getMainWindow();
+    if (!mainWindow) {
+      this.logger.error('Cannot inject text: main window not found');
+      return;
+    }
+
+    const webContents = mainWindow.webContents;
+    const mainFrame = webContents.mainFrame;
+    const frames = mainFrame.frames;
+
+    this.logger.log('Looking for Gemini iframe in', frames.length, 'child frames');
+
+    // Find the Gemini iframe in child frames (React shell architecture)
+    const geminiFrame = frames.find((frame) => {
+      try {
+        return isGeminiDomain(frame.url);
+      } catch {
+        return false;
+      }
+    });
+
+    if (!geminiFrame) {
+      this.logger.error('Cannot inject text: Gemini iframe not found in child frames');
+      return;
+    }
+
+    this.logger.log('Found Gemini iframe:', geminiFrame.url);
+
+    // Check if we should disable auto-submit (for E2E testing)
+    // E2E tests pass --e2e-disable-auto-submit flag to prevent actual Gemini submissions
+    const isE2EMode = process.argv.includes('--e2e-disable-auto-submit');
+    const shouldAutoSubmit = !isE2EMode;
+
+    if (!shouldAutoSubmit) {
+      this.logger.log('E2E mode: auto-submit disabled, will inject text only');
+    }
+
+    // Build and execute the injection script
+    const injectionScript = new InjectionScriptBuilder()
+      .withText(text)
+      .withAutoSubmit(shouldAutoSubmit)
+      .build();
+
+    try {
+      const result = (await geminiFrame.executeJavaScript(injectionScript)) as InjectionResult;
+
+      if (result?.success) {
+        this.logger.log('Text injected into Gemini successfully');
+      } else {
+        this.logger.error('Injection script returned failure:', result?.error);
+      }
+    } catch (error) {
+      this.logger.error('Failed to inject text into Gemini:', error);
+    }
   }
 
   /**

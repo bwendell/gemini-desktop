@@ -71,7 +71,7 @@ describe('DEFAULT_INJECTION_CONFIG', () => {
   });
 
   it('has default submit delay', () => {
-    expect(DEFAULT_INJECTION_CONFIG.submitDelayMs).toBe(200);
+    expect(DEFAULT_INJECTION_CONFIG.submitDelayMs).toBe(500);
   });
 
   it('has default log level', () => {

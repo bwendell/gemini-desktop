@@ -50,6 +50,10 @@ export const IPC_CHANNELS = {
   QUICK_CHAT_CANCEL: 'quick-chat:cancel',
   QUICK_CHAT_EXECUTE: 'quick-chat:execute',
 
+  // Gemini Iframe Navigation (for Quick Chat integration)
+  GEMINI_NAVIGATE: 'gemini:navigate',
+  GEMINI_READY: 'gemini:ready',
+
   // Always On Top
   ALWAYS_ON_TOP_GET: 'always-on-top:get',
   ALWAYS_ON_TOP_SET: 'always-on-top:set',
@@ -223,6 +227,36 @@ const electronAPI: ElectronAPI = {
       ipcRenderer.removeListener(IPC_CHANNELS.QUICK_CHAT_EXECUTE, subscription);
     };
   },
+
+  // =========================================================================
+  // Gemini Iframe Navigation API
+  // Used by Quick Chat to navigate iframe without replacing React shell
+  // =========================================================================
+
+  /**
+   * Subscribe to Gemini navigation requests from main process.
+   * When Quick Chat submits, main process sends this to navigate the iframe.
+   * @param callback - Function called with { url: string, text: string } when navigation is requested
+   * @returns Cleanup function to unsubscribe
+   */
+  onGeminiNavigate: (callback) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      data: { url: string; text: string }
+    ) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.GEMINI_NAVIGATE, subscription);
+
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.GEMINI_NAVIGATE, subscription);
+    };
+  },
+
+  /**
+   * Signal to main process that Gemini iframe is ready for injection.
+   * Call this after the iframe has loaded a new page.
+   * @param text - The text that should be injected (passed back to main process)
+   */
+  signalGeminiReady: (text: string) => ipcRenderer.send(IPC_CHANNELS.GEMINI_READY, text),
 
   // =========================================================================
   // Individual Hotkeys API
