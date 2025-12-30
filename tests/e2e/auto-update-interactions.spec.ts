@@ -191,9 +191,8 @@ describe('Auto-Update User Interactions', () => {
       const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
       await dismissBtn.click();
 
-      // Wait for toast to be hidden instead of fixed pause
-      await toast.waitForDisplayed({ reverse: true, timeout: 2000 });
-      expect(await toast.isDisplayed()).toBe(false);
+      // Wait for toast to be hidden (animation takes ~200ms)
+      await toast.waitForDisplayed({ reverse: true, timeout: 3000 });
 
       // AND no badges should appear (errors don't create badges)
       const badge = await $('[data-testid="update-badge"]');
@@ -329,10 +328,8 @@ describe('Auto-Update User Interactions', () => {
       const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
       await dismissBtn.click();
 
-      // Wait for toast to be hidden instead of fixed pause
-      await toast.waitForDisplayed({ reverse: true, timeout: 2000 });
-
-      expect(await toast.isDisplayed()).toBe(false);
+      // Wait for toast to be hidden (animation takes ~200ms)
+      await toast.waitForDisplayed({ reverse: true, timeout: 3000 });
     });
 
     it('should not show badge or tray tooltip for "No updates available"', async () => {

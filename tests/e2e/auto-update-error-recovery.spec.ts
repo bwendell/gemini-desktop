@@ -80,9 +80,8 @@ describe('Auto-Update Error Recovery', () => {
       // Dismiss
       const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
       await dismissBtn.click();
-      await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
-
-      expect(await toast.isDisplayed()).toBe(false);
+      // Wait for toast to be hidden (animation takes ~200ms)
+      await toast.waitForDisplayed({ reverse: true, timeout: 3000 });
 
       E2ELogger.info('auto-update-error-recovery', 'Error toast dismissed successfully');
     });

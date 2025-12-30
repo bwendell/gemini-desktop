@@ -313,7 +313,7 @@ jobs:
           path: dist-electron/
 
       - name: Run E2E Tests
-        run: npm run test:e2e:group:${{ matrix.group }}
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" sh -c "sleep 2 && npm run test:e2e:group:${{ matrix.group }}"
         shell: bash
         env:
           ELECTRON_USE_DIST: 'true'
@@ -392,7 +392,12 @@ jobs:
 
       # Run release E2E tests against packaged build
       - name: Run Release E2E Tests
-        run: npm run test:e2e:release
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" sh -c "sleep 2 && npm run test:e2e:release"
+          else
+            npm run test:e2e:release
+          fi
         shell: bash
         env:
           DEBUG: 'wdio:*'

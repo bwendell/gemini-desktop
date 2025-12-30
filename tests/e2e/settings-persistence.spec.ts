@@ -230,7 +230,12 @@ describe('Settings Persistence', () => {
         const isTestIsolationPath = settingsPath.includes('scoped_dir');
         expect(isProductionPath || isTestIsolationPath).toBe(true);
       } else if (process.platform === 'darwin') {
-        expect(settingsPath).toContain('Application Support');
+        // macOS uses Application Support in production, but E2E tests use
+        // temporary scoped directories like /private/var/folders/.../T/.org.chromium.Chromium.scoped_dir.XXX/
+        // for test isolation
+        const isProductionPath = settingsPath.includes('Application Support');
+        const isTestIsolationPath = settingsPath.includes('scoped_dir');
+        expect(isProductionPath || isTestIsolationPath).toBe(true);
       } else {
         // Linux uses .config/gemini-desktop in production, but E2E tests use
         // temporary scoped directories like /tmp/.org.chromium.Chromium.scoped_dir.XXX/
