@@ -64,9 +64,10 @@ export async function getWindowAlwaysOnTopState(): Promise<boolean> {
 
 /**
  * Sets the Always On Top state via the renderer's electronAPI.
+ * Waits until the state is confirmed via the main process.
  *
  * @param enabled - Whether to enable always on top
- * @param waitMs - Time to wait for IPC round-trip (defaults to E2E_TIMING.IPC_ROUND_TRIP)
+ * @param waitMs - Maximum time to wait for state confirmation (defaults to E2E_TIMING.IPC_ROUND_TRIP)
  */
 export async function setAlwaysOnTop(
   enabled: boolean,
@@ -74,11 +75,27 @@ export async function setAlwaysOnTop(
 ): Promise<void> {
   E2ELogger.info('alwaysOnTopActions', `Setting always-on-top to: ${enabled}`);
 
+  // Fire the IPC call
   await browser.execute((enable) => {
     (window as any).electronAPI?.setAlwaysOnTop?.(enable);
   }, enabled);
 
-  await browser.pause(waitMs);
+  // Wait until the state is confirmed via main process
+  const timeout = Math.max(waitMs, 1000); // Minimum 1 second for verification
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    const actualState = await getWindowAlwaysOnTopState();
+    if (actualState === enabled) {
+      E2ELogger.info('alwaysOnTopActions', `State confirmed: ${enabled}`);
+      return;
+    }
+    await browser.pause(50); // Poll every 50ms
+  }
+  
+  // Log warning if timeout but state not confirmed (don't throw to avoid breaking existing tests)
+  const finalState = await getWindowAlwaysOnTopState();
+  E2ELogger.info('alwaysOnTopActions', `State verification timeout: expected ${enabled}, got ${finalState}`);
 }
 
 /**

@@ -38,6 +38,16 @@ export const baseConfig = {
         // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
         // See: https://github.com/electron/electron/issues/41066
         apparmorAutoInstall: process.env.CI && process.platform === 'linux' ? 'sudo' : false,
+        // Enable built-in XVFB support for headless Linux environments
+        // This properly propagates the virtual display to worker processes
+        // (xvfb-run wrapper does NOT work because workers are forked without DISPLAY)
+        ...(process.platform === 'linux' && process.env.CI
+          ? {
+              autoXvfb: true,
+              xvfbAutoInstall: true,
+              xvfbAutoInstallMode: 'sudo',
+            }
+          : {}),
       },
     ],
   ],

@@ -44,7 +44,7 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     id: 'alwaysOnTop',
     label: 'Always on Top',
     shortcutWin: 'Ctrl+Alt+P',
-    shortcutMac: 'Cmd+Alt+P',
+    shortcutMac: '⌘+⌥+P', // macOS displays symbols: ⌘ (Cmd), ⌥ (Alt)
     testId: 'hotkey-toggle-alwaysOnTop',
     rowTestId: 'hotkey-row-alwaysOnTop',
   },
@@ -52,7 +52,7 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     id: 'bossKey',
     label: 'Boss Key',
     shortcutWin: 'Ctrl+Alt+H',
-    shortcutMac: 'Cmd+Alt+H',
+    shortcutMac: '⌘+⌥+H', // macOS displays symbols: ⌘ (Cmd), ⌥ (Alt)
     testId: 'hotkey-toggle-bossKey',
     rowTestId: 'hotkey-row-bossKey',
   },
@@ -60,7 +60,7 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     id: 'quickChat',
     label: 'Quick Chat',
     shortcutWin: 'Ctrl+Shift+␣',
-    shortcutMac: 'Cmd+Shift+␣',
+    shortcutMac: '⌘+⇧+␣', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift), ␣ (Space)
     testId: 'hotkey-toggle-quickChat',
     rowTestId: 'hotkey-row-quickChat',
   },
@@ -138,14 +138,14 @@ describe('Individual Hotkey Toggles', () => {
       }
     });
 
-    it('should show Ctrl on Windows/Linux, Cmd on macOS', async () => {
+    it('should show Ctrl on Windows/Linux, ⌘ on macOS', async () => {
       const config = HOTKEY_CONFIGS[0];
       const row = await $(`[data-testid="${config.rowTestId}"]`);
 
       if (platform === 'macos') {
         await browser.waitUntil(
-          async () => (await row.getText()).includes('Cmd'),
-          { timeout: 5000, timeoutMsg: 'Expected row to contain "Cmd"' }
+          async () => (await row.getText()).includes('⌘'),
+          { timeout: 5000, timeoutMsg: 'Expected row to contain "⌘" (macOS Command symbol)' }
         );
         await browser.waitUntil(
           async () => !(await row.getText()).includes('Ctrl'),
@@ -157,8 +157,8 @@ describe('Individual Hotkey Toggles', () => {
           { timeout: 5000, timeoutMsg: 'Expected row to contain "Ctrl"' }
         );
         await browser.waitUntil(
-          async () => !(await row.getText()).includes('Cmd'),
-          { timeout: 5000, timeoutMsg: 'Expected row NOT to contain "Cmd"' }
+          async () => !(await row.getText()).includes('⌘'),
+          { timeout: 5000, timeoutMsg: 'Expected row NOT to contain "⌘" (macOS Command symbol)' }
         );
       }
     });
