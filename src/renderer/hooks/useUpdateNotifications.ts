@@ -61,14 +61,10 @@ export function useUpdateNotifications() {
    * Dismiss the current toast notification
    */
   const dismissNotification = useCallback(() => {
-    console.log('[useUpdateNotifications] dismissNotification called');
-    setState((prev) => {
-      console.log('[useUpdateNotifications] Setting visible to false, prev state:', prev);
-      return {
-        ...prev,
-        visible: false,
-      };
-    });
+    setState((prev) => ({
+      ...prev,
+      visible: false,
+    }));
   }, []);
 
   /**

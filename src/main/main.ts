@@ -18,6 +18,16 @@ import { createLogger } from './utils/logger';
 // Setup Logger
 const logger = createLogger('[Main]');
 
+// DEBUG: Log critical environment info early for CI debugging
+logger.log('=== ELECTRON STARTUP DEBUG INFO ===');
+logger.log('Platform:', process.platform);
+logger.log('DISPLAY:', process.env.DISPLAY || 'NOT SET');
+logger.log('XDG_SESSION_TYPE:', process.env.XDG_SESSION_TYPE || 'NOT SET');
+logger.log('CI:', process.env.CI || 'NOT SET');
+logger.log('ELECTRON_USE_DIST:', process.env.ELECTRON_USE_DIST || 'NOT SET');
+logger.log('app.isReady():', app.isReady());
+logger.log('===================================');
+
 if (isLinux) {
   // On Linux, the internal app name should match the executable/id for better WM_CLASS matching
   app.setName('gemini-desktop');
@@ -199,15 +209,21 @@ function gracefulShutdown(exitCode: number = 0): void {
 }
 
 // Initialize managers before requesting instance lock
+logger.log('[DEBUG] About to call initializeManagers()');
 initializeManagers();
+logger.log('[DEBUG] initializeManagers() completed');
 
 // Single Instance Lock
+logger.log('[DEBUG] About to request single instance lock');
 const gotTheLock = app.requestSingleInstanceLock();
+logger.log('[DEBUG] Single instance lock result:', gotTheLock);
 
 if (!gotTheLock) {
   logger.log('Another instance is already running. Quitting...');
   app.exit(0);
 } else {
+  logger.log('[DEBUG] Got the lock, setting up second-instance handler');
+  
   app.on('second-instance', () => {
     // Someone tried to run a second instance, we should focus our window.
     logger.log('Second instance detected. Focusing existing window...');
@@ -221,7 +237,24 @@ if (!gotTheLock) {
   });
 
   // App lifecycle
+  logger.log('[DEBUG] Setting up app.whenReady() handler');
+  logger.log('[DEBUG] Current app.isReady():', app.isReady());
+  
+  // Also listen to the 'ready' event directly for debugging
+  app.on('ready', () => {
+    logger.log('[DEBUG] app "ready" event fired!');
+  });
+  
+  // Log if whenReady takes too long
+  const readyTimeout = setTimeout(() => {
+    logger.error('[DEBUG] WARNING: app.whenReady() has not resolved after 10 seconds!');
+    logger.error('[DEBUG] DISPLAY:', process.env.DISPLAY);
+    logger.error('[DEBUG] This may indicate a display/xvfb issue');
+  }, 10000);
+  
   app.whenReady().then(() => {
+    clearTimeout(readyTimeout);
+    logger.log('[DEBUG] app.whenReady() resolved!');
     logger.log('App ready - starting initialization');
 
     // Apply security settings to default session (used by all windows)
@@ -237,7 +270,9 @@ if (!gotTheLock) {
     (global as any).menuManager = menuManager;
     logger.log('Menu setup complete');
 
+    logger.log('[DEBUG] About to create main window');
     windowManager.createMainWindow();
+    logger.log('[DEBUG] createMainWindow() returned');
     logger.log('Main window created');
 
     // Set main window reference for badge manager (needed for Windows overlay)

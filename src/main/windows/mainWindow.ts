@@ -88,13 +88,17 @@ export default class MainWindow extends BaseWindow {
    * @returns The created BrowserWindow
    */
   create(): BrowserWindow {
+    this.logger.log('[DEBUG] MainWindow.create() called');
     const win = this.createWindow();
+    this.logger.log('[DEBUG] createWindow() returned');
 
     if (this.isDev && this.window) {
+      this.logger.log('[DEBUG] Opening dev tools');
       this.window.webContents.openDevTools();
     }
 
     this.window?.once('ready-to-show', () => {
+      this.logger.log('[DEBUG] ready-to-show event fired, calling show()');
       this.window?.show();
     });
 

@@ -1,4 +1,4 @@
-import { expect, $, $$, browser } from '@wdio/globals';
+import { expect, $, browser } from '@wdio/globals';
 
 describe('Auto-Update User Interactions', () => {
   // Disable auto-updates to prevent startup check interference
@@ -177,52 +177,24 @@ describe('Auto-Update User Interactions', () => {
     });
 
     it('should dismiss error toast and clear state when error is dismissed', async () => {
-      console.log('[E2E DEBUG] Starting error toast dismiss test');
-      
       // GIVEN an update error occurs
       await (browser as any).execute(() => {
-        console.log('[E2E DEBUG] Calling showError');
         // @ts-ignore
         window.__testUpdateToast.showError('Test Network Error');
-        console.log('[E2E DEBUG] showError completed');
       });
 
       // AND the "Update Error" toast is visible
       const toast = await $('[data-testid="update-toast"]');
       await toast.waitForDisplayed();
-      
-      // Log state before dismiss
-      const toastCountBefore = await $$('[data-testid="update-toast"]');
-      console.log(`[E2E DEBUG] Before dismiss - toast count: ${toastCountBefore.length}`);
-      
-      const opacityBefore = await (browser as any).execute((elem: Element) => {
-        return window.getComputedStyle(elem).opacity;
-      }, toast);
-      console.log(`[E2E DEBUG] Opacity before dismiss: ${opacityBefore}`);
+      // Wait for entry animation to complete (200ms) before trying to dismiss
+      await (browser as any).pause(300);
 
       // WHEN the user clicks the dismiss (×) button
       const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
-      console.log('[E2E DEBUG] Clicking dismiss button');
       await dismissBtn.click();
-      console.log('[E2E DEBUG] Dismiss button clicked');
-      
-      // Wait a tiny bit for React to process
-      await (browser as any).pause(100);
-      
-      // Check state after click
-      const toastCountAfter = await $$('[data-testid="update-toast"]');
-      const toastVisibleAfter = await toast.isDisplayed().catch(() => 'element gone');
-      console.log(`[E2E DEBUG] After click - toast count: ${toastCountAfter.length}, visible: ${toastVisibleAfter}`);
-      
-      const opacityAfter = await (browser as any).execute((elem: Element) => {
-        return window.getComputedStyle(elem).opacity;
-      }, toast).catch(() => 'element gone');
-      console.log(`[E2E DEBUG] Opacity after dismiss: ${opacityAfter}`);
 
       // Wait for toast to be hidden (animation takes ~200ms)
-      console.log('[E2E DEBUG] Waiting for toast to hide...');
       await toast.waitForDisplayed({ reverse: true, timeout: 3000 });
-      console.log('[E2E DEBUG] Toast hidden successfully');
 
       // AND no badges should appear (errors don't create badges)
       const badge = await $('[data-testid="update-badge"]');
@@ -354,6 +326,8 @@ describe('Auto-Update User Interactions', () => {
 
       const toast = await $('[data-testid="update-toast"]');
       await toast.waitForDisplayed();
+      // Wait for entry animation to complete (200ms) before trying to dismiss
+      await (browser as any).pause(300);
 
       const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
       await dismissBtn.click();

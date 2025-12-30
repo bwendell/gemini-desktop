@@ -13,7 +13,7 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { browser, $, $$, expect } from '@wdio/globals';
+import { browser, $, expect } from '@wdio/globals';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
@@ -68,56 +68,21 @@ describe('Auto-Update Error Recovery', () => {
     });
 
     it('should allow dismissing error toast', async () => {
-      E2ELogger.info('auto-update-error-recovery', 'DEBUG: Starting dismiss error toast test');
-      
       // Show error
       await browser.execute(() => {
-        console.log('[E2E DEBUG] Calling showError');
         // @ts-ignore
         window.__testUpdateToast.showError('Test error');
-        console.log('[E2E DEBUG] showError completed');
       });
 
-      E2ELogger.info('auto-update-error-recovery', 'DEBUG: showError called, waiting for toast');
-      
       const toast = await $('[data-testid="update-toast"]');
       await toast.waitForDisplayed();
-      // Log toast state before dismiss
-      const toastCountBefore = await $$('[data-testid="update-toast"]');
-      const toastVisibleBefore = await toast.isDisplayed();
-      E2ELogger.info('auto-update-error-recovery', `DEBUG: Before dismiss - toast count: ${toastCountBefore.length}, visible: ${toastVisibleBefore}`);
-      
-      // Get the opacity before dismiss
-      const opacityBefore = await browser.execute((elem) => {
-        return window.getComputedStyle(elem).opacity;
-      }, toast);
-      E2ELogger.info('auto-update-error-recovery', `DEBUG: Opacity before dismiss: ${opacityBefore}`);
+      // Wait for entry animation to complete (200ms) before trying to dismiss
+      await browser.pause(300);
 
       // Dismiss
       const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
-      const dismissBtnVisible = await dismissBtn.isDisplayed();
-      E2ELogger.info('auto-update-error-recovery', `DEBUG: Dismiss button visible: ${dismissBtnVisible}`);
-      
-      E2ELogger.info('auto-update-error-recovery', 'DEBUG: Clicking dismiss button');
       await dismissBtn.click();
-      E2ELogger.info('auto-update-error-recovery', 'DEBUG: Dismiss button clicked');
-      
-      // Wait a tiny bit for React to process
-      await browser.pause(100);
-      
-      // Check toast count and visibility after click
-      const toastCountAfter = await $$('[data-testid="update-toast"]');
-      const toastVisibleAfter = await toast.isDisplayed().catch(() => 'element gone');
-      E2ELogger.info('auto-update-error-recovery', `DEBUG: After click - toast count: ${toastCountAfter.length}, visible: ${toastVisibleAfter}`);
-      
-      // Get the opacity after dismiss
-      const opacityAfter = await browser.execute((elem) => {
-        return window.getComputedStyle(elem).opacity;
-      }, toast).catch(() => 'element gone');
-      E2ELogger.info('auto-update-error-recovery', `DEBUG: Opacity after dismiss: ${opacityAfter}`);
-      
       // Wait for toast to be hidden (animation takes ~200ms)
-      E2ELogger.info('auto-update-error-recovery', 'DEBUG: Waiting for toast to hide...');
       await toast.waitForDisplayed({ reverse: true, timeout: 3000 });
 
       E2ELogger.info('auto-update-error-recovery', 'Error toast dismissed successfully');

@@ -128,9 +128,6 @@ export function UpdateToast({
   onInstall,
   onLater,
 }: UpdateToastProps) {
-  // Debug logging
-  console.log('[UpdateToast] Render - visible:', visible, 'type:', type);
-  
   const version = updateInfo?.version;
 
   const getMessage = (): string => {
