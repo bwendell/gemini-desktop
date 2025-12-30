@@ -143,13 +143,8 @@ jobs:
           FORCE_COLOR: 1
 
       - name: Run Real Integration Tests
-        run: |
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            # Add delay to ensure xvfb is fully ready before Electron starts
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" sh -c "sleep 2 && npm run test:integration"
-          else
-            npm run test:integration
-          fi
+        # DO NOT use xvfb-run wrapper - wdio-electron-service's autoXvfb handles xvfb
+        run: npm run test:integration
         shell: bash
         env:
           FORCE_COLOR: 1
@@ -158,7 +153,7 @@ jobs:
   # E2E Tests - Windows
   # ===========================================================================
   e2e-tests-windows:
-    name: E2E (windows-latest) / ${{ matrix.group }}
+    name: E2E / 🪟 Windows / ${{ matrix.group }}
     needs: integration-tests
     runs-on: windows-latest
 
@@ -214,7 +209,7 @@ jobs:
   # E2E Tests - macOS
   # ===========================================================================
   e2e-tests-macos:
-    name: E2E (macos-latest) / ${{ matrix.group }}
+    name: E2E / 🍎 macOS / ${{ matrix.group }}
     needs: integration-tests
     runs-on: macos-latest
 
@@ -270,7 +265,7 @@ jobs:
   # E2E Tests - Ubuntu
   # ===========================================================================
   e2e-tests-ubuntu:
-    name: E2E (ubuntu-latest) / ${{ matrix.group }}
+    name: E2E / 🐧 Ubuntu / ${{ matrix.group }}
     needs: integration-tests
     runs-on: ubuntu-latest
 
@@ -313,7 +308,9 @@ jobs:
           path: dist-electron/
 
       - name: Run E2E Tests
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" sh -c "sleep 2 && npm run test:e2e:group:${{ matrix.group }}"
+        # DO NOT use xvfb-run wrapper here - it sets DISPLAY which conflicts with
+        # wdio-electron-service's autoXvfb feature for parallel worker processes
+        run: npm run test:e2e:group:${{ matrix.group }}
         shell: bash
         env:
           ELECTRON_USE_DIST: 'true'
@@ -334,7 +331,7 @@ jobs:
   # Release E2E Tests (Packaged Builds)
   # ===========================================================================
   release-e2e-tests:
-    name: Release E2E Tests (${{ matrix.os }})
+    name: Release E2E / ${{ matrix.emoji }} ${{ matrix.platform }}
     needs: [e2e-tests-windows, e2e-tests-macos, e2e-tests-ubuntu]
     runs-on: ${{ matrix.os }}
 
@@ -345,10 +342,16 @@ jobs:
         include:
           - os: ubuntu-latest
             dist-script: 'dist:linux'
+            emoji: '🐧'
+            platform: 'Ubuntu'
           - os: windows-latest
             dist-script: 'dist:win'
+            emoji: '🪟'
+            platform: 'Windows'
           - os: macos-latest
             dist-script: 'dist:mac-arm64'
+            emoji: '🍎'
+            platform: 'macOS'
 
     steps:
       - name: Checkout Code
@@ -392,12 +395,8 @@ jobs:
 
       # Run release E2E tests against packaged build
       - name: Run Release E2E Tests
-        run: |
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" sh -c "sleep 2 && npm run test:e2e:release"
-          else
-            npm run test:e2e:release
-          fi
+        # DO NOT use xvfb-run wrapper - wdio-electron-service's autoXvfb handles xvfb
+        run: npm run test:e2e:release
         shell: bash
         env:
           DEBUG: 'wdio:*'

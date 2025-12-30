@@ -16,6 +16,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { closeAllSecondaryWindows } from './helpers/WindowManagerHelper';
 import { ensureSingleWindow } from './helpers/workflows';
 import { MainWindowPage } from './pages/MainWindowPage';
 import { OptionsPage } from './pages/OptionsPage';
@@ -126,19 +127,8 @@ describe('Always On Top', () => {
       await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
     }
 
-    // Close any extra windows
-    const handles = await browser.getWindowHandles();
-    for (const handle of handles) {
-      if (handle !== mainWindowHandle) {
-        try {
-          await browser.switchToWindow(handle);
-          await browser.execute(() => window.electronAPI?.closeWindow?.());
-        } catch {
-          // Window might already be closed
-        }
-      }
-    }
-    await browser.switchToWindow(mainWindowHandle);
+    // Close any extra windows safely (uses browser.closeWindow() instead of IPC)
+    await closeAllSecondaryWindows(mainWindowHandle);
 
     // Reset always-on-top state
     await resetAlwaysOnTopState();

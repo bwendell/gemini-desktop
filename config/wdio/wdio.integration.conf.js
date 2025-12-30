@@ -41,7 +41,23 @@ export const config = {
   waitforTimeout: 30000,
   connectionRetryTimeout: 120000,
   connectionRetryCount: 3,
-  services: ['electron'],
+  services: [
+    [
+      'electron',
+      {
+        // Enable wdio-electron-service's built-in Xvfb management for Linux CI
+        // This is required for proper display handling - do NOT use xvfb-run wrapper
+        ...(process.platform === 'linux' && process.env.CI
+          ? {
+              autoXvfb: true,
+              xvfbAutoInstall: true,
+              xvfbAutoInstallMode: 'sudo',
+              xvfbMaxRetries: 5,
+            }
+          : {}),
+      },
+    ],
+  ],
   framework: 'mocha',
   reporters: ['spec'],
   mochaOpts: {

@@ -128,7 +128,17 @@ export const config = {
           : ['--test-auto-update'],
         // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
         apparmorAutoInstall: process.env.CI && process.platform === 'linux' ? 'sudo' : false,
-        // Xvfb is handled by xvfb-run wrapper in CI workflow for Linux
+        // Enable wdio-electron-service's built-in Xvfb management for Linux CI
+        // This is required for parallel test execution - do NOT use xvfb-run wrapper
+        // as it sets DISPLAY which prevents autoXvfb from working properly with workers
+        ...(process.platform === 'linux' && process.env.CI
+          ? {
+              autoXvfb: true,
+              xvfbAutoInstall: true,
+              xvfbAutoInstallMode: 'sudo',
+              xvfbMaxRetries: 5, // More retries for CI stability
+            }
+          : {}),
       },
     ],
   ],

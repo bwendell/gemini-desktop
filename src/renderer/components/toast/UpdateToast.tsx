@@ -128,6 +128,9 @@ export function UpdateToast({
   onInstall,
   onLater,
 }: UpdateToastProps) {
+  // Debug logging
+  console.log('[UpdateToast] Render - visible:', visible, 'type:', type);
+  
   const version = updateInfo?.version;
 
   const getMessage = (): string => {
@@ -148,9 +151,10 @@ export function UpdateToast({
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {visible && (
         <motion.div
+          key="update-toast"
           className={`update-toast update-toast--${type}`}
           variants={toastVariants}
           initial="hidden"

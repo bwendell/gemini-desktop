@@ -149,7 +149,7 @@ export function OptionsWindow() {
   const titlebarText = activeTab === 'about' ? 'About' : 'Options';
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary testId="options">
       <div className="options-window" data-testid="options-window">
         <OptionsWindowTitlebar title={titlebarText} />
 
