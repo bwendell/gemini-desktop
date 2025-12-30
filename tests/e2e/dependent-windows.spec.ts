@@ -11,6 +11,7 @@
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage, TrayPage, AuthWindowPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
+import { waitForAllWindowsHidden } from './helpers/windowStateActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
 
@@ -53,7 +54,7 @@ describe('Dependent Windows', () => {
 
     // 6. Verify no windows remain visible (both hidden/closed)
     // Note: The main window is hidden (not closed), so window count drops to 0
-    await waitForWindowCount(0, 5000);
+    await waitForAllWindowsHidden(5000);
     E2ELogger.info('dependent-windows', 'Both windows closed/hidden as expected');
 
     // 7. Restore from tray to verify app is still running
@@ -74,7 +75,7 @@ describe('Dependent Windows', () => {
     await browser.pause(1000);
 
     // 2. Wait for windows to close
-    await waitForWindowCount(0, 5000);
+    await waitForAllWindowsHidden(5000);
 
     // 3. Restore main window from tray via Show menu
     await tray.clickShowMenuItemAndWait();
@@ -128,7 +129,7 @@ describe('Dependent Windows', () => {
 
     // 4. Wait for all windows to close/hide
     await browser.pause(1500);
-    await waitForWindowCount(0, 5000);
+    await waitForAllWindowsHidden(5000);
     E2ELogger.info('dependent-windows', 'All dependent windows closed with main window');
 
     // 5. Restore from tray for cleanup

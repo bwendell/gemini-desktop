@@ -234,6 +234,7 @@ if (!gotTheLock) {
     const menuManager = new MenuManager(windowManager);
     menuManager.buildMenu();
     menuManager.setupContextMenu();
+    (global as any).menuManager = menuManager;
     logger.log('Menu setup complete');
 
     windowManager.createMainWindow();

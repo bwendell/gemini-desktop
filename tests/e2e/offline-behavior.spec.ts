@@ -2,58 +2,78 @@
  * E2E Test: Offline Behavior
  *
  * Verifies how the app handles network connectivity issues.
- * USES CDP via Electron Debugger to simulate offline state reliably.
+ *
+ * Strategy: Uses CDP Network.emulateNetworkConditions to block network requests.
+ * While CDP cannot change navigator.onLine, it DOES block fetch() requests.
+ * The app's useGeminiIframe hook performs a connectivity check via fetch() on load.
+ * When that fetch fails, the error state is set, triggering the offline overlay.
+ *
+ * Cross-platform: Windows, macOS, Linux
+ *
+ * @module offline-behavior.spec
  */
-
-/// <reference path="./helpers/wdio-electron.d.ts" />
 
 import { browser, expect, $ } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { expectElementDisplayed, expectElementNotDisplayed } from './helpers/assertions';
 
 // ============================================================================
-// CDP Network Emulation Helpers
+// CDP Network Interception Helpers
 // ============================================================================
 
 /**
- * Sets the network emulation state via Chrome DevTools Protocol.
- * @param offline - Whether to simulate offline mode
+ * Block all network requests to Gemini by intercepting and failing them.
+ * This is more reliable than Network.emulateNetworkConditions in Electron.
  */
-async function setNetworkEmulation(offline: boolean): Promise<void> {
-  await browser.electron.execute(async (electron, args) => {
+async function blockGeminiRequests(): Promise<void> {
+  await browser.electron.execute(async (electron) => {
     const wins = electron.BrowserWindow.getAllWindows();
     const wc = wins[0].webContents;
     try {
       if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
-      if (offline) {
-        await wc.debugger.sendCommand('Network.enable');
-      }
-      await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
-        offline,
-        latency: 0,
-        downloadThroughput: offline ? 0 : -1,
-        uploadThroughput: offline ? 0 : -1
+      
+      // Enable request interception for Gemini URLs
+      await wc.debugger.sendCommand('Fetch.enable', {
+        patterns: [
+          { urlPattern: '*gemini.google.com*', requestStage: 'Request' }
+        ]
+      });
+      
+      // Listen for requests and fail them
+      wc.debugger.on('message', (_event: unknown, method: string, params: { requestId: string }) => {
+        if (method === 'Fetch.requestPaused') {
+          wc.debugger.sendCommand('Fetch.failRequest', {
+            requestId: params.requestId,
+            errorReason: 'InternetDisconnected'
+          });
+        }
       });
     } catch (e) {
-      console.error('CDP Error:', e);
+      console.error('CDP Fetch.enable Error:', e);
     }
-  }, { offline });
+  });
+  
+  // Give CDP time to set up interception
+  await browser.pause(500);
 }
 
 /**
- * Waits for the renderer to recognize the network state change.
- * @param expectedOnline - Whether the renderer should report being online
+ * Restore network by disabling request interception.
  */
-async function waitForNetworkStateChange(expectedOnline: boolean): Promise<void> {
-  await browser.waitUntil(
-    async () => {
-      return await browser.execute((expected) => navigator.onLine === expected, expectedOnline);
-    },
-    {
-      timeout: 5000,
-      timeoutMsg: `Renderer did not update navigator.onLine to ${expectedOnline}`
+async function restoreNetwork(): Promise<void> {
+  await browser.electron.execute(async (electron) => {
+    const wins = electron.BrowserWindow.getAllWindows();
+    const wc = wins[0].webContents;
+    try {
+      await wc.debugger.sendCommand('Fetch.disable');
+      // Detach debugger to reset state completely
+      if (wc.debugger.isAttached()) wc.debugger.detach();
+    } catch (e) {
+      console.error('CDP Fetch.disable Error:', e);
     }
-  );
+  });
+  
+  await browser.pause(500);
 }
 
 /**
@@ -83,7 +103,7 @@ async function isAppResponsive(): Promise<boolean> {
 describe('Offline Behavior', () => {
   afterEach(async () => {
     // Ensure network is restored after each test
-    await setNetworkEmulation(false);
+    await restoreNetwork();
   });
 
   it('should handle network loss gracefully', async () => {
@@ -91,10 +111,9 @@ describe('Offline Behavior', () => {
     const title = await browser.getTitle();
     expect(title).not.toBe('');
 
-    // 2. Go offline via CDP
-    await setNetworkEmulation(true);
-    await waitForNetworkStateChange(false);
-    E2ELogger.info('offline', 'Simulated offline mode via CDP');
+    // 2. Block Gemini requests via CDP Fetch interception
+    await blockGeminiRequests();
+    E2ELogger.info('offline', 'Blocked Gemini requests via CDP Fetch');
 
     // 3. Reload to trigger offline state
     await reloadPage();
@@ -121,14 +140,12 @@ describe('Offline Behavior', () => {
   });
 
   it('should restore functionality when network returns', async () => {
-    // 1. Go offline
-    await setNetworkEmulation(true);
-    await waitForNetworkStateChange(false);
+    // 1. Block Gemini requests briefly then restore
+    await blockGeminiRequests();
 
-    // 2. Go back online
-    await setNetworkEmulation(false);
-    await waitForNetworkStateChange(true);
-    E2ELogger.info('offline', 'Restored online mode');
+    // 2. Restore network
+    await restoreNetwork();
+    E2ELogger.info('offline', 'Restored network');
 
     // 3. Refresh and verify app loads
     await reloadPage();
@@ -140,22 +157,17 @@ describe('Offline Behavior', () => {
   });
 
   it('should reload page and recover when retry button is clicked after connection restored', async () => {
-    // 1. Go offline
-    await setNetworkEmulation(true);
-    await waitForNetworkStateChange(false);
-    
-    // 2. Verify overlay is visible
-    await expectElementDisplayed('[data-testid="offline-overlay"]', { timeout: 10000 });
+    // 1. Block Gemini requests
+    await blockGeminiRequests();
 
-    // 2a. Reload page while offline to trigger "start offline" error state
+    // 2. Reload page while blocked to trigger connectivity check failure
     await reloadPage();
 
-    // Wait for reload and overlay to reappear
-    await expectElementDisplayed('[data-testid="offline-overlay"]', { timeout: 10000 });
+    // 3. Verify overlay is visible (due to connectivity check failure)
+    await expectElementDisplayed('[data-testid="offline-overlay"]', { timeout: 15000 });
 
-    // 3. Restore network connectivity
-    await setNetworkEmulation(false);
-    await waitForNetworkStateChange(true);
+    // 4. Restore network connectivity
+    await restoreNetwork();
 
     // 4. Verify overlay persists until retry (error state is sticky)
     const overlay = await $('[data-testid="offline-overlay"]');

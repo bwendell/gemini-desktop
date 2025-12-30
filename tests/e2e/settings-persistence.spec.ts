@@ -44,6 +44,9 @@ describe('Settings Persistence', () => {
       // 2. Click dark theme card
       await optionsPage.selectTheme('dark');
 
+      // Wait for settings file to be written
+      await browser.pause(500);
+
       // 3. Read settings file and verify theme is saved
       const theme = await settings.getTheme();
 
@@ -52,6 +55,9 @@ describe('Settings Persistence', () => {
 
       // 4. Switch to light theme and verify
       await optionsPage.selectTheme('light');
+
+      // Wait for settings file to be written
+      await browser.pause(500);
 
       const themeAfterLight = await settings.getTheme();
       expect(themeAfterLight).toBe('light');
@@ -89,27 +95,33 @@ describe('Settings Persistence', () => {
       await waitForWindowCount(2);
       await optionsPage.waitForLoad();
 
-      // 2. Get initial toggle state using OptionsPage's master toggle helper
-      const wasEnabled = await optionsPage.isMasterHotkeyEnabled();
+      // 2. Get initial toggle state using individual hotkey (alwaysOnTop as representative)
+      const wasEnabled = await optionsPage.isHotkeyEnabled('alwaysOnTop');
 
       E2ELogger.info(
         'settings-persistence',
-        `Initial hotkey state: ${wasEnabled ? 'enabled' : 'disabled'}`
+        `Initial alwaysOnTop hotkey state: ${wasEnabled ? 'enabled' : 'disabled'}`
       );
 
       // 3. Click toggle to change state
-      await optionsPage.toggleMasterHotkey();
+      await optionsPage.toggleHotkey('alwaysOnTop');
+
+      // Wait for settings file to be written
+      await browser.pause(500);
 
       // 4. Verify settings file was updated
-      const hotkeysEnabled = await settings.getHotkeysEnabled();
+      const hotkeysEnabled = await settings.getHotkeyEnabled('alwaysOnTop');
       expect(hotkeysEnabled).toBe(!wasEnabled);
 
       E2ELogger.info('settings-persistence', `Hotkey state saved: ${hotkeysEnabled}`);
 
       // 5. Toggle back to original state
-      await optionsPage.toggleMasterHotkey();
+      await optionsPage.toggleHotkey('alwaysOnTop');
 
-      const restoredState = await settings.getHotkeysEnabled();
+      // Wait for settings file to be written
+      await browser.pause(500);
+
+      const restoredState = await settings.getHotkeyEnabled('alwaysOnTop');
       expect(restoredState).toBe(wasEnabled);
 
       E2ELogger.info('settings-persistence', `Hotkey state restored: ${restoredState}`);
@@ -138,6 +150,7 @@ describe('Settings Persistence', () => {
 
       // 3. Toggle Always-on-Top hotkey and verify persistence
       await optionsPage.toggleHotkey('alwaysOnTop');
+      await browser.pause(500);
 
       let hotkeyState = await settings.getHotkeyEnabled('alwaysOnTop');
       expect(hotkeyState).toBe(!initialAlwaysOnTop);
@@ -145,6 +158,7 @@ describe('Settings Persistence', () => {
 
       // 4. Toggle Boss Key hotkey and verify persistence
       await optionsPage.toggleHotkey('bossKey');
+      await browser.pause(500);
 
       hotkeyState = await settings.getHotkeyEnabled('bossKey');
       expect(hotkeyState).toBe(!initialBossKey);
@@ -152,6 +166,7 @@ describe('Settings Persistence', () => {
 
       // 5. Toggle Quick Chat hotkey and verify persistence
       await optionsPage.toggleHotkey('quickChat');
+      await browser.pause(500);
 
       hotkeyState = await settings.getHotkeyEnabled('quickChat');
       expect(hotkeyState).toBe(!initialQuickChat);
@@ -204,8 +219,8 @@ describe('Settings Persistence', () => {
     it('should store settings in the correct user data directory', async () => {
       const settingsPath = await settings.getFilePath();
 
-      // Should be in userData directory
-      expect(settingsPath).toContain('settings.json');
+      // Should be in userData directory with correct filename
+      expect(settingsPath).toContain('user-preferences.json');
 
       // Path should be platform-appropriate
       if (process.platform === 'win32') {

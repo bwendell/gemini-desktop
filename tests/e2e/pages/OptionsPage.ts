@@ -110,11 +110,12 @@ export class OptionsPage extends BasePage {
   }
 
   /**
-   * Get selector for a specific hotkey toggle.
-   * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'stealthMode')
+   * Get selector for a specific hotkey toggle switch button.
+   * Targets the switch element where aria-checked is defined.
+   * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'bossKey')
    */
   hotkeyToggleSelector(hotkeyId: string): string {
-    return `[data-testid="hotkey-toggle-${hotkeyId}"]`;
+    return `[data-testid="hotkey-toggle-${hotkeyId}-switch"]`;
   }
 
   /**
@@ -125,9 +126,33 @@ export class OptionsPage extends BasePage {
     return `[data-testid="hotkey-row-${hotkeyId}"]`;
   }
 
-  /** Selector for the master hotkey toggle switch */
+  /**
+   * Get selector for the accelerator container within a hotkey row.
+   * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'bossKey')
+   */
+  acceleratorContainerSelector(hotkeyId: string): string {
+    return `[data-testid="hotkey-row-${hotkeyId}"] .keycap-container`;
+  }
+
+  /**
+   * Get selector for the recording prompt within a hotkey row.
+   * @param hotkeyId - Hotkey ID
+   */
+  recordingPromptSelector(hotkeyId: string): string {
+    return `[data-testid="hotkey-row-${hotkeyId}"] .recording-prompt`;
+  }
+
+  /**
+   * Get selector for the reset button within a hotkey row.
+   * @param hotkeyId - Hotkey ID
+   */
+  resetButtonSelector(hotkeyId: string): string {
+    return `[data-testid="hotkey-row-${hotkeyId}"] .reset-button`;
+  }
+
+  /** Selector for the master hotkey toggle switch (uses alwaysOnTop as representative toggle) */
   get masterHotkeyToggleSelector(): string {
-    return '[data-testid="hotkey-toggle-switch"]';
+    return '[data-testid="hotkey-toggle-alwaysOnTop-switch"]';
   }
 
   // ===========================================================================
@@ -283,6 +308,61 @@ export class OptionsPage extends BasePage {
    */
   async getHotkeyRow(hotkeyId: string): Promise<WebdriverIO.Element> {
     return this.waitForElement(this.hotkeyRowSelector(hotkeyId));
+  }
+
+  /**
+   * Click the accelerator input to start recording mode.
+   * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'bossKey')
+   */
+  async clickAcceleratorInput(hotkeyId: string): Promise<void> {
+    this.log(`Clicking accelerator input for: ${hotkeyId}`);
+    const container = await this.waitForElement(this.acceleratorContainerSelector(hotkeyId));
+    await container.click();
+    await this.pause();
+  }
+
+  /**
+   * Check if recording mode is active for a specific hotkey.
+   * @param hotkeyId - Hotkey ID
+   */
+  async isRecordingModeActive(hotkeyId: string): Promise<boolean> {
+    const prompt = await this.$(this.recordingPromptSelector(hotkeyId));
+    if (!(await prompt.isExisting())) {
+      return false;
+    }
+    return await prompt.isDisplayed();
+  }
+
+  /**
+   * Get current accelerator text for a specific hotkey.
+   * @param hotkeyId - Hotkey ID
+   */
+  async getCurrentAccelerator(hotkeyId: string): Promise<string> {
+    const container = await this.$(this.acceleratorContainerSelector(hotkeyId));
+    return await container.getText();
+  }
+
+  /**
+   * Click reset button to restore default accelerator.
+   * @param hotkeyId - Hotkey ID
+   */
+  async clickResetButton(hotkeyId: string): Promise<void> {
+    this.log(`Clicking reset button for: ${hotkeyId}`);
+    const button = await this.waitForElement(this.resetButtonSelector(hotkeyId));
+    await button.click();
+    await this.pause();
+  }
+
+  /**
+   * Check if reset button is visible for a specific hotkey.
+   * @param hotkeyId - Hotkey ID
+   */
+  async isResetButtonVisible(hotkeyId: string): Promise<boolean> {
+    const button = await this.$(this.resetButtonSelector(hotkeyId));
+    if (!(await button.isExisting())) {
+      return false;
+    }
+    return await button.isDisplayed();
   }
 
   // ===========================================================================

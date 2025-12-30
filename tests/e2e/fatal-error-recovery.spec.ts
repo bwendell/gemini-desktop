@@ -99,7 +99,8 @@ describe('Fatal Error Recovery E2E', () => {
       await expectElementContainsText(`${fallbackSelector} h3`, "Gemini couldn't load");
 
       // 3. User can recover by clicking Reload
-      const reloadButton = await $(`${fallbackSelector} button=Reload`);
+      const reloadButton = await $(`${fallbackSelector} button`);
+      expect(await reloadButton.isDisplayed()).toBe(true);
       await reloadButton.click();
 
       // Verify fallback disappears and normal content returns

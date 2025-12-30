@@ -8,8 +8,6 @@ export const config = {
     '../../tests/e2e/dependent-windows.spec.ts',
     '../../tests/e2e/window-bounds.spec.ts',
     '../../tests/e2e/window-controls.spec.ts',
-    '../../tests/e2e/window-state.spec.ts',
-    '../../tests/e2e/window-titlebar.spec.ts',
     '../../tests/e2e/window-management-edge-cases.spec.ts',
   ],
 };

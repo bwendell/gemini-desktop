@@ -14,12 +14,12 @@ import electronPath from 'electron';
 import { fileURLToPath } from 'url';
 import { MainWindowPage, OptionsPage, AuthWindowPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
-import { closeWindow, showWindow } from './helpers/windowStateActions';
+import { closeWindow, showWindow, waitForAllWindowsHidden } from './helpers/windowStateActions';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const mainEntry = path.resolve(__dirname, '../../dist-electron/main.cjs');
+const mainEntry = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
 
 describe('Window Management Edge Cases', () => {
   const mainWindow = new MainWindowPage();
@@ -52,7 +52,7 @@ describe('Window Management Edge Cases', () => {
       // 2. Switch to main window and trigger close (hide-to-tray)
       await switchToMainWindow();
       await closeWindow(); // Triggers hide-to-tray in WindowManager
-      await waitForWindowCount(0, 5000);
+      await waitForAllWindowsHidden(5000);
 
       // 3. Verify both windows are "closed" (main hidden, auth closed)
       E2ELogger.info('window-edge-cases', 'Both windows closed/hidden as expected');

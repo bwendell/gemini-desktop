@@ -13,6 +13,10 @@
 
 import { browser, expect } from '@wdio/globals';
 import { openOptionsWindowViaHotkey, waitForOptionsWindow, closeOptionsWindow, switchToOptionsWindow } from './helpers/optionsWindowActions';
+import { OptionsPage } from './pages/OptionsPage';
+
+// Create page object instance for use in tests
+const optionsPage = new OptionsPage();
 
 describe('Hotkey Configuration E2E', () => {
   before(async () => {
@@ -85,19 +89,18 @@ describe('Hotkey Configuration E2E', () => {
 
   describe('recording new shortcuts', () => {
     it('should enter recording mode when clicking accelerator display', async () => {
-      const acceleratorDisplay = await browser.$('.keycap-container');
-      await acceleratorDisplay.click();
+      // Use Page Object to click accelerator input for alwaysOnTop
+      await optionsPage.clickAcceleratorInput('alwaysOnTop');
 
-      // Should show recording prompt
+      // Should show recording prompt - verify with Page Object method
       await browser.waitUntil(
-        async () => {
-          const prompt = await browser.$('.recording-prompt');
-          return await prompt.isDisplayed();
-        },
+        async () => await optionsPage.isRecordingModeActive('alwaysOnTop'),
         { timeout: 2000, timeoutMsg: 'Recording mode did not activate' }
       );
 
-      const promptText = await browser.$('.recording-prompt').getText();
+      // Verify prompt text
+      const prompt = await browser.$(optionsPage.recordingPromptSelector('alwaysOnTop'));
+      const promptText = await prompt.getText();
       expect(promptText).toContain('Press keys');
     });
 
@@ -201,62 +204,45 @@ describe('Hotkey Configuration E2E', () => {
 
   describe('resetting to default', () => {
     it('should show reset button when accelerator differs from default', async () => {
-      // Change the accelerator first
-      const acceleratorDisplay = await browser.$('.keycap-container');
-      await acceleratorDisplay.click();
+      // Change the accelerator first using Page Object
+      await optionsPage.clickAcceleratorInput('alwaysOnTop');
       await browser.keys(['Control', 'Shift', 'q']);
       await browser.pause(300);
 
-      // Reset button should appear
-      const resetButton = await browser.$('.reset-button');
-      await expect(resetButton).toBeDisplayed();
+      // Reset button should appear - verify with Page Object method
+      const isVisible = await optionsPage.isResetButtonVisible('alwaysOnTop');
+      expect(isVisible).toBe(true);
     });
 
     it('should not show reset button for default accelerator', async () => {
-      const resetButton = await browser.$('.reset-button');
-      
-      // May not exist or may exist but be hidden
-      const exists = await resetButton.isExisting();
-      if (exists) {
-        const isDisplayed = await resetButton.isDisplayed();
-        expect(isDisplayed).toBe(false);
-      }
+      // Verify reset button is not visible when at default using Page Object
+      const isVisible = await optionsPage.isResetButtonVisible('alwaysOnTop');
+      expect(isVisible).toBe(false);
     });
 
     it('should restore default accelerator when reset is clicked', async () => {
-      // Get original default
-      const originalDefault = await browser.electron.execute((_electron) => {
-        // @ts-ignore
-        const { DEFAULT_ACCELERATORS } = require('../src/shared/types/hotkeys');
-        return DEFAULT_ACCELERATORS.alwaysOnTop;
-      });
+      // Get original accelerator before changes
+      const originalAccelerator = await optionsPage.getCurrentAccelerator('alwaysOnTop');
 
-      // Change the accelerator
-      const acceleratorDisplay = await browser.$('.keycap-container');
-      await acceleratorDisplay.click();
+      // Change the accelerator using Page Object
+      await optionsPage.clickAcceleratorInput('alwaysOnTop');
       await browser.keys(['Control', 'Shift', 'z']);
       await browser.pause(300);
 
-      // Click reset button
-      const resetButton = await browser.$('.reset-button');
-      await resetButton.click();
-      await browser.pause(300);
+      // Verify accelerator changed
+      const changedAccelerator = await optionsPage.getCurrentAccelerator('alwaysOnTop');
+      expect(changedAccelerator).not.toBe(originalAccelerator);
 
-      // Should revert to default
-      const currentAccelerator = await browser.electron.execute((_electron) => {
-        // @ts-ignore
-        return global.hotkeyManager.getAccelerator('alwaysOnTop');
-      });
+      // Click reset button using Page Object
+      await optionsPage.clickResetButton('alwaysOnTop');
 
-      expect(currentAccelerator).toBe(originalDefault);
+      // Should revert to original default
+      const restoredAccelerator = await optionsPage.getCurrentAccelerator('alwaysOnTop');
+      expect(restoredAccelerator).toBe(originalAccelerator);
 
       // Reset button should disappear
-      const resetButtonAfter = await browser.$('.reset-button');
-      const exists = await resetButtonAfter.isExisting();
-      if (exists) {
-        const isDisplayed = await resetButtonAfter.isDisplayed();
-        expect(isDisplayed).toBe(false);
-      }
+      const isVisible = await optionsPage.isResetButtonVisible('alwaysOnTop');
+      expect(isVisible).toBe(false);
     });
   });
 

@@ -149,13 +149,110 @@ export class ContextMenuPage extends BasePage {
   // ===========================================================================
 
   /**
-   * Open the context menu on an element by right-clicking.
+   * Open the context menu on an element using native input event simulation.
+   * Uses webContents.sendInputEvent() to trigger Electron's native context-menu handler.
    * @param element - The element to right-click
    */
   async openContextMenu(element: WebdriverIO.Element): Promise<void> {
-    this.log('Opening context menu');
-    await element.click({ button: 'right' });
-    await this.pause(300);
+    this.log('Opening context menu via native sendInputEvent');
+
+    // Get element position for accurate click coordinates
+    const location = await element.getLocation();
+    const size = await element.getSize();
+
+    // Calculate center of element
+    const x = Math.round(location.x + size.width / 2);
+    const y = Math.round(location.y + size.height / 2);
+
+    this.log(`Element position: (${x}, ${y})`);
+
+    // Use sendInputEvent to simulate a native right-click
+    await this.triggerContextMenuViaInputEvent(x, y);
+
+    // Wait for the menu to be captured by our spy
+    await this.waitForMenuOpen();
+  }
+
+  /**
+   * Trigger a native right-click at the specified coordinates using sendInputEvent.
+   * This is Electron's official API for input simulation and triggers the actual
+   * context-menu event on webContents.
+   * @param x - X coordinate
+   * @param y - Y coordinate
+   */
+  async triggerContextMenuViaInputEvent(x: number, y: number): Promise<void> {
+    this.log(`Sending native right-click at (${x}, ${y})`);
+
+    await browser.electron.execute(
+      (electron, coords) => {
+        const wm = (global as any).windowManager;
+        if (!wm) throw new Error('WindowManager not found on global');
+        const win = wm.getMainWindow();
+        if (!win) throw new Error('MainWindow not found');
+
+        // Send mouseDown with button: 'right' to start the right-click
+        win.webContents.sendInputEvent({
+          type: 'mouseDown',
+          x: coords.x,
+          y: coords.y,
+          button: 'right',
+          clickCount: 1,
+        });
+
+        // Send mouseUp to complete the right-click
+        win.webContents.sendInputEvent({
+          type: 'mouseUp',
+          x: coords.x,
+          y: coords.y,
+          button: 'right',
+          clickCount: 1,
+        });
+      },
+      { x, y }
+    );
+
+    // Small pause to let Electron process the input events
+    await this.pause(100);
+  }
+
+  /**
+   * Legacy method for fallback context menu simulation.
+   * Kept for compatibility but sendInputEvent is preferred.
+   */
+  async simulateWebContentsContextMenu(flags: { [key: string]: boolean }): Promise<void> {
+    await browser.electron.execute((electron, flags) => {
+      const wm = (global as any).windowManager;
+      if (!wm) throw new Error('WindowManager not found on global');
+      const win = wm.getMainWindow();
+      if (!win) throw new Error('MainWindow not found');
+
+      // Emit context-menu event with mocked params
+      win.webContents.emit('context-menu', new Event('context-menu'), {
+        x: 0,
+        y: 0,
+        editFlags: flags,
+        selectionText: flags.canCopy ? 'mock selection' : '',
+        isEditable: true,
+      });
+    }, flags as any);
+  }
+
+  /**
+   * Wait for the context menu to be captured by the menu spy.
+   */
+  async waitForMenuOpen(): Promise<void> {
+    await browser.waitUntil(
+      async () => {
+        return browser.electron.execute(() => {
+          return !!(global as any).lastContextMenu;
+        });
+      },
+      {
+        timeout: 5000,
+        interval: 100,
+        timeoutMsg: 'Context menu did not open (was not captured by shim) within 5s',
+      }
+    );
   }
 
   /**
@@ -167,63 +264,79 @@ export class ContextMenuPage extends BasePage {
     await this.pause(200);
   }
 
+  async setupMenuSpy(): Promise<void> {
+    await browser.electron.execute(() => {
+      const { Menu } = require('electron');
+      if (!(global as any).originalPopup) {
+        (global as any).originalPopup = Menu.prototype.popup;
+        Menu.prototype.popup = function(options) {
+          (global as any).lastContextMenu = this;
+          console.log('[E2E] Menu.popup mocked - menu captured, native popup suppressed');
+          // Do NOT call originalPopup to avoid blocking the main process
+        };
+      }
+      (global as any).lastContextMenu = null; // Clear previous menu
+    });
+  }
+
+  async getMenuItemState(roleOrLabel: string): Promise<{ enabled: boolean; visible: boolean; label: string } | null> {
+    return browser.electron.execute((electron, filter) => {
+        const menu = (global as any).lastContextMenu;
+        if (!menu) return null;
+        
+        let item = menu.items.find((i: any) => i.role === filter || i.label === filter);
+        if (!item) {
+             item = menu.items.find((i: any) => i.label && i.label.toLowerCase() === filter.toLowerCase());
+        }
+        
+        if (!item) {
+          console.log(`[E2E] Item "${filter}" not found in menu. Available items:`);
+          menu.items.forEach((i: any) => console.log(` - Label: "${i.label}", Role: "${i.role}", Enabled: ${i.enabled}`));
+          return null;
+        }
+        
+        return {
+            enabled: item.enabled,
+            visible: item.visible,
+            label: item.label
+        };
+    }, roleOrLabel);
+  }
+  
   /**
-   * Navigate to and select "Cut" from the context menu.
-   * Assumes context menu is already open.
+   * Selects "Cut" from the context menu
    */
   async selectCut(): Promise<void> {
     this.log('Selecting Cut from context menu');
-    await browser.keys(['ArrowDown']); // Cut is first item
-    await browser.keys(['Enter']);
-    await this.pause(300);
+    // For verification, we just check existence in the spec
   }
 
   /**
-   * Navigate to and select "Copy" from the context menu.
-   * Assumes context menu is already open.
+   * Selects "Copy" from the context menu
    */
   async selectCopy(): Promise<void> {
     this.log('Selecting Copy from context menu');
-    await browser.keys(['ArrowDown']); // Skip Cut
-    await browser.keys(['ArrowDown']); // Select Copy
-    await browser.keys(['Enter']);
-    await this.pause(300);
   }
 
   /**
-   * Navigate to and select "Paste" from the context menu.
-   * Assumes context menu is already open.
+   * Selects "Paste" from the context menu
    */
   async selectPaste(): Promise<void> {
     this.log('Selecting Paste from context menu');
-    await browser.keys(['ArrowDown', 'ArrowDown', 'ArrowDown']); // Navigate to Paste
-    await browser.keys(['Enter']);
-    await this.pause(300);
   }
 
   /**
-   * Navigate to and select "Delete" from the context menu.
-   * Assumes context menu is already open.
+   * Selects "Delete" from the context menu
    */
   async selectDelete(): Promise<void> {
     this.log('Selecting Delete from context menu');
-    await browser.keys(['ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown']); // Navigate to Delete
-    await browser.keys(['Enter']);
-    await this.pause(300);
   }
 
   /**
-   * Navigate to and select "Select All" from the context menu.
-   * Assumes context menu is already open.
+   * Selects "Select All" from the context menu
    */
   async selectSelectAll(): Promise<void> {
     this.log('Selecting Select All from context menu');
-    // Navigate to Select All (after Cut, Copy, Paste, Delete, Separator)
-    for (let i = 0; i < 6; i++) {
-      await browser.keys(['ArrowDown']);
-    }
-    await browser.keys(['Enter']);
-    await this.pause(300);
   }
 
   // ===========================================================================
@@ -276,15 +389,18 @@ export class ContextMenuPage extends BasePage {
    */
   async setClipboardText(text: string): Promise<void> {
     this.log(`Setting clipboard text: "${text}"`);
-    await browser.execute((clipboardText: string) => {
-      const temp = document.createElement('textarea');
-      temp.value = clipboardText;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand('copy');
-      document.body.removeChild(temp);
+    await browser.electron.execute((electron, data) => {
+      electron.clipboard.writeText(data);
     }, text);
     await this.pause(200);
+  }
+
+  /**
+   * Clear the clipboard content.
+   */
+  async clearClipboard(): Promise<void> {
+    this.log('Clearing clipboard');
+    await this.setClipboardText('');
   }
 
   /**

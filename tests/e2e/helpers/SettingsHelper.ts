@@ -1,28 +1,35 @@
 /**
  * Settings Helper for E2E Tests.
  *
- * Encapsulates settings file read operations in the Electron main process.
- * Provides typed access to persisted settings for verification in E2E tests.
+ * Encapsulates settings file read operations for E2E tests.
+ * Provides typed access to persisted settings for verification.
+ *
+ * **Implementation Note:**
+ * This helper delegates to persistenceActions.ts which reads settings
+ * using local Node.js fs after getting the userData path from Electron.
+ * This approach is more reliable than using require('fs') inside
+ * browser.electron.execute().
  *
  * @module SettingsHelper
  */
 
-/// <reference path="./wdio-electron.d.ts" />
-
-import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
+import {
+  readUserPreferences,
+  getThemePreference,
+  getAlwaysOnTopSetting,
+  getHotkeyEnabledSetting,
+  getUserPreferencesPath,
+  userPreferencesFileExists,
+  UserPreferencesData,
+} from './persistenceActions';
 
 /**
  * Interface for the settings file structure.
  * Extensible for future settings additions.
  */
-export interface SettingsData {
-  theme?: 'light' | 'dark' | 'system';
-  hotkeysEnabled?: boolean;
-  hotkeyAlwaysOnTop?: boolean;
-  hotkeyBossKey?: boolean;
-  hotkeyQuickChat?: boolean;
-  // Window state
+export interface SettingsData extends UserPreferencesData {
+  // Window state (not currently persisted to user-preferences.json)
   windowBounds?: {
     x: number;
     y: number;
@@ -30,15 +37,15 @@ export interface SettingsData {
     height: number;
   };
   isMaximized?: boolean;
-  // Auto-update
+  // Auto-update (may be in separate update-settings.json)
   autoCheckUpdates?: boolean;
-  // Future extensibility
-  [key: string]: unknown;
 }
 
 /**
  * Helper class for reading settings from the Electron app's settings file.
  * Used to verify that settings are correctly persisted to disk.
+ *
+ * Delegates to persistenceActions.ts for reliable file system access.
  */
 export class SettingsHelper {
   private readonly logName = 'SettingsHelper';
@@ -52,42 +59,19 @@ export class SettingsHelper {
    * @returns The parsed settings object, or null if file doesn't exist or is invalid.
    */
   async readSettings(): Promise<SettingsData | null> {
-    const settings = await browser.electron.execute((electron: typeof import('electron')) => {
-      const path = require('path');
-      const fs = require('fs');
-
-      const userDataPath = electron.app.getPath('userData');
-      const settingsPath = path.join(userDataPath, 'settings.json');
-
-      try {
-        if (!fs.existsSync(settingsPath)) {
-          return null;
-        }
-        const content = fs.readFileSync(settingsPath, 'utf-8');
-        return JSON.parse(content);
-      } catch (error) {
-        console.error('[E2E] Failed to read settings file:', error);
-        return null;
-      }
-    });
-
+    const settings = await readUserPreferences();
     this.log(`Read settings: ${settings ? 'found' : 'not found'}`);
-    return settings;
+    return settings as SettingsData | null;
   }
 
   /**
    * Get the absolute path to the settings file.
-   * @returns The full path to settings.json
+   * @returns The full path to user-preferences.json
    */
   async getFilePath(): Promise<string> {
-    const path = await browser.electron.execute((electron: typeof import('electron')) => {
-      const pathModule = require('path');
-      const userDataPath = electron.app.getPath('userData');
-      return pathModule.join(userDataPath, 'settings.json');
-    });
-
-    this.log(`Settings file path: ${path}`);
-    return path;
+    const filePath = await getUserPreferencesPath();
+    this.log(`Settings file path: ${filePath}`);
+    return filePath;
   }
 
   /**
@@ -95,17 +79,7 @@ export class SettingsHelper {
    * @returns true if the settings file exists
    */
   async exists(): Promise<boolean> {
-    const exists = await browser.electron.execute((electron: typeof import('electron')) => {
-      const path = require('path');
-      const fs = require('fs');
-
-      const userDataPath = electron.app.getPath('userData');
-      const settingsPath = path.join(userDataPath, 'settings.json');
-
-      return fs.existsSync(settingsPath);
-    });
-
-    return exists;
+    return userPreferencesFileExists();
   }
 
   // ===========================================================================
@@ -117,8 +91,7 @@ export class SettingsHelper {
    * @returns The theme value, or undefined if not set
    */
   async getTheme(): Promise<'light' | 'dark' | 'system' | undefined> {
-    const settings = await this.readSettings();
-    return settings?.theme;
+    return getThemePreference();
   }
 
   // ===========================================================================
@@ -128,35 +101,34 @@ export class SettingsHelper {
   /**
    * Get the master hotkeys enabled state.
    * @returns true if hotkeys are enabled, undefined if not set
+   * @deprecated There is no master hotkeys toggle - use getHotkeyEnabled() instead
    */
   async getHotkeysEnabled(): Promise<boolean | undefined> {
     const settings = await this.readSettings();
-    return settings?.hotkeysEnabled;
+    return settings?.hotkeyAlwaysOnTop; // Use alwaysOnTop as representative
   }
 
   /**
    * Get the enabled state of a specific hotkey.
-   * @param hotkeyId - The hotkey identifier (e.g., 'alwaysOnTop', 'bossKey', 'quickChat')
+   * @param hotkeyId - The hotkey identifier ('alwaysOnTop', 'bossKey', 'quickChat')
    * @returns true if the hotkey is enabled, undefined if not set
    */
-  async getHotkeyEnabled(hotkeyId: string): Promise<boolean | undefined> {
-    const settings = await this.readSettings();
-    if (!settings) return undefined;
+  async getHotkeyEnabled(
+    hotkeyId: 'alwaysOnTop' | 'bossKey' | 'quickChat'
+  ): Promise<boolean | undefined> {
+    return getHotkeyEnabledSetting(hotkeyId);
+  }
 
-    // Map hotkey IDs to settings keys
-    const keyMap: Record<string, keyof SettingsData> = {
-      alwaysOnTop: 'hotkeyAlwaysOnTop',
-      bossKey: 'hotkeyBossKey',
-      quickChat: 'hotkeyQuickChat',
-    };
+  // ===========================================================================
+  // Always On Top Settings
+  // ===========================================================================
 
-    const settingsKey = keyMap[hotkeyId];
-    if (!settingsKey) {
-      this.log(`Unknown hotkey ID: ${hotkeyId}`);
-      return undefined;
-    }
-
-    return settings[settingsKey] as boolean | undefined;
+  /**
+   * Get the alwaysOnTop window state setting.
+   * @returns true if always on top is enabled, undefined if not set
+   */
+  async getAlwaysOnTop(): Promise<boolean | undefined> {
+    return getAlwaysOnTopSetting();
   }
 
   // ===========================================================================
@@ -165,6 +137,7 @@ export class SettingsHelper {
 
   /**
    * Get the persisted window bounds.
+   * Note: Window bounds may be in a different settings file.
    * @returns The window bounds object, or undefined if not set
    */
   async getWindowBounds(): Promise<SettingsData['windowBounds'] | undefined> {
@@ -187,6 +160,7 @@ export class SettingsHelper {
 
   /**
    * Get the auto-check updates setting.
+   * Note: This may be stored in update-settings.json instead.
    * @returns true if auto-check is enabled, undefined if not set
    */
   async getAutoCheckUpdates(): Promise<boolean | undefined> {
