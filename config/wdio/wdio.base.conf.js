@@ -103,7 +103,8 @@ export const baseConfig = {
   waitforTimeout: 15000,
 
   // Connection retry settings
-  connectionRetryTimeout: 120000,
+  // Linux needs more time for xvfb/display initialization
+  connectionRetryTimeout: process.platform === 'linux' ? 180000 : 120000,
   connectionRetryCount: 3,
 
   // Xvfb is handled by xvfb-run in CI workflow for Linux

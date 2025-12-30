@@ -145,7 +145,8 @@ jobs:
       - name: Run Real Integration Tests
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:integration
+            # Add delay to ensure xvfb is fully ready before Electron starts
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" sh -c "sleep 2 && npm run test:integration"
           else
             npm run test:integration
           fi
@@ -157,7 +158,7 @@ jobs:
   # E2E Tests
   # ===========================================================================
   e2e-tests:
-    name: E2E (${{ matrix.group }} - ${{ matrix.os }})
+    name: E2E (${{ matrix.os }}) / ${{ matrix.group }}
     needs: integration-tests
     runs-on: ${{ matrix.os }}
 
@@ -214,7 +215,8 @@ jobs:
       - name: Run E2E Tests
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e:group:${{ matrix.group }}
+            # Add delay to ensure xvfb is fully ready before Electron starts
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" sh -c "sleep 2 && npm run test:e2e:group:${{ matrix.group }}"
           else
             npm run test:e2e:group:${{ matrix.group }}
           fi
@@ -299,7 +301,8 @@ jobs:
       - name: Run Release E2E Tests
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e:release
+            # Add delay to ensure xvfb is fully ready before Electron starts
+            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" sh -c "sleep 2 && npm run test:e2e:release"
           else
             npm run test:e2e:release
           fi

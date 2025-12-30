@@ -224,7 +224,11 @@ describe('Settings Persistence', () => {
 
       // Path should be platform-appropriate
       if (process.platform === 'win32') {
-        expect(settingsPath).toContain('AppData');
+        // Windows uses AppData in production, but E2E tests use temporary scoped
+        // directories like C:\Windows\SystemTemp\scoped_dir... for test isolation
+        const isProductionPath = settingsPath.includes('AppData');
+        const isTestIsolationPath = settingsPath.includes('scoped_dir');
+        expect(isProductionPath || isTestIsolationPath).toBe(true);
       } else if (process.platform === 'darwin') {
         expect(settingsPath).toContain('Application Support');
       } else {
