@@ -190,9 +190,9 @@ describe('Auto-Update User Interactions', () => {
       // WHEN the user clicks the dismiss (×) button
       const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
       await dismissBtn.click();
-      await (browser as any).pause(500);
 
-      // THEN the toast should dismiss
+      // Wait for toast to be hidden instead of fixed pause
+      await toast.waitForDisplayed({ reverse: true, timeout: 2000 });
       expect(await toast.isDisplayed()).toBe(false);
 
       // AND no badges should appear (errors don't create badges)

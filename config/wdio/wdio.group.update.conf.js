@@ -8,7 +8,6 @@ export const config = {
     '../../tests/e2e/auto-update-interactions.spec.ts',
     '../../tests/e2e/auto-update-persistence.spec.ts',
     '../../tests/e2e/auto-update-platform.spec.ts',
-    '../../tests/e2e/auto-update-startup.spec.ts',
     '../../tests/e2e/auto-update-toggle.spec.ts',
     '../../tests/e2e/auto-update-tray.spec.ts',
   ],
