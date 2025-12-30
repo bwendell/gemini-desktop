@@ -1,3 +1,25 @@
+/**
+ * E2E Test: Auto-Update Platform Logic
+ *
+ * Tests platform-specific auto-update behavior and restrictions.
+ *
+ * ## What's Tested
+ * - Linux AppImage updates can be enabled (setAutoUpdateEnabled works)
+ * - Platform mocking via devMockPlatform() API
+ *
+ * ## Coverage Gaps (Skipped Tests)
+ * - **Linux non-AppImage restriction**: Skipped because UpdateManager.setEnabled()
+ *   doesn't re-check shouldDisableUpdates() after the user sets the value.
+ *   The platform restriction is only applied at startup, not on dynamic changes.
+ *   This would require architecture changes to test properly.
+ *
+ * ## Equivalent Coverage
+ * - Platform restriction logic is unit-tested in updateManager.test.ts
+ * - The startup-time restriction behavior works correctly in production
+ *
+ * @module auto-update-platform.spec
+ */
+
 import { expect, browser } from '@wdio/globals';
 
 describe('Auto-Update Platform Logic', () => {

@@ -11,7 +11,7 @@
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage, TrayPage, AuthWindowPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
-import { waitForAllWindowsHidden } from './helpers/windowStateActions';
+import { waitForAllWindowsHidden, closeWindow } from './helpers/windowStateActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
 
@@ -44,8 +44,8 @@ describe('Dependent Windows', () => {
     const mainHandle = handles[0];
     await browser.switchToWindow(mainHandle);
 
-    // 4. Close main window via close button
-    await mainWindow.clickClose();
+    // 4. Close main window via IPC API (works on all platforms including macOS with native controls)
+    await closeWindow();
     E2ELogger.info('dependent-windows', 'Closed main window via close button');
 
     // 5. Wait for both windows to close/hide
@@ -70,8 +70,8 @@ describe('Dependent Windows', () => {
     const mainHandle = handles[0];
     await browser.switchToWindow(mainHandle);
 
-    // Close to tray
-    await mainWindow.clickClose();
+    // Close to tray via IPC API (works on all platforms including macOS with native controls)
+    await closeWindow();
     await browser.pause(1000);
 
     // 2. Wait for windows to close
@@ -122,9 +122,9 @@ describe('Dependent Windows', () => {
     // Should have at least 2 windows (main + options, auth may merge or not)
     expect(allHandles.length).toBeGreaterThanOrEqual(2);
 
-    // 3. Switch back to main window and close it
+    // 3. Switch back to main window and close it via IPC API (works on all platforms)
     await browser.switchToWindow(mainHandle);
-    await mainWindow.clickClose();
+    await closeWindow();
     E2ELogger.info('dependent-windows', 'Closed main window');
 
     // 4. Wait for all windows to close/hide

@@ -228,8 +228,12 @@ describe('Settings Persistence', () => {
       } else if (process.platform === 'darwin') {
         expect(settingsPath).toContain('Application Support');
       } else {
-        // Linux uses .config or similar
-        expect(settingsPath).toContain('gemini-desktop');
+        // Linux uses .config/gemini-desktop in production, but E2E tests use
+        // temporary scoped directories like /tmp/.org.chromium.Chromium.scoped_dir.XXX/
+        // for test isolation
+        const isProductionPath = settingsPath.includes('gemini-desktop');
+        const isTestIsolationPath = settingsPath.includes('.org.chromium');
+        expect(isProductionPath || isTestIsolationPath).toBe(true);
       }
 
       E2ELogger.info('settings-persistence', `Settings file path: ${settingsPath}`);

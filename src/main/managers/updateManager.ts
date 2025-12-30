@@ -109,7 +109,11 @@ export default class UpdateManager {
     logger.log(`UpdateManager initialized (enabled: ${this.enabled})`);
 
     // Start periodic checks if enabled
-    if (this.enabled) {
+    // EXCEPTION: In test mode (--test-auto-update), we skip automatic checks
+    // because CI environments cannot reach GitHub releases. The test flag is
+    // specifically for verifying initialization works (dev-app-update.yml is found),
+    // not for testing actual network update checks.
+    if (this.enabled && !process.argv.includes('--test-auto-update')) {
       this.startPeriodicChecks();
     }
   }
@@ -122,8 +126,8 @@ export default class UpdateManager {
     const currentPlatform = this.mockPlatform || process.platform;
     const currentEnv = this.mockEnv || process.env;
 
-    // Allow updates in test environment (Vitest or Integration Tests)
-    if (currentEnv.VITEST || currentEnv.TEST_AUTO_UPDATE) {
+    // Allow updates in test environment (Vitest, Integration Tests, or E2E with --test-auto-update flag)
+    if (currentEnv.VITEST || currentEnv.TEST_AUTO_UPDATE || process.argv.includes('--test-auto-update')) {
       return false;
     }
 

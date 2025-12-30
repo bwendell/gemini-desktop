@@ -9,6 +9,7 @@ import {
   minimizeWindow,
   restoreWindow,
   focusWindow,
+  isWindowMinimized,
 } from './helpers/windowStateActions';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -77,14 +78,14 @@ describe('Single Instance Lock', () => {
       await minimizeWindow();
     }
 
-    // 2. Verify: Window is effectively hidden/minimized
-    // In some environments, minimize might not make the document visible 'false', check document.hidden
+    // 2. Verify: Window is effectively minimized
+    // Use Electron's native API instead of document.hidden which doesn't work on headless Linux
     await browser.waitUntil(async () => {
-        return await browser.execute(() => document.hidden);
-    }, { timeout: 5000, timeoutMsg: 'Window did not minimize (document.hidden remain false)' });
+        return await isWindowMinimized();
+    }, { timeout: 5000, timeoutMsg: 'Window did not minimize (isMinimized remained false)' });
     
-    const isHidden = await browser.execute(() => document.hidden);
-    expect(isHidden).toBe(true);
+    const isMinimized = await isWindowMinimized();
+    expect(isMinimized).toBe(true);
 
     // 3. Action: Spawn second instance
     const secondInstance = spawn(
@@ -106,9 +107,9 @@ describe('Single Instance Lock', () => {
     // Wait for restore animation/state change
     await browser.waitUntil(
       async () => {
-        const isVisible = await browser.execute(() => !document.hidden);
+        const isRestored = !(await isWindowMinimized());
         const isFocused = await browser.execute(() => document.hasFocus());
-        return isVisible && isFocused;
+        return isRestored && isFocused;
       },
       {
         timeout: 5000,
@@ -116,8 +117,8 @@ describe('Single Instance Lock', () => {
       }
     );
 
-    const isVisibleAfter = await browser.execute(() => !document.hidden);
-    expect(isVisibleAfter).toBe(true);
+    const isRestoredAfter = !(await isWindowMinimized());
+    expect(isRestoredAfter).toBe(true);
 
     const isFocusedAfter = await browser.execute(() => document.hasFocus());
     expect(isFocusedAfter).toBe(true);

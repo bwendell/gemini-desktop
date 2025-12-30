@@ -794,8 +794,14 @@ describe('Always On Top', () => {
   // ==========================================================================
 
   describe('Edge Cases', () => {
+    // NOTE: macOS Dock minimization doesn't support window property changes while minimized.
+    // Toggling alwaysOnTop while minimized works on Windows/Linux but not macOS.
     describe('Toggle During Minimize', () => {
-      it('should toggle always-on-top while window is minimized', async () => {
+      it('should toggle always-on-top while window is minimized', async function () {
+        if (await isMacOS()) {
+          E2ELogger.info('always-on-top', 'Skipping: macOS does not support alwaysOnTop changes while minimized');
+          this.skip();
+        }
         E2ELogger.info('always-on-top', 'Testing toggle during minimize');
 
         await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
@@ -816,7 +822,11 @@ describe('Always On Top', () => {
         expect(state).toBe(true);
       });
 
-      it('should toggle off while minimized and persist after restore', async () => {
+      it('should toggle off while minimized and persist after restore', async function () {
+        if (await isMacOS()) {
+          E2ELogger.info('always-on-top', 'Skipping: macOS does not support alwaysOnTop changes while minimized');
+          this.skip();
+        }
         E2ELogger.info('always-on-top', 'Testing toggle off during minimize');
 
         await setAlwaysOnTop(true);

@@ -328,7 +328,9 @@ describe('Auto-Update User Interactions', () => {
 
       const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
       await dismissBtn.click();
-      await (browser as any).pause(500);
+
+      // Wait for toast to be hidden instead of fixed pause
+      await toast.waitForDisplayed({ reverse: true, timeout: 2000 });
 
       expect(await toast.isDisplayed()).toBe(false);
     });

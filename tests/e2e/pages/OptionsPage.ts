@@ -384,6 +384,11 @@ export class OptionsPage extends BasePage {
     return '[data-testid="auto-update-toggle-switch-switch"]';
   }
 
+  /** Selector for the auto-update loading indicator */
+  get autoUpdateLoadingSelector(): string {
+    return '[data-testid="auto-update-toggle-loading"]';
+  }
+
   /**
    * Check if the Updates section is displayed.
    */
@@ -424,9 +429,24 @@ export class OptionsPage extends BasePage {
 
   /**
    * Check if auto-update is enabled.
+   * Waits for the toggle to finish loading before reading state.
    */
   async isAutoUpdateEnabled(): Promise<boolean> {
-    const toggle = await this.$(this.autoUpdateSwitchSelector);
+    // Wait for loading state to complete (loading element should not exist)
+    try {
+      await browser.waitUntil(
+        async () => {
+          const loadingEl = await this.$(this.autoUpdateLoadingSelector);
+          return !(await loadingEl.isExisting());
+        },
+        { timeout: 5000, timeoutMsg: 'Auto-update toggle did not finish loading' }
+      );
+    } catch {
+      this.log('Warning: Auto-update toggle may still be loading');
+    }
+
+    // Now wait for the switch to exist and be displayed
+    const toggle = await this.waitForElementToExist(this.autoUpdateSwitchSelector, 5000);
     const checked = await toggle.getAttribute('aria-checked');
     return checked === 'true';
   }

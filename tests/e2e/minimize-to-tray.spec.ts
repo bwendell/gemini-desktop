@@ -1,11 +1,15 @@
 /**
  * E2E Test: Minimize-to-Tray Workflow
  *
- * Tests the hide-to-tray functionality via close button click.
- * Uses real user actions (clicking close button) instead of internal API calls.
+ * Tests the hide-to-tray functionality.
+ *
+ * Platform behavior:
+ * - Windows/Linux: Uses custom close button click (hideViaCloseButton)
+ * - macOS: Uses native window close via Electron API (hideWindowToTray)
+ *   since macOS uses native traffic lights instead of custom window controls
  *
  * Verifies:
- * 1. Close button triggers hide-to-tray (not quit)
+ * 1. Close action triggers hide-to-tray (not quit)
  * 2. Window is hidden to tray (not just minimized)
  * 3. Can restore from tray after hiding
  * 4. Tray icon persists when window is hidden
@@ -24,6 +28,19 @@ import { isMacOS } from './helpers/platform';
 
 describe('Minimize-to-Tray Workflow', () => {
   const tray = new TrayPage();
+
+  /**
+   * Helper to hide window using platform-appropriate method.
+   * - macOS: Uses hideWindowToTray() since native traffic lights are used
+   * - Windows/Linux: Uses hideViaCloseButton() to test custom close button
+   */
+  async function hideWindow(): Promise<void> {
+    if (await isMacOS()) {
+      await tray.hideWindowToTray();
+    } else {
+      await tray.hideViaCloseButton();
+    }
+  }
 
   beforeEach(async () => {
     // Ensure app is loaded and window is visible
@@ -44,25 +61,25 @@ describe('Minimize-to-Tray Workflow', () => {
     }
   });
 
-  describe('Close Button Triggers Hide-to-Tray', () => {
-    it('should hide window to tray when close button is clicked', async () => {
+  describe('Close Action Triggers Hide-to-Tray', () => {
+    it('should hide window to tray when close action is triggered', async () => {
       // Verify window is visible initially
       const initialVisible = await tray.isWindowVisible();
       expect(initialVisible).toBe(true);
 
-      // Click close button (triggers hide-to-tray)
-      await tray.hideViaCloseButton();
+      // Trigger close (platform-appropriate method)
+      await hideWindow();
 
       // Window should be hidden
       const hiddenToTray = await tray.isHiddenToTray();
       expect(hiddenToTray).toBe(true);
 
-      E2ELogger.info('minimize-to-tray', 'Window hidden to tray via close button');
+      E2ELogger.info('minimize-to-tray', 'Window hidden to tray');
     });
 
     it('should not be minimized to taskbar (hidden vs minimized)', async () => {
-      // Click close button to hide
-      await tray.hideViaCloseButton();
+      // Trigger close to hide
+      await hideWindow();
 
       // Should NOT be minimized (minimized is different from hidden)
       const isMinimized = await tray.isWindowMinimized();
@@ -90,8 +107,8 @@ describe('Minimize-to-Tray Workflow', () => {
         return;
       }
 
-      // Click close button to hide
-      await tray.hideViaCloseButton();
+      // Trigger close to hide
+      await hideWindow();
 
       // Should skip taskbar
       const skipTaskbar = await tray.isSkipTaskbar();
@@ -102,9 +119,9 @@ describe('Minimize-to-Tray Workflow', () => {
   });
 
   describe('Restore from Tray After Hiding', () => {
-    it('should restore window from tray after close button hide', async () => {
-      // 1. Hide to tray via close button
-      await tray.hideViaCloseButton();
+    it('should restore window from tray after hiding', async () => {
+      // 1. Hide to tray
+      await hideWindow();
 
       // Verify hidden
       const hiddenAfterMinimize = await tray.isHiddenToTray();
@@ -131,8 +148,8 @@ describe('Minimize-to-Tray Workflow', () => {
         return;
       }
 
-      // 1. Hide to tray via close button
-      await tray.hideViaCloseButton();
+      // 1. Hide to tray
+      await hideWindow();
 
       // 2. Restore via tray click
       await tray.clickAndWaitForWindow();
@@ -147,8 +164,8 @@ describe('Minimize-to-Tray Workflow', () => {
 
   describe('Tray Icon Persists', () => {
     it('should keep tray icon visible after hiding to tray', async () => {
-      // Hide to tray via close button
-      await tray.hideViaCloseButton();
+      // Hide to tray
+      await hideWindow();
 
       // Tray should still exist
       const trayExists = await tray.isCreated();
@@ -159,9 +176,9 @@ describe('Minimize-to-Tray Workflow', () => {
   });
 
   describe('Multiple Hide/Restore Cycles', () => {
-    it('should handle multiple hide/restore cycles via close button', async () => {
+    it('should handle multiple hide/restore cycles', async () => {
       // Cycle 1
-      await tray.hideViaCloseButton();
+      await hideWindow();
       let hidden = await tray.isHiddenToTray();
       expect(hidden).toBe(true);
 
@@ -170,7 +187,7 @@ describe('Minimize-to-Tray Workflow', () => {
       expect(visible).toBe(true);
 
       // Cycle 2
-      await tray.hideViaCloseButton();
+      await hideWindow();
       hidden = await tray.isHiddenToTray();
       expect(hidden).toBe(true);
 
