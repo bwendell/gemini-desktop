@@ -70,6 +70,11 @@ export const IPC_CHANNELS = {
   // Tray
   TRAY_GET_TOOLTIP: 'tray:get-tooltip',
 
+  // Print to PDF
+  PRINT_TO_PDF_TRIGGER: 'print-to-pdf:trigger',
+  PRINT_TO_PDF_SUCCESS: 'print-to-pdf:success',
+  PRINT_TO_PDF_ERROR: 'print-to-pdf:error',
+
   // Dev Testing (only used in development for manual testing)
   DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
   DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',

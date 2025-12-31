@@ -33,8 +33,20 @@ export type {
   ElectronAPI,
 } from '../shared/types';
 
-// Re-export hotkey constants
-export { DEFAULT_ACCELERATORS, HOTKEY_IDS } from '../shared/types/hotkeys';
+// Re-export hotkey constants and scope helpers
+export {
+  DEFAULT_ACCELERATORS,
+  HOTKEY_IDS,
+  GLOBAL_HOTKEY_IDS,
+  APPLICATION_HOTKEY_IDS,
+  HOTKEY_SCOPE_MAP,
+  getHotkeyScope,
+  isGlobalHotkey,
+  isApplicationHotkey,
+} from '../shared/types/hotkeys';
+
+// Re-export hotkey scope type
+export type { HotkeyScope } from '../shared/types/hotkeys';
 
 // =========================================================================
 // Main Process Specific Types

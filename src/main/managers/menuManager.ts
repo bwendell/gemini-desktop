@@ -1,6 +1,8 @@
 import { Menu, MenuItemConstructorOptions, app, shell, MenuItem } from 'electron';
 import WindowManager from './windowManager';
+import type HotkeyManager from './hotkeyManager';
 import { GOOGLE_SIGNIN_URL, GITHUB_ISSUES_URL } from '../utils/constants';
+import { isApplicationHotkey, type HotkeyId } from '../types';
 
 // Runtime platform check (evaluated on each call for testability)
 const isMac = () => process.platform === 'darwin';
@@ -11,12 +13,68 @@ const isMac = () => process.platform === 'darwin';
  * On Windows/Linux, we use a custom titlebar menu, so this is less visible,
  * but still good for accessibility if the custom menu is disabled.
  * Also handles right-click context menus for standard text editing operations.
+ *
+ * ## Dynamic Accelerators
+ *
+ * Application hotkeys (`alwaysOnTop`, `printToPdf`) have their accelerators
+ * read dynamically from HotkeyManager. When a user changes an accelerator
+ * or toggles a hotkey's enabled state, the menu is automatically rebuilt
+ * via the `rebuildMenuWithAccelerators()` method.
  */
 export default class MenuManager {
   private cachedContextMenu: Menu | null = null;
   private contextMenuItems: { id: string; item: MenuItem }[] = [];
+  private hotkeyManager: HotkeyManager | null = null;
 
-  constructor(private windowManager: WindowManager) {}
+  constructor(
+    private windowManager: WindowManager,
+    hotkeyManager?: HotkeyManager
+  ) {
+    if (hotkeyManager) {
+      this.hotkeyManager = hotkeyManager;
+
+      // Subscribe to hotkey events to rebuild menu when accelerators change
+      windowManager.on('accelerator-changed', (id: HotkeyId) => {
+        if (isApplicationHotkey(id)) {
+          this.rebuildMenuWithAccelerators();
+        }
+      });
+
+      windowManager.on('hotkey-enabled-changed', (id: HotkeyId) => {
+        if (isApplicationHotkey(id)) {
+          this.rebuildMenuWithAccelerators();
+        }
+      });
+    }
+  }
+
+  /**
+   * Rebuild the application menu with current accelerators from HotkeyManager.
+   * Called automatically when accelerators or enabled states change.
+   */
+  rebuildMenuWithAccelerators(): void {
+    this.buildMenu();
+  }
+
+  /**
+   * Get the accelerator for an application hotkey, respecting enabled state.
+   * Returns undefined if the hotkey is disabled or HotkeyManager is not available.
+   *
+   * @param id - The hotkey identifier
+   * @returns The accelerator string or undefined
+   */
+  private getApplicationHotkeyAccelerator(id: HotkeyId): string | undefined {
+    if (!this.hotkeyManager) {
+      return undefined;
+    }
+
+    // Only show accelerator if the hotkey is enabled
+    if (!this.hotkeyManager.isIndividualEnabled(id)) {
+      return undefined;
+    }
+
+    return this.hotkeyManager.getAccelerator(id);
+  }
 
   /**
    * Sets up context menu for all web contents.
@@ -216,6 +274,14 @@ export default class MenuManager {
           accelerator: 'CmdOrCtrl+Shift+N',
           visible: false, // Hidden until functionality is implemented
         },
+        {
+          label: 'Print to PDF',
+          id: 'menu-file-print-to-pdf',
+          accelerator: this.getApplicationHotkeyAccelerator('printToPdf'),
+          click: () => {
+            this.windowManager.emit('print-to-pdf-triggered');
+          },
+        },
         { type: 'separator' },
         {
           label: 'Sign in to Google',
@@ -253,7 +319,7 @@ export default class MenuManager {
           id: 'menu-view-always-on-top',
           type: 'checkbox',
           checked: this.windowManager.isAlwaysOnTop(),
-          accelerator: 'CmdOrCtrl+Shift+T',
+          accelerator: this.getApplicationHotkeyAccelerator('alwaysOnTop'),
           click: (menuItem) => {
             this.windowManager.setAlwaysOnTop(menuItem.checked);
           },

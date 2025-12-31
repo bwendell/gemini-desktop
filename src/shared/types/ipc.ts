@@ -6,7 +6,12 @@
  */
 
 import type { ThemeData, ThemePreference } from './theme';
-import type { HotkeyId, IndividualHotkeySettings, HotkeyAccelerators, HotkeySettings } from './hotkeys';
+import type {
+  HotkeyId,
+  IndividualHotkeySettings,
+  HotkeyAccelerators,
+  HotkeySettings,
+} from './hotkeys';
 import type { UpdateInfo, DownloadProgress } from './updates';
 
 /**
@@ -120,9 +125,7 @@ export interface ElectronAPI {
   setHotkeyAccelerator: (id: HotkeyId, accelerator: string) => void;
 
   /** Listen for hotkey accelerator changes. Returns unsubscribe function. */
-  onHotkeyAcceleratorsChanged: (
-    callback: (accelerators: HotkeyAccelerators) => void
-  ) => () => void;
+  onHotkeyAcceleratorsChanged: (callback: (accelerators: HotkeyAccelerators) => void) => () => void;
 
   // =========================================================================
   // Always On Top API
@@ -202,4 +205,20 @@ export interface ElectronAPI {
 
   /** Listen for debug error trigger (dev only) */
   onDebugTriggerError: (callback: () => void) => () => void;
+
+  // =========================================================================
+  // Print to PDF API
+  // =========================================================================
+
+  /**
+   * Trigger the print-to-pdf flow.
+   * This will capture the current conversation and save it to a PDF file.
+   */
+  printToPdf: () => void;
+
+  /** Listen for print-to-pdf success. Returns unsubscribe function. */
+  onPrintToPdfSuccess: (callback: (filePath: string) => void) => () => void;
+
+  /** Listen for print-to-pdf error. Returns unsubscribe function. */
+  onPrintToPdfError: (callback: (error: string) => void) => () => void;
 }

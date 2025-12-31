@@ -83,7 +83,7 @@ export async function setAlwaysOnTop(
   // Wait until the state is confirmed via main process
   const timeout = Math.max(waitMs, 1000); // Minimum 1 second for verification
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeout) {
     const actualState = await getWindowAlwaysOnTopState();
     if (actualState === enabled) {
@@ -92,10 +92,13 @@ export async function setAlwaysOnTop(
     }
     await browser.pause(50); // Poll every 50ms
   }
-  
+
   // Log warning if timeout but state not confirmed (don't throw to avoid breaking existing tests)
   const finalState = await getWindowAlwaysOnTopState();
-  E2ELogger.info('alwaysOnTopActions', `State verification timeout: expected ${enabled}, got ${finalState}`);
+  E2ELogger.info(
+    'alwaysOnTopActions',
+    `State verification timeout: expected ${enabled}, got ${finalState}`
+  );
 }
 
 /**
@@ -116,9 +119,19 @@ export async function toggleAlwaysOnTopViaMenu(waitMs = E2E_TIMING.IPC_ROUND_TRI
  */
 export async function pressAlwaysOnTopHotkey(waitMs = E2E_TIMING.IPC_ROUND_TRIP): Promise<void> {
   const modifierKey = (await isMacOS()) ? 'Meta' : 'Control';
-  E2ELogger.info('alwaysOnTopActions', `Pressing hotkey: ${modifierKey}+Shift+T`);
+  E2ELogger.info('alwaysOnTopActions', `Pressing hotkey: ${modifierKey}+Alt+P`);
 
-  await browser.keys([modifierKey, 'Shift', 't']);
+  await browser
+    .action('key')
+    .down(modifierKey)
+    .down('Alt')
+    .down('p')
+    .pause(100) // Hold briefly
+    .up('p')
+    .up('Alt')
+    .up(modifierKey)
+    .perform();
+
   await browser.pause(waitMs);
 }
 

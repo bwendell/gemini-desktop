@@ -68,6 +68,7 @@ describe('IndividualHotkeysContext', () => {
           alwaysOnTop: false,
           bossKey: true,
           quickChat: false,
+          printToPdf: true,
         }),
         onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
       } as any;
@@ -135,6 +136,7 @@ describe('IndividualHotkeysContext', () => {
           alwaysOnTop: true,
           bossKey: true,
           quickChat: true,
+          printToPdf: true,
         }),
         setIndividualHotkey: mockSetIndividualHotkey,
         onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
@@ -166,6 +168,7 @@ describe('IndividualHotkeysContext', () => {
           alwaysOnTop: true,
           bossKey: true,
           quickChat: true,
+          printToPdf: true,
         }),
         setIndividualHotkey: vi.fn().mockImplementation(() => {
           throw new Error('Set error');
@@ -224,6 +227,7 @@ describe('IndividualHotkeysContext', () => {
           alwaysOnTop: true,
           bossKey: true,
           quickChat: true,
+          printToPdf: true,
         }),
         onIndividualHotkeysChanged: vi.fn((cb) => {
           changeCallback = cb;
@@ -247,6 +251,7 @@ describe('IndividualHotkeysContext', () => {
           alwaysOnTop: true,
           bossKey: false,
           quickChat: true,
+          printToPdf: true,
         });
       });
 
@@ -262,6 +267,7 @@ describe('IndividualHotkeysContext', () => {
           alwaysOnTop: true,
           bossKey: true,
           quickChat: true,
+          printToPdf: true,
         }),
         onIndividualHotkeysChanged: vi.fn((cb) => {
           changeCallback = cb;
@@ -312,6 +318,7 @@ describe('IndividualHotkeysContext', () => {
           alwaysOnTop: true,
           bossKey: true,
           quickChat: true,
+          printToPdf: true,
         }),
         onIndividualHotkeysChanged: vi.fn().mockReturnValue(mockCleanup),
       } as any;

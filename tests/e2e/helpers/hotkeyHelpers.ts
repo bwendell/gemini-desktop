@@ -49,18 +49,23 @@ function acceleratorToDisplayFormat(accelerator: string): HotkeyDefinition['disp
 export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
   MINIMIZE_WINDOW: {
     accelerator: DEFAULT_ACCELERATORS.bossKey,
-    description: 'Minimize the main window (Boss Key)',
+    description: 'Minimize the main window (Boss Key) [Global]',
     displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.bossKey),
   },
   QUICK_CHAT: {
     accelerator: DEFAULT_ACCELERATORS.quickChat,
-    description: 'Toggle Quick Chat floating window',
+    description: 'Toggle Quick Chat floating window [Global]',
     displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.quickChat),
   },
   ALWAYS_ON_TOP: {
     accelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
-    description: 'Toggle Always on Top',
+    description: 'Toggle Always on Top [Application]',
     displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.alwaysOnTop),
+  },
+  PRINT_TO_PDF: {
+    accelerator: DEFAULT_ACCELERATORS.printToPdf,
+    description: 'Print conversation to PDF [Application]',
+    displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.printToPdf),
   },
 };
 

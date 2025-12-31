@@ -31,6 +31,7 @@ vi.mock('electron', () => ({
 describe('MenuManager', () => {
   let menuManager: MenuManager;
   let mockWindowManager: any;
+  let mockHotkeyManager: any;
   let originalPlatform: string;
 
   beforeEach(() => {
@@ -45,9 +46,24 @@ describe('MenuManager', () => {
       }),
       isAlwaysOnTop: vi.fn().mockReturnValue(false),
       setAlwaysOnTop: vi.fn(),
+      on: vi.fn(), // For event subscription
+      emit: vi.fn(),
+      restoreFromTray: vi.fn(),
     };
 
-    menuManager = new MenuManager(mockWindowManager as unknown as WindowManager);
+    // Mock HotkeyManager
+    mockHotkeyManager = {
+      getAccelerator: vi.fn((id: string) => {
+        const accelerators: Record<string, string> = {
+          alwaysOnTop: 'CmdOrCtrl+Shift+T',
+          printToPdf: 'CmdOrCtrl+Shift+P',
+        };
+        return accelerators[id] || '';
+      }),
+      isIndividualEnabled: vi.fn().mockReturnValue(true),
+    };
+
+    menuManager = new MenuManager(mockWindowManager as unknown as WindowManager, mockHotkeyManager);
     originalPlatform = process.platform;
   });
 
@@ -164,10 +180,10 @@ describe('MenuManager', () => {
     it('should build dock menu with correct structure on macOS', async () => {
       setPlatform('darwin');
       const { Menu: MenuModule } = await import('electron');
-      
+
       // Clear previous calls
       vi.clearAllMocks();
-      
+
       menuManager.buildMenu();
 
       // Find the dock menu template call (will be the last buildFromTemplate call)
@@ -206,6 +222,21 @@ describe('MenuManager', () => {
         expect.stringContaining('accounts.google.com')
       );
       expect(mockWindowManager.getMainWindow().reload).toHaveBeenCalled();
+    });
+
+    it('Print to PDF item calls emit("print-to-pdf-triggered")', () => {
+      setPlatform('win32');
+      menuManager.buildMenu();
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const fileMenu = findMenuItem(template, 'File');
+      const printItem = findSubmenuItem(fileMenu, 'Print to PDF');
+
+      expect(printItem).toBeTruthy();
+      expect(printItem.id).toBe('menu-file-print-to-pdf');
+      expect(printItem.accelerator).toBe('CmdOrCtrl+Shift+P');
+
+      printItem.click();
+      expect(mockWindowManager.emit).toHaveBeenCalledWith('print-to-pdf-triggered');
     });
 
     it('Options/Settings item logic adapts to platform', () => {

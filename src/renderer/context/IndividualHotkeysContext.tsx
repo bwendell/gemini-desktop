@@ -76,6 +76,7 @@ const DEFAULT_SETTINGS: IndividualHotkeySettings = {
   alwaysOnTop: true,
   bossKey: true,
   quickChat: true,
+  printToPdf: true,
 };
 
 /**
@@ -88,9 +89,11 @@ function isValidSettings(data: unknown): data is IndividualHotkeySettings {
     'alwaysOnTop' in data &&
     'bossKey' in data &&
     'quickChat' in data &&
+    'printToPdf' in data &&
     typeof (data as IndividualHotkeySettings).alwaysOnTop === 'boolean' &&
     typeof (data as IndividualHotkeySettings).bossKey === 'boolean' &&
-    typeof (data as IndividualHotkeySettings).quickChat === 'boolean'
+    typeof (data as IndividualHotkeySettings).quickChat === 'boolean' &&
+    typeof (data as IndividualHotkeySettings).printToPdf === 'boolean'
   );
 }
 
@@ -104,9 +107,11 @@ function isValidAccelerators(data: unknown): data is HotkeyAccelerators {
     'alwaysOnTop' in data &&
     'bossKey' in data &&
     'quickChat' in data &&
+    'printToPdf' in data &&
     typeof (data as HotkeyAccelerators).alwaysOnTop === 'string' &&
     typeof (data as HotkeyAccelerators).bossKey === 'string' &&
-    typeof (data as HotkeyAccelerators).quickChat === 'string'
+    typeof (data as HotkeyAccelerators).quickChat === 'string' &&
+    typeof (data as HotkeyAccelerators).printToPdf === 'string'
   );
 }
 
@@ -155,7 +160,7 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
         // Fetch accelerators
         if (window.electronAPI?.getHotkeyAccelerators) {
           const acceleratorsResult = await window.electronAPI.getHotkeyAccelerators();
-          
+
           /* v8 ignore next -- race condition guard for async unmount */
           if (!isMounted) return;
 
@@ -236,7 +241,9 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
   }, []);
 
   return (
-    <IndividualHotkeysContext.Provider value={{ settings, accelerators, setEnabled, setAccelerator }}>
+    <IndividualHotkeysContext.Provider
+      value={{ settings, accelerators, setEnabled, setAccelerator }}
+    >
       {children}
     </IndividualHotkeysContext.Provider>
   );

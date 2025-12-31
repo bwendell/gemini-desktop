@@ -64,6 +64,14 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     testId: 'hotkey-toggle-quickChat',
     rowTestId: 'hotkey-row-quickChat',
   },
+  {
+    id: 'printToPdf',
+    label: 'Print to PDF',
+    shortcutWin: 'Ctrl+Shift+P',
+    shortcutMac: '⌘+⇧+P', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift)
+    testId: 'hotkey-toggle-printToPdf',
+    rowTestId: 'hotkey-row-printToPdf',
+  },
 ];
 
 // ============================================================================
@@ -113,10 +121,10 @@ describe('Individual Hotkey Toggles', () => {
     it('should display correct labels for each toggle', async () => {
       for (const config of HOTKEY_CONFIGS) {
         const row = await $(`[data-testid="${config.rowTestId}"]`);
-        await browser.waitUntil(
-          async () => (await row.getText()).includes(config.label),
-          { timeout: 5000, timeoutMsg: `Expected row to contain "${config.label}"` }
-        );
+        await browser.waitUntil(async () => (await row.getText()).includes(config.label), {
+          timeout: 5000,
+          timeoutMsg: `Expected row to contain "${config.label}"`,
+        });
       }
     });
 
@@ -129,10 +137,10 @@ describe('Individual Hotkey Toggles', () => {
         // (the display uses separate <kbd> elements, so we check each part individually)
         const keyParts = expectedShortcut.split('+');
         for (const part of keyParts) {
-          await browser.waitUntil(
-            async () => (await row.getText()).includes(part),
-            { timeout: 5000, timeoutMsg: `Expected row to contain "${part}" (from shortcut "${expectedShortcut}")` }
-          );
+          await browser.waitUntil(async () => (await row.getText()).includes(part), {
+            timeout: 5000,
+            timeoutMsg: `Expected row to contain "${part}" (from shortcut "${expectedShortcut}")`,
+          });
         }
         E2ELogger.info('hotkey-toggle', `${config.label}: displays "${expectedShortcut}"`);
       }
@@ -143,23 +151,23 @@ describe('Individual Hotkey Toggles', () => {
       const row = await $(`[data-testid="${config.rowTestId}"]`);
 
       if (platform === 'macos') {
-        await browser.waitUntil(
-          async () => (await row.getText()).includes('⌘'),
-          { timeout: 5000, timeoutMsg: 'Expected row to contain "⌘" (macOS Command symbol)' }
-        );
-        await browser.waitUntil(
-          async () => !(await row.getText()).includes('Ctrl'),
-          { timeout: 5000, timeoutMsg: 'Expected row NOT to contain "Ctrl"' }
-        );
+        await browser.waitUntil(async () => (await row.getText()).includes('⌘'), {
+          timeout: 5000,
+          timeoutMsg: 'Expected row to contain "⌘" (macOS Command symbol)',
+        });
+        await browser.waitUntil(async () => !(await row.getText()).includes('Ctrl'), {
+          timeout: 5000,
+          timeoutMsg: 'Expected row NOT to contain "Ctrl"',
+        });
       } else {
-        await browser.waitUntil(
-          async () => (await row.getText()).includes('Ctrl'),
-          { timeout: 5000, timeoutMsg: 'Expected row to contain "Ctrl"' }
-        );
-        await browser.waitUntil(
-          async () => !(await row.getText()).includes('⌘'),
-          { timeout: 5000, timeoutMsg: 'Expected row NOT to contain "⌘" (macOS Command symbol)' }
-        );
+        await browser.waitUntil(async () => (await row.getText()).includes('Ctrl'), {
+          timeout: 5000,
+          timeoutMsg: 'Expected row to contain "Ctrl"',
+        });
+        await browser.waitUntil(async () => !(await row.getText()).includes('⌘'), {
+          timeout: 5000,
+          timeoutMsg: 'Expected row NOT to contain "⌘" (macOS Command symbol)',
+        });
       }
     });
   });

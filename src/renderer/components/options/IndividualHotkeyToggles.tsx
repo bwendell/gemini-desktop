@@ -56,6 +56,11 @@ const HOTKEY_CONFIGS: HotkeyConfig[] = [
     label: 'Quick Chat',
     description: 'Open floating chat overlay',
   },
+  {
+    id: 'printToPdf',
+    label: 'Print to PDF',
+    description: 'Save current conversation as PDF',
+  },
 ];
 
 // ============================================================================

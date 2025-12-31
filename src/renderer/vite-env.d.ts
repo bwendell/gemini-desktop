@@ -29,9 +29,7 @@ interface Window {
     onQuickChatExecute: (callback: (text: string) => void) => () => void;
 
     // Gemini Iframe Navigation API (for Quick Chat integration)
-    onGeminiNavigate: (
-      callback: (data: { url: string; text: string }) => void
-    ) => () => void;
+    onGeminiNavigate: (callback: (data: { url: string; text: string }) => void) => () => void;
     signalGeminiReady: (text: string) => void;
 
     // Individual Hotkeys API
@@ -39,10 +37,19 @@ interface Window {
       alwaysOnTop: boolean;
       bossKey: boolean;
       quickChat: boolean;
+      printToPdf: boolean;
     }>;
-    setIndividualHotkey: (id: 'alwaysOnTop' | 'bossKey' | 'quickChat', enabled: boolean) => void;
+    setIndividualHotkey: (
+      id: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf',
+      enabled: boolean
+    ) => void;
     onIndividualHotkeysChanged: (
-      callback: (settings: { alwaysOnTop: boolean; bossKey: boolean; quickChat: boolean }) => void
+      callback: (settings: {
+        alwaysOnTop: boolean;
+        bossKey: boolean;
+        quickChat: boolean;
+        printToPdf: boolean;
+      }) => void
     ) => () => void;
 
     // Hotkey Accelerators API
@@ -50,15 +57,25 @@ interface Window {
       alwaysOnTop: string;
       bossKey: string;
       quickChat: string;
+      printToPdf: string;
     }>;
     getFullHotkeySettings: () => Promise<{
       alwaysOnTop: { enabled: boolean; accelerator: string };
       bossKey: { enabled: boolean; accelerator: string };
       quickChat: { enabled: boolean; accelerator: string };
+      printToPdf: { enabled: boolean; accelerator: string };
     }>;
-    setHotkeyAccelerator: (id: 'alwaysOnTop' | 'bossKey' | 'quickChat', accelerator: string) => void;
+    setHotkeyAccelerator: (
+      id: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf',
+      accelerator: string
+    ) => void;
     onHotkeyAcceleratorsChanged: (
-      callback: (accelerators: { alwaysOnTop: string; bossKey: string; quickChat: string }) => void
+      callback: (accelerators: {
+        alwaysOnTop: string;
+        bossKey: string;
+        quickChat: string;
+        printToPdf: string;
+      }) => void
     ) => () => void;
 
     // Always On Top API

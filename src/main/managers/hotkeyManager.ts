@@ -1,18 +1,26 @@
 /**
  * Hotkey Manager for the Electron main process.
  *
- * This module handles global keyboard shortcuts (hotkeys) registration and management.
+ * This module handles keyboard shortcuts (hotkeys) registration and management.
  * It provides a centralized way to:
- * - Register/unregister individual global keyboard shortcuts
+ * - Register/unregister individual keyboard shortcuts
  * - Enable/disable each shortcut independently
  * - Configure custom accelerators for each shortcut
  * - Integrate with the WindowManager for shortcut actions
  *
- * ## Architecture
+ * ## Two-Tier Hotkey Architecture
  *
- * The HotkeyManager uses Electron's `globalShortcut` API to register shortcuts that
- * work system-wide, even when the application is not focused. The shortcuts are defined
- * using Electron's accelerator format (e.g., 'CommandOrControl+Alt+E').
+ * Hotkeys are divided into two categories based on their scope:
+ *
+ * ### Global Hotkeys (quickChat, bossKey)
+ * - Registered via Electron's `globalShortcut` API
+ * - Work system-wide, even when the application is not focused
+ * - Used for actions that need to work from anywhere (e.g., show/hide app)
+ *
+ * ### Application Hotkeys (alwaysOnTop, printToPdf)
+ * - Registered via Menu accelerators managed by MenuManager
+ * - Work only when the application window is focused
+ * - Used for in-app actions that don't need global scope
  *
  * ## Platform Support
  *
@@ -27,10 +35,12 @@
  * ## Custom Accelerators
  *
  * Users can configure custom accelerators via `setAccelerator()`.
- * Accelerators are validated before registration.
+ * For application hotkeys, accelerator changes are communicated to MenuManager
+ * via the 'accelerator-changed' event.
  *
  * @module HotkeyManager
  * @see {@link WindowManager} - Used for shortcut actions
+ * @see {@link MenuManager} - Handles application hotkeys via menu accelerators
  * @see {@link IpcManager} - Manages IPC for hotkey state synchronization
  */
 
@@ -45,6 +55,8 @@ import {
   type HotkeySettings,
   DEFAULT_ACCELERATORS,
   HOTKEY_IDS,
+  GLOBAL_HOTKEY_IDS,
+  isGlobalHotkey,
 } from '../types';
 
 const logger = createLogger('[HotkeyManager]');
@@ -55,14 +67,14 @@ const logger = createLogger('[HotkeyManager]');
 
 /**
  * Global hotkeys are disabled on Linux due to Wayland limitations.
- * 
+ *
  * Wayland's security model prevents applications from registering global
  * shortcuts without explicit desktop portal integration. The current
  * GlobalShortcutsPortal implementation in Chromium/Electron is unreliable
  * on GNOME 46+ and other compositors.
- * 
+ *
  * When Wayland support improves, set this to `true` to re-enable.
- * 
+ *
  * @see https://github.com/nicolomaioli/gemini-desktop/issues/XXX
  */
 const ENABLE_GLOBAL_HOTKEYS_ON_LINUX = false;
@@ -77,7 +89,7 @@ const ENABLE_GLOBAL_HOTKEYS_ON_LINUX = false;
  * @property id - Unique identifier for the shortcut
  * @property action - The callback function to execute when the shortcut is triggered
  */
-interface ShortcutAction {
+export interface ShortcutAction {
   id: HotkeyId;
   action: () => void;
 }
@@ -97,10 +109,10 @@ export interface HotkeyManagerInitialSettings {
 // ============================================================================
 
 /**
- * Manages global keyboard shortcuts for the Gemini Desktop application.
+ * Manages keyboard shortcuts for the Gemini Desktop application.
  *
  * ## Features
- * - Registers global shortcuts that work system-wide
+ * - Two-tier architecture: global hotkeys (globalShortcut) and application hotkeys (Menu)
  * - Supports individual enable/disable per hotkey
  * - Supports custom accelerators per hotkey
  * - Prevents duplicate registrations
@@ -109,7 +121,7 @@ export interface HotkeyManagerInitialSettings {
  * ## Usage
  * ```typescript
  * const hotkeyManager = new HotkeyManager(windowManager);
- * hotkeyManager.registerShortcuts(); // Register enabled shortcuts
+ * hotkeyManager.registerShortcuts(); // Register enabled global shortcuts
  * hotkeyManager.setIndividualEnabled('quickChat', false); // Disable Quick Chat hotkey
  * hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H'); // Change accelerator
  * ```
@@ -131,6 +143,7 @@ export default class HotkeyManager {
     alwaysOnTop: true,
     bossKey: true,
     quickChat: true,
+    printToPdf: true,
   };
 
   /**
@@ -164,7 +177,10 @@ export default class HotkeyManager {
    * });
    * ```
    */
-  constructor(windowManager: WindowManager, initialSettings?: HotkeyManagerInitialSettings | Partial<IndividualHotkeySettings>) {
+  constructor(
+    windowManager: WindowManager,
+    initialSettings?: HotkeyManagerInitialSettings | Partial<IndividualHotkeySettings>
+  ) {
     this.windowManager = windowManager;
 
     // Handle both old-style (Partial<IndividualHotkeySettings>) and new-style (HotkeyManagerInitialSettings) arguments
@@ -180,13 +196,17 @@ export default class HotkeyManager {
         }
       } else {
         // Old-style: treat as Partial<IndividualHotkeySettings> for backwards compatibility
-        this._individualSettings = { ...this._individualSettings, ...initialSettings as Partial<IndividualHotkeySettings> };
+        this._individualSettings = {
+          ...this._individualSettings,
+          ...(initialSettings as Partial<IndividualHotkeySettings>),
+        };
       }
     }
 
     // Define shortcut actions
     // Each shortcut maps an id to an action callback
     this.shortcutActions = [
+      // GLOBAL: Boss Key needs to work even when app is hidden/unfocused to quickly hide it system-wide
       {
         id: 'bossKey',
         action: () => {
@@ -195,6 +215,7 @@ export default class HotkeyManager {
           this.windowManager.minimizeMainWindow();
         },
       },
+      // GLOBAL: Quick Chat needs to be accessible from anywhere to open the prompt overlay
       {
         id: 'quickChat',
         action: () => {
@@ -203,6 +224,7 @@ export default class HotkeyManager {
           this.windowManager.toggleQuickChat();
         },
       },
+      // APPLICATION: Always On Top acts on the active window state, handled via Menu accelerators
       {
         id: 'alwaysOnTop',
         action: () => {
@@ -211,6 +233,15 @@ export default class HotkeyManager {
           const current = this.windowManager.isAlwaysOnTop();
           logger.log(`Current always-on-top state: ${current}, toggling to: ${!current}`);
           this.windowManager.setAlwaysOnTop(!current);
+        },
+      },
+      // APPLICATION: Print to PDF is a window-specific action, handled via Menu accelerators
+      {
+        id: 'printToPdf',
+        action: () => {
+          const accelerator = this._accelerators.printToPdf;
+          logger.log(`Hotkey pressed: ${accelerator} (Print to PDF)`);
+          this.windowManager.emit('print-to-pdf-triggered');
         },
       },
     ];
@@ -222,7 +253,9 @@ export default class HotkeyManager {
    * @returns Copy of the current settings object
    */
   getIndividualSettings(): IndividualHotkeySettings {
-    logger.log(`[Version Info] Electron: ${process.versions.electron}, Chrome: ${process.versions.chrome}, Platform: ${process.platform}, Arch: ${process.arch}`);
+    logger.log(
+      `[Version Info] Electron: ${process.versions.electron}, Chrome: ${process.versions.chrome}, Platform: ${process.platform}, Arch: ${process.arch}`
+    );
     return { ...this._individualSettings };
   }
 
@@ -264,6 +297,10 @@ export default class HotkeyManager {
         enabled: this._individualSettings.quickChat,
         accelerator: this._accelerators.quickChat,
       },
+      printToPdf: {
+        enabled: this._individualSettings.printToPdf,
+        accelerator: this._accelerators.printToPdf,
+      },
     };
   }
 
@@ -280,8 +317,11 @@ export default class HotkeyManager {
   /**
    * Set the accelerator for a specific hotkey.
    *
-   * If the hotkey is currently registered, it will be unregistered with the old
+   * For global hotkeys: If currently registered, it will be unregistered with the old
    * accelerator and re-registered with the new one.
+   *
+   * For application hotkeys: The accelerator is updated and an 'accelerator-changed'
+   * event is emitted for MenuManager to rebuild the menu.
    *
    * @param id - The hotkey identifier
    * @param accelerator - The new accelerator string
@@ -293,20 +333,31 @@ export default class HotkeyManager {
       return true; // No change needed
     }
 
-    // If currently registered, unregister with old accelerator
+    // Application hotkeys: just update and emit event for menu rebuild
+    if (!isGlobalHotkey(id)) {
+      this._accelerators[id] = accelerator;
+      logger.log(
+        `Application hotkey accelerator changed for ${id}: ${oldAccelerator} -> ${accelerator}`
+      );
+      // Emit event for MenuManager to rebuild menu with new accelerator
+      this.windowManager.emit('accelerator-changed', id, accelerator);
+      return true;
+    }
+
+    // Global hotkeys: unregister old, update, re-register new
     const wasRegistered = this._registeredShortcuts.has(id);
     if (wasRegistered) {
       const registeredAccelerator = this._registeredShortcuts.get(id);
       if (registeredAccelerator) {
         globalShortcut.unregister(registeredAccelerator);
         this._registeredShortcuts.delete(id);
-        logger.log(`Hotkey ${id} unregistered for accelerator change`);
+        logger.log(`Global hotkey ${id} unregistered for accelerator change`);
       }
     }
 
     // Update the accelerator
     this._accelerators[id] = accelerator;
-    logger.log(`Accelerator changed for ${id}: ${oldAccelerator} -> ${accelerator}`);
+    logger.log(`Global hotkey accelerator changed for ${id}: ${oldAccelerator} -> ${accelerator}`);
 
     // Re-register if it was registered and is still enabled
     if (wasRegistered && this._individualSettings[id]) {
@@ -319,12 +370,14 @@ export default class HotkeyManager {
   /**
    * Enable or disable a specific hotkey.
    *
-   * When disabling:
-   * - The shortcut is unregistered immediately
-   * - The setting is preserved for future reference
+   * For global hotkeys:
+   * - When disabling: The shortcut is unregistered immediately
+   * - When enabling: The shortcut is registered if not already
    *
-   * When enabling:
-   * - The shortcut is registered if not already
+   * For application hotkeys:
+   * - The enabled state is updated
+   * - An 'hotkey-enabled-changed' event is emitted for MenuManager
+   * - Menu accelerators handle the actual shortcut behavior
    *
    * @param id - The hotkey identifier
    * @param enabled - Whether to enable (true) or disable (false) the hotkey
@@ -336,18 +389,28 @@ export default class HotkeyManager {
 
     this._individualSettings[id] = enabled;
 
-    // Skip registration on Linux when disabled (Wayland limitations)
+    // Application hotkeys: just update state and emit event
+    if (!isGlobalHotkey(id)) {
+      logger.log(`Application hotkey ${enabled ? 'enabled' : 'disabled'}: ${id}`);
+      // Emit event for MenuManager to update menu item
+      this.windowManager.emit('hotkey-enabled-changed', id, enabled);
+      return;
+    }
+
+    // Skip global shortcut registration on Linux (Wayland limitations)
     if (isLinux && !ENABLE_GLOBAL_HOTKEYS_ON_LINUX) {
-      logger.log(`Hotkey setting updated: ${id} = ${enabled} (registration skipped on Linux)`);
+      logger.log(
+        `Global hotkey setting updated: ${id} = ${enabled} (registration skipped on Linux)`
+      );
       return;
     }
 
     if (enabled) {
       this._registerShortcutById(id);
-      logger.log(`Hotkey enabled: ${id}`);
+      logger.log(`Global hotkey enabled: ${id}`);
     } else {
       this._unregisterShortcutById(id);
-      logger.log(`Hotkey disabled: ${id}`);
+      logger.log(`Global hotkey disabled: ${id}`);
     }
   }
 
@@ -382,7 +445,9 @@ export default class HotkeyManager {
    * - On application startup (via main.ts)
    * - When the app is ready
    *
-   * Only shortcuts that are individually enabled will be registered.
+   * Only **global** shortcuts (quickChat, bossKey) that are individually enabled
+   * will be registered via globalShortcut. Application hotkeys (alwaysOnTop, printToPdf)
+   * are handled by MenuManager via menu accelerators.
    *
    * @see setIndividualEnabled - For enabling/disabling individual hotkeys
    */
@@ -393,7 +458,9 @@ export default class HotkeyManager {
       return;
     }
 
-    for (const id of HOTKEY_IDS) {
+    // Only register global hotkeys via globalShortcut API
+    // Application hotkeys are handled by MenuManager via menu accelerators
+    for (const id of GLOBAL_HOTKEY_IDS) {
       if (this._individualSettings[id]) {
         this._registerShortcutById(id);
       }
@@ -401,15 +468,24 @@ export default class HotkeyManager {
   }
 
   /**
-   * Register a shortcut by its ID.
+   * Register a global shortcut by its ID.
+   *
+   * This method only registers global hotkeys (quickChat, bossKey).
+   * Application hotkeys are handled by MenuManager via menu accelerators.
    *
    * @param id - The hotkey identifier
    * @private
    */
   private _registerShortcutById(id: HotkeyId): void {
+    // Skip application hotkeys - they are handled by MenuManager
+    if (!isGlobalHotkey(id)) {
+      logger.log(`Skipping globalShortcut registration for application hotkey: ${id}`);
+      return;
+    }
+
     // Guard: Don't register if already registered
     if (this._registeredShortcuts.has(id)) {
-      logger.log(`Hotkey already registered: ${id}`);
+      logger.log(`Global hotkey already registered: ${id}`);
       return;
     }
 
@@ -423,7 +499,9 @@ export default class HotkeyManager {
 
     // Debugging: Check if already registered according to Electron
     const isAlreadyRegistered = globalShortcut.isRegistered(accelerator);
-    logger.log(`Registering ${id} (${accelerator}). isRegistered pre-check: ${isAlreadyRegistered}`);
+    logger.log(
+      `Registering ${id} (${accelerator}). isRegistered pre-check: ${isAlreadyRegistered}`
+    );
 
     let success = false;
     try {
@@ -443,24 +521,38 @@ export default class HotkeyManager {
     if (!success) {
       // Registration can fail if another app has claimed the shortcut
       // OR if on Wayland without GlobalShortcutsPortal enabled correctly
-      logger.error(`FAILED to register hotkey: ${id} (${accelerator}). Success: false. isRegistered post-check: ${isRegisteredAfter}`);
-      
+      logger.error(
+        `FAILED to register hotkey: ${id} (${accelerator}). Success: false. isRegistered post-check: ${isRegisteredAfter}`
+      );
+
       if (isRegisteredAfter) {
-        logger.warn(`Hotkey ${id} reflects as registered despite failure return. This may indicate a portal conflict or unexpected Electron behavior on Wayland.`);
+        logger.warn(
+          `Hotkey ${id} reflects as registered despite failure return. This may indicate a portal conflict or unexpected Electron behavior on Wayland.`
+        );
       }
     } else {
       this._registeredShortcuts.set(id, accelerator);
-      logger.log(`Successfully registered hotkey: ${id} (${accelerator}). isRegistered post-check: ${isRegisteredAfter}`);
+      logger.log(
+        `Successfully registered hotkey: ${id} (${accelerator}). isRegistered post-check: ${isRegisteredAfter}`
+      );
     }
   }
 
   /**
-   * Unregister a shortcut by its ID.
+   * Unregister a global shortcut by its ID.
+   *
+   * This method only unregisters global hotkeys (quickChat, bossKey).
+   * Application hotkeys are handled by MenuManager via menu accelerators.
    *
    * @param id - The hotkey identifier
    * @private
    */
   private _unregisterShortcutById(id: HotkeyId): void {
+    // Skip application hotkeys - they are handled by MenuManager
+    if (!isGlobalHotkey(id)) {
+      return;
+    }
+
     const registeredAccelerator = this._registeredShortcuts.get(id);
     if (!registeredAccelerator) {
       return; // Not registered, nothing to do
@@ -468,7 +560,7 @@ export default class HotkeyManager {
 
     globalShortcut.unregister(registeredAccelerator);
     this._registeredShortcuts.delete(id);
-    logger.log(`Hotkey unregistered: ${id} (${registeredAccelerator})`);
+    logger.log(`Global hotkey unregistered: ${id} (${registeredAccelerator})`);
   }
 
   /**
@@ -500,7 +592,29 @@ export default class HotkeyManager {
   unregisterAll(): void {
     globalShortcut.unregisterAll();
     this._registeredShortcuts.clear();
-    logger.log('All hotkeys unregistered');
+    logger.log('All global hotkeys unregistered');
+  }
+
+  /**
+   * Get shortcut actions for global hotkeys only.
+   *
+   * These are hotkeys that should be registered via globalShortcut API.
+   *
+   * @returns Array of shortcut actions for global hotkeys
+   */
+  getGlobalHotkeyActions(): ShortcutAction[] {
+    return this.shortcutActions.filter((action) => isGlobalHotkey(action.id));
+  }
+
+  /**
+   * Get shortcut actions for application hotkeys only.
+   *
+   * These are hotkeys that should be handled via Menu accelerators.
+   *
+   * @returns Array of shortcut actions for application hotkeys
+   */
+  getApplicationHotkeyActions(): ShortcutAction[] {
+    return this.shortcutActions.filter((action) => !isGlobalHotkey(action.id));
   }
 
   // =========================================================================

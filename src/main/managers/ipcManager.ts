@@ -13,11 +13,7 @@
 
 import { ipcMain, BrowserWindow, nativeTheme, IpcMainEvent, IpcMainInvokeEvent } from 'electron';
 import SettingsStore from '../store';
-import {
-  GOOGLE_ACCOUNTS_URL,
-  IPC_CHANNELS,
-  isGeminiDomain,
-} from '../utils/constants';
+import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS, isGeminiDomain } from '../utils/constants';
 import { GEMINI_APP_URL } from '../../shared/constants/index';
 import {
   InjectionScriptBuilder,
@@ -28,6 +24,7 @@ import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type HotkeyManager from './hotkeyManager';
 import type UpdateManager from './updateManager';
+import type PrintManager from './printManager';
 import type {
   ThemePreference,
   ThemeData,
@@ -49,10 +46,12 @@ interface UserPreferences extends Record<string, unknown> {
   hotkeyAlwaysOnTop: boolean;
   hotkeyBossKey: boolean;
   hotkeyQuickChat: boolean;
+  hotkeyPrintToPdf: boolean;
   // Hotkey accelerators
   acceleratorAlwaysOnTop: string;
   acceleratorBossKey: string;
   acceleratorQuickChat: string;
+  acceleratorPrintToPdf: string;
   // Auto-update settings
   autoUpdateEnabled: boolean;
 }
@@ -65,6 +64,7 @@ export default class IpcManager {
   private windowManager: WindowManager;
   private hotkeyManager: HotkeyManager | null = null;
   private updateManager: UpdateManager | null = null;
+  private printManager: PrintManager | null = null;
   private store: SettingsStore<UserPreferences>;
   private logger: Logger;
 
@@ -78,12 +78,14 @@ export default class IpcManager {
     windowManager: WindowManager,
     hotkeyManager?: HotkeyManager | null,
     updateManager?: UpdateManager | null,
+    printManager?: PrintManager | null,
     store?: SettingsStore<UserPreferences>,
     logger?: Logger
   ) {
     this.windowManager = windowManager;
     this.hotkeyManager = hotkeyManager || null;
     this.updateManager = updateManager || null;
+    this.printManager = printManager || null;
     /* v8 ignore next 6 -- production fallback, tests always inject dependencies */
     this.store =
       store ||
@@ -95,9 +97,10 @@ export default class IpcManager {
           // Individual hotkey defaults
           hotkeyAlwaysOnTop: true,
           hotkeyBossKey: true,
+          hotkeyQuickChat: true,
+          hotkeyPrintToPdf: true,
           // Auto-update defaults
           autoUpdateEnabled: true,
-          hotkeyQuickChat: true,
         },
       });
     /* v8 ignore next -- production fallback, tests always inject logger */
@@ -153,6 +156,7 @@ export default class IpcManager {
     this._setupAppHandlers();
     this._setupQuickChatHandlers();
     this._setupAutoUpdateHandlers();
+    this._setupPrintHandlers();
 
     // Listen for internal changes (from hotkeys or menu)
     this.windowManager.on('always-on-top-changed', this._handleAlwaysOnTopChanged.bind(this));
@@ -344,7 +348,7 @@ export default class IpcManager {
         return this._getIndividualHotkeySettings();
       } catch (error) {
         this.logger.error('Error getting individual hotkeys state:', error);
-        return { alwaysOnTop: true, bossKey: true, quickChat: true };
+        return { alwaysOnTop: true, bossKey: true, quickChat: true, printToPdf: true };
       }
     });
 
@@ -352,8 +356,7 @@ export default class IpcManager {
     ipcMain.on(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET, (_event, id: HotkeyId, enabled: boolean) => {
       try {
         // Validate inputs
-        const validIds: HotkeyId[] = ['alwaysOnTop', 'bossKey', 'quickChat'];
-        if (!validIds.includes(id)) {
+        if (!HOTKEY_IDS.includes(id)) {
           this.logger.warn(`Invalid hotkey id: ${id}`);
           return;
         }
@@ -393,6 +396,7 @@ export default class IpcManager {
       alwaysOnTop: this.store.get('hotkeyAlwaysOnTop') ?? true,
       bossKey: this.store.get('hotkeyBossKey') ?? true,
       quickChat: this.store.get('hotkeyQuickChat') ?? true,
+      printToPdf: this.store.get('hotkeyPrintToPdf') ?? true,
     };
   }
 
@@ -410,6 +414,9 @@ export default class IpcManager {
         break;
       case 'quickChat':
         this.store.set('hotkeyQuickChat', enabled);
+        break;
+      case 'printToPdf':
+        this.store.set('hotkeyPrintToPdf', enabled);
         break;
     }
   }
@@ -461,43 +468,47 @@ export default class IpcManager {
           alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
           bossKey: { enabled: true, accelerator: DEFAULT_ACCELERATORS.bossKey },
           quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
+          printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
         };
       }
     });
 
     // Set accelerator for a specific hotkey
-    ipcMain.on(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET, (_event, id: HotkeyId, accelerator: string) => {
-      try {
-        // Validate inputs
-        if (!HOTKEY_IDS.includes(id)) {
-          this.logger.warn(`Invalid hotkey id: ${id}`);
-          return;
+    ipcMain.on(
+      IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET,
+      (_event, id: HotkeyId, accelerator: string) => {
+        try {
+          // Validate inputs
+          if (!HOTKEY_IDS.includes(id)) {
+            this.logger.warn(`Invalid hotkey id: ${id}`);
+            return;
+          }
+          if (typeof accelerator !== 'string' || accelerator.trim().length === 0) {
+            this.logger.warn(`Invalid accelerator value: ${accelerator}`);
+            return;
+          }
+
+          // Persist preference
+          this._setHotkeyAccelerator(id, accelerator);
+
+          // Update HotkeyManager if available
+          if (this.hotkeyManager) {
+            this.hotkeyManager.setAccelerator(id, accelerator);
+          }
+
+          this.logger.log(`Hotkey accelerator ${id} set to: ${accelerator}`);
+
+          // Broadcast to all windows
+          this._broadcastAcceleratorChange();
+        } catch (error) {
+          this.logger.error('Error setting hotkey accelerator:', {
+            error: (error as Error).message,
+            id,
+            accelerator,
+          });
         }
-        if (typeof accelerator !== 'string' || accelerator.trim().length === 0) {
-          this.logger.warn(`Invalid accelerator value: ${accelerator}`);
-          return;
-        }
-
-        // Persist preference
-        this._setHotkeyAccelerator(id, accelerator);
-
-        // Update HotkeyManager if available
-        if (this.hotkeyManager) {
-          this.hotkeyManager.setAccelerator(id, accelerator);
-        }
-
-        this.logger.log(`Hotkey accelerator ${id} set to: ${accelerator}`);
-
-        // Broadcast to all windows
-        this._broadcastAcceleratorChange();
-      } catch (error) {
-        this.logger.error('Error setting hotkey accelerator:', {
-          error: (error as Error).message,
-          id,
-          accelerator,
-        });
       }
-    });
+    );
   }
 
   /**
@@ -509,6 +520,7 @@ export default class IpcManager {
       alwaysOnTop: this.store.get('acceleratorAlwaysOnTop') ?? DEFAULT_ACCELERATORS.alwaysOnTop,
       bossKey: this.store.get('acceleratorBossKey') ?? DEFAULT_ACCELERATORS.bossKey,
       quickChat: this.store.get('acceleratorQuickChat') ?? DEFAULT_ACCELERATORS.quickChat,
+      printToPdf: this.store.get('acceleratorPrintToPdf') ?? DEFAULT_ACCELERATORS.printToPdf,
     };
   }
 
@@ -526,6 +538,9 @@ export default class IpcManager {
         break;
       case 'quickChat':
         this.store.set('acceleratorQuickChat', accelerator);
+        break;
+      case 'printToPdf':
+        this.store.set('acceleratorPrintToPdf', accelerator);
         break;
     }
   }
@@ -550,6 +565,10 @@ export default class IpcManager {
       quickChat: {
         enabled: enabled.quickChat,
         accelerator: accelerators.quickChat,
+      },
+      printToPdf: {
+        enabled: enabled.printToPdf,
+        accelerator: accelerators.printToPdf,
       },
     };
   }
@@ -693,12 +712,12 @@ export default class IpcManager {
   /**
    * Set up Quick Chat IPC handlers.
    * Handles communication between Quick Chat window and main window.
-   * 
+   *
    * Flow (Option A - preserves React shell):
    * 1. Quick Chat submits text → hide Quick Chat, focus main window
    * 2. Send GEMINI_NAVIGATE to renderer → React app reloads iframe
    * 3. Renderer signals GEMINI_READY → main process injects text into iframe
-   * 
+   *
    * @private
    */
   private _setupQuickChatHandlers(): void {
@@ -762,7 +781,7 @@ export default class IpcManager {
   /**
    * Inject text into the Gemini iframe (child frame of React shell).
    * This is called after renderer signals that iframe has loaded.
-   * 
+   *
    * @param text - Text to inject into Gemini editor
    * @private
    */
@@ -798,6 +817,7 @@ export default class IpcManager {
     // Check if we should disable auto-submit (for E2E testing)
     // E2E tests pass --e2e-disable-auto-submit flag to prevent actual Gemini submissions
     const isE2EMode = process.argv.includes('--e2e-disable-auto-submit');
+
     const shouldAutoSubmit = !isE2EMode;
 
     if (!shouldAutoSubmit) {
@@ -821,6 +841,47 @@ export default class IpcManager {
     } catch (error) {
       this.logger.error('Failed to inject text into Gemini:', error);
     }
+  }
+
+  /**
+   * Set up Print to PDF handlers.
+   * @private
+   */
+  private _setupPrintHandlers(): void {
+    // Handle IPC trigger from renderer
+    ipcMain.on(IPC_CHANNELS.PRINT_TO_PDF_TRIGGER, (event) => {
+      this.logger.log('Print to PDF triggered via IPC');
+
+      if (!this.printManager) {
+        this.logger.error('PrintManager not initialized');
+        return;
+      }
+
+      this.printManager.printToPdf(event.sender).catch((err) => {
+        this.logger.error('Error during printToPdf:', err);
+      });
+    });
+
+    // Handle local trigger from hotkey/menu via WindowManager event
+    this.windowManager.on('print-to-pdf-triggered', () => {
+      this.logger.log('Print to PDF triggered via local event');
+
+      if (!this.printManager) {
+        this.logger.error('PrintManager not initialized');
+        return;
+      }
+
+      // We assume print target is the main window for hotkeys/menu
+      const mainWindow = this.windowManager.getMainWindow();
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        this.logger.warn('Cannot print: Main window not found or destroyed');
+        return;
+      }
+
+      this.printManager.printToPdf(mainWindow.webContents).catch((err) => {
+        this.logger.error('Error during printToPdf (local):', err);
+      });
+    });
   }
 
   /**

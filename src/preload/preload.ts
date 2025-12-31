@@ -93,6 +93,11 @@ export const IPC_CHANNELS = {
   DEV_TEST_EMIT_UPDATE_EVENT: 'dev:test:emit-update-event',
   DEV_TEST_MOCK_PLATFORM: 'dev:test:mock-platform',
   DEBUG_TRIGGER_ERROR: 'debug-trigger-error',
+
+  // Print to PDF
+  PRINT_TO_PDF_TRIGGER: 'print-to-pdf:trigger',
+  PRINT_TO_PDF_SUCCESS: 'print-to-pdf:success',
+  PRINT_TO_PDF_ERROR: 'print-to-pdf:error',
 } as const;
 
 // Expose window control APIs to renderer
@@ -240,10 +245,8 @@ const electronAPI: ElectronAPI = {
    * @returns Cleanup function to unsubscribe
    */
   onGeminiNavigate: (callback) => {
-    const subscription = (
-      _event: Electron.IpcRendererEvent,
-      data: { url: string; text: string }
-    ) => callback(data);
+    const subscription = (_event: Electron.IpcRendererEvent, data: { url: string; text: string }) =>
+      callback(data);
     ipcRenderer.on(IPC_CHANNELS.GEMINI_NAVIGATE, subscription);
 
     return () => {
@@ -559,6 +562,38 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.on(IPC_CHANNELS.DEBUG_TRIGGER_ERROR, subscription);
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.DEBUG_TRIGGER_ERROR, subscription);
+    };
+  },
+
+  // =========================================================================
+  // Print to PDF API
+  // =========================================================================
+
+  /**
+   * Trigger print-to-pdf.
+   */
+  printToPdf: () => ipcRenderer.send(IPC_CHANNELS.PRINT_TO_PDF_TRIGGER),
+
+  /**
+   * Subscribe to print-to-pdf success events.
+   */
+  onPrintToPdfSuccess: (callback) => {
+    const subscription = (_event: Electron.IpcRendererEvent, filePath: string) =>
+      callback(filePath);
+    ipcRenderer.on(IPC_CHANNELS.PRINT_TO_PDF_SUCCESS, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.PRINT_TO_PDF_SUCCESS, subscription);
+    };
+  },
+
+  /**
+   * Subscribe to print-to-pdf error events.
+   */
+  onPrintToPdfError: (callback) => {
+    const subscription = (_event: Electron.IpcRendererEvent, error: string) => callback(error);
+    ipcRenderer.on(IPC_CHANNELS.PRINT_TO_PDF_ERROR, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.PRINT_TO_PDF_ERROR, subscription);
     };
   },
 };

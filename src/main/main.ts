@@ -9,7 +9,11 @@
 import { app, BrowserWindow, crashReporter, session } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
+import {
+  setupHeaderStripping,
+  setupWebviewSecurity,
+  setupMediaPermissions,
+} from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
 import { isLinux } from './utils/constants';
 
@@ -31,7 +35,7 @@ logger.log('===================================');
 if (isLinux) {
   // On Linux, the internal app name should match the executable/id for better WM_CLASS matching
   app.setName('gemini-desktop');
-  
+
   // Set desktop name for portal integration
   try {
     if (typeof (app as any).setDesktopName === 'function') {
@@ -46,17 +50,19 @@ if (isLinux) {
   // - Electron's globalShortcut API relies on X11 grab mechanisms
   // - On pure Wayland, shortcuts require xdg-desktop-portal integration
   // - XWayland compatibility mode often works but is unreliable on GNOME 46+
-  // 
+  //
   // Current approach: Let Electron/Chromium use default behavior.
   // If running on Wayland, hotkeys may not work and users should be informed.
-  // 
+  //
   // See: https://github.com/nicolomaioli/gemini-desktop/issues/XXX
-  
+
   const isWayland = process.env.XDG_SESSION_TYPE === 'wayland';
   logger.log(`XDG_SESSION_TYPE: ${process.env.XDG_SESSION_TYPE}`);
-  
+
   if (isWayland) {
-    logger.warn('Wayland session detected. Global hotkeys are disabled due to Wayland limitations.');
+    logger.warn(
+      'Wayland session detected. Global hotkeys are disabled due to Wayland limitations.'
+    );
   }
 } else {
   // Set application name for Windows/macOS
@@ -98,6 +104,7 @@ import HotkeyManager from './managers/hotkeyManager';
 import TrayManager from './managers/trayManager';
 import BadgeManager from './managers/badgeManager';
 import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
+import PrintManager from './managers/printManager';
 import SettingsStore from './store';
 
 // Path to the production build
@@ -123,6 +130,7 @@ let ipcManager: IpcManager;
 let trayManager: TrayManager;
 let updateManager: UpdateManager;
 let badgeManager: BadgeManager;
+let printManager: PrintManager;
 
 /**
  * Initialize all application managers.
@@ -132,7 +140,7 @@ function initializeManagers(): void {
   logger.log('[DEBUG] initializeManagers() - creating WindowManager');
   windowManager = new WindowManager(isDev);
   logger.log('[DEBUG] initializeManagers() - WindowManager created');
-  
+
   logger.log('[DEBUG] initializeManagers() - creating HotkeyManager');
   hotkeyManager = new HotkeyManager(windowManager);
   logger.log('[DEBUG] initializeManagers() - HotkeyManager created');
@@ -141,7 +149,7 @@ function initializeManagers(): void {
   logger.log('[DEBUG] initializeManagers() - creating TrayManager');
   trayManager = new TrayManager(windowManager);
   logger.log('[DEBUG] initializeManagers() - TrayManager created');
-  
+
   logger.log('[DEBUG] initializeManagers() - creating BadgeManager');
   badgeManager = new BadgeManager();
   logger.log('[DEBUG] initializeManagers() - BadgeManager created');
@@ -164,8 +172,12 @@ function initializeManagers(): void {
   });
   logger.log('[DEBUG] initializeManagers() - UpdateManager created');
 
+  logger.log('[DEBUG] initializeManagers() - creating PrintManager');
+  printManager = new PrintManager(windowManager);
+  logger.log('[DEBUG] initializeManagers() - PrintManager created');
+
   logger.log('[DEBUG] initializeManagers() - creating IpcManager');
-  ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager);
+  ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, printManager);
   logger.log('[DEBUG] initializeManagers() - IpcManager created');
 
   // Expose managers globally for E2E testing
@@ -178,6 +190,7 @@ function initializeManagers(): void {
     updateManager: UpdateManager;
     badgeManager: BadgeManager;
     hotkeyManager: HotkeyManager;
+    printManager: PrintManager;
   };
   globalWithManagers.windowManager = windowManager;
   globalWithManagers.ipcManager = ipcManager;
@@ -185,6 +198,7 @@ function initializeManagers(): void {
   globalWithManagers.updateManager = updateManager;
   globalWithManagers.badgeManager = badgeManager;
   globalWithManagers.hotkeyManager = hotkeyManager;
+  globalWithManagers.printManager = printManager;
 
   logger.log('[DEBUG] initializeManagers() - All managers initialized successfully');
 }
@@ -240,7 +254,7 @@ if (!gotTheLock) {
   app.exit(0);
 } else {
   logger.log('[DEBUG] Got the lock, setting up second-instance handler');
-  
+
   app.on('second-instance', () => {
     // Someone tried to run a second instance, we should focus our window.
     logger.log('Second instance detected. Focusing existing window...');
@@ -256,19 +270,19 @@ if (!gotTheLock) {
   // App lifecycle
   logger.log('[DEBUG] Setting up app.whenReady() handler');
   logger.log('[DEBUG] Current app.isReady():', app.isReady());
-  
+
   // Also listen to the 'ready' event directly for debugging
   app.on('ready', () => {
     logger.log('[DEBUG] app "ready" event fired!');
   });
-  
+
   // Log if whenReady takes too long
   const readyTimeout = setTimeout(() => {
     logger.error('[DEBUG] WARNING: app.whenReady() has not resolved after 10 seconds!');
     logger.error('[DEBUG] DISPLAY:', process.env.DISPLAY);
     logger.error('[DEBUG] This may indicate a display/xvfb issue');
   }, 10000);
-  
+
   app.whenReady().then(() => {
     clearTimeout(readyTimeout);
     logger.log('[DEBUG] app.whenReady() resolved!');
@@ -281,7 +295,7 @@ if (!gotTheLock) {
     ipcManager.setupIpcHandlers();
 
     // Setup native application menu (critical for macOS)
-    const menuManager = new MenuManager(windowManager);
+    const menuManager = new MenuManager(windowManager, hotkeyManager);
     menuManager.buildMenu();
     menuManager.setupContextMenu();
     (global as any).menuManager = menuManager;
