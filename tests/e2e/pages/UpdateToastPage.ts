@@ -85,6 +85,7 @@ export class UpdateToastPage extends BasePage {
       // @ts-ignore - test helper
       window.__testUpdateToast.showAvailable(v);
     }, version);
+    await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
   }
 
   /**
@@ -97,6 +98,7 @@ export class UpdateToastPage extends BasePage {
       // @ts-ignore - test helper
       window.__testUpdateToast.showDownloaded(v);
     }, version);
+    await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
   }
 
   /**
@@ -109,6 +111,7 @@ export class UpdateToastPage extends BasePage {
       // @ts-ignore - test helper
       window.__testUpdateToast.showError(msg);
     }, errorMessage);
+    await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
   }
 
   /**
@@ -121,6 +124,7 @@ export class UpdateToastPage extends BasePage {
       // @ts-ignore - test helper
       window.__testUpdateToast.showProgress(p);
     }, percent);
+    await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
   }
 
   /**
@@ -133,6 +137,7 @@ export class UpdateToastPage extends BasePage {
       // @ts-ignore - test helper
       window.__testUpdateToast.showNotAvailable(v);
     }, currentVersion);
+    await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
   }
 
   /**
@@ -147,6 +152,7 @@ export class UpdateToastPage extends BasePage {
         window.__testUpdateToast.hide();
       }
     });
+    await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
   }
 
   // ===========================================================================
@@ -173,10 +179,10 @@ export class UpdateToastPage extends BasePage {
 
   /**
    * Wait for entry animation to complete before interacting.
-   * The toast animation takes ~200ms, so we wait 300ms to be safe.
+   * The toast animation takes ~200ms, so we wait 500ms (ANIMATION_SETTLE) to be safe.
    */
   async waitForAnimationComplete(): Promise<void> {
-    await this.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+    await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
   }
 
   // ===========================================================================
@@ -190,6 +196,8 @@ export class UpdateToastPage extends BasePage {
   async dismiss(): Promise<void> {
     this.log('Clicking dismiss button');
     await this.waitForAnimationComplete();
+    const dismissBtn = await this.$(this.dismissButtonSelector);
+    await dismissBtn.waitForClickable({ timeout: 2000 });
     await this.clickElement(this.dismissButtonSelector);
   }
 
@@ -198,6 +206,8 @@ export class UpdateToastPage extends BasePage {
    */
   async clickRestartNow(): Promise<void> {
     this.log('Clicking Restart Now button');
+    const restartBtn = await this.$(this.restartButtonSelector);
+    await restartBtn.waitForClickable({ timeout: 2000 });
     await this.clickElement(this.restartButtonSelector);
   }
 
@@ -206,6 +216,9 @@ export class UpdateToastPage extends BasePage {
    */
   async clickLater(): Promise<void> {
     this.log('Clicking Later button');
+    await this.waitForAnimationComplete();
+    const laterBtn = await this.$(this.laterButtonSelector);
+    await laterBtn.waitForClickable({ timeout: 2000 });
     await this.clickElement(this.laterButtonSelector);
   }
 
