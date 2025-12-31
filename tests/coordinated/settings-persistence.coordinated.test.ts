@@ -7,7 +7,6 @@ import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
 
-
 // Mock logger - must use hoisted to avoid initialization issues
 const mockLogger = vi.hoisted(() => ({
   log: vi.fn(),
@@ -74,7 +73,7 @@ describe('Settings Persistence Across Managers', () => {
       it('should persist theme preference on IpcManager set and read on construction', () => {
         // Create first IpcManager and set theme
         const windowManager1 = new WindowManager(false);
-        const ipcManager1 = new IpcManager(windowManager1, null, null, mockStore, mockLogger);
+        const ipcManager1 = new IpcManager(windowManager1, null, null, null, mockStore, mockLogger);
         ipcManager1.setupIpcHandlers();
 
         // Set theme via IPC
@@ -89,7 +88,7 @@ describe('Settings Persistence Across Managers', () => {
         const windowManager2 = new WindowManager(false);
 
         // On construction, IpcManager should read persisted theme
-        new IpcManager(windowManager2, null, null, mockStore, mockLogger);
+        new IpcManager(windowManager2, null, null, null, mockStore, mockLogger);
 
         // Verify nativeTheme was initialized from persisted value
         expect(nativeTheme.themeSource).toBe('dark');
@@ -116,6 +115,7 @@ describe('Settings Persistence Across Managers', () => {
           windowManager,
           null,
           mockUpdateManager as any,
+          null,
           mockStore,
           mockLogger
         );
@@ -136,7 +136,7 @@ describe('Settings Persistence Across Managers', () => {
         sharedStoreData.alwaysOnTop = true;
 
         const windowManager = new WindowManager(false);
-        const ipcManager = new IpcManager(windowManager, null, null, mockStore, mockLogger);
+        const ipcManager = new IpcManager(windowManager, null, null, null, mockStore, mockLogger);
         ipcManager.setupIpcHandlers();
 
         // IpcManager should have initialized always-on-top from store

@@ -73,6 +73,7 @@ describe('IPC Round-Trip Integration', () => {
       hotkeyAlwaysOnTop: true,
       hotkeyBossKey: true,
       hotkeyQuickChat: true,
+      hotkeyPrintToPdf: true,
       autoUpdateEnabled: true,
     };
 
@@ -88,7 +89,14 @@ describe('IPC Round-Trip Integration', () => {
     hotkeyManager = new HotkeyManager(windowManager);
     updateManager = new UpdateManager(mockStore as any);
 
-    ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, mockStore, mockLogger);
+    ipcManager = new IpcManager(
+      windowManager,
+      hotkeyManager,
+      updateManager,
+      null,
+      mockStore,
+      mockLogger
+    );
     ipcManager.setupIpcHandlers();
   });
 
@@ -213,6 +221,7 @@ describe('IPC Round-Trip Integration', () => {
         alwaysOnTop: true,
         bossKey: true,
         quickChat: true,
+        printToPdf: true,
       });
     });
 

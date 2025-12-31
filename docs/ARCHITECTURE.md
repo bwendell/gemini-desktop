@@ -1,7 +1,9 @@
 # Architecture Overview
+
 This document serves as a critical, living template designed to equip agents with a rapid and comprehensive understanding of the codebase's architecture, enabling efficient navigation and effective contribution from day one. Update this document as the codebase evolves.
 
 ## 1. Project Structure
+
 > This section provides a high-level overview of the project's directory and file structure, categorised by architectural layer or major functional area. It is essential for quickly navigating the codebase, locating relevant files, and understanding the overall organization and separation of concerns.
 
 ```
@@ -78,8 +80,8 @@ gemini-desktop/
 └── eslint.config.js          # ESLint configuration
 ```
 
-
 ## 2. High-Level System Diagram
+
 > Provide a simple block diagram (e.g., a C4 Model Level 1: System Context diagram, or a basic component diagram) or a clear text-based description of the major components and their interactions. Focus on how data flows, services communicate, and key architectural boundaries.
 
 ```
@@ -129,8 +131,8 @@ gemini-desktop/
                                     │ HTTPS
                                     ▼
                     ┌──────────────────────────────┐
-                    │     Google Gemini Web App     │
-                    │   gemini.google.com/app       │
+                    │     Google Gemini Web App    │
+                    │     gemini.google.com/app    |
                     └──────────────────────────────┘
 ```
 
@@ -142,9 +144,7 @@ gemini-desktop/
 4. **Main → Renderer** → IPC reply/emit through event channels
 5. **Settings Changes** → Stored via `SettingsStore`, broadcast to all windows
 
-
 ## 3. Core Components
-
 
 ### 3.1. Frontend (Renderer Process)
 
@@ -153,6 +153,7 @@ gemini-desktop/
 **Description:** The renderer process hosts the React-based UI for all application windows. The main window embeds the Google Gemini web application in an iframe with stripped security headers. Secondary windows (Options, Quick Chat) are full React applications for settings management and quick prompts.
 
 **Technologies:**
+
 - React 19 with TypeScript
 - Vite for development and building
 - Framer Motion for animations
@@ -160,6 +161,7 @@ gemini-desktop/
 - Custom hooks for IPC communication
 
 **Key Components:**
+
 - `src/renderer/components/titlebar/` - Custom window title bar with traffic lights
 - `src/renderer/components/options/` - Settings panels for themes, hotkeys, updates
 - `src/renderer/components/quickchat/` - Floating prompt input interface
@@ -223,8 +225,8 @@ gemini-desktop/
 
 **Technologies:** Electron contextBridge, ipcRenderer, TypeScript
 
-
 ## 4. Data Stores
+
 > (List and describe the databases and other persistent storage solutions used.)
 
 ### 4.1. Settings Store
@@ -236,6 +238,7 @@ gemini-desktop/
 **Purpose:** Persists user preferences and application settings locally. All data stays on the user's machine with no cloud synchronization.
 
 **Key Data Stored:**
+
 - `theme` - User theme preference (light/dark/system)
 - `alwaysOnTop` - Window pin state
 - `hotkeyAccelerators` - Custom keyboard shortcuts
@@ -252,7 +255,6 @@ gemini-desktop/
 **Purpose:** Stores Google authentication sessions. Uses Chromium's standard encrypted storage for secure persistence of login cookies. Session is shared across main window and auth window via `persist:gemini` partition.
 
 **Location:** Standard Electron userData directory
-
 
 ## 5. External Integrations / APIs
 
@@ -280,25 +282,26 @@ gemini-desktop/
 
 **Integration Method:** electron-updater with GitHub provider
 
-
 ## 6. Deployment & Infrastructure
 
 **Distribution:** GitHub Releases (not cloud-hosted)
 
 **Build Targets:**
+
 - Windows: `.exe` installer (NSIS)
 - macOS: `.dmg` for both Intel (x64) and Apple Silicon (arm64)
 - Linux: `.AppImage` and `.deb` packages
 
 **CI/CD Pipeline:** GitHub Actions
+
 - `test.yml` - Runs on PRs and pushes; executes unit, coordinated, integration, and E2E tests
 - `release.yml` - Runs on version tags; builds and publishes to GitHub Releases
 - Reusable workflows (`_test.yml`, `_build.yml`, `_release.yml`) for DRY configuration
 
 **Logging:** electron-log
+
 - Logs written to user's app data directory
 - Crash reports collected locally (no upload unless configured)
-
 
 ## 7. Security Considerations
 
@@ -307,16 +310,19 @@ gemini-desktop/
 **Authorization:** N/A - User accesses their own Gemini account
 
 **Process Isolation:**
+
 - `contextIsolation: true` - Renderer cannot access Node.js
 - `sandbox: true` - Renderer processes are sandboxed
 - `nodeIntegration: false` - No Node.js in renderer
 
 **IPC Security:**
+
 - All IPC channels defined centrally in `src/shared/constants/ipc-channels.ts`
 - Preload script exposes minimal, typed API via `contextBridge`
 - No arbitrary code execution from renderer
 
 **Data Security:**
+
 - No telemetry or analytics collection
 - Only connects to `*.google.com` domains
 - All settings stored locally with standard OS encryption
@@ -324,10 +330,10 @@ gemini-desktop/
 
 **Header Stripping:** `X-Frame-Options` and `Content-Security-Policy: frame-ancestors` headers are stripped specifically for `gemini.google.com` to enable iframe embedding. This is necessary for the app to function but is applied narrowly.
 
-
 ## 8. Development & Testing Environment
 
 **Local Setup:**
+
 ```bash
 # Prerequisites: Node.js 18+, npm 9+
 git clone https://github.com/bwendell/gemini-desktop.git
@@ -338,33 +344,33 @@ npm run electron:dev    # Start development
 
 **Testing Frameworks:**
 
-| Type | Framework | Config | Command |
-|------|-----------|--------|---------|
-| Unit Tests | Vitest | `config/vitest/vitest.config.ts` | `npm run test` |
-| Electron Unit Tests | Vitest | `config/vitest/vitest.electron.config.ts` | `npm run test:electron` |
-| Coordinated Tests | Vitest | `config/vitest/vitest.coordinated.config.ts` | `npm run test:coordinated` |
-| Integration Tests | WebdriverIO | `config/wdio/wdio.integration.conf.js` | `npm run test:integration` |
-| E2E Tests | WebdriverIO | `config/wdio/wdio.e2e.conf.js` | `npm run test:e2e` |
-| All Tests | - | - | `npm run test:all` |
+| Type                | Framework   | Config                                       | Command                    |
+| ------------------- | ----------- | -------------------------------------------- | -------------------------- |
+| Unit Tests          | Vitest      | `config/vitest/vitest.config.ts`             | `npm run test`             |
+| Electron Unit Tests | Vitest      | `config/vitest/vitest.electron.config.ts`    | `npm run test:electron`    |
+| Coordinated Tests   | Vitest      | `config/vitest/vitest.coordinated.config.ts` | `npm run test:coordinated` |
+| Integration Tests   | WebdriverIO | `config/wdio/wdio.integration.conf.js`       | `npm run test:integration` |
+| E2E Tests           | WebdriverIO | `config/wdio/wdio.e2e.conf.js`               | `npm run test:e2e`         |
+| All Tests           | -           | -                                            | `npm run test:all`         |
 
 **E2E Testing Principles:**
+
 - Simulate real user actions only (clicks, typing, keypresses)
 - Verify actual outcomes visible to users
 - Test the full stack (Renderer → IPC → Main → Side effects)
 - Avoid internal method calls or mocks in E2E tests
 
 **Code Quality Tools:**
+
 - ESLint for linting (`eslint.config.js`)
 - Prettier for formatting (`.prettierrc`)
 - TypeScript for type safety (`tsconfig.json`)
-
 
 ## 9. Future Considerations / Roadmap
 
 - **Preload Bundling:** Currently preload script duplicates some constants from shared. A proper bundling step (Vite/esbuild) would allow true code sharing.
 - **Linux Wayland Support:** Global shortcuts require `GlobalShortcutsPortal` on Wayland; further testing and refinement needed.
 - **Deep Linking:** Potential for URL scheme handling (`gemini://`) for external integrations.
-
 
 ## 10. Project Identification
 
@@ -376,18 +382,18 @@ npm run electron:dev    # Start development
 
 **Date of Last Update:** 2025-12-27
 
-
 ## 11. Glossary / Acronyms
+
 > Define any project-specific terms or acronyms.
 
-| Term | Definition |
-|------|------------|
-| **Main Process** | The Node.js process that runs Electron's main script (`main.ts`). Has full system access. |
-| **Renderer Process** | Chromium browser process running React UI. Sandboxed with no Node.js access. |
-| **Preload Script** | Bridge script that runs before renderer, exposes safe APIs via `contextBridge`. |
-| **IPC** | Inter-Process Communication - Electron's message passing between main and renderer. |
-| **Quick Chat** | Spotlight-style floating prompt window for quick Gemini queries. |
-| **Stealth Mode** | Feature to instantly hide the app to system tray. |
-| **WDIO** | WebdriverIO - Testing framework used for integration and E2E tests. |
-| **contextBridge** | Electron API for safely exposing Node.js functionality to renderer. |
-| **electron-updater** | Library for auto-update functionality in Electron apps. |
+| Term                 | Definition                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| **Main Process**     | The Node.js process that runs Electron's main script (`main.ts`). Has full system access. |
+| **Renderer Process** | Chromium browser process running React UI. Sandboxed with no Node.js access.              |
+| **Preload Script**   | Bridge script that runs before renderer, exposes safe APIs via `contextBridge`.           |
+| **IPC**              | Inter-Process Communication - Electron's message passing between main and renderer.       |
+| **Quick Chat**       | Spotlight-style floating prompt window for quick Gemini queries.                          |
+| **Stealth Mode**     | Feature to instantly hide the app to system tray.                                         |
+| **WDIO**             | WebdriverIO - Testing framework used for integration and E2E tests.                       |
+| **contextBridge**    | Electron API for safely exposing Node.js functionality to renderer.                       |
+| **electron-updater** | Library for auto-update functionality in Electron apps.                                   |

@@ -9,7 +9,7 @@
  * 4. Main process receives gemini:ready, injects text into iframe
  *
  * Gap Filled:
- * - Unit tests: Mock webContents and executeJavaScript  
+ * - Unit tests: Mock webContents and executeJavaScript
  * - E2E tests: Test full UI but slowly and don't cover all error paths
  * - Integration tests: Verify actual iframe discovery + injection + WindowManager coordination
  */
@@ -51,7 +51,7 @@ describe('Quick Chat Injection Flow Integration (Option A)', () => {
     };
 
     windowManager = new WindowManager(false);
-    ipcManager = new IpcManager(windowManager, null, null, mockStore, mockLogger);
+    ipcManager = new IpcManager(windowManager, null, null, null, mockStore, mockLogger);
     ipcManager.setupIpcHandlers();
   });
 

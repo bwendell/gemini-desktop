@@ -198,5 +198,62 @@ describe('PrintManager', () => {
       // We can verify printToPDF was NOT called.
       expect(mockWebContents.printToPDF).not.toHaveBeenCalled();
     });
+
+    it('uses BrowserWindow.getFocusedWindow when mainWindow is null during save dialog', async () => {
+      // Main window is null when showing save dialog, but we still have webContents to print
+      const focusedWindow = { id: 123 };
+      (BrowserWindow.getFocusedWindow as any).mockReturnValue(focusedWindow);
+      mockWindowManager.getMainWindow.mockReturnValue(null);
+
+      (dialog.showSaveDialog as any).mockResolvedValue({
+        canceled: true,
+      });
+
+      await printManager.printToPdf(mockWebContents);
+
+      // Should use the focused window as parent for dialog
+      expect(dialog.showSaveDialog).toHaveBeenCalledWith(focusedWindow, expect.any(Object));
+    });
+
+    it('does not send success IPC when webContents is destroyed', async () => {
+      (dialog.showSaveDialog as any).mockResolvedValue({
+        canceled: false,
+        filePath: '/mock/downloads/test-output.pdf',
+      });
+
+      // Mark webContents as destroyed after PDF generation but before IPC send
+      mockWebContents.isDestroyed.mockReturnValue(true);
+
+      await printManager.printToPdf(mockWebContents);
+
+      // Verify file was still written
+      expect(fsPromises.writeFile).toHaveBeenCalled();
+      // But IPC was NOT sent because webContents is destroyed
+      expect(mockWebContents.send).not.toHaveBeenCalled();
+    });
+
+    it('does not send error IPC when webContents is destroyed', async () => {
+      mockWebContents.printToPDF.mockRejectedValue(new Error('Print failed'));
+      mockWebContents.isDestroyed.mockReturnValue(true);
+
+      await printManager.printToPdf(mockWebContents);
+
+      // Error occurred but IPC should NOT be sent because webContents is destroyed
+      expect(mockWebContents.send).not.toHaveBeenCalled();
+    });
+
+    it('handles non-Error objects in catch block', async () => {
+      // Simulate a non-Error being thrown
+      mockWebContents.printToPDF.mockRejectedValue('String error');
+      mockWebContents.isDestroyed.mockReturnValue(false);
+
+      await printManager.printToPdf(mockWebContents);
+
+      // Should use 'Unknown error' message
+      expect(mockWebContents.send).toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_TO_PDF_ERROR,
+        'Unknown error'
+      );
+    });
   });
 });

@@ -704,4 +704,150 @@ describe('HotkeyManager', () => {
       });
     });
   });
+
+  // ========================================================================
+  // executeHotkeyAction Tests
+  // ========================================================================
+
+  describe('executeHotkeyAction', () => {
+    beforeEach(() => {
+      mockGlobalShortcut.register.mockReturnValue(true);
+    });
+
+    it('should execute bossKey action', () => {
+      hotkeyManager.executeHotkeyAction('bossKey');
+      expect(mockWindowManager.minimizeMainWindow).toHaveBeenCalled();
+    });
+
+    it('should execute quickChat action', () => {
+      hotkeyManager.executeHotkeyAction('quickChat');
+      expect(mockWindowManager.toggleQuickChat).toHaveBeenCalled();
+    });
+
+    it('should execute alwaysOnTop action', () => {
+      hotkeyManager.executeHotkeyAction('alwaysOnTop');
+      expect(mockWindowManager.setAlwaysOnTop).toHaveBeenCalled();
+    });
+
+    it('should execute printToPdf action', () => {
+      hotkeyManager.executeHotkeyAction('printToPdf');
+      expect(mockWindowManager.emit).toHaveBeenCalledWith('print-to-pdf-triggered');
+    });
+
+    it('should warn for unknown hotkey id', () => {
+      hotkeyManager.executeHotkeyAction('unknownId' as any);
+      // Should not throw, just log warning
+    });
+  });
+
+  // ========================================================================
+  // Registration Exception Tests
+  // ========================================================================
+
+  describe('registration exception handling', () => {
+    beforeEach(() => {
+      mockGlobalShortcut.register.mockReturnValue(true);
+    });
+
+    it('should handle exception during globalShortcut.register', () => {
+      mockGlobalShortcut.register.mockImplementation(() => {
+        throw new Error('Registration exception');
+      });
+
+      // Should not throw
+      expect(() => hotkeyManager.registerShortcuts()).not.toThrow();
+    });
+
+    it('should handle registration failure with isRegistered true', () => {
+      mockGlobalShortcut.register.mockReturnValue(false);
+      mockGlobalShortcut.isRegistered.mockReturnValue(true);
+
+      // Should not throw, just log warning
+      expect(() => hotkeyManager.registerShortcuts()).not.toThrow();
+    });
+
+    it('should handle action execution error in registered shortcut', () => {
+      mockWindowManager.minimizeMainWindow = vi.fn(() => {
+        throw new Error('Action failed');
+      });
+
+      mockGlobalShortcut.register.mockImplementation(
+        (accelerator: string, callback: () => void) => {
+          if (accelerator === DEFAULT_ACCELERATORS.bossKey) {
+            callback(); // Should not throw
+          }
+          return true;
+        }
+      );
+
+      expect(() => hotkeyManager.registerShortcuts()).not.toThrow();
+    });
+  });
+
+  // ========================================================================
+  // Unregister Edge Cases
+  // ========================================================================
+
+  describe('unregister edge cases', () => {
+    beforeEach(() => {
+      mockGlobalShortcut.register.mockReturnValue(true);
+    });
+
+    it('should not unregister application hotkeys via globalShortcut', () => {
+      hotkeyManager.registerShortcuts();
+      vi.clearAllMocks();
+
+      // Disable an application hotkey
+      hotkeyManager.setIndividualEnabled('alwaysOnTop', false);
+
+      // Should NOT call globalShortcut.unregister
+      expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
+    });
+
+    it('should skip _unregisterShortcutById for application hotkeys', () => {
+      hotkeyManager.registerShortcuts();
+      vi.clearAllMocks();
+
+      // Try to disable printToPdf (application hotkey)
+      hotkeyManager.setIndividualEnabled('printToPdf', false);
+      hotkeyManager.setIndividualEnabled('printToPdf', true);
+
+      // Should NOT interact with globalShortcut
+      expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+      expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
+    });
+  });
+
+  // ========================================================================
+  // setAccelerator for Application Hotkeys
+  // ========================================================================
+
+  describe('setAccelerator for application hotkeys', () => {
+    it('should emit accelerator-changed event for application hotkeys', () => {
+      hotkeyManager.setAccelerator('alwaysOnTop', 'CmdOrCtrl+Shift+A');
+
+      expect(mockWindowManager.emit).toHaveBeenCalledWith(
+        'accelerator-changed',
+        'alwaysOnTop',
+        'CmdOrCtrl+Shift+A'
+      );
+    });
+
+    it('should emit accelerator-changed event for printToPdf', () => {
+      hotkeyManager.setAccelerator('printToPdf', 'CmdOrCtrl+P');
+
+      expect(mockWindowManager.emit).toHaveBeenCalledWith(
+        'accelerator-changed',
+        'printToPdf',
+        'CmdOrCtrl+P'
+      );
+    });
+
+    it('should NOT call globalShortcut for application hotkey accelerator change', () => {
+      hotkeyManager.setAccelerator('alwaysOnTop', 'CmdOrCtrl+Shift+A');
+
+      expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+      expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
+    });
+  });
 });

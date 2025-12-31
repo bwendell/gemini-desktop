@@ -57,6 +57,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
       hotkeyAlwaysOnTop: true,
       hotkeyBossKey: true,
       hotkeyQuickChat: true,
+      hotkeyPrintToPdf: true,
       autoUpdateEnabled: true,
     };
     mockStore = {
@@ -95,6 +96,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
         bossKey: mockStore.get('hotkeyBossKey') ?? true,
         quickChat: mockStore.get('hotkeyQuickChat') ?? true,
+        printToPdf: mockStore.get('hotkeyPrintToPdf') ?? true,
       };
       hotkeyManager = new HotkeyManager(windowManager, initialSettings);
 
@@ -103,6 +105,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         windowManager,
         hotkeyManager,
         mockUpdateManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -162,27 +165,28 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
       });
 
       it('should re-enable hotkey and register it', () => {
-        // Start with hotkey disabled
-        hotkeyManager.setIndividualEnabled('alwaysOnTop', false);
+        // Start with bossKey (a global hotkey) disabled
+        // Note: alwaysOnTop is now an application hotkey and won't use globalShortcut
+        hotkeyManager.setIndividualEnabled('bossKey', false);
         hotkeyManager.registerShortcuts();
 
         vi.clearAllMocks();
 
         // Re-enable via IPC
         const handler = getListener('hotkeys:individual:set');
-        handler({}, 'alwaysOnTop', true);
+        handler({}, 'bossKey', true);
 
         // Verify HotkeyManager re-enabled
-        expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(true);
+        expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
 
-        // Verify globalShortcut.register was called for the re-enabled hotkey
+        // Verify globalShortcut.register was called for the re-enabled global hotkey
         expect(globalShortcut.register).toHaveBeenCalledWith(
-          DEFAULT_ACCELERATORS.alwaysOnTop,
+          DEFAULT_ACCELERATORS.bossKey,
           expect.any(Function)
         );
 
         // Verify persistence
-        expect(mockStore.set).toHaveBeenCalledWith('hotkeyAlwaysOnTop', true);
+        expect(mockStore.set).toHaveBeenCalledWith('hotkeyBossKey', true);
       });
     });
 
@@ -262,32 +266,34 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         // Get IPC handler
         const handler = getListener('hotkeys:individual:set');
 
-        // Rapidly toggle alwaysOnTop: off, on, off, on, off, on (6 times)
-        handler({}, 'alwaysOnTop', false);
-        handler({}, 'alwaysOnTop', true);
-        handler({}, 'alwaysOnTop', false);
-        handler({}, 'alwaysOnTop', true);
-        handler({}, 'alwaysOnTop', false);
-        handler({}, 'alwaysOnTop', true);
+        // Rapidly toggle bossKey (a global hotkey): off, on, off, on, off, on (6 times)
+        // Note: alwaysOnTop is now an application hotkey and won't use globalShortcut
+        handler({}, 'bossKey', false);
+        handler({}, 'bossKey', true);
+        handler({}, 'bossKey', false);
+        handler({}, 'bossKey', true);
+        handler({}, 'bossKey', false);
+        handler({}, 'bossKey', true);
 
         // Final state should be enabled
-        expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(true);
+        expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
 
         // Verify store was updated correctly (should be called 6 times with alternating values)
-        const setCallsForAlwaysOnTop = (mockStore.set as any).mock.calls.filter(
-          (call: any) => call[0] === 'hotkeyAlwaysOnTop'
+        const setCallsForBossKey = (mockStore.set as any).mock.calls.filter(
+          (call: any) => call[0] === 'hotkeyBossKey'
         );
-        expect(setCallsForAlwaysOnTop.length).toBe(6);
+        expect(setCallsForBossKey.length).toBe(6);
 
         // Verify final value is true
-        expect(setCallsForAlwaysOnTop[5][1]).toBe(true);
+        expect(setCallsForBossKey[5][1]).toBe(true);
 
         // Count register calls - should have 3 registers (for each enable)
+        // Only global hotkeys (bossKey, quickChat) use globalShortcut
         const registerCalls = (globalShortcut.register as any).mock.calls;
-        const alwaysOnTopRegisters = registerCalls.filter(
-          (call: any) => call[0] === DEFAULT_ACCELERATORS.alwaysOnTop
+        const bossKeyRegisters = registerCalls.filter(
+          (call: any) => call[0] === DEFAULT_ACCELERATORS.bossKey
         );
-        expect(alwaysOnTopRegisters.length).toBe(3);
+        expect(bossKeyRegisters.length).toBe(3);
       });
 
       it('should handle toggling all hotkeys rapidly', () => {

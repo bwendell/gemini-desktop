@@ -24,6 +24,42 @@ import type { SettingsStoreOptions } from './types';
 const logger = createLogger('[SettingsStore]');
 
 /**
+ * Deep merge two objects, with source values taking precedence.
+ * Arrays and non-object values in source replace target values entirely.
+ * @param target - The base object (defaults)
+ * @param source - The object to merge in (loaded settings)
+ * @returns Merged object with source values taking precedence
+ */
+function deepMerge<T extends Record<string, unknown>>(target: T, source: T): T {
+  const result = { ...target } as T;
+
+  for (const key of Object.keys(source) as (keyof T)[]) {
+    const sourceValue = source[key];
+    const targetValue = target[key];
+
+    // If both values are plain objects (not arrays, not null), merge recursively
+    if (
+      typeof sourceValue === 'object' &&
+      sourceValue !== null &&
+      !Array.isArray(sourceValue) &&
+      typeof targetValue === 'object' &&
+      targetValue !== null &&
+      !Array.isArray(targetValue)
+    ) {
+      result[key] = deepMerge(
+        targetValue as Record<string, unknown>,
+        sourceValue as Record<string, unknown>
+      ) as T[keyof T];
+    } else {
+      // Otherwise, source value takes precedence
+      result[key] = sourceValue;
+    }
+  }
+
+  return result;
+}
+
+/**
  * A simple JSON-based settings store for Electron applications.
  * Automatically handles file I/O with graceful error handling.
  *
@@ -66,7 +102,7 @@ export default class SettingsStore<T extends Record<string, unknown> = Record<st
       const fileContent = this._fs.readFileSync(this._path, 'utf-8');
       const parsed = JSON.parse(fileContent) as T;
       logger.log('Loaded existing settings');
-      return { ...this._defaults, ...parsed } as T;
+      return deepMerge(this._defaults as T, parsed);
     } catch (error) {
       const err = error as NodeJS.ErrnoException;
       if (err.code === 'ENOENT') {

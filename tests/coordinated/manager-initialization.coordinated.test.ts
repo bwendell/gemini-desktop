@@ -7,7 +7,6 @@ import { ipcMain, BrowserWindow, nativeTheme } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
 
-
 // Mock logger - must use hoisted to avoid initialization issues
 const mockLogger = vi.hoisted(() => ({
   log: vi.fn(),
@@ -86,6 +85,7 @@ describe('Manager Initialization Integration', () => {
           windowManager,
           null, // No HotkeyManager
           null,
+          null,
           mockStore,
           mockLogger
         );
@@ -104,7 +104,7 @@ describe('Manager Initialization Integration', () => {
 
       it('should return hotkey settings even without HotkeyManager', async () => {
         const windowManager = new WindowManager(false);
-        const ipcManager = new IpcManager(windowManager, null, null, mockStore, mockLogger);
+        const ipcManager = new IpcManager(windowManager, null, null, null, mockStore, mockLogger);
         ipcManager.setupIpcHandlers();
 
         const handler = getHandler('hotkeys:individual:get');
@@ -114,6 +114,7 @@ describe('Manager Initialization Integration', () => {
           alwaysOnTop: true,
           bossKey: true,
           quickChat: true,
+          printToPdf: true,
         });
       });
     });
@@ -126,6 +127,7 @@ describe('Manager Initialization Integration', () => {
           windowManager,
           null,
           null, // No UpdateManager
+          null,
           mockStore,
           mockLogger
         );
@@ -146,6 +148,7 @@ describe('Manager Initialization Integration', () => {
           windowManager,
           null,
           null, // No UpdateManager
+          null,
           mockStore,
           mockLogger
         );
@@ -176,6 +179,7 @@ describe('Manager Initialization Integration', () => {
           windowManager,
           null,
           mockUpdateManager as any,
+          null,
           mockStore,
           mockLogger
         );
@@ -208,6 +212,7 @@ describe('Manager Initialization Integration', () => {
           windowManager,
           null,
           mockUpdateManager as any,
+          null,
           mockStore,
           mockLogger
         );

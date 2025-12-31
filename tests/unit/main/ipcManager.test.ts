@@ -1369,4 +1369,350 @@ describe('IpcManager', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith('Invalid alwaysOnTop value: not-a-boolean');
     });
   });
+
+  describe('Accelerator Handlers', () => {
+    let mockHotkeyManager: any;
+
+    beforeEach(() => {
+      mockHotkeyManager = {
+        setIndividualEnabled: vi.fn(),
+        setAccelerator: vi.fn(),
+        getAccelerators: vi.fn().mockReturnValue({
+          alwaysOnTop: 'CmdOrCtrl+Shift+T',
+          bossKey: 'CmdOrCtrl+Alt+E',
+          quickChat: 'CmdOrCtrl+Shift+Space',
+          printToPdf: 'CmdOrCtrl+Shift+P',
+        }),
+      };
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        mockHotkeyManager,
+        mockUpdateManager,
+        mockPrintManager,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+    });
+
+    it('handles hotkeys:accelerator:get', async () => {
+      mockStore.get.mockImplementation((key: string) => {
+        if (key === 'acceleratorAlwaysOnTop') return 'CmdOrCtrl+Shift+T';
+        if (key === 'acceleratorBossKey') return 'CmdOrCtrl+Alt+E';
+        if (key === 'acceleratorQuickChat') return 'CmdOrCtrl+Shift+Space';
+        if (key === 'acceleratorPrintToPdf') return 'CmdOrCtrl+Shift+P';
+        return undefined;
+      });
+      const handler = (ipcMain as any)._handlers.get('hotkeys:accelerator:get');
+      const result = await handler();
+      expect(result).toEqual({
+        alwaysOnTop: 'CmdOrCtrl+Shift+T',
+        bossKey: 'CmdOrCtrl+Alt+E',
+        quickChat: 'CmdOrCtrl+Shift+Space',
+        printToPdf: 'CmdOrCtrl+Shift+P',
+      });
+    });
+
+    it('handles hotkeys:accelerator:get error', async () => {
+      mockStore.get.mockImplementation(() => {
+        throw new Error('Get failed');
+      });
+      const handler = (ipcMain as any)._handlers.get('hotkeys:accelerator:get');
+      const result = await handler();
+      expect(result.alwaysOnTop).toBeDefined();
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('handles hotkeys:accelerator:set', () => {
+      const handler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+      (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+      handler({}, 'alwaysOnTop', 'CmdOrCtrl+Alt+T');
+
+      expect(mockStore.set).toHaveBeenCalledWith('acceleratorAlwaysOnTop', 'CmdOrCtrl+Alt+T');
+      expect(mockHotkeyManager.setAccelerator).toHaveBeenCalledWith(
+        'alwaysOnTop',
+        'CmdOrCtrl+Alt+T'
+      );
+    });
+
+    it('handles hotkeys:accelerator:set for all hotkey IDs', () => {
+      const handler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+      (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+
+      handler({}, 'bossKey', 'CmdOrCtrl+Alt+B');
+      expect(mockStore.set).toHaveBeenCalledWith('acceleratorBossKey', 'CmdOrCtrl+Alt+B');
+
+      handler({}, 'quickChat', 'CmdOrCtrl+Q');
+      expect(mockStore.set).toHaveBeenCalledWith('acceleratorQuickChat', 'CmdOrCtrl+Q');
+
+      handler({}, 'printToPdf', 'CmdOrCtrl+P');
+      expect(mockStore.set).toHaveBeenCalledWith('acceleratorPrintToPdf', 'CmdOrCtrl+P');
+    });
+
+    it('handles hotkeys:accelerator:set with invalid id', () => {
+      const handler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      handler({}, 'invalidId', 'CmdOrCtrl+X');
+      expect(mockLogger.warn).toHaveBeenCalledWith('Invalid hotkey id: invalidId');
+    });
+
+    it('handles hotkeys:accelerator:set with empty accelerator', () => {
+      const handler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      handler({}, 'alwaysOnTop', '');
+      expect(mockLogger.warn).toHaveBeenCalledWith('Invalid accelerator value: ');
+    });
+
+    it('handles hotkeys:accelerator:set with whitespace-only accelerator', () => {
+      const handler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      handler({}, 'alwaysOnTop', '   ');
+      expect(mockLogger.warn).toHaveBeenCalledWith('Invalid accelerator value:    ');
+    });
+
+    it('handles hotkeys:accelerator:set error', () => {
+      const handler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      mockStore.set.mockImplementation(() => {
+        throw new Error('Set failed');
+      });
+      handler({}, 'alwaysOnTop', 'CmdOrCtrl+T');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('handles hotkeys:accelerator:set broadcast error', () => {
+      const handler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      const mockWin = {
+        id: 1,
+        isDestroyed: () => false,
+        webContents: {
+          send: vi.fn(() => {
+            throw new Error('Send failed');
+          }),
+        },
+      };
+      (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+      handler({}, 'alwaysOnTop', 'CmdOrCtrl+T');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('handles hotkeys:accelerator:set without hotkeyManager', () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        mockUpdateManager,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+      const handler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
+      (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
+      handler({}, 'alwaysOnTop', 'CmdOrCtrl+X');
+      expect(mockStore.set).toHaveBeenCalledWith('acceleratorAlwaysOnTop', 'CmdOrCtrl+X');
+    });
+
+    it('handles hotkeys:full-settings:get', async () => {
+      mockStore.get.mockImplementation((key: string) => {
+        if (key === 'hotkeyAlwaysOnTop') return true;
+        if (key === 'hotkeyBossKey') return false;
+        if (key === 'hotkeyQuickChat') return true;
+        if (key === 'hotkeyPrintToPdf') return false;
+        if (key === 'acceleratorAlwaysOnTop') return 'CmdOrCtrl+T';
+        if (key === 'acceleratorBossKey') return 'CmdOrCtrl+E';
+        if (key === 'acceleratorQuickChat') return 'CmdOrCtrl+Space';
+        if (key === 'acceleratorPrintToPdf') return 'CmdOrCtrl+P';
+        return undefined;
+      });
+      const handler = (ipcMain as any)._handlers.get('hotkeys:full-settings:get');
+      const result = await handler();
+      expect(result.alwaysOnTop).toEqual({ enabled: true, accelerator: 'CmdOrCtrl+T' });
+      expect(result.bossKey).toEqual({ enabled: false, accelerator: 'CmdOrCtrl+E' });
+    });
+
+    it('handles hotkeys:full-settings:get error', async () => {
+      mockStore.get.mockImplementation(() => {
+        throw new Error('Get failed');
+      });
+      const handler = (ipcMain as any)._handlers.get('hotkeys:full-settings:get');
+      const result = await handler();
+      expect(result.alwaysOnTop.enabled).toBe(true);
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('Dev Testing Handlers - Extended', () => {
+    beforeEach(() => {
+      ipcManager.setupIpcHandlers();
+    });
+
+    it('handles dev:test:set-update-enabled', () => {
+      const handler = (ipcMain as any)._listeners.get('dev:test:set-update-enabled');
+      handler({}, false);
+      expect(mockUpdateManager.setEnabled).toHaveBeenCalledWith(false);
+    });
+
+    it('handles dev:test:set-update-enabled without manager', () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        null,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+      const handler = (ipcMain as any)._listeners.get('dev:test:set-update-enabled');
+      handler({}, true);
+      // Should not crash
+    });
+
+    it('handles dev:test:emit-update-event', () => {
+      mockUpdateManager.devEmitUpdateEvent = vi.fn();
+      const handler = (ipcMain as any)._listeners.get('dev:test:emit-update-event');
+      handler({}, 'update-available', { version: '2.0.0' });
+      expect(mockUpdateManager.devEmitUpdateEvent).toHaveBeenCalledWith('update-available', {
+        version: '2.0.0',
+      });
+    });
+
+    it('handles dev:test:emit-update-event without manager', () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        null,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+      const handler = (ipcMain as any)._listeners.get('dev:test:emit-update-event');
+      handler({}, 'update-available', {});
+      // Should not crash
+    });
+
+    it('handles dev:test:mock-platform', () => {
+      mockUpdateManager.devMockPlatform = vi.fn();
+      mockUpdateManager.devMockEnv = vi.fn();
+      const handler = (ipcMain as any)._listeners.get('dev:test:mock-platform');
+      handler({}, 'darwin', { NODE_ENV: 'test' });
+      expect(mockUpdateManager.devMockPlatform).toHaveBeenCalledWith('darwin');
+      expect(mockUpdateManager.devMockEnv).toHaveBeenCalledWith({ NODE_ENV: 'test' });
+    });
+
+    it('handles dev:test:mock-platform with null values', () => {
+      mockUpdateManager.devMockPlatform = vi.fn();
+      mockUpdateManager.devMockEnv = vi.fn();
+      const handler = (ipcMain as any)._listeners.get('dev:test:mock-platform');
+      handler({}, null, null);
+      expect(mockUpdateManager.devMockPlatform).toHaveBeenCalledWith(null);
+      expect(mockUpdateManager.devMockEnv).toHaveBeenCalledWith(null);
+    });
+
+    it('handles dev:test:mock-platform without manager', () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        null,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+      const handler = (ipcMain as any)._listeners.get('dev:test:mock-platform');
+      handler({}, 'win32', {});
+      // Should not crash
+    });
+
+    it('handles tray:get-tooltip', async () => {
+      mockUpdateManager.getTrayTooltip = vi.fn().mockReturnValue('Test Tooltip');
+      const handler = (ipcMain as any)._handlers.get('tray:get-tooltip');
+      const result = await handler();
+      expect(result).toBe('Test Tooltip');
+    });
+
+    it('handles tray:get-tooltip without getTrayTooltip method', async () => {
+      const handler = (ipcMain as any)._handlers.get('tray:get-tooltip');
+      const result = await handler();
+      expect(result).toBe('');
+    });
+
+    it('handles tray:get-tooltip without manager', async () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        null,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+      const handler = (ipcMain as any)._handlers.get('tray:get-tooltip');
+      const result = await handler();
+      expect(result).toBe('');
+    });
+
+    it('handles tray:get-tooltip error', async () => {
+      mockUpdateManager.getTrayTooltip = vi.fn(() => {
+        throw new Error('Tooltip error');
+      });
+      const handler = (ipcMain as any)._handlers.get('tray:get-tooltip');
+      const result = await handler();
+      expect(result).toBe('');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('handles auto-update:get-last-check', async () => {
+      mockUpdateManager.getLastCheckTime = vi.fn().mockReturnValue(1234567890);
+      const handler = (ipcMain as any)._handlers.get('auto-update:get-last-check');
+      const result = await handler();
+      expect(result).toBe(1234567890);
+    });
+
+    it('handles auto-update:get-last-check without method', async () => {
+      const handler = (ipcMain as any)._handlers.get('auto-update:get-last-check');
+      const result = await handler();
+      expect(result).toBe(0);
+    });
+
+    it('handles auto-update:get-last-check without manager', async () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        null,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+      const handler = (ipcMain as any)._handlers.get('auto-update:get-last-check');
+      const result = await handler();
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('Print to PDF with destroyed window', () => {
+    beforeEach(() => {
+      ipcManager.setupIpcHandlers();
+    });
+
+    it('handles print-to-pdf-triggered with destroyed main window', () => {
+      const eventHandler = mockWindowManager.on.mock.calls.find(
+        (call: any) => call[0] === 'print-to-pdf-triggered'
+      )[1];
+
+      const mockMainWindow = {
+        webContents: {},
+        isDestroyed: () => true,
+      };
+      mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
+
+      eventHandler();
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Cannot print: Main window not found or destroyed'
+      );
+      expect(mockPrintManager.printToPdf).not.toHaveBeenCalled();
+    });
+  });
 });

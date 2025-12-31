@@ -32,7 +32,7 @@
     6. Handles errors gracefully with user feedback
   - Ensure cross-platform compatibility (Windows, macOS, Linux)
 
-- [ ] 2.2 Refactor hotkeys into global and application hotkeys
+- [x] 2.2 Refactor hotkeys into global and application hotkeys
 
   **Goal**: Separate hotkeys into two categories based on their behavior:
   - **Global hotkeys** (`quickChat`, `bossKey`): Work system-wide via `globalShortcut.register()`, even when app is not focused
@@ -140,18 +140,18 @@
 
 ## 3. Settings Persistence
 
-- [ ] 3.1 Update settings store schema
+- [x] 3.1 Update settings store schema
   - Modify `src/main/store.ts` to include `printToPdf` in:
     - `individualHotkeys` defaults
     - `hotkeyAccelerators` defaults
 
-- [ ] 3.2 Test settings persistence
+- [x] 3.2 Test settings persistence
   - Verify enabled state persists across restarts
   - Verify custom accelerator persists across restarts
 
 ## 4. Options Window UI
 
-- [ ] 4.1 Add Print to PDF toggle to IndividualHotkeyToggles
+- [x] 4.1 Add Print to PDF toggle to IndividualHotkeyToggles
   - Modify `src/renderer/components/options/IndividualHotkeyToggles.tsx`
   - Add new entry to `HOTKEY_CONFIGS` array:
 
@@ -167,30 +167,180 @@
 
 ## 5. Testing
 
-- [ ] 5.1 Add unit tests for new hotkey type
+- [x] 5.1 Add unit tests for new hotkey type
   - Test default accelerator is `CommandOrControl+Shift+P`
   - Test `HotkeyId` type includes `printToPdf`
   - Test `HOTKEY_IDS` array includes `printToPdf`
 
-- [ ] 5.2 Add unit tests for PrintManager
+- [x] 5.2 Add unit tests for PrintManager
   - Test filename generation with date format
   - Test filename suffix logic when file exists
   - Test cross-platform path handling
 
-- [ ] 5.3 Add integration tests for print-to-pdf flow
-  - Test IPC handler receives and processes request
-  - Test PDF buffer is generated from webContents
-  - Test save dialog is shown
-  - Test file is written to disk
-  - Test error handling when write fails
+- [x] 5.3 Add coordinated tests for print-to-pdf flow
+
+  ### 5.3.1 PrintManager ↔ WindowManager Integration (`tests/coordinated/print-manager.coordinated.test.ts`)
+  - [x] Test `printToPdf()` gets webContents from WindowManager when none provided
+  - [x] Test `printToPdf()` uses provided webContents when passed
+  - [x] Test `printToPdf()` handles missing main window gracefully (logs error, returns without crash)
+  - [x] Test `printToPdf()` handles destroyed webContents gracefully
+  - [x] Cross-platform tests (darwin, win32, linux):
+    - [x] Downloads folder path retrieved correctly via `app.getPath('downloads')`
+    - [x] Default filename format: `gemini-chat-YYYY-MM-DD.pdf`
+
+  ### 5.3.2 PrintManager Filename Uniqueness Logic
+  - [x] Test `getUniqueFilePath()` returns original path when file doesn't exist
+  - [x] Test `getUniqueFilePath()` appends `-1` when base file exists
+  - [x] Test `getUniqueFilePath()` appends `-2`, `-3`, etc. for multiple collisions
+  - [x] Test filename extension preserved correctly (`.pdf`)
+  - [x] Test works with paths containing spaces and special characters
+
+  ### 5.3.3 IPC Handler Integration (`tests/coordinated/print-to-pdf-ipc.coordinated.test.ts`)
+  - [x] Test `PRINT_TO_PDF_TRIGGER` IPC handler delegates to PrintManager
+  - [x] Test `event.sender` webContents is passed to PrintManager correctly
+  - [x] Test handler logs error and continues when PrintManager not initialized
+  - [x] Test handler handles async errors from PrintManager without crashing
+  - [x] Test IPC coordination across managers:
+    - IpcManager receives trigger → calls PrintManager.printToPdf()
+    - PrintManager uses WindowManager.getMainWindow() when needed
+
+  ### 5.3.4 PrintManager ↔ IPC Success/Error Feedback
+  - [x] Test `PRINT_TO_PDF_SUCCESS` is sent to webContents with filepath after save
+  - [x] Test `PRINT_TO_PDF_ERROR` is sent to webContents with error message on failure
+  - [x] Test success/error channels not sent when webContents is destroyed
+  - [x] Test error scenarios:
+    - [x] PDF generation fails (webContents.printToPDF rejects)
+    - [x] File write fails (fs.writeFile rejects)
+    - [x] Save dialog error
+
+  ### 5.3.5 WindowManager Event-Driven Print Trigger
+  - [x] Test `print-to-pdf-triggered` event on WindowManager triggers print flow
+  - [x] Test event-driven trigger uses main window webContents
+  - [x] Test event-driven trigger handles missing main window
+  - [x] Verify coordination: HotkeyManager action → WindowManager event → IpcManager listener → PrintManager
+
+  ### 5.3.6 HotkeyManager ↔ PrintManager Coordination (`tests/coordinated/print-hotkey-coordination.coordinated.test.ts`)
+  - [x] Test `printToPdf` hotkey action emits correct WindowManager event
+  - [x] Test `printToPdf` shortcut action calls IPC trigger when hotkey is enabled
+  - [x] Test `printToPdf` shortcut action is no-op when hotkey is disabled
+  - [x] Test `printToPdf` with custom accelerator works correctly
+  - [x] Test accelerator change updates menu item and persists to store
+  - [x] Cross-platform: Verify accelerator `CommandOrControl+Shift+P` resolves correctly
+
+  ### 5.3.7 MenuManager ↔ PrintManager Integration
+  - [x] Test File menu contains "Print to PDF" item with correct accelerator
+  - [x] Test menu item click triggers print flow via WindowManager event
+  - [x] Test menu accelerator updates when HotkeyManager accelerator changes
+  - [x] Test menu item enabled/disabled state matches hotkey enabled state
+  - [x] Cross-platform tests:
+    - macOS: Menu item in File menu with `⌘⇧P` accelerator hint
+    - Windows/Linux: Menu item in File menu with `Ctrl+Shift+P` accelerator hint
+
+  ### 5.3.8 Settings Persistence for Print to PDF (`tests/coordinated/print-to-pdf-settings.coordinated.test.ts`)
+  - [x] Test `printToPdf` enabled state persists via `hotkeyPrintToPdf` store key
+  - [x] Test `printToPdf` accelerator persists via `acceleratorPrintToPdf` store key
+  - [x] Test default values on fresh install: enabled=true, accelerator=`CommandOrControl+Shift+P`
+  - [x] Test settings loaded correctly on simulated app restart:
+    - [x] Seed store with different values (e.g., enabled=false)
+    - [x] Verify `HotkeyManager` is initialized with seeded values
+  - [x] Test IPC updates persist to store:
+    - [x] `hotkeys:individual:set` saves to store
+    - [x] `hotkeys:accelerator:set` saves to store and broadcasts
+  - [x] Test IPC `hotkeys:accelerator:set` for `printToPdf` updates store and broadcasts
+
+  ### 5.3.9 Cross-Window Broadcast for Print Settings
+  - [ ] Test enabling/disabling `printToPdf` broadcasts to all open windows
+  - [ ] Test accelerator change for `printToPdf` broadcasts to all windows
+  - [ ] Test full hotkey settings get includes `printToPdf` with correct values
+  - [ ] Test destroyed windows are skipped during broadcast (no crash)
+
+  ### 5.3.10 Save Dialog Integration
+  - [ ] Test `dialog.showSaveDialog` called with correct options:
+    - `title`: "Save Chat as PDF"
+    - `defaultPath`: unique path in downloads folder
+    - `filters`: `[{ name: 'PDF Files', extensions: ['pdf'] }]`
+  - [ ] Test parent window passed to dialog (uses main window or focused window)
+  - [ ] Test user cancel (canceled=true) exits gracefully without error
+  - [ ] Test empty filePath exits gracefully without error
+
+  ### 5.3.11 PDF Generation Options
+  - [ ] Test `printToPDF` called with correct options:
+    - `printBackground: true`
+    - `pageSize: 'A4'`
+    - `landscape: false`
+  - [ ] Test PDF buffer passed correctly to file write
+  - [ ] Test large PDF generation (mock large buffer) handles correctly
+
+  ### 5.3.12 Error Handling Coordination
+  - [ ] Test logger.error called with appropriate context on each error type
+  - [ ] Test error in one step doesn't prevent cleanup or crash app
+  - [ ] Test rapid print triggers (queue or debounce behavior)
+  - [ ] Test concurrent print requests handled correctly
+
+  Run command: `npm run test:coordinated -- --grep "print"`
 
 - [ ] 5.4 Add E2E tests
-  - Test File menu contains "Print to PDF" item
-  - Test clicking menu item opens save dialog
-  - Test toggle in Options enables/disables the hotkey
-  - Test accelerator customization works
-  - Test hotkey triggers print flow when enabled
-  - Test hotkey does not trigger when disabled
+
+  ### 5.4.1 File Menu "Print to PDF" Item (`tests/e2e/print-to-pdf-menu.spec.ts`)
+  - [ ] Test File menu contains "Print to PDF" item visible to user
+  - [ ] Test menu item displays correct accelerator hint:
+    - Windows/Linux: `Ctrl+Shift+P`
+    - macOS: `⌘⇧P`
+  - [ ] Test menu item is clickable and enabled by default
+  - [ ] Test clicking menu item triggers print flow (save dialog opens)
+  - [ ] Test menu item is disabled when `printToPdf` hotkey is disabled in Options
+
+  ### 5.4.2 Options Window Toggle (`tests/e2e/print-to-pdf-toggle.spec.ts`)
+  - [ ] Test "Print to PDF" toggle is visible in Individual Hotkey Toggles section
+  - [ ] Test toggle displays correct label: "Print to PDF"
+  - [ ] Test toggle displays description: "Export current chat to PDF"
+  - [ ] Test toggle displays platform-appropriate shortcut text
+  - [ ] Test toggle has role="switch" and aria-checked attribute
+  - [ ] Test clicking toggle switches enabled state
+  - [ ] Test toggle state persists after closing and reopening Options window
+  - [ ] Test toggle state persists after app restart (via settings store)
+
+  ### 5.4.3 Accelerator Customization (`tests/e2e/print-to-pdf-accelerator.spec.ts`)
+  - [ ] Test accelerator input field is visible next to toggle
+  - [ ] Test accelerator displays default: `CommandOrControl+Shift+P`
+  - [ ] Test clicking accelerator field allows editing
+  - [ ] Test entering new accelerator (e.g., `Ctrl+Alt+P`) updates display
+  - [ ] Test custom accelerator persists after closing Options window
+  - [ ] Test custom accelerator updates menu item accelerator hint
+  - [ ] Test invalid accelerator shows validation error
+  - [ ] Test clearing accelerator field removes shortcut (if supported)
+
+  ### 5.4.4 Hotkey Triggers Print Flow (`tests/e2e/print-to-pdf-hotkey.spec.ts`)
+  - [ ] Test pressing `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS) opens save dialog
+  - [ ] Test hotkey works when main window is focused
+  - [ ] Test hotkey does NOT work when app is unfocused (application hotkey, not global)
+  - [ ] Test hotkey does NOT work when Options window is focused
+  - [ ] Test custom accelerator triggers print flow correctly
+  - [ ] Test hotkey does NOT trigger when `printToPdf` toggle is disabled
+
+  ### 5.4.5 Save Dialog Interaction (`tests/e2e/print-to-pdf-save-dialog.spec.ts`)
+  - [ ] Test save dialog opens with title "Save Chat as PDF"
+  - [ ] Test default filename format: `gemini-chat-YYYY-MM-DD.pdf`
+  - [ ] Test default directory is Downloads folder
+  - [ ] Test PDF filter is selected: `*.pdf`
+  - [ ] Test canceling save dialog does not create file
+  - [ ] Test selecting location and saving creates PDF file
+  - [ ] Test file collision handling: appends `-1`, `-2`, etc.
+
+  ### 5.4.6 PDF Generation Verification (`tests/e2e/print-to-pdf-output.spec.ts`)
+  - [ ] Test PDF file is created at selected location
+  - [ ] Test PDF file is valid (non-zero size, valid headers)
+  - [ ] Test SUCCESS IPC message sent to renderer after save
+  - [ ] Test ERROR IPC message sent to renderer on failure
+  - [ ] Test rapid print triggers are handled (no crash or corruption)
+
+  ### 5.4.7 Full Workflow E2E (`tests/e2e/print-to-pdf-workflow.spec.ts`)
+  - [ ] Test complete workflow: User opens app → focuses chat → presses hotkey → dialog opens → saves file → file created
+  - [ ] Test complete workflow: User opens File menu → clicks "Print to PDF" → dialog opens → saves file
+  - [ ] Test complete workflow: User disables toggle in Options → hotkey/menu no longer works → re-enables → works again
+  - [ ] Test error recovery: File write fails → error shown → user can retry
+
+  Run command: `npm run test:e2e -- --spec "**/print-to-pdf*.spec.ts"`
 
 - [ ] 5.5 Cross-platform E2E verification
   - Verify tests pass on Windows CI

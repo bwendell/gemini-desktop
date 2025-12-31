@@ -412,4 +412,229 @@ describe('MenuManager', () => {
       expect(menu.popup).toHaveBeenCalled();
     });
   });
+
+  describe('Debug Menu', () => {
+    beforeEach(() => {
+      mockWindowManager.isDev = true;
+    });
+
+    it('includes Debug menu when isDev is true', () => {
+      setPlatform('win32');
+      menuManager.buildMenu();
+
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const debugMenu = findMenuItem(template, 'Debug');
+      expect(debugMenu).toBeTruthy();
+    });
+
+    it('Crash Renderer item calls forcefullyCrashRenderer', () => {
+      setPlatform('win32');
+      const mockWebContents = { forcefullyCrashRenderer: vi.fn() };
+      const mockWin = { isDestroyed: () => false, webContents: mockWebContents };
+      mockWindowManager.getMainWindow.mockReturnValue(mockWin);
+
+      menuManager.buildMenu();
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const debugMenu = findMenuItem(template, 'Debug');
+      const crashItem = findSubmenuItem(debugMenu, 'Crash Renderer');
+
+      crashItem.click();
+      expect(mockWebContents.forcefullyCrashRenderer).toHaveBeenCalled();
+    });
+
+    it('Crash Renderer handles missing window', () => {
+      setPlatform('win32');
+      mockWindowManager.getMainWindow.mockReturnValue(null);
+
+      menuManager.buildMenu();
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const debugMenu = findMenuItem(template, 'Debug');
+      const crashItem = findSubmenuItem(debugMenu, 'Crash Renderer');
+
+      expect(() => crashItem.click()).not.toThrow();
+    });
+
+    it('Crash Renderer handles destroyed window', () => {
+      setPlatform('win32');
+      const mockWin = {
+        isDestroyed: () => true,
+        webContents: { forcefullyCrashRenderer: vi.fn() },
+      };
+      mockWindowManager.getMainWindow.mockReturnValue(mockWin);
+
+      menuManager.buildMenu();
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const debugMenu = findMenuItem(template, 'Debug');
+      const crashItem = findSubmenuItem(debugMenu, 'Crash Renderer');
+
+      crashItem.click();
+      expect(mockWin.webContents.forcefullyCrashRenderer).not.toHaveBeenCalled();
+    });
+
+    it('Trigger React Error item sends debug-trigger-error', () => {
+      setPlatform('win32');
+      const mockWebContents = { send: vi.fn() };
+      const mockWin = { isDestroyed: () => false, webContents: mockWebContents };
+      mockWindowManager.getMainWindow.mockReturnValue(mockWin);
+
+      menuManager.buildMenu();
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const debugMenu = findMenuItem(template, 'Debug');
+      const errorItem = findSubmenuItem(debugMenu, 'Trigger React Error');
+
+      errorItem.click();
+      expect(mockWebContents.send).toHaveBeenCalledWith('debug-trigger-error');
+    });
+
+    it('Trigger React Error handles missing window', () => {
+      setPlatform('win32');
+      mockWindowManager.getMainWindow.mockReturnValue(null);
+
+      menuManager.buildMenu();
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const debugMenu = findMenuItem(template, 'Debug');
+      const errorItem = findSubmenuItem(debugMenu, 'Trigger React Error');
+
+      expect(() => errorItem.click()).not.toThrow();
+    });
+  });
+
+  describe('Dock Menu Click Handlers', () => {
+    it('Show Gemini calls restoreFromTray', async () => {
+      setPlatform('darwin');
+      const { Menu: MenuModule, app } = await import('electron');
+      (app as any).dock = { setMenu: vi.fn() };
+
+      vi.clearAllMocks();
+      menuManager.buildMenu();
+
+      // Find dock menu template (last buildFromTemplate call on macOS)
+      const allCalls = (MenuModule.buildFromTemplate as any).mock.calls;
+      const dockMenuTemplate = allCalls[allCalls.length - 1][0];
+      const showItem = dockMenuTemplate.find((item: any) => item.label === 'Show Gemini');
+
+      showItem.click();
+      expect(mockWindowManager.restoreFromTray).toHaveBeenCalled();
+    });
+
+    it('Settings calls createOptionsWindow', async () => {
+      setPlatform('darwin');
+      const { Menu: MenuModule, app } = await import('electron');
+      (app as any).dock = { setMenu: vi.fn() };
+
+      vi.clearAllMocks();
+      menuManager.buildMenu();
+
+      const allCalls = (MenuModule.buildFromTemplate as any).mock.calls;
+      const dockMenuTemplate = allCalls[allCalls.length - 1][0];
+      const settingsItem = dockMenuTemplate.find((item: any) => item.label === 'Settings');
+
+      settingsItem.click();
+      expect(mockWindowManager.createOptionsWindow).toHaveBeenCalled();
+    });
+  });
+
+  describe('Accelerator Disabled State', () => {
+    it('returns undefined accelerator when hotkey is disabled', () => {
+      mockHotkeyManager.isIndividualEnabled.mockReturnValue(false);
+
+      setPlatform('win32');
+      menuManager.buildMenu();
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const viewMenu = findMenuItem(template, 'View');
+      const alwaysOnTopItem = findSubmenuItem(viewMenu, 'Always On Top');
+
+      expect(alwaysOnTopItem.accelerator).toBeUndefined();
+    });
+
+    it('returns undefined accelerator for Print to PDF when disabled', () => {
+      mockHotkeyManager.isIndividualEnabled.mockReturnValue(false);
+
+      setPlatform('win32');
+      menuManager.buildMenu();
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const fileMenu = findMenuItem(template, 'File');
+      const printItem = findSubmenuItem(fileMenu, 'Print to PDF');
+
+      expect(printItem.accelerator).toBeUndefined();
+    });
+  });
+
+  describe('Constructor without hotkeyManager', () => {
+    it('works without hotkeyManager', () => {
+      const managerNoHotkey = new MenuManager(mockWindowManager as unknown as WindowManager);
+
+      setPlatform('win32');
+      managerNoHotkey.buildMenu();
+
+      const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+      const viewMenu = findMenuItem(template, 'View');
+      const alwaysOnTopItem = findSubmenuItem(viewMenu, 'Always On Top');
+      expect(alwaysOnTopItem.accelerator).toBeUndefined();
+    });
+  });
+
+  describe('rebuildMenuWithAccelerators', () => {
+    it('rebuilds menu when called', () => {
+      vi.clearAllMocks();
+      menuManager.rebuildMenuWithAccelerators();
+      expect(Menu.buildFromTemplate).toHaveBeenCalled();
+    });
+  });
+
+  describe('Event Subscription', () => {
+    it('subscribes to accelerator-changed event for application hotkeys', () => {
+      expect(mockWindowManager.on).toHaveBeenCalledWith(
+        'accelerator-changed',
+        expect.any(Function)
+      );
+    });
+
+    it('subscribes to hotkey-enabled-changed event for application hotkeys', () => {
+      expect(mockWindowManager.on).toHaveBeenCalledWith(
+        'hotkey-enabled-changed',
+        expect.any(Function)
+      );
+    });
+
+    it('rebuilds menu when application hotkey accelerator changes', () => {
+      const acceleratorHandler = mockWindowManager.on.mock.calls.find(
+        (call: any) => call[0] === 'accelerator-changed'
+      )[1];
+
+      vi.clearAllMocks();
+      acceleratorHandler('alwaysOnTop');
+      expect(Menu.buildFromTemplate).toHaveBeenCalled();
+    });
+
+    it('does not rebuild menu when global hotkey accelerator changes', () => {
+      const acceleratorHandler = mockWindowManager.on.mock.calls.find(
+        (call: any) => call[0] === 'accelerator-changed'
+      )[1];
+
+      vi.clearAllMocks();
+      acceleratorHandler('quickChat');
+      expect(Menu.buildFromTemplate).not.toHaveBeenCalled();
+    });
+
+    it('rebuilds menu when application hotkey enabled state changes', () => {
+      const enableHandler = mockWindowManager.on.mock.calls.find(
+        (call: any) => call[0] === 'hotkey-enabled-changed'
+      )[1];
+
+      vi.clearAllMocks();
+      enableHandler('printToPdf');
+      expect(Menu.buildFromTemplate).toHaveBeenCalled();
+    });
+
+    it('does not rebuild menu when global hotkey enabled state changes', () => {
+      const enableHandler = mockWindowManager.on.mock.calls.find(
+        (call: any) => call[0] === 'hotkey-enabled-changed'
+      )[1];
+
+      vi.clearAllMocks();
+      enableHandler('bossKey');
+      expect(Menu.buildFromTemplate).not.toHaveBeenCalled();
+    });
+  });
 });

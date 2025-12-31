@@ -109,7 +109,32 @@ export default class IpcManager {
     // Initialize native theme on startup
     this._initializeNativeTheme();
 
+    // Initialize hotkey settings from store
+    this._initializeHotkeys();
+
     this.logger.log('Initialized');
+  }
+
+  /**
+   * Initialize hotkey settings from store.
+   * @private
+   */
+  private _initializeHotkeys(): void {
+    if (!this.hotkeyManager) return;
+
+    try {
+      // Sync enabled states
+      const savedSettings = this._getIndividualHotkeySettings();
+      this.hotkeyManager.updateAllSettings(savedSettings);
+
+      // Sync accelerators
+      const savedAccelerators = this._getHotkeyAccelerators();
+      this.hotkeyManager.updateAllAccelerators(savedAccelerators);
+
+      this.logger.log('Hotkeys initialized from store');
+    } catch (error) {
+      this.logger.error('Failed to initialize hotkeys:', error);
+    }
   }
 
   /**

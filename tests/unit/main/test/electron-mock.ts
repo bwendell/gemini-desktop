@@ -38,6 +38,8 @@ const createMockWebContents = () => ({
   openDevTools: vi.fn(),
   setWindowOpenHandler: vi.fn(),
   getURL: vi.fn().mockReturnValue(''),
+  printToPDF: vi.fn().mockResolvedValue(Buffer.from('mock-pdf')),
+  isDestroyed: vi.fn().mockReturnValue(false),
 });
 
 export class BrowserWindow {
@@ -115,6 +117,7 @@ export class BrowserWindow {
 
   static getAllWindows = vi.fn(() => BrowserWindow._instances);
   static fromWebContents = vi.fn(() => BrowserWindow._instances[0] || null);
+  static getFocusedWindow = vi.fn(() => BrowserWindow._instances[0] || null);
 
   static _reset() {
     BrowserWindow._instances = [];
@@ -191,6 +194,19 @@ export const screen = {
 
 export const shell = {
   openExternal: vi.fn().mockResolvedValue(undefined),
+};
+
+export const dialog = {
+  showSaveDialog: vi.fn().mockResolvedValue({ canceled: false, filePath: '/mock/path.pdf' }),
+  showErrorBox: vi.fn(),
+  showMessageBox: vi.fn().mockResolvedValue({ response: 0 }),
+  showOpenDialog: vi.fn().mockResolvedValue({ canceled: false, filePaths: [] }),
+  _reset: () => {
+    dialog.showSaveDialog.mockClear();
+    dialog.showErrorBox.mockClear();
+    dialog.showMessageBox.mockClear();
+    dialog.showOpenDialog.mockClear();
+  },
 };
 
 export const contextBridge = {
@@ -371,6 +387,7 @@ export default {
   nativeImage,
   screen,
   shell,
+  dialog,
   contextBridge,
   globalShortcut,
   systemPreferences,

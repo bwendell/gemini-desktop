@@ -39,7 +39,6 @@ vi.mock('../../src/main/utils/constants', async (importOriginal) => {
   };
 });
 
-
 describe('Hotkey Collision and Coordination Integration', () => {
   let hotkeyManager: HotkeyManager;
   let windowManager: WindowManager;
@@ -83,8 +82,8 @@ describe('Hotkey Collision and Coordination Integration', () => {
           expect.stringContaining('FAILED to register hotkey: quickChat')
         );
 
-        // Verify other shortcuts were still registered
-        expect(globalShortcut.register).toHaveBeenCalledTimes(3); // 3 total hotkeys
+        // Verify other shortcuts were still registered (only global hotkeys)
+        expect(globalShortcut.register).toHaveBeenCalledTimes(2); // 2 global hotkeys: quickChat, bossKey
 
         // Check internal tracking: failed hotkey should NOT be in registered set
         // (We check this indirectly via idempotency of setIndividualEnabled)
