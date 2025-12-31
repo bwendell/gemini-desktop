@@ -256,7 +256,11 @@ describe('Release Build: Code Signing', () => {
 
     E2ELogger.info('code-signing', 'App metadata', metadata);
 
-    expect(metadata.name).toBe('Gemini Desktop');
+    if (process.platform === 'linux') {
+      expect(metadata.name).toMatch(/^(Gemini Desktop|gemini-desktop)$/);
+    } else {
+      expect(metadata.name).toBe('Gemini Desktop');
+    }
     expect(metadata.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 });

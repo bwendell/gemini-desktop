@@ -105,6 +105,30 @@ describe('Release Build: Startup Performance', () => {
   });
 
   it('should have renderer process loaded', async () => {
+    await browser.waitUntil(
+      async () => {
+        const loaded = await browser.electron.execute((electron) => {
+          try {
+            const BrowserWindow = electron.BrowserWindow;
+            const windows = BrowserWindow.getAllWindows();
+            const mainWindow = windows.find((w: any) => !w.isDestroyed());
+
+            if (!mainWindow) return false;
+
+            return !mainWindow.webContents.isLoading();
+          } catch (error) {
+            return false;
+          }
+        });
+        return loaded;
+      },
+      {
+        timeout: 10000,
+        timeoutMsg: 'Renderer process did not finish loading within 10s',
+      }
+    );
+
+    // Get final details for logging
     const rendererInfo = await browser.electron.execute((electron) => {
       try {
         const BrowserWindow = electron.BrowserWindow;
@@ -127,7 +151,6 @@ describe('Release Build: Startup Performance', () => {
     });
 
     E2ELogger.info('startup-performance', 'Renderer state', rendererInfo);
-
     expect(rendererInfo.loaded).toBe(true);
   });
 

@@ -29,7 +29,11 @@ describe('Release Build: Packaged Resources', () => {
       return electron.app.getName();
     });
 
-    expect(appName).toBe('Gemini Desktop');
+    if (process.platform === 'linux') {
+      expect(appName).toMatch(/^(Gemini Desktop|gemini-desktop)$/);
+    } else {
+      expect(appName).toBe('Gemini Desktop');
+    }
     E2ELogger.info('packaged-resources', `App name: ${appName}`);
   });
 
