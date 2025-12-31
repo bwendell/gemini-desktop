@@ -1,34 +1,42 @@
-import { expect, $, browser } from '@wdio/globals';
+/**
+ * E2E Test: Auto-Update User Interactions
+ *
+ * Tests user interaction workflows for the auto-update feature.
+ *
+ * @module auto-update-interactions.spec
+ */
+
+/// <reference path="./helpers/wdio-electron.d.ts" />
+
+import { expect, browser } from '@wdio/globals';
+import { UpdateToastPage } from './pages';
 
 describe('Auto-Update User Interactions', () => {
+  let updateToast: UpdateToastPage;
+
   // Disable auto-updates to prevent startup check interference
   before(async () => {
+    updateToast = new UpdateToastPage();
+
     // Wait for app to be ready
-    await (browser as any).pause(2000);
+    await browser.pause(2000);
 
     // Disable auto-updates settings via IPC to stop the startup check
-    await (browser as any).execute(() => {
-      if ((window as any).electronAPI) {
-        (window as any).electronAPI.setAutoUpdateEnabled(false);
+    await browser.execute(() => {
+      // @ts-ignore - electronAPI exposed at runtime
+      if (window.electronAPI) {
+        // @ts-ignore
+        window.electronAPI.setAutoUpdateEnabled(false);
       }
     });
 
     // Allow IPC to process
-    await (browser as any).pause(1000);
+    await browser.pause(1000);
   });
 
   beforeEach(async () => {
     // Ensure no leftover toasts
-    await (browser as any).execute(() => {
-      window.electronAPI.devClearBadge();
-      // Hide any existing toasts
-      // @ts-ignore - test helper
-      if (window.__testUpdateToast?.hide) {
-        // @ts-ignore
-        window.__testUpdateToast.hide();
-      }
-    });
-    await (browser as any).pause(500);
+    await updateToast.clearAll();
   });
 
   // =========================================================================
@@ -38,18 +46,13 @@ describe('Auto-Update User Interactions', () => {
   describe('Restart Now Button', () => {
     it('should display Restart Now button when update is downloaded', async () => {
       // GIVEN an update is downloaded
-      await (browser as any).execute(() => {
-        // @ts-ignore - test helper
-        window.__testUpdateToast.showDownloaded('9.9.9');
-      });
+      await updateToast.showDownloaded('9.9.9');
 
       // THEN the "Update Ready" toast should show with Restart Now button
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
+      await updateToast.waitForVisible();
 
-      const restartBtn = await $('[data-testid="update-toast-restart"]');
-      await expect(restartBtn).toBeDisplayed();
-      expect(await restartBtn.getText()).toBe('Restart Now');
+      expect(await updateToast.isRestartButtonDisplayed()).toBe(true);
+      expect(await updateToast.getRestartButtonText()).toBe('Restart Now');
     });
 
     it('should dismiss toast and clear pending state when Restart Now is clicked', async () => {
@@ -60,26 +63,21 @@ describe('Auto-Update User Interactions', () => {
       // 2. The hasPendingUpdate state is cleared (verified in React component behavior)
 
       // GIVEN an update is downloaded with badge visible
-      await (browser as any).execute(() => {
-        // @ts-ignore - test helper
-        window.__testUpdateToast.showDownloaded('9.9.9');
-        window.electronAPI.devShowBadge('9.9.9');
-      });
+      await updateToast.showDownloaded('9.9.9');
+      await updateToast.showBadge('9.9.9');
 
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
+      await updateToast.waitForVisible();
 
       // Verify Restart Now button is visible before clicking
-      const restartBtn = await $('[data-testid="update-toast-restart"]');
-      expect(await restartBtn.isDisplayed()).toBe(true);
+      expect(await updateToast.isRestartButtonDisplayed()).toBe(true);
 
       // WHEN user clicks Restart Now
-      await restartBtn.click();
-      await (browser as any).pause(500);
+      await updateToast.clickRestartNow();
+      await updateToast.waitForAnimationComplete();
 
       // THEN the Restart Now button should no longer be visible
       // (either toast is hidden or has transitioned to error state without that button)
-      expect(await restartBtn.isExisting()).toBe(false);
+      expect(await updateToast.isRestartButtonExisting()).toBe(false);
     });
   });
 
@@ -90,66 +88,46 @@ describe('Auto-Update User Interactions', () => {
   describe('Later Button', () => {
     it('should dismiss toast but keep indicators when "Later" is clicked', async () => {
       // GIVEN an update is downloaded
-      await (browser as any).execute(() => {
-        // @ts-ignore - test helper
-        window.__testUpdateToast.showDownloaded('9.9.9');
-        window.electronAPI.devShowBadge('9.9.9');
-      });
+      await updateToast.showDownloaded('9.9.9');
+      await updateToast.showBadge('9.9.9');
 
       // AND the "Update Ready" toast is visible
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
-      expect(await toast.isDisplayed()).toBe(true);
-
-      const restartBtn = await $('[data-testid="update-toast-restart"]');
-      expect(await restartBtn.isDisplayed()).toBe(true);
+      await updateToast.waitForVisible();
+      expect(await updateToast.isDisplayed()).toBe(true);
+      expect(await updateToast.isRestartButtonDisplayed()).toBe(true);
 
       // WHEN the user clicks "Later"
-      const laterBtn = await $('[data-testid="update-toast-later"]');
-      await laterBtn.click();
-      await (browser as any).pause(500);
+      await updateToast.clickLater();
+      await updateToast.waitForAnimationComplete();
 
       // THEN the toast should dismiss
-      expect(await toast.isDisplayed()).toBe(false);
+      expect(await updateToast.isDisplayed()).toBe(false);
 
       // AND the titlebar badge should remain visible
-      const badge = await $('[data-testid="update-badge"]');
-      expect(await badge.isDisplayed()).toBe(true);
+      expect(await updateToast.isBadgeDisplayed()).toBe(true);
 
       // AND the tray tooltip should remain updated
-      const tooltip = await (browser as any).execute(() => {
-        return window.electronAPI.getTrayTooltip();
-      });
+      const tooltip = await updateToast.getTrayTooltip();
       expect(tooltip).toContain('Update v9.9.9 available');
     });
 
     it('should keep pending update state when Later is clicked', async () => {
       // GIVEN an update is downloaded
-      await (browser as any).execute(() => {
-        // @ts-ignore - test helper
-        window.__testUpdateToast.showDownloaded('9.9.9');
-      });
-
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
+      await updateToast.showDownloaded('9.9.9');
+      await updateToast.waitForVisible();
 
       // WHEN user clicks Later
-      const laterBtn = await $('[data-testid="update-toast-later"]');
-      await laterBtn.click();
-      await (browser as any).pause(500);
+      await updateToast.clickLater();
+      await updateToast.waitForAnimationComplete();
 
       // THEN toast is dismissed
-      expect(await toast.isDisplayed()).toBe(false);
+      expect(await updateToast.isDisplayed()).toBe(false);
 
       // BUT the app still knows there's a pending update (badge visible)
       // Re-showing would show the same update
-      await (browser as any).execute(() => {
-        // @ts-ignore - test helper
-        window.__testUpdateToast.showDownloaded('9.9.9');
-      });
-
-      await toast.waitForDisplayed();
-      expect(await toast.isDisplayed()).toBe(true);
+      await updateToast.showDownloaded('9.9.9');
+      await updateToast.waitForVisible();
+      expect(await updateToast.isDisplayed()).toBe(true);
     });
   });
 
@@ -160,95 +138,58 @@ describe('Auto-Update User Interactions', () => {
   describe('Error Toast', () => {
     it('should display error message in toast', async () => {
       // GIVEN an update error occurs
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showError('Test Network Error');
-      });
+      await updateToast.showError('Test Network Error');
 
       // THEN the error toast should be visible with the correct message
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
+      await updateToast.waitForVisible();
 
-      const title = await $('[data-testid="update-toast-title"]');
-      expect(await title.getText()).toBe('Update Error');
-
-      const errorMsg = await $('[data-testid="update-toast-message"]');
-      expect(await errorMsg.getText()).toContain('Test Network Error');
+      expect(await updateToast.getTitle()).toBe('Update Error');
+      expect(await updateToast.getMessage()).toContain('Test Network Error');
     });
 
     it('should dismiss error toast and clear state when error is dismissed', async () => {
       // GIVEN an update error occurs
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showError('Test Network Error');
-      });
+      await updateToast.showError('Test Network Error');
 
       // AND the "Update Error" toast is visible
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
-      // Wait for entry animation to complete (200ms) before trying to dismiss
-      await (browser as any).pause(300);
+      await updateToast.waitForVisible();
 
       // WHEN the user clicks the dismiss (×) button
-      const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
-      await dismissBtn.click();
+      await updateToast.dismiss();
 
-      // Wait for toast to be hidden (animation takes ~200ms)
-      await toast.waitForDisplayed({ reverse: true, timeout: 3000 });
+      // THEN toast should be hidden
+      await updateToast.waitForHidden();
 
       // AND no badges should appear (errors don't create badges)
-      const badge = await $('[data-testid="update-badge"]');
-      expect(await badge.isExisting()).toBe(false);
+      expect(await updateToast.isBadgeExisting()).toBe(false);
     });
 
     it('should show appropriate message for download failure', async () => {
       // Test specific error scenario: download failure
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showError('Failed to download update: Connection timed out');
-      });
+      await updateToast.showError('Failed to download update: Connection timed out');
+      await updateToast.waitForVisible();
 
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
-
-      const errorMsg = await $('[data-testid="update-toast-message"]');
-      expect(await errorMsg.getText()).toContain('Connection timed out');
+      expect(await updateToast.getMessage()).toContain('Connection timed out');
     });
 
     it('should handle generic error with fallback message', async () => {
       // Test error with no custom message (uses fallback)
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showError(null);
-      });
+      await updateToast.showError(null);
+      await updateToast.waitForVisible();
 
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
-
-      const errorMsg = await $('[data-testid="update-toast-message"]');
       // Should show default fallback message
-      expect(await errorMsg.getText()).toContain('An error occurred while updating');
+      expect(await updateToast.getMessage()).toContain('An error occurred while updating');
     });
 
     it('should not show Restart Now or Later buttons for error toast', async () => {
       // GIVEN an error toast
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showError('Some error');
-      });
-
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
+      await updateToast.showError('Some error');
+      await updateToast.waitForVisible();
 
       // THEN only dismiss button should be present
-      const restartBtn = await $('[data-testid="update-toast-restart"]');
-      expect(await restartBtn.isExisting()).toBe(false);
-
-      const laterBtn = await $('[data-testid="update-toast-later"]');
-      expect(await laterBtn.isExisting()).toBe(false);
-
-      const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
-      expect(await dismissBtn.isExisting()).toBe(true);
+      expect(await updateToast.isRestartButtonExisting()).toBe(false);
+      expect(await updateToast.isLaterButtonExisting()).toBe(false);
+      expect(await updateToast.isDismissButtonExisting()).toBe(true);
     });
   });
 
@@ -259,37 +200,22 @@ describe('Auto-Update User Interactions', () => {
   describe('Update Available Toast', () => {
     it('should show update available message while downloading', async () => {
       // GIVEN an update is available (downloading)
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showAvailable('10.0.0');
-      });
+      await updateToast.showAvailable('10.0.0');
+      await updateToast.waitForVisible();
 
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
-
-      const title = await $('[data-testid="update-toast-title"]');
-      expect(await title.getText()).toBe('Update Available');
-
-      const message = await $('[data-testid="update-toast-message"]');
-      expect(await message.getText()).toContain('10.0.0');
-      expect(await message.getText()).toContain('downloading');
+      expect(await updateToast.getTitle()).toBe('Update Available');
+      const message = await updateToast.getMessage();
+      expect(message).toContain('10.0.0');
+      expect(message).toContain('downloading');
     });
 
     it('should show dismiss button for update available toast', async () => {
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showAvailable('10.0.0');
-      });
-
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
+      await updateToast.showAvailable('10.0.0');
+      await updateToast.waitForVisible();
 
       // Should have dismiss button, NOT Restart Now
-      const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
-      expect(await dismissBtn.isExisting()).toBe(true);
-
-      const restartBtn = await $('[data-testid="update-toast-restart"]');
-      expect(await restartBtn.isExisting()).toBe(false);
+      expect(await updateToast.isDismissButtonExisting()).toBe(true);
+      expect(await updateToast.isRestartButtonExisting()).toBe(false);
     });
   });
 
@@ -300,63 +226,42 @@ describe('Auto-Update User Interactions', () => {
   describe('Update Not Available Toast', () => {
     it('should show "No updates available" toast when manual check finds no update', async () => {
       // GIVEN user performs a manual update check
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showNotAvailable('1.0.0');
-      });
+      await updateToast.showNotAvailable('1.0.0');
 
       // THEN the "No updates available" toast should appear
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
+      await updateToast.waitForVisible();
 
-      const title = await $('[data-testid="update-toast-title"]');
-      expect((await title.getText()).toLowerCase()).toContain('up to date');
+      const title = await updateToast.getTitle();
+      expect(title.toLowerCase()).toContain('up to date');
 
-      const message = await $('[data-testid="update-toast-message"]');
-      const messageText = await message.getText();
+      const message = await updateToast.getMessage();
       // Should indicate current version or that app is up to date
-      expect(messageText).toMatch(/(up to date|current|1\.0\.0)/i);
+      expect(message).toMatch(/(up to date|current|1\.0\.0)/i);
     });
 
     it('should dismiss "No updates available" toast when user clicks dismiss', async () => {
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showNotAvailable('1.0.0');
-      });
+      await updateToast.showNotAvailable('1.0.0');
+      await updateToast.waitForVisible();
 
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
-      // Wait for entry animation to complete (200ms) before trying to dismiss
-      await (browser as any).pause(300);
-
-      const dismissBtn = await $('[data-testid="update-toast-dismiss"]');
-      await dismissBtn.click();
-
-      // Wait for toast to be hidden (animation takes ~200ms)
-      await toast.waitForDisplayed({ reverse: true, timeout: 3000 });
+      await updateToast.dismiss();
+      await updateToast.waitForHidden();
     });
 
     it('should not show badge or tray tooltip for "No updates available"', async () => {
       // Ensure badges are clear first
-      await (browser as any).execute(() => window.electronAPI.devClearBadge());
-      await (browser as any).pause(200);
+      await updateToast.clearBadge();
+      await updateToast.waitForAnimationComplete();
 
       // Show "No updates available" toast
-      await (browser as any).execute(() => {
-        // @ts-ignore
-        window.__testUpdateToast.showNotAvailable('1.0.0');
-      });
-
-      const toast = await $('[data-testid="update-toast"]');
-      await toast.waitForDisplayed();
-      await (browser as any).pause(500);
+      await updateToast.showNotAvailable('1.0.0');
+      await updateToast.waitForVisible();
+      await updateToast.waitForAnimationComplete();
 
       // No badge should appear
-      const badge = await $('[data-testid="update-badge"]');
-      expect(await badge.isExisting()).toBe(false);
+      expect(await updateToast.isBadgeExisting()).toBe(false);
 
       // Tray tooltip should be default (not showing update info)
-      const tooltip = await (browser as any).execute(() => window.electronAPI.getTrayTooltip());
+      const tooltip = await updateToast.getTrayTooltip();
       expect(tooltip).toBe('Gemini Desktop'); // Default tooltip
     });
   });
