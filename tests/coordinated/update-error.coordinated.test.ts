@@ -38,10 +38,10 @@ describe('UpdateManager Error Coordination', () => {
   let updateManager: UpdateManager;
   let mockSettings: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     (app as any).isPackaged = true;
-    
+
     // Reset window mocks
     if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
     (mockAutoUpdater as any).removeAllListeners.mockClear();
@@ -52,6 +52,10 @@ describe('UpdateManager Error Coordination', () => {
     };
 
     updateManager = new UpdateManager(mockSettings as any);
+
+    // IMPORTANT: Trigger lazy loading of autoUpdater to register event handlers
+    // This is necessary because autoUpdater is now lazily loaded
+    await updateManager.checkForUpdates(false);
   });
 
   afterEach(() => {
@@ -62,7 +66,7 @@ describe('UpdateManager Error Coordination', () => {
     // Create multiple windows
     const win1 = new BrowserWindow();
     const win2 = new BrowserWindow();
-    
+
     // Trigger error
     const rawError = new Error('Raw Sensitive Error Data');
     mockAutoUpdater.emit('error', rawError);
@@ -73,7 +77,7 @@ describe('UpdateManager Error Coordination', () => {
         'auto-update:error',
         'The auto-update service encountered an error. Please try again later.'
       );
-      
+
       // Ensure raw error was not sent
       expect(win.webContents.send).not.toHaveBeenCalledWith(
         'auto-update:error',

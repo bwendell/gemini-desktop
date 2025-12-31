@@ -42,8 +42,18 @@ vi.mock('../../../src/main/utils/logger', () => ({
   createLogger: () => ({
     log: vi.fn(),
     error: vi.fn(),
+    warn: vi.fn(),
   }),
 }));
+
+/**
+ * Helper to trigger lazy loading of autoUpdater.
+ * Since autoUpdater is now lazily loaded, tests that depend on autoUpdater.on
+ * being called must first trigger an update check.
+ */
+async function triggerLazyLoad(manager: UpdateManager): Promise<void> {
+  await manager.checkForUpdates(false);
+}
 
 describe('UpdateManager', () => {
   let updateManager: UpdateManager;
@@ -158,9 +168,12 @@ describe('UpdateManager', () => {
     expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
   });
 
-  it('broadcasts updates to windows', () => {
+  it('broadcasts updates to windows', async () => {
     (app as any).isPackaged = true;
     updateManager = new UpdateManager(mockSettingsStore);
+
+    // Trigger lazy loading to set up event listeners
+    await triggerLazyLoad(updateManager);
 
     // Simulate update-available event
     const onHandler = (autoUpdater.on as any).mock.calls.find(
@@ -201,6 +214,23 @@ describe('UpdateManager', () => {
 
     updateManager = new UpdateManager(mockSettingsStore);
     expect(updateManager.isEnabled()).toBe(true);
+
+    // Restore platform
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    delete process.env.APPIMAGE;
+  });
+
+  it('lazy-loads electron-updater on Linux AppImage when checkForUpdates is called', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    process.env.APPIMAGE = '/path/to/app.AppImage';
+    (app as any).isPackaged = true;
+
+    updateManager = new UpdateManager(mockSettingsStore);
+    expect(updateManager.isEnabled()).toBe(true);
+
+    // checkForUpdates should trigger the lazy loading and actually call autoUpdater
+    await updateManager.checkForUpdates(false);
+    expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
 
     // Restore platform
     Object.defineProperty(process, 'platform', { value: 'win32' });
@@ -385,32 +415,34 @@ describe('UpdateManager', () => {
       setIntervalSpy.mockRestore();
     });
 
-    it('triggers check in setInterval callback', () => {
+    it('triggers check in setInterval callback', async () => {
       vi.useFakeTimers();
       updateManager = new UpdateManager(mockSettingsStore);
       updateManager.startPeriodicChecks(60 * 60 * 1000);
       (autoUpdater.checkForUpdatesAndNotify as any).mockResolvedValue(undefined);
 
-      // Fast-forward 1 hour
-      vi.advanceTimersByTime(60 * 60 * 1000);
+      // Fast-forward 1 hour (use async version to allow promises to resolve)
+      await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
       expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
     });
 
-    it('triggers check in initial startup setTimeout callback', () => {
+    it('triggers check in initial startup setTimeout callback', async () => {
       vi.useFakeTimers();
       updateManager = new UpdateManager(mockSettingsStore);
       updateManager.startPeriodicChecks();
       (autoUpdater.checkForUpdatesAndNotify as any).mockResolvedValue(undefined);
 
-      // Fast-forward 10 seconds
-      vi.advanceTimersByTime(10000);
+      // Fast-forward 10 seconds (use async version to allow promises to resolve)
+      await vi.advanceTimersByTimeAsync(10000);
       expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
     });
   });
 
   describe('events', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       updateManager = new UpdateManager(mockSettingsStore);
+      // Trigger lazy loading to set up event listeners
+      await triggerLazyLoad(updateManager);
     });
 
     it('broadcasts auto-update:error', () => {
@@ -525,13 +557,15 @@ describe('UpdateManager', () => {
   });
 
   describe('quitAndInstall', () => {
-    it('calls autoUpdater.quitAndInstall with correct parameters', () => {
+    it('calls autoUpdater.quitAndInstall with correct parameters', async () => {
       updateManager = new UpdateManager(mockSettingsStore);
+      // Trigger lazy loading so autoUpdater is available
+      await triggerLazyLoad(updateManager);
       updateManager.quitAndInstall();
       expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true);
     });
 
-    it('clears badge and tray when badgeManager and trayManager are provided', () => {
+    it('clears badge and tray when badgeManager and trayManager are provided', async () => {
       const mockBadgeManager = {
         clearUpdateBadge: vi.fn(),
         showUpdateBadge: vi.fn(),
@@ -548,6 +582,7 @@ describe('UpdateManager', () => {
         badgeManager: mockBadgeManager as any,
         trayManager: mockTrayManager as any,
       });
+      await triggerLazyLoad(updateManager);
 
       updateManager.quitAndInstall();
 
@@ -555,15 +590,16 @@ describe('UpdateManager', () => {
       expect(mockTrayManager.clearUpdateTooltip).toHaveBeenCalled();
     });
 
-    it('handles missing badge/tray managers gracefully', () => {
+    it('handles missing badge/tray managers gracefully', async () => {
       updateManager = new UpdateManager(mockSettingsStore); // No deps
+      await triggerLazyLoad(updateManager);
 
       // Should not throw even without badge/tray managers
       expect(() => updateManager.quitAndInstall()).not.toThrow();
       expect(autoUpdater.quitAndInstall).toHaveBeenCalled();
     });
 
-    it('handles missing badgeManager only', () => {
+    it('handles missing badgeManager only', async () => {
       const mockTrayManager = {
         clearUpdateTooltip: vi.fn(),
         setUpdateTooltip: vi.fn(),
@@ -574,13 +610,14 @@ describe('UpdateManager', () => {
         trayManager: mockTrayManager as any,
         // No badgeManager
       });
+      await triggerLazyLoad(updateManager);
 
       expect(() => updateManager.quitAndInstall()).not.toThrow();
       expect(mockTrayManager.clearUpdateTooltip).toHaveBeenCalled();
       expect(autoUpdater.quitAndInstall).toHaveBeenCalled();
     });
 
-    it('handles missing trayManager only', () => {
+    it('handles missing trayManager only', async () => {
       const mockBadgeManager = {
         clearUpdateBadge: vi.fn(),
         showUpdateBadge: vi.fn(),
@@ -592,13 +629,14 @@ describe('UpdateManager', () => {
         badgeManager: mockBadgeManager as any,
         // No trayManager
       });
+      await triggerLazyLoad(updateManager);
 
       expect(() => updateManager.quitAndInstall()).not.toThrow();
       expect(mockBadgeManager.clearUpdateBadge).toHaveBeenCalled();
       expect(autoUpdater.quitAndInstall).toHaveBeenCalled();
     });
 
-    it('calls quitAndInstall even if badge/tray clear methods throw', () => {
+    it('calls quitAndInstall even if badge/tray clear methods throw', async () => {
       const mockBadgeManager = {
         clearUpdateBadge: vi.fn().mockImplementation(() => {
           throw new Error('Badge clear failed');
@@ -611,6 +649,7 @@ describe('UpdateManager', () => {
       updateManager = new UpdateManager(mockSettingsStore, {
         badgeManager: mockBadgeManager as any,
       });
+      await triggerLazyLoad(updateManager);
 
       // Should still attempt to quit and install despite badge clear error
       // Note: The actual code doesn't wrap in try-catch, so this will throw
@@ -618,8 +657,9 @@ describe('UpdateManager', () => {
       expect(() => updateManager.quitAndInstall()).toThrow('Badge clear failed');
     });
 
-    it('prevents multiple rapid quitAndInstall calls', () => {
+    it('prevents multiple rapid quitAndInstall calls', async () => {
       updateManager = new UpdateManager(mockSettingsStore);
+      await triggerLazyLoad(updateManager);
 
       // Call multiple times rapidly
       updateManager.quitAndInstall();
@@ -632,7 +672,7 @@ describe('UpdateManager', () => {
   });
 
   describe('multi-window broadcasting', () => {
-    it('broadcasts events to all open windows', () => {
+    it('broadcasts events to all open windows', async () => {
       // Create multiple mock windows
       const window1 = {
         isDestroyed: () => false,
@@ -650,6 +690,7 @@ describe('UpdateManager', () => {
       (BrowserWindow.getAllWindows as any).mockReturnValue([window1, window2, window3]);
 
       updateManager = new UpdateManager(mockSettingsStore);
+      await triggerLazyLoad(updateManager);
 
       // Trigger update-available event
       const handler = (autoUpdater.on as any).mock.calls.find(
@@ -664,7 +705,7 @@ describe('UpdateManager', () => {
       expect(window3.webContents.send).toHaveBeenCalledWith('auto-update:available', updateInfo);
     });
 
-    it('skips destroyed windows when broadcasting', () => {
+    it('skips destroyed windows when broadcasting', async () => {
       const window1 = {
         isDestroyed: () => false,
         webContents: { send: vi.fn() },
@@ -677,6 +718,7 @@ describe('UpdateManager', () => {
       (BrowserWindow.getAllWindows as any).mockReturnValue([window1, window2]);
 
       updateManager = new UpdateManager(mockSettingsStore);
+      await triggerLazyLoad(updateManager);
 
       // Trigger error event
       const handler = (autoUpdater.on as any).mock.calls.find(
@@ -734,8 +776,9 @@ describe('UpdateManager', () => {
   });
 
   describe('destroy', () => {
-    it('cleans up listeners and intervals when autoUpdater exists', () => {
+    it('cleans up listeners and intervals when autoUpdater exists', async () => {
       updateManager = new UpdateManager(mockSettingsStore);
+      await triggerLazyLoad(updateManager);
       const stopSpy = vi.spyOn(updateManager, 'stopPeriodicChecks');
       updateManager.destroy();
       expect(stopSpy).toHaveBeenCalled();

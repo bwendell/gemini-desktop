@@ -55,8 +55,8 @@ describe('UpdateManager', () => {
     // Setup mock window and webContents using the electron-mock structure
     // We need to instantiate a BrowserWindow so it appears in getAllWindows()
     mockWindow = new BrowserWindow();
-    mockWebContents = mockWindow.webContents; 
-    
+    mockWebContents = mockWindow.webContents;
+
     // Default settings
     (mockSettings.get as any).mockReturnValue(true);
 
@@ -69,9 +69,13 @@ describe('UpdateManager', () => {
     (BrowserWindow as any)._reset();
   });
 
-  it('should mask raw error messages when broadcasting to windows', () => {
+  it('should mask raw error messages when broadcasting to windows', async () => {
     const rawError = new Error('<div>Massive HTML Error</div> with stack trace...');
-    
+
+    // First trigger a successful update check to ensure autoUpdater is lazily loaded
+    // and event listeners are set up
+    await updateManager.checkForUpdates(false);
+
     // Emit error from autoUpdater
     mockAutoUpdater.emit('error', rawError);
 
@@ -80,7 +84,7 @@ describe('UpdateManager', () => {
       'auto-update:error',
       'The auto-update service encountered an error. Please try again later.'
     );
-    
+
     // Verify raw message was NOT sent
     expect(mockWebContents.send).not.toHaveBeenCalledWith(
       'auto-update:error',
@@ -114,10 +118,7 @@ describe('UpdateManager', () => {
     await updateManager.checkForUpdates(false);
 
     // Should NOT broadcast update-error
-    expect(mockWebContents.send).not.toHaveBeenCalledWith(
-      'update-error',
-      expect.any(String)
-    );
+    expect(mockWebContents.send).not.toHaveBeenCalledWith('update-error', expect.any(String));
   });
 
   it('should SHOW error when manual check fails with 404/unreachable', async () => {
@@ -128,9 +129,6 @@ describe('UpdateManager', () => {
     await updateManager.checkForUpdates(true);
 
     // Should broadcast update-error because it's manual
-    expect(mockWebContents.send).toHaveBeenCalledWith(
-      'update-error',
-      expect.any(String)
-    );
+    expect(mockWebContents.send).toHaveBeenCalledWith('update-error', expect.any(String));
   });
 });

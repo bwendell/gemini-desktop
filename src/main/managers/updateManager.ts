@@ -12,8 +12,10 @@
  */
 
 import { app, BrowserWindow } from 'electron';
-import { autoUpdater, type UpdateInfo } from 'electron-updater';
-import type { AppUpdater } from 'electron-updater';
+// NOTE: electron-updater is imported DYNAMICALLY to prevent D-Bus hang on Linux CI.
+// Static imports cause electron-updater to initialize on module load, which hangs
+// when there's no D-Bus session (headless Linux/CI environment).
+import type { UpdateInfo, AppUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createLogger } from '../utils/logger';
 import type SettingsStore from '../store';
@@ -41,10 +43,12 @@ export interface UpdateManagerDeps {
 }
 
 /**
- * Get the autoUpdater instance.
- * Direct import works for both ESM and CommonJS.
+ * Get the autoUpdater instance via dynamic import.
+ * This is critical for Linux CI - static import causes electron-updater to
+ * initialize immediately on module load, which hangs trying to connect to D-Bus.
  */
-function getAutoUpdater(): AppUpdater {
+async function getAutoUpdater(): Promise<AppUpdater> {
+  const { autoUpdater } = await import('electron-updater');
   return autoUpdater;
 }
 
@@ -59,13 +63,15 @@ function getAutoUpdater(): AppUpdater {
  * - Platform-aware (disables for DEB/RPM Linux, portable Windows)
  */
 export default class UpdateManager {
-  private autoUpdater: AppUpdater;
+  private autoUpdater: AppUpdater | null = null;
+  private autoUpdaterPromise: Promise<AppUpdater> | null = null;
   private enabled: boolean = true;
   private checkInterval: ReturnType<typeof setInterval> | null = null;
   private lastCheckTime: number = 0;
   private readonly settings: SettingsStore<AutoUpdateSettings>;
   private readonly badgeManager?: BadgeManager;
   private readonly trayManager?: TrayManager;
+  private readonly updatesDisabled: boolean;
 
   /**
    * Creates a new UpdateManager instance.
@@ -79,33 +85,18 @@ export default class UpdateManager {
 
     // Check if we should disable updates FIRST before any autoUpdater initialization
     // This prevents electron-updater from initializing native resources on unsupported platforms
-    if (this.shouldDisableUpdates()) {
+    // CRITICAL: This MUST happen synchronously in constructor to prevent D-Bus hang on Linux CI
+    this.updatesDisabled = this.shouldDisableUpdates();
+
+    if (this.updatesDisabled) {
       this.enabled = false;
-      this.autoUpdater = null as unknown as AppUpdater; // Will never be used
       logger.log('Auto-updates disabled for this platform/install type');
       logger.log(`UpdateManager initialized (enabled: ${this.enabled})`);
-      return; // Exit early - don't import/configure autoUpdater at all
+      return; // Exit early - autoUpdater will never be loaded
     }
-
-    // Only now do we initialize autoUpdater - after confirming updates are supported
-    this.autoUpdater = getAutoUpdater();
 
     // Load user preference (default to enabled)
     this.enabled = this.settings.get('autoUpdateEnabled') ?? true;
-
-    // Configure auto-updater - only if updates are supported
-    this.autoUpdater.autoDownload = true;
-    this.autoUpdater.autoInstallOnAppQuit = true;
-
-    if (process.argv.includes('--test-auto-update')) {
-      this.autoUpdater.forceDevUpdateConfig = true;
-    }
-
-    // Configure logging
-    this.autoUpdater.logger = log;
-    log.transports.file.level = 'info';
-
-    this.setupEventListeners();
     logger.log(`UpdateManager initialized (enabled: ${this.enabled})`);
 
     // Start periodic checks if enabled
@@ -119,6 +110,50 @@ export default class UpdateManager {
   }
 
   /**
+   * Lazily initialize the autoUpdater.
+   * This uses dynamic import to avoid loading electron-updater on unsupported platforms.
+   */
+  private async ensureAutoUpdater(): Promise<AppUpdater | null> {
+    if (this.updatesDisabled) {
+      return null;
+    }
+
+    if (this.autoUpdater) {
+      return this.autoUpdater;
+    }
+
+    // Avoid multiple concurrent imports
+    if (this.autoUpdaterPromise) {
+      return this.autoUpdaterPromise;
+    }
+
+    this.autoUpdaterPromise = (async () => {
+      logger.log('Lazily loading electron-updater...');
+      const updater = await getAutoUpdater();
+
+      // Configure auto-updater
+      updater.autoDownload = true;
+      updater.autoInstallOnAppQuit = true;
+
+      if (process.argv.includes('--test-auto-update')) {
+        updater.forceDevUpdateConfig = true;
+      }
+
+      // Configure logging
+      updater.logger = log;
+      log.transports.file.level = 'info';
+
+      this.setupEventListeners(updater);
+      this.autoUpdater = updater;
+      logger.log('electron-updater loaded and configured');
+
+      return updater;
+    })();
+
+    return this.autoUpdaterPromise;
+  }
+
+  /**
    * Determine if auto-updates should be disabled based on platform and install type.
    * @returns true if updates should be disabled
    */
@@ -127,7 +162,11 @@ export default class UpdateManager {
     const currentEnv = this.mockEnv || process.env;
 
     // Allow updates in test environment (Vitest, Integration Tests, or E2E with --test-auto-update flag)
-    if (currentEnv.VITEST || currentEnv.TEST_AUTO_UPDATE || process.argv.includes('--test-auto-update')) {
+    if (
+      currentEnv.VITEST ||
+      currentEnv.TEST_AUTO_UPDATE ||
+      process.argv.includes('--test-auto-update')
+    ) {
       return false;
     }
 
@@ -199,16 +238,21 @@ export default class UpdateManager {
 
     try {
       logger.log(manual ? 'Manual update check...' : 'Checking for updates...');
-      await this.autoUpdater.checkForUpdatesAndNotify();
+      const updater = await this.ensureAutoUpdater();
+      if (!updater) {
+        logger.log('Update check skipped - updater not available');
+        return;
+      }
+      await updater.checkForUpdatesAndNotify();
     } catch (error: any) {
       logger.error('Update check failed:', error);
 
       // Check if this is a known "benign" error (like 404/403 which means no access/no releases)
       // or a network error which we should suppress for background checks
       const errorStr = (error?.message || '').toString();
-      const isNetworkOrConfigError = 
-        errorStr.includes('404') || 
-        errorStr.includes('403') || 
+      const isNetworkOrConfigError =
+        errorStr.includes('404') ||
+        errorStr.includes('403') ||
         errorStr.includes('Github') ||
         errorStr.includes('Network') ||
         errorStr.includes('net::') ||
@@ -224,7 +268,9 @@ export default class UpdateManager {
           'The auto-update service encountered an error. Please try again later.'
         );
       } else {
-        logger.log('Suppressing update error notification (background check + network/config error)');
+        logger.log(
+          'Suppressing update error notification (background check + network/config error)'
+        );
         logger.log('Suppressed error details:', errorStr || error);
       }
     }
@@ -292,7 +338,11 @@ export default class UpdateManager {
     this.badgeManager?.clearUpdateBadge();
     this.trayManager?.clearUpdateTooltip();
 
-    this.autoUpdater.quitAndInstall(false, true);
+    if (this.autoUpdater) {
+      this.autoUpdater.quitAndInstall(false, true);
+    } else {
+      logger.warn('quitAndInstall called but autoUpdater not loaded');
+    }
   }
 
   /**
@@ -311,9 +361,10 @@ export default class UpdateManager {
 
   /**
    * Set up event listeners for auto-updater events.
+   * @param updater - The autoUpdater instance to attach listeners to
    */
-  private setupEventListeners(): void {
-    this.autoUpdater.on('error', (error) => {
+  private setupEventListeners(updater: AppUpdater): void {
+    updater.on('error', (error) => {
       logger.error('Auto-updater error:', error);
       // MASKED ERROR: Do NOT send the raw error message to the renderer/user.
       // Raw errors from electron-updater can be massive (HTML, full stack traces) and
@@ -325,28 +376,28 @@ export default class UpdateManager {
       );
     });
 
-    this.autoUpdater.on('checking-for-update', () => {
+    updater.on('checking-for-update', () => {
       logger.log('Checking for update...');
       this.lastCheckTime = Date.now();
       this.broadcastToWindows('auto-update:checking', null);
     });
 
-    this.autoUpdater.on('update-available', (info: UpdateInfo) => {
+    updater.on('update-available', (info: UpdateInfo) => {
       logger.log(`Update available: ${info.version}`);
       this.broadcastToWindows('auto-update:available', info);
     });
 
-    this.autoUpdater.on('update-not-available', (info: UpdateInfo) => {
+    updater.on('update-not-available', (info: UpdateInfo) => {
       logger.log(`No update available (current: ${info.version})`);
       this.broadcastToWindows('auto-update:not-available', info);
     });
 
-    this.autoUpdater.on('download-progress', (progress) => {
+    updater.on('download-progress', (progress) => {
       logger.log(`Download progress: ${progress.percent.toFixed(1)}%`);
       this.broadcastToWindows('auto-update:download-progress', progress);
     });
 
-    this.autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+    updater.on('update-downloaded', (info: UpdateInfo) => {
       logger.log(`Update downloaded: ${info.version}`);
 
       // Show native badge and tray tooltip
