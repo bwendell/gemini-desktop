@@ -69,8 +69,12 @@ export default class WindowManager extends EventEmitter {
    * @returns The main window
    */
   createMainWindow(): BrowserWindow {
+    logger.log('[DEBUG] createMainWindow() called');
     try {
-      return this.mainWindow.create();
+      logger.log('[DEBUG] About to call mainWindow.create()');
+      const win = this.mainWindow.create();
+      logger.log('[DEBUG] mainWindow.create() returned, window:', win ? 'exists' : 'null');
+      return win;
     } catch (error) {
       logger.error('CRITICAL: Failed to create main window:', error);
       throw error; // Re-throw as main window is essential

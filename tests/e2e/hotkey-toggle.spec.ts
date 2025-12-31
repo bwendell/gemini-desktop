@@ -16,6 +16,11 @@
 import { browser, $, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount } from './helpers/windowActions';
+import {
+  waitForOptionsWindow,
+  switchToOptionsWindow,
+  closeOptionsWindow,
+} from './helpers/optionsWindowActions';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
@@ -31,29 +36,33 @@ interface HotkeyTestConfig {
   shortcutWin: string;
   shortcutMac: string;
   testId: string;
+  rowTestId: string;
 }
 
 const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
   {
     id: 'alwaysOnTop',
     label: 'Always on Top',
-    shortcutWin: 'Ctrl+Shift+T',
-    shortcutMac: 'Cmd+Shift+T',
+    shortcutWin: 'Ctrl+Alt+P',
+    shortcutMac: '⌘+⌥+P', // macOS displays symbols: ⌘ (Cmd), ⌥ (Alt)
     testId: 'hotkey-toggle-alwaysOnTop',
+    rowTestId: 'hotkey-row-alwaysOnTop',
   },
   {
     id: 'bossKey',
     label: 'Boss Key',
-    shortcutWin: 'Ctrl+Alt+E',
-    shortcutMac: 'Cmd+Alt+E',
+    shortcutWin: 'Ctrl+Alt+H',
+    shortcutMac: '⌘+⌥+H', // macOS displays symbols: ⌘ (Cmd), ⌥ (Alt)
     testId: 'hotkey-toggle-bossKey',
+    rowTestId: 'hotkey-row-bossKey',
   },
   {
     id: 'quickChat',
     label: 'Quick Chat',
-    shortcutWin: 'Ctrl+Shift+Space',
-    shortcutMac: 'Cmd+Shift+Space',
+    shortcutWin: 'Ctrl+Shift+␣',
+    shortcutMac: '⌘+⇧+␣', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift), ␣ (Space)
     testId: 'hotkey-toggle-quickChat',
+    rowTestId: 'hotkey-row-quickChat',
   },
 ];
 
@@ -74,40 +83,17 @@ describe('Individual Hotkey Toggles', () => {
     E2ELogger.info('hotkey-toggle', 'Opening Options window');
 
     // Store main window handle
-    const initialHandles = await browser.getWindowHandles();
-    mainWindowHandle = initialHandles[0];
+    mainWindowHandle = await browser.getWindowHandle();
 
     // Open Options via menu
     await clickMenuItemById('menu-file-options');
-    await waitForWindowCount(2, 5000);
-
-    // Switch to Options window
-    const handles = await browser.getWindowHandles();
-    const optionsHandle = handles.find((h) => h !== mainWindowHandle) || handles[1];
-    await browser.switchToWindow(optionsHandle);
-    await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+    await waitForOptionsWindow();
+    await switchToOptionsWindow();
   });
 
   afterEach(async () => {
     E2ELogger.info('hotkey-toggle', 'Cleaning up');
-
-    try {
-      // Close options window via close button
-      const closeBtn = await $(Selectors.optionsCloseButton);
-      if (await closeBtn.isExisting()) {
-        await closeBtn.click();
-        await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
-      }
-    } catch {
-      /* ignore */
-    }
-
-    // Switch back to main window
-    try {
-      await browser.switchToWindow(mainWindowHandle);
-    } catch {
-      /* ignore */
-    }
+    await closeOptionsWindow();
   });
 
   // ========================================================================
@@ -126,34 +112,54 @@ describe('Individual Hotkey Toggles', () => {
 
     it('should display correct labels for each toggle', async () => {
       for (const config of HOTKEY_CONFIGS) {
-        const toggle = await $(`[data-testid="${config.testId}"]`);
-        const text = await toggle.getText();
-        expect(text).toContain(config.label);
+        const row = await $(`[data-testid="${config.rowTestId}"]`);
+        await browser.waitUntil(
+          async () => (await row.getText()).includes(config.label),
+          { timeout: 5000, timeoutMsg: `Expected row to contain "${config.label}"` }
+        );
       }
     });
 
     it('should display platform-appropriate shortcut text', async () => {
       for (const config of HOTKEY_CONFIGS) {
-        const toggle = await $(`[data-testid="${config.testId}"]`);
-        const text = await toggle.getText();
+        const row = await $(`[data-testid="${config.rowTestId}"]`);
         const expectedShortcut = platform === 'macos' ? config.shortcutMac : config.shortcutWin;
 
-        expect(text).toContain(expectedShortcut);
+        // Check that each key part of the shortcut is present
+        // (the display uses separate <kbd> elements, so we check each part individually)
+        const keyParts = expectedShortcut.split('+');
+        for (const part of keyParts) {
+          await browser.waitUntil(
+            async () => (await row.getText()).includes(part),
+            { timeout: 5000, timeoutMsg: `Expected row to contain "${part}" (from shortcut "${expectedShortcut}")` }
+          );
+        }
         E2ELogger.info('hotkey-toggle', `${config.label}: displays "${expectedShortcut}"`);
       }
     });
 
-    it('should show Ctrl on Windows/Linux, Cmd on macOS', async () => {
+    it('should show Ctrl on Windows/Linux, ⌘ on macOS', async () => {
       const config = HOTKEY_CONFIGS[0];
-      const toggle = await $(`[data-testid="${config.testId}"]`);
-      const text = await toggle.getText();
+      const row = await $(`[data-testid="${config.rowTestId}"]`);
 
       if (platform === 'macos') {
-        expect(text).toContain('Cmd');
-        expect(text).not.toContain('Ctrl');
+        await browser.waitUntil(
+          async () => (await row.getText()).includes('⌘'),
+          { timeout: 5000, timeoutMsg: 'Expected row to contain "⌘" (macOS Command symbol)' }
+        );
+        await browser.waitUntil(
+          async () => !(await row.getText()).includes('Ctrl'),
+          { timeout: 5000, timeoutMsg: 'Expected row NOT to contain "Ctrl"' }
+        );
       } else {
-        expect(text).toContain('Ctrl');
-        expect(text).not.toContain('Cmd');
+        await browser.waitUntil(
+          async () => (await row.getText()).includes('Ctrl'),
+          { timeout: 5000, timeoutMsg: 'Expected row to contain "Ctrl"' }
+        );
+        await browser.waitUntil(
+          async () => !(await row.getText()).includes('⌘'),
+          { timeout: 5000, timeoutMsg: 'Expected row NOT to contain "⌘" (macOS Command symbol)' }
+        );
       }
     });
   });

@@ -11,35 +11,73 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
+import { isLinux } from './utils/constants';
 
 import { createLogger } from './utils/logger';
 
 // Setup Logger
 const logger = createLogger('[Main]');
 
+// DEBUG: Log critical environment info early for CI debugging
+logger.log('=== ELECTRON STARTUP DEBUG INFO ===');
+logger.log('Platform:', process.platform);
+logger.log('DISPLAY:', process.env.DISPLAY || 'NOT SET');
+logger.log('XDG_SESSION_TYPE:', process.env.XDG_SESSION_TYPE || 'NOT SET');
+logger.log('CI:', process.env.CI || 'NOT SET');
+logger.log('ELECTRON_USE_DIST:', process.env.ELECTRON_USE_DIST || 'NOT SET');
+logger.log('app.isReady():', app.isReady());
+logger.log('===================================');
+
+if (isLinux) {
+  // On Linux, the internal app name should match the executable/id for better WM_CLASS matching
+  app.setName('gemini-desktop');
+  
+  // Set desktop name for portal integration
+  try {
+    if (typeof (app as any).setDesktopName === 'function') {
+      (app as any).setDesktopName('gemini-desktop');
+    }
+  } catch (e) {
+    logger.error('Error calling setDesktopName:', e);
+  }
+
+  // Wayland Global Shortcuts:
+  // Global shortcuts on Wayland are challenging due to its security model.
+  // - Electron's globalShortcut API relies on X11 grab mechanisms
+  // - On pure Wayland, shortcuts require xdg-desktop-portal integration
+  // - XWayland compatibility mode often works but is unreliable on GNOME 46+
+  // 
+  // Current approach: Let Electron/Chromium use default behavior.
+  // If running on Wayland, hotkeys may not work and users should be informed.
+  // 
+  // See: https://github.com/nicolomaioli/gemini-desktop/issues/XXX
+  
+  const isWayland = process.env.XDG_SESSION_TYPE === 'wayland';
+  logger.log(`XDG_SESSION_TYPE: ${process.env.XDG_SESSION_TYPE}`);
+  
+  if (isWayland) {
+    logger.warn('Wayland session detected. Global hotkeys are disabled due to Wayland limitations.');
+  }
+} else {
+  // Set application name for Windows/macOS
+  app.setName('Gemini Desktop');
+}
+
 /**
  * Initialize crash reporter EARLY (before app ready).
  * This is critical for preventing OS crash dialogs on Windows/macOS/Linux.
- *
- * Crash dumps are saved locally to the 'crashes' directory within userData.
- * If CRASH_REPORT_URL environment variable is set, reports will also be uploaded.
- *
- * @see https://www.electronjs.org/docs/latest/api/crash-reporter
  */
-
-// Configure custom crash dumps directory for organized storage
 const crashDumpsPath = path.join(app.getPath('userData'), 'crashes');
 app.setPath('crashDumps', crashDumpsPath);
 
-// Check for optional crash report server URL (for future use or enterprise deployments)
 const crashReportUrl = process.env.CRASH_REPORT_URL || '';
 
 crashReporter.start({
   productName: 'Gemini Desktop',
   submitURL: crashReportUrl,
-  uploadToServer: !!crashReportUrl, // Only upload if URL is configured
-  ignoreSystemCrashHandler: true, // Prevents OS crash dialogs (Windows Error Reporting, etc.)
-  rateLimit: true, // Limit to 1 crash report per hour (macOS/Windows)
+  uploadToServer: !!crashReportUrl,
+  ignoreSystemCrashHandler: true,
+  rateLimit: true,
   globalExtra: {
     version: app.getVersion(),
     platform: process.platform,
@@ -53,8 +91,6 @@ logger.log('Crash reporter initialized', {
   ignoreSystemCrashHandler: true,
 });
 
-// Set application name for Windows/Linux
-app.setName('Gemini Desktop');
 import WindowManager from './managers/windowManager';
 import IpcManager from './managers/ipcManager';
 import MenuManager from './managers/menuManager';
@@ -93,31 +129,48 @@ let badgeManager: BadgeManager;
  * This function encapsulates manager creation for better testability and clarity.
  */
 function initializeManagers(): void {
+  logger.log('[DEBUG] initializeManagers() - creating WindowManager');
   windowManager = new WindowManager(isDev);
+  logger.log('[DEBUG] initializeManagers() - WindowManager created');
+  
+  logger.log('[DEBUG] initializeManagers() - creating HotkeyManager');
   hotkeyManager = new HotkeyManager(windowManager);
+  logger.log('[DEBUG] initializeManagers() - HotkeyManager created');
 
   // Create tray and badge managers
+  logger.log('[DEBUG] initializeManagers() - creating TrayManager');
   trayManager = new TrayManager(windowManager);
+  logger.log('[DEBUG] initializeManagers() - TrayManager created');
+  
+  logger.log('[DEBUG] initializeManagers() - creating BadgeManager');
   badgeManager = new BadgeManager();
+  logger.log('[DEBUG] initializeManagers() - BadgeManager created');
 
   // Create settings store for auto-update preferences
+  logger.log('[DEBUG] initializeManagers() - creating SettingsStore');
   const updateSettings = new SettingsStore<AutoUpdateSettings>({
     configName: 'update-settings',
     defaults: {
       autoUpdateEnabled: true,
     },
   });
+  logger.log('[DEBUG] initializeManagers() - SettingsStore created');
 
   // Create update manager with optional badge/tray dependencies
+  logger.log('[DEBUG] initializeManagers() - creating UpdateManager');
   updateManager = new UpdateManager(updateSettings, {
     badgeManager,
     trayManager,
   });
+  logger.log('[DEBUG] initializeManagers() - UpdateManager created');
 
+  logger.log('[DEBUG] initializeManagers() - creating IpcManager');
   ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager);
+  logger.log('[DEBUG] initializeManagers() - IpcManager created');
 
   // Expose managers globally for E2E testing
   // Type-safe global exposure for E2E tests
+  logger.log('[DEBUG] initializeManagers() - exposing managers globally');
   const globalWithManagers = global as typeof globalThis & {
     windowManager: WindowManager;
     ipcManager: IpcManager;
@@ -133,7 +186,7 @@ function initializeManagers(): void {
   globalWithManagers.badgeManager = badgeManager;
   globalWithManagers.hotkeyManager = hotkeyManager;
 
-  logger.log('All managers initialized');
+  logger.log('[DEBUG] initializeManagers() - All managers initialized successfully');
 }
 
 /**
@@ -173,15 +226,21 @@ function gracefulShutdown(exitCode: number = 0): void {
 }
 
 // Initialize managers before requesting instance lock
+logger.log('[DEBUG] About to call initializeManagers()');
 initializeManagers();
+logger.log('[DEBUG] initializeManagers() completed');
 
 // Single Instance Lock
+logger.log('[DEBUG] About to request single instance lock');
 const gotTheLock = app.requestSingleInstanceLock();
+logger.log('[DEBUG] Single instance lock result:', gotTheLock);
 
 if (!gotTheLock) {
   logger.log('Another instance is already running. Quitting...');
-  app.quit();
+  app.exit(0);
 } else {
+  logger.log('[DEBUG] Got the lock, setting up second-instance handler');
+  
   app.on('second-instance', () => {
     // Someone tried to run a second instance, we should focus our window.
     logger.log('Second instance detected. Focusing existing window...');
@@ -195,20 +254,42 @@ if (!gotTheLock) {
   });
 
   // App lifecycle
+  logger.log('[DEBUG] Setting up app.whenReady() handler');
+  logger.log('[DEBUG] Current app.isReady():', app.isReady());
+  
+  // Also listen to the 'ready' event directly for debugging
+  app.on('ready', () => {
+    logger.log('[DEBUG] app "ready" event fired!');
+  });
+  
+  // Log if whenReady takes too long
+  const readyTimeout = setTimeout(() => {
+    logger.error('[DEBUG] WARNING: app.whenReady() has not resolved after 10 seconds!');
+    logger.error('[DEBUG] DISPLAY:', process.env.DISPLAY);
+    logger.error('[DEBUG] This may indicate a display/xvfb issue');
+  }, 10000);
+  
   app.whenReady().then(() => {
+    clearTimeout(readyTimeout);
+    logger.log('[DEBUG] app.whenReady() resolved!');
     logger.log('App ready - starting initialization');
 
+    // Apply security settings to default session (used by all windows)
     setupHeaderStripping(session.defaultSession);
     setupMediaPermissions(session.defaultSession);
+
     ipcManager.setupIpcHandlers();
 
     // Setup native application menu (critical for macOS)
     const menuManager = new MenuManager(windowManager);
     menuManager.buildMenu();
     menuManager.setupContextMenu();
+    (global as any).menuManager = menuManager;
     logger.log('Menu setup complete');
 
+    logger.log('[DEBUG] About to create main window');
     windowManager.createMainWindow();
+    logger.log('[DEBUG] createMainWindow() returned');
     logger.log('Main window created');
 
     // Set main window reference for badge manager (needed for Windows overlay)

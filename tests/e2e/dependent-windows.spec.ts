@@ -8,33 +8,30 @@
  * have a lifecycle tied to the parent window.
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { browser, expect } from '@wdio/globals';
+import { MainWindowPage, OptionsPage, TrayPage, AuthWindowPage } from './pages';
+import { waitForWindowCount } from './helpers/windowActions';
+import { waitForAllWindowsHidden, closeWindow } from './helpers/windowStateActions';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
-import { Selectors } from './helpers/selectors';
 
 describe('Dependent Windows', () => {
-  /**
-   * Helper to get the main window handle by checking for main-layout element
-   */
-  async function getMainWindowHandle(): Promise<string> {
-    const handles = await browser.getWindowHandles();
-    for (const handle of handles) {
-      await browser.switchToWindow(handle);
-      const isMain = await browser.execute(() => {
-        return document.querySelector('[data-testid="main-layout"]') !== null;
-      });
-      if (isMain) {
-        return handle;
-      }
-    }
-    return handles[0];
-  }
+  const mainWindow = new MainWindowPage();
+  const optionsPage = new OptionsPage();
+  const tray = new TrayPage();
+  const authWindow = new AuthWindowPage();
+
+  beforeEach(async () => {
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    await ensureSingleWindow();
+  });
 
   it('should close options window when main window hides to tray', async () => {
     // 1. Open Options window via menu
-    await clickMenuItemById('menu-file-options');
+    await mainWindow.openOptionsViaMenu();
 
     // 2. Wait for options window to appear (2 windows total)
     await waitForWindowCount(2, 5000);
@@ -43,14 +40,13 @@ describe('Dependent Windows', () => {
     const handles = await browser.getWindowHandles();
     expect(handles.length).toBe(2);
 
-    // 3. Find and switch to main window
-    const mainHandle = await getMainWindowHandle();
+    // 3. Switch to main window and close it (triggers hide-to-tray behavior)
+    const mainHandle = handles[0];
     await browser.switchToWindow(mainHandle);
 
-    // 4. Close main window (triggers hide-to-tray behavior)
-    // Use cross-platform helper (guarantees correct closure method per OS)
-    await closeCurrentWindow();
-    E2ELogger.info('dependent-windows', 'Closed main window via helper');
+    // 4. Close main window via IPC API (works on all platforms including macOS with native controls)
+    await closeWindow();
+    E2ELogger.info('dependent-windows', 'Closed main window via close button');
 
     // 5. Wait for both windows to close/hide
     // When main window hides to tray, options window should also close
@@ -58,106 +54,86 @@ describe('Dependent Windows', () => {
 
     // 6. Verify no windows remain visible (both hidden/closed)
     // Note: The main window is hidden (not closed), so window count drops to 0
-    await waitForWindowCount(0, 5000);
+    await waitForAllWindowsHidden(5000);
     E2ELogger.info('dependent-windows', 'Both windows closed/hidden as expected');
 
     // 7. Restore from tray to verify app is still running
-    // Use Electron API to restore the main window
-    // 7. Restore from tray to verify app is still running
-    // Use Electron API to restore the main window
-    await browser.execute(() => {
-      // Access Electron main process via IPC exposed in preload
-      window.electronAPI.showWindow();
-    });
-
-    // Alternative: Click tray icon (platform-specific, may not work in all CI)
-    // For now, we verify the windows closed which is the core functionality
+    await tray.clickShowMenuItemAndWait();
   });
 
   it('should allow reopening options window after restoring from tray', async () => {
     // 1. First, hide the main window to tray with options open
-    await clickMenuItemById('menu-file-options');
+    await mainWindow.openOptionsViaMenu();
     await waitForWindowCount(2, 5000);
 
-    const mainHandle = await getMainWindowHandle();
+    const handles = await browser.getWindowHandles();
+    const mainHandle = handles[0];
     await browser.switchToWindow(mainHandle);
 
-    // Close to tray
-    // Close to tray
-    await closeCurrentWindow();
+    // Close to tray via IPC API (works on all platforms including macOS with native controls)
+    await closeWindow();
     await browser.pause(1000);
 
     // 2. Wait for windows to close
-    await waitForWindowCount(0, 5000);
+    await waitForAllWindowsHidden(5000);
 
-    // 3. Restore main window from tray via Electron API
-    // Use electron service to simulate tray click
-    // 3. Restore main window from tray via Electron API
-    await browser.execute(() => {
-      window.electronAPI.showWindow();
-    });
+    // 3. Restore main window from tray via Show menu
+    await tray.clickShowMenuItemAndWait();
 
     // 4. Wait for main window to reappear
     await waitForWindowCount(1, 5000);
     E2ELogger.info('dependent-windows', 'Main window restored from tray');
 
     // 5. Open options window again
-    await clickMenuItemById('menu-file-options');
+    await mainWindow.openOptionsViaMenu();
 
     // 6. Verify options window opens successfully
     await waitForWindowCount(2, 5000);
-    const handles = await browser.getWindowHandles();
-    expect(handles.length).toBe(2);
+    const newHandles = await browser.getWindowHandles();
+    expect(newHandles.length).toBe(2);
 
     // 7. Switch to options window and verify it's functional
-    const optionsHandle = handles.find((h) => h !== (await getMainWindowHandle()));
-    if (optionsHandle) {
-      await browser.switchToWindow(optionsHandle);
-      const titlebar = await $(Selectors.optionsTitlebar);
-      await expect(titlebar).toExist();
-      E2ELogger.info('dependent-windows', 'Options window reopened successfully after restore');
-    }
+    await browser.switchToWindow(newHandles[1]);
+    await optionsPage.waitForLoad();
+    E2ELogger.info('dependent-windows', 'Options window reopened successfully after restore');
 
     // 8. Clean up - close options window
-    const optionsCloseBtn = await $(Selectors.optionsCloseButton);
-    await optionsCloseBtn.click();
+    await optionsPage.close();
     await waitForWindowCount(1, 5000);
   });
 
   it('should close all dependent windows (Options + Auth) when main window hides to tray', async () => {
     // 1. Open Options window
-    await clickMenuItemById('menu-file-options');
+    await mainWindow.openOptionsViaMenu();
     await waitForWindowCount(2, 5000);
     E2ELogger.info('dependent-windows', 'Options window opened');
 
-    // 2. Open Auth window (via menu)
-    const mainHandle = await getMainWindowHandle();
+    // 2. Switch to main window and open Auth window via menu
+    const handles = await browser.getWindowHandles();
+    const mainHandle = handles[0];
     await browser.switchToWindow(mainHandle);
-    await clickMenuItemById('menu-file-sign-in');
+    await authWindow.openViaMenu();
 
     // Wait for auth window to appear (might already be open from Options)
     await browser.pause(1000);
-    const handles = await browser.getWindowHandles();
-    E2ELogger.info('dependent-windows', `Windows after opening auth: ${handles.length}`);
+    const allHandles = await browser.getWindowHandles();
+    E2ELogger.info('dependent-windows', `Windows after opening auth: ${allHandles.length}`);
 
     // Should have at least 2 windows (main + options, auth may merge or not)
-    expect(handles.length).toBeGreaterThanOrEqual(2);
+    expect(allHandles.length).toBeGreaterThanOrEqual(2);
 
-    // 3. Switch back to main window and close it
-    const currentMainHandle = await getMainWindowHandle();
-    await browser.switchToWindow(currentMainHandle);
-    await closeCurrentWindow();
+    // 3. Switch back to main window and close it via IPC API (works on all platforms)
+    await browser.switchToWindow(mainHandle);
+    await closeWindow();
     E2ELogger.info('dependent-windows', 'Closed main window');
 
     // 4. Wait for all windows to close/hide
     await browser.pause(1500);
-    await waitForWindowCount(0, 5000);
+    await waitForAllWindowsHidden(5000);
     E2ELogger.info('dependent-windows', 'All dependent windows closed with main window');
 
     // 5. Restore from tray for cleanup
-    await browser.execute(() => {
-      window.electronAPI.showWindow();
-    });
+    await tray.clickShowMenuItemAndWait();
     await waitForWindowCount(1, 5000);
   });
 });

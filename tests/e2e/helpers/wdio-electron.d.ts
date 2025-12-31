@@ -9,6 +9,20 @@
  * The TypeScript errors are IDE-only and don't affect test runs.
  */
 
+/**
+ * WebdriverIO Cookie interface.
+ */
+interface WdioCookie {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  expiry?: number;
+  sameSite?: 'Lax' | 'Strict' | 'None';
+}
+
 declare module '@wdio/globals' {
   interface Browser {
     /**
@@ -82,7 +96,23 @@ declare module '@wdio/globals' {
      * Send keyboard keys.
      */
     keys(keys: string | string[]): Promise<void>;
+
+    /**
+     * Select single element.
+     */
+    $(selector: string): Promise<WebdriverIO.Element>;
+
+    /**
+     * Set cookies.
+     */
+    setCookies(cookies: WdioCookie[]): Promise<void>;
+
+    /**
+     * Get cookies by name.
+     */
+    getCookies(names?: string[]): Promise<WdioCookie[]>;
   }
 }
 
-export {};
+export { WdioCookie };
+

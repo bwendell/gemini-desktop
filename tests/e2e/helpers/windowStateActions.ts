@@ -11,8 +11,11 @@
  *
  * @module windowStateActions
  */
+/// <reference path="./wdio-electron.d.ts" />
+
 import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
+import { E2E_TIMING } from './e2eConstants';
 
 // ============================================================================
 // Types
@@ -127,7 +130,7 @@ export async function maximizeWindow(): Promise<void> {
   });
 
   // Give the window time to transition
-  await browser.pause(300);
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
 }
 
 /**
@@ -140,7 +143,7 @@ export async function minimizeWindow(): Promise<void> {
     (window as any).electronAPI?.minimizeWindow?.();
   });
 
-  await browser.pause(300);
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
 }
 
 /**
@@ -165,7 +168,7 @@ export async function restoreWindow(): Promise<void> {
     }
   });
 
-  await browser.pause(300);
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
 }
 
 /**
@@ -177,6 +180,72 @@ export async function closeWindow(): Promise<void> {
   await browser.execute(() => {
     (window as any).electronAPI?.closeWindow?.();
   });
+}
+
+/**
+ * Hides the current window (e.g., minimize to tray).
+ */
+export async function hideWindow(): Promise<void> {
+  E2ELogger.info('windowStateActions', 'Hiding window via API');
+
+  await browser.electron.execute((electron) => {
+    const win = electron.BrowserWindow.getAllWindows()[0];
+    if (win) {
+      win.hide();
+    }
+  });
+
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
+}
+
+/**
+ * Shows the current window (e.g., restore from tray).
+ */
+export async function showWindow(): Promise<void> {
+  E2ELogger.info('windowStateActions', 'Showing window via API');
+
+  await browser.electron.execute((electron) => {
+    const win = electron.BrowserWindow.getAllWindows()[0];
+    if (win) {
+      win.show();
+      win.focus();
+    }
+  });
+
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
+}
+
+/**
+ * Forces focus on the current window.
+ * 
+ * In automated E2E environments, the Electron window may not have OS-level focus.
+ * This helper forces focus using BrowserWindow.focus() and returns whether
+ * focus was successfully gained (verified via document.hasFocus()).
+ * 
+ * @returns True if focus was gained, false if environment doesn't support programmatic focus
+ */
+export async function focusWindow(): Promise<boolean> {
+  E2ELogger.info('windowStateActions', 'Focusing window via API');
+
+  // Force focus via Electron API
+  await browser.electron.execute((electron) => {
+    const win = electron.BrowserWindow.getAllWindows()[0];
+    if (win) {
+      win.focus();
+    }
+  });
+
+  // Give time for focus to take effect
+  await browser.pause(E2E_TIMING.QUICK_RESTORE);
+
+  // Verify focus was gained
+  const hasFocus = await browser.execute(() => document.hasFocus());
+  
+  if (!hasFocus) {
+    E2ELogger.info('windowStateActions', 'Window focus not gained - environment may not support programmatic focus');
+  }
+  
+  return hasFocus;
 }
 
 // ============================================================================
@@ -206,4 +275,32 @@ export async function waitForWindowState(
   }
 
   throw new Error(`Window did not reach expected state within ${timeoutMs}ms`);
+}
+
+/**
+ * Waits for all windows to be hidden (not visible).
+ *
+ * Use this instead of waitForWindowCount(0) when testing hide-to-tray behavior,
+ * as WebDriver can still detect hidden windows on Windows/Linux.
+ *
+ * @param timeoutMs - Maximum wait time (default 5000ms)
+ */
+export async function waitForAllWindowsHidden(timeoutMs = 5000): Promise<void> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeoutMs) {
+    const allHidden = await browser.electron.execute((electron) => {
+      const wins = electron.BrowserWindow.getAllWindows();
+      return wins.every((win) => !win.isVisible());
+    });
+
+    if (allHidden) {
+      E2ELogger.info('windowStateActions', 'All windows are hidden');
+      return;
+    }
+
+    await browser.pause(100);
+  }
+
+  throw new Error(`Windows did not become hidden within ${timeoutMs}ms`);
 }

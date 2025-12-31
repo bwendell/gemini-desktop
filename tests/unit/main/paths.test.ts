@@ -75,7 +75,7 @@ describe('paths utilities', () => {
       const { getIconPath } = await import('../../../src/main/utils/paths');
       const result = getIconPath();
 
-      expect(path.join).toHaveBeenCalledWith(expect.any(String), '../../../build/icon.ico');
+      expect(path.join).toHaveBeenCalledWith(expect.any(String), '../../../build', 'icon.ico');
       expect(result).toContain('icon.ico');
     });
 
@@ -85,7 +85,7 @@ describe('paths utilities', () => {
       const { getIconPath } = await import('../../../src/main/utils/paths');
       const result = getIconPath();
 
-      expect(path.join).toHaveBeenCalledWith(expect.any(String), '../../../build/icon.png');
+      expect(path.join).toHaveBeenCalledWith(expect.any(String), '../../../build', 'icon.png');
       expect(result).toContain('icon.png');
     });
 
@@ -95,7 +95,7 @@ describe('paths utilities', () => {
       const { getIconPath } = await import('../../../src/main/utils/paths');
       const result = getIconPath();
 
-      expect(path.join).toHaveBeenCalledWith(expect.any(String), '../../../build/icon.png');
+      expect(path.join).toHaveBeenCalledWith(expect.any(String), '../../../build', 'icon.png');
       expect(result).toContain('icon.png');
     });
   });

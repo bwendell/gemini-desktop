@@ -130,6 +130,30 @@ export default class TrayManager {
   }
 
   /**
+   * Execute a tray action programmatically.
+   *
+   * This method exists primarily for E2E testing, allowing tests to trigger
+   * the same code path that would be executed when a user clicks the tray icon
+   * or a tray menu item.
+   *
+   * @param action - The action to execute: 'click', 'show', or 'quit'
+   */
+  executeTrayAction(action: 'click' | 'show' | 'quit'): void {
+    logger.log(`Executing tray action programmatically: ${action}`);
+
+    switch (action) {
+      case 'click':
+      case 'show':
+        // Same as tray click handler
+        this.windowManager.restoreFromTray();
+        break;
+      case 'quit':
+        app.quit();
+        break;
+    }
+  }
+
+  /**
    * Destroy the system tray icon.
    * Should be called on app quit.
    */

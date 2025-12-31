@@ -37,6 +37,7 @@
 import { globalShortcut } from 'electron';
 import type WindowManager from './windowManager';
 import { createLogger } from '../utils/logger';
+import { isLinux } from '../utils/constants';
 import {
   type HotkeyId,
   type IndividualHotkeySettings,
@@ -47,6 +48,24 @@ import {
 } from '../types';
 
 const logger = createLogger('[HotkeyManager]');
+
+// ============================================================================
+// Feature Flags
+// ============================================================================
+
+/**
+ * Global hotkeys are disabled on Linux due to Wayland limitations.
+ * 
+ * Wayland's security model prevents applications from registering global
+ * shortcuts without explicit desktop portal integration. The current
+ * GlobalShortcutsPortal implementation in Chromium/Electron is unreliable
+ * on GNOME 46+ and other compositors.
+ * 
+ * When Wayland support improves, set this to `true` to re-enable.
+ * 
+ * @see https://github.com/nicolomaioli/gemini-desktop/issues/XXX
+ */
+const ENABLE_GLOBAL_HOTKEYS_ON_LINUX = false;
 
 // ============================================================================
 // Types
@@ -203,6 +222,7 @@ export default class HotkeyManager {
    * @returns Copy of the current settings object
    */
   getIndividualSettings(): IndividualHotkeySettings {
+    logger.log(`[Version Info] Electron: ${process.versions.electron}, Chrome: ${process.versions.chrome}, Platform: ${process.platform}, Arch: ${process.arch}`);
     return { ...this._individualSettings };
   }
 
@@ -316,6 +336,12 @@ export default class HotkeyManager {
 
     this._individualSettings[id] = enabled;
 
+    // Skip registration on Linux when disabled (Wayland limitations)
+    if (isLinux && !ENABLE_GLOBAL_HOTKEYS_ON_LINUX) {
+      logger.log(`Hotkey setting updated: ${id} = ${enabled} (registration skipped on Linux)`);
+      return;
+    }
+
     if (enabled) {
       this._registerShortcutById(id);
       logger.log(`Hotkey enabled: ${id}`);
@@ -361,6 +387,12 @@ export default class HotkeyManager {
    * @see setIndividualEnabled - For enabling/disabling individual hotkeys
    */
   registerShortcuts(): void {
+    // Skip registration on Linux when disabled (Wayland limitations)
+    if (isLinux && !ENABLE_GLOBAL_HOTKEYS_ON_LINUX) {
+      logger.warn('Global hotkeys are disabled on Linux due to Wayland limitations.');
+      return;
+    }
+
     for (const id of HOTKEY_IDS) {
       if (this._individualSettings[id]) {
         this._registerShortcutById(id);
@@ -389,14 +421,36 @@ export default class HotkeyManager {
       return;
     }
 
-    const success = globalShortcut.register(accelerator, shortcutAction.action);
+    // Debugging: Check if already registered according to Electron
+    const isAlreadyRegistered = globalShortcut.isRegistered(accelerator);
+    logger.log(`Registering ${id} (${accelerator}). isRegistered pre-check: ${isAlreadyRegistered}`);
 
+    let success = false;
+    try {
+      success = globalShortcut.register(accelerator, () => {
+        try {
+          shortcutAction.action();
+        } catch (actionError) {
+          logger.error(`Error executing action for hotkey ${id}:`, actionError);
+        }
+      });
+    } catch (error) {
+      logger.error(`EXCEPTION during globalShortcut.register for ${id} (${accelerator}):`, error);
+      return;
+    }
+
+    const isRegisteredAfter = globalShortcut.isRegistered(accelerator);
     if (!success) {
       // Registration can fail if another app has claimed the shortcut
-      logger.error(`Registration failed for hotkey: ${id} (${accelerator})`);
+      // OR if on Wayland without GlobalShortcutsPortal enabled correctly
+      logger.error(`FAILED to register hotkey: ${id} (${accelerator}). Success: false. isRegistered post-check: ${isRegisteredAfter}`);
+      
+      if (isRegisteredAfter) {
+        logger.warn(`Hotkey ${id} reflects as registered despite failure return. This may indicate a portal conflict or unexpected Electron behavior on Wayland.`);
+      }
     } else {
       this._registeredShortcuts.set(id, accelerator);
-      logger.log(`Hotkey registered: ${id} (${accelerator})`);
+      logger.log(`Successfully registered hotkey: ${id} (${accelerator}). isRegistered post-check: ${isRegisteredAfter}`);
     }
   }
 
@@ -415,6 +469,26 @@ export default class HotkeyManager {
     globalShortcut.unregister(registeredAccelerator);
     this._registeredShortcuts.delete(id);
     logger.log(`Hotkey unregistered: ${id} (${registeredAccelerator})`);
+  }
+
+  /**
+   * Execute a hotkey action programmatically.
+   *
+   * This method exists primarily for E2E testing, allowing tests to trigger
+   * the same code path that would be executed when a user presses the hotkey.
+   *
+   * @param id - The hotkey identifier (e.g., 'quickChat', 'bossKey', 'alwaysOnTop')
+   */
+  executeHotkeyAction(id: HotkeyId): void {
+    const shortcutAction = this.shortcutActions.find((s) => s.id === id);
+
+    if (!shortcutAction) {
+      logger.warn(`No action found for hotkey: ${id}`);
+      return;
+    }
+
+    logger.log(`Executing hotkey action programmatically: ${id}`);
+    shortcutAction.action();
   }
 
   /**

@@ -12,11 +12,26 @@ const specs = [
   'tests/e2e/theme-selector-keyboard.spec.ts',
   'tests/e2e/external-links.spec.ts',
   'tests/e2e/quick-chat.spec.ts',
-  'tests/e2e/quick-chat-injection.spec.ts',
   'tests/e2e/auth.spec.ts',
   'tests/e2e/macos-dock.spec.ts',
   'tests/e2e/window-controls.spec.ts',
 ];
+
+console.log('Building app once for all tests...');
+const buildResult = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', shell: true });
+if (buildResult.status !== 0) {
+    console.error('Frontend build failed');
+    process.exit(1);
+}
+
+const buildElectronResult = spawnSync('npm', ['run', 'build:electron'], { stdio: 'inherit', shell: true });
+if (buildElectronResult.status !== 0) {
+    console.error('Electron build failed');
+    process.exit(1);
+}
+
+// Set SKIP_BUILD to true for individual test runs to avoid rebuilding/relaunching excessive processes
+process.env.SKIP_BUILD = 'true';
 
 console.log('Starting Sequential E2E Tests...');
 

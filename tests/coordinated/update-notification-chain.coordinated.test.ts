@@ -46,12 +46,15 @@ vi.mock('fs', () => ({
 const { mockAutoUpdater, emitAutoUpdaterEvent } = vi.hoisted(() => {
   const mock = {
     checkForUpdates: vi.fn(),
+    checkForUpdatesAndNotify: vi.fn().mockResolvedValue(undefined), // Used by UpdateManager
     downloadUpdate: vi.fn(),
     quitAndInstall: vi.fn(),
     on: vi.fn(),
     removeAllListeners: vi.fn(),
     autoDownload: true,
     autoInstallOnAppQuit: true,
+    forceDevUpdateConfig: false,
+    logger: null,
     _handlers: new Map<string, Function>(),
   };
 
@@ -148,11 +151,11 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
   });
 
   describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
-    beforeEach(() => {
+    beforeEach(async () => {
       // Mock platform
       vi.stubGlobal('process', { ...process, platform });
 
-      // Create REAL managers after platform stub
+      // Create REAL managers after platform stub (with app.isPackaged=false for icon path resolution)
       windowManager = new WindowManager(false);
       badgeManager = new BadgeManager();
       trayManager = new TrayManager(windowManager);
@@ -162,6 +165,14 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
         badgeManager,
         trayManager,
       });
+
+      // IMPORTANT: Trigger lazy loading of autoUpdater to register event handlers
+      // This is necessary because autoUpdater is now lazily loaded to prevent D-Bus hang on Linux CI
+      // Temporarily set app.isPackaged=true otherwise checkForUpdates skips in dev mode
+      const originalIsPackaged = app.isPackaged;
+      (app as any).isPackaged = true;
+      await updateManager.checkForUpdates(false);
+      (app as any).isPackaged = originalIsPackaged; // Restore for other tests
 
       // Create IpcManager
       ipcManager = new IpcManager(

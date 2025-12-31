@@ -51,6 +51,9 @@ export default class MainWindow extends BaseWindow {
     super(isDev, '[MainWindow]');
     this.windowConfig = {
       ...MAIN_WINDOW_CONFIG,
+      title: 'Gemini Desktop',
+      // On Linux, the WM_CLASS should match the executable/desktop ID
+      ...(process.platform === 'linux' ? { wmClass: 'gemini-desktop' } : {}),
       titleBarStyle: getTitleBarStyle(),
       icon: getIconPath(),
     };
@@ -85,13 +88,17 @@ export default class MainWindow extends BaseWindow {
    * @returns The created BrowserWindow
    */
   create(): BrowserWindow {
+    this.logger.log('[DEBUG] MainWindow.create() called');
     const win = this.createWindow();
+    this.logger.log('[DEBUG] createWindow() returned');
 
     if (this.isDev && this.window) {
+      this.logger.log('[DEBUG] Opening dev tools');
       this.window.webContents.openDevTools();
     }
 
     this.window?.once('ready-to-show', () => {
+      this.logger.log('[DEBUG] ready-to-show event fired, calling show()');
       this.window?.show();
     });
 

@@ -102,7 +102,7 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
   let updateManager: UpdateManager;
   let ipcManager: IpcManager;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     // Clear listeners manually since mock is reused
     mockIpcMain.removeAllListeners();
@@ -130,6 +130,10 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
       badgeManager,
       trayManager,
     });
+
+    // IMPORTANT: Trigger lazy loading of autoUpdater so quitAndInstall works
+    // This is necessary because autoUpdater is now lazily loaded
+    await updateManager.checkForUpdates(true); // Use manual=true to bypass isPackaged check
 
     // 3. Initialize IPC Manager
     ipcManager = new IpcManager();

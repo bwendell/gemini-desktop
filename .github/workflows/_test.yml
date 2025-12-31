@@ -143,35 +143,24 @@ jobs:
           FORCE_COLOR: 1
 
       - name: Run Real Integration Tests
-        run: |
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:integration
-          else
-            npm run test:integration
-          fi
+        # DO NOT use xvfb-run wrapper - wdio-electron-service's autoXvfb handles xvfb
+        run: npm run test:integration
         shell: bash
         env:
           FORCE_COLOR: 1
 
   # ===========================================================================
-  # E2E Tests
+  # E2E Tests - Windows
   # ===========================================================================
-  e2e-tests:
-    name: E2E Tests (${{ matrix.os }})
+  e2e-tests-windows:
+    name: E2E / 🪟 Windows / ${{ matrix.group }}
     needs: integration-tests
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
 
     strategy:
       fail-fast: ${{ inputs.e2e-fail-fast }}
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            display: ':99.0'
-          - os: windows-latest
-            display: ''
-          - os: macos-latest
-            display: ''
+        group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
 
     steps:
       - name: Checkout Code
@@ -183,20 +172,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      # Linux-specific: Install dependencies and configure for headless Electron
-      - name: Setup Linux Environment
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
-          # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
-          # See: https://github.com/electron/electron/issues/41066
-          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-
       - name: Install Dependencies
         run: npm ci
 
-      # Download build artifacts from _build.yml
       - name: Download Frontend Build
         uses: actions/download-artifact@v7
         with:
@@ -210,23 +188,139 @@ jobs:
           path: dist-electron/
 
       - name: Run E2E Tests
-        run: |
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e
-          else
-            npm run test:e2e
-          fi
+        run: npm run test:e2e:group:${{ matrix.group }}
         shell: bash
         env:
           ELECTRON_USE_DIST: 'true'
           DEBUG: 'wdio:*'
 
-      # Upload artifacts on failure for debugging
       - name: Upload E2E Screenshots (on failure)
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.os }}
+          name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-windows-latest
+          path: |
+            tests/e2e/screenshots/
+            tests/e2e/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # E2E Tests - macOS
+  # ===========================================================================
+  e2e-tests-macos:
+    name: E2E / 🍎 macOS / ${{ matrix.group }}
+    needs: integration-tests
+    runs-on: macos-latest
+
+    strategy:
+      fail-fast: ${{ inputs.e2e-fail-fast }}
+      matrix:
+        group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability, macos]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: dist/
+
+      - name: Download Electron Build
+        uses: actions/download-artifact@v7
+        with:
+          name: electron-dist
+          path: dist-electron/
+
+      - name: Run E2E Tests
+        run: npm run test:e2e:group:${{ matrix.group }}
+        shell: bash
+        env:
+          ELECTRON_USE_DIST: 'true'
+          DEBUG: 'wdio:*'
+
+      - name: Upload E2E Screenshots (on failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-macos-latest
+          path: |
+            tests/e2e/screenshots/
+            tests/e2e/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # E2E Tests - Ubuntu
+  # ===========================================================================
+  e2e-tests-ubuntu:
+    name: E2E / 🐧 Ubuntu / ${{ matrix.group }}
+    needs: integration-tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: ${{ inputs.e2e-fail-fast }}
+      matrix:
+        group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Linux Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
+          # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
+          # See: https://github.com/electron/electron/issues/41066
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: dist/
+
+      - name: Download Electron Build
+        uses: actions/download-artifact@v7
+        with:
+          name: electron-dist
+          path: dist-electron/
+
+      - name: Run E2E Tests
+        # DO NOT use xvfb-run wrapper here - it sets DISPLAY which conflicts with
+        # wdio-electron-service's autoXvfb feature for parallel worker processes
+        run: npm run test:e2e:group:${{ matrix.group }}
+        shell: bash
+        env:
+          ELECTRON_USE_DIST: 'true'
+          DEBUG: 'wdio:*'
+
+      - name: Upload E2E Screenshots (on failure)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-ubuntu-latest
           path: |
             tests/e2e/screenshots/
             tests/e2e/logs/
@@ -237,8 +331,8 @@ jobs:
   # Release E2E Tests (Packaged Builds)
   # ===========================================================================
   release-e2e-tests:
-    name: Release E2E Tests (${{ matrix.os }})
-    needs: e2e-tests
+    name: Release E2E / ${{ matrix.emoji }} ${{ matrix.platform }}
+    needs: [e2e-tests-windows, e2e-tests-macos, e2e-tests-ubuntu]
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -248,10 +342,16 @@ jobs:
         include:
           - os: ubuntu-latest
             dist-script: 'dist:linux'
+            emoji: '🐧'
+            platform: 'Ubuntu'
           - os: windows-latest
             dist-script: 'dist:win'
+            emoji: '🪟'
+            platform: 'Windows'
           - os: macos-latest
             dist-script: 'dist:mac-arm64'
+            emoji: '🍎'
+            platform: 'macOS'
 
     steps:
       - name: Checkout Code
@@ -295,12 +395,8 @@ jobs:
 
       # Run release E2E tests against packaged build
       - name: Run Release E2E Tests
-        run: |
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e:release
-          else
-            npm run test:e2e:release
-          fi
+        # DO NOT use xvfb-run wrapper - wdio-electron-service's autoXvfb handles xvfb
+        run: npm run test:e2e:release
         shell: bash
         env:
           DEBUG: 'wdio:*'

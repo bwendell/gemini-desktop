@@ -7,6 +7,8 @@ interface ErrorBoundaryProps {
   children: ReactNode;
   /** Custom fallback component to render on error */
   fallback?: ReactNode;
+  /** Unique identifier for E2E testing - used to create a unique global trigger */
+  testId?: string;
 }
 
 interface ErrorBoundaryState {
@@ -33,6 +35,29 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.state = { hasError: false, error: undefined };
   }
 
+  componentDidMount(): void {
+    // Expose E2E test trigger on window for testing
+    // Uses testId prop if provided, otherwise defaults to 'app'
+    const triggerId = this.props.testId || 'app';
+    const triggerName = `__ERROR_BOUNDARY_TRIGGER_${triggerId.toUpperCase()}__`;
+
+    // @ts-ignore - E2E testing hook
+    window[triggerName] = () => {
+      this.setState({
+        hasError: true,
+        error: new Error(`E2E Test Error Triggered (${triggerId})`),
+      });
+    };
+  }
+
+  componentWillUnmount(): void {
+    // Cleanup E2E test trigger
+    const triggerId = this.props.testId || 'app';
+    const triggerName = `__ERROR_BOUNDARY_TRIGGER_${triggerId.toUpperCase()}__`;
+    // @ts-ignore
+    delete window[triggerName];
+  }
+
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
@@ -52,19 +77,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         return this.props.fallback;
       }
 
-      // Default fallback UI
+      // Default fallback UI with data-testid for E2E testing
       return (
-        <div className="error-fallback">
+        <div className="error-fallback" data-testid="error-fallback">
           <div className="error-fallback-content">
-            <h2>Something went wrong</h2>
+            <h2 data-testid="error-fallback-title">Something went wrong</h2>
             <p>The application encountered an unexpected error.</p>
             {this.state.error && (
               <details>
                 <summary>Error details</summary>
-                <pre>{this.state.error.message}</pre>
+                <pre data-testid="error-fallback-message">{this.state.error.message}</pre>
               </details>
             )}
-            <button onClick={() => window.location.reload()}>Reload Application</button>
+            <button
+              onClick={() => window.location.reload()}
+              data-testid="error-fallback-reload"
+            >
+              Reload Application
+            </button>
           </div>
         </div>
       );

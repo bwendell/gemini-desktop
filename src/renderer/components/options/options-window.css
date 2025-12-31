@@ -58,6 +58,11 @@
   -webkit-app-region: no-drag;
 }
 
+/* macOS: Add padding to avoid traffic light buttons */
+.options-titlebar.macos .options-titlebar-icon {
+  margin-left: 70px;
+}
+
 .options-titlebar-title {
   font-size: 12px;
   font-weight: 400;

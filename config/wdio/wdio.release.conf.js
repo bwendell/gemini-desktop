@@ -81,6 +81,24 @@ export const config = {
     '../../tests/e2e/theme.spec.ts',
     '../../tests/e2e/theme-selector-visual.spec.ts',
     '../../tests/e2e/theme-selector-keyboard.spec.ts',
+
+    // Window management tests
+    '../../tests/e2e/window-controls.spec.ts',
+    '../../tests/e2e/window-bounds.spec.ts',
+
+    // Tray functionality tests
+    '../../tests/e2e/tray.spec.ts',
+    // NOTE: tray-quit.spec.ts excluded - it quits the app which terminates WebDriverIO session
+    '../../tests/e2e/minimize-to-tray.spec.ts',
+
+    // Options and settings tests
+    '../../tests/e2e/options-tabs.spec.ts',
+    '../../tests/e2e/settings-persistence.spec.ts',
+
+    // Other core functionality
+    '../../tests/e2e/context-menu.spec.ts',
+    '../../tests/e2e/external-links.spec.ts',
+
     // Release-specific tests (packaging verification)
     '../../tests/e2e/release/*.spec.ts',
   ],
@@ -89,6 +107,7 @@ export const config = {
   // - auth.spec.ts: May try to spawn additional windows with dev paths
   // - quick-chat*.spec.ts: May have timing issues with packaged builds
   // - hotkeys.spec.ts: Global hotkey registration may differ in packaged builds
+  // - tray-quit.spec.ts: Quits app, terminating WebDriverIO session
   exclude: [],
   maxInstances: 1,
 
@@ -109,6 +128,17 @@ export const config = {
           : ['--test-auto-update'],
         // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
         apparmorAutoInstall: process.env.CI && process.platform === 'linux' ? 'sudo' : false,
+        // Enable wdio-electron-service's built-in Xvfb management for Linux CI
+        // This is required for parallel test execution - do NOT use xvfb-run wrapper
+        // as it sets DISPLAY which prevents autoXvfb from working properly with workers
+        ...(process.platform === 'linux' && process.env.CI
+          ? {
+              autoXvfb: true,
+              xvfbAutoInstall: true,
+              xvfbAutoInstallMode: 'sudo',
+              xvfbMaxRetries: 5, // More retries for CI stability
+            }
+          : {}),
       },
     ],
   ],

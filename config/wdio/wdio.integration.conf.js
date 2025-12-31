@@ -8,31 +8,19 @@ dotenvConfig();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Determine platform-specific Electron binary path
-const platform = process.platform;
-let electronBinary = 'electron';
-
-if (platform === 'win32') {
-  electronBinary = 'electron.exe';
-} else if (platform === 'darwin') {
-  electronBinary = 'Electron.app/Contents/MacOS/Electron';
-} else {
-  electronBinary = 'electron';
-}
+// Path to the Electron main entry (compiled from TypeScript)
+const electronMainPath = join(__dirname, '../../dist-electron', 'main/main.cjs');
 
 export const config = {
   runner: 'local',
   specs: ['../../tests/integration/**/*.test.ts'],
   exclude: ['../../tests/integration/macos-titlebar.integration.test.ts'],
   maxInstances: 1,
+  // Use modern capabilities format (service-level appEntryPoint handles app launch)
   capabilities: [
     {
       browserName: 'electron',
-      'wdio:electronServiceOptions': {
-        appBinaryPath: join(__dirname, '../../node_modules', 'electron', 'dist', electronBinary),
-        appEntryPoint: join(__dirname, '../../dist-electron', 'main/main.cjs'),
-        appArgs: ['--disable-web-security', '--no-sandbox', '--disable-gpu'], // flags for CI/Linux stability
-      },
+      maxInstances: 1, // Force sequential execution
     },
   ],
   logLevel: 'debug',
@@ -41,7 +29,27 @@ export const config = {
   waitforTimeout: 30000,
   connectionRetryTimeout: 120000,
   connectionRetryCount: 3,
-  services: ['electron'],
+  services: [
+    [
+      'electron',
+      {
+        // Use appEntryPoint at service level (modern approach)
+        // This properly sets up the CDP bridge for browser.electron.execute() to work
+        appEntryPoint: electronMainPath,
+        appArgs: ['--disable-web-security', '--no-sandbox', '--disable-gpu'], // flags for CI/Linux stability
+        // Enable wdio-electron-service's built-in Xvfb management for Linux CI
+        // This is required for proper display handling - do NOT use xvfb-run wrapper
+        ...(process.platform === 'linux' && process.env.CI
+          ? {
+              autoXvfb: true,
+              xvfbAutoInstall: true,
+              xvfbAutoInstallMode: 'sudo',
+              xvfbMaxRetries: 5,
+            }
+          : {}),
+      },
+    ],
+  ],
   framework: 'mocha',
   reporters: ['spec'],
   mochaOpts: {

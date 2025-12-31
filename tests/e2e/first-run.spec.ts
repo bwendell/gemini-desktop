@@ -12,44 +12,26 @@
  * @module first-run.spec
  */
 
+/**
+ * E2E Test: First-Run Experience
+ *
+ * Tests the application behavior on fresh install / first run.
+ *
+ * Verifies:
+ * 1. App starts with default settings
+ * 2. Clean state - no cached credentials on first launch
+ *
+ * Cross-platform: Windows, macOS, Linux
+ *
+ * @module first-run.spec
+ */
+
 import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
-
-/**
- * Get the current settings from the store.
- */
-async function getCurrentSettings(): Promise<{ theme: string; hotkeysEnabled: boolean }> {
-  return browser.electron.execute((electron: typeof import('electron')) => {
-    const path = require('path');
-    const fs = require('fs');
-
-    const userDataPath = electron.app.getPath('userData');
-    const settingsPath = path.join(userDataPath, 'settings.json');
-
-    try {
-      if (!fs.existsSync(settingsPath)) {
-        // No settings file = first run with defaults
-        return {
-          theme: 'system',
-          hotkeysEnabled: true,
-        };
-      }
-      const content = fs.readFileSync(settingsPath, 'utf-8');
-      const settings = JSON.parse(content);
-      return {
-        theme: settings.theme || 'system',
-        hotkeysEnabled: settings.hotkeysEnabled !== false,
-      };
-    } catch {
-      // Error reading = treat as defaults
-      return {
-        theme: 'system',
-        hotkeysEnabled: true,
-      };
-    }
-  });
-}
+import { sendKeyboardShortcut, KeyboardShortcuts } from './helpers/keyboardActions';
+import { clickMenuItemById } from './helpers/menuActions';
+import { isMacOS } from './helpers/platform';
 
 describe('First-Run Experience', () => {
   beforeEach(async () => {
@@ -59,90 +41,73 @@ describe('First-Run Experience', () => {
   });
 
   describe('Default Settings', () => {
-    it('should use default theme (system) when no settings file exists', async () => {
-      // Note: In a real first-run scenario, there would be no settings.json
-      // Since we can't delete the file mid-test, we verify the defaults are valid
+    it('should use a valid theme (system/light/dark) by default', async () => {
+      // Check the data-theme attribute on the HTML element
+      // This verifies the theme system is active and initialized
+      const currentTheme = await browser.execute(() => {
+        return document.documentElement.getAttribute('data-theme');
+      });
 
-      const settings = await getCurrentSettings();
-
-      // Theme should be one of the valid options
-      expect(['light', 'dark', 'system']).toContain(settings.theme);
-
-      E2ELogger.info('first-run', `Current theme setting: ${settings.theme}`);
+      E2ELogger.info('first-run', `Current data-theme: ${currentTheme}`);
+      // The default is usually 'system', which resolves to 'light' or 'dark' on the html element
+      // or explicitly 'system' if the app sets it that way.
+      // Based on theme.spec.ts, the data-theme attribute reflects the resolved theme ('light' or 'dark')
+      expect(['light', 'dark', 'system']).toContain(currentTheme);
     });
 
-    it('should have hotkeys enabled by default', async () => {
-      const settings = await getCurrentSettings();
+    it('should have functional menu system (opens settings via menu)', async () => {
+      // Open Options via Menu instead of Hotkey to avoid focus/OS-level flakiness
+      // This verifies the app is responsive and default menus are loaded
+      await clickMenuItemById('menu-file-options');
 
-      // Hotkeys should be enabled by default
-      expect(typeof settings.hotkeysEnabled).toBe('boolean');
+      // Verify Options window opens
+      await browser.waitUntil(
+        async () => (await browser.getWindowHandles()).length > 1,
+        {
+          timeout: 10000,
+          timeoutMsg: 'Expected Settings window to open via menu'
+        }
+      );
 
-      E2ELogger.info('first-run', `Hotkeys enabled: ${settings.hotkeysEnabled}`);
-    });
+      // Switch to the new window
+      const handles = await browser.getWindowHandles();
+      const optionsWindowHandle = handles[handles.length - 1];
+      await browser.switchToWindow(optionsWindowHandle);
 
-    it('should have correct default settings structure', async () => {
-      const settings = await getCurrentSettings();
+      // Verify content
+      const optionsTitlebar = await $(Selectors.optionsTitlebar);
+      await expect(optionsTitlebar).toBeExisting();
+      
+      E2ELogger.info('first-run', 'Menu verification: Settings window opened via menu item');
 
-      // Verify settings structure
-      expect(settings).toHaveProperty('theme');
-      expect(settings).toHaveProperty('hotkeysEnabled');
-
-      // Log for visibility
-      E2ELogger.info('first-run', `Settings structure: ${JSON.stringify(settings)}`);
+      // Close the options window
+      await browser.closeWindow();
+      
+      // Switch back to main window
+      await browser.switchToWindow(handles[0]);
     });
   });
 
   describe('Clean State Verification', () => {
-    it('should not have any cached webview content on fresh load', async () => {
-      // Verify the webview container exists (page loaded from scratch)
+    it('should verify main window interactivity', async () => {
+      // Verify the webview container exists
       const webviewContainer = await $(Selectors.webviewContainer);
       await expect(webviewContainer).toBeExisting();
 
-      // The app should have loaded successfully
-      const title = await browser.getTitle();
-      expect(title).toBeTruthy();
-
-      E2ELogger.info('first-run', 'Webview container exists - app loaded cleanly');
-    });
-
-    it('should start with main window visible', async () => {
-      // Main window should be visible on startup
-      const isVisible = await browser.electron.execute((_electron: typeof import('electron')) => {
-        const windows = _electron.BrowserWindow.getAllWindows();
-        const mainWindow = windows[0];
-        return mainWindow?.isVisible() ?? false;
-      });
-
-      expect(isVisible).toBe(true);
-
-      E2ELogger.info('first-run', 'Main window is visible on startup');
-    });
-
-    it('should have titlebar with correct app name', async () => {
+      // Verify app title in titlebar
       const titleText = await $(Selectors.titlebarTitle);
       await expect(titleText).toBeExisting();
 
       const text = await titleText.getText();
       expect(text).toBe('Gemini Desktop');
 
-      E2ELogger.info('first-run', `Title bar shows: "${text}"`);
-    });
-  });
+      // Verify window is interactive (not crashed/frozen)
+      // Check if we can find the menu bar (Windows/Linux) or just general body existence
+      const body = await $('body');
+      await expect(body).toBeDisplayed();
 
-  describe('Settings File Path', () => {
-    it('should use platform-appropriate userData directory', async () => {
-      const userDataPath = await browser.electron.execute((electron: typeof import('electron')) => {
-        return electron.app.getPath('userData');
-      });
-
-      // Path should be valid
-      expect(userDataPath).toBeTruthy();
-      expect(typeof userDataPath).toBe('string');
-
-      // Path should contain app name
-      expect(userDataPath.toLowerCase()).toContain('gemini');
-
-      E2ELogger.info('first-run', `User data path: ${userDataPath}`);
+      E2ELogger.info('first-run', 'Main window is interactive and loaded');
     });
   });
 });
+

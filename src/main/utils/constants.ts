@@ -26,6 +26,19 @@ export const OAUTH_DOMAINS = ['accounts.google.com', 'accounts.youtube.com'] as 
 // =========================================================================
 
 /**
+ * Base webPreferences for all windows.
+ * Enforces security best practices across the application.
+ */
+export const BASE_WEB_PREFERENCES: BrowserWindowConstructorOptions['webPreferences'] = {
+  contextIsolation: true,
+  nodeIntegration: false,
+  // Allow disabling sandbox via command line (for testing)
+  sandbox: !process.argv.includes('--no-sandbox'),
+  // Allow disabling webSecurity via command line (for testing)
+  webSecurity: !process.argv.includes('--disable-web-security'),
+} as const;
+
+/**
  * Default URL for Google sign-in.
  */
 export const GOOGLE_ACCOUNTS_URL = 'https://accounts.google.com' as const;
@@ -126,9 +139,7 @@ export const AUTH_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
   title: 'Sign in to Google',
   autoHideMenuBar: true,
   webPreferences: {
-    // Uses default session (shared with main window)
-    contextIsolation: true,
-    nodeIntegration: false,
+    ...BASE_WEB_PREFERENCES,
   },
 };
 
@@ -165,14 +176,7 @@ export function isOAuthDomain(hostname: string): boolean {
  * Base webPreferences for all windows.
  * Enforces security best practices across the application.
  */
-export const BASE_WEB_PREFERENCES: BrowserWindowConstructorOptions['webPreferences'] = {
-  contextIsolation: true,
-  nodeIntegration: false,
-  // Allow disabling sandbox via command line (for testing)
-  sandbox: !process.argv.includes('--no-sandbox'),
-  // Allow disabling webSecurity via command line (for testing)
-  webSecurity: !process.argv.includes('--disable-web-security'),
-} as const;
+
 
 /**
  * Get titleBarStyle based on platform.

@@ -81,6 +81,17 @@ export interface ElectronAPI {
   onQuickChatExecute: (callback: (text: string) => void) => () => void;
 
   // =========================================================================
+  // Gemini Iframe Navigation API
+  // Used by Quick Chat to navigate iframe without replacing React shell
+  // =========================================================================
+
+  /** Listen for Gemini navigation requests. Returns unsubscribe function. */
+  onGeminiNavigate: (callback: (data: { url: string; text: string }) => void) => () => void;
+
+  /** Signal to main process that Gemini iframe is ready for injection */
+  signalGeminiReady: (text: string) => void;
+
+  // =========================================================================
   // Individual Hotkeys API
   // =========================================================================
 
@@ -188,4 +199,7 @@ export interface ElectronAPI {
 
   /** Get last update check timestamp */
   getLastUpdateCheckTime: () => Promise<number>;
+
+  /** Listen for debug error trigger (dev only) */
+  onDebugTriggerError: (callback: () => void) => () => void;
 }

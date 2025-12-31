@@ -13,9 +13,9 @@
   align-items: center;
   gap: 1rem;
   padding: 0.75rem;
-  background: var(--background-secondary, #1e1e1e);
+  background: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid var(--border-color, #333);
+  border: 1px solid var(--border-color);
 }
 
 .hotkey-label-wrapper {
@@ -28,12 +28,12 @@
 
 .hotkey-label {
   font-weight: 500;
-  color: var(--text-primary, #fff);
+  color: var(--text-primary);
 }
 
 .hotkey-description {
   font-size: 0.85rem;
-  color: var(--text-secondary, #999);
+  color: var(--text-secondary);
 }
 
 .hotkey-accelerator-wrapper {

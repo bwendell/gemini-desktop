@@ -3,71 +3,60 @@
  *
  * Tests opening/closing the Options window and verifying controls.
  *
- * Platform-aware: Uses clickMenuItem helper for cross-platform menu access.
+ * Platform-aware: Uses Page Objects and workflow helpers for cross-platform consistency.
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
-import { clickMenuItemById } from './helpers/menuActions';
+import { browser, expect } from '@wdio/globals';
+import { MainWindowPage, OptionsPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
+import { switchToOptionsWindow } from './helpers/optionsWindowActions';
 import { E2ELogger } from './helpers/logger';
-
-declare global {
-  interface Window {
-    electronAPI: {
-      closeWindow: () => void;
-    };
-  }
-}
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 
 describe('Options Window Features', () => {
+  const mainWindow = new MainWindowPage();
+  const optionsPage = new OptionsPage();
+
+  beforeEach(async () => {
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    await ensureSingleWindow();
+  });
+
   it('should open options window with correct window controls', async () => {
     // 1. Open Options via menu
-    await clickMenuItemById('menu-file-options');
+    await mainWindow.openOptionsViaMenu();
 
-    // 2. Wait for new window
+    // 2. Wait for new window and switch to it
     await waitForWindowCount(2, 5000);
-    const handles = await browser.getWindowHandles();
-    const optionsWindowHandle = handles[1];
-
-    // Pause briefly to allow window to fully initialize
-    await browser.pause(1000);
-
-    // Switch context
-    await browser.switchToWindow(optionsWindowHandle);
+    await optionsPage.waitForLoad();
 
     // 3. Verify Custom Titlebar exists (present on all platforms for Options window)
-    const titlebar = await $(Selectors.optionsTitlebar);
-    await expect(titlebar).toExist();
+    expect(await optionsPage.isTitlebarDisplayed()).toBe(true);
 
     // 3a. Verify Titlebar Icon is present
-    const icon = await titlebar.$(Selectors.titlebarIcon);
-    await expect(icon).toExist();
-    const iconSrc = await icon.getAttribute('src');
-    expect(iconSrc).toMatch(/icon(-.*)?\.png/);
-    const width = await icon.getProperty('naturalWidth');
-    expect(width).toBeGreaterThan(0);
+    const iconValidation = await optionsPage.isTitlebarIconValid();
+    expect(iconValidation.exists).toBe(true);
+    expect(iconValidation.hasValidSrc).toBe(true);
+    expect(iconValidation.width).toBeGreaterThan(0);
 
     // 4. Verify window controls - now always present on all platforms
-    const controlsContainer = await $('.options-window-controls');
-    await expect(controlsContainer).toBeDisplayed();
+    expect(await optionsPage.isWindowControlsDisplayed()).toBe(true);
 
-    const buttons = await controlsContainer.$$('button');
     // Should only be Minimize and Close (no maximize for Options window)
-    expect(buttons.length).toBe(2);
+    const buttonCount = await optionsPage.getWindowControlButtonCount();
+    expect(buttonCount).toBe(2);
 
-    const minimizeBtn = await $('[data-testid="options-minimize-button"]');
-    const closeBtn = await $(Selectors.optionsCloseButton);
-
-    await expect(minimizeBtn).toBeDisplayed();
-    await expect(closeBtn).toBeDisplayed();
+    expect(await optionsPage.isMinimizeButtonDisplayed()).toBe(true);
+    expect(await optionsPage.isCloseButtonDisplayed()).toBe(true);
 
     // Double check no maximize button exists
-    const maximizeBtn = await $('[data-testid="options-maximize-button"]');
-    await expect(maximizeBtn).not.toExist();
+    expect(await optionsPage.isMaximizeButtonExisting()).toBe(false);
 
     // 5. Close the options window via close button
-    await closeBtn.click();
+    await optionsPage.clickCloseButton();
 
     // 6. Verify correct window closing behavior
     await waitForWindowCount(1, 5000);
@@ -75,10 +64,7 @@ describe('Options Window Features', () => {
     const finalHandles = await browser.getWindowHandles();
     expect(finalHandles.length).toBe(1);
 
-    // Verify the remaining window is the main window
-    expect(finalHandles[0]).toBe(handles[0]);
-
-    // Switch back just to be safe
+    // Switch back to main window
     await browser.switchToWindow(finalHandles[0]);
     const title = await browser.getTitle();
     expect(title).toBeDefined();
@@ -86,7 +72,7 @@ describe('Options Window Features', () => {
 
   it('should NOT open multiple Options windows - clicking again focuses existing', async () => {
     // 1. Open Options via menu first time
-    await clickMenuItemById('menu-file-options');
+    await mainWindow.openOptionsViaMenu();
     await waitForWindowCount(2, 5000);
 
     const handlesAfterFirst = await browser.getWindowHandles();
@@ -99,7 +85,7 @@ describe('Options Window Features', () => {
     await browser.pause(500);
 
     // 3. Try to open Options again
-    await clickMenuItemById('menu-file-options');
+    await mainWindow.openOptionsViaMenu();
     await browser.pause(1000);
 
     // 4. Should still be only 2 windows (no duplicate)
@@ -112,14 +98,8 @@ describe('Options Window Features', () => {
     // The handles should be the same
     expect(handlesAfterSecond).toEqual(handlesAfterFirst);
 
-    // 6. Cleanup: close Options window
-    await browser.switchToWindow(handlesAfterSecond[1]);
-    const closeBtn = await $(Selectors.optionsCloseButton);
-    await closeBtn.click();
-    await waitForWindowCount(1, 5000);
-
-    // Switch back to main
-    const finalHandles = await browser.getWindowHandles();
-    await browser.switchToWindow(finalHandles[0]);
+    // 6. Cleanup: close Options window (handled by afterEach, but be explicit)
+    await switchToOptionsWindow();
+    await optionsPage.close();
   });
 });

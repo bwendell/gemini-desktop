@@ -50,3 +50,25 @@ export async function isLinux(): Promise<boolean> {
 export async function usesCustomControls(): Promise<boolean> {
   return !(await isMacOS());
 }
+
+/**
+ * Detects if running on Linux in CI (headless Xvfb).
+ *
+ * This is useful for skipping tests that rely on window manager features
+ * that don't work in headless Xvfb environments:
+ * - Window minimize detection
+ * - Window maximize detection
+ * - Global hotkey registration (Wayland limitations)
+ *
+ * @returns {Promise<boolean>} True if running on Linux CI
+ */
+export async function isLinuxCI(): Promise<boolean> {
+  if (!(await isLinux())) return false;
+
+  // Check for common CI environment variables
+  const isCIEnv = await browser.electron.execute(() => {
+    return !!(process.env.CI || process.env.GITHUB_ACTIONS);
+  });
+
+  return isCIEnv;
+}

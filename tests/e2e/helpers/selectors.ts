@@ -70,4 +70,16 @@ export const Selectors = {
   quickChatContainer: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_CONTAINER),
   quickChatInput: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_INPUT),
   quickChatSubmit: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_SUBMIT),
+
+  // Update Toast
+  updateToast: '[data-testid="update-toast"]',
+  updateToastTitle: '[data-testid="update-toast-title"]',
+  updateToastMessage: '[data-testid="update-toast-message"]',
+  updateToastDismiss: '[data-testid="update-toast-dismiss"]',
+  updateToastRestart: '[data-testid="update-toast-restart"]',
+  updateToastLater: '[data-testid="update-toast-later"]',
+  updateBadge: '[data-testid="update-badge"]',
+  progressBar: '[role="progressbar"]',
+  progressBarInner: '.update-toast__progress-bar',
 } as const;
+

@@ -1,0 +1,67 @@
+/**
+ * Linux Hotkey Notice Toast Styles
+ *
+ * Styling for the informational toast shown on Linux about disabled hotkeys.
+ */
+
+.linux-hotkey-notice {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-surface, #1e1e1e);
+  border: 1px solid var(--color-border, #333);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 380px;
+  z-index: 9999;
+}
+
+.linux-hotkey-notice__icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.linux-hotkey-notice__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.linux-hotkey-notice__title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-primary, #fff);
+  margin-bottom: 4px;
+}
+
+.linux-hotkey-notice__message {
+  font-size: 13px;
+  color: var(--color-text-secondary, #999);
+  line-height: 1.4;
+}
+
+.linux-hotkey-notice__dismiss {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary, #999);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.linux-hotkey-notice__dismiss:hover {
+  background: var(--color-hover, rgba(255, 255, 255, 0.1));
+  color: var(--color-text-primary, #fff);
+}
+
+.linux-hotkey-notice__dismiss:focus-visible {
+  outline: 2px solid var(--color-primary, #4285f4);
+  outline-offset: 2px;
+}

@@ -1,4 +1,7 @@
+/// <reference path="./helpers/wdio-electron.d.ts" />
+
 import { browser, expect } from '@wdio/globals';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 
 /**
  * E2E tests for link handling.
@@ -8,6 +11,14 @@ import { browser, expect } from '@wdio/globals';
  * - External links open in system browser
  */
 describe('Link Handling', () => {
+  beforeEach(async () => {
+    await waitForAppReady();
+  });
+
+  afterEach(async () => {
+    await ensureSingleWindow();
+  });
+
   it('should open non-Google external links in system browser (not new Electron window)', async () => {
     // Inject a mock external link (non-Google)
     await browser.execute(() => {
@@ -40,6 +51,12 @@ describe('Link Handling', () => {
     // The current page URL should not have changed to example.com
     const currentUrl = await browser.getUrl();
     expect(currentUrl).not.toContain('example.com');
+
+    // Cleanup: Remove mock link
+    await browser.execute(() => {
+      const link = document.getElementById('mock-external-link');
+      if (link) link.remove();
+    });
   });
 
   it('should handle Gemini domain links internally (in Electron window)', async () => {
@@ -68,14 +85,10 @@ describe('Link Handling', () => {
     // Gemini links should open in new Electron window
     expect(newHandles.length).toBeGreaterThan(initialHandles.length);
 
-    // Clean up
-    if (newHandles.length > initialHandles.length) {
-      const newWindowHandle = newHandles.find((h) => !initialHandles.includes(h));
-      if (newWindowHandle) {
-        await browser.switchToWindow(newWindowHandle);
-        await browser.closeWindow();
-        await browser.switchToWindow(initialHandles[0]);
-      }
-    }
+    // Cleanup: Remove mock link
+    await browser.execute(() => {
+      const link = document.getElementById('mock-gemini-link');
+      if (link) link.remove();
+    });
   });
 });

@@ -12,6 +12,11 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import { openOptionsWindowViaHotkey, waitForOptionsWindow, closeOptionsWindow, switchToOptionsWindow } from './helpers/optionsWindowActions';
+import { OptionsPage } from './pages/OptionsPage';
+
+// Create page object instance for use in tests
+const optionsPage = new OptionsPage();
 
 describe('Hotkey Configuration E2E', () => {
   before(async () => {
@@ -19,37 +24,19 @@ describe('Hotkey Configuration E2E', () => {
   });
 
   beforeEach(async () => {
-    // Navigate to options page
-    await browser.execute(async () => {
-      const api = (window as any).electronAPI;
-      await api.openOptionsWindow();
-    });
-
-    // Wait for options window to open
-    await browser.pause(500);
-
-    // Switch to options window
+    // Ensure we are focused on the main window before pressing keys
     const handles = await browser.getWindowHandles();
-    if (handles.length > 1) {
-      await browser.switchToWindow(handles[handles.length - 1]);
-    }
-
-    // Wait for options content to load
-    await browser.waitUntil(
-      async () => {
-        const content = await browser.$('#options-content');
-        return await content.isExisting();
-      },
-      { timeout: 5000, timeoutMsg: 'Options window did not load' }
-    );
+    await browser.switchToWindow(handles[0]);
+    
+    await openOptionsWindowViaHotkey();
+    await waitForOptionsWindow();
   });
 
   afterEach(async () => {
     // Close options window if open
     const handles = await browser.getWindowHandles();
     if (handles.length > 1) {
-      await browser.closeWindow();
-      await browser.switchToWindow(handles[0]);
+      await closeOptionsWindow();
     }
   });
 
@@ -67,13 +54,13 @@ describe('Hotkey Configuration E2E', () => {
       const hotkeyRows = await hotkeyToggles.$$('.hotkey-row');
       expect(hotkeyRows.length).toBe(3);
 
-      // Verify Always on Top shows Ctrl+Alt+T (or ⌘⌥T on Mac)
+      // Verify Always on Top shows the default accelerator (Ctrl+Alt+P or ⌘⌥P on Mac)
       const alwaysOnTopRow = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]').parentElement();
       const alwaysOnTopAccelerator = await alwaysOnTopRow.$('.keycap-container');
       const acceleratorText = await alwaysOnTopAccelerator.getText();
       
       // Should contain the keys (platform-aware)
-      expect(acceleratorText).toMatch(/(Ctrl|⌘).*(Alt|⌥).*T/);
+      expect(acceleratorText).toMatch(/(Ctrl|⌘).*(Alt|⌥).*P/);
     });
 
     it('should display keycaps with proper styling', async () => {
@@ -102,19 +89,18 @@ describe('Hotkey Configuration E2E', () => {
 
   describe('recording new shortcuts', () => {
     it('should enter recording mode when clicking accelerator display', async () => {
-      const acceleratorDisplay = await browser.$('.keycap-container');
-      await acceleratorDisplay.click();
+      // Use Page Object to click accelerator input for alwaysOnTop
+      await optionsPage.clickAcceleratorInput('alwaysOnTop');
 
-      // Should show recording prompt
+      // Should show recording prompt - verify with Page Object method
       await browser.waitUntil(
-        async () => {
-          const prompt = await browser.$('.recording-prompt');
-          return await prompt.isDisplayed();
-        },
+        async () => await optionsPage.isRecordingModeActive('alwaysOnTop'),
         { timeout: 2000, timeoutMsg: 'Recording mode did not activate' }
       );
 
-      const promptText = await browser.$('.recording-prompt').getText();
+      // Verify prompt text
+      const prompt = await browser.$(optionsPage.recordingPromptSelector('alwaysOnTop'));
+      const promptText = await prompt.getText();
       expect(promptText).toContain('Press keys');
     });
 
@@ -218,62 +204,45 @@ describe('Hotkey Configuration E2E', () => {
 
   describe('resetting to default', () => {
     it('should show reset button when accelerator differs from default', async () => {
-      // Change the accelerator first
-      const acceleratorDisplay = await browser.$('.keycap-container');
-      await acceleratorDisplay.click();
+      // Change the accelerator first using Page Object
+      await optionsPage.clickAcceleratorInput('alwaysOnTop');
       await browser.keys(['Control', 'Shift', 'q']);
       await browser.pause(300);
 
-      // Reset button should appear
-      const resetButton = await browser.$('.reset-button');
-      await expect(resetButton).toBeDisplayed();
+      // Reset button should appear - verify with Page Object method
+      const isVisible = await optionsPage.isResetButtonVisible('alwaysOnTop');
+      expect(isVisible).toBe(true);
     });
 
     it('should not show reset button for default accelerator', async () => {
-      const resetButton = await browser.$('.reset-button');
-      
-      // May not exist or may exist but be hidden
-      const exists = await resetButton.isExisting();
-      if (exists) {
-        const isDisplayed = await resetButton.isDisplayed();
-        expect(isDisplayed).toBe(false);
-      }
+      // Verify reset button is not visible when at default using Page Object
+      const isVisible = await optionsPage.isResetButtonVisible('alwaysOnTop');
+      expect(isVisible).toBe(false);
     });
 
     it('should restore default accelerator when reset is clicked', async () => {
-      // Get original default
-      const originalDefault = await browser.electron.execute((_electron) => {
-        // @ts-ignore
-        const { DEFAULT_ACCELERATORS } = require('../src/shared/types/hotkeys');
-        return DEFAULT_ACCELERATORS.alwaysOnTop;
-      });
+      // Get original accelerator before changes
+      const originalAccelerator = await optionsPage.getCurrentAccelerator('alwaysOnTop');
 
-      // Change the accelerator
-      const acceleratorDisplay = await browser.$('.keycap-container');
-      await acceleratorDisplay.click();
+      // Change the accelerator using Page Object
+      await optionsPage.clickAcceleratorInput('alwaysOnTop');
       await browser.keys(['Control', 'Shift', 'z']);
       await browser.pause(300);
 
-      // Click reset button
-      const resetButton = await browser.$('.reset-button');
-      await resetButton.click();
-      await browser.pause(300);
+      // Verify accelerator changed
+      const changedAccelerator = await optionsPage.getCurrentAccelerator('alwaysOnTop');
+      expect(changedAccelerator).not.toBe(originalAccelerator);
 
-      // Should revert to default
-      const currentAccelerator = await browser.electron.execute((_electron) => {
-        // @ts-ignore
-        return global.hotkeyManager.getAccelerator('alwaysOnTop');
-      });
+      // Click reset button using Page Object
+      await optionsPage.clickResetButton('alwaysOnTop');
 
-      expect(currentAccelerator).toBe(originalDefault);
+      // Should revert to original default
+      const restoredAccelerator = await optionsPage.getCurrentAccelerator('alwaysOnTop');
+      expect(restoredAccelerator).toBe(originalAccelerator);
 
       // Reset button should disappear
-      const resetButtonAfter = await browser.$('.reset-button');
-      const exists = await resetButtonAfter.isExisting();
-      if (exists) {
-        const isDisplayed = await resetButtonAfter.isDisplayed();
-        expect(isDisplayed).toBe(false);
-      }
+      const isVisible = await optionsPage.isResetButtonVisible('alwaysOnTop');
+      expect(isVisible).toBe(false);
     });
   });
 
@@ -353,28 +322,16 @@ describe('Hotkey Configuration E2E', () => {
       await browser.pause(300);
 
       // Close options window
-      await browser.closeWindow();
-      await browser.switchToWindow((await browser.getWindowHandles())[0]);
+      await closeOptionsWindow();
       await browser.pause(500);
 
-      // Reopen options
-      await browser.execute(async () => {
-        const api = (window as any).electronAPI;
-        await api.openOptionsWindow();
-      });
-
-      await browser.pause(500);
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[handles.length - 1]);
-
-      // Wait for options to load
-      await browser.waitUntil(
-        async () => {
-          const content = await browser.$('#options-content');
-          return await content.isExisting();
-        },
-        { timeout: 5000 }
-      );
+      // Reopen options using shortcut
+      // Ensure we are focused on the main window
+      const mainHandles = await browser.getWindowHandles();
+      await browser.switchToWindow(mainHandles[0]);
+      
+      await openOptionsWindowViaHotkey();
+      await waitForOptionsWindow();
 
       // Verify accelerator is persisted
       const acceleratorDisplayAfter = await browser.$('.keycap-container');
@@ -614,7 +571,7 @@ describe('Hotkey Configuration E2E', () => {
         return (window as any).electronAPI.platform;
       });
 
-      // Get the Always on Top hotkey which has Alt (CommandOrControl+Alt+T)
+      // Get the Always on Top hotkey which has Alt (default: CommandOrControl+Alt+P)
       const acceleratorDisplay = await browser.$('.keycap-container');
       const keycaps = await acceleratorDisplay.$$('kbd.keycap');
       
@@ -658,8 +615,7 @@ describe('Hotkey Configuration E2E', () => {
       });
 
       // Close and reopen options window
-      await browser.closeWindow();
-      await browser.switchToWindow((await browser.getWindowHandles())[0]);
+      await closeOptionsWindow();
       await browser.pause(300);
 
       await browser.execute(async () => {
@@ -668,8 +624,8 @@ describe('Hotkey Configuration E2E', () => {
       });
 
       await browser.pause(500);
-      const handles = await browser.getWindowHandles();
-      await browser.switchToWindow(handles[handles.length - 1]);
+      // Switch to options window
+      await switchToOptionsWindow();
 
       await browser.waitUntil(
         async () => {

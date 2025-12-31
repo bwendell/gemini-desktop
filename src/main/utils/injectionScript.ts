@@ -388,11 +388,48 @@ export class InjectionScriptBuilder {
     
     /**
      * Notify the editor framework (Angular/Quill) of text changes.
+     * Uses multiple strategies to ensure the framework detects the change:
+     * 1. Keyboard simulation events (beforeinput, keydown, keyup)
+     * 2. InputEvent with proper inputType
+     * 3. Quill-specific events
+     * 4. Generic fallbacks
      */
     function notifyEditorOfChanges(editor, text) {
         logger.debug('Dispatching editor change events');
         
-        // InputEvent for modern frameworks
+        // Strategy 1: Simulate keyboard input sequence
+        // This is often required for Angular/Quill to detect changes
+        try {
+            // beforeinput event (modern browsers)
+            safeDispatchEvent(editor, new InputEvent('beforeinput', {
+                bubbles: true,
+                cancelable: true,
+                inputType: 'insertText',
+                data: text
+            }));
+        } catch (e) {
+            logger.debug('beforeinput event not supported:', e.message);
+        }
+        
+        // Simulate keydown/keyup for char-by-char detection
+        try {
+            safeDispatchEvent(editor, new KeyboardEvent('keydown', {
+                bubbles: true,
+                cancelable: true,
+                key: text.charAt(text.length - 1) || 'a',
+                code: 'KeyA'
+            }));
+            safeDispatchEvent(editor, new KeyboardEvent('keyup', {
+                bubbles: true,
+                cancelable: true,
+                key: text.charAt(text.length - 1) || 'a',
+                code: 'KeyA'
+            }));
+        } catch (e) {
+            logger.debug('Keyboard events failed:', e.message);
+        }
+        
+        // Strategy 2: InputEvent for modern frameworks
         safeDispatchEvent(editor, new InputEvent('input', {
             bubbles: true,
             cancelable: true,
@@ -400,12 +437,39 @@ export class InjectionScriptBuilder {
             data: text
         }));
         
-        // Quill-specific event
+        // Strategy 3: Quill-specific text-change event
         safeDispatchEvent(editor, new Event('text-change', { bubbles: true }));
         
-        // Generic input event fallback
+        // Strategy 4: compositionend event (used by IME and some frameworks)
+        try {
+            safeDispatchEvent(editor, new CompositionEvent('compositionend', {
+                bubbles: true,
+                cancelable: true,
+                data: text
+            }));
+        } catch (e) {
+            logger.debug('CompositionEvent not supported:', e.message);
+        }
+        
+        // Strategy 5: Generic input event fallback
         safeDispatchEvent(editor, new Event('input', { bubbles: true }));
+        
+        // Strategy 6: Change event (for older frameworks)
+        safeDispatchEvent(editor, new Event('change', { bubbles: true }));
+        
+        // Strategy 7: Trigger Angular's change detection via blur/focus cycle
+        try {
+            editor.blur();
+            setTimeout(() => {
+                editor.focus();
+            }, 10);
+        } catch (e) {
+            logger.debug('Blur/focus cycle failed:', e.message);
+        }
+        
+        logger.debug('All editor change events dispatched');
     }
+
 
     // =========================================================================
     // Main Injection Logic
