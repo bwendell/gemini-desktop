@@ -13,3 +13,5 @@ export { MainWindowPage } from './MainWindowPage';
 export { OptionsPage } from './OptionsPage';
 export { QuickChatPage } from './QuickChatPage';
 export { TrayPage } from './TrayPage';
+export { UpdateToastPage } from './UpdateToastPage';
+

@@ -129,31 +129,48 @@ let badgeManager: BadgeManager;
  * This function encapsulates manager creation for better testability and clarity.
  */
 function initializeManagers(): void {
+  logger.log('[DEBUG] initializeManagers() - creating WindowManager');
   windowManager = new WindowManager(isDev);
+  logger.log('[DEBUG] initializeManagers() - WindowManager created');
+  
+  logger.log('[DEBUG] initializeManagers() - creating HotkeyManager');
   hotkeyManager = new HotkeyManager(windowManager);
+  logger.log('[DEBUG] initializeManagers() - HotkeyManager created');
 
   // Create tray and badge managers
+  logger.log('[DEBUG] initializeManagers() - creating TrayManager');
   trayManager = new TrayManager(windowManager);
+  logger.log('[DEBUG] initializeManagers() - TrayManager created');
+  
+  logger.log('[DEBUG] initializeManagers() - creating BadgeManager');
   badgeManager = new BadgeManager();
+  logger.log('[DEBUG] initializeManagers() - BadgeManager created');
 
   // Create settings store for auto-update preferences
+  logger.log('[DEBUG] initializeManagers() - creating SettingsStore');
   const updateSettings = new SettingsStore<AutoUpdateSettings>({
     configName: 'update-settings',
     defaults: {
       autoUpdateEnabled: true,
     },
   });
+  logger.log('[DEBUG] initializeManagers() - SettingsStore created');
 
   // Create update manager with optional badge/tray dependencies
+  logger.log('[DEBUG] initializeManagers() - creating UpdateManager');
   updateManager = new UpdateManager(updateSettings, {
     badgeManager,
     trayManager,
   });
+  logger.log('[DEBUG] initializeManagers() - UpdateManager created');
 
+  logger.log('[DEBUG] initializeManagers() - creating IpcManager');
   ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager);
+  logger.log('[DEBUG] initializeManagers() - IpcManager created');
 
   // Expose managers globally for E2E testing
   // Type-safe global exposure for E2E tests
+  logger.log('[DEBUG] initializeManagers() - exposing managers globally');
   const globalWithManagers = global as typeof globalThis & {
     windowManager: WindowManager;
     ipcManager: IpcManager;
@@ -169,7 +186,7 @@ function initializeManagers(): void {
   globalWithManagers.badgeManager = badgeManager;
   globalWithManagers.hotkeyManager = hotkeyManager;
 
-  logger.log('All managers initialized');
+  logger.log('[DEBUG] initializeManagers() - All managers initialized successfully');
 }
 
 /**
