@@ -129,6 +129,11 @@ interface Window {
     // E2E Testing Helpers
     onDebugTriggerError: (callback: () => void) => () => void;
 
+    // Print to PDF API
+    printToPdf: () => void;
+    onPrintToPdfSuccess: (callback: (filePath: string) => void) => () => void;
+    onPrintToPdfError: (callback: (error: string) => void) => () => void;
+
     platform: string;
     isElectron: boolean;
   };

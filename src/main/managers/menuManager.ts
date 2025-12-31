@@ -266,6 +266,8 @@ export default class MenuManager {
   }
 
   private buildFileMenu(): MenuItemConstructorOptions {
+    // IMPORTANT: When adding items here, also update src/renderer/components/titlebar/useMenuDefinitions.ts
+    // to ensure the custom titlebar menu (Windows/Linux) remains in sync.
     const menu: MenuItemConstructorOptions = {
       label: 'File',
       submenu: [

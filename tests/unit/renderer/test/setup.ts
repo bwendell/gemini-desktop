@@ -72,6 +72,15 @@ const mockElectronAPI = {
   setAlwaysOnTop: vi.fn(),
   onAlwaysOnTopChanged: vi.fn().mockReturnValue(() => {}),
 
+  // Print to PDF API
+  printToPdf: vi.fn(),
+  onPrintToPdfSuccess: vi.fn().mockReturnValue(() => {}),
+  onPrintToPdfError: vi.fn().mockReturnValue(() => {}),
+
+  // Hotkey Accelerators API
+  getHotkeyAccelerators: vi.fn().mockResolvedValue({}),
+  onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(() => {}),
+
   // Auto-Update API
   checkForUpdates: vi.fn(),
   installUpdate: vi.fn(),

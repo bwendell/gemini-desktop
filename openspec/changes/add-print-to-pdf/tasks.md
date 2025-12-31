@@ -138,6 +138,18 @@
   - Add menu item in `buildFileMenu()`
   - Include accelerator hint matching the hotkey
 
+- [x] 2.6 Implement Custom Titlebar Menu (Windows/Linux)
+  - [x] Add cross-reference comment to `src/main/managers/menuManager.ts`
+  - [x] Add cross-reference comment to `src/renderer/components/titlebar/useMenuDefinitions.ts`
+  - [x] Modify `src/renderer/components/titlebar/useMenuDefinitions.ts`:
+    - Add "Print to PDF" item to File menu
+    - Implement dynamic accelerator loading from main process
+    - Ensure menu item invokes `electronAPI.printToPdf()`
+  - [x] Update unit tests in `src/renderer/components/titlebar/useMenuDefinitions.test.tsx`:
+    - Test menu item existence and attributes
+    - Test action triggers `printToPdf`
+    - Test accelerator updates dynamically
+
 ## 3. Settings Persistence
 
 - [x] 3.1 Update settings store schema
