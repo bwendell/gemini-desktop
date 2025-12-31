@@ -18,6 +18,7 @@ const logger = createLogger('[PrintManager]');
 
 export default class PrintManager {
   private windowManager: WindowManager;
+  private isPrinting = false;
 
   constructor(windowManager: WindowManager) {
     this.windowManager = windowManager;
@@ -35,21 +36,27 @@ export default class PrintManager {
    *                            If not provided, uses the main window.
    */
   async printToPdf(senderWebContents?: WebContents): Promise<void> {
+    if (this.isPrinting) {
+      logger.warn('Print-to-pdf already in progress, ignoring request');
+      return;
+    }
+
+    this.isPrinting = true;
     logger.log('Starting print-to-pdf flow');
 
     // 1. Determine which WebContents to print
     let contentsToPrint = senderWebContents;
 
-    if (!contentsToPrint) {
-      const mainWindow = this.windowManager.getMainWindow();
-      if (!mainWindow) {
-        logger.error('Cannot print: Main window not found');
-        return;
-      }
-      contentsToPrint = mainWindow.webContents;
-    }
-
     try {
+      if (!contentsToPrint) {
+        const mainWindow = this.windowManager.getMainWindow();
+        if (!mainWindow) {
+          logger.error('Cannot print: Main window not found');
+          return;
+        }
+        contentsToPrint = mainWindow.webContents;
+      }
+
       // 2. Generate PDF data
       // printBackground: true ensures CSS backgrounds (like chat bubbles) are printed
       const pdfData = await contentsToPrint.printToPDF({
@@ -100,6 +107,8 @@ export default class PrintManager {
       if (contentsToPrint && !contentsToPrint.isDestroyed()) {
         contentsToPrint.send(IPC_CHANNELS.PRINT_TO_PDF_ERROR, errorMessage);
       }
+    } finally {
+      this.isPrinting = false;
     }
   }
 

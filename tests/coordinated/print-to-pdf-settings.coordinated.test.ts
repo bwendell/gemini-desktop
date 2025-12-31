@@ -146,4 +146,116 @@ describe('Print to PDF Settings Persistence', () => {
       expect(hotkeyManager.getAccelerator('printToPdf')).toBe('CommandOrControl+Alt+P');
     });
   });
+
+  describe('Cross-Window Broadcast', () => {
+    it('should broadcast enable/disable state to all windows', () => {
+      const windowManager = new WindowManager(false);
+      const hotkeyManager = new HotkeyManager(windowManager);
+      const ipcManager = new IpcManager(
+        windowManager,
+        hotkeyManager,
+        null,
+        null,
+        mockStore,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+
+      // Mock multiple open windows
+      const win1 = { id: 1, isDestroyed: () => false, webContents: { send: vi.fn() } };
+      const win2 = { id: 2, isDestroyed: () => false, webContents: { send: vi.fn() } };
+      (BrowserWindow.getAllWindows as any).mockReturnValue([win1, win2]);
+
+      // Trigger 'hotkeys:individual:set' for printToPdf
+      const setIndividualHandler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
+      setIndividualHandler({}, 'printToPdf', false);
+
+      // Verify broadcast to all windows
+      const expectedPayload = expect.objectContaining({
+        printToPdf: false,
+      });
+
+      expect(win1.webContents.send).toHaveBeenCalledWith(
+        'hotkeys:individual:changed',
+        expectedPayload
+      );
+      expect(win2.webContents.send).toHaveBeenCalledWith(
+        'hotkeys:individual:changed',
+        expectedPayload
+      );
+    });
+
+    it('should broadcast accelerator changes to all windows', () => {
+      const windowManager = new WindowManager(false);
+      const hotkeyManager = new HotkeyManager(windowManager);
+      const ipcManager = new IpcManager(
+        windowManager,
+        hotkeyManager,
+        null,
+        null,
+        mockStore,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+
+      // Mock multiple open windows
+      const win1 = { id: 1, isDestroyed: () => false, webContents: { send: vi.fn() } };
+      const win2 = { id: 2, isDestroyed: () => false, webContents: { send: vi.fn() } };
+      (BrowserWindow.getAllWindows as any).mockReturnValue([win1, win2]);
+
+      // Trigger 'hotkeys:accelerator:set' for printToPdf
+      const setAcceleratorHandler = (ipcMain as any)._listeners.get('hotkeys:accelerator:set');
+      const newAccelerator = 'CommandOrControl+Alt+Shift+P';
+      setAcceleratorHandler({}, 'printToPdf', newAccelerator);
+
+      // Verify broadcast to all windows
+      const expectedPayload = expect.objectContaining({
+        printToPdf: newAccelerator,
+      });
+
+      expect(win1.webContents.send).toHaveBeenCalledWith(
+        'hotkeys:accelerator:changed',
+        expectedPayload
+      );
+      expect(win2.webContents.send).toHaveBeenCalledWith(
+        'hotkeys:accelerator:changed',
+        expectedPayload
+      );
+    });
+
+    it('should skip destroyed windows during broadcast without crashing', () => {
+      const windowManager = new WindowManager(false);
+      const hotkeyManager = new HotkeyManager(windowManager);
+      const ipcManager = new IpcManager(
+        windowManager,
+        hotkeyManager,
+        null,
+        null,
+        mockStore,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+
+      // Mock one active and one destroyed window
+      const activeWin = { id: 1, isDestroyed: () => false, webContents: { send: vi.fn() } };
+      const destroyedWin = { id: 2, isDestroyed: () => true, webContents: { send: vi.fn() } };
+      (BrowserWindow.getAllWindows as any).mockReturnValue([activeWin, destroyedWin]);
+
+      // Trigger 'hotkeys:individual:set'
+      const setIndividualHandler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
+      setIndividualHandler({}, 'printToPdf', true);
+
+      // Verify active window received update
+      expect(activeWin.webContents.send).toHaveBeenCalledWith(
+        'hotkeys:individual:changed',
+        expect.any(Object)
+      );
+
+      // Verify destroyed window was skipped
+      expect(destroyedWin.webContents.send).not.toHaveBeenCalled();
+
+      // If we are here, it didn't crash
+      expect(true).toBe(true);
+    });
+  });
 });

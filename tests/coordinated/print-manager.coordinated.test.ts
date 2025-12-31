@@ -3,7 +3,7 @@
  * Tests getUniqueFilePath() behavior with mocked file system.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { app, dialog } from 'electron';
+import { app, dialog, BrowserWindow } from 'electron';
 
 // Hoisted mocks - must be defined before any imports that use them
 const mockExistsSync = vi.hoisted(() => vi.fn());
@@ -15,8 +15,11 @@ const mockLogger = vi.hoisted(() => ({
   error: vi.fn(),
   warn: vi.fn(),
 }));
+
+const mockCreateLogger = vi.hoisted(() => vi.fn().mockReturnValue(mockLogger));
+
 vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
+  createLogger: mockCreateLogger,
 }));
 
 // Mock fs with hoisted function
@@ -294,6 +297,9 @@ describe('PrintManager ↔ WindowManager Integration', () => {
     mockWriteFile.mockResolvedValue(undefined);
     (app.getPath as any).mockReturnValue('/mock/downloads');
     (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
+    (dialog.showSaveDialog as any).mockClear();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'));
   });
 
   afterEach(() => {
@@ -540,6 +546,167 @@ describe('PrintManager ↔ WindowManager Integration', () => {
         await printManager.printToPdf();
 
         expect(app.getPath).toHaveBeenCalledWith('downloads');
+      });
+    });
+
+    // =========================================================================
+    // Test: Save Dialog Integration (5.3.10)
+    // =========================================================================
+    describe('Save Dialog Integration', () => {
+      it('5.3.10.1: should call showSaveDialog with correct options', async () => {
+        windowManager.createMainWindow();
+        const savedPath = '/mock/downloads/gemini-chat-2025-01-15.pdf';
+
+        // Mock success save
+        (dialog.showSaveDialog as any).mockResolvedValue({
+          canceled: false,
+          filePath: savedPath,
+        });
+
+        await printManager.printToPdf();
+
+        expect(dialog.showSaveDialog).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            title: 'Save Chat as PDF',
+            defaultPath: expect.stringContaining('gemini-chat-2025-01-15.pdf'),
+            filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+          })
+        );
+      });
+
+      it('5.3.10.2A: should use Main Window as dialog parent when available', async () => {
+        const mainWindow = windowManager.createMainWindow();
+        (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
+
+        await printManager.printToPdf();
+
+        // The first argument to showSaveDialog is the parent window
+        expect(dialog.showSaveDialog).toHaveBeenCalledWith(mainWindow, expect.anything());
+      });
+
+      it('5.3.10.2B: should use Focused Window as dialog parent when Main Window is missing', async () => {
+        // Ensure getMainWindow returns null
+        vi.spyOn(windowManager, 'getMainWindow').mockReturnValue(null as any);
+
+        // Mock a focused window
+        const mockFocusedWindow = { id: 999 };
+        vi.spyOn(BrowserWindow, 'getFocusedWindow').mockReturnValue(mockFocusedWindow as any);
+
+        (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
+
+        // We need to provide webContents because printToPdf returns early if no main window and no sender
+        const mockWebContents = {
+          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
+          send: vi.fn(),
+          isDestroyed: vi.fn().mockReturnValue(false),
+        };
+
+        await printManager.printToPdf(mockWebContents as any);
+
+        expect(dialog.showSaveDialog).toHaveBeenCalledWith(mockFocusedWindow, expect.anything());
+      });
+
+      it('5.3.10.3: should abort gracefully when user cancels dialog', async () => {
+        const mockWebContents = {
+          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
+          send: vi.fn(),
+          isDestroyed: vi.fn().mockReturnValue(false),
+        };
+
+        (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
+
+        await printManager.printToPdf(mockWebContents as any);
+
+        // Verify file was NOT written
+        expect(mockWriteFile).not.toHaveBeenCalled();
+
+        // Verify no success/error IPC sent
+        expect(mockWebContents.send).not.toHaveBeenCalled();
+      });
+
+      it('5.3.10.4: should abort gracefully when filePath is empty', async () => {
+        const mockWebContents = {
+          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
+          send: vi.fn(),
+          isDestroyed: vi.fn().mockReturnValue(false),
+        };
+
+        (dialog.showSaveDialog as any).mockResolvedValue({ canceled: false, filePath: '' });
+
+        await printManager.printToPdf(mockWebContents as any);
+
+        // Verify file was NOT written
+        expect(mockWriteFile).not.toHaveBeenCalled();
+
+        // Verify no success/error IPC sent
+        expect(mockWebContents.send).not.toHaveBeenCalled();
+      });
+    });
+
+    // =========================================================================
+    // Test: PDF Generation Options (5.3.11)
+    // =========================================================================
+    describe('PDF Generation Options', () => {
+      it('5.3.11.1: should call printToPDF with correct formatting options', async () => {
+        const mockWebContents = {
+          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
+          send: vi.fn(),
+          isDestroyed: vi.fn().mockReturnValue(false),
+        };
+
+        await printManager.printToPdf(mockWebContents as any);
+
+        expect(mockWebContents.printToPDF).toHaveBeenCalledWith({
+          printBackground: true,
+          pageSize: 'A4',
+          landscape: false,
+        });
+      });
+
+      it('5.3.11.2: should correctly pass the buffer from printToPDF to fs.writeFile', async () => {
+        const testBuffer = Buffer.from('test pdf content');
+        const mockWebContents = {
+          printToPDF: vi.fn().mockResolvedValue(testBuffer),
+          send: vi.fn(),
+          isDestroyed: vi.fn().mockReturnValue(false),
+        };
+
+        const savedPath = '/mock/downloads/output.pdf';
+        (dialog.showSaveDialog as any).mockResolvedValue({
+          canceled: false,
+          filePath: savedPath,
+        });
+
+        await printManager.printToPdf(mockWebContents as any);
+
+        // Verify fs.writeFile was called with the exact buffer from printToPDF
+        expect(mockWriteFile).toHaveBeenCalledWith(savedPath, testBuffer);
+      });
+
+      it('5.3.11.3: should handle large buffer responses correctly', async () => {
+        // Create a 5MB buffer
+        const largeBuffer = Buffer.alloc(5 * 1024 * 1024, 'a');
+        const mockWebContents = {
+          printToPDF: vi.fn().mockResolvedValue(largeBuffer),
+          send: vi.fn(),
+          isDestroyed: vi.fn().mockReturnValue(false),
+        };
+
+        const savedPath = '/mock/downloads/large.pdf';
+        (dialog.showSaveDialog as any).mockResolvedValue({
+          canceled: false,
+          filePath: savedPath,
+        });
+
+        await printManager.printToPdf(mockWebContents as any);
+
+        // Verify flow completed successfully
+        expect(mockWriteFile).toHaveBeenCalledWith(savedPath, largeBuffer);
+        expect(mockWebContents.send).toHaveBeenCalledWith(
+          IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
+          savedPath
+        );
       });
     });
   });
