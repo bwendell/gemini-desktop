@@ -20,12 +20,8 @@ import {
   verifyTrayCreated,
   TrayState,
 } from '../helpers/trayActions';
-import {
-  isWindowVisible,
-  isWindowMinimized,
-  closeWindow,
-} from '../helpers/windowStateActions';
-import { isLinux } from '../helpers/platform';
+import { isWindowVisible, isWindowMinimized, closeWindow } from '../helpers/windowStateActions';
+import { isLinux, isLinuxCI } from '../helpers/platform';
 import { Selectors } from '../helpers/selectors';
 
 /**
@@ -229,11 +225,7 @@ export class TrayPage extends BasePage {
    * @returns True if running on Linux CI
    */
   async isLinuxCI(): Promise<boolean> {
-    if (!(await isLinux())) return false;
-
-    return browser.electron.execute(() => {
-      return !!(process.env.CI || process.env.GITHUB_ACTIONS);
-    });
+    return isLinuxCI();
   }
 
   /**

@@ -13,7 +13,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
-import { usesCustomControls, isMacOS, isLinux } from './helpers/platform';
+import { usesCustomControls, isMacOS, isLinuxCI } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
@@ -28,21 +28,6 @@ import {
   closeWindow,
   showWindow,
 } from './helpers/windowStateActions';
-
-/**
- * Detects if running on Linux in CI (headless Xvfb).
- * Window manager operations don't work reliably in this environment.
- */
-async function isLinuxCI(): Promise<boolean> {
-  if (!(await isLinux())) return false;
-
-  // Check for common CI environment variables
-  const isCIEnv = await browser.electron.execute(() => {
-    return !!(process.env.CI || process.env.GITHUB_ACTIONS);
-  });
-
-  return isCIEnv;
-}
 
 describe('Window Controls Functionality', () => {
   const mainWindow = new MainWindowPage();

@@ -16,6 +16,7 @@ import { MainWindowPage } from './pages';
 import { E2ELogger } from './helpers/logger';
 import { isHotkeyRegistered, REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { isLinuxCI } from './helpers/platform';
 import {
   isWindowMinimized,
   isWindowVisible,
@@ -36,7 +37,13 @@ describe('Boss Key (Hide All Windows)', () => {
   });
 
   describe('Hotkey Registration', () => {
-    it('should have boss key hotkey registered by default', async () => {
+    it('should have boss key hotkey registered by default', async function () {
+      // Skip on Linux CI - global hotkeys are disabled due to Wayland limitations
+      if (await isLinuxCI()) {
+        E2ELogger.info('boss-key', 'Skipping - Linux CI does not support global hotkeys');
+        this.skip();
+      }
+
       const accelerator = REGISTERED_HOTKEYS.MINIMIZE_WINDOW.accelerator;
       const isRegistered = await isHotkeyRegistered(accelerator);
 
@@ -63,7 +70,13 @@ describe('Boss Key (Hide All Windows)', () => {
   });
 
   describe('Boss Key Action', () => {
-    it('should minimize main window when boss key is triggered', async () => {
+    it('should minimize main window when boss key is triggered', async function () {
+      // Skip on Linux CI - window minimize detection doesn't work under Xvfb
+      if (await isLinuxCI()) {
+        E2ELogger.info('boss-key', 'Skipping - Linux CI uses headless Xvfb without window manager');
+        this.skip();
+      }
+
       // 1. Verify main window is visible initially
       const initialVisibility = await isWindowVisible();
       expect(initialVisibility).toBe(true);
@@ -90,7 +103,13 @@ describe('Boss Key (Hide All Windows)', () => {
       E2ELogger.info('boss-key', 'Window restored successfully');
     });
 
-    it('should remain hidden until explicitly restored', async () => {
+    it('should remain hidden until explicitly restored', async function () {
+      // Skip on Linux CI - window minimize detection doesn't work under Xvfb
+      if (await isLinuxCI()) {
+        E2ELogger.info('boss-key', 'Skipping - Linux CI uses headless Xvfb without window manager');
+        this.skip();
+      }
+
       // 1. Minimize the window
       await minimizeWindow();
 

@@ -21,7 +21,7 @@ import { ensureSingleWindow } from './helpers/workflows';
 import { MainWindowPage } from './pages/MainWindowPage';
 import { OptionsPage } from './pages/OptionsPage';
 import { E2ELogger } from './helpers/logger';
-import { getPlatform, isMacOS, isWindows, isLinux } from './helpers/platform';
+import { getPlatform, isMacOS, isWindows, isLinux, isLinuxCI } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import {
   getAlwaysOnTopState,
@@ -141,7 +141,10 @@ describe('Always On Top', () => {
   describe('Menu Toggle', () => {
     it('should have Always On Top menu item in View menu', async function () {
       if (await isMacOS()) {
-        E2ELogger.info('always-on-top', 'macOS: Skipping menu item visual verification (native menu)');
+        E2ELogger.info(
+          'always-on-top',
+          'macOS: Skipping menu item visual verification (native menu)'
+        );
         return;
       }
 
@@ -392,7 +395,15 @@ describe('Always On Top', () => {
 
   describe('State Operations', () => {
     describe('Minimize and Restore', () => {
-      it('should maintain always-on-top after minimize/restore', async () => {
+      it('should maintain always-on-top after minimize/restore', async function () {
+        // Skip on Linux CI - Xvfb doesn't support window minimize detection
+        if (await isLinuxCI()) {
+          E2ELogger.info(
+            'always-on-top',
+            'Skipping - Linux CI uses headless Xvfb without window manager'
+          );
+          this.skip();
+        }
         E2ELogger.info('always-on-top', 'Testing minimize/restore persistence');
 
         await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
@@ -789,7 +800,18 @@ describe('Always On Top', () => {
     describe('Toggle During Minimize', () => {
       it('should toggle always-on-top while window is minimized', async function () {
         if (await isMacOS()) {
-          E2ELogger.info('always-on-top', 'Skipping: macOS does not support alwaysOnTop changes while minimized');
+          E2ELogger.info(
+            'always-on-top',
+            'Skipping: macOS does not support alwaysOnTop changes while minimized'
+          );
+          this.skip();
+        }
+        // Skip on Linux CI - Xvfb doesn't support window minimize detection
+        if (await isLinuxCI()) {
+          E2ELogger.info(
+            'always-on-top',
+            'Skipping - Linux CI uses headless Xvfb without window manager'
+          );
           this.skip();
         }
         E2ELogger.info('always-on-top', 'Testing toggle during minimize');
@@ -814,7 +836,10 @@ describe('Always On Top', () => {
 
       it('should toggle off while minimized and persist after restore', async function () {
         if (await isMacOS()) {
-          E2ELogger.info('always-on-top', 'Skipping: macOS does not support alwaysOnTop changes while minimized');
+          E2ELogger.info(
+            'always-on-top',
+            'Skipping: macOS does not support alwaysOnTop changes while minimized'
+          );
           this.skip();
         }
         E2ELogger.info('always-on-top', 'Testing toggle off during minimize');

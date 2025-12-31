@@ -23,7 +23,7 @@ describe('Single Instance Lock', () => {
     // SETUP: Get the userData path from the running instance to ensure the second instance uses the same lock
     // This is permitted as Test Setup Inspection, not triggering app behavior.
     userDataPath = await browser.electron.execute((electron) => electron.app.getPath('userData'));
-    
+
     // Ensure app is loaded
     await waitForAppReady();
   });
@@ -39,7 +39,9 @@ describe('Single Instance Lock', () => {
     const isFocusedInitial = await focusWindow();
     if (!isFocusedInitial) {
       // Skip focus assertions in environments that don't support programmatic focus
-      console.warn('[E2E] Environment does not support programmatic focus - skipping focus assertion');
+      console.warn(
+        '[E2E] Environment does not support programmatic focus - skipping focus assertion'
+      );
     }
 
     // 2. Action: Spawn second instance
@@ -61,13 +63,22 @@ describe('Single Instance Lock', () => {
 
     // 3. Verify: First instance should still be focused
     // Wait briefly for potential focus flakiness (though it should stay focused)
-    await browser.pause(1000); 
-    
+    await browser.pause(1000);
+
     const isFocusedAfter = await browser.execute(() => document.hasFocus());
     expect(isFocusedAfter).toBe(true);
   });
 
-  it('should restore window from minimized state when second instance is launched', async () => {
+  // Linux: Window minimization doesn't work in headless/Xvfb environments due to lack of a window manager
+  // The test relies on isMinimized() which always returns false when there's no WM to handle minimize states
+  it('should restore window from minimized state when second instance is launched', async function () {
+    // Skip on Linux due to Xvfb/headless limitations
+    if (process.platform === 'linux') {
+      console.log(
+        '[SKIPPED] Window minimization test skipped on headless Linux - no window manager'
+      );
+      this.skip();
+    }
     // 1. Action: Minimize the window using the custom titlebar button
     // This simulates a real user hiding the application
     const isMinimizeButtonVisible = await mainWindow.isMinimizeButtonDisplayed();
@@ -80,10 +91,13 @@ describe('Single Instance Lock', () => {
 
     // 2. Verify: Window is effectively minimized
     // Use Electron's native API instead of document.hidden which doesn't work on headless Linux
-    await browser.waitUntil(async () => {
+    await browser.waitUntil(
+      async () => {
         return await isWindowMinimized();
-    }, { timeout: 5000, timeoutMsg: 'Window did not minimize (isMinimized remained false)' });
-    
+      },
+      { timeout: 5000, timeoutMsg: 'Window did not minimize (isMinimized remained false)' }
+    );
+
     const isMinimized = await isWindowMinimized();
     expect(isMinimized).toBe(true);
 
