@@ -135,10 +135,19 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
       setIndividualEnabled: vi.fn(),
       registerAll: vi.fn(),
       unregisterAll: vi.fn(),
+      updateAllSettings: vi.fn(),
+      updateAllAccelerators: vi.fn(),
       getIndividualSettings: vi.fn().mockReturnValue({
         alwaysOnTop: true,
         bossKey: true,
         quickChat: true,
+        printToPdf: true,
+      }),
+      getHotkeyAccelerators: vi.fn().mockReturnValue({
+        alwaysOnTop: 'Ctrl+Shift+T',
+        bossKey: 'Ctrl+Shift+B',
+        quickChat: 'Ctrl+Shift+X',
+        printToPdf: 'Ctrl+Shift+P',
       }),
     };
   });

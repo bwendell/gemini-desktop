@@ -60,6 +60,13 @@ const mockElectronAPI = {
   getHotkeysEnabled: vi.fn().mockResolvedValue({ enabled: true }),
   setHotkeysEnabled: vi.fn(),
   onHotkeysChanged: vi.fn().mockReturnValue(() => {}),
+  getHotkeyAccelerators: vi.fn().mockResolvedValue({
+    alwaysOnTop: 'Ctrl+Shift+T',
+    bossKey: 'Ctrl+Shift+B',
+    quickChat: 'Ctrl+Shift+X',
+    printToPdf: 'Ctrl+Shift+P',
+  }),
+  onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(() => {}),
   getAlwaysOnTop: vi.fn().mockResolvedValue({ enabled: false }),
   setAlwaysOnTop: vi.fn(),
   onAlwaysOnTopChanged: vi.fn().mockReturnValue(() => {}),
@@ -72,6 +79,9 @@ const mockElectronAPI = {
   onUpdateError: vi.fn().mockReturnValue(() => {}),
   onUpdateNotAvailable: vi.fn().mockReturnValue(() => {}),
   onDownloadProgress: vi.fn().mockReturnValue(() => {}),
+  printToPdf: vi.fn(),
+  onPrintToPdfSuccess: vi.fn().mockReturnValue(() => {}),
+  onPrintToPdfError: vi.fn().mockReturnValue(() => {}),
   devShowBadge: vi.fn(),
   devClearBadge: vi.fn(),
   platform: 'win32',
@@ -94,7 +104,7 @@ describe('Offline Mode Integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock navigator.onLine
     onlineGetter = vi.spyOn(navigator, 'onLine', 'get');
     onlineGetter.mockReturnValue(true);
@@ -146,7 +156,7 @@ describe('Offline Mode Integration', () => {
 
       // Overlay should still be visible because error state is still set
       expect(screen.getByTestId('offline-overlay')).toBeInTheDocument();
-      
+
       // User should click retry to recover
       const retryButton = screen.getByTestId('offline-retry-button');
       expect(retryButton).toBeInTheDocument();
@@ -184,7 +194,7 @@ describe('Offline Mode Integration', () => {
       });
 
       const retryButton = screen.getByTestId('offline-retry-button');
-      
+
       await act(async () => {
         fireEvent.click(retryButton);
       });
@@ -203,13 +213,13 @@ describe('Offline Mode Integration', () => {
 
       // Check for icon
       expect(screen.getByTestId('offline-icon')).toBeInTheDocument();
-      
+
       // Check for heading
       expect(screen.getByRole('heading', { name: /network unavailable/i })).toBeInTheDocument();
-      
+
       // Check for message
       expect(screen.getByText(/please check your internet connection/i)).toBeInTheDocument();
-      
+
       // Check for retry button
       expect(screen.getByTestId('offline-retry-button')).toBeInTheDocument();
     });

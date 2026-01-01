@@ -41,6 +41,27 @@ describe('useMenuDefinitions', () => {
       expect(fileMenu.items[1]).toEqual({ separator: true });
     });
 
+    it('has Print to PDF item and action works', () => {
+      const { result } = renderHook(() => useMenuDefinitions());
+      const fileMenu = result.current[0];
+      const printItem = fileMenu.items[2];
+
+      expect(printItem).toHaveProperty('label', 'Print to PDF');
+      expect(printItem).toHaveProperty('action');
+
+      if ('action' in printItem && printItem.action) {
+        printItem.action();
+        expect(mockElectronAPI.printToPdf).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it('has separator after Print to PDF', () => {
+      const { result } = renderHook(() => useMenuDefinitions());
+      const fileMenu = result.current[0];
+
+      expect(fileMenu.items[3]).toEqual({ separator: true });
+    });
+
     it('has Sign in to Google item and action works', async () => {
       const reloadSpy = vi.fn();
       const originalLocation = window.location;
@@ -52,7 +73,7 @@ describe('useMenuDefinitions', () => {
 
       const { result } = renderHook(() => useMenuDefinitions());
       const fileMenu = result.current[0];
-      const signInItem = fileMenu.items[2];
+      const signInItem = fileMenu.items[4];
 
       expect(signInItem).toHaveProperty('label', 'Sign in to Google');
       expect(signInItem).toHaveProperty('action');
@@ -74,7 +95,7 @@ describe('useMenuDefinitions', () => {
     it('has Options item', () => {
       const { result } = renderHook(() => useMenuDefinitions());
       const fileMenu = result.current[0];
-      const optionsItem = fileMenu.items[3];
+      const optionsItem = fileMenu.items[5];
 
       expect(optionsItem).toHaveProperty('label', 'Options');
       expect(optionsItem).toHaveProperty('disabled', false);
@@ -90,13 +111,13 @@ describe('useMenuDefinitions', () => {
       const { result } = renderHook(() => useMenuDefinitions());
       const fileMenu = result.current[0];
 
-      expect(fileMenu.items[4]).toEqual({ separator: true });
+      expect(fileMenu.items[6]).toEqual({ separator: true });
     });
 
     it('Exit action calls electronAPI.closeWindow()', () => {
       const { result } = renderHook(() => useMenuDefinitions());
       const fileMenu = result.current[0];
-      const exitItem = fileMenu.items[5];
+      const exitItem = fileMenu.items[7];
 
       expect(exitItem).toHaveProperty('label', 'Exit');
 

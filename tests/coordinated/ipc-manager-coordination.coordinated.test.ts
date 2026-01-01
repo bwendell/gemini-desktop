@@ -42,6 +42,11 @@ describe('IPC Manager Coordination', () => {
       hotkeyAlwaysOnTop: true,
       hotkeyBossKey: true,
       hotkeyQuickChat: true,
+      hotkeyPrintToPdf: true,
+      acceleratorAlwaysOnTop: 'Ctrl+Shift+T',
+      acceleratorBossKey: 'Ctrl+Shift+B',
+      acceleratorQuickChat: 'Ctrl+Shift+X',
+      acceleratorPrintToPdf: 'Ctrl+Shift+P',
       autoUpdateEnabled: true,
     };
     mockStore = {
@@ -55,8 +60,24 @@ describe('IPC Manager Coordination', () => {
     // Create mock HotkeyManager
     mockHotkeyManager = {
       setIndividualEnabled: vi.fn(),
+      setAccelerator: vi.fn(),
       registerAll: vi.fn(),
+      registerShortcuts: vi.fn(),
       unregisterAll: vi.fn(),
+      updateAllSettings: vi.fn(),
+      updateAllAccelerators: vi.fn(),
+      getIndividualSettings: vi.fn().mockReturnValue({
+        alwaysOnTop: true,
+        bossKey: true,
+        quickChat: true,
+        printToPdf: true,
+      }),
+      getHotkeyAccelerators: vi.fn().mockReturnValue({
+        alwaysOnTop: 'Ctrl+Shift+T',
+        bossKey: 'Ctrl+Shift+B',
+        quickChat: 'Ctrl+Shift+X',
+        printToPdf: 'Ctrl+Shift+P',
+      }),
     };
 
     // Create mock UpdateManager

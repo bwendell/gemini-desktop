@@ -24,6 +24,7 @@ export * from './trayActions';
 // Feature-specific actions
 export * from './quickChatActions';
 export * from './alwaysOnTopActions';
+export * from './printActions';
 
 // NEW: Reusable test patterns
 export * from './assertions';

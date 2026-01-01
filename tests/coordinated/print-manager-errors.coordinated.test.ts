@@ -34,9 +34,76 @@ vi.mock('fs/promises', () => ({
   },
 }));
 
+// Mock pdfkit to avoid needing real PNG data
+vi.mock('pdfkit', () => {
+  return {
+    default: class MockPDFDocument {
+      _callbacks: { [key: string]: (...args: any[]) => void } = {};
+
+      constructor() {}
+
+      on(event: string, callback: (...args: any[]) => void) {
+        this._callbacks[event] = callback;
+        return this;
+      }
+
+      addPage() {
+        return this;
+      }
+
+      image() {
+        return this;
+      }
+
+      openImage() {
+        return { width: 1920, height: 1000 };
+      }
+
+      end() {
+        if (this._callbacks['data']) {
+          this._callbacks['data'](Buffer.from('mock-pdf-content'));
+        }
+        if (this._callbacks['end']) {
+          this._callbacks['end']();
+        }
+      }
+    },
+  };
+});
+
 import PrintManager from '../../src/main/managers/printManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import { IPC_CHANNELS } from '../../src/shared/constants/ipc-channels';
+
+/**
+ * Creates a mock webContents with all required methods for scrolling capture.
+ * Uses values that result in exactly 1 capture to keep tests fast.
+ */
+function createMockWebContentsForCapture() {
+  // scrollHeight = 800, clientHeight = 1000 -> stepSize = 900, totalCaptures = 1
+  const mockImage = {
+    toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png-data')),
+    getSize: vi.fn().mockReturnValue({ width: 1920, height: 1000 }),
+  };
+
+  const mockGeminiFrame = {
+    url: 'https://gemini.google.com/app',
+    executeJavaScript: vi.fn().mockResolvedValue({
+      scrollHeight: 800,
+      scrollTop: 0,
+      clientHeight: 1000,
+    }),
+  };
+
+  return {
+    send: vi.fn(),
+    isDestroyed: vi.fn().mockReturnValue(false),
+    capturePage: vi.fn().mockResolvedValue(mockImage),
+    mainFrame: {
+      frames: [mockGeminiFrame],
+    },
+  };
+}
 
 describe('PrintManager Error Handling (Isolated)', () => {
   let printManager: PrintManager;
@@ -75,29 +142,30 @@ describe('PrintManager Error Handling (Isolated)', () => {
     expect(mockLogger.log).toHaveBeenCalled();
   });
 
-  it('5.3.12.2: Cleanup - should not write file if PDF generation fails', async () => {
-    const mockWebContents = {
-      printToPDF: vi.fn().mockRejectedValue(new Error('PDF break')),
-      send: vi.fn(),
-      isDestroyed: vi.fn().mockReturnValue(false),
-    };
+  it('5.3.12.2: Cleanup - should not write file if capture fails', async () => {
+    const mockWebContents = createMockWebContentsForCapture();
+    mockWebContents.capturePage.mockRejectedValue(new Error('Capture break'));
 
     await printManager.printToPdf(mockWebContents as any);
 
     expect(mockWriteFile).not.toHaveBeenCalled();
-    expect(mockWebContents.send).toHaveBeenCalledWith(IPC_CHANNELS.PRINT_TO_PDF_ERROR, 'PDF break');
+    expect(mockWebContents.send).toHaveBeenCalledWith(
+      IPC_CHANNELS.PRINT_TO_PDF_ERROR,
+      'Capture break'
+    );
   });
 
   it('5.3.12.3: Rapid Triggers - should ignore second call when one is in progress', async () => {
-    const mockWebContents = {
-      printToPDF: vi.fn().mockImplementation(async () => {
-        // Simulate some delay using fake timers
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        return Buffer.from('pdf');
-      }),
-      send: vi.fn(),
-      isDestroyed: vi.fn().mockReturnValue(false),
-    };
+    const mockWebContents = createMockWebContentsForCapture();
+
+    // Make capturePage take some time
+    mockWebContents.capturePage.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return {
+        toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+        getSize: vi.fn().mockReturnValue({ width: 1920, height: 1000 }),
+      };
+    });
 
     // Trigger two calls immediately
     const p1 = printManager.printToPdf(mockWebContents as any);
@@ -107,19 +175,15 @@ describe('PrintManager Error Handling (Isolated)', () => {
     await vi.advanceTimersByTimeAsync(50);
     await Promise.all([p1, p2]);
 
-    // Only one printToPDF call should have happened
-    expect(mockWebContents.printToPDF).toHaveBeenCalledTimes(1);
+    // Only one capture call should have happened
+    expect(mockWebContents.capturePage).toHaveBeenCalledTimes(1);
 
     // Verification of "Ignoring" behavior: logger should have warned
     expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('already in progress'));
   });
 
   it('5.3.12.4: Concurrent Requests - second request while dialog is open should be ignored', async () => {
-    const mockWebContents = {
-      printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-      send: vi.fn(),
-      isDestroyed: vi.fn().mockReturnValue(false),
-    };
+    const mockWebContents = createMockWebContentsForCapture();
 
     // Mock showSaveDialog to delay
     (dialog.showSaveDialog as any).mockImplementation(async () => {
@@ -129,7 +193,7 @@ describe('PrintManager Error Handling (Isolated)', () => {
 
     const p1 = printManager.printToPdf(mockWebContents as any);
 
-    // Advance time slightly so first one reaches dialog (past printToPDF)
+    // Advance time slightly so first one reaches dialog (past capture)
     await vi.advanceTimersByTimeAsync(10);
 
     const p2 = printManager.printToPdf(mockWebContents as any);

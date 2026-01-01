@@ -75,6 +75,12 @@ export const IPC_CHANNELS = {
   PRINT_TO_PDF_SUCCESS: 'print-to-pdf:success',
   PRINT_TO_PDF_ERROR: 'print-to-pdf:error',
 
+  // Print Progress (for scrolling screenshot capture)
+  PRINT_PROGRESS_START: 'print:progress-start',
+  PRINT_PROGRESS_UPDATE: 'print:progress-update',
+  PRINT_PROGRESS_END: 'print:progress-end',
+  PRINT_CANCEL: 'print:cancel',
+
   // Dev Testing (only used in development for manual testing)
   DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
   DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',

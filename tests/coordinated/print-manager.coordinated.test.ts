@@ -46,8 +46,84 @@ vi.mock('fs/promises', () => ({
   },
 }));
 
+// Mock pdfkit to avoid needing real PNG data
+vi.mock('pdfkit', () => {
+  return {
+    default: class MockPDFDocument {
+      _callbacks: { [key: string]: (...args: any[]) => void } = {};
+
+      constructor() {}
+
+      on(event: string, callback: (...args: any[]) => void) {
+        this._callbacks[event] = callback;
+        return this;
+      }
+
+      addPage() {
+        return this;
+      }
+
+      image() {
+        return this;
+      }
+
+      openImage() {
+        return { width: 1920, height: 1080 };
+      }
+
+      end() {
+        if (this._callbacks['data']) {
+          this._callbacks['data'](Buffer.from('mock-pdf-content'));
+        }
+        if (this._callbacks['end']) {
+          this._callbacks['end']();
+        }
+      }
+    },
+  };
+});
+
 // Import PrintManager after mocks are set up
 import PrintManager from '../../src/main/managers/printManager';
+
+/**
+ * Creates a mock webContents with all required methods for scrolling capture.
+ * Default values result in a single capture to keep tests fast.
+ */
+function createMockWebContentsForCapture(
+  options: {
+    scrollHeight?: number;
+    clientHeight?: number;
+  } = {}
+) {
+  // Use values that result in exactly 1 capture: ceil(scrollHeight / (clientHeight * 0.9)) = 1
+  // With scrollHeight = 800 and clientHeight = 1000, stepSize = 900, totalCaptures = 1
+  const { scrollHeight = 800, clientHeight = 1000 } = options;
+
+  const mockImage = {
+    toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png-data')),
+    getSize: vi.fn().mockReturnValue({ width: 1920, height: clientHeight }),
+  };
+
+  const mockGeminiFrame = {
+    url: 'https://gemini.google.com/app',
+    executeJavaScript: vi.fn().mockResolvedValue({
+      scrollHeight,
+      scrollTop: 0,
+      clientHeight,
+    }),
+  };
+
+  return {
+    send: vi.fn(),
+    getURL: vi.fn().mockReturnValue('file:///mock/app.html'),
+    isDestroyed: vi.fn().mockReturnValue(false),
+    capturePage: vi.fn().mockResolvedValue(mockImage),
+    mainFrame: {
+      frames: [mockGeminiFrame],
+    },
+  };
+}
 
 describe('PrintManager Filename Uniqueness', () => {
   let printManager: PrintManager;
@@ -66,11 +142,7 @@ describe('PrintManager Filename Uniqueness', () => {
     // Default mockExistsSync to return false
     mockExistsSync.mockReturnValue(false);
 
-    mockWebContents = {
-      printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf content')),
-      send: vi.fn(),
-      isDestroyed: vi.fn().mockReturnValue(false),
-    };
+    mockWebContents = createMockWebContentsForCapture();
 
     mockWindowManager = {
       getMainWindow: vi.fn().mockReturnValue({
@@ -337,19 +409,12 @@ describe('PrintManager ↔ WindowManager Integration', () => {
       it('should use main window webContents for PDF generation', async () => {
         // Create main window and get reference to its webContents
         const mainWindow = windowManager.createMainWindow();
-        const mockWebContents = (mainWindow as any).webContents;
-
-        // Mock printToPDF on the main window's webContents
-        mockWebContents.printToPDF = vi.fn().mockResolvedValue(Buffer.from('pdf'));
+        const wc = (mainWindow as any).webContents;
 
         await printManager.printToPdf();
 
-        // Verify the main window's webContents.printToPDF was called
-        expect(mockWebContents.printToPDF).toHaveBeenCalledWith({
-          printBackground: true,
-          pageSize: 'A4',
-          landscape: false,
-        });
+        // Verify the main window's webContents.capturePage was called
+        expect(wc.capturePage).toHaveBeenCalled();
       });
     });
 
@@ -361,34 +426,24 @@ describe('PrintManager ↔ WindowManager Integration', () => {
         // Create main window but we'll provide different webContents
         const mainWindow = windowManager.createMainWindow();
         const mainWebContents = (mainWindow as any).webContents;
-        mainWebContents.printToPDF = vi.fn().mockResolvedValue(Buffer.from('main'));
 
         // Create explicit webContents to pass
-        const explicitWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('explicit')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+        const explicitWebContents = createMockWebContentsForCapture();
 
         await printManager.printToPdf(explicitWebContents as any);
 
         // Verify explicit webContents was used, not main window's
-        expect(explicitWebContents.printToPDF).toHaveBeenCalled();
-        expect(mainWebContents.printToPDF).not.toHaveBeenCalled();
+        expect(explicitWebContents.capturePage).toHaveBeenCalled();
+        expect(mainWebContents.capturePage).not.toHaveBeenCalled();
       });
 
       it('should use getMainWindow only for dialog parent when explicit webContents provided', async () => {
         // Create main window
         const mainWindow = windowManager.createMainWindow();
         const mainWebContents = (mainWindow as any).webContents;
-        mainWebContents.printToPDF = vi.fn().mockResolvedValue(Buffer.from('main'));
 
         // Create explicit webContents to pass
-        const explicitWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+        const explicitWebContents = createMockWebContentsForCapture();
 
         const getMainWindowSpy = vi.spyOn(windowManager, 'getMainWindow');
 
@@ -397,8 +452,8 @@ describe('PrintManager ↔ WindowManager Integration', () => {
         // getMainWindow() IS called for the save dialog parent, but main window's
         // webContents should NOT be used for PDF generation when explicit webContents provided
         expect(getMainWindowSpy).toHaveBeenCalled();
-        expect(explicitWebContents.printToPDF).toHaveBeenCalled();
-        expect(mainWebContents.printToPDF).not.toHaveBeenCalled();
+        expect(explicitWebContents.capturePage).toHaveBeenCalled();
+        expect(mainWebContents.capturePage).not.toHaveBeenCalled();
       });
     });
 
@@ -431,21 +486,21 @@ describe('PrintManager ↔ WindowManager Integration', () => {
     // =========================================================================
     describe('Destroyed WebContents', () => {
       it('should not send success IPC when webContents is destroyed after PDF generation', async () => {
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+        const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
+        const mockWebContents = createMockWebContentsForCapture();
 
         (dialog.showSaveDialog as any).mockResolvedValue({
           canceled: false,
           filePath: '/mock/output.pdf',
         });
 
-        // Mark as destroyed AFTER PDF generation starts
-        mockWebContents.printToPDF.mockImplementation(async () => {
+        // Mark as destroyed AFTER capture starts
+        mockWebContents.capturePage.mockImplementation(async () => {
           mockWebContents.isDestroyed.mockReturnValue(true);
-          return Buffer.from('pdf');
+          return {
+            toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+            getSize: vi.fn().mockReturnValue({ width: 1920, height: 1080 }),
+          };
         });
 
         await printManager.printToPdf(mockWebContents as any);
@@ -453,24 +508,29 @@ describe('PrintManager ↔ WindowManager Integration', () => {
         // File should still be written
         expect(mockWriteFile).toHaveBeenCalled();
 
-        // But IPC should NOT be sent because webContents is destroyed
-        expect(mockWebContents.send).not.toHaveBeenCalled();
+        // But success/error IPC should NOT be sent because webContents is destroyed
+        expect(mockWebContents.send).not.toHaveBeenCalledWith(
+          IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
+          expect.anything()
+        );
       });
 
       it('should not send error IPC when webContents is already destroyed', async () => {
-        const mockWebContents = {
-          printToPDF: vi.fn().mockRejectedValue(new Error('Test error')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(true),
-        };
+        const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
+        const mockWebContents = createMockWebContentsForCapture();
+        mockWebContents.isDestroyed.mockReturnValue(true);
+        mockWebContents.capturePage.mockRejectedValue(new Error('Test error'));
 
         await printManager.printToPdf(mockWebContents as any);
 
         // Error should be logged
         expect(mockLogger.error).toHaveBeenCalled();
 
-        // But IPC should NOT be sent because webContents is destroyed
-        expect(mockWebContents.send).not.toHaveBeenCalled();
+        // But error IPC should NOT be sent because webContents is destroyed
+        expect(mockWebContents.send).not.toHaveBeenCalledWith(
+          IPC_CHANNELS.PRINT_TO_PDF_ERROR,
+          expect.anything()
+        );
       });
     });
 
@@ -479,11 +539,7 @@ describe('PrintManager ↔ WindowManager Integration', () => {
     // =========================================================================
     describe('IPC Feedback', () => {
       it('should send success IPC with file path after save', async () => {
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+        const mockWebContents = createMockWebContentsForCapture();
 
         const savedPath = '/test/saved-file.pdf';
         (dialog.showSaveDialog as any).mockResolvedValue({
@@ -499,27 +555,20 @@ describe('PrintManager ↔ WindowManager Integration', () => {
         );
       });
 
-      it('should send error IPC with message on PDF generation failure', async () => {
-        const mockWebContents = {
-          printToPDF: vi.fn().mockRejectedValue(new Error('PDF generation failed')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+      it('should send error IPC with message on capture failure', async () => {
+        const mockWebContents = createMockWebContentsForCapture();
+        mockWebContents.capturePage.mockRejectedValue(new Error('Capture failed'));
 
         await printManager.printToPdf(mockWebContents as any);
 
         expect(mockWebContents.send).toHaveBeenCalledWith(
           IPC_CHANNELS.PRINT_TO_PDF_ERROR,
-          'PDF generation failed'
+          'Capture failed'
         );
       });
 
       it('should send error IPC with message on file write failure', async () => {
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+        const mockWebContents = createMockWebContentsForCapture();
 
         (dialog.showSaveDialog as any).mockResolvedValue({
           canceled: false,
@@ -596,11 +645,7 @@ describe('PrintManager ↔ WindowManager Integration', () => {
         (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
 
         // We need to provide webContents because printToPdf returns early if no main window and no sender
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+        const mockWebContents = createMockWebContentsForCapture();
 
         await printManager.printToPdf(mockWebContents as any);
 
@@ -608,11 +653,8 @@ describe('PrintManager ↔ WindowManager Integration', () => {
       });
 
       it('5.3.10.3: should abort gracefully when user cancels dialog', async () => {
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+        const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
+        const mockWebContents = createMockWebContentsForCapture();
 
         (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
 
@@ -621,16 +663,20 @@ describe('PrintManager ↔ WindowManager Integration', () => {
         // Verify file was NOT written
         expect(mockWriteFile).not.toHaveBeenCalled();
 
-        // Verify no success/error IPC sent
-        expect(mockWebContents.send).not.toHaveBeenCalled();
+        // Verify no success/error IPC sent (progress IPC is OK)
+        expect(mockWebContents.send).not.toHaveBeenCalledWith(
+          IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
+          expect.anything()
+        );
+        expect(mockWebContents.send).not.toHaveBeenCalledWith(
+          IPC_CHANNELS.PRINT_TO_PDF_ERROR,
+          expect.anything()
+        );
       });
 
       it('5.3.10.4: should abort gracefully when filePath is empty', async () => {
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+        const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
+        const mockWebContents = createMockWebContentsForCapture();
 
         (dialog.showSaveDialog as any).mockResolvedValue({ canceled: false, filePath: '' });
 
@@ -639,38 +685,33 @@ describe('PrintManager ↔ WindowManager Integration', () => {
         // Verify file was NOT written
         expect(mockWriteFile).not.toHaveBeenCalled();
 
-        // Verify no success/error IPC sent
-        expect(mockWebContents.send).not.toHaveBeenCalled();
+        // Verify no success/error IPC sent (progress IPC is OK)
+        expect(mockWebContents.send).not.toHaveBeenCalledWith(
+          IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
+          expect.anything()
+        );
+        expect(mockWebContents.send).not.toHaveBeenCalledWith(
+          IPC_CHANNELS.PRINT_TO_PDF_ERROR,
+          expect.anything()
+        );
       });
     });
 
     // =========================================================================
-    // Test: PDF Generation Options (5.3.11)
+    // Test: Scrolling Capture Workflow (formerly PDF Generation Options)
     // =========================================================================
-    describe('PDF Generation Options', () => {
-      it('5.3.11.1: should call printToPDF with correct formatting options', async () => {
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+    describe('Scrolling Capture Workflow', () => {
+      it('5.3.11.1: should use capturePage for viewport capture', async () => {
+        const mockWebContents = createMockWebContentsForCapture();
 
         await printManager.printToPdf(mockWebContents as any);
 
-        expect(mockWebContents.printToPDF).toHaveBeenCalledWith({
-          printBackground: true,
-          pageSize: 'A4',
-          landscape: false,
-        });
+        // Verify capturePage was called (used by captureViewport)
+        expect(mockWebContents.capturePage).toHaveBeenCalled();
       });
 
-      it('5.3.11.2: should correctly pass the buffer from printToPDF to fs.writeFile', async () => {
-        const testBuffer = Buffer.from('test pdf content');
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(testBuffer),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+      it('5.3.11.2: should write PDF to file on successful capture', async () => {
+        const mockWebContents = createMockWebContentsForCapture();
 
         const savedPath = '/mock/downloads/output.pdf';
         (dialog.showSaveDialog as any).mockResolvedValue({
@@ -680,18 +721,12 @@ describe('PrintManager ↔ WindowManager Integration', () => {
 
         await printManager.printToPdf(mockWebContents as any);
 
-        // Verify fs.writeFile was called with the exact buffer from printToPDF
-        expect(mockWriteFile).toHaveBeenCalledWith(savedPath, testBuffer);
+        // Verify fs.writeFile was called with a buffer (the stitched PDF)
+        expect(mockWriteFile).toHaveBeenCalledWith(savedPath, expect.any(Buffer));
       });
 
-      it('5.3.11.3: should handle large buffer responses correctly', async () => {
-        // Create a 5MB buffer
-        const largeBuffer = Buffer.alloc(5 * 1024 * 1024, 'a');
-        const mockWebContents = {
-          printToPDF: vi.fn().mockResolvedValue(largeBuffer),
-          send: vi.fn(),
-          isDestroyed: vi.fn().mockReturnValue(false),
-        };
+      it('5.3.11.3: should send success IPC after saving', async () => {
+        const mockWebContents = createMockWebContentsForCapture();
 
         const savedPath = '/mock/downloads/large.pdf';
         (dialog.showSaveDialog as any).mockResolvedValue({
@@ -701,13 +736,412 @@ describe('PrintManager ↔ WindowManager Integration', () => {
 
         await printManager.printToPdf(mockWebContents as any);
 
-        // Verify flow completed successfully
-        expect(mockWriteFile).toHaveBeenCalledWith(savedPath, largeBuffer);
+        // Verify IPC success message was sent
         expect(mockWebContents.send).toHaveBeenCalledWith(
           IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
           savedPath
         );
       });
+      // =========================================================================
+      // Test: Progress Reporting
+      // =========================================================================
+      describe('Progress Reporting', () => {
+        it('should send structured object for PRINT_PROGRESS_START', async () => {
+          const mockWebContents = createMockWebContentsForCapture({
+            scrollHeight: 2000,
+            clientHeight: 1000,
+          });
+          // totalCaptures = ceil(2000 / (1000 * 0.9)) = ceil(2000 / 900) = 3
+
+          await printManager.printToPdf(mockWebContents as any);
+
+          expect(mockWebContents.send).toHaveBeenCalledWith(
+            IPC_CHANNELS.PRINT_PROGRESS_START,
+            expect.objectContaining({ totalPages: 3 })
+          );
+        });
+
+        it('should send structured object for PRINT_PROGRESS_UPDATE', async () => {
+          const mockWebContents = createMockWebContentsForCapture({
+            scrollHeight: 2000,
+            clientHeight: 1000,
+          });
+
+          await printManager.printToPdf(mockWebContents as any);
+
+          // Should have 3 progress updates
+          expect(mockWebContents.send).toHaveBeenCalledWith(
+            IPC_CHANNELS.PRINT_PROGRESS_UPDATE,
+            expect.objectContaining({
+              currentPage: 1,
+              totalPages: 3,
+              progress: expect.any(Number),
+            })
+          );
+          expect(mockWebContents.send).toHaveBeenCalledWith(
+            IPC_CHANNELS.PRINT_PROGRESS_UPDATE,
+            expect.objectContaining({
+              currentPage: 2,
+              totalPages: 3,
+              progress: expect.any(Number),
+            })
+          );
+          expect(mockWebContents.send).toHaveBeenCalledWith(
+            IPC_CHANNELS.PRINT_PROGRESS_UPDATE,
+            expect.objectContaining({
+              currentPage: 3,
+              totalPages: 3,
+              progress: 100,
+            })
+          );
+        });
+
+        it('should send structured object for PRINT_PROGRESS_END', async () => {
+          const mockWebContents = createMockWebContentsForCapture();
+          (dialog.showSaveDialog as any).mockResolvedValue({
+            canceled: false,
+            filePath: '/mock/test.pdf',
+          });
+
+          await printManager.printToPdf(mockWebContents as any);
+
+          expect(mockWebContents.send).toHaveBeenCalledWith(
+            IPC_CHANNELS.PRINT_PROGRESS_END,
+            expect.objectContaining({
+              cancelled: false,
+              success: true,
+            })
+          );
+        });
+
+        it('should report cancelled=true in PRINT_PROGRESS_END when cancelled', async () => {
+          const mockWebContents = createMockWebContentsForCapture({
+            scrollHeight: 3000, // Multiple pages to allow mid-capture cancel
+            clientHeight: 1000,
+          });
+
+          // Cancel mid-capture
+          mockWebContents.capturePage.mockImplementationOnce(async () => {
+            printManager.cancel();
+            return {
+              toPNG: vi.fn().mockReturnValue(Buffer.from('png')),
+              getSize: vi.fn().mockReturnValue({ width: 1920, height: 1080 }),
+            };
+          });
+
+          await printManager.printToPdf(mockWebContents as any);
+
+          expect(mockWebContents.send).toHaveBeenCalledWith(
+            IPC_CHANNELS.PRINT_PROGRESS_END,
+            expect.objectContaining({
+              cancelled: true,
+              success: false,
+            })
+          );
+        });
+      });
     });
   });
+});
+
+/**
+ * ============================================================================
+ * Task 7.7: Full Conversation Print Coordination Tests
+ * ============================================================================
+ *
+ * These tests verify the scrolling screenshot capture flow coordination:
+ * - 7.7.1: Scroll position save/restore (reinterpreted from window sizing)
+ * - 7.7.2: Multi-frame coordination (main frame vs subframe detection)
+ * - 7.7.3: CSS injection is superseded by Task 8 (Scrolling Screenshot Capture)
+ */
+
+describe('Full Conversation Print Coordination (Task 7.7)', () => {
+  let printManager: PrintManager;
+  let mockWindowManager: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockExistsSync.mockReset();
+    mockExistsSync.mockReturnValue(false);
+    mockWriteFile.mockReset();
+    mockWriteFile.mockResolvedValue(undefined);
+    (app.getPath as any).mockReturnValue('/mock/downloads');
+    (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'));
+
+    mockWindowManager = {
+      getMainWindow: vi.fn().mockReturnValue(null),
+    };
+    printManager = new PrintManager(mockWindowManager);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // ===========================================================================
+  // 7.7.1: Scroll Position Save/Restore
+  // ===========================================================================
+  describe('7.7.1: Scroll Position Save/Restore', () => {
+    /**
+     * Creates a mock webContents that tracks scroll positions.
+     * Returns scrolls array that captures all scrollTo calls.
+     */
+    function createMockWebContentsWithScrollTracking(
+      initialScrollTop: number,
+      scrollHeight: number = 2000,
+      clientHeight: number = 600
+    ) {
+      const scrollPositions: number[] = [];
+
+      const mockGeminiFrame = {
+        url: 'https://gemini.google.com/app',
+        executeJavaScript: vi.fn().mockImplementation(async (script: string) => {
+          // Check if this is a scroll operation (scrollTop = X)
+          const scrollMatch = script.match(/scrollTop\s*=\s*(\d+)/);
+          if (scrollMatch) {
+            scrollPositions.push(parseInt(scrollMatch[1], 10));
+            return true;
+          }
+          // Otherwise return scroll info
+          return {
+            scrollHeight,
+            scrollTop: initialScrollTop,
+            clientHeight,
+          };
+        }),
+      };
+
+      const mockImage = {
+        toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+        getSize: vi.fn().mockReturnValue({ width: 1920, height: clientHeight }),
+      };
+
+      return {
+        webContents: {
+          send: vi.fn(),
+          getURL: vi.fn().mockReturnValue('file:///mock/app.html'),
+          isDestroyed: vi.fn().mockReturnValue(false),
+          capturePage: vi.fn().mockResolvedValue(mockImage),
+          mainFrame: {
+            frames: [mockGeminiFrame],
+          },
+        },
+        scrollPositions,
+        mockGeminiFrame,
+      };
+    }
+
+    it('should restore scroll position after successful capture', async () => {
+      const { webContents, scrollPositions } = createMockWebContentsWithScrollTracking(500);
+      (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
+
+      await printManager.printToPdf(webContents as any);
+
+      // Last scroll should restore to original position (500)
+      expect(scrollPositions[scrollPositions.length - 1]).toBe(500);
+    });
+
+    it('should restore scroll position after capture failure', async () => {
+      const { webContents, scrollPositions } = createMockWebContentsWithScrollTracking(750);
+
+      // Make capturePage fail after first scroll
+      let captureCount = 0;
+      webContents.capturePage.mockImplementation(async () => {
+        captureCount++;
+        if (captureCount === 2) {
+          throw new Error('Capture failed');
+        }
+        return {
+          toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+          getSize: vi.fn().mockReturnValue({ width: 1920, height: 600 }),
+        };
+      });
+
+      await printManager.printToPdf(webContents as any);
+
+      // Should still restore to original position (750) despite error
+      expect(scrollPositions[scrollPositions.length - 1]).toBe(750);
+    });
+
+    it('should restore scroll position after cancellation', async () => {
+      const { webContents, scrollPositions } = createMockWebContentsWithScrollTracking(
+        350, // Initial scroll position
+        3000, // Large scroll height for multiple captures
+        1000
+      );
+
+      // Cancel after first capture
+      let captureCount = 0;
+      webContents.capturePage.mockImplementation(async () => {
+        captureCount++;
+        if (captureCount === 1) {
+          printManager.cancel();
+        }
+        return {
+          toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+          getSize: vi.fn().mockReturnValue({ width: 1920, height: 1000 }),
+        };
+      });
+
+      await printManager.printToPdf(webContents as any);
+
+      // Should still restore to original position (350) despite cancellation
+      expect(scrollPositions[scrollPositions.length - 1]).toBe(350);
+    });
+  });
+
+  // ===========================================================================
+  // 7.7.2: Multi-Frame Coordination
+  // ===========================================================================
+  describe('7.7.2: Multi-Frame Coordination', () => {
+    /**
+     * Creates mock webContents for testing frame detection.
+     */
+    function createFrameDetectionWebContents(config: {
+      mainFrameUrl: string;
+      subframes?: Array<{ url: string; executeJavaScript: ReturnType<typeof vi.fn> }>;
+      mainFrameExecuteJS?: ReturnType<typeof vi.fn>;
+    }) {
+      const mockImage = {
+        toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+        getSize: vi.fn().mockReturnValue({ width: 1920, height: 600 }),
+      };
+
+      const defaultExecuteJS = vi.fn().mockResolvedValue({
+        scrollHeight: 800,
+        scrollTop: 0,
+        clientHeight: 1000,
+      });
+
+      return {
+        send: vi.fn(),
+        getURL: vi.fn().mockReturnValue(config.mainFrameUrl),
+        isDestroyed: vi.fn().mockReturnValue(false),
+        capturePage: vi.fn().mockResolvedValue(mockImage),
+        mainFrame: {
+          executeJavaScript: config.mainFrameExecuteJS ?? defaultExecuteJS,
+          frames: config.subframes ?? [],
+        },
+      };
+    }
+
+    it('should use main frame when Gemini is loaded directly', async () => {
+      const mainFrameExecuteJS = vi.fn().mockResolvedValue({
+        scrollHeight: 800,
+        scrollTop: 0,
+        clientHeight: 1000,
+      });
+
+      const webContents = createFrameDetectionWebContents({
+        mainFrameUrl: 'https://gemini.google.com/app/12345',
+        mainFrameExecuteJS,
+        subframes: [],
+      });
+
+      await printManager.printToPdf(webContents as any);
+
+      // Main frame's executeJavaScript should be called
+      expect(mainFrameExecuteJS).toHaveBeenCalled();
+    });
+
+    it('should use subframe when Gemini is embedded in iframe', async () => {
+      const mainFrameExecuteJS = vi.fn();
+      const subframeExecuteJS = vi.fn().mockResolvedValue({
+        scrollHeight: 800,
+        scrollTop: 0,
+        clientHeight: 1000,
+      });
+
+      const webContents = createFrameDetectionWebContents({
+        mainFrameUrl: 'file:///C:/app/index.html',
+        mainFrameExecuteJS,
+        subframes: [
+          {
+            url: 'https://gemini.google.com/app',
+            executeJavaScript: subframeExecuteJS,
+          },
+        ],
+      });
+
+      await printManager.printToPdf(webContents as any);
+
+      // Subframe's executeJavaScript should be called, not main frame's
+      expect(subframeExecuteJS).toHaveBeenCalled();
+      expect(mainFrameExecuteJS).not.toHaveBeenCalled();
+    });
+
+    it('should return null and capture single viewport when Gemini frame not found', async () => {
+      const mainFrameExecuteJS = vi.fn();
+
+      const webContents = createFrameDetectionWebContents({
+        mainFrameUrl: 'file:///C:/app/index.html',
+        mainFrameExecuteJS,
+        subframes: [
+          {
+            url: 'https://other-site.com',
+            executeJavaScript: vi.fn(),
+          },
+        ],
+      });
+
+      await printManager.printToPdf(webContents as any);
+
+      // Should still call capturePage as fallback (single viewport)
+      expect(webContents.capturePage).toHaveBeenCalled();
+
+      // Logger should warn about frame not found
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Gemini frame not found')
+      );
+    });
+
+    it('should handle gracefully when webContents is destroyed mid-print', async () => {
+      const subframeExecuteJS = vi.fn().mockResolvedValue({
+        scrollHeight: 2000,
+        scrollTop: 0,
+        clientHeight: 600,
+      });
+
+      const webContents = createFrameDetectionWebContents({
+        mainFrameUrl: 'file:///C:/app/index.html',
+        subframes: [
+          {
+            url: 'https://gemini.google.com/app',
+            executeJavaScript: subframeExecuteJS,
+          },
+        ],
+      });
+
+      // Mark as destroyed after first capture
+      let captureCount = 0;
+      webContents.capturePage.mockImplementation(async () => {
+        captureCount++;
+        if (captureCount >= 1) {
+          webContents.isDestroyed.mockReturnValue(true);
+        }
+        return {
+          toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+          getSize: vi.fn().mockReturnValue({ width: 1920, height: 600 }),
+        };
+      });
+
+      // Should not crash
+      await expect(printManager.printToPdf(webContents as any)).resolves.toBeUndefined();
+
+      // PRINT_PROGRESS_END should NOT be sent when webContents is destroyed
+      const progressEndCalls = webContents.send.mock.calls.filter(
+        (call: any[]) => call[0] === IPC_CHANNELS.PRINT_PROGRESS_END
+      );
+      expect(progressEndCalls.length).toBe(0);
+    });
+  });
+
+  // ===========================================================================
+  // 7.7.3: CSS Injection Lifecycle - SUPERSEDED
+  // ===========================================================================
+  // Task 7.7.3 (CSS Injection) is superseded by Task 8.
+  // The scrolling screenshot capture approach does not use CSS injection.
+  // No tests needed for CSS injection as it was never implemented.
 });

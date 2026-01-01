@@ -98,6 +98,12 @@ export const IPC_CHANNELS = {
   PRINT_TO_PDF_TRIGGER: 'print-to-pdf:trigger',
   PRINT_TO_PDF_SUCCESS: 'print-to-pdf:success',
   PRINT_TO_PDF_ERROR: 'print-to-pdf:error',
+
+  // Print Progress (for scrolling screenshot capture)
+  PRINT_PROGRESS_START: 'print:progress-start',
+  PRINT_PROGRESS_UPDATE: 'print:progress-update',
+  PRINT_PROGRESS_END: 'print:progress-end',
+  PRINT_CANCEL: 'print:cancel',
 } as const;
 
 // Expose window control APIs to renderer
@@ -594,6 +600,54 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.on(IPC_CHANNELS.PRINT_TO_PDF_ERROR, subscription);
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.PRINT_TO_PDF_ERROR, subscription);
+    };
+  },
+
+  /**
+   * Cancel an in-progress print operation.
+   */
+  cancelPrint: () => ipcRenderer.send(IPC_CHANNELS.PRINT_CANCEL),
+
+  /**
+   * Subscribe to print progress start events.
+   * Called when capture begins with total page count estimate.
+   */
+  onPrintProgressStart: (callback) => {
+    const subscription = (_event: Electron.IpcRendererEvent, data: { totalPages: number }) =>
+      callback(data);
+    ipcRenderer.on(IPC_CHANNELS.PRINT_PROGRESS_START, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.PRINT_PROGRESS_START, subscription);
+    };
+  },
+
+  /**
+   * Subscribe to print progress update events.
+   * Called for each captured page with current progress.
+   */
+  onPrintProgressUpdate: (callback) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      data: { currentPage: number; totalPages: number; progress: number }
+    ) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.PRINT_PROGRESS_UPDATE, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.PRINT_PROGRESS_UPDATE, subscription);
+    };
+  },
+
+  /**
+   * Subscribe to print progress end events.
+   * Called when capture completes or is cancelled.
+   */
+  onPrintProgressEnd: (callback) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      data: { cancelled: boolean; success: boolean }
+    ) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.PRINT_PROGRESS_END, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.PRINT_PROGRESS_END, subscription);
     };
   },
 };

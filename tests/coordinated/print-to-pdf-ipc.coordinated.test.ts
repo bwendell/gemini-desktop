@@ -33,8 +33,78 @@ vi.mock('fs/promises', () => ({
   },
 }));
 
+// Mock pdfkit to avoid needing real PNG data
+vi.mock('pdfkit', () => {
+  return {
+    default: class MockPDFDocument {
+      _callbacks: { [key: string]: (...args: any[]) => void } = {};
+
+      constructor() {}
+
+      on(event: string, callback: (...args: any[]) => void) {
+        this._callbacks[event] = callback;
+        return this;
+      }
+
+      addPage() {
+        return this;
+      }
+
+      image() {
+        return this;
+      }
+
+      openImage() {
+        return { width: 1920, height: 1080 };
+      }
+
+      end() {
+        // Emit data event with mock PDF content
+        if (this._callbacks['data']) {
+          this._callbacks['data'](Buffer.from('mock-pdf-content'));
+        }
+        // Emit end event
+        if (this._callbacks['end']) {
+          this._callbacks['end']();
+        }
+      }
+    },
+  };
+});
+
 // Helper to get registered IPC handlers
 const getListener = (channel: string) => (ipcMain as any)._listeners.get(channel);
+
+/**
+ * Creates a mock webContents with all required methods for scrolling capture.
+ * Uses values that result in exactly 1 capture to keep tests fast.
+ */
+function createMockWebContentsForCapture() {
+  // scrollHeight = 800, clientHeight = 1000 -> stepSize = 900, totalCaptures = 1
+  const mockImage = {
+    toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png-data')),
+    getSize: vi.fn().mockReturnValue({ width: 1920, height: 1000 }),
+  };
+
+  const mockGeminiFrame = {
+    url: 'https://gemini.google.com/app',
+    executeJavaScript: vi.fn().mockResolvedValue({
+      scrollHeight: 800,
+      scrollTop: 0,
+      clientHeight: 1000,
+    }),
+  };
+
+  return {
+    send: vi.fn(),
+    getURL: vi.fn().mockReturnValue('file:///mock/app.html'),
+    isDestroyed: vi.fn().mockReturnValue(false),
+    capturePage: vi.fn().mockResolvedValue(mockImage),
+    mainFrame: {
+      frames: [mockGeminiFrame],
+    },
+  };
+}
 
 describe('Print to PDF IPC Handler Coordination', () => {
   let ipcManager: IpcManager;
@@ -68,11 +138,6 @@ describe('Print to PDF IPC Handler Coordination', () => {
     };
 
     // Create mock managers
-    mockHotkeyManager = {
-      setIndividualEnabled: vi.fn(),
-      registerAll: vi.fn(),
-      unregisterAll: vi.fn(),
-    };
 
     mockUpdateManager = {
       isEnabled: vi.fn().mockReturnValue(true),
@@ -486,11 +551,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
       const { dialog } = await import('electron');
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf content')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
 
       const mockMainWindow = {
         isDestroyed: () => false,
@@ -523,11 +584,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
       const { dialog } = await import('electron');
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -554,14 +611,11 @@ describe('Print to PDF IPC Handler Coordination', () => {
   });
 
   describe('IPC Feedback - Error Channel', () => {
-    it('should send PRINT_TO_PDF_ERROR when printToPDF fails', async () => {
+    it('should send PRINT_TO_PDF_ERROR when capture fails', async () => {
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockRejectedValue(new Error('Renderer process crashed')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
+      mockWebContents.capturePage.mockRejectedValue(new Error('Renderer process crashed'));
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -580,11 +634,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
       const { dialog } = await import('electron');
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -605,14 +655,11 @@ describe('Print to PDF IPC Handler Coordination', () => {
       );
     });
 
-    it('should send "Unknown error" when non-Error object is thrown', async () => {
+    it('should send \"Unknown error\" when non-Error object is thrown', async () => {
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockRejectedValue('string error'),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
+      mockWebContents.capturePage.mockRejectedValue('string error');
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -627,14 +674,11 @@ describe('Print to PDF IPC Handler Coordination', () => {
       );
     });
 
-    it('should NOT send any IPC when user cancels dialog', async () => {
+    it('should NOT send success/error IPC when user cancels dialog', async () => {
       const { dialog } = await import('electron');
+      const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -647,20 +691,26 @@ describe('Print to PDF IPC Handler Coordination', () => {
       printManager = new PrintManager(windowManager);
       await printManager.printToPdf(mockWebContents as any);
 
-      // No IPC should be sent - cancellation is not an error
-      expect(mockWebContents.send).not.toHaveBeenCalled();
+      // Success/Error IPC should not be sent - cancellation is not an error
+      // (progress IPC messages are still sent before dialog)
+      expect(mockWebContents.send).not.toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
+        expect.anything()
+      );
+      expect(mockWebContents.send).not.toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_TO_PDF_ERROR,
+        expect.anything()
+      );
     });
   });
 
   describe('IPC Feedback - Destroyed WebContents Safety', () => {
     it('should NOT send success IPC when webContents is destroyed', async () => {
       const { dialog } = await import('electron');
+      const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(true), // Destroyed
-        send: vi.fn(),
-        printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
+      mockWebContents.isDestroyed.mockReturnValue(true); // Destroyed
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -677,16 +727,19 @@ describe('Print to PDF IPC Handler Coordination', () => {
 
       // File should still be written
       expect(mockWriteFile).toHaveBeenCalled();
-      // But NO IPC should be sent (prevents throwing on destroyed contents)
-      expect(mockWebContents.send).not.toHaveBeenCalled();
+      // NO success/error IPC should be sent (prevents throwing on destroyed contents)
+      expect(mockWebContents.send).not.toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
+        expect.anything()
+      );
     });
 
     it('should NOT send error IPC when webContents is destroyed', async () => {
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(true), // Destroyed
-        send: vi.fn(),
-        printToPDF: vi.fn().mockRejectedValue(new Error('Print failed')),
-      };
+      const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
+
+      const mockWebContents = createMockWebContentsForCapture();
+      mockWebContents.isDestroyed.mockReturnValue(true); // Destroyed
+      mockWebContents.capturePage.mockRejectedValue(new Error('Print failed'));
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -695,19 +748,20 @@ describe('Print to PDF IPC Handler Coordination', () => {
       printManager = new PrintManager(windowManager);
       await printManager.printToPdf(mockWebContents as any);
 
-      // Error occurred but IPC should NOT be sent
-      expect(mockWebContents.send).not.toHaveBeenCalled();
+      // Error occurred but error IPC should NOT be sent
+      expect(mockWebContents.send).not.toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_TO_PDF_ERROR,
+        expect.anything()
+      );
     });
 
     it('should check isDestroyed before sending success message', async () => {
       const { dialog } = await import('electron');
+      const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
       let destroyedAfterWrite = false;
-      const mockWebContents = {
-        isDestroyed: vi.fn(() => destroyedAfterWrite),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
+      mockWebContents.isDestroyed.mockImplementation(() => destroyedAfterWrite);
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -728,8 +782,11 @@ describe('Print to PDF IPC Handler Coordination', () => {
 
       // isDestroyed was checked
       expect(mockWebContents.isDestroyed).toHaveBeenCalled();
-      // No IPC sent because it was destroyed by the time we checked
-      expect(mockWebContents.send).not.toHaveBeenCalled();
+      // No success IPC sent because it was destroyed by the time we checked
+      expect(mockWebContents.send).not.toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
+        expect.anything()
+      );
     });
   });
 
@@ -738,11 +795,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
       const { dialog } = await import('electron');
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -759,14 +812,11 @@ describe('Print to PDF IPC Handler Coordination', () => {
       );
     });
 
-    it('should handle printToPDF timeout error', async () => {
+    it('should handle capture timeout error', async () => {
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockRejectedValue(new Error('printToPDF timed out after 30000ms')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
+      mockWebContents.capturePage.mockRejectedValue(new Error('Capture timed out'));
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,
@@ -777,7 +827,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
 
       expect(mockWebContents.send).toHaveBeenCalledWith(
         IPC_CHANNELS.PRINT_TO_PDF_ERROR,
-        'printToPDF timed out after 30000ms'
+        'Capture timed out'
       );
     });
 
@@ -785,11 +835,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
       const { dialog } = await import('electron');
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
-      const mockWebContents = {
-        isDestroyed: vi.fn().mockReturnValue(false),
-        send: vi.fn(),
-        printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf')),
-      };
+      const mockWebContents = createMockWebContentsForCapture();
 
       vi.spyOn(windowManager, 'getMainWindow').mockReturnValue({
         webContents: mockWebContents,

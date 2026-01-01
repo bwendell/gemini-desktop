@@ -336,55 +336,55 @@
   - [x] Test clicking menu item triggers print flow (save dialog opens)
   - [x] Test menu item is disabled when `printToPdf` hotkey is disabled in Options
 
-  ### 5.5.2 Options Window Toggle (`tests/e2e/print-to-pdf-toggle.spec.ts`)
-  - [ ] Test "Print to PDF" toggle is visible in Individual Hotkey Toggles section
-  - [ ] Test toggle displays correct label: "Print to PDF"
-  - [ ] Test toggle displays description: "Export current chat to PDF"
-  - [ ] Test toggle displays platform-appropriate shortcut text
-  - [ ] Test toggle has role="switch" and aria-checked attribute
-  - [ ] Test clicking toggle switches enabled state
-  - [ ] Test toggle state persists after closing and reopening Options window
-  - [ ] Test toggle state persists after app restart (via settings store)
+  ### 5.5.2 Options Window Toggle (`tests/e2e/print-to-pdf-toggle.spec.ts`) [x]
+  - [x] Test "Print to PDF" toggle is visible in Individual Hotkey Toggles section
+  - [x] Test toggle displays correct label: "Print to PDF"
+  - [x] Test toggle displays description: "Save current conversation as PDF"
+  - [x] Test toggle displays platform-appropriate shortcut text
+  - [x] Test toggle has role="switch" and aria-checked attribute
+  - [x] Test clicking toggle switches enabled state
+  - [x] Test toggle state persists after closing and reopening Options window
+  - [x] Test toggle state persists after app restart (via settings store)
 
-  ### 5.5.3 Accelerator Customization (`tests/e2e/print-to-pdf-accelerator.spec.ts`)
-  - [ ] Test accelerator input field is visible next to toggle
-  - [ ] Test accelerator displays default: `CommandOrControl+Shift+P`
-  - [ ] Test clicking accelerator field allows editing
-  - [ ] Test entering new accelerator (e.g., `Ctrl+Alt+P`) updates display
-  - [ ] Test custom accelerator persists after closing Options window
-  - [ ] Test custom accelerator updates menu item accelerator hint
+  ### 5.5.3 Accelerator Customization (`tests/e2e/print-to-pdf-accelerator.spec.ts`) [x]
+  - [x] Test accelerator input field is visible next to toggle
+  - [x] Test accelerator displays default: `CommandOrControl+Shift+P`
+  - [x] Test clicking accelerator field allows editing
+  - [x] Test entering new accelerator (e.g., `Ctrl+Alt+P`) updates display
+  - [x] Test custom accelerator persists after closing Options window
+  - [x] Test custom accelerator updates menu item accelerator hint
   - [ ] Test invalid accelerator shows validation error
-  - [ ] Test clearing accelerator field removes shortcut (if supported)
+  - [x] Test clearing accelerator field removes shortcut (via reset button)
 
   ### 5.5.4 Hotkey Triggers Print Flow (`tests/e2e/print-to-pdf-hotkey.spec.ts`)
-  - [ ] Test pressing `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS) opens save dialog
-  - [ ] Test hotkey works when main window is focused
-  - [ ] Test hotkey does NOT work when app is unfocused (application hotkey, not global)
-  - [ ] Test hotkey does NOT work when Options window is focused
-  - [ ] Test custom accelerator triggers print flow correctly
-  - [ ] Test hotkey does NOT trigger when `printToPdf` toggle is disabled
+  - [x] Test pressing `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS) opens save dialog
+  - [x] Test hotkey works when main window is focused
+  - [x] Test hotkey does NOT work when app is unfocused (application hotkey, not global)
+  - [x] Test hotkey does NOT work when Options window is focused
+  - [x] Test custom accelerator triggers print flow correctly
+  - [x] Test hotkey does NOT trigger when `printToPdf` toggle is disabled
 
   ### 5.5.5 Save Dialog Interaction (`tests/e2e/print-to-pdf-save-dialog.spec.ts`)
-  - [ ] Test save dialog opens with title "Save Chat as PDF"
-  - [ ] Test default filename format: `gemini-chat-YYYY-MM-DD.pdf`
-  - [ ] Test default directory is Downloads folder
-  - [ ] Test PDF filter is selected: `*.pdf`
-  - [ ] Test canceling save dialog does not create file
-  - [ ] Test selecting location and saving creates PDF file
-  - [ ] Test file collision handling: appends `-1`, `-2`, etc.
+  - [x] Test save dialog opens with title "Save Chat as PDF"
+  - [x] Test default filename format: `gemini-chat-YYYY-MM-DD.pdf`
+  - [x] Test default directory is Downloads folder
+  - [x] Test PDF filter is selected: `*.pdf`
+  - [x] Test canceling save dialog does not create file
+  - [x] Test selecting location and saving creates PDF file
+  - [x] Test file collision handling: appends `-1`, `-2`, etc.
 
   ### 5.5.6 PDF Generation Verification (`tests/e2e/print-to-pdf-output.spec.ts`)
-  - [ ] Test PDF file is created at selected location
-  - [ ] Test PDF file is valid (non-zero size, valid headers)
-  - [ ] Test SUCCESS IPC message sent to renderer after save
-  - [ ] Test ERROR IPC message sent to renderer on failure
-  - [ ] Test rapid print triggers are handled (no crash or corruption)
+  - [x] Test PDF file is created at selected location
+  - [x] Test PDF file is valid (non-zero size, valid headers)
+  - [x] Test SUCCESS IPC message sent to renderer after save
+  - [x] Test ERROR IPC message sent to renderer on failure
+  - [x] Test rapid print triggers are handled (no crash or corruption)
 
   ### 5.5.7 Full Workflow E2E (`tests/e2e/print-to-pdf-workflow.spec.ts`)
-  - [ ] Test complete workflow: User opens app → focuses chat → presses hotkey → dialog opens → saves file → file created
-  - [ ] Test complete workflow: User opens File menu → clicks "Print to PDF" → dialog opens → saves file
-  - [ ] Test complete workflow: User disables toggle in Options → hotkey/menu no longer works → re-enables → works again
-  - [ ] Test error recovery: File write fails → error shown → user can retry
+  - [x] Test complete workflow: User opens app → focuses chat → presses hotkey → dialog opens → saves file → file created
+  - [x] Test complete workflow: User opens File menu → clicks "Print to PDF" → dialog opens → saves file
+  - [x] Test complete workflow: User disables toggle in Options → hotkey/menu no longer works → re-enables → works again
+  - [x] Test error recovery: File write fails → error shown → user can retry
 
   Run command: `npm run test:e2e -- --spec "**/print-to-pdf*.spec.ts"`
 
@@ -411,3 +411,761 @@
   - PDF contains entire conversation (not truncated)
   - Text is readable and properly formatted
   - Images (if any) are included
+
+## 7. Bug Fix: Print Entire Conversation (Not Just Visible Viewport)
+
+### 7.0 Investigation Findings
+
+**Bug Description:** The current `PrintManager.printToPdf()` implementation only captures what is currently visible in the browser viewport. Long conversations that require scrolling result in truncated PDFs.
+
+**Root Cause Analysis:**
+
+- The `webContents.printToPDF()` Electron API renders only the visible viewport by default
+- The comment in `printManager.ts` line 27 mentions "Scrolls webContents to capture entire conversation" but no scrolling logic is implemented
+- The app embeds Gemini in an iframe (`<iframe src="https://gemini.google.com/app">`) which adds cross-origin complexity
+- Cross-origin iframes cannot be directly manipulated via JavaScript from the parent window
+
+**Technical Challenges:**
+
+1. **Cross-origin iframe:** The Gemini content is loaded from `gemini.google.com` in an iframe. Due to same-origin policy, we cannot directly:
+   - Read the scrollable height of the iframe content
+   - Inject JavaScript into the iframe to manipulate its DOM
+   - Access elements inside the iframe for measurement
+2. **Chromium print behavior:** `printToPDF` respects the CSS `@media print` rules but cannot overcome cross-origin restrictions
+
+**Potential Solutions (Ordered by Feasibility):**
+
+1. **CSS Print Media Injection via `insertCSS()`** (Recommended)
+   - Use `webContents.insertCSS()` on the main window to inject print-specific styles
+   - Target the iframe container to expand height or remove scrolling limits
+   - CSS can target `html, body { height: auto !important; overflow: visible !important; }`
+   - May work if we can insert CSS that affects print rendering
+
+2. **Use `webContents.executeJavaScript()` Before Print**
+   - Execute JavaScript in the webContents context to calculate full page height
+   - Expand the window/viewport size programmatically before `printToPDF()`
+   - Restore original size after printing
+
+3. **Capture iframe's webContents directly**
+   - Use `webContents.getAllWebContents()` to find the Gemini iframe's webContents
+   - Print from the iframe's webContents instead of the parent
+   - Investigate if this bypasses the viewport limitation
+
+4. **Puppeteer-style full-page capture**
+   - Generate multiple PDFs for each "page" of scrolled content
+   - Merge PDFs programmatically (requires additional dependency like `pdf-lib`)
+   - Most complex but most reliable
+
+5. **Custom pageSize with calculated height**
+   - Use `printToPDF({ pageSize: { height: fullHeight, width: standardWidth } })`
+   - Calculate `fullHeight` by measuring the scrollable content
+   - May result in a single very long page
+
+---
+
+### 7.1 Investigate iframe webContents Access
+
+- [x] 7.1.1 Explore `webContents.getAllWebContents()` to list all active webContents
+  - Determine if the iframe's webContents is accessible separately
+  - Check if printing from iframe's webContents captures full content
+  - Test with: `const all = webContents.getAllWebContents(); console.log(all);`
+  - **Investigation code added to `printManager.ts`**
+
+- [x] 7.1.2 Test `webContents.mainFrame` vs `webContents.mainFrame.frames`
+  - The `mainFrame.frames` array may contain the iframe's frame
+  - Each frame has its own content; check if we can access the Gemini frame
+  - **`logFrameHierarchy()` method added**
+
+- [x] 7.1.3 Verify cross-origin restrictions in Electron context
+  - Electron may bypass some same-origin restrictions for local contexts
+  - Test if `webContents.executeJavaScript()` can access iframe elements
+  - Document any security limitations encountered
+  - **`testCrossOriginAccess()` method added**
+
+> [!IMPORTANT]
+> **Investigation Complete - Key Findings:**
+>
+> - ❌ **No separate webContents for iframe** - Only 1 webContents exists (main window)
+> - ✅ **Gemini frame accessible** via `mainFrame.frames[0]` (routingId: 5)
+> - ✅ **Cross-origin access works** - Electron bypasses CORS for file:// parent
+> - ⚠️ **Viewport size matches scrollHeight** (768px) - Confirms truncation issue
+>
+> **Recommendation:** Proceed with **Task 7.5 (Custom pageSize with calculated height)**
+>
+> - Use `frame.executeJavaScript()` to measure full content height
+> - Pass custom `pageSize: { height: calculatedHeight }` to `printToPDF`
+>
+> See full report: `docs/investigation/iframe-webcontents.md`
+
+---
+
+### 7.2 Implement CSS Print Media Solution
+
+- [ ] 7.2.1 Create print-specific CSS styles
+  - Create `src/renderer/print.css` or inject inline CSS
+  - Add `@media print` rules:
+    ```css
+    @media print {
+      html,
+      body {
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .gemini-iframe {
+        height: auto !important;
+        overflow: visible !important;
+        position: static !important;
+      }
+      /* Hide non-essential UI during print */
+      .titlebar,
+      .webview-loading {
+        display: none !important;
+      }
+    }
+    ```
+
+- [ ] 7.2.2 Inject CSS before print operation
+  - Modify `PrintManager.printToPdf()` to call `webContents.insertCSS()` before print
+  - Store the injected CSS ID to remove it after print (if needed)
+  - Example: `const cssKey = await webContents.insertCSS(printStyles);`
+
+- [ ] 7.2.3 Test CSS injection effectiveness
+  - Verify if CSS affects the iframe content during print
+  - Check if `printBackground: true` option interacts with custom CSS
+
+---
+
+### 7.3 Implement JavaScript Content Measurement
+
+- [ ] 7.3.1 Add method to measure full scrollable height
+  - Create `PrintManager.getFullContentHeight()` method
+  - Use `webContents.executeJavaScript()` to run:
+    ```javascript
+    (() => {
+      const iframe = document.querySelector('.gemini-iframe');
+      try {
+        return iframe.contentDocument.documentElement.scrollHeight;
+      } catch (e) {
+        // Cross-origin fallback
+        return document.documentElement.scrollHeight;
+      }
+    })();
+    ```
+
+- [ ] 7.3.2 Implement viewport expansion before print
+  - Store original window/viewport dimensions
+  - Expand viewport to full content height before `printToPDF()`
+  - Use `win.setSize(width, fullHeight)` if needed
+  - Consider `win.setContentSize()` for more precise control
+
+- [ ] 7.3.3 Restore viewport after print
+  - Track original dimensions in `printToPdf()` method
+  - Restore dimensions in `finally` block to ensure cleanup
+  - Handle edge cases where print is cancelled mid-operation
+
+---
+
+### 7.4 Implement Alternative: Print from iframe webContents
+
+- [ ] 7.4.1 Identify the Gemini iframe's webContents
+  - Use `BrowserWindow.getAllWindows()` and iterate webContents
+  - Filter by URL containing `gemini.google.com`
+  - Cache reference for performance
+
+- [ ] 7.4.2 Modify `printToPdf()` to use iframe's webContents
+  - Add parameter or auto-detect which webContents to print
+  - If iframe webContents found, use it directly for `printToPDF()`
+  - Fall back to main window webContents if not found
+
+- [ ] 7.4.3 Handle frame navigation/refresh
+  - The iframe may reload during navigation
+  - Re-acquire webContents reference before each print
+
+---
+
+### 7.5 Implement Alternative: Full Page with Custom pageSize
+
+- [x] 7.5.1 Calculate full page height in microns
+  - Electron `printToPDF` `pageSize` accepts height/width in microns
+  - 1 inch = 25400 microns; 1 pixel at 96dpi ≈ 264.58 microns
+  - Create conversion utility: `pixelsToMicrons(pixels, dpi = 96)`
+  - **Implemented: `A4_WIDTH_MICRONS`, `MAX_PDF_HEIGHT_MICRONS`, `pixelsToMicrons()` in `printManager.ts`**
+
+- [x] 7.5.2 Generate single-page PDF with custom dimensions
+  - Measure content height using JavaScript
+  - Set `pageSize: { height: fullHeightMicrons, width: a4WidthMicrons }`
+  - Test with very long conversations (50+ messages)
+  - **Implemented: `getGeminiContentHeight()` measures via `mainFrame.frames[0].executeJavaScript()`**
+
+- [x] 7.5.3 Handle maximum page size limits
+  - PDF formats may have maximum dimension limits
+  - Implement fallback to multi-page if content exceeds limits
+  - Document any limitations found
+  - **Implemented: `MAX_PDF_HEIGHT_MICRONS = 5080000` (~200 inches), fallback to standard A4 on error**
+
+---
+
+### 7.6 Unit Tests for Full Conversation Print
+
+> [!NOTE]
+> **Superseded by Task 8 (Scrolling Screenshot Capture)**: Tasks 7.6.1 and 7.6.3 were for the CSS/Viewport manipulation approach which was abandoned. The intent of 7.6.2 and 7.6.4 is now covered by `getIframeScrollInfo` tests in Task 8.
+
+- [x] 7.6.1 ~~Add tests for CSS injection (`tests/unit/main/printManager.test.ts`)~~
+  - **Superseded**: CSS injection approach was abandoned in favor of scrolling screenshot capture (Task 8).
+  - `webContents.insertCSS()` is NOT used in the current implementation.
+
+- [x] 7.6.2 Add tests for content height measurement
+  - ✅ **Covered by `getIframeScrollInfo` tests** in `tests/unit/main/printManager.test.ts`:
+    - Tests for main frame vs subframe detection
+    - Tests for returning correct scroll dimensions (scrollHeight, scrollTop, clientHeight)
+    - Tests for `executeJavaScript` failure handling (returns null)
+
+- [x] 7.6.3 ~~Add tests for viewport manipulation~~
+  - **Superseded**: Viewport manipulation (`win.setSize`, `win.setContentSize`) was abandoned.
+  - Current implementation uses scrolling + screenshot capture instead of resizing the window.
+
+- [x] 7.6.4 Add tests for iframe webContents detection
+  - ✅ **Covered by `getIframeScrollInfo` tests** in `tests/unit/main/printManager.test.ts`:
+    - Test "Gemini in main frame" detection
+    - Test "Gemini in subframe" detection (via `mainFrame.frames`)
+    - Test "Gemini frame not found" returns null
+
+Run command: `npm run test -- --testNamePattern "PrintManager"`
+
+---
+
+### 7.7 Coordinated Tests for Full Conversation Print
+
+- [x] 7.7.1 Add tests for WindowManager ↔ PrintManager sizing interaction
+  - ~~Test that print operation correctly retrieves and restores window size~~
+  - **Reinterpreted:** Tested scroll position save/restore in `captureFullPage`:
+    - Test scroll position is restored after successful capture
+    - Test scroll position is restored after capture failure
+    - Test scroll position is restored after cancellation
+  - File: `tests/coordinated/print-manager.coordinated.test.ts`
+
+- [x] 7.7.2 Add tests for multi-webContents coordination
+  - Test Gemini in main frame detection (URL contains `gemini.google.com`)
+  - Test Gemini in subframe detection (via `mainFrame.frames`)
+  - Test Gemini frame not found handling (returns null, captures single viewport)
+  - Test webContents destroyed mid-print (handles gracefully, skips progress end)
+
+- [x] 7.7.3 Add tests for CSS injection lifecycle
+  - ~~Test CSS is injected before `printToPDF()` is called~~
+  - ~~Test CSS is cleaned up after print (success or failure)~~
+  - ~~Test multiple rapid print requests don't accumulate CSS~~
+  - **Superseded by Task 8 (Scrolling Screenshot Capture).** No CSS injection is used.
+
+Run command: `npm run test:coordinated -- -t "Full Conversation Print"`
+
+---
+
+### 7.8 Integration Tests for Full Conversation Print
+
+- [x] 7.8.1 Test print workflow with scrollable content
+  - Create mock page with content exceeding viewport height
+  - Trigger print and verify PDF contains all content
+  - File: `tests/integration/print-to-pdf.integration.test.ts`
+
+- [x] 7.8.2 Test print with different content lengths
+  - Short content (fits in viewport)
+  - Medium content (2-3 pages)
+  - Long content (10+ pages)
+  - Verify PDF page count matches expected output
+
+- [x] 7.8.3 Test iframe content printing
+  - Mock iframe with scrollable content
+  - Verify iframe content is captured in PDF
+  - Test cross-origin error handling
+
+Run command: `npm run test:integration -- --spec "**/print-to-pdf*.test.ts"`
+
+---
+
+### 7.9 E2E Tests for Full Conversation Print
+
+- [ ] 7.9.1 Test long conversation PDF output (`tests/e2e/print-to-pdf-full-content.spec.ts`)
+  - Navigate to a conversation with many messages
+  - Trigger print via hotkey or menu
+  - Save PDF and verify file size indicates full content
+  - Check PDF page count > 1 for long conversations
+
+- [ ] 7.9.2 Test viewport restoration after print
+  - Record window size before print
+  - Complete print operation
+  - Verify window size matches original
+  - Verify app is still usable (not stuck at expanded size)
+
+- [ ] 7.9.3 Test print during scroll
+  - User scrolls to middle of conversation
+  - Trigger print
+  - PDF should contain entire conversation (not just visible portion)
+
+- [ ] 7.9.4 Test print with varying window sizes
+  - Resize window to different dimensions
+  - Trigger print from each size
+  - PDF content should be consistent regardless of window size
+
+Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"`
+
+---
+
+### 7.10 Validation
+
+- [ ] 7.10.1 Manual testing with real Gemini conversations
+  - Login to Gemini in the app
+  - Create or navigate to a long conversation (30+ messages)
+  - Print to PDF
+  - Open PDF and verify:
+    - [ ] All messages are present
+    - [ ] Messages are in correct order
+    - [ ] Code blocks are properly formatted
+    - [ ] Images/media are included
+    - [ ] Text is readable (not cut off at page boundaries)
+
+- [ ] 7.10.2 Cross-platform validation
+  - [ ] Windows: Test with long conversation, verify PDF quality
+  - [ ] macOS: Test with long conversation, verify PDF quality
+  - [ ] Linux: Test with long conversation, verify PDF quality
+
+- [ ] 7.10.3 Performance testing
+  - Time the print operation for conversations of various lengths
+  - Ensure print doesn't freeze the UI
+  - Test memory usage during print of very long conversations
+  - Document acceptable performance thresholds
+
+- [ ] 7.10.4 Edge case testing
+  - [ ] Print an empty conversation (no messages)
+  - [ ] Print with only user messages (no AI responses yet)
+  - [ ] Print with special characters and Unicode
+  - [ ] Print with very long code blocks
+  - [ ] Print with embedded images or files
+  - [ ] Print while conversation is still loading
+  - [ ] Print immediately after sending a new message
+
+---
+
+## 8. Full-Page Print via Scrolling Screenshot Capture
+
+> **Background**: Investigation in Task 7 revealed that modifying the Gemini iframe content
+> (via `executeJavaScript`) or the parent window CSS breaks the UI. The scrolling screenshot
+> capture approach captures the full conversation by scrolling through content, taking
+> screenshots at each position, and stitching them into a PDF.
+
+---
+
+### 8.1 Core Infrastructure
+
+- [x] 8.1.1 Add `pdfkit` dependency for PDF generation
+  - Run `npm install pdfkit`
+  - Run `npm install --save-dev @types/pdfkit`
+  - Verify package added to `package.json`
+  - Confirm no native dependencies (pure JavaScript)
+  - **Verification:**
+    ```bash
+    npm ls pdfkit
+    # Expected: pdfkit@x.x.x
+    npm run build:electron
+    # Expected: No compilation errors
+    ```
+
+- [x] 8.1.2 Add new IPC channels for progress communication
+  - Modify `src/shared/constants/ipc-channels.ts`
+  - Add `PRINT_PROGRESS_START: 'print:progress-start'`
+  - Add `PRINT_PROGRESS_UPDATE: 'print:progress-update'`
+  - Add `PRINT_PROGRESS_END: 'print:progress-end'`
+  - Add `PRINT_CANCEL: 'print:cancel'`
+  - **Verification:**
+    ```bash
+    grep -n "PRINT_PROGRESS" src/shared/constants/ipc-channels.ts
+    # Expected: 4 new channel definitions
+    npm run build
+    # Expected: No TypeScript errors
+    ```
+
+- [x] 8.1.3 Update ElectronAPI interface for progress events
+  - Modify `src/shared/types/ipc.ts`
+  - Add progress event listener types
+  - Add `cancelPrint()` method signature
+  - **Verification:**
+    ```bash
+    grep -n "cancelPrint\|onPrintProgress" src/shared/types/ipc.ts
+    # Expected: New method signatures present
+    npm run build
+    # Expected: No TypeScript errors
+    ```
+
+- [x] 8.1.4 Update preload script for progress events
+  - Modify `src/preload/preload.ts`
+  - Expose progress event listeners
+  - Expose `cancelPrint()` method
+  - **Verification:**
+    ```bash
+    grep -n "cancelPrint\|print:progress" src/preload/preload.ts
+    # Expected: New IPC bindings present
+    npm run build:electron
+    # Expected: No compilation errors
+    ```
+
+---
+
+### 8.2 PrintManager Screenshot Capture Implementation
+
+- [x] 8.2.1 Add `getIframeScrollInfo()` method
+  - Find Gemini iframe via `mainFrame.frames`
+  - Execute JavaScript to get `scrollHeight`, `scrollTop`, `clientHeight`
+  - Try selectors: `main[role="main"]`, `[data-scroll-preservation="true"]`, `main`
+  - Return `null` if iframe not found
+  - **Verification:**
+    ```bash
+    grep -n "getIframeScrollInfo" src/main/managers/printManager.ts
+    # Expected: Method definition found
+    npm run build:electron
+    # Expected: No compilation errors
+    ```
+
+- [x] 8.2.2 Add `scrollIframeTo()` method
+  - Find scrollable container in Gemini iframe
+  - Set `scrollTop` to specified position
+  - Wait 100ms for scroll and lazy loading to complete
+  - **Verification:**
+    ```bash
+    grep -n "scrollIframeTo" src/main/managers/printManager.ts
+    # Expected: Method definition found
+    npm run build:electron
+    # Expected: No compilation errors
+    ```
+
+- [x] 8.2.3 Add `captureViewport()` method
+  - Use `webContents.capturePage()` to capture current viewport
+  - Convert `NativeImage` to PNG buffer via `image.toPNG()`
+  - Return buffer for PDF generation
+  - **Verification:**
+    ```bash
+    grep -n "captureViewport\|capturePage" src/main/managers/printManager.ts
+    # Expected: Method using capturePage API
+    npm run build:electron
+    # Expected: No compilation errors
+    ```
+
+- [x] 8.2.4 Add `captureFullPage()` method with progress reporting
+  - Get scroll info and save original scroll position
+  - Calculate step size (90% of viewport height for overlap)
+  - Show progress overlay via IPC
+  - Loop: scroll, capture, update progress, check for cancel
+  - Restore scroll position in `finally` block
+  - Hide progress overlay on completion
+  - **Verification:**
+    ```bash
+    grep -n "captureFullPage" src/main/managers/printManager.ts
+    # Expected: Method definition with IPC send calls
+    npm run build:electron
+    # Expected: No compilation errors
+    ```
+
+- [x] 8.2.5 Add `stitchImagesToPdf()` method using pdfkit
+  - Create `PDFDocument` with `autoFirstPage: false`
+  - For each image buffer:
+    - Open image via `doc.openImage(buffer)`
+    - Add page with exact image dimensions
+    - Draw image at full page size
+  - Return combined PDF buffer
+  - **Verification:**
+    ```bash
+    grep -n "stitchImagesToPdf\|PDFDocument" src/main/managers/printManager.ts
+    # Expected: Method using pdfkit
+    npm run build:electron
+    # Expected: No compilation errors
+    ```
+
+- [x] 8.2.6 Add cancel functionality
+  - Track `isCancelled` flag in PrintManager
+  - Listen for `PRINT_CANCEL` IPC from renderer
+  - Check flag in capture loop and abort if set
+  - Reset flag on new print operation
+  - **Verification:**
+    ```bash
+    grep -n "isCancelled\|PRINT_CANCEL" src/main/managers/printManager.ts
+    # Expected: Cancel flag and check logic
+    npm run build:electron
+    # Expected: No compilation errors
+    ```
+
+- [x] 8.2.7 Update `printToPdf()` to use scrolling capture
+  - Replace direct `printToPDF()` call with `captureFullPage()`
+  - Call `stitchImagesToPdf()` to generate PDF
+  - Handle cancellation gracefully
+  - Keep existing save dialog and error handling
+  - **Verification:**
+    ```bash
+    npm run build:electron
+    npm run electron:dev
+    # Manual: Navigate to conversation, press Ctrl+Shift+P
+    # Expected: Progress overlay appears, PDF captures full content
+    ```
+
+---
+
+### 8.3 Progress Overlay UI
+
+- [ ] 8.3.1 Create PrintProgressOverlay component
+  - Create `src/renderer/components/print/PrintProgressOverlay.tsx`
+  - Create `src/renderer/components/print/PrintProgressOverlay.module.css`
+  - Full-window overlay with semi-transparent dark background
+  - Centered modal with progress information:
+    - "Generating PDF..." heading
+    - "Capturing page X of Y" text
+    - Progress bar (percentage-based)
+    - Cancel button
+  - **Verification:**
+    ```bash
+    ls -la src/renderer/components/print/
+    # Expected: PrintProgressOverlay.tsx and .module.css files exist
+    npm run build
+    # Expected: No TypeScript/React errors
+    ```
+
+- [ ] 8.3.2 Style progress overlay for dark theme
+  - Match existing app dark theme colors
+  - Smooth progress bar animation
+  - Hover state for cancel button
+  - Ensure overlay completely covers iframe content
+  - **Verification:**
+    ```bash
+    npm run electron:dev
+    # Manual: Trigger print and observe overlay styling
+    # Expected: Dark semi-transparent background, visible progress bar, themed cancel button
+    ```
+
+- [ ] 8.3.3 Integrate overlay into App.tsx
+  - Import and add `PrintProgressOverlay` component
+  - Add state for overlay visibility and progress
+  - Listen to IPC events for progress updates:
+    - `PRINT_PROGRESS_START`: show overlay, set total pages
+    - `PRINT_PROGRESS_UPDATE`: update current page and progress
+    - `PRINT_PROGRESS_END`: hide overlay
+  - Wire cancel button to send `PRINT_CANCEL` IPC
+  - **Verification:**
+    ```bash
+    grep -n "PrintProgressOverlay\|PRINT_PROGRESS" src/renderer/App.tsx
+    # Expected: Component imported and IPC listeners registered
+    npm run build
+    # Expected: No TypeScript errors
+    npm run electron:dev
+    # Manual: Print long conversation, verify overlay shows/hides
+    ```
+
+- [ ] 8.3.4 Add IPC handlers to IpcManager for progress
+  - Handle `PRINT_CANCEL` from renderer
+  - Forward to PrintManager's cancel flag
+  - **Verification:**
+    ```bash
+    grep -n "PRINT_CANCEL" src/main/managers/ipcManager.ts
+    # Expected: IPC handler registered
+    npm run build:electron
+    # Expected: No compilation errors
+    npm run electron:dev
+    # Manual: Start print, click Cancel, verify capture aborts
+    ```
+
+---
+
+### 8.4 Unit Tests for Screenshot Capture
+
+- [x] 8.4.1 Add tests for `getIframeScrollInfo()`
+  - Mock `mainFrame.frames` with Gemini URL
+  - Mock `executeJavaScript` returning scroll info object
+  - Test returns null when iframe not found
+  - Test handles JavaScript execution errors
+  - **Verification:**
+    ```bash
+    npm run test:coordinated -- print
+    # Expected: All tests pass
+    ```
+
+- [x] 8.4.2 Add tests for `scrollIframeTo()`
+  - Mock `executeJavaScript` for scroll operation
+  - Test with various scroll positions
+  - Test handles missing iframe gracefully
+  - **Verification:**
+    ```bash
+    npm run test:coordinated -- print
+    # Expected: All tests pass
+    ```
+
+- [x] 8.4.3 Add tests for `captureViewport()`
+  - Mock `webContents.capturePage()` returning NativeImage
+  - Mock `NativeImage.toPNG()` returning buffer
+  - Verify PNG buffer is returned
+  - **Verification:**
+    ```bash
+    npm run test:coordinated -- print
+    # Expected: All tests pass
+    ```
+
+- [x] 8.4.4 Add tests for `stitchImagesToPdf()`
+  - Create test PNG buffers (1x1 pixel PNGs)
+  - Call `stitchImagesToPdf()` with test buffers
+  - Verify returned buffer starts with PDF header (`%PDF`)
+  - Test with single image (1 page)
+  - Test with multiple images (multi-page)
+  - **Verification:**
+    ```bash
+    npm run test:coordinated -- print
+    # Expected: All tests pass, PDF header verified
+    ```
+
+- [x] 8.4.5 Add tests for cancel functionality
+  - Set cancel flag mid-capture
+  - Verify loop exits early
+  - Verify scroll position is restored despite cancel
+  - **Verification:**
+    ```bash
+    npm run test:coordinated -- print
+    # Expected: All cancel tests pass
+    npm run test:coordinated -- print
+    # Expected: All PrintManager tests pass
+    ```
+
+---
+
+### 8.5 Coordinated Tests for Screenshot Capture
+
+- [x] 8.5.1 Add tests for capture loop progress reporting
+  - Mock `webContents.capturePage()` and scroll methods
+  - Verify progress IPC is sent with correct values
+  - Verify correct number of captures for given scroll height
+  - **Verification:**
+    ```bash
+    npm run test:coordinated -- print
+    # Expected: All progress reporting tests pass
+    ```
+
+- [x] 8.5.2 Add tests for overlay IPC integration
+  - Trigger print operation
+  - Verify `PRINT_PROGRESS_START` sent with total pages
+  - Verify `PRINT_PROGRESS_UPDATE` sent for each capture
+  - Verify `PRINT_PROGRESS_END` sent on completion
+  - **Verification:**
+    ```bash
+    npm run test:coordinated -- print
+    # Expected: All IPC tests pass
+    ```
+
+- [x] 8.5.3 Add tests for cancel IPC flow
+  - Start print operation
+  - Send `PRINT_CANCEL` IPC
+  - Verify capture loop aborts
+  - Verify `PRINT_PROGRESS_END` still sent
+  - **Verification:**
+    ```bash
+    npm run test:coordinated -- print
+    # Expected: All cancel flow tests pass
+    npm run test:coordinated -- print
+    # Expected: All print-related coordinated tests pass
+    ```
+
+---
+
+### 8.6 Manual Testing
+
+- [ ] 8.6.1 Test on Windows
+  - [ ] Short conversation (fits in viewport) → Single-page PDF
+  - [ ] Long conversation (500+ lines) → Multi-page PDF with all content
+  - [ ] Progress overlay appears and updates correctly
+  - [ ] Cancel button aborts capture and restores UI
+  - [ ] PDF opens correctly in Windows PDF viewer
+  - **Verification:**
+    ```bash
+    npm run electron:dev
+    # Manual steps:
+    # 1. Navigate to short conversation, press Ctrl+Shift+P
+    # 2. Open PDF, verify single page with content
+    # 3. Navigate to long conversation (500+ lines), press Ctrl+Shift+P
+    # 4. Verify progress overlay appears with page count
+    # 5. Wait for completion or test Cancel button
+    # 6. Open PDF, verify all content present
+    ```
+
+- [ ] 8.6.2 Test on macOS
+  - [ ] Short conversation (fits in viewport) → Single-page PDF
+  - [ ] Long conversation (500+ lines) → Multi-page PDF with all content
+  - [ ] Progress overlay appears and updates correctly
+  - [ ] Cancel button aborts capture and restores UI
+  - [ ] PDF opens correctly in Preview
+  - **Verification:**
+    ```bash
+    npm run electron:dev
+    # Manual steps:
+    # 1. Navigate to short conversation, press Cmd+Shift+P
+    # 2. Open PDF in Preview, verify single page with content
+    # 3. Navigate to long conversation, press Cmd+Shift+P
+    # 4. Verify progress overlay appears, test Cancel button
+    # 5. Open PDF in Preview, verify all content present
+    ```
+
+- [ ] 8.6.3 Test on Linux
+  - [ ] Short conversation (fits in viewport) → Single-page PDF
+  - [ ] Long conversation (500+ lines) → Multi-page PDF with all content
+  - [ ] Progress overlay appears and updates correctly
+  - [ ] Cancel button aborts capture and restores UI
+  - [ ] PDF opens correctly in Evince/Okular
+  - **Verification:**
+    ```bash
+    npm run electron:dev
+    # Manual steps:
+    # 1. Navigate to short conversation, press Ctrl+Shift+P
+    # 2. Open PDF in Evince/Okular, verify single page with content
+    # 3. Navigate to long conversation, press Ctrl+Shift+P
+    # 4. Verify progress overlay appears, test Cancel button
+    # 5. Open PDF, verify all content present
+    ```
+
+---
+
+### 8.7 Performance and Edge Cases
+
+- [ ] 8.7.1 Measure capture performance
+  - Time capture for 5, 20, 50 viewport pages
+  - Document timing expectations in code comments
+  - Ensure UI remains responsive during capture
+  - **Verification:**
+    ```bash
+    npm run electron:dev
+    # Manual timing tests:
+    # 1. Print 5-page conversation, record time: ___ seconds (expected: ~2-3s)
+    # 2. Print 20-page conversation, record time: ___ seconds (expected: ~8-12s)
+    # 3. Print 50-page conversation, record time: ___ seconds (expected: ~20-30s)
+    # 4. During capture, verify progress bar updates smoothly
+    ```
+
+- [ ] 8.7.2 Test edge cases
+  - [ ] Print empty conversation (no messages)
+  - [ ] Print during active message streaming
+  - [ ] Print with images and code blocks
+  - [ ] Resize window during capture
+  - [ ] Trigger second print while first is in progress
+  - **Verification:**
+    ```bash
+    npm run electron:dev
+    # Manual edge case tests:
+    # 1. New empty conversation → Should produce small PDF or show error
+    # 2. Start print while message streaming → Should complete after stream ends
+    # 3. Conversation with code blocks → Code should be readable in PDF
+    # 4. Resize window mid-capture → Capture should complete or abort gracefully
+    # 5. Press Ctrl+Shift+P twice quickly → Should ignore second request
+    ```
+
+- [ ] 8.7.3 Memory optimization for long conversations
+  - Monitor memory usage during 50+ page capture
+  - Consider streaming images to PDF instead of buffering all
+  - Add memory limit warning if needed
+  - **Verification:**
+    ```bash
+    # Open Task Manager (Windows) / Activity Monitor (macOS) / htop (Linux)
+    npm run electron:dev
+    # Capture 50+ page conversation
+    # Monitor memory usage:
+    # Expected: Memory should not exceed 500MB increase during capture
+    # After capture: Memory should return close to baseline
+    ```

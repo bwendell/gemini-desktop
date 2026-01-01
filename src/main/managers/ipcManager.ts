@@ -887,6 +887,12 @@ export default class IpcManager {
       });
     });
 
+    // Handle cancel request from renderer
+    ipcMain.on(IPC_CHANNELS.PRINT_CANCEL, () => {
+      this.logger.log('Print cancellation requested via IPC');
+      this.printManager?.cancel();
+    });
+
     // Handle local trigger from hotkey/menu via WindowManager event
     this.windowManager.on('print-to-pdf-triggered', () => {
       this.logger.log('Print to PDF triggered via local event');

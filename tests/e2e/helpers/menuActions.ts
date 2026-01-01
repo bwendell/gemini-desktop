@@ -278,3 +278,70 @@ export async function menuItemExists(id: string): Promise<boolean> {
     return await menuItem.isExisting();
   }
 }
+
+/**
+ * Menu item state information.
+ */
+export interface MenuItemState {
+  /** Whether the menu item exists */
+  exists: boolean;
+  /** Whether the menu item is enabled */
+  enabled: boolean;
+  /** The accelerator string (e.g., 'CommandOrControl+Shift+P') */
+  accelerator: string | undefined;
+}
+
+/**
+ * Gets the state of a menu item including enabled and accelerator properties.
+ * Useful for verifying menu item behavior in E2E tests.
+ *
+ * @param id - The menu item ID
+ * @returns MenuItemState object with exists, enabled, and accelerator properties
+ *
+ * @example
+ * const state = await getMenuItemState('menu-file-print-to-pdf');
+ * expect(state.enabled).toBe(true);
+ * expect(state.accelerator).toContain('Shift+P');
+ */
+export async function getMenuItemState(id: string): Promise<MenuItemState> {
+  const mac = await isMacOS();
+
+  if (mac) {
+    return await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
+      const menu = electron.Menu.getApplicationMenu();
+      const item = menu?.getMenuItemById(itemId);
+
+      if (!item) {
+        return { exists: false, enabled: false, accelerator: undefined };
+      }
+
+      return {
+        exists: true,
+        enabled: item.enabled,
+        accelerator: item.accelerator,
+      };
+    }, id);
+  } else {
+    // For Windows/Linux, we need to open the menu and check the item's DOM state
+    // First check if item exists by querying the menu structure
+    const result = await browser.electron.execute(
+      (electron: typeof import('electron'), itemId: string) => {
+        const menu = electron.Menu.getApplicationMenu();
+        const item = menu?.getMenuItemById(itemId);
+
+        if (!item) {
+          return { exists: false, enabled: false, accelerator: undefined };
+        }
+
+        return {
+          exists: true,
+          enabled: item.enabled,
+          accelerator: item.accelerator,
+        };
+      },
+      id
+    );
+
+    return result;
+  }
+}

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { app, dialog, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
@@ -17,6 +17,9 @@ vi.mock('electron', () => ({
   BrowserWindow: {
     getFocusedWindow: vi.fn(),
   },
+  nativeImage: {
+    createFromBuffer: vi.fn(),
+  },
 }));
 
 vi.mock('fs', () => ({
@@ -31,8 +34,34 @@ vi.mock('../../../../src/main/utils/logger', () => ({
   createLogger: () => ({
     log: vi.fn(),
     error: vi.fn(),
+    warn: vi.fn(),
   }),
 }));
+
+// Mock pdfkit
+vi.mock('pdfkit', () => {
+  const mockDoc = {
+    on: vi.fn((event, cb) => {
+      if (event === 'end') {
+        setTimeout(cb, 0);
+      }
+      return mockDoc;
+    }),
+    addPage: vi.fn().mockReturnValue(null),
+    image: vi.fn().mockReturnValue(null),
+    end: vi.fn().mockReturnValue(null),
+    openImage: vi.fn().mockReturnValue({ width: 800, height: 600 }),
+  };
+  (mockDoc.addPage as any).mockReturnValue(mockDoc);
+  (mockDoc.image as any).mockReturnValue(mockDoc);
+  (mockDoc.end as any).mockReturnValue(mockDoc);
+
+  return {
+    default: vi.fn().mockImplementation(function () {
+      return mockDoc;
+    }),
+  };
+});
 
 describe('PrintManager', () => {
   let printManager: PrintManager;
@@ -44,10 +73,29 @@ describe('PrintManager', () => {
     vi.clearAllMocks();
 
     mockWebContents = {
-      printToPDF: vi.fn().mockResolvedValue(Buffer.from('pdf content')),
-      send: vi.fn(),
+      printToPDF: vi.fn(),
+      capturePage: vi.fn().mockResolvedValue({
+        toPNG: () => Buffer.from('png-data'),
+        getSize: () => ({ width: 800, height: 600 }),
+      }),
+      getURL: vi.fn().mockReturnValue('https://gemini.google.com/app'),
+      send: vi.fn((channel, ...args) => {
+        console.log('[DEBUG] webContents.send:', channel, args);
+      }),
       isDestroyed: vi.fn().mockReturnValue(false),
+      mainFrame: {
+        url: 'https://gemini.google.com/app',
+        executeJavaScript: vi.fn(),
+        frames: [],
+      },
     };
+
+    // Default scroll info
+    mockWebContents.mainFrame.executeJavaScript.mockImplementation(async () => ({
+      scrollHeight: 1000,
+      scrollTop: 0,
+      clientHeight: 500,
+    }));
 
     mockMainWindow = {
       webContents: mockWebContents,
@@ -58,202 +106,138 @@ describe('PrintManager', () => {
       getMainWindow: vi.fn().mockReturnValue(mockMainWindow),
     };
 
-    // Default fs behavior
     (fs.existsSync as any).mockReturnValue(false);
 
     printManager = new PrintManager(mockWindowManager);
   });
 
   describe('printToPdf', () => {
-    it('generates PDF and saves to file successfully', async () => {
-      // Setup dialog interaction
+    it('captures pages, generates PDF and saves to file successfully', async () => {
       (dialog.showSaveDialog as any).mockResolvedValue({
         canceled: false,
         filePath: '/mock/downloads/test-output.pdf',
       });
 
+      const originalConcat = Buffer.concat;
+      Buffer.concat = vi.fn().mockReturnValue(Buffer.from('pdf content'));
+
       await printManager.printToPdf(mockWebContents);
 
-      // Verify PDF generation
-      expect(mockWebContents.printToPDF).toHaveBeenCalledWith({
-        printBackground: true,
-        pageSize: 'A4',
-        landscape: false,
-      });
-
-      // Verify save dialog
-      expect(dialog.showSaveDialog).toHaveBeenCalled();
-      const callArgs = (dialog.showSaveDialog as any).mock.calls[0][1];
-      expect(callArgs.title).toBe('Save Chat as PDF');
-      // Should default to a date-based name
-      expect(callArgs.defaultPath).toContain('gemini-chat-');
-      expect(callArgs.defaultPath).toContain('.pdf');
-
-      // Verify file write
-      expect(fsPromises.writeFile).toHaveBeenCalledWith(
-        '/mock/downloads/test-output.pdf',
-        expect.any(Buffer) // Buffer from printToPDF
+      expect(mockWebContents.capturePage).toHaveBeenCalled();
+      expect(mockWebContents.send).toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_PROGRESS_START,
+        expect.any(Object)
       );
-
-      // Verify IPC success message
       expect(mockWebContents.send).toHaveBeenCalledWith(
         IPC_CHANNELS.PRINT_TO_PDF_SUCCESS,
         '/mock/downloads/test-output.pdf'
       );
+
+      Buffer.concat = originalConcat;
     });
 
-    it('uses main window if no sender provided', async () => {
+    it('stops execution if cancelled during capture loop', async () => {
       (dialog.showSaveDialog as any).mockResolvedValue({
-        canceled: true,
+        canceled: false,
+        filePath: '/path.pdf',
       });
 
-      await printManager.printToPdf();
+      // Mock capturePage to trigger cancellation
+      mockWebContents.capturePage.mockImplementation(async () => {
+        printManager.cancel();
+        return {
+          toPNG: () => Buffer.from('png'),
+          getSize: () => ({ width: 800, height: 600 }),
+        };
+      });
 
+      await printManager.printToPdf(mockWebContents);
+
+      // Should not show save dialog if cancelled during capture
+      expect(dialog.showSaveDialog).not.toHaveBeenCalled();
+      expect(mockWebContents.send).toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_PROGRESS_END,
+        expect.objectContaining({ cancelled: true })
+      );
+    });
+
+    it('handles capture errors gracefully', async () => {
+      mockWebContents.capturePage.mockRejectedValue(new Error('Hardware failure'));
+
+      await printManager.printToPdf(mockWebContents);
+
+      expect(mockWebContents.send).toHaveBeenCalledWith(
+        IPC_CHANNELS.PRINT_TO_PDF_ERROR,
+        expect.stringContaining('Hardware failure')
+      );
+    });
+
+    it('uses main window as default if no sender provided', async () => {
+      (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
+      await printManager.printToPdf();
       expect(mockWindowManager.getMainWindow).toHaveBeenCalled();
-      expect(mockWebContents.printToPDF).toHaveBeenCalled();
+    });
+  });
+
+  describe('getIframeScrollInfo', () => {
+    it('returns null if Gemini frame is not found', async () => {
+      mockWebContents.getURL.mockReturnValue('https://other.site');
+      mockWebContents.mainFrame.frames = [{ url: 'https://other.site' }];
+
+      const result = await (printManager as any).getIframeScrollInfo(mockWebContents);
+      expect(result).toBeNull();
     });
 
-    it('does nothing if canceled by user', async () => {
-      (dialog.showSaveDialog as any).mockResolvedValue({
-        canceled: true,
-      });
+    it('detects Gemini in main frame and returns scroll info', async () => {
+      const mockScrollInfo = { scrollHeight: 2000, scrollTop: 100, clientHeight: 800 };
+      mockWebContents.getURL.mockReturnValue('https://gemini.google.com/app');
+      mockWebContents.mainFrame.url = 'https://gemini.google.com/app';
+      mockWebContents.mainFrame.executeJavaScript.mockResolvedValue(mockScrollInfo);
 
-      await printManager.printToPdf(mockWebContents);
+      const result = await (printManager as any).getIframeScrollInfo(mockWebContents);
 
-      expect(fsPromises.writeFile).not.toHaveBeenCalled();
-      expect(mockWebContents.send).not.toHaveBeenCalled();
+      expect(result).toEqual(mockScrollInfo);
+      expect(mockWebContents.mainFrame.executeJavaScript).toHaveBeenCalled();
     });
 
-    it('handles printToPDF failure', async () => {
-      mockWebContents.printToPDF.mockRejectedValue(new Error('Print failed'));
+    it('detects Gemini in subframe if not in main frame', async () => {
+      const mockScrollInfo = { scrollHeight: 123, scrollTop: 0, clientHeight: 100 };
+      const mockSubFrame = {
+        url: 'https://gemini.google.com/app',
+        executeJavaScript: vi.fn().mockResolvedValue(mockScrollInfo),
+      };
 
-      await printManager.printToPdf(mockWebContents);
+      mockWebContents.getURL.mockReturnValue('https://other.site');
+      mockWebContents.mainFrame.frames = [mockSubFrame];
 
-      expect(fsPromises.writeFile).not.toHaveBeenCalled();
-      expect(mockWebContents.send).toHaveBeenCalledWith(
-        IPC_CHANNELS.PRINT_TO_PDF_ERROR,
-        'Print failed'
+      const result = await (printManager as any).getIframeScrollInfo(mockWebContents);
+      expect(result).toEqual(mockScrollInfo);
+      expect(mockSubFrame.executeJavaScript).toHaveBeenCalled();
+    });
+
+    it('returns null when executeJavaScript fails', async () => {
+      mockWebContents.getURL.mockReturnValue('https://gemini.google.com/app');
+      mockWebContents.mainFrame.executeJavaScript.mockRejectedValue(
+        new Error('JS execution failed')
       );
+
+      const result = await (printManager as any).getIframeScrollInfo(mockWebContents);
+      expect(result).toBeNull();
     });
+  });
 
-    it('handles writeFile failure', async () => {
-      (dialog.showSaveDialog as any).mockResolvedValue({
-        canceled: false,
-        filePath: '/path/file.pdf',
-      });
-      (fsPromises.writeFile as any).mockRejectedValue(new Error('Write failed'));
-
-      await printManager.printToPdf(mockWebContents);
-
-      expect(mockWebContents.send).toHaveBeenCalledWith(
-        IPC_CHANNELS.PRINT_TO_PDF_ERROR,
-        'Write failed'
-      );
-    });
-
-    it('uses unique filename increment logic', async () => {
-      // Mock existsSync to return true for base, true for -1, false for -2
-      (fs.existsSync as any).mockImplementation((fPath: string) => {
-        if (fPath.endsWith('gemini-chat-2025-01-01.pdf')) return true; // Pretend today is that date or regex match
-        // Actually, we can't easily predict the date string unless we mock Date.
-        // But we can check if printManager calls existsSync multiple times.
-        if (!fPath.includes('-')) return true; // Base file exists
-        if (fPath.includes('-1.pdf')) return true; // First suffix exists
-        return false; // Second suffix free
+  describe('getUniqueFilePath', () => {
+    it('appends counter until file is unique', () => {
+      (fs.existsSync as any).mockImplementation((p: string) => {
+        if (p.endsWith('file.pdf')) return true;
+        if (p.endsWith('file-1.pdf')) return true;
+        return false;
       });
 
-      // Mock Date to ensure deterministic filename
-      const mockDate = new Date('2025-01-01T12:00:00Z');
-      vi.useFakeTimers();
-      vi.setSystemTime(mockDate);
-
-      (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true }); // Stop early
-
-      await printManager.printToPdf(mockWebContents);
-
-      expect(dialog.showSaveDialog).toHaveBeenCalled();
-      const callArgs = (dialog.showSaveDialog as any).mock.calls[0][1];
-      const defaultPath = callArgs.defaultPath;
-
-      // Should end with -2.pdf because base and -1 were taken
-      // Expected path logic:
-      // Base: gemini-chat-2025-01-01.pdf -> exists
-      // Try 1: ...-1.pdf -> exists
-      // Try 2: ...-2.pdf -> free
-
-      // Wait, on windows separator is \.
-      // normalize path usage?
-      // verify it ends with 'gemini-chat-2025-01-01-2.pdf'
-      expect(defaultPath.endsWith('gemini-chat-2025-01-01-2.pdf')).toBe(true);
-
-      vi.useRealTimers();
-    });
-
-    it('errors if main window not found when needed', async () => {
-      mockWindowManager.getMainWindow.mockReturnValue(null);
-      await printManager.printToPdf();
-      // Should log error and return.
-      // We can't easily check logs unless we mock internal logger properly,
-      // but we mocked logger factory.
-      // We can verify printToPDF was NOT called.
-      expect(mockWebContents.printToPDF).not.toHaveBeenCalled();
-    });
-
-    it('uses BrowserWindow.getFocusedWindow when mainWindow is null during save dialog', async () => {
-      // Main window is null when showing save dialog, but we still have webContents to print
-      const focusedWindow = { id: 123 };
-      (BrowserWindow.getFocusedWindow as any).mockReturnValue(focusedWindow);
-      mockWindowManager.getMainWindow.mockReturnValue(null);
-
-      (dialog.showSaveDialog as any).mockResolvedValue({
-        canceled: true,
-      });
-
-      await printManager.printToPdf(mockWebContents);
-
-      // Should use the focused window as parent for dialog
-      expect(dialog.showSaveDialog).toHaveBeenCalledWith(focusedWindow, expect.any(Object));
-    });
-
-    it('does not send success IPC when webContents is destroyed', async () => {
-      (dialog.showSaveDialog as any).mockResolvedValue({
-        canceled: false,
-        filePath: '/mock/downloads/test-output.pdf',
-      });
-
-      // Mark webContents as destroyed after PDF generation but before IPC send
-      mockWebContents.isDestroyed.mockReturnValue(true);
-
-      await printManager.printToPdf(mockWebContents);
-
-      // Verify file was still written
-      expect(fsPromises.writeFile).toHaveBeenCalled();
-      // But IPC was NOT sent because webContents is destroyed
-      expect(mockWebContents.send).not.toHaveBeenCalled();
-    });
-
-    it('does not send error IPC when webContents is destroyed', async () => {
-      mockWebContents.printToPDF.mockRejectedValue(new Error('Print failed'));
-      mockWebContents.isDestroyed.mockReturnValue(true);
-
-      await printManager.printToPdf(mockWebContents);
-
-      // Error occurred but IPC should NOT be sent because webContents is destroyed
-      expect(mockWebContents.send).not.toHaveBeenCalled();
-    });
-
-    it('handles non-Error objects in catch block', async () => {
-      // Simulate a non-Error being thrown
-      mockWebContents.printToPDF.mockRejectedValue('String error');
-      mockWebContents.isDestroyed.mockReturnValue(false);
-
-      await printManager.printToPdf(mockWebContents);
-
-      // Should use 'Unknown error' message
-      expect(mockWebContents.send).toHaveBeenCalledWith(
-        IPC_CHANNELS.PRINT_TO_PDF_ERROR,
-        'Unknown error'
-      );
+      const result = (printManager as any).getUniqueFilePath('/mock/file.pdf');
+      // Normalize both paths to use forward slashes for cross-platform comparison
+      const normalizedResult = result.replace(/\\/g, '/');
+      expect(normalizedResult).toBe('/mock/file-2.pdf');
     });
   });
 });
