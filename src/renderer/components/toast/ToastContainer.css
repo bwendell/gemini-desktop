@@ -1,0 +1,25 @@
+/**
+ * Toast Container Styles
+ *
+ * Positions toast stack in bottom-left corner
+ * with proper z-index and spacing
+ */
+
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 9999;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  /* Prevent container from blocking clicks when empty */
+  pointer-events: none;
+}
+
+/* Allow toasts to receive clicks */
+.toast-container > * {
+  pointer-events: auto;
+}

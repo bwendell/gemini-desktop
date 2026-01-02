@@ -1,0 +1,205 @@
+/**
+ * Generic Toast Notification Styles
+ * 
+ * Design: Glassmorphism with theme integration
+ * Position: Managed by ToastContainer
+ */
+
+/* ============================================
+   Toast Base Container
+   ============================================ */
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  min-width: 320px;
+  max-width: 420px;
+  padding: 16px;
+
+  /* Glassmorphism effect */
+  background: var(--bg-secondary);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  /* Typography */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-primary);
+}
+
+/* ============================================
+   Type Variants (left border accent)
+   ============================================ */
+.toast--success {
+  border-left: 4px solid #34a853;
+}
+
+.toast--error {
+  border-left: 4px solid var(--error-color);
+}
+
+.toast--info {
+  border-left: 4px solid var(--accent-color);
+}
+
+.toast--warning {
+  border-left: 4px solid #fbbc04;
+}
+
+.toast--progress {
+  border-left: 4px solid var(--accent-color);
+}
+
+/* ============================================
+   Toast Icon
+   ============================================ */
+.toast__icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  line-height: 1;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes toast-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   Toast Content
+   ============================================ */
+.toast__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.toast__message {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ============================================
+   Progress Bar
+   ============================================ */
+.toast__progress-container {
+  margin-top: 8px;
+  height: 4px;
+  background-color: var(--bg-tertiary, rgba(255, 255, 255, 0.1));
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.toast__progress-bar {
+  height: 100%;
+  background-color: var(--accent-color);
+  transition: width 0.3s ease;
+}
+
+/* ============================================
+   Toast Actions
+   ============================================ */
+.toast__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.toast__button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.toast__button:hover {
+  transform: translateY(-1px);
+}
+
+.toast__button:active {
+  transform: translateY(0);
+}
+
+/* Primary button */
+.toast__button--primary {
+  background-color: var(--accent-color);
+  color: #fff;
+}
+
+.toast__button--primary:hover {
+  background-color: color-mix(in srgb, var(--accent-color) 85%, #000);
+}
+
+/* Secondary button */
+.toast__button--secondary {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.toast__button--secondary:hover {
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* Dismiss button */
+.toast__button--dismiss {
+  padding: 4px 8px;
+  font-size: 14px;
+  min-width: auto;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: none;
+}
+
+.toast__button--dismiss:hover {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+.toast__button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .toast__icon-svg--progress {
+    animation: none;
+  }
+
+  .toast__progress-bar {
+    transition: none;
+  }
+
+  .toast__button {
+    transition: none;
+  }
+}
