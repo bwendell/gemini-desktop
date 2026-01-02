@@ -27,6 +27,8 @@ jobs:
   macos-x64:
     name: macOS (x64)
     runs-on: macos-latest
+    permissions:
+      contents: write # Required for release upload
     env:
       npm_config_arch: x64
     steps:
@@ -83,6 +85,8 @@ jobs:
   macos-arm64:
     name: macOS (arm64)
     runs-on: macos-latest
+    permissions:
+      contents: write # Required for release upload
     env:
       npm_config_arch: arm64
     steps:
@@ -139,6 +143,8 @@ jobs:
   windows:
     name: Windows (x64)
     runs-on: windows-latest
+    permissions:
+      contents: write # Required for release upload
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -206,6 +212,8 @@ jobs:
   linux:
     name: Linux (x64)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for release upload
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

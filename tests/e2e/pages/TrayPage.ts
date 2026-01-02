@@ -21,8 +21,9 @@ import {
   TrayState,
 } from '../helpers/trayActions';
 import { isWindowVisible, isWindowMinimized, closeWindow } from '../helpers/windowStateActions';
-import { isLinux, isLinuxCI } from '../helpers/platform';
+import { isLinux, isLinuxCI, isMacOS } from '../helpers/platform';
 import { Selectors } from '../helpers/selectors';
+import { E2E_TIMING } from '../helpers/e2eConstants';
 
 /**
  * Page Object for the System Tray.
@@ -243,28 +244,62 @@ export class TrayPage extends BasePage {
   /**
    * Hide the main window to tray.
    * Uses closeWindow which triggers hide-to-tray behavior.
+   * Waits for window to be hidden and adds stabilization pause for macOS.
    */
   async hideWindowToTray(): Promise<void> {
     this.log('Hiding window to tray');
     await closeWindow();
-    await this.pause(300);
+
+    // Wait for window to actually become hidden
+    await browser.waitUntil(async () => !(await isWindowVisible()), {
+      timeout: E2E_TIMING.WINDOW_STATE_TIMEOUT,
+      interval: 100,
+      timeoutMsg: `[${this.pageName}] Window did not hide within timeout`,
+    });
+
+    // Additional stabilization pause for macOS to prevent WebSocket issues
+    // macOS window state transitions can affect Electron's IPC stability
+    const onMac = await isMacOS();
+    await browser.pause(onMac ? E2E_TIMING.WINDOW_HIDE_SHOW : E2E_TIMING.UI_STATE_PAUSE_MS);
   }
 
   /**
    * Restore the main window from tray via tray click.
+   * Waits for window to be visible and adds stabilization pause for macOS.
    */
   async restoreWindowViaTrayClick(): Promise<void> {
     await this.click();
-    await this.pause(300);
+
+    // Wait for window to actually become visible
+    await browser.waitUntil(async () => await isWindowVisible(), {
+      timeout: E2E_TIMING.WINDOW_STATE_TIMEOUT,
+      interval: 100,
+      timeoutMsg: `[${this.pageName}] Window did not become visible after tray click`,
+    });
+
+    // Additional stabilization pause for macOS
+    const onMac = await isMacOS();
+    await browser.pause(onMac ? E2E_TIMING.WINDOW_HIDE_SHOW : E2E_TIMING.UI_STATE_PAUSE_MS);
     this.log('Window restored via tray click');
   }
 
   /**
    * Restore the main window from tray via Show menu item.
+   * Waits for window to be visible and adds stabilization pause for macOS.
    */
   async restoreWindowViaShowMenu(): Promise<void> {
     await this.clickShowMenuItem();
-    await this.pause(300);
+
+    // Wait for window to actually become visible
+    await browser.waitUntil(async () => await isWindowVisible(), {
+      timeout: E2E_TIMING.WINDOW_STATE_TIMEOUT,
+      interval: 100,
+      timeoutMsg: `[${this.pageName}] Window did not become visible after Show menu`,
+    });
+
+    // Additional stabilization pause for macOS
+    const onMac = await isMacOS();
+    await browser.pause(onMac ? E2E_TIMING.WINDOW_HIDE_SHOW : E2E_TIMING.UI_STATE_PAUSE_MS);
     this.log('Window restored via Show menu item');
   }
 

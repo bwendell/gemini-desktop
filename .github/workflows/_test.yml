@@ -40,6 +40,8 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Code
@@ -96,6 +98,8 @@ jobs:
     name: Coordinated & Integration Tests (${{ matrix.os }})
     needs: unit-tests
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: false
@@ -156,11 +160,14 @@ jobs:
     name: E2E / 🪟 Windows / ${{ matrix.group }}
     needs: integration-tests
     runs-on: windows-latest
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: ${{ inputs.e2e-fail-fast }}
       matrix:
-        group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
+        group:
+          [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
 
     steps:
       - name: Checkout Code
@@ -212,11 +219,27 @@ jobs:
     name: E2E / 🍎 macOS / ${{ matrix.group }}
     needs: integration-tests
     runs-on: macos-latest
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: ${{ inputs.e2e-fail-fast }}
       matrix:
-        group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability, macos]
+        group:
+          [
+            startup,
+            window,
+            menu,
+            hotkeys,
+            quickchat,
+            options,
+            theme,
+            auth,
+            tray,
+            update,
+            stability,
+            macos,
+          ]
 
     steps:
       - name: Checkout Code
@@ -268,11 +291,14 @@ jobs:
     name: E2E / 🐧 Ubuntu / ${{ matrix.group }}
     needs: integration-tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: ${{ inputs.e2e-fail-fast }}
       matrix:
-        group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
+        group:
+          [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
 
     steps:
       - name: Checkout Code
@@ -332,8 +358,11 @@ jobs:
   # ===========================================================================
   release-e2e-tests:
     name: Release E2E / ${{ matrix.emoji }} ${{ matrix.platform }}
-    needs: [e2e-tests-windows, e2e-tests-macos, e2e-tests-ubuntu]
+    # Run in parallel with regular E2E tests - only need integration tests to pass
+    needs: integration-tests
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: false
@@ -413,4 +442,3 @@ jobs:
             release/
           retention-days: 7
           if-no-files-found: ignore
-

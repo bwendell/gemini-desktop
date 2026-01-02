@@ -87,7 +87,19 @@ export function setupMediaPermissions(session: Session): void {
 
     // Allow media requests from Gemini/Google domains
     if (permission === 'media') {
-      if (url.includes('gemini.google.com') || url.includes('google.com')) {
+      // Use URL parser to safely validate hostname (fixes CWE-20 vulnerability)
+      let hostname = '';
+      try {
+        hostname = new URL(url).hostname;
+      } catch {
+        // Invalid URL, deny permission
+        logger.log(`Denying ${permission} permission: invalid URL`);
+        callback(false);
+        return;
+      }
+
+      // Allow only trusted Google domains
+      if (hostname.endsWith('.google.com') || hostname === 'google.com') {
         logger.log(`Granting media permission to: ${url}`);
         callback(true);
         return;

@@ -127,11 +127,17 @@ export class AuthWindowPage extends BasePage {
   }
 
   /**
-   * Check if the current URL contains accounts.google.com.
+   * Check if the current URL is on accounts.google.com.
+   * Uses proper URL parsing to prevent substring bypass attacks.
    */
   async isOnGoogleAccounts(): Promise<boolean> {
     const url = await this.getUrl();
-    return url.includes('accounts.google.com');
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname === 'accounts.google.com' || hostname.endsWith('.accounts.google.com');
+    } catch {
+      return false;
+    }
   }
 
   /**

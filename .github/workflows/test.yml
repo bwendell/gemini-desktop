@@ -54,6 +54,8 @@ jobs:
     name: Test Complete
     needs: [build, test]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: always()
 
     steps:

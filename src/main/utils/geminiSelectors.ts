@@ -119,11 +119,7 @@ export const GeminiSelectors = {
      * CSS selectors for finding error toast messages.
      * Gemini uses Angular Material snackbar for toasts.
      */
-    selectors: [
-      '[matsnackbarlabel]',
-      '.mat-mdc-snack-bar-label',
-      '.mdc-snackbar__label',
-    ] as const,
+    selectors: ['[matsnackbarlabel]', '.mat-mdc-snack-bar-label', '.mdc-snackbar__label'] as const,
 
     /**
      * Error message text for microphone permission denied.
@@ -199,16 +195,26 @@ export function findGeminiElement(
 
 /**
  * Check if a URL belongs to a Gemini domain.
+ * Uses proper URL parsing to prevent substring bypass attacks (CWE-20).
  *
  * @param url - URL string to check
  * @returns True if the URL is for Gemini
  */
 export function isGeminiDomain(url: string): boolean {
-  return (
-    url.includes(GeminiSelectors.domain) ||
-    url.includes(GeminiSelectors.legacyDomain) ||
-    url.includes('aistudio.google.com')
-  );
+  try {
+    const hostname = new URL(url).hostname;
+    return (
+      hostname === GeminiSelectors.domain ||
+      hostname.endsWith(`.${GeminiSelectors.domain}`) ||
+      hostname === GeminiSelectors.legacyDomain ||
+      hostname.endsWith(`.${GeminiSelectors.legacyDomain}`) ||
+      hostname === 'aistudio.google.com' ||
+      hostname.endsWith('.aistudio.google.com')
+    );
+  } catch {
+    // Invalid URL
+    return false;
+  }
 }
 
 // Re-export individual selector arrays for backwards compatibility

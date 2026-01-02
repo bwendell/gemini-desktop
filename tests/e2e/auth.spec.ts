@@ -184,7 +184,16 @@ describe('Authentication Flow', () => {
     let authWindowCount = 0;
     for (const handle of firstHandles) {
       await browser.switchToWindow(handle);
-      if ((await browser.getUrl()).includes('accounts.google.com')) {
+      const testUrl = await browser.getUrl();
+      let isGoogleAccounts = false;
+      try {
+        const hostname = new URL(testUrl).hostname;
+        isGoogleAccounts =
+          hostname === 'accounts.google.com' || hostname.endsWith('.accounts.google.com');
+      } catch {
+        isGoogleAccounts = false;
+      }
+      if (isGoogleAccounts) {
         authWindowCount++;
       }
     }

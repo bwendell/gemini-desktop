@@ -46,10 +46,11 @@ async function getWebviewInfo(): Promise<{
     const webContents = mainWindow.webContents;
     const frames = webContents.mainFrame.frames;
 
-    // Find Gemini frame
+    // Find Gemini frame (uses proper URL parsing to prevent substring bypass)
     const geminiFrame = frames.find((frame) => {
       try {
-        return frame.url.includes('gemini.google.com');
+        const hostname = new URL(frame.url).hostname;
+        return hostname === 'gemini.google.com' || hostname.endsWith('.gemini.google.com');
       } catch {
         return false;
       }
