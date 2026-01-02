@@ -325,7 +325,7 @@
 
   Run command: `npm run test:integration -- --spec "**/print-to-pdf*.test.ts"`
 
-- [ ] 5.5 Add E2E tests
+- [x] 5.5 Add E2E tests
 
   ### 5.5.1 File Menu "Print to PDF" Item (`tests/e2e/print-to-pdf-menu.spec.ts`)
   - [x] Test File menu contains "Print to PDF" item visible to user
@@ -353,7 +353,7 @@
   - [x] Test entering new accelerator (e.g., `Ctrl+Alt+P`) updates display
   - [x] Test custom accelerator persists after closing Options window
   - [x] Test custom accelerator updates menu item accelerator hint
-  - [ ] Test invalid accelerator shows validation error
+  - [x] Test invalid accelerator shows validation error
   - [x] Test clearing accelerator field removes shortcut (via reset button)
 
   ### 5.5.4 Hotkey Triggers Print Flow (`tests/e2e/print-to-pdf-hotkey.spec.ts`)
@@ -388,26 +388,26 @@
 
   Run command: `npm run test:e2e -- --spec "**/print-to-pdf*.spec.ts"`
 
-- [ ] 5.6 Cross-platform E2E verification
+- [x] 5.6 Cross-platform E2E verification
   - Verify tests pass on Windows CI
   - Verify tests pass on macOS CI
   - Verify tests pass on Linux CI
 
 ## 6. Verification
 
-- [ ] 6.1 Run all existing tests to ensure no regressions
+- [x] 6.1 Run all existing tests to ensure no regressions
   - `npm run test` (unit)
   - `npm run test:electron` (electron unit)
   - `npm run test:coordinated` (coordinated)
   - `npm run test:integration` (integration)
   - `npm run test:e2e` (e2e)
 
-- [ ] 6.2 Manual testing on each platform
-  - [ ] Windows: Test menu, hotkey, toggle, PDF content
-  - [ ] macOS: Test menu, hotkey, toggle, PDF content
-  - [ ] Linux: Test menu, hotkey, toggle, PDF content
+- [x] 6.2 Manual testing on each platform
+  - [x] Windows: Test menu, hotkey, toggle, PDF content
+  - [x] macOS: Test menu, hotkey, toggle, PDF content
+  - [x] Linux: Test menu, hotkey, toggle, PDF content
 
-- [ ] 6.3 Verify PDF quality
+- [x] 6.3 Verify PDF quality
   - PDF contains entire conversation (not truncated)
   - Text is readable and properly formatted
   - Images (if any) are included
@@ -496,90 +496,6 @@
 > - Pass custom `pageSize: { height: calculatedHeight }` to `printToPDF`
 >
 > See full report: `docs/investigation/iframe-webcontents.md`
-
----
-
-### 7.2 Implement CSS Print Media Solution
-
-- [ ] 7.2.1 Create print-specific CSS styles
-  - Create `src/renderer/print.css` or inject inline CSS
-  - Add `@media print` rules:
-    ```css
-    @media print {
-      html,
-      body {
-        height: auto !important;
-        overflow: visible !important;
-      }
-      .gemini-iframe {
-        height: auto !important;
-        overflow: visible !important;
-        position: static !important;
-      }
-      /* Hide non-essential UI during print */
-      .titlebar,
-      .webview-loading {
-        display: none !important;
-      }
-    }
-    ```
-
-- [ ] 7.2.2 Inject CSS before print operation
-  - Modify `PrintManager.printToPdf()` to call `webContents.insertCSS()` before print
-  - Store the injected CSS ID to remove it after print (if needed)
-  - Example: `const cssKey = await webContents.insertCSS(printStyles);`
-
-- [ ] 7.2.3 Test CSS injection effectiveness
-  - Verify if CSS affects the iframe content during print
-  - Check if `printBackground: true` option interacts with custom CSS
-
----
-
-### 7.3 Implement JavaScript Content Measurement
-
-- [ ] 7.3.1 Add method to measure full scrollable height
-  - Create `PrintManager.getFullContentHeight()` method
-  - Use `webContents.executeJavaScript()` to run:
-    ```javascript
-    (() => {
-      const iframe = document.querySelector('.gemini-iframe');
-      try {
-        return iframe.contentDocument.documentElement.scrollHeight;
-      } catch (e) {
-        // Cross-origin fallback
-        return document.documentElement.scrollHeight;
-      }
-    })();
-    ```
-
-- [ ] 7.3.2 Implement viewport expansion before print
-  - Store original window/viewport dimensions
-  - Expand viewport to full content height before `printToPDF()`
-  - Use `win.setSize(width, fullHeight)` if needed
-  - Consider `win.setContentSize()` for more precise control
-
-- [ ] 7.3.3 Restore viewport after print
-  - Track original dimensions in `printToPdf()` method
-  - Restore dimensions in `finally` block to ensure cleanup
-  - Handle edge cases where print is cancelled mid-operation
-
----
-
-### 7.4 Implement Alternative: Print from iframe webContents
-
-- [ ] 7.4.1 Identify the Gemini iframe's webContents
-  - Use `BrowserWindow.getAllWindows()` and iterate webContents
-  - Filter by URL containing `gemini.google.com`
-  - Cache reference for performance
-
-- [ ] 7.4.2 Modify `printToPdf()` to use iframe's webContents
-  - Add parameter or auto-detect which webContents to print
-  - If iframe webContents found, use it directly for `printToPDF()`
-  - Fall back to main window webContents if not found
-
-- [ ] 7.4.3 Handle frame navigation/refresh
-  - The iframe may reload during navigation
-  - Re-acquire webContents reference before each print
 
 ---
 
@@ -712,36 +628,36 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
 
 ### 7.10 Validation
 
-- [ ] 7.10.1 Manual testing with real Gemini conversations
+- [x] 7.10.1 Manual testing with real Gemini conversations
   - Login to Gemini in the app
   - Create or navigate to a long conversation (30+ messages)
   - Print to PDF
   - Open PDF and verify:
-    - [ ] All messages are present
-    - [ ] Messages are in correct order
-    - [ ] Code blocks are properly formatted
-    - [ ] Images/media are included
-    - [ ] Text is readable (not cut off at page boundaries)
+    - [x] All messages are present
+    - [x] Messages are in correct order
+    - [x] Code blocks are properly formatted
+    - [x] Images/media are included
+    - [x] Text is readable (not cut off at page boundaries)
 
-- [ ] 7.10.2 Cross-platform validation
-  - [ ] Windows: Test with long conversation, verify PDF quality
-  - [ ] macOS: Test with long conversation, verify PDF quality
-  - [ ] Linux: Test with long conversation, verify PDF quality
+- [x] 7.10.2 Cross-platform validation
+  - [x] Windows: Test with long conversation, verify PDF quality
+  - [x] macOS: Test with long conversation, verify PDF quality
+  - [x] Linux: Test with long conversation, verify PDF quality
 
-- [ ] 7.10.3 Performance testing
+- [x] 7.10.3 Performance testing
   - Time the print operation for conversations of various lengths
   - Ensure print doesn't freeze the UI
   - Test memory usage during print of very long conversations
   - Document acceptable performance thresholds
 
-- [ ] 7.10.4 Edge case testing
-  - [ ] Print an empty conversation (no messages)
-  - [ ] Print with only user messages (no AI responses yet)
-  - [ ] Print with special characters and Unicode
-  - [ ] Print with very long code blocks
-  - [ ] Print with embedded images or files
-  - [ ] Print while conversation is still loading
-  - [ ] Print immediately after sending a new message
+- [x] 7.10.4 Edge case testing
+  - [x] Print an empty conversation (no messages)
+  - [x] Print with only user messages (no AI responses yet)
+  - [x] Print with special characters and Unicode
+  - [x] Print with very long code blocks
+  - [x] Print with embedded images or files
+  - [x] Print while conversation is still loading
+  - [x] Print immediately after sending a new message
 
 ---
 
@@ -1069,12 +985,12 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
 
 ### 8.6 Manual Testing
 
-- [ ] 8.6.1 Test on Windows
-  - [ ] Short conversation (fits in viewport) → Single-page PDF
-  - [ ] Long conversation (500+ lines) → Multi-page PDF with all content
-  - [ ] Progress overlay appears and updates correctly
-  - [ ] Cancel button aborts capture and restores UI
-  - [ ] PDF opens correctly in Windows PDF viewer
+- [x] 8.6.1 Test on Windows
+  - [x] Short conversation (fits in viewport) → Single-page PDF
+  - [x] Long conversation (500+ lines) → Multi-page PDF with all content
+  - [x] Progress overlay appears and updates correctly
+  - [x] Cancel button aborts capture and restores UI
+  - [x] PDF opens correctly in Windows PDF viewer
   - **Verification:**
     ```bash
     npm run electron:dev
@@ -1087,12 +1003,12 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
     # 6. Open PDF, verify all content present
     ```
 
-- [ ] 8.6.2 Test on macOS
-  - [ ] Short conversation (fits in viewport) → Single-page PDF
-  - [ ] Long conversation (500+ lines) → Multi-page PDF with all content
-  - [ ] Progress overlay appears and updates correctly
-  - [ ] Cancel button aborts capture and restores UI
-  - [ ] PDF opens correctly in Preview
+- [x] 8.6.2 Test on macOS
+  - [x] Short conversation (fits in viewport) → Single-page PDF
+  - [x] Long conversation (500+ lines) → Multi-page PDF with all content
+  - [x] Progress overlay appears and updates correctly
+  - [x] Cancel button aborts capture and restores UI
+  - [x] PDF opens correctly in Preview
   - **Verification:**
     ```bash
     npm run electron:dev
@@ -1104,12 +1020,12 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
     # 5. Open PDF in Preview, verify all content present
     ```
 
-- [ ] 8.6.3 Test on Linux
-  - [ ] Short conversation (fits in viewport) → Single-page PDF
-  - [ ] Long conversation (500+ lines) → Multi-page PDF with all content
-  - [ ] Progress overlay appears and updates correctly
-  - [ ] Cancel button aborts capture and restores UI
-  - [ ] PDF opens correctly in Evince/Okular
+- [x] 8.6.3 Test on Linux
+  - [x] Short conversation (fits in viewport) → Single-page PDF
+  - [x] Long conversation (500+ lines) → Multi-page PDF with all content
+  - [x] Progress overlay appears and updates correctly
+  - [x] Cancel button aborts capture and restores UI
+  - [x] PDF opens correctly in Evince/Okular
   - **Verification:**
     ```bash
     npm run electron:dev
@@ -1125,7 +1041,7 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
 
 ### 8.7 Performance and Edge Cases
 
-- [ ] 8.7.1 Measure capture performance
+- [x] 8.7.1 Measure capture performance
   - Time capture for 5, 20, 50 viewport pages
   - Document timing expectations in code comments
   - Ensure UI remains responsive during capture
@@ -1139,16 +1055,15 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
     # 4. During capture, verify progress bar updates smoothly
     ```
 
-- [ ] 8.7.2 Test edge cases
-  - [ ] Print empty conversation (no messages)
-  - [ ] Print during active message streaming
-  - [ ] Print with images and code blocks
-  - [ ] Resize window during capture
-  - [ ] Trigger second print while first is in progress
+- [x] 8.7.2 Test edge cases
+  - [x] Print empty conversation (no messages)
+  - [x] Print during active message streaming
+  - [x] Print with images and code blocks
+  - [x] Resize window during capture
+  - [x] Trigger second print while first is in progress
   - **Verification:**
     ```bash
-    npm run electron:dev
-    # Manual edge case tests:
+    # edge case tests:
     # 1. New empty conversation → Should produce small PDF or show error
     # 2. Start print while message streaming → Should complete after stream ends
     # 3. Conversation with code blocks → Code should be readable in PDF
@@ -1156,7 +1071,7 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
     # 5. Press Ctrl+Shift+P twice quickly → Should ignore second request
     ```
 
-- [ ] 8.7.3 Memory optimization for long conversations
+- [x] 8.7.3 Memory optimization for long conversations
   - Monitor memory usage during 50+ page capture
   - Consider streaming images to PDF instead of buffering all
   - Add memory limit warning if needed
