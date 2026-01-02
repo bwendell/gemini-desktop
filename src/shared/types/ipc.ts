@@ -295,4 +295,15 @@ export interface ElectronAPI {
    * Returns unsubscribe function.
    */
   onToastShow: (callback: (payload: ToastPayload) => void) => () => void;
+
+  // =========================================================================
+  // Shell API
+  // =========================================================================
+
+  /**
+   * Reveal a file in the system's file explorer.
+   * Opens the folder containing the file and selects it.
+   * @param path - Absolute path to the file to reveal
+   */
+  revealInFolder: (path: string) => void;
 }

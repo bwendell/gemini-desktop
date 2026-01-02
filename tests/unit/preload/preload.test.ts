@@ -146,4 +146,12 @@ describe('Preload Script', () => {
       );
     });
   });
+
+  describe('Shell API', () => {
+    it('revealInFolder should send IPC message', () => {
+      const testPath = 'C:\\test\\file.pdf';
+      exposedAPI.revealInFolder(testPath);
+      expect(ipcRendererMock.send).toHaveBeenCalledWith('shell:show-item-in-folder', testPath);
+    });
+  });
 });

@@ -15,7 +15,11 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['tests/unit/main/test/setup.ts'],
-    include: ['tests/unit/main/**/*.test.ts', 'tests/unit/shared/**/*.test.ts'],
+    include: [
+      'tests/unit/main/**/*.test.ts',
+      'tests/unit/shared/**/*.test.ts',
+      'tests/unit/preload/**/*.test.ts',
+    ],
     exclude: ['node_modules', 'dist'],
     alias: {
       electron: path.resolve(projectRoot, 'tests/unit/main/test/electron-mock.ts'),

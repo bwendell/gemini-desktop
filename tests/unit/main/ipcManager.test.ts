@@ -2,11 +2,11 @@
  * Unit tests for IpcManager.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
+import { ipcMain, nativeTheme, BrowserWindow, shell } from 'electron';
 import IpcManager from '../../../src/main/managers/ipcManager';
 
 // Mock Electron
-const { mockIpcMain, mockNativeTheme, mockBrowserWindow } = vi.hoisted(() => {
+const { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell } = vi.hoisted(() => {
   const mockIpcMain = {
     on: vi.fn((channel, listener) => {
       mockIpcMain._listeners.set(channel, listener);
@@ -48,13 +48,21 @@ const { mockIpcMain, mockNativeTheme, mockBrowserWindow } = vi.hoisted(() => {
     },
   };
 
-  return { mockIpcMain, mockNativeTheme, mockBrowserWindow };
+  const mockShell = {
+    showItemInFolder: vi.fn(),
+    _reset: () => {
+      mockShell.showItemInFolder.mockReset();
+    },
+  };
+
+  return { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell };
 });
 
 vi.mock('electron', () => ({
   ipcMain: mockIpcMain,
   nativeTheme: mockNativeTheme,
   BrowserWindow: mockBrowserWindow,
+  shell: mockShell,
 }));
 
 // Mock SettingsStore to prevent side effects during import
@@ -95,6 +103,7 @@ describe('IpcManager', () => {
     if ((ipcMain as any)._reset) (ipcMain as any)._reset();
     if ((nativeTheme as any)._reset) (nativeTheme as any)._reset();
     if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
+    if ((shell as any)._reset) (shell as any)._reset();
 
     // Setup WindowManager mock
     mockWindowManager = {
@@ -1713,6 +1722,52 @@ describe('IpcManager', () => {
         'Cannot print: Main window not found or destroyed'
       );
       expect(mockPrintManager.printToPdf).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Shell Handlers', () => {
+    beforeEach(() => {
+      ipcManager.setupIpcHandlers();
+    });
+
+    it('handles shell:show-item-in-folder', () => {
+      const handler = (ipcMain as any)._listeners.get('shell:show-item-in-folder');
+      const testPath = 'C:\\test\\file.pdf';
+
+      handler({}, testPath);
+
+      expect(shell.showItemInFolder).toHaveBeenCalledWith(testPath);
+      expect(mockLogger.log).toHaveBeenCalledWith('Revealing file in folder:', testPath);
+    });
+
+    it('validates shell:show-item-in-folder input', () => {
+      const handler = (ipcMain as any)._listeners.get('shell:show-item-in-folder');
+
+      // Test empty path
+      handler({}, '');
+      expect(shell.showItemInFolder).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith('Invalid file path for reveal in folder:', '');
+
+      // Test non-string path
+      handler({}, null as any);
+      expect(shell.showItemInFolder).not.toHaveBeenCalled();
+    });
+
+    it('handles shell:show-item-in-folder error', () => {
+      const handler = (ipcMain as any)._listeners.get('shell:show-item-in-folder');
+      const testPath = 'C:\\test\\file.pdf';
+      const error = new Error('Shell error');
+
+      (shell.showItemInFolder as any).mockImplementation(() => {
+        throw error;
+      });
+
+      handler({}, testPath);
+
+      expect(mockLogger.error).toHaveBeenCalledWith('Error revealing file in folder:', {
+        error: error.message,
+        filePath: testPath,
+      });
     });
   });
 });

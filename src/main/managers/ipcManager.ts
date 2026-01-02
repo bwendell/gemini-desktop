@@ -11,7 +11,14 @@
  * @module IpcManager
  */
 
-import { ipcMain, BrowserWindow, nativeTheme, IpcMainEvent, IpcMainInvokeEvent } from 'electron';
+import {
+  ipcMain,
+  BrowserWindow,
+  nativeTheme,
+  shell,
+  IpcMainEvent,
+  IpcMainInvokeEvent,
+} from 'electron';
 import SettingsStore from '../store';
 import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS, isGeminiDomain } from '../utils/constants';
 import { GEMINI_APP_URL } from '../../shared/constants/index';
@@ -182,6 +189,7 @@ export default class IpcManager {
     this._setupQuickChatHandlers();
     this._setupAutoUpdateHandlers();
     this._setupPrintHandlers();
+    this._setupShellHandlers();
 
     // Listen for internal changes (from hotkeys or menu)
     this.windowManager.on('always-on-top-changed', this._handleAlwaysOnTopChanged.bind(this));
@@ -1062,6 +1070,31 @@ export default class IpcManager {
       } catch (error) {
         this.logger.error('Error getting tray tooltip:', error);
         return '';
+      }
+    });
+  }
+
+  /**
+   * Set up Shell IPC handlers.
+   * Handles filesystem operations like revealing files in explorer.
+   * @private
+   */
+  private _setupShellHandlers(): void {
+    // Reveal file in system file explorer
+    ipcMain.on(IPC_CHANNELS.SHELL_SHOW_ITEM_IN_FOLDER, (_event, filePath: string) => {
+      try {
+        if (typeof filePath !== 'string' || filePath.trim().length === 0) {
+          this.logger.warn('Invalid file path for reveal in folder:', filePath);
+          return;
+        }
+
+        this.logger.log('Revealing file in folder:', filePath);
+        shell.showItemInFolder(filePath);
+      } catch (error) {
+        this.logger.error('Error revealing file in folder:', {
+          error: (error as Error).message,
+          filePath,
+        });
       }
     });
   }

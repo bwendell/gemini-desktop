@@ -86,6 +86,9 @@ export const IPC_CHANNELS = {
   // Toast (main process → renderer notifications)
   TOAST_SHOW: 'toast:show',
 
+  // Shell (filesystem operations)
+  SHELL_SHOW_ITEM_IN_FOLDER: 'shell:show-item-in-folder',
+
   // Dev Testing (only used in development for manual testing)
   DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
   DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',

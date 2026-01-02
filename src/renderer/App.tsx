@@ -38,6 +38,37 @@ function AppContent() {
   const { state: printProgress, handleCancel: handlePrintCancel } = usePrintProgress();
   const { showToast, showSuccess, showError, showInfo, showWarning, dismissAll } = useToast();
 
+  // Listen for PDF export results and show toast notifications
+  useEffect(() => {
+    // Only subscribe if running in Electron
+    if (typeof window === 'undefined' || !window.electronAPI) return;
+
+    // Handle successful PDF export
+    const cleanupSuccess = window.electronAPI.onPrintToPdfSuccess((filePath: string) => {
+      showSuccess(`PDF saved to ${filePath}`, {
+        persistent: true, // Don't auto-dismiss so user can click the action
+        actions: [
+          {
+            label: 'Show in Folder',
+            onClick: () => {
+              window.electronAPI?.revealInFolder(filePath);
+            },
+          },
+        ],
+      });
+    });
+
+    // Handle PDF export error
+    const cleanupError = window.electronAPI.onPrintToPdfError((error: string) => {
+      showError(`Failed to export PDF: ${error}`);
+    });
+
+    return () => {
+      cleanupSuccess?.();
+      cleanupError?.();
+    };
+  }, [showSuccess, showError]);
+
   // Expose toast helpers globally for console testing (dev mode and testing)
   useEffect(() => {
     // Expose in development or test mode

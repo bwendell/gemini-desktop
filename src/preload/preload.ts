@@ -102,6 +102,9 @@ export const IPC_CHANNELS = {
   // Toast (main process → renderer notifications)
   TOAST_SHOW: 'toast:show',
 
+  // Shell (filesystem operations)
+  SHELL_SHOW_ITEM_IN_FOLDER: 'shell:show-item-in-folder',
+
   // Print Progress (for scrolling screenshot capture)
   PRINT_PROGRESS_START: 'print:progress-start',
   PRINT_PROGRESS_UPDATE: 'print:progress-update',
@@ -700,6 +703,17 @@ const electronAPI: ElectronAPI = {
       ipcRenderer.removeListener(IPC_CHANNELS.TOAST_SHOW, subscription);
     };
   },
+
+  // =========================================================================
+  // Shell API
+  // =========================================================================
+
+  /**
+   * Reveal a file in the system's file explorer.
+   * Opens the folder containing the file and selects it.
+   * @param path - Absolute path to the file to reveal
+   */
+  revealInFolder: (path: string) => ipcRenderer.send(IPC_CHANNELS.SHELL_SHOW_ITEM_IN_FOLDER, path),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

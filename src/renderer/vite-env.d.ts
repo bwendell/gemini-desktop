@@ -157,6 +157,9 @@ interface Window {
       }) => void
     ) => () => void;
 
+    // Shell API
+    revealInFolder: (path: string) => void;
+
     platform: string;
     isElectron: boolean;
   };
