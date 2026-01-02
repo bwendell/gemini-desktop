@@ -2,7 +2,7 @@
 
 ## 1. Core Toast Infrastructure
 
-- [ ] 1.1 Create generic `Toast` component
+- [x] 1.1 Create generic `Toast` component
 
   **Files:**
   - [NEW] `src/renderer/components/toast/Toast.tsx`
@@ -13,12 +13,12 @@
   - See `design.md` "Decision 1: Layered Component Architecture" and "Type Definitions"
 
   **Subtasks:**
-  - [ ] 1.1.1 Define `ToastType`: `'success' | 'error' | 'info' | 'warning' | 'progress'`
-  - [ ] 1.1.2 Define `ToastAction` interface: `{ label, onClick, primary? }`
-  - [ ] 1.1.3 Define `ToastProps` interface: `{ id, type, title?, message, icon?, progress?, actions?, onDismiss }`
-  - [ ] 1.1.4 Implement icon selection based on toast type (use lucide-react icons)
-  - [ ] 1.1.5 Implement progress bar for progress type (0-100)
-  - [ ] 1.1.6 Add action buttons support (primary/secondary styling)
+  - [x] 1.1.1 Define `ToastType`: `'success' | 'error' | 'info' | 'warning' | 'progress'`
+  - [x] 1.1.2 Define `ToastAction` interface: `{ label, onClick, primary? }`
+  - [x] 1.1.3 Define `ToastProps` interface: `{ id, type, title?, message, icon?, progress?, actions?, onDismiss }`
+  - [x] 1.1.4 Implement icon selection based on toast type (use lucide-react icons)
+  - [x] 1.1.5 Implement progress bar for progress type (0-100)
+  - [x] 1.1.6 Add action buttons support (primary/secondary styling)
 
   **Acceptance Criteria:**
   - Component renders all 5 toast types with appropriate icons
@@ -674,7 +674,7 @@
 
 > **Golden Rule**: "If this code path was broken, would this test fail?"
 
-- [ ] 7.6.1 Toast Visibility E2E
+- [x] 7.6.1 Toast Visibility E2E
 
   **Files:**
   - [NEW] `tests/e2e/toast-visibility.spec.ts`
@@ -683,11 +683,11 @@
   - Follow `docs/E2E_TESTING_GUIDELINES.md` - NO mocks, actual outcomes
 
   **Subtasks:**
-  - [ ] 7.6.1.1 Test toast appears in bottom-left corner
-  - [ ] 7.6.1.2 Test correct icon for each type (success, error, info, warning, progress)
-  - [ ] 7.6.1.3 Test title and message display correctly
-  - [ ] 7.6.1.4 Test ARIA attributes (`role="alert"`, `aria-live="polite"`)
-  - [ ] 7.6.1.5 Test toast actually rendered in DOM (not just exists)
+  - [x] 7.6.1.1 Test toast appears in bottom-left corner
+  - [x] 7.6.1.2 Test correct icon for each type (success, error, info, warning, progress)
+  - [x] 7.6.1.3 Test title and message display correctly
+  - [x] 7.6.1.4 Test ARIA attributes (`role="alert"`, `aria-live="polite"`)
+  - [x] 7.6.1.5 Test toast actually rendered in DOM (not just exists)
 
   **Acceptance Criteria:**
   - Golden Rule: If toast CSS broken, tests fail
@@ -700,7 +700,7 @@
 
 ---
 
-- [ ] 7.6.2 Toast User Interactions E2E
+- [x] 7.6.2 Toast User Interactions E2E
 
   **Files:**
   - [NEW] `tests/e2e/toast-interactions.spec.ts`
@@ -710,12 +710,12 @@
   - Simulate REAL user actions (click, not js click)
 
   **Subtasks:**
-  - [ ] 7.6.2.1 Create ToastPage page object
-  - [ ] 7.6.2.2 Test clicking dismiss removes toast
-  - [ ] 7.6.2.3 Test clicking action button fires callback
-  - [ ] 7.6.2.4 Test toast auto-dismisses after duration
-  - [ ] 7.6.2.5 Test hover pauses auto-dismiss (if implemented)
-  - [ ] 7.6.2.6 Test keyboard navigation
+  - [x] 7.6.2.1 Create ToastPage page object
+  - [x] 7.6.2.2 Test clicking dismiss removes toast
+  - [x] 7.6.2.3 Test clicking action button fires callback
+  - [x] 7.6.2.4 Test toast auto-dismisses after duration
+  - [x] 7.6.2.5 Test hover pauses auto-dismiss (if implemented)
+  - [x] 7.6.2.6 Test keyboard navigation
 
   **Acceptance Criteria:**
   - Golden Rule: If dismiss selector wrong, test fails
@@ -728,7 +728,7 @@
 
 ---
 
-- [ ] 7.6.3 Toast Stacking E2E
+- [x] 7.6.3 Toast Stacking E2E
 
   **Files:**
   - [NEW] `tests/e2e/toast-stacking.spec.ts`
@@ -737,12 +737,12 @@
   - See `design.md` "Toast Stacking Behavior" diagram
 
   **Subtasks:**
-  - [ ] 7.6.3.1 Test multiple toasts stack vertically (newest on top)
-  - [ ] 7.6.3.2 Test max 5 toasts visible
-  - [ ] 7.6.3.3 Test 6th toast appears after 1st dismisses
-  - [ ] 7.6.3.4 Test correct z-order
-  - [ ] 7.6.3.5 Test dismissing middle toast doesn't break layout
-  - [ ] 7.6.3.6 Test rapid creation (10 in 500ms) handled
+  - [x] 7.6.3.1 Test multiple toasts stack vertically (newest on top)
+  - [x] 7.6.3.2 Test max 5 toasts visible
+  - [x] 7.6.3.3 Test 6th toast appears after 1st dismisses
+  - [x] 7.6.3.4 Test correct z-order
+  - [x] 7.6.3.5 Test dismissing middle toast doesn't break layout
+  - [x] 7.6.3.6 Test rapid creation (10 in 500ms) handled
 
   **Acceptance Criteria:**
   - Stacking matches design.md, no visual glitches
@@ -755,7 +755,7 @@
 
 ---
 
-- [ ] 7.6.4 Update Toast Integration E2E
+- [x] 7.6.4 Update Toast Integration E2E
 
   **Files:**
   - [NEW] `tests/e2e/toast-update-integration.spec.ts`
@@ -764,12 +764,12 @@
   - Test via dev helpers, NOT internal method calls
 
   **Subtasks:**
-  - [ ] 7.6.4.1 Test `__testUpdateToast.showAvailable()` shows info toast
-  - [ ] 7.6.4.2 Test `__testUpdateToast.showDownloaded()` shows success toast
-  - [ ] 7.6.4.3 Test `__testUpdateToast.showError()` shows error toast
-  - [ ] 7.6.4.4 Test "Install Now" button triggers install
-  - [ ] 7.6.4.5 Test "Later" button dismisses toast
-  - [ ] 7.6.4.6 Test download progress bar updates
+  - [x] 7.6.4.1 Test `__testUpdateToast.showAvailable()` shows info toast
+  - [x] 7.6.4.2 Test `__testUpdateToast.showDownloaded()` shows success toast
+  - [x] 7.6.4.3 Test `__testUpdateToast.showError()` shows error toast
+  - [x] 7.6.4.4 Test "Install Now" button triggers install
+  - [x] 7.6.4.5 Test "Later" button dismisses toast
+  - [x] 7.6.4.6 Test download progress bar updates
 
   **Acceptance Criteria:**
   - Update toast works through generic system
@@ -782,7 +782,7 @@
 
 ---
 
-- [ ] 7.6.5 Toast Full Workflow E2E
+- [x] 7.6.5 Toast Full Workflow E2E
 
   **Files:**
   - [NEW] `tests/e2e/toast-workflow.spec.ts`
@@ -791,10 +791,10 @@
   - Test COMPLETE flows, not isolated pieces
 
   **Subtasks:**
-  - [ ] 7.6.5.1 **Success Toast:** Trigger → appears → auto-dismiss → removed
-  - [ ] 7.6.5.2 **Error Toast:** Trigger → appears → persists 10s → dismiss → removed
-  - [ ] 7.6.5.3 **Progress Toast:** Trigger → appears → progress updates → completion
-  - [ ] 7.6.5.4 **Multi-Toast:** Trigger 3 → all stack → dismiss middle → re-stack
+  - [x] 7.6.5.1 **Success Toast:** Trigger → appears → auto-dismiss → removed
+  - [x] 7.6.5.2 **Error Toast:** Trigger → appears → persists 10s → dismiss → removed
+  - [x] 7.6.5.3 **Progress Toast:** Trigger → appears → progress updates → completion
+  - [x] 7.6.5.4 **Multi-Toast:** Trigger 3 → all stack → dismiss middle → re-stack
 
   **Acceptance Criteria:**
   - Golden Rule: If any step broken, test fails
@@ -807,7 +807,7 @@
 
 ---
 
-- [ ] 7.6.6 Create ToastPage Page Object
+- [x] 7.6.6 Create ToastPage Page Object
 
   **Files:**
   - [NEW] `tests/e2e/pages/ToastPage.ts`
@@ -816,14 +816,14 @@
   - Follow existing page object patterns in `tests/e2e/pages/`
 
   **Subtasks:**
-  - [ ] 7.6.6.1 `waitForToast(type?)` - wait for toast to appear
-  - [ ] 7.6.6.2 `getToastCount()` - count visible toasts
-  - [ ] 7.6.6.3 `getToastByIndex(index)` - get nth toast
-  - [ ] 7.6.6.4 `dismissToast(index)` - click dismiss
-  - [ ] 7.6.6.5 `clickAction(index, label)` - click action button
-  - [ ] 7.6.6.6 `getToastText(index)` - get title/message
-  - [ ] 7.6.6.7 `waitForToastDismissed(index)` - wait for gone
-  - [ ] 7.6.6.8 `triggerTestToast(type)` - trigger via dev console
+  - [x] 7.6.6.1 `waitForToast(type?)` - wait for toast to appear
+  - [x] 7.6.6.2 `getToastCount()` - count visible toasts
+  - [x] 7.6.6.3 `getToastByIndex(index)` - get nth toast
+  - [x] 7.6.6.4 `dismissToast(index)` - click dismiss
+  - [x] 7.6.6.5 `clickAction(index, label)` - click action button
+  - [x] 7.6.6.6 `getToastText(index)` - get title/message
+  - [x] 7.6.6.7 `waitForToastDismissed(index)` - wait for gone
+  - [x] 7.6.6.8 `triggerTestToast(type)` - trigger via dev console
 
   **Acceptance Criteria:**
   - Page object encapsulates all toast interactions
