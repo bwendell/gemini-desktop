@@ -2,6 +2,7 @@
  * Unit tests for UpdateToast component.
  *
  * Tests all rendering states, button interactions, and accessibility.
+ * After refactor, UpdateToast now uses the generic Toast component internally.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -31,8 +32,8 @@ describe('UpdateToast', () => {
       render(<UpdateToast {...defaultProps} type="available" />);
 
       expect(screen.getByTestId('update-toast')).toBeInTheDocument();
-      expect(screen.getByTestId('update-toast-title')).toHaveTextContent('Update Available');
-      expect(screen.getByTestId('update-toast-message')).toHaveTextContent(
+      expect(screen.getByTestId('toast-title')).toHaveTextContent('Update Available');
+      expect(screen.getByTestId('toast-message')).toHaveTextContent(
         'Version 1.2.3 is downloading...'
       );
     });
@@ -40,8 +41,8 @@ describe('UpdateToast', () => {
     it('renders update downloaded toast', () => {
       render(<UpdateToast {...defaultProps} type="downloaded" />);
 
-      expect(screen.getByTestId('update-toast-title')).toHaveTextContent('Update Ready');
-      expect(screen.getByTestId('update-toast-message')).toHaveTextContent(
+      expect(screen.getByTestId('toast-title')).toHaveTextContent('Update Ready');
+      expect(screen.getByTestId('toast-message')).toHaveTextContent(
         'Version 1.2.3 is ready to install.'
       );
     });
@@ -49,14 +50,14 @@ describe('UpdateToast', () => {
     it('renders update error toast', () => {
       render(<UpdateToast {...defaultProps} type="error" errorMessage="Download failed" />);
 
-      expect(screen.getByTestId('update-toast-title')).toHaveTextContent('Update Error');
-      expect(screen.getByTestId('update-toast-message')).toHaveTextContent('Download failed');
+      expect(screen.getByTestId('toast-title')).toHaveTextContent('Update Error');
+      expect(screen.getByTestId('toast-message')).toHaveTextContent('Download failed');
     });
 
     it('renders default error message when no errorMessage provided', () => {
       render(<UpdateToast {...defaultProps} type="error" />);
 
-      expect(screen.getByTestId('update-toast-message')).toHaveTextContent(
+      expect(screen.getByTestId('toast-message')).toHaveTextContent(
         'An error occurred while updating.'
       );
     });
@@ -90,7 +91,7 @@ describe('UpdateToast', () => {
     it('shows dismiss button for available type', () => {
       render(<UpdateToast {...defaultProps} type="available" />);
 
-      const dismissButton = screen.getByTestId('update-toast-dismiss');
+      const dismissButton = screen.getByTestId('toast-dismiss');
       expect(dismissButton).toBeInTheDocument();
     });
 
@@ -98,7 +99,7 @@ describe('UpdateToast', () => {
       const onDismiss = vi.fn();
       render(<UpdateToast {...defaultProps} type="available" onDismiss={onDismiss} />);
 
-      fireEvent.click(screen.getByTestId('update-toast-dismiss'));
+      fireEvent.click(screen.getByTestId('toast-dismiss'));
       expect(onDismiss).toHaveBeenCalledTimes(1);
     });
 
@@ -109,30 +110,34 @@ describe('UpdateToast', () => {
         <UpdateToast {...defaultProps} type="downloaded" onInstall={onInstall} onLater={onLater} />
       );
 
-      expect(screen.getByTestId('update-toast-restart')).toBeInTheDocument();
-      expect(screen.getByTestId('update-toast-later')).toBeInTheDocument();
+      // Actions are now rendered via Toast component with toast-action-X test IDs
+      expect(screen.getByTestId('toast-action-0')).toHaveTextContent('Restart Now');
+      expect(screen.getByTestId('toast-action-1')).toHaveTextContent('Later');
     });
 
     it('calls onInstall when Restart Now is clicked', () => {
       const onInstall = vi.fn();
       render(<UpdateToast {...defaultProps} type="downloaded" onInstall={onInstall} />);
 
-      fireEvent.click(screen.getByTestId('update-toast-restart'));
+      fireEvent.click(screen.getByTestId('toast-action-0'));
       expect(onInstall).toHaveBeenCalledTimes(1);
     });
 
     it('calls onLater when Later is clicked', () => {
+      const onInstall = vi.fn();
       const onLater = vi.fn();
-      render(<UpdateToast {...defaultProps} type="downloaded" onLater={onLater} />);
+      render(
+        <UpdateToast {...defaultProps} type="downloaded" onInstall={onInstall} onLater={onLater} />
+      );
 
-      fireEvent.click(screen.getByTestId('update-toast-later'));
+      fireEvent.click(screen.getByTestId('toast-action-1'));
       expect(onLater).toHaveBeenCalledTimes(1);
     });
 
     it('shows dismiss button for error type', () => {
       render(<UpdateToast {...defaultProps} type="error" />);
 
-      expect(screen.getByTestId('update-toast-dismiss')).toBeInTheDocument();
+      expect(screen.getByTestId('toast-dismiss')).toBeInTheDocument();
     });
   });
 
@@ -140,19 +145,21 @@ describe('UpdateToast', () => {
     it('has role="alert"', () => {
       render(<UpdateToast {...defaultProps} />);
 
-      expect(screen.getByTestId('update-toast')).toHaveAttribute('role', 'alert');
+      // role="alert" is now on the nested Toast component
+      expect(screen.getByTestId('toast')).toHaveAttribute('role', 'alert');
     });
 
     it('has aria-live="polite"', () => {
       render(<UpdateToast {...defaultProps} />);
 
-      expect(screen.getByTestId('update-toast')).toHaveAttribute('aria-live', 'polite');
+      // aria-live is now on the nested Toast component
+      expect(screen.getByTestId('toast')).toHaveAttribute('aria-live', 'polite');
     });
 
     it('dismiss button has aria-label', () => {
       render(<UpdateToast {...defaultProps} type="available" />);
 
-      expect(screen.getByTestId('update-toast-dismiss')).toHaveAttribute(
+      expect(screen.getByTestId('toast-dismiss')).toHaveAttribute(
         'aria-label',
         'Dismiss notification'
       );
@@ -161,7 +168,8 @@ describe('UpdateToast', () => {
     it('icon has aria-hidden', () => {
       render(<UpdateToast {...defaultProps} />);
 
-      const icon = document.querySelector('.update-toast__icon');
+      // Icon is now using toast__icon class from generic Toast
+      const icon = document.querySelector('.toast__icon');
       expect(icon).toHaveAttribute('aria-hidden', 'true');
     });
   });
@@ -170,21 +178,21 @@ describe('UpdateToast', () => {
     it('shows download icon for available type', () => {
       render(<UpdateToast {...defaultProps} type="available" />);
 
-      const icon = document.querySelector('.update-toast__icon');
+      const icon = document.querySelector('.toast__icon');
       expect(icon?.textContent).toBe('⬇️');
     });
 
     it('shows checkmark icon for downloaded type', () => {
       render(<UpdateToast {...defaultProps} type="downloaded" />);
 
-      const icon = document.querySelector('.update-toast__icon');
+      const icon = document.querySelector('.toast__icon');
       expect(icon?.textContent).toBe('✅');
     });
 
     it('shows warning icon for error type', () => {
       render(<UpdateToast {...defaultProps} type="error" />);
 
-      const icon = document.querySelector('.update-toast__icon');
+      const icon = document.querySelector('.toast__icon');
       expect(icon?.textContent).toBe('⚠️');
     });
   });

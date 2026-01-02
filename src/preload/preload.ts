@@ -99,6 +99,9 @@ export const IPC_CHANNELS = {
   PRINT_TO_PDF_SUCCESS: 'print-to-pdf:success',
   PRINT_TO_PDF_ERROR: 'print-to-pdf:error',
 
+  // Toast (main process → renderer notifications)
+  TOAST_SHOW: 'toast:show',
+
   // Print Progress (for scrolling screenshot capture)
   PRINT_PROGRESS_START: 'print:progress-start',
   PRINT_PROGRESS_UPDATE: 'print:progress-update',
@@ -674,6 +677,27 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.on(IPC_CHANNELS.PRINT_OVERLAY_SHOW, subscription);
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.PRINT_OVERLAY_SHOW, subscription);
+    };
+  },
+
+  // =========================================================================
+  // Toast API
+  // =========================================================================
+
+  /**
+   * Subscribe to toast show events from main process.
+   * Called when main process wants to display a toast notification.
+   * @param callback - Function called with ToastPayload when toast should be shown
+   * @returns Cleanup function to unsubscribe
+   */
+  onToastShow: (callback) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      payload: Parameters<typeof callback>[0]
+    ) => callback(payload);
+    ipcRenderer.on(IPC_CHANNELS.TOAST_SHOW, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TOAST_SHOW, subscription);
     };
   },
 };

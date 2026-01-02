@@ -119,6 +119,9 @@ const mockElectronAPI = {
   onPrintOverlayHide: vi.fn().mockReturnValue(() => {}),
   onPrintOverlayShow: vi.fn().mockReturnValue(() => {}),
 
+  // Toast API
+  onToastShow: vi.fn().mockReturnValue(() => {}),
+
   // Auto-Update API
   checkForUpdates: vi.fn(),
   installUpdate: vi.fn(),

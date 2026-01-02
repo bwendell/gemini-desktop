@@ -8,8 +8,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderHook } from '@testing-library/react';
 import { UpdateToastProvider, useUpdateToast } from './UpdateToastContext';
+import { ToastProvider } from './ToastContext';
 import { mockElectronAPI } from '../../../tests/unit/renderer/test/setup';
 import React from 'react';
+
+/**
+ * Helper wrapper that includes both ToastProvider and UpdateToastProvider
+ */
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <ToastProvider>
+      <UpdateToastProvider>{children}</UpdateToastProvider>
+    </ToastProvider>
+  );
+}
 
 describe('UpdateToastContext', () => {
   beforeEach(() => {
@@ -19,15 +31,15 @@ describe('UpdateToastContext', () => {
   describe('UpdateToastProvider', () => {
     it('renders children', () => {
       render(
-        <UpdateToastProvider>
+        <TestWrapper>
           <div data-testid="child">Child content</div>
-        </UpdateToastProvider>
+        </TestWrapper>
       );
 
       expect(screen.getByTestId('child')).toBeInTheDocument();
     });
 
-    it('renders UpdateToast when update is available', async () => {
+    it('renders toast when update is available', async () => {
       let capturedCallback: ((info: { version: string }) => void) | undefined;
       mockElectronAPI.onUpdateAvailable.mockImplementation((cb) => {
         capturedCallback = cb;
@@ -35,16 +47,16 @@ describe('UpdateToastContext', () => {
       });
 
       render(
-        <UpdateToastProvider>
+        <TestWrapper>
           <div>Child</div>
-        </UpdateToastProvider>
+        </TestWrapper>
       );
 
       // Simulate update available
       capturedCallback?.({ version: '2.0.0' });
 
       await waitFor(() => {
-        expect(screen.getByTestId('update-toast')).toBeInTheDocument();
+        expect(screen.getByTestId('toast')).toBeInTheDocument();
       });
     });
 
@@ -56,17 +68,18 @@ describe('UpdateToastContext', () => {
       });
 
       render(
-        <UpdateToastProvider>
+        <TestWrapper>
           <div>Child</div>
-        </UpdateToastProvider>
+        </TestWrapper>
       );
 
       // Simulate update downloaded
       capturedCallback?.({ version: '2.0.0' });
 
       await waitFor(() => {
-        expect(screen.getByTestId('update-toast-restart')).toBeInTheDocument();
-        expect(screen.getByTestId('update-toast-later')).toBeInTheDocument();
+        // Check for action buttons using the generic toast test IDs
+        expect(screen.getByTestId('toast-action-0')).toHaveTextContent('Restart Now');
+        expect(screen.getByTestId('toast-action-1')).toHaveTextContent('Later');
       });
     });
 
@@ -78,18 +91,18 @@ describe('UpdateToastContext', () => {
       });
 
       render(
-        <UpdateToastProvider>
+        <TestWrapper>
           <div>Child</div>
-        </UpdateToastProvider>
+        </TestWrapper>
       );
 
       capturedCallback?.({ version: '2.0.0' });
 
       await waitFor(() => {
-        expect(screen.getByTestId('update-toast-restart')).toBeInTheDocument();
+        expect(screen.getByTestId('toast-action-0')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByTestId('update-toast-restart'));
+      fireEvent.click(screen.getByTestId('toast-action-0'));
 
       expect(mockElectronAPI.installUpdate).toHaveBeenCalledTimes(1);
     });
@@ -102,22 +115,22 @@ describe('UpdateToastContext', () => {
       });
 
       render(
-        <UpdateToastProvider>
+        <TestWrapper>
           <div>Child</div>
-        </UpdateToastProvider>
+        </TestWrapper>
       );
 
       capturedCallback?.({ version: '2.0.0' });
 
       await waitFor(() => {
-        expect(screen.getByTestId('update-toast-later')).toBeInTheDocument();
+        expect(screen.getByTestId('toast-action-1')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByTestId('update-toast-later'));
+      fireEvent.click(screen.getByTestId('toast-action-1'));
 
       // Toast should be hidden
       await waitFor(() => {
-        expect(screen.queryByTestId('update-toast')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
       });
     });
 
@@ -129,35 +142,38 @@ describe('UpdateToastContext', () => {
       });
 
       render(
-        <UpdateToastProvider>
+        <TestWrapper>
           <div>Child</div>
-        </UpdateToastProvider>
+        </TestWrapper>
       );
 
       capturedCallback?.({ version: '2.0.0' });
 
       await waitFor(() => {
-        expect(screen.getByTestId('update-toast-dismiss')).toBeInTheDocument();
+        expect(screen.getByTestId('toast-dismiss')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByTestId('update-toast-dismiss'));
+      fireEvent.click(screen.getByTestId('toast-dismiss'));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('update-toast')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
       });
     });
   });
 
   describe('useUpdateToast', () => {
     it('throws error when used outside provider', () => {
+      // Need to wrap with ToastProvider but NOT UpdateToastProvider
       expect(() => {
-        renderHook(() => useUpdateToast());
+        renderHook(() => useUpdateToast(), {
+          wrapper: ({ children }) => <ToastProvider>{children}</ToastProvider>,
+        });
       }).toThrow('useUpdateToast must be used within an UpdateToastProvider');
     });
 
     it('returns context value when used inside provider', () => {
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <UpdateToastProvider>{children}</UpdateToastProvider>
+        <TestWrapper>{children}</TestWrapper>
       );
 
       const { result } = renderHook(() => useUpdateToast(), { wrapper });

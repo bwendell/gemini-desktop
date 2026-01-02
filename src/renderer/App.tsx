@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
+
 import { MainLayout, OfflineOverlay, GeminiErrorBoundary } from './components';
 import { PrintProgressOverlay } from './components/print';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider, useToast } from './context/ToastContext';
 import { UpdateToastProvider } from './context/UpdateToastContext';
 import { LinuxHotkeyNotice } from './components/toast';
 import { useGeminiIframe, useQuickChatNavigation, usePrintProgress } from './hooks';
@@ -21,52 +24,97 @@ import './App.css';
  * Print Progress:
  * - Shows progress overlay during PDF generation
  * - Listens for print progress IPC events
+ *
+ * Dev Mode Toast Testing:
+ * - Exposes __toast global for console testing (dev mode only)
  */
 
-function App() {
+/**
+ * Inner app content that has access to ToastContext
+ */
+function AppContent() {
   const { isLoading, error, isOnline, handleLoad, handleError, retry } = useGeminiIframe();
   const { iframeKey, handleIframeLoad } = useQuickChatNavigation(handleLoad);
   const { state: printProgress, handleCancel: handlePrintCancel } = usePrintProgress();
+  const { showToast, showSuccess, showError, showInfo, showWarning, dismissAll } = useToast();
+
+  // Expose toast helpers globally for console testing (dev mode and testing)
+  useEffect(() => {
+    // Expose in development or test mode
+    if (
+      !(
+        process.env.NODE_ENV === 'development' ||
+        import.meta.env.MODE === 'test' ||
+        import.meta.env.DEV
+      )
+    )
+      return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    win.__toast = {
+      showToast,
+      showSuccess,
+      showError,
+      showInfo,
+      showWarning,
+      dismissAll,
+    };
+    return () => {
+      delete win.__toast;
+    };
+  }, [showToast, showSuccess, showError, showInfo, showWarning, dismissAll]);
 
   // Show offline overlay if network is offline OR if iframe failed to load
   // This handles cases where navigator.onLine is true but Gemini is unreachable
   const showOfflineOverlay = !isOnline || !!error;
 
   return (
-    <ThemeProvider>
-      <UpdateToastProvider>
-        <MainLayout>
-          {showOfflineOverlay && <OfflineOverlay onRetry={retry} />}
-          <GeminiErrorBoundary>
-            <div className="webview-container" data-testid="webview-container">
-              {isLoading && !showOfflineOverlay && (
-                <div className="webview-loading" data-testid="webview-loading">
-                  <div className="webview-loading-spinner" />
-                  <span>Loading Gemini...</span>
-                </div>
-              )}
-              <iframe
-                key={iframeKey}
-                src={GEMINI_APP_URL}
-                className="gemini-iframe"
-                title="Gemini"
-                onLoad={handleIframeLoad}
-                onError={handleError}
-                data-testid="gemini-iframe"
-                allow="microphone; camera; display-capture"
-              />
+    <MainLayout>
+      {showOfflineOverlay && <OfflineOverlay onRetry={retry} />}
+      <GeminiErrorBoundary>
+        <div className="webview-container" data-testid="webview-container">
+          {isLoading && !showOfflineOverlay && (
+            <div className="webview-loading" data-testid="webview-loading">
+              <div className="webview-loading-spinner" />
+              <span>Loading Gemini...</span>
             </div>
-          </GeminiErrorBoundary>
-          <PrintProgressOverlay
-            visible={printProgress.visible}
-            currentPage={printProgress.currentPage}
-            totalPages={printProgress.totalPages}
-            progress={printProgress.progress}
-            onCancel={handlePrintCancel}
+          )}
+          <iframe
+            key={iframeKey}
+            src={GEMINI_APP_URL}
+            className="gemini-iframe"
+            title="Gemini"
+            onLoad={handleIframeLoad}
+            onError={handleError}
+            data-testid="gemini-iframe"
+            allow="microphone; camera; display-capture"
           />
-        </MainLayout>
-        <LinuxHotkeyNotice />
-      </UpdateToastProvider>
+        </div>
+      </GeminiErrorBoundary>
+      <PrintProgressOverlay
+        visible={printProgress.visible}
+        currentPage={printProgress.currentPage}
+        totalPages={printProgress.totalPages}
+        progress={printProgress.progress}
+        onCancel={handlePrintCancel}
+      />
+    </MainLayout>
+  );
+}
+
+/**
+ * Root App component that sets up providers
+ */
+function App() {
+  return (
+    <ThemeProvider>
+      <ToastProvider>
+        <UpdateToastProvider>
+          <AppContent />
+          <LinuxHotkeyNotice />
+        </UpdateToastProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

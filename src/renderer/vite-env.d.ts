@@ -146,6 +146,17 @@ interface Window {
     onPrintOverlayHide: (callback: () => void) => () => void;
     onPrintOverlayShow: (callback: () => void) => () => void;
 
+    // Toast API
+    onToastShow: (
+      callback: (payload: {
+        type: 'success' | 'error' | 'info' | 'warning' | 'progress';
+        title?: string;
+        message: string;
+        duration?: number | null;
+        progress?: number;
+      }) => void
+    ) => () => void;
+
     platform: string;
     isElectron: boolean;
   };

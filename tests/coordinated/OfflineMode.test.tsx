@@ -131,6 +131,9 @@ const mockElectronAPI = {
   onPrintOverlayHide: vi.fn().mockReturnValue(() => {}),
   onPrintOverlayShow: vi.fn().mockReturnValue(() => {}),
 
+  // Toast API
+  onToastShow: vi.fn().mockReturnValue(() => {}),
+
   // Tray API
   getTrayTooltip: vi.fn().mockResolvedValue('Gemini'),
 

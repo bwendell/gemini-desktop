@@ -7,10 +7,15 @@
  * - Update error (error message)
  *
  * Position: Bottom-left corner with slide-in animation
+ *
+ * This component uses the generic Toast component internally while preserving
+ * update-specific logic and behavior.
+ *
  * @module UpdateToast
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { Toast, ToastType, ToastAction } from './Toast';
 import './UpdateToast.css';
 
 /**
@@ -80,6 +85,27 @@ const toastVariants = {
 };
 
 /**
+ * Map UpdateNotificationType to generic ToastType
+ *
+ * @param type - The update notification type
+ * @returns The corresponding generic toast type
+ */
+function mapToToastType(type: UpdateNotificationType): ToastType {
+  switch (type) {
+    case 'available':
+      return 'info';
+    case 'downloaded':
+      return 'success';
+    case 'error':
+      return 'error';
+    case 'not-available':
+      return 'info';
+    case 'progress':
+      return 'progress';
+  }
+}
+
+/**
  * Get icon for notification type
  */
 function getIcon(type: UpdateNotificationType): string {
@@ -117,6 +143,9 @@ function getTitle(type: UpdateNotificationType): string {
 
 /**
  * Update Toast notification component
+ *
+ * This component wraps the generic Toast component while preserving
+ * update-specific functionality like action buttons and custom icons.
  */
 export function UpdateToast({
   type,
@@ -147,6 +176,32 @@ export function UpdateToast({
     }
   };
 
+  /**
+   * Build action buttons based on update type
+   */
+  const getActions = (): ToastAction[] => {
+    const actions: ToastAction[] = [];
+
+    if (type === 'downloaded') {
+      if (onInstall) {
+        actions.push({
+          label: 'Restart Now',
+          onClick: onInstall,
+          primary: true,
+        });
+      }
+      if (onLater) {
+        actions.push({
+          label: 'Later',
+          onClick: onLater,
+          primary: false,
+        });
+      }
+    }
+
+    return actions;
+  };
+
   return (
     <AnimatePresence mode="wait">
       {visible && (
@@ -157,70 +212,18 @@ export function UpdateToast({
           initial="hidden"
           animate="visible"
           exit="exit"
-          role="alert"
-          aria-live="polite"
           data-testid="update-toast"
         >
-          <div className="update-toast__icon" aria-hidden="true">
-            {getIcon(type)}
-          </div>
-
-          <div className="update-toast__content">
-            <div className="update-toast__title" data-testid="update-toast-title">
-              {getTitle(type)}
-            </div>
-            <div className="update-toast__message" data-testid="update-toast-message">
-              {getMessage()}
-            </div>
-
-            {type === 'progress' && typeof downloadProgress === 'number' && (
-              <div
-                className="update-toast__progress-container"
-                role="progressbar"
-                aria-valuenow={downloadProgress}
-                aria-valuemin={0}
-                aria-valuemax={100}
-              >
-                <div
-                  className="update-toast__progress-bar"
-                  style={{ width: `${downloadProgress}%` }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="update-toast__actions">
-            {type === 'downloaded' && onInstall && (
-              <button
-                className="update-toast__button update-toast__button--primary"
-                onClick={onInstall}
-                data-testid="update-toast-restart"
-              >
-                Restart Now
-              </button>
-            )}
-
-            {type === 'downloaded' && onLater && (
-              <button
-                className="update-toast__button update-toast__button--secondary"
-                onClick={onLater}
-                data-testid="update-toast-later"
-              >
-                Later
-              </button>
-            )}
-
-            {type !== 'downloaded' && (
-              <button
-                className="update-toast__button update-toast__button--secondary"
-                onClick={onDismiss}
-                data-testid="update-toast-dismiss"
-                aria-label="Dismiss notification"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          <Toast
+            id="update-toast"
+            type={mapToToastType(type)}
+            title={getTitle(type)}
+            message={getMessage()}
+            icon={getIcon(type)}
+            progress={type === 'progress' ? (downloadProgress ?? undefined) : undefined}
+            actions={getActions()}
+            onDismiss={onDismiss}
+          />
         </motion.div>
       )}
     </AnimatePresence>

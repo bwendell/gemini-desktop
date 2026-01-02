@@ -36,7 +36,8 @@ gemini-desktop/
 │   │   │   ├── titlebar/     # Custom window title bar
 │   │   │   ├── options/      # Settings panels and controls
 │   │   │   ├── quickchat/    # Quick Chat input interface
-│   │   │   ├── toast/        # Notification toasts
+│   │   │   ├── toast/        # Generic notification toasts [NEW]
+│   │   │   ├── update-toast/ # Specialized update notifications
 │   │   │   ├── layout/       # Layout components
 │   │   │   └── common/       # Shared UI elements
 │   │   ├── context/          # React context providers (theme, settings)
@@ -166,6 +167,8 @@ gemini-desktop/
 - `src/renderer/components/options/` - Settings panels for themes, hotkeys, updates
 - `src/renderer/components/quickchat/` - Floating prompt input interface
 - `src/renderer/context/` - React contexts for theme and settings state
+- `src/renderer/components/toast/` - Generic toast notifications for successes, errors, and progress
+- `src/renderer/context/ToastContext.tsx` - Central API for showing toasts via `useToast` hook
 
 ### 3.2. Backend Services (Main Process)
 
@@ -217,7 +220,74 @@ gemini-desktop/
 
 **Technologies:** Electron Menu API, TypeScript
 
-### 3.3. Preload Script
+#### 3.2.7. Toast Utility (Main Process)
+
+**Name:** `showToast` (`src/main/utils/toast.ts`)
+
+**Description:** Provides a helper function for the main process to trigger toast notifications in any renderer window via the `toast:show` IPC channel. Used for system alerts, auth failures, and background task progress.
+
+**Technologies:** Electron webContents.send, IPC, TypeScript
+
+### 3.3. Toast System Architecture
+
+The application uses a layered toast system to provide non-intrusive feedback:
+
+1. **Toast Component**: Presentational component supporting multiple types (`success`, `error`, `info`, `warning`, `progress`).
+2. **ToastContainer**: Manages a stack of up to 5 visible toasts in the bottom-left corner with enter/exit animations.
+3. **ToastContext**: Context provider that manages the toast queue, auto-dismiss timers, and provides the `useToast` hook.
+4. **IPC Integration**: Subscribes to `toast:show` events from the main process, allowing system-level events to be surfaced as UI toasts.
+
+**Provider Nesting Order**: `ToastProvider` must be wrapped above `UpdateToastProvider` in the component tree:
+
+```tsx
+<ThemeProvider>
+  <ToastProvider>
+    <UpdateToastProvider>
+      <App />
+    </UpdateToastProvider>
+  </ToastProvider>
+</ThemeProvider>
+```
+
+**Toast Types and Auto-Dismiss Durations**:
+
+| Type       | Color  | Auto-Dismiss | Use Case                           |
+| ---------- | ------ | ------------ | ---------------------------------- |
+| `success`  | Green  | 5 seconds    | Completed actions, saved changes   |
+| `info`     | Accent | 5 seconds    | Updates available, feature tips    |
+| `warning`  | Yellow | 7 seconds    | Session expiring, potential issues |
+| `error`    | Red    | 10 seconds   | Auth failures, network errors      |
+| `progress` | Accent | Never        | Download progress, long operations |
+
+**ToastContext Public API** (`useToast` hook):
+
+| Method                           | Description                                       |
+| -------------------------------- | ------------------------------------------------- |
+| `showToast(options)`             | Display toast with full options, returns toast ID |
+| `showSuccess(message, options?)` | Convenience helper for success type               |
+| `showError(message, options?)`   | Convenience helper for error type                 |
+| `showInfo(message, options?)`    | Convenience helper for info type                  |
+| `showWarning(message, options?)` | Convenience helper for warning type               |
+| `dismissToast(id)`               | Remove a specific toast by ID                     |
+| `dismissAll()`                   | Remove all active toasts                          |
+| `toasts`                         | Current array of visible ToastItems               |
+
+**ShowToastOptions**:
+
+```ts
+{
+  id?: string;           // Custom ID (auto-generated if omitted)
+  type: ToastType;       // 'success' | 'error' | 'info' | 'warning' | 'progress'
+  title?: string;        // Optional bold header
+  message: string;       // Toast body text
+  duration?: number;     // Custom duration in ms (null = persistent)
+  progress?: number;     // 0-100 for progress type
+  actions?: ToastAction[]; // Action buttons {label, onClick, primary?}
+  persistent?: boolean;  // If true, no auto-dismiss
+}
+```
+
+### 3.4. Preload Script
 
 **Name:** Preload Bridge (`src/preload/preload.ts`)
 
@@ -380,7 +450,7 @@ npm run electron:dev    # Start development
 
 **Primary Contact/Team:** Ben Wendell (github@benwendell.com)
 
-**Date of Last Update:** 2025-12-27
+**Date of Last Update:** 2026-01-01
 
 ## 11. Glossary / Acronyms
 

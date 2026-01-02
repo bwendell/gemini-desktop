@@ -83,6 +83,9 @@ export const IPC_CHANNELS = {
   PRINT_OVERLAY_HIDE: 'print:overlay-hide',
   PRINT_OVERLAY_SHOW: 'print:overlay-show',
 
+  // Toast (main process → renderer notifications)
+  TOAST_SHOW: 'toast:show',
+
   // Dev Testing (only used in development for manual testing)
   DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
   DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',
