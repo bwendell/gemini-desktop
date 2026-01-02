@@ -134,6 +134,18 @@ interface Window {
     onPrintToPdfSuccess: (callback: (filePath: string) => void) => () => void;
     onPrintToPdfError: (callback: (error: string) => void) => () => void;
 
+    // Print Progress API (for scrolling screenshot capture)
+    cancelPrint: () => void;
+    onPrintProgressStart: (callback: (data: { totalPages: number }) => void) => () => void;
+    onPrintProgressUpdate: (
+      callback: (data: { currentPage: number; totalPages: number; progress: number }) => void
+    ) => () => void;
+    onPrintProgressEnd: (
+      callback: (data: { cancelled: boolean; success: boolean }) => void
+    ) => () => void;
+    onPrintOverlayHide: (callback: () => void) => () => void;
+    onPrintOverlayShow: (callback: () => void) => () => void;
+
     platform: string;
     isElectron: boolean;
   };

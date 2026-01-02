@@ -339,6 +339,7 @@ export default class PrintManager {
 
   /**
    * Captures the current viewport as a PNG image buffer.
+   * Hides the print overlay before capture and shows it again after.
    *
    * @param webContents - The WebContents to capture
    * @returns A PNG buffer of the captured viewport
@@ -346,6 +347,15 @@ export default class PrintManager {
    */
   private async captureViewport(webContents: WebContents): Promise<Buffer> {
     try {
+      // Hide the overlay before capture
+      webContents.send(IPC_CHANNELS.PRINT_OVERLAY_HIDE);
+
+      // Wait for the overlay animation to complete (200ms in the component)
+      // Add a small buffer for safety
+      if (process.env.NODE_ENV !== 'test') {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+
       // Capture the current viewport
       const image = await webContents.capturePage();
 
@@ -357,8 +367,13 @@ export default class PrintManager {
         dimensions: image.getSize(),
       });
 
+      // Show the overlay again after capture
+      webContents.send(IPC_CHANNELS.PRINT_OVERLAY_SHOW);
+
       return buffer;
     } catch (error) {
+      // Make sure to show overlay even if capture fails
+      webContents.send(IPC_CHANNELS.PRINT_OVERLAY_SHOW);
       logger.error('Failed to capture viewport', { error });
       throw error;
     }

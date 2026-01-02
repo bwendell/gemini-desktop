@@ -104,6 +104,8 @@ export const IPC_CHANNELS = {
   PRINT_PROGRESS_UPDATE: 'print:progress-update',
   PRINT_PROGRESS_END: 'print:progress-end',
   PRINT_CANCEL: 'print:cancel',
+  PRINT_OVERLAY_HIDE: 'print:overlay-hide',
+  PRINT_OVERLAY_SHOW: 'print:overlay-show',
 } as const;
 
 // Expose window control APIs to renderer
@@ -648,6 +650,30 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.on(IPC_CHANNELS.PRINT_PROGRESS_END, subscription);
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.PRINT_PROGRESS_END, subscription);
+    };
+  },
+
+  /**
+   * Subscribe to print overlay hide events.
+   * Called before each viewport capture to hide the overlay.
+   */
+  onPrintOverlayHide: (callback) => {
+    const subscription = () => callback();
+    ipcRenderer.on(IPC_CHANNELS.PRINT_OVERLAY_HIDE, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.PRINT_OVERLAY_HIDE, subscription);
+    };
+  },
+
+  /**
+   * Subscribe to print overlay show events.
+   * Called after each viewport capture to show the overlay again.
+   */
+  onPrintOverlayShow: (callback) => {
+    const subscription = () => callback();
+    ipcRenderer.on(IPC_CHANNELS.PRINT_OVERLAY_SHOW, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.PRINT_OVERLAY_SHOW, subscription);
     };
   },
 };

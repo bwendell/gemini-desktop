@@ -80,6 +80,8 @@ export const IPC_CHANNELS = {
   PRINT_PROGRESS_UPDATE: 'print:progress-update',
   PRINT_PROGRESS_END: 'print:progress-end',
   PRINT_CANCEL: 'print:cancel',
+  PRINT_OVERLAY_HIDE: 'print:overlay-hide',
+  PRINT_OVERLAY_SHOW: 'print:overlay-show',
 
   // Dev Testing (only used in development for manual testing)
   DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',

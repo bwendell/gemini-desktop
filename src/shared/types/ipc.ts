@@ -269,4 +269,18 @@ export interface ElectronAPI {
    * Returns unsubscribe function.
    */
   onPrintProgressEnd: (callback: (data: PrintProgressEndData) => void) => () => void;
+
+  /**
+   * Listen for print overlay hide event.
+   * Called before each viewport capture to hide the overlay.
+   * Returns unsubscribe function.
+   */
+  onPrintOverlayHide: (callback: () => void) => () => void;
+
+  /**
+   * Listen for print overlay show event.
+   * Called after each viewport capture to show the overlay again.
+   * Returns unsubscribe function.
+   */
+  onPrintOverlayShow: (callback: () => void) => () => void;
 }

@@ -12,12 +12,18 @@
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
 import { browser, expect } from '@wdio/globals';
-import * as path from 'path';
-import * as os from 'os';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import {
+  setupPrintDialogInterception,
+  cleanupDialogInterception,
+  triggerPrintViaMenuDirect,
+  getTempPdfPathViaElectron,
+  waitForPdfFileViaElectron,
+  verifyPdfFileViaElectron,
+  cleanupTestFileViaElectron,
+} from './helpers/printActions';
 
 // ============================================================================
 // Test Suite

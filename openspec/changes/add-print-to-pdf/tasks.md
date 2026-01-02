@@ -684,24 +684,24 @@ Run command: `npm run test:integration -- --spec "**/print-to-pdf*.test.ts"`
 
 ### 7.9 E2E Tests for Full Conversation Print
 
-- [ ] 7.9.1 Test long conversation PDF output (`tests/e2e/print-to-pdf-full-content.spec.ts`)
+- [x] 7.9.1 Test long conversation PDF output (`tests/e2e/print-to-pdf-full-content.spec.ts`)
   - Navigate to a conversation with many messages
   - Trigger print via hotkey or menu
   - Save PDF and verify file size indicates full content
   - Check PDF page count > 1 for long conversations
 
-- [ ] 7.9.2 Test viewport restoration after print
+- [x] 7.9.2 Test viewport restoration after print
   - Record window size before print
   - Complete print operation
   - Verify window size matches original
   - Verify app is still usable (not stuck at expanded size)
 
-- [ ] 7.9.3 Test print during scroll
+- [x] 7.9.3 Test print during scroll
   - User scrolls to middle of conversation
   - Trigger print
   - PDF should contain entire conversation (not just visible portion)
 
-- [ ] 7.9.4 Test print with varying window sizes
+- [x] 7.9.4 Test print with varying window sizes
   - Resize window to different dimensions
   - Trigger print from each size
   - PDF content should be consistent regardless of window size
@@ -908,7 +908,7 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
 
 ### 8.3 Progress Overlay UI
 
-- [ ] 8.3.1 Create PrintProgressOverlay component
+- [x] 8.3.1 Create PrintProgressOverlay component
   - Create `src/renderer/components/print/PrintProgressOverlay.tsx`
   - Create `src/renderer/components/print/PrintProgressOverlay.module.css`
   - Full-window overlay with semi-transparent dark background
@@ -925,7 +925,7 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
     # Expected: No TypeScript/React errors
     ```
 
-- [ ] 8.3.2 Style progress overlay for dark theme
+- [x] 8.3.2 Style progress overlay for dark theme
   - Match existing app dark theme colors
   - Smooth progress bar animation
   - Hover state for cancel button
@@ -937,7 +937,7 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
     # Expected: Dark semi-transparent background, visible progress bar, themed cancel button
     ```
 
-- [ ] 8.3.3 Integrate overlay into App.tsx
+- [x] 8.3.3 Integrate overlay into App.tsx
   - Import and add `PrintProgressOverlay` component
   - Add state for overlay visibility and progress
   - Listen to IPC events for progress updates:
@@ -955,7 +955,7 @@ Run command: `npm run test:e2e -- --spec "**/print-to-pdf-full-content*.spec.ts"
     # Manual: Print long conversation, verify overlay shows/hides
     ```
 
-- [ ] 8.3.4 Add IPC handlers to IpcManager for progress
+- [x] 8.3.4 Add IPC handlers to IpcManager for progress
   - Handle `PRINT_CANCEL` from renderer
   - Forward to PrintManager's cancel flag
   - **Verification:**

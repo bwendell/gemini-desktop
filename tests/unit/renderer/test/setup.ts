@@ -77,6 +77,14 @@ const mockElectronAPI = {
   onPrintToPdfSuccess: vi.fn().mockReturnValue(() => {}),
   onPrintToPdfError: vi.fn().mockReturnValue(() => {}),
 
+  // Print Progress API (for scrolling screenshot capture)
+  cancelPrint: vi.fn(),
+  onPrintProgressStart: vi.fn().mockReturnValue(() => {}),
+  onPrintProgressUpdate: vi.fn().mockReturnValue(() => {}),
+  onPrintProgressEnd: vi.fn().mockReturnValue(() => {}),
+  onPrintOverlayHide: vi.fn().mockReturnValue(() => {}),
+  onPrintOverlayShow: vi.fn().mockReturnValue(() => {}),
+
   // Hotkey Accelerators API
   getHotkeyAccelerators: vi.fn().mockResolvedValue({}),
   onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(() => {}),

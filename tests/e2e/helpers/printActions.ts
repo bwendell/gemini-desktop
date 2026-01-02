@@ -298,3 +298,131 @@ export async function performPrintWorkflow(
     fileResult,
   };
 }
+
+// =============================================================================
+// Main Process File Operations (via browser.electron.execute)
+// =============================================================================
+
+/**
+ * Checks if a file exists via Electron main process.
+ * Use this when the file was created by the main process (e.g., PDF output).
+ *
+ * @param filePath - Absolute path to check
+ */
+export async function checkFileExistsViaElectron(filePath: string): Promise<boolean> {
+  return browser.electron.execute((electron, path: string) => {
+    const fs = require('fs');
+    return fs.existsSync(path);
+  }, filePath);
+}
+
+/**
+ * Waits for a PDF file to exist, polling at intervals.
+ * Use this after triggering print to wait for file creation.
+ *
+ * @param filePath - Absolute path to wait for
+ * @param timeoutMs - Maximum time to wait (default: 60000ms for large PDFs)
+ * @param intervalMs - Polling interval (default: 500ms)
+ */
+export async function waitForPdfFileViaElectron(
+  filePath: string,
+  timeoutMs = 60000,
+  intervalMs = 500
+): Promise<boolean> {
+  await browser.waitUntil(
+    async () => {
+      return await checkFileExistsViaElectron(filePath);
+    },
+    {
+      timeout: timeoutMs,
+      interval: intervalMs,
+      timeoutMsg: `PDF file was not created within ${timeoutMs}ms: ${filePath}`,
+    }
+  );
+  return true;
+}
+
+/**
+ * Verifies a PDF file via Electron main process.
+ * Checks existence, size, and PDF header signature.
+ *
+ * @param filePath - Absolute path to verify
+ */
+export async function verifyPdfFileViaElectron(
+  filePath: string
+): Promise<PrintFileVerificationResult> {
+  return browser.electron.execute((electron, path: string) => {
+    const fs = require('fs');
+
+    if (!fs.existsSync(path)) {
+      return { exists: false, size: 0, isValidPdf: false };
+    }
+
+    const stats = fs.statSync(path);
+    const buffer = fs.readFileSync(path);
+
+    // PDF files start with %PDF-
+    const isValidPdf = buffer.length >= 5 && buffer.slice(0, 5).toString('ascii') === '%PDF-';
+
+    return {
+      exists: true,
+      size: stats.size,
+      isValidPdf,
+    };
+  }, filePath);
+}
+
+/**
+ * Generates a unique temp file path via Electron main process.
+ * Use when you need the path to exist in the main process context.
+ */
+export async function getTempPdfPathViaElectron(): Promise<string> {
+  return browser.electron.execute((electron) => {
+    const path = require('path');
+    const os = require('os');
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+    return path.join(os.tmpdir(), `gemini-e2e-test-${timestamp}-${randomId}.pdf`);
+  });
+}
+
+/**
+ * Deletes a test file via Electron main process.
+ * Silently succeeds if file doesn't exist.
+ *
+ * @param filePath - Absolute path to delete
+ */
+export async function cleanupTestFileViaElectron(filePath: string): Promise<void> {
+  await browser.electron.execute((electron, path: string) => {
+    const fs = require('fs');
+    if (fs.existsSync(path)) {
+      fs.unlinkSync(path);
+    }
+  }, filePath);
+  E2ELogger.info('printActions', `Cleaned up test file via Electron: ${filePath}`);
+}
+
+/**
+ * Triggers print by directly clicking the menu item via Electron Menu API.
+ * Works on all platforms without needing to interact with UI.
+ */
+export async function triggerPrintViaMenuDirect(): Promise<void> {
+  await browser.electron.execute((electron: typeof import('electron')) => {
+    const menu = electron.Menu.getApplicationMenu();
+    const item = menu?.getMenuItemById('menu-file-print-to-pdf');
+    if (item && item.enabled) {
+      item.click();
+    }
+  });
+  await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+  E2ELogger.info('printActions', 'Triggered print via menu (direct Electron API)');
+}
+
+/**
+ * Gets the downloads folder path via Electron.
+ */
+export async function getDownloadsFolderViaElectron(): Promise<string> {
+  return browser.electron.execute((electron: typeof import('electron')) => {
+    return electron.app.getPath('downloads');
+  });
+}

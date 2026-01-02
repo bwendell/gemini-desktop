@@ -22,6 +22,11 @@ import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import { REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
+import {
+  setupPrintDialogInterception,
+  cleanupDialogInterception,
+  triggerPrintViaMenuDirect,
+} from './helpers/printActions';
 
 // ============================================================================
 // Test Constants

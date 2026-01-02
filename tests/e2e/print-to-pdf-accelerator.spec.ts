@@ -133,4 +133,53 @@ describe('Print to PDF Accelerator Customization', () => {
     await waitForWindowCount(1);
     E2ELogger.info('print-to-pdf-accelerator', 'Test completed successfully');
   });
+
+  it('should reject invalid accelerator (single key without modifiers)', async () => {
+    // This test verifies that the accelerator input rejects invalid key combinations
+    // Golden Rule: If validation was broken, test would pass invalid accelerator
+    E2ELogger.info('print-to-pdf-accelerator', 'Testing invalid accelerator rejection');
+
+    // 1. Open Options and navigate to settings
+    await mainWindow.openOptionsViaMenu();
+    await waitForWindowCount(2);
+    await optionsPage.waitForLoad();
+    await optionsPage.navigateToSettings();
+
+    // 2. Record the current valid accelerator
+    const originalAccelerator = await optionsPage.getCurrentAccelerator(hotkeyId);
+    E2ELogger.info('print-to-pdf-accelerator', `Original accelerator: ${originalAccelerator}`);
+
+    // 3. Click accelerator input and enter recording mode
+    await optionsPage.clickAcceleratorInput(hotkeyId);
+    await browser.waitUntil(async () => await optionsPage.isRecordingModeActive(hotkeyId), {
+      timeout: 2000,
+      timeoutMsg: 'Recording mode did not activate',
+    });
+
+    // 4. Press invalid key (single letter without modifiers)
+    await browser.keys(['p']); // Just 'p' without Ctrl/Cmd/Alt
+    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+
+    // 5. Click elsewhere to exit recording mode
+    const row = await optionsPage.getHotkeyRow(hotkeyId);
+    await row.click();
+    await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+
+    // 6. Verify accelerator was NOT changed to invalid value
+    const currentAccelerator = await optionsPage.getCurrentAccelerator(hotkeyId);
+
+    // Should either keep original or show empty (not just 'P')
+    expect(currentAccelerator).not.toBe('P');
+    expect(currentAccelerator).not.toBe('p');
+
+    E2ELogger.info(
+      'print-to-pdf-accelerator',
+      `After invalid input: ${currentAccelerator} (original: ${originalAccelerator})`
+    );
+
+    // 7. Cleanup
+    await optionsPage.close();
+    await waitForWindowCount(1);
+    E2ELogger.info('print-to-pdf-accelerator', 'Invalid accelerator test completed');
+  });
 });

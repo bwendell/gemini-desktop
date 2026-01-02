@@ -17,6 +17,11 @@ import { clickMenuItemById, waitForMenuItemEnabled } from './helpers/menuActions
 import { isMacOS, usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
+import {
+  setupPrintDialogInterception,
+  cleanupDialogInterception,
+  triggerPrintViaMenuDirect,
+} from './helpers/printActions';
 
 describe('Print to PDF Menu Item', () => {
   const mainWindow = new MainWindowPage();

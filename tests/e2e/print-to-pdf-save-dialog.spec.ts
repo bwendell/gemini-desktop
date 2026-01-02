@@ -15,6 +15,11 @@ import { browser, expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
+import {
+  cleanupDialogInterception,
+  triggerPrintViaMenuDirect,
+  getDownloadsFolderViaElectron,
+} from './helpers/printActions';
 
 // ============================================================================
 // Types
@@ -45,13 +50,7 @@ describe('Print to PDF Save Dialog Interaction', () => {
 
   afterEach(async () => {
     // Clean up any dialog interception
-    await browser.electron.execute((electron: typeof import('electron')) => {
-      if ((electron.dialog as any)._originalShowSaveDialog) {
-        electron.dialog.showSaveDialog = (electron.dialog as any)._originalShowSaveDialog;
-        delete (electron.dialog as any)._originalShowSaveDialog;
-        delete (electron.dialog as any)._interceptState;
-      }
-    });
+    await cleanupDialogInterception();
     await ensureSingleWindow();
   });
 
@@ -115,15 +114,9 @@ describe('Print to PDF Save Dialog Interaction', () => {
    * Triggers print-to-pdf via menu item click.
    */
   async function triggerPrintToPdf() {
-    await browser.electron.execute((electron: typeof import('electron')) => {
-      const menu = electron.Menu.getApplicationMenu();
-      const item = menu?.getMenuItemById('menu-file-print-to-pdf');
-      if (item) {
-        item.click();
-      }
-    });
+    await triggerPrintViaMenuDirect();
     // Wait for dialog to be called
-    await browser.pause(1000);
+    await browser.pause(500);
   }
 
   // ==========================================================================
@@ -185,11 +178,7 @@ describe('Print to PDF Save Dialog Interaction', () => {
   describe('Default Directory', () => {
     it('should have default directory as Downloads folder', async () => {
       // Get expected Downloads path
-      const downloadsPath = await browser.electron.execute(
-        (electron: typeof import('electron')) => {
-          return electron.app.getPath('downloads');
-        }
-      );
+      const downloadsPath = await getDownloadsFolderViaElectron();
 
       await setupDialogIntercept({ canceled: true });
       await triggerPrintToPdf();
