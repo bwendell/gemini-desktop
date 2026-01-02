@@ -144,8 +144,15 @@ export class QuickChatPage extends BasePage {
 
   /**
    * Click the submit button.
+   * Focuses input first to ensure React state is synchronized before clicking.
    */
   async submit(): Promise<void> {
+    // Focus input first to ensure React state is synchronized
+    // This matches the pattern in submitViaEnter and prevents race conditions
+    // where the button click reads stale state (especially on Windows CI)
+    const input = await this.$(this.inputSelector);
+    await input.click();
+
     const submitButton = await this.waitForElement(this.submitButtonSelector);
     await submitButton.click();
     this.log('Clicked submit button');
