@@ -98,7 +98,7 @@ describe('Toast Error Handling Coordination', () => {
   });
 
   describe('Duplicate toast IDs', () => {
-    it('7.4.3 - should handle duplicate toast IDs by adding both toasts', () => {
+    it('7.4.3 - should handle duplicate toast IDs by updating the existing toast', () => {
       const { result } = renderHook(() => useToast(), {
         wrapper: ToastProvider,
       });
@@ -116,13 +116,14 @@ describe('Toast Error Handling Coordination', () => {
         });
       });
 
-      // Both toasts should be added (current implementation doesn't dedupe)
-      expect(result.current.toasts).toHaveLength(2);
+      // Duplicate IDs should update the existing toast, not add a new one
+      expect(result.current.toasts).toHaveLength(1);
       expect(result.current.toasts[0].id).toBe('duplicate-id');
-      expect(result.current.toasts[1].id).toBe('duplicate-id');
+      expect(result.current.toasts[0].type).toBe('success');
+      expect(result.current.toasts[0].message).toBe('Second toast with same ID');
     });
 
-    it('should dismiss all toasts with matching ID when dismissToast called', () => {
+    it('should dismiss toast by ID when dismissToast called', () => {
       const { result } = renderHook(() => useToast(), {
         wrapper: ToastProvider,
       });
@@ -140,13 +141,14 @@ describe('Toast Error Handling Coordination', () => {
         });
       });
 
-      expect(result.current.toasts).toHaveLength(2);
+      // With deduplication, only 1 toast exists
+      expect(result.current.toasts).toHaveLength(1);
 
       act(() => {
         result.current.dismissToast('duplicate-id');
       });
 
-      // Both toasts with matching ID should be removed
+      // Toast should be removed
       expect(result.current.toasts).toHaveLength(0);
     });
   });
