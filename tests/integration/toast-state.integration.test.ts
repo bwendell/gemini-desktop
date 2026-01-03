@@ -104,6 +104,15 @@ describe('Toast State Management Integration', () => {
   }
 
   describe('showToast → state update → re-render', () => {
+    beforeEach(async () => {
+      await dismissAll();
+      // Wait for DOM to clear
+      await browser.waitUntil(
+        async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0,
+        { timeout: 3000, timeoutMsg: 'Toasts not cleared from DOM' }
+      );
+    });
+
     afterEach(async () => {
       await dismissAll();
     });
@@ -143,6 +152,15 @@ describe('Toast State Management Integration', () => {
   });
 
   describe('rapid sequential showToast calls', () => {
+    beforeEach(async () => {
+      await dismissAll();
+      // Wait for DOM to clear
+      await browser.waitUntil(
+        async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0,
+        { timeout: 3000, timeoutMsg: 'Toasts not cleared from DOM' }
+      );
+    });
+
     afterEach(async () => {
       await dismissAll();
     });
@@ -215,6 +233,15 @@ describe('Toast State Management Integration', () => {
   });
 
   describe('concurrent showToast and dismissToast', () => {
+    beforeEach(async () => {
+      await dismissAll();
+      // Wait for DOM to clear
+      await browser.waitUntil(
+        async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0,
+        { timeout: 3000, timeoutMsg: 'Toasts not cleared from DOM' }
+      );
+    });
+
     afterEach(async () => {
       await dismissAll();
     });
@@ -288,6 +315,15 @@ describe('Toast State Management Integration', () => {
   });
 
   describe('state persistence across re-renders', () => {
+    beforeEach(async () => {
+      await dismissAll();
+      // Wait for DOM to clear
+      await browser.waitUntil(
+        async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0,
+        { timeout: 3000, timeoutMsg: 'Toasts not cleared from DOM' }
+      );
+    });
+
     afterEach(async () => {
       await dismissAll();
     });
@@ -340,7 +376,11 @@ describe('Toast State Management Integration', () => {
       // All 7 in state
       expect(await getToastCount()).toBe(7);
 
-      // Only 5 visible
+      // Only 5 visible - wait for React/AnimatePresence to stabilize
+      await browser.waitUntil(
+        async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 5,
+        { timeout: 3000, timeoutMsg: 'Expected 5 visible toasts' }
+      );
       const visibleBefore = await wdioSelectorAll('[data-testid="toast"]');
       expect(visibleBefore.length).toBe(5);
 
