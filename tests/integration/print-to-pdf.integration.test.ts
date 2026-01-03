@@ -888,7 +888,7 @@ describe('Print to PDF IPC Integration', () => {
     // ========================================================================
 
     describe('7.8.1 Print workflow with scrollable content', () => {
-      let originalMethods: {
+      const originalMethods: {
         getIframeScrollInfo: any;
         captureViewport: any;
         scrollIframeTo: any;

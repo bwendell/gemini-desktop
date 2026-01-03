@@ -174,12 +174,14 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     baseInstallUpdate();
   }, [currentToastId, dismissToast, baseInstallUpdate]);
 
-  // Update callbacks ref
-  callbacksRef.current = {
-    onInstall: installUpdate,
-    onLater: handleLater,
-    onDismiss: dismissNotification,
-  };
+  // Update callbacks ref in effect to avoid updating during render
+  useEffect(() => {
+    callbacksRef.current = {
+      onInstall: installUpdate,
+      onLater: handleLater,
+      onDismiss: dismissNotification,
+    };
+  }, [installUpdate, handleLater, dismissNotification]);
 
   /**
    * Show or update toast when update state changes
@@ -189,7 +191,8 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     if (!visible || !type) {
       if (currentToastId) {
         dismissToast(currentToastId);
-        setCurrentToastId(null);
+        // Defer setState to avoid synchronous setState in effect
+        queueMicrotask(() => setCurrentToastId(null));
       }
       return;
     }

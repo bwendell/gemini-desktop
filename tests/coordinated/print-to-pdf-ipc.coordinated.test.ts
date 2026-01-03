@@ -655,7 +655,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
       );
     });
 
-    it('should send \"Unknown error\" when non-Error object is thrown', async () => {
+    it('should send "Unknown error" when non-Error object is thrown', async () => {
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
       const mockWebContents = createMockWebContentsForCapture();

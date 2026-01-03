@@ -61,7 +61,7 @@ describe('Print to PDF Settings Persistence', () => {
   describe('Default Values (Fresh Install)', () => {
     it('should use default values when store is empty', () => {
       const windowManager = new WindowManager(false);
-      const menuManager = new MenuManager(windowManager);
+      const _menuManager = new MenuManager(windowManager);
       // Initialize HotkeyManager with empty store interaction (defaults)
       const hotkeyManager = new HotkeyManager(windowManager);
 
@@ -83,7 +83,7 @@ describe('Print to PDF Settings Persistence', () => {
       const printManager = new PrintManager(windowManager, hotkeyManager, menuManager);
 
       // Initialize IpcManager - this is where we expect sync to happen in the real app
-      const ipcManager = new IpcManager(
+      const _ipcManager = new IpcManager(
         windowManager,
         hotkeyManager,
         null,

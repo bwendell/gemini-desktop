@@ -186,7 +186,9 @@ describe('ToastContainer', () => {
     it('wraps toasts in motion.div for animations', () => {
       const toasts = [createToast({ id: '1', message: 'Animated toast' })];
 
-      const { container } = render(<ToastContainer toasts={toasts} onDismiss={vi.fn()} />);
+      const { container: _container } = render(
+        <ToastContainer toasts={toasts} onDismiss={vi.fn()} />
+      );
 
       // Check that toast is wrapped in a motion.div (framer-motion)
       const toastContainer = screen.getByTestId('toast-container');

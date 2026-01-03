@@ -2,7 +2,7 @@
  * Coordinated tests for PrintManager error handling.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { app, dialog, BrowserWindow } from 'electron';
+import { app, dialog } from 'electron';
 
 // Mock logger - must use hoisted
 const mockLogger = vi.hoisted(() => ({

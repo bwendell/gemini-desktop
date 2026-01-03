@@ -22,11 +22,7 @@ import {
 import SettingsStore from '../store';
 import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS, isGeminiDomain } from '../utils/constants';
 import { GEMINI_APP_URL } from '../../shared/constants/index';
-import {
-  InjectionScriptBuilder,
-  DEFAULT_INJECTION_CONFIG,
-  InjectionResult,
-} from '../utils/injectionScript';
+import { InjectionScriptBuilder, InjectionResult } from '../utils/injectionScript';
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type HotkeyManager from './hotkeyManager';

@@ -487,6 +487,7 @@ describe('Print to PDF Full Content Verification', () => {
         'print-full-content',
         `Platform ${platform}: default path ends with .pdf as expected`
       );
+    });
   });
 
   // ==========================================================================
