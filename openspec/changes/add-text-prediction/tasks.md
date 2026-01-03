@@ -138,27 +138,27 @@
   - If enabling and model not downloaded, triggers download
   - **Acceptance:** Toggle works, triggers download when enabling
 
-- [ ] 3.3 Implement GPU acceleration toggle
+- [x] 3.3 Implement GPU acceleration toggle
   - Only visible when text prediction is enabled
   - Calls `setTextPredictionGpuEnabled()` on change
   - **Acceptance:** GPU toggle appears/hides correctly, persists setting
 
-- [ ] 3.4 Implement download progress bar
+- [x] 3.4 Implement download progress bar
   - Listen to `onTextPredictionDownloadProgress` events
   - Show animated progress bar during download
   - **Acceptance:** Progress bar animates 0-100% during download
 
-- [ ] 3.5 Implement status indicator
+- [x] 3.5 Implement status indicator
   - Display: "Not downloaded", "Downloading...", "Initializing...", "Ready", "Error: {message}"
   - Show retry button on error
   - **Acceptance:** All status states display correctly
 
-- [ ] 3.6 Add CSS styling in `TextPredictionSettings.css`
+- [x] 3.6 Add CSS styling in `TextPredictionSettings.css`
   - Style toggle, progress bar, status indicator
   - Follow existing options component styles
   - **Acceptance:** UI matches existing options design
 
-- [ ] 3.7 Add section to `OptionsWindow.tsx`
+- [x] 3.7 Add section to `OptionsWindow.tsx`
   - Add `<OptionsSection title="Text Prediction">` with component
   - Export from `index.ts`
   - **Acceptance:** Section visible in Options Settings tab

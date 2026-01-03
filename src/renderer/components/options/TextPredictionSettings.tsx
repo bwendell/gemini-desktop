@@ -7,8 +7,9 @@
  * @module TextPredictionSettings
  */
 
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { CapsuleToggle } from '../common/CapsuleToggle';
+import { isDevMode } from '../../utils/platform';
 import type { TextPredictionSettings as TextPredictionSettingsType } from '../../../shared/types/text-prediction';
 import './TextPredictionSettings.css';
 
@@ -24,6 +25,11 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
     status: 'not-downloaded',
   });
   const [loading, setLoading] = useState(true);
+
+  // Debug mode state
+  const [debugProgress, setDebugProgress] = useState(0);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const simulationRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load initial state from main process
   useEffect(() => {
@@ -85,6 +91,40 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
     }
   }, []);
 
+  // Debug: Simulate download progress animation
+  const handleSimulateDownload = useCallback(() => {
+    if (isSimulating) return;
+
+    setIsSimulating(true);
+    setDebugProgress(0);
+    setSettings((prev) => ({ ...prev, status: 'downloading', downloadProgress: 0 }));
+
+    let progress = 0;
+    simulationRef.current = setInterval(() => {
+      progress += 2;
+      setDebugProgress(progress);
+      setSettings((prev) => ({ ...prev, downloadProgress: progress }));
+
+      if (progress >= 100) {
+        if (simulationRef.current) {
+          clearInterval(simulationRef.current);
+          simulationRef.current = null;
+        }
+        setIsSimulating(false);
+        setSettings((prev) => ({ ...prev, status: 'ready', downloadProgress: 100 }));
+      }
+    }, 60); // ~3 seconds total for 0-100%
+  }, [isSimulating]);
+
+  // Cleanup simulation on unmount
+  useEffect(() => {
+    return () => {
+      if (simulationRef.current) {
+        clearInterval(simulationRef.current);
+      }
+    };
+  }, []);
+
   if (loading) {
     return (
       <div
@@ -116,6 +156,61 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
           description="Enable for faster predictions (requires GPU)"
           testId="text-prediction-gpu-toggle"
         />
+      )}
+
+      {/* Download progress bar - only visible when downloading */}
+      {settings.status === 'downloading' && (
+        <div className="text-prediction-progress" data-testid="text-prediction-progress">
+          <div className="text-prediction-progress__bar">
+            <div
+              className="text-prediction-progress__fill"
+              style={{ width: `${settings.downloadProgress ?? 0}%` }}
+              data-testid="text-prediction-progress-fill"
+            />
+          </div>
+          <span className="text-prediction-progress__text">
+            Downloading model... {Math.round(settings.downloadProgress ?? 0)}%
+          </span>
+        </div>
+      )}
+
+      {/* Status indicator - shows current model status */}
+      {settings.enabled && (
+        <div className="text-prediction-status" data-testid="text-prediction-status">
+          <span
+            className={`text-prediction-status__text text-prediction-status--${settings.status}`}
+            data-testid="text-prediction-status-text"
+          >
+            {settings.status === 'not-downloaded' && 'Not downloaded'}
+            {settings.status === 'downloading' && 'Downloading...'}
+            {settings.status === 'initializing' && 'Initializing...'}
+            {settings.status === 'ready' && 'Ready'}
+            {settings.status === 'error' && `Error: ${settings.errorMessage ?? 'Unknown error'}`}
+          </span>
+          {settings.status === 'error' && (
+            <button
+              className="text-prediction-status__retry"
+              onClick={() => handleEnableChange(true)}
+              data-testid="text-prediction-retry-button"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Debug: Simulate download button - only in dev mode */}
+      {isDevMode() && (
+        <div className="text-prediction-debug" data-testid="text-prediction-debug">
+          <button
+            className="text-prediction-debug__button"
+            onClick={handleSimulateDownload}
+            disabled={isSimulating}
+            data-testid="text-prediction-simulate-button"
+          >
+            {isSimulating ? `Simulating... ${debugProgress}%` : 'Simulate Download'}
+          </button>
+        </div>
       )}
     </div>
   );

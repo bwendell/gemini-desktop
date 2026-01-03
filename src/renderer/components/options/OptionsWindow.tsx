@@ -16,6 +16,7 @@ import { ThemeSelector } from './ThemeSelector';
 import { IndividualHotkeyToggles } from './IndividualHotkeyToggles';
 import { AutoUpdateToggle } from './AutoUpdateToggle';
 import { AboutSection } from './AboutSection';
+import { TextPredictionSettings } from './TextPredictionSettings';
 import './options-window.css';
 
 // ============================================================================
@@ -183,17 +184,10 @@ export function OptionsWindow() {
                 <AutoUpdateToggle />
               </OptionsSection>
 
-              {/*
-               * Future sections can be added here:
-               *
-               * <OptionsSection title="Privacy" testId="options-privacy">
-               *     <PrivacySettings />
-               * </OptionsSection>
-               *
-               * <OptionsSection title="Keyboard Shortcuts" testId="options-shortcuts">
-               *     <KeyboardShortcuts />
-               * </OptionsSection>
-               */}
+              {/* Text Prediction Settings */}
+              <OptionsSection title="Text Prediction" testId="options-text-prediction">
+                <TextPredictionSettings />
+              </OptionsSection>
             </>
           )}
 
