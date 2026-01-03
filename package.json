@@ -52,6 +52,7 @@
     "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
     "framer-motion": "^12.23.26",
+    "node-llama-cpp": "^3.14.5",
     "pdfkit": "^0.17.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

@@ -89,6 +89,16 @@ export const IPC_CHANNELS = {
   // Shell (filesystem operations)
   SHELL_SHOW_ITEM_IN_FOLDER: 'shell:show-item-in-folder',
 
+  // Text Prediction (local LLM inference)
+  TEXT_PREDICTION_GET_ENABLED: 'text-prediction:get-enabled',
+  TEXT_PREDICTION_SET_ENABLED: 'text-prediction:set-enabled',
+  TEXT_PREDICTION_GET_GPU_ENABLED: 'text-prediction:get-gpu-enabled',
+  TEXT_PREDICTION_SET_GPU_ENABLED: 'text-prediction:set-gpu-enabled',
+  TEXT_PREDICTION_GET_STATUS: 'text-prediction:get-status',
+  TEXT_PREDICTION_STATUS_CHANGED: 'text-prediction:status-changed',
+  TEXT_PREDICTION_DOWNLOAD_PROGRESS: 'text-prediction:download-progress',
+  TEXT_PREDICTION_PREDICT: 'text-prediction:predict',
+
   // Dev Testing (only used in development for manual testing)
   DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
   DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',
