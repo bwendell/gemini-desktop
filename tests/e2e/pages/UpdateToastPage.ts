@@ -68,7 +68,7 @@ export class UpdateToastPage extends BasePage {
 
   /** Progress bar inner element selector */
   get progressBarInnerSelector(): string {
-    return '.update-toast__progress-bar';
+    return '.toast__progress-bar';
   }
 
   // ===========================================================================
