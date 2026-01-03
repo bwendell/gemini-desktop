@@ -129,11 +129,11 @@
 
 **Tasks:**
 
-- [ ] 3.1 Create `TextPredictionSettings.tsx` component skeleton
+- [x] 3.1 Create `TextPredictionSettings.tsx` component skeleton
   - Function component with hooks for settings state
   - **Acceptance:** Component renders without errors
 
-- [ ] 3.2 Implement enable/disable toggle
+- [x] 3.2 Implement enable/disable toggle
   - Calls `setTextPredictionEnabled()` on change
   - If enabling and model not downloaded, triggers download
   - **Acceptance:** Toggle works, triggers download when enabling

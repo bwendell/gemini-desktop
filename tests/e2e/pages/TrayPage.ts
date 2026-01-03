@@ -21,7 +21,7 @@ import {
   TrayState,
 } from '../helpers/trayActions';
 import { isWindowVisible, isWindowMinimized, closeWindow } from '../helpers/windowStateActions';
-import { isLinux, isLinuxCI, isMacOS } from '../helpers/platform';
+import { isLinuxCI, isMacOS } from '../helpers/platform';
 import { Selectors } from '../helpers/selectors';
 import { E2E_TIMING } from '../helpers/e2eConstants';
 

@@ -160,6 +160,30 @@ interface Window {
     // Shell API
     revealInFolder: (path: string) => void;
 
+    // Text Prediction API
+    getTextPredictionEnabled: () => Promise<boolean>;
+    setTextPredictionEnabled: (enabled: boolean) => Promise<void>;
+    getTextPredictionGpuEnabled: () => Promise<boolean>;
+    setTextPredictionGpuEnabled: (enabled: boolean) => Promise<void>;
+    getTextPredictionStatus: () => Promise<{
+      enabled: boolean;
+      gpuEnabled: boolean;
+      status: 'not-downloaded' | 'downloading' | 'initializing' | 'ready' | 'error';
+      downloadProgress?: number;
+      errorMessage?: string;
+    }>;
+    onTextPredictionStatusChanged: (
+      callback: (settings: {
+        enabled: boolean;
+        gpuEnabled: boolean;
+        status: 'not-downloaded' | 'downloading' | 'initializing' | 'ready' | 'error';
+        downloadProgress?: number;
+        errorMessage?: string;
+      }) => void
+    ) => () => void;
+    onTextPredictionDownloadProgress: (callback: (progress: number) => void) => () => void;
+    predictText: (partialText: string) => Promise<string | null>;
+
     platform: string;
     isElectron: boolean;
   };

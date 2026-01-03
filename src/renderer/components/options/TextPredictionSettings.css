@@ -1,0 +1,16 @@
+/**
+ * TextPredictionSettings Component Styles
+ *
+ * Styles for the text prediction settings section in the Options window.
+ */
+
+.text-prediction-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.text-prediction-settings.loading {
+  color: var(--text-muted, #888);
+  font-style: italic;
+}
