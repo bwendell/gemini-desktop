@@ -28,32 +28,32 @@ export class UpdateToastPage extends BasePage {
 
   /** Toast container selector */
   get toastSelector(): string {
-    return '[data-testid="update-toast"]';
+    return '[data-testid="toast"]';
   }
 
   /** Toast title selector */
   get titleSelector(): string {
-    return '[data-testid="update-toast-title"]';
+    return '[data-testid="toast-title"]';
   }
 
   /** Toast message selector */
   get messageSelector(): string {
-    return '[data-testid="update-toast-message"]';
+    return '[data-testid="toast-message"]';
   }
 
   /** Dismiss button selector (for non-downloaded toasts) */
   get dismissButtonSelector(): string {
-    return '[data-testid="update-toast-dismiss"]';
+    return '[data-testid="toast-dismiss"]';
   }
 
   /** Restart Now button selector (for downloaded toast) */
   get restartButtonSelector(): string {
-    return '[data-testid="update-toast-restart"]';
+    return '[data-testid="toast-action-0"]';
   }
 
   /** Later button selector (for downloaded toast) */
   get laterButtonSelector(): string {
-    return '[data-testid="update-toast-later"]';
+    return '[data-testid="toast-action-1"]';
   }
 
   /** Update badge selector */
