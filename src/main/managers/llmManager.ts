@@ -12,7 +12,7 @@ import * as path from 'path';
 import { existsSync } from 'fs';
 // node-llama-cpp is ESM-only with top-level await, so we must use dynamic import()
 // Types are imported for TypeScript but the actual module is loaded dynamically
-import type { Llama, LlamaModel, LlamaContext, LlamaChatSession } from 'node-llama-cpp';
+import type { Llama, LlamaModel, LlamaContext, LlamaCompletion } from 'node-llama-cpp';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('[LlmManager]');
@@ -56,21 +56,44 @@ export interface ModelConfig {
 /**
  * Registry of supported models.
  * Add new models here to extend LLM support.
+ *
+ * Using Qwen3 family for text completion:
+ * - Qwen3-0.6B: Ultra-lightweight, fastest inference
+ * - Qwen3-1.7B: Good balance of quality and speed (default)
+ * - Qwen3-4B: Higher quality predictions
  */
 export const MODEL_REGISTRY: Record<string, ModelConfig> = {
-  'tinyllama-1.1b-chat': {
-    id: 'tinyllama-1.1b-chat',
-    displayName: 'TinyLlama 1.1B Chat',
-    // TheBloke's public GGUF - no authentication required
-    uri: 'hf:TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+  'qwen3-0.6b': {
+    id: 'qwen3-0.6b',
+    displayName: 'Qwen3 0.6B',
+    // Official Qwen GGUF - no authentication required
+    uri: 'hf:Qwen/Qwen3-0.6B-GGUF/Qwen3-0.6B-Q8_0.gguf',
     // Note: node-llama-cpp prefixes the filename with the HF org name
-    fileName: 'hf_TheBloke_tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
-    sizeBytes: 669_000_000, // ~669 MB
+    fileName: 'hf_Qwen_Qwen3-0.6B-Q8_0.gguf',
+    sizeBytes: 640_000_000, // ~640 MB (q8_0 quantization)
+  },
+  'qwen3-1.7b': {
+    id: 'qwen3-1.7b',
+    displayName: 'Qwen3 1.7B',
+    // Official Qwen GGUF - no authentication required
+    uri: 'hf:Qwen/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q8_0.gguf',
+    // Note: node-llama-cpp prefixes the filename with the HF org name
+    fileName: 'hf_Qwen_Qwen3-1.7B-Q8_0.gguf',
+    sizeBytes: 1_800_000_000, // ~1.8 GB (q8_0 quantization)
+  },
+  'qwen3-4b': {
+    id: 'qwen3-4b',
+    displayName: 'Qwen3 4B',
+    // Official Qwen GGUF - no authentication required
+    uri: 'hf:Qwen/Qwen3-4B-GGUF/Qwen3-4B-Q4_K_M.gguf',
+    // Note: node-llama-cpp prefixes the filename with the HF org name
+    fileName: 'hf_Qwen_Qwen3-4B-Q4_K_M.gguf',
+    sizeBytes: 2_560_000_000, // ~2.56 GB (Q4_K_M quantization)
   },
 };
 
-/** Default model to use for text prediction */
-export const DEFAULT_MODEL_ID = 'tinyllama-1.1b-chat';
+/** Default model to use for text prediction (0.6B for lower memory requirements) */
+export const DEFAULT_MODEL_ID = 'qwen3-0.6b';
 
 /**
  * Callback for download progress updates.
@@ -105,7 +128,7 @@ export default class LlmManager {
   private llama: Llama | null = null;
   private model: LlamaModel | null = null;
   private context: LlamaContext | null = null;
-  private session: LlamaChatSession | null = null;
+  private completion: LlamaCompletion | null = null;
 
   // Status change listeners
   private statusListeners: StatusChangeCallback[] = [];
@@ -312,7 +335,7 @@ export default class LlmManager {
 
     try {
       // Dynamic import for ESM module using helper to prevent transpilation
-      const { getLlama, LlamaChatSession } = await importNodeLlamaCpp();
+      const { getLlama, LlamaCompletion } = await importNodeLlamaCpp();
 
       // Get llama instance with GPU setting
       const gpuMode = this.gpuEnabled ? 'auto' : false;
@@ -339,8 +362,8 @@ export default class LlmManager {
       // Create context for inference
       this.context = await this.model.createContext();
 
-      // Create chat session for prompt completion
-      this.session = new LlamaChatSession({
+      // Create completion instance for text completion (not chat)
+      this.completion = new LlamaCompletion({
         contextSequence: this.context.getSequence(),
       });
 
@@ -376,9 +399,9 @@ export default class LlmManager {
   unloadModel(): void {
     logger.log('Unloading model');
 
-    if (this.session) {
-      // Session doesn't have dispose, just nullify
-      this.session = null;
+    if (this.completion) {
+      // Completion doesn't have dispose, just nullify
+      this.completion = null;
     }
 
     if (this.context) {
@@ -426,8 +449,9 @@ export default class LlmManager {
 
   /**
    * Default timeout for inference in milliseconds.
+   * Increased to 2000ms for larger Qwen3 models.
    */
-  private static readonly INFERENCE_TIMEOUT_MS = 500;
+  private static readonly INFERENCE_TIMEOUT_MS = 2000;
 
   /**
    * Generate a text prediction for the given partial text.
@@ -438,7 +462,7 @@ export default class LlmManager {
    */
   async predict(partialText: string, timeoutMs?: number): Promise<string | null> {
     // Return null if model not ready
-    if (!this.isModelLoaded() || !this.session) {
+    if (!this.isModelLoaded() || !this.completion) {
       logger.warn('Predict called but model not ready');
       return null;
     }
@@ -460,23 +484,24 @@ export default class LlmManager {
     const timeoutId = setTimeout(() => abortController.abort(), timeout);
 
     try {
-      // Use completePrompt for inline text completion
-      // This completes the user's input rather than having a conversation
-      const completion = await this.session.prompt(
-        `Complete this text naturally (continue the sentence, do not repeat the input, just provide the continuation): ${partialText}`,
-        {
-          signal: abortController.signal,
-          maxTokens: 30, // Limit tokens for quick suggestions
-          temperature: 0.7, // Slightly creative but not too random
-        }
-      );
+      // Use direct text completion - no chat template, just continue the input
+      logger.log('Generating completion', { partialText });
 
-      // Clean up the completion - remove leading/trailing whitespace
+      const completion = await this.completion.generateCompletion(partialText, {
+        signal: abortController.signal,
+        maxTokens: 10, // Limit tokens for quick suggestions (3-4 words)
+        temperature: 0.7, // Slightly creative but not too random
+      });
+
+      logger.log('Raw model response', { completion, partialText });
+
+      // The completion should just be the continuation (no input echo)
       const cleaned = completion?.trim() ?? null;
 
       logger.log('Prediction complete', {
         inputLength: partialText.length,
         outputLength: cleaned?.length ?? 0,
+        cleanedResult: cleaned,
       });
 
       return cleaned || null;

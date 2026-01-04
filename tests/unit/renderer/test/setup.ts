@@ -138,6 +138,20 @@ const mockElectronAPI = {
   // Tray API
   getTrayTooltip: vi.fn().mockResolvedValue('Gemini'),
 
+  // Text Prediction API
+  getTextPredictionEnabled: vi.fn().mockResolvedValue(false),
+  setTextPredictionEnabled: vi.fn().mockResolvedValue(undefined),
+  getTextPredictionGpuEnabled: vi.fn().mockResolvedValue(false),
+  setTextPredictionGpuEnabled: vi.fn().mockResolvedValue(undefined),
+  getTextPredictionStatus: vi.fn().mockResolvedValue({
+    enabled: false,
+    gpuEnabled: false,
+    status: 'disabled',
+  }),
+  onTextPredictionStatusChanged: vi.fn().mockReturnValue(() => {}),
+  onTextPredictionDownloadProgress: vi.fn().mockReturnValue(() => {}),
+  predictText: vi.fn().mockResolvedValue(null),
+
   // Dev Testing API
   devShowBadge: vi.fn(),
   devClearBadge: vi.fn(),

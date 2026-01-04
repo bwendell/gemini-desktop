@@ -88,6 +88,7 @@ describe('Print to PDF Settings Persistence', () => {
         hotkeyManager,
         null,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -114,6 +115,7 @@ describe('Print to PDF Settings Persistence', () => {
         hotkeyManager,
         null, // updateManager
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -156,6 +158,7 @@ describe('Print to PDF Settings Persistence', () => {
         hotkeyManager,
         null,
         null,
+        null,
         mockStore,
         mockLogger
       );
@@ -191,6 +194,7 @@ describe('Print to PDF Settings Persistence', () => {
       const ipcManager = new IpcManager(
         windowManager,
         hotkeyManager,
+        null,
         null,
         null,
         mockStore,
@@ -229,6 +233,7 @@ describe('Print to PDF Settings Persistence', () => {
       const ipcManager = new IpcManager(
         windowManager,
         hotkeyManager,
+        null,
         null,
         null,
         mockStore,

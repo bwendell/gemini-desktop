@@ -109,6 +109,7 @@ describe('IPC Manager Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         null,
+        null,
         mockStore,
         mockLogger
       );

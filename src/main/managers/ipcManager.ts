@@ -119,7 +119,7 @@ export default class IpcManager {
           textPredictionEnabled: false,
           textPredictionGpuEnabled: false,
           textPredictionModelStatus: 'not-downloaded',
-          textPredictionModelId: 'phi-3.5-mini',
+          textPredictionModelId: 'qwen3-0.6b',
         },
       });
     /* v8 ignore next -- production fallback, tests always inject logger */

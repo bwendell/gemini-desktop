@@ -225,6 +225,21 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
           >
             {isSimulating ? `Simulating... ${debugProgress}%` : 'Simulate Download'}
           </button>
+          <button
+            className="text-prediction-debug__button text-prediction-debug__button--error"
+            onClick={() =>
+              setSettings((prev) => ({
+                ...prev,
+                enabled: true,
+                status: 'error',
+                errorMessage: 'Simulated error for testing',
+              }))
+            }
+            disabled={isSimulating}
+            data-testid="text-prediction-simulate-error-button"
+          >
+            Simulate Error
+          </button>
         </div>
       )}
     </div>

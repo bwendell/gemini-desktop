@@ -70,6 +70,7 @@ export const Selectors = {
   quickChatContainer: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_CONTAINER),
   quickChatInput: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_INPUT),
   quickChatSubmit: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_SUBMIT),
+  quickChatGhostText: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_GHOST_TEXT),
 
   // Update Toast
   updateToast: '[data-testid="update-toast"]',
@@ -82,4 +83,3 @@ export const Selectors = {
   progressBar: '[role="progressbar"]',
   progressBarInner: '.update-toast__progress-bar',
 } as const;
-

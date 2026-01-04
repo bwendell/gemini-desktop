@@ -164,9 +164,9 @@ describe('Preload Script', () => {
       expect(result).toBe(true);
     });
 
-    it('setTextPredictionEnabled should send IPC message', async () => {
+    it('setTextPredictionEnabled should invoke IPC handler', async () => {
       await exposedAPI.setTextPredictionEnabled(true);
-      expect(ipcRendererMock.send).toHaveBeenCalledWith('text-prediction:set-enabled', true);
+      expect(ipcRendererMock.invoke).toHaveBeenCalledWith('text-prediction:set-enabled', true);
     });
 
     it('getTextPredictionGpuEnabled should invoke IPC handler', async () => {
@@ -176,9 +176,9 @@ describe('Preload Script', () => {
       expect(result).toBe(false);
     });
 
-    it('setTextPredictionGpuEnabled should send IPC message', async () => {
+    it('setTextPredictionGpuEnabled should invoke IPC handler', async () => {
       await exposedAPI.setTextPredictionGpuEnabled(true);
-      expect(ipcRendererMock.send).toHaveBeenCalledWith('text-prediction:set-gpu-enabled', true);
+      expect(ipcRendererMock.invoke).toHaveBeenCalledWith('text-prediction:set-gpu-enabled', true);
     });
 
     it('getTextPredictionStatus should invoke IPC handler', async () => {

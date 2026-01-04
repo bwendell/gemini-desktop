@@ -30,6 +30,7 @@
     "test:integration": "wdio run config/wdio/wdio.integration.conf.js",
     "test:integration:watch": "wdio run config/wdio/wdio.integration.conf.js --watch",
     "test:e2e": "node scripts/run-e2e-sequential.cjs",
+    "test:e2e:spec": "wdio run config/wdio/wdio.conf.js",
     "test:e2e:group:startup": "wdio run config/wdio/wdio.group.startup.conf.js",
     "test:e2e:group:window": "wdio run config/wdio/wdio.group.window.conf.js",
     "test:e2e:group:menu": "wdio run config/wdio/wdio.group.menu.conf.js",

@@ -192,7 +192,7 @@ describe('QuickChatApp', () => {
       expect(mockSubmitQuickChat).toHaveBeenCalledWith('Enter test');
     });
 
-    it('calls cancelQuickChat on Escape key', () => {
+    it('calls cancelQuickChat on Escape key when no prediction is showing', () => {
       render(<QuickChatApp />);
 
       const input = screen.getByTestId('quick-chat-input');
@@ -421,6 +421,35 @@ describe('QuickChatApp', () => {
 
       // Input should now contain the original text + prediction
       expect(input).toHaveValue('Hello world!');
+    });
+
+    it('dismisses prediction on Escape key instead of canceling', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      await vi.advanceTimersByTimeAsync(350);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+      });
+
+      // Press Escape to dismiss prediction (not cancel Quick Chat)
+      fireEvent.keyDown(input, { key: 'Escape' });
+
+      // Ghost text should be dismissed
+      expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+
+      // cancelQuickChat should NOT have been called (prediction was showing)
+      expect(mockCancelQuickChat).not.toHaveBeenCalled();
+
+      // Input should remain unchanged
+      expect(input).toHaveValue('Hello ');
     });
 
     it('clears ghost text after accepting prediction', async () => {

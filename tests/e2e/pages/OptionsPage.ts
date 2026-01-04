@@ -483,6 +483,230 @@ export class OptionsPage extends BasePage {
   }
 
   // ===========================================================================
+  // TEXT PREDICTION SETTINGS
+  // ===========================================================================
+
+  /** Selector for the text prediction settings section */
+  get textPredictionSectionSelector(): string {
+    return '[data-testid="text-prediction-settings"]';
+  }
+
+  /** Selector for the text prediction enable toggle switch */
+  get textPredictionEnableToggleSelector(): string {
+    return '[data-testid="text-prediction-enable-toggle-switch"]';
+  }
+
+  /** Selector for the text prediction GPU toggle switch */
+  get textPredictionGpuToggleSelector(): string {
+    return '[data-testid="text-prediction-gpu-toggle-switch"]';
+  }
+
+  /** Selector for the text prediction status container */
+  get textPredictionStatusSelector(): string {
+    return '[data-testid="text-prediction-status"]';
+  }
+
+  /** Selector for the text prediction status text element */
+  get textPredictionStatusTextSelector(): string {
+    return '[data-testid="text-prediction-status-text"]';
+  }
+
+  /** Selector for the text prediction progress bar container */
+  get textPredictionProgressSelector(): string {
+    return '[data-testid="text-prediction-progress"]';
+  }
+
+  /** Selector for the text prediction retry button */
+  get textPredictionRetryButtonSelector(): string {
+    return '[data-testid="text-prediction-retry-button"]';
+  }
+
+  /**
+   * Check if the text prediction section is displayed.
+   */
+  async isTextPredictionSectionDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.textPredictionSectionSelector);
+  }
+
+  /**
+   * Check if text prediction is enabled.
+   */
+  async isTextPredictionEnabled(): Promise<boolean> {
+    const toggle = await this.$(this.textPredictionEnableToggleSelector);
+    if (!(await toggle.isExisting())) {
+      return false;
+    }
+    const checked = await toggle.getAttribute('aria-checked');
+    return checked === 'true';
+  }
+
+  /**
+   * Toggle text prediction on or off.
+   */
+  async toggleTextPrediction(): Promise<void> {
+    this.log('Toggling text prediction');
+    const toggle = await this.waitForElement(this.textPredictionEnableToggleSelector);
+    await toggle.click();
+    await browser.pause(500); // Wait for IPC round-trip
+  }
+
+  /**
+   * Enable text prediction (if not already enabled).
+   */
+  async enableTextPrediction(): Promise<void> {
+    const isEnabled = await this.isTextPredictionEnabled();
+    if (!isEnabled) {
+      await this.toggleTextPrediction();
+    }
+  }
+
+  /**
+   * Disable text prediction (if not already disabled).
+   */
+  async disableTextPrediction(): Promise<void> {
+    const isEnabled = await this.isTextPredictionEnabled();
+    if (isEnabled) {
+      await this.toggleTextPrediction();
+    }
+  }
+
+  /**
+   * Check if the text prediction status indicator is displayed.
+   */
+  async isTextPredictionStatusDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.textPredictionStatusSelector);
+  }
+
+  /**
+   * Get the current text prediction status text.
+   */
+  async getTextPredictionStatusText(): Promise<string> {
+    const statusText = await this.$(this.textPredictionStatusTextSelector);
+    if (!(await statusText.isExisting())) {
+      return '';
+    }
+    return statusText.getText();
+  }
+
+  /**
+   * Check if the text prediction progress bar is displayed.
+   */
+  async isTextPredictionProgressDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.textPredictionProgressSelector);
+  }
+
+  /**
+   * Check if the text prediction GPU toggle is displayed.
+   */
+  async isTextPredictionGpuToggleDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.textPredictionGpuToggleSelector);
+  }
+
+  /**
+   * Check if text prediction GPU acceleration is enabled.
+   */
+  async isTextPredictionGpuEnabled(): Promise<boolean> {
+    const toggle = await this.$(this.textPredictionGpuToggleSelector);
+    if (!(await toggle.isExisting())) {
+      return false;
+    }
+    const checked = await toggle.getAttribute('aria-checked');
+    return checked === 'true';
+  }
+
+  /**
+   * Toggle text prediction GPU acceleration on or off.
+   */
+  async toggleTextPredictionGpu(): Promise<void> {
+    this.log('Toggling text prediction GPU');
+    const toggle = await this.waitForElement(this.textPredictionGpuToggleSelector);
+    await toggle.click();
+    await browser.pause(500); // Wait for IPC round-trip
+  }
+
+  /**
+   * Enable text prediction GPU acceleration (if not already enabled).
+   */
+  async enableTextPredictionGpu(): Promise<void> {
+    const isEnabled = await this.isTextPredictionGpuEnabled();
+    if (!isEnabled) {
+      await this.toggleTextPredictionGpu();
+    }
+  }
+
+  /**
+   * Disable text prediction GPU acceleration (if not already disabled).
+   */
+  async disableTextPredictionGpu(): Promise<void> {
+    const isEnabled = await this.isTextPredictionGpuEnabled();
+    if (isEnabled) {
+      await this.toggleTextPredictionGpu();
+    }
+  }
+
+  /**
+   * Wait for the text prediction status to change to a specific value.
+   * @param expectedStatus - Expected status text to wait for
+   * @param timeout - Timeout in milliseconds (default: 10000)
+   */
+  async waitForTextPredictionStatus(expectedStatus: string, timeout = 10000): Promise<void> {
+    await browser.waitUntil(
+      async () => {
+        const status = await this.getTextPredictionStatusText();
+        return status.includes(expectedStatus);
+      },
+      { timeout, timeoutMsg: `Text prediction status did not change to "${expectedStatus}"` }
+    );
+  }
+
+  /** Selector for the text prediction simulate error button (dev mode only) */
+  get textPredictionSimulateErrorButtonSelector(): string {
+    return '[data-testid="text-prediction-simulate-error-button"]';
+  }
+
+  /**
+   * Check if the text prediction retry button is displayed.
+   */
+  async isTextPredictionRetryButtonDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.textPredictionRetryButtonSelector);
+  }
+
+  /**
+   * Click the text prediction retry button.
+   */
+  async clickTextPredictionRetryButton(): Promise<void> {
+    this.log('Clicking text prediction retry button');
+    const button = await this.waitForElement(this.textPredictionRetryButtonSelector);
+    await button.click();
+    await browser.pause(500); // Wait for IPC round-trip
+  }
+
+  /**
+   * Check if the simulate error button exists (dev mode only).
+   */
+  async isSimulateErrorButtonDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.textPredictionSimulateErrorButtonSelector);
+  }
+
+  /**
+   * Click the simulate error button to trigger an error state (dev mode only).
+   */
+  async clickSimulateErrorButton(): Promise<void> {
+    this.log('Clicking simulate error button');
+    const button = await this.waitForElement(this.textPredictionSimulateErrorButtonSelector);
+    await button.click();
+    await browser.pause(300); // Wait for state update
+  }
+
+  /**
+   * Check if the text prediction status shows an error.
+   */
+  async isTextPredictionInErrorState(): Promise<boolean> {
+    const statusText = await this.getTextPredictionStatusText();
+    return statusText.includes('Error');
+  }
+
+  // ===========================================================================
   // ABOUT TAB QUERIES
   // ===========================================================================
 

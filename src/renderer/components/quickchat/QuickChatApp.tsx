@@ -10,7 +10,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SearchIcon, SendIcon } from './Icons';
 import { QUICK_CHAT_TEST_IDS } from '../../utils/testIds';
+import { createRendererLogger } from '../../utils';
 import './QuickChat.css';
+
+/** Logger for Quick Chat component */
+const logger = createRendererLogger('[QuickChat]');
+
+/** Debounce delay for text prediction requests in milliseconds */
+const PREDICTION_DEBOUNCE_MS = 300;
 
 /**
  * Main Quick Chat component.
@@ -31,9 +38,9 @@ function QuickChatApp(): React.ReactElement {
   // Sync text prediction enabled state and model readiness from settings
   useEffect(() => {
     // Get initial prediction status
-    console.info('[QuickChat] Loading initial prediction status...');
+    logger.log('Loading initial prediction status...');
     window.electronAPI?.getTextPredictionStatus().then((settings) => {
-      console.info('[QuickChat] Initial prediction status:', {
+      logger.log('Initial prediction status:', {
         enabled: settings.enabled,
         status: settings.status,
         isReady: settings.status === 'ready',
@@ -44,7 +51,7 @@ function QuickChatApp(): React.ReactElement {
 
     // Subscribe to status changes
     const unsubscribe = window.electronAPI?.onTextPredictionStatusChanged((settings) => {
-      console.info('[QuickChat] Prediction status changed:', {
+      logger.log('Prediction status changed:', {
         enabled: settings.enabled,
         status: settings.status,
         isReady: settings.status === 'ready',
@@ -98,11 +105,17 @@ function QuickChatApp(): React.ReactElement {
         handleSubmit();
       } else if (event.key === 'Escape') {
         event.preventDefault();
-        window.electronAPI?.cancelQuickChat();
+        // If prediction is showing, dismiss it first; otherwise cancel Quick Chat
+        if (prediction) {
+          logger.log('Escape pressed, dismissing prediction');
+          setPrediction(null);
+        } else {
+          window.electronAPI?.cancelQuickChat();
+        }
       } else if (event.key === 'Tab' && prediction) {
         // Accept prediction: append to input and clear prediction
         event.preventDefault();
-        console.info('[QuickChat] Tab pressed, accepting prediction:', prediction);
+        logger.log('Tab pressed, accepting prediction:', prediction);
         setInputValue(inputValue + prediction);
         setPrediction(null);
       }
@@ -130,7 +143,7 @@ function QuickChatApp(): React.ReactElement {
 
       // Only request prediction if enabled, model ready, and input has content
       if (!isPredictionEnabled || !isModelReady || !newValue.trim()) {
-        console.info('[QuickChat] Prediction skipped:', {
+        logger.log('Prediction skipped:', {
           isPredictionEnabled,
           isModelReady,
           hasContent: Boolean(newValue.trim()),
@@ -139,27 +152,27 @@ function QuickChatApp(): React.ReactElement {
         return;
       }
 
-      // Debounce prediction request by 300ms
-      console.info('[QuickChat] Scheduling prediction request for:', newValue.substring(0, 50));
+      // Debounce prediction request
+      logger.log('Scheduling prediction request for:', newValue.substring(0, 50));
       setIsLoadingPrediction(true);
       predictionTimeoutRef.current = setTimeout(async () => {
         try {
-          console.info('[QuickChat] Requesting prediction from LLM...');
+          logger.log('Requesting prediction from LLM...');
           const result = await window.electronAPI?.predictText(newValue);
           // Only set prediction if we got a result and input hasn't changed
           if (result) {
-            console.info('[QuickChat] Prediction received:', result.substring(0, 50));
+            logger.log('Prediction received:', result.substring(0, 50));
             setPrediction(result);
           } else {
-            console.info('[QuickChat] No prediction returned');
+            logger.log('No prediction returned');
           }
         } catch {
           // Silently ignore prediction errors
-          console.info('[QuickChat] Prediction request failed');
+          logger.log('Prediction request failed');
         } finally {
           setIsLoadingPrediction(false);
         }
-      }, 300);
+      }, PREDICTION_DEBOUNCE_MS);
     },
     [isPredictionEnabled, isModelReady]
   );
@@ -190,7 +203,7 @@ function QuickChatApp(): React.ReactElement {
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={() => {
-            console.info('[QuickChat] Input blurred, clearing prediction');
+            logger.log('Input blurred, clearing prediction');
             setPrediction(null);
           }}
           data-testid={QUICK_CHAT_TEST_IDS.QUICK_CHAT_INPUT}

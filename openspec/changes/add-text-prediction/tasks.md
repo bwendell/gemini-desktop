@@ -425,43 +425,43 @@
 
 **Tasks:**
 
-- [ ] 8.1 Coordinated test: Enable toggle → triggers model download
+- [x] 8.1 Coordinated test: Enable toggle → triggers model download
   - Mock LlmManager, verify download initiated
   - **Acceptance:** Toggle ON triggers downloadModel() call
 
-- [ ] 8.2 Coordinated test: Download progress → UI updates
+- [x] 8.2 Coordinated test: Download progress → UI updates
   - Emit progress events, verify settings component updates
   - **Acceptance:** Progress bar reflects emitted percentages
 
-- [ ] 8.3 Coordinated test: Status changes → component re-renders
+- [x] 8.3 Coordinated test: Status changes → component re-renders
   - Emit status: downloading → initializing → ready
   - **Acceptance:** Status indicator text updates for each state
 
-- [ ] 8.4 Coordinated test: GPU toggle → setting persisted
+- [x] 8.4 Coordinated test: GPU toggle → setting persisted
   - Toggle GPU, verify store updated
   - **Acceptance:** Setting round-trips through IPC correctly
 
-- [ ] 8.5 Coordinated test: Predict request → response received in Quick Chat
+- [x] 8.5 Coordinated test: Predict request → response received in Quick Chat
   - Type text, mock prediction response
   - **Acceptance:** Ghost text appears with mocked prediction
 
-- [ ] 8.6 Coordinated test: Tab key → prediction accepted in Quick Chat
+- [x] 8.6 Coordinated test: Tab key → prediction accepted in Quick Chat
   - Show prediction, press Tab, verify input updated
   - **Acceptance:** Input contains full text + prediction
 
-- [ ] 8.7 Coordinated test: Continued typing → prediction dismissed
+- [x] 8.7 Coordinated test: Continued typing → prediction dismissed
   - Show prediction, type more, verify ghost text cleared
   - **Acceptance:** Ghost text removed on new input
 
-- [ ] 8.8 Coordinated test: Prediction disabled → no ghost text
+- [x] 8.8 Coordinated test: Prediction disabled → no ghost text
   - Disable feature, type text
   - **Acceptance:** No prediction requests made, no ghost text
 
-- [ ] 8.9 Coordinated test: Error status → retry button works
+- [x] 8.9 Coordinated test: Error status → retry button works
   - Set error status, click retry
   - **Acceptance:** Download re-initiated on retry click
 
-- [ ] 8.10 Coordinated test: IPC getTextPredictionStatus returns full state
+- [x] 8.10 Coordinated test: IPC getTextPredictionStatus returns full state
   - **Acceptance:** Returns enabled, gpuEnabled, status, progress, error
 
 ---
@@ -483,53 +483,53 @@
 
 **Tasks:**
 
-- [ ] 9.1 Integration test: IPC `getTextPredictionEnabled` returns stored value
+- [x] 9.1 Integration test: IPC `getTextPredictionEnabled` returns stored value
   - **Acceptance:** Round-trip through main process returns correct boolean
 
-- [ ] 9.2 Integration test: IPC `setTextPredictionEnabled` updates store
+- [x] 9.2 Integration test: IPC `setTextPredictionEnabled` updates store
   - **Acceptance:** Value persists and can be retrieved
 
-- [ ] 9.3 Integration test: IPC `getTextPredictionGpuEnabled` returns stored value
+- [x] 9.3 Integration test: IPC `getTextPredictionGpuEnabled` returns stored value
   - **Acceptance:** GPU setting round-trips correctly
 
-- [ ] 9.4 Integration test: IPC `setTextPredictionGpuEnabled` updates store
+- [x] 9.4 Integration test: IPC `setTextPredictionGpuEnabled` updates store
   - **Acceptance:** GPU setting persists
 
-- [ ] 9.5 Integration test: IPC `getTextPredictionStatus` returns complete state
+- [x] 9.5 Integration test: IPC `getTextPredictionStatus` returns complete state
   - **Acceptance:** All fields present: enabled, gpuEnabled, status
 
-- [ ] 9.6 Integration test: Status change emits `TEXT_PREDICTION_STATUS_CHANGED` event
+- [x] 9.6 Integration test: Status change emits `TEXT_PREDICTION_STATUS_CHANGED` event
   - **Acceptance:** Renderer receives event when status changes
 
-- [ ] 9.7 Integration test: Download progress emits `TEXT_PREDICTION_DOWNLOAD_PROGRESS` events
+- [x] 9.7 Integration test: Download progress emits `TEXT_PREDICTION_DOWNLOAD_PROGRESS` events
   - Mock download, verify progress events emitted
   - **Acceptance:** Progress events received by renderer
 
-- [ ] 9.8 Integration test: IPC `predictText` returns prediction from LlmManager
+- [x] 9.8 Integration test: IPC `predictText` returns prediction from LlmManager
   - Mock LlmManager.predict()
   - **Acceptance:** Prediction returned through IPC
 
-- [ ] 9.9 Integration test: Options window Settings tab shows Text Prediction section
+- [x] 9.9 Integration test: Options window Settings tab shows Text Prediction section
   - Open Options, navigate to Settings
   - **Acceptance:** Section visible with toggles
 
-- [ ] 9.10 Integration test: Enable toggle triggers download flow
+- [x] 9.10 Integration test: Enable toggle triggers download flow
   - Click enable, verify download progress events
   - **Acceptance:** Full flow observable through integration
 
-- [ ] 9.11 Integration test: Quick Chat receives predictions when enabled
+- [x] 9.11 Integration test: Quick Chat receives predictions when enabled
   - Enable prediction, open Quick Chat, type
   - **Acceptance:** Ghost text appears after debounce
 
-- [ ] 9.12 Integration test: Quick Chat Tab key sends accepted text
+- [x] 9.12 Integration test: Quick Chat Tab key sends accepted text
   - Accept prediction, submit
   - **Acceptance:** Submitted text includes prediction
 
-- [ ] 9.13 Integration test: Settings persist across app restart
+- [x] 9.13 Integration test: Settings persist across app restart
   - Enable prediction, close app, reopen
   - **Acceptance:** Toggle still enabled after restart
 
-- [ ] 9.14 Integration test: Model status persists across app restart
+- [x] 9.14 Integration test: Model status persists across app restart
   - Download model, close app, reopen
   - **Acceptance:** Status shows "Ready" after restart
 
@@ -552,42 +552,42 @@
 
 **Tasks:**
 
-- [ ] 10.1 E2E test: Toggle text prediction ON in Options → verify status changes
+- [x] 10.1 E2E test: Toggle text prediction ON in Options → verify status changes
   - Click toggle, observe status indicator
   - **Acceptance:** Status transitions visible to user
 
-- [ ] 10.2 E2E test: Toggle text prediction OFF → verify model unloaded
+- [x] 10.2 E2E test: Toggle text prediction OFF → verify model unloaded
   - Toggle OFF, verify status returns to disabled state
   - **Acceptance:** Status shows disabled state
 
-- [ ] 10.3 E2E test: Toggle GPU acceleration → verify setting persists
+- [x] 10.3 E2E test: Toggle GPU acceleration → verify setting persists
   - Toggle ON, close/reopen Options, verify still ON
   - **Acceptance:** Setting survives app lifecycle
 
-- [ ] 10.4 E2E test: Download progress bar visible during download
+- [x] 10.4 E2E test: Download progress bar visible during download
   - Enable prediction, observe progress UI
   - **Acceptance:** Progress bar animates during download
 
-- [ ] 10.5 E2E test: Error state shows retry button
+- [x] 10.5 E2E test: Error state shows retry button
   - Simulate download failure, verify retry button
   - **Acceptance:** User can click retry to re-attempt
 
-- [ ] 10.6 E2E test: Type in Quick Chat → ghost text appears
+- [x] 10.6 E2E test: Type in Quick Chat → ghost text appears
   - Type partial sentence, wait, observe prediction
   - **Acceptance:** Ghost text visible in UI
 
-- [ ] 10.7 E2E test: Press Tab in Quick Chat → prediction accepted
+- [x] 10.7 E2E test: Press Tab in Quick Chat → prediction accepted
   - Type, wait for prediction, press Tab, verify input contains prediction
   - **Acceptance:** Input value includes accepted prediction
 
-- [ ] 10.8 E2E test: Continue typing → prediction dismissed
+- [x] 10.8 E2E test: Continue typing → prediction dismissed
   - Type, wait for prediction, type more, verify prediction gone
   - **Acceptance:** Ghost text clears on continued input
 
-- [ ] 10.9 E2E test: Escape key dismisses prediction
+- [x] 10.9 E2E test: Escape key dismisses prediction
   - Type, wait for prediction, press Escape
   - **Acceptance:** Ghost text clears, input unchanged
 
-- [ ] 10.10 E2E test: Submit with Enter ignores pending prediction
+- [x] 10.10 E2E test: Submit with Enter ignores pending prediction
   - Type, wait for prediction, press Enter
   - **Acceptance:** Only original text submitted, not prediction

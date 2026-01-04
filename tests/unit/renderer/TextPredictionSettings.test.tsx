@@ -166,12 +166,9 @@ describe('TextPredictionSettings', () => {
         expect(screen.getByTestId('text-prediction-enable-toggle')).toBeInTheDocument();
       });
 
-      // Find the toggle input within the toggle component and click it
-      const toggleContainer = screen.getByTestId('text-prediction-enable-toggle');
-      const toggleInput = toggleContainer.querySelector('input');
-      if (toggleInput) {
-        fireEvent.click(toggleInput);
-      }
+      // Click the toggle switch button (not an input - CapsuleToggle uses a button)
+      const toggleSwitch = screen.getByTestId('text-prediction-enable-toggle-switch');
+      fireEvent.click(toggleSwitch);
 
       await waitFor(() => {
         expect(mockSetTextPredictionEnabled).toHaveBeenCalledWith(true);

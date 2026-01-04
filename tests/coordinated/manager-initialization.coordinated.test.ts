@@ -86,6 +86,7 @@ describe('Manager Initialization Integration', () => {
           null, // No HotkeyManager
           null,
           null,
+          null,
           mockStore,
           mockLogger
         );
@@ -104,7 +105,15 @@ describe('Manager Initialization Integration', () => {
 
       it('should return hotkey settings even without HotkeyManager', async () => {
         const windowManager = new WindowManager(false);
-        const ipcManager = new IpcManager(windowManager, null, null, null, mockStore, mockLogger);
+        const ipcManager = new IpcManager(
+          windowManager,
+          null,
+          null,
+          null,
+          null,
+          mockStore,
+          mockLogger
+        );
         ipcManager.setupIpcHandlers();
 
         const handler = getHandler('hotkeys:individual:get');
@@ -128,6 +137,7 @@ describe('Manager Initialization Integration', () => {
           null,
           null, // No UpdateManager
           null,
+          null,
           mockStore,
           mockLogger
         );
@@ -148,6 +158,7 @@ describe('Manager Initialization Integration', () => {
           windowManager,
           null,
           null, // No UpdateManager
+          null,
           null,
           mockStore,
           mockLogger
@@ -179,6 +190,7 @@ describe('Manager Initialization Integration', () => {
           windowManager,
           null,
           mockUpdateManager as any,
+          null,
           null,
           mockStore,
           mockLogger
@@ -212,6 +224,7 @@ describe('Manager Initialization Integration', () => {
           windowManager,
           null,
           mockUpdateManager as any,
+          null,
           null,
           mockStore,
           mockLogger
