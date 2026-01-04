@@ -214,6 +214,54 @@ export default class IpcManager {
   }
 
   /**
+   * Initialize text prediction on app startup.
+   * Loads the model if text prediction was previously enabled.
+   * Should be called after setupIpcHandlers().
+   */
+  async initializeTextPrediction(): Promise<void> {
+    if (!this.llmManager) {
+      this.logger.log('Text prediction initialization skipped - no LlmManager');
+      return;
+    }
+
+    try {
+      const enabled = this.store.get('textPredictionEnabled') ?? false;
+      const gpuEnabled = this.store.get('textPredictionGpuEnabled') ?? false;
+
+      this.logger.log('Initializing text prediction on startup', {
+        enabled,
+        gpuEnabled,
+      });
+
+      if (!enabled) {
+        this.logger.log('Text prediction disabled, skipping model load');
+        return;
+      }
+
+      // Set GPU preference from stored setting
+      this.llmManager.setGpuEnabled(gpuEnabled);
+
+      // Check if model is downloaded
+      if (!this.llmManager.isModelDownloaded()) {
+        this.logger.log('Text prediction enabled but model not downloaded, skipping auto-load');
+        return;
+      }
+
+      // Load the model
+      this.logger.log('Auto-loading text prediction model on startup...');
+      await this.llmManager.loadModel();
+      this.logger.log('Text prediction model loaded successfully on startup');
+
+      // Broadcast status to any open windows
+      this._broadcastTextPredictionStatusChange();
+    } catch (error) {
+      this.logger.error('Failed to initialize text prediction on startup:', {
+        error: (error as Error).message,
+      });
+    }
+  }
+
+  /**
    * Get the window from an IPC event safely.
    * @private
    * @param event - IPC event
@@ -1121,7 +1169,9 @@ export default class IpcManager {
     // Get text prediction enabled state
     ipcMain.handle(IPC_CHANNELS.TEXT_PREDICTION_GET_ENABLED, (): boolean => {
       try {
-        return this.store.get('textPredictionEnabled') ?? false;
+        const enabled = this.store.get('textPredictionEnabled') ?? false;
+        this.logger.log('TEXT_PREDICTION_GET_ENABLED called, returning:', enabled);
+        return enabled;
       } catch (error) {
         this.logger.error('Error getting text prediction enabled:', error);
         return false;
@@ -1145,17 +1195,26 @@ export default class IpcManager {
           // If enabling and LlmManager exists, trigger model download/load if needed
           if (enabled && this.llmManager) {
             if (!this.llmManager.isModelDownloaded()) {
+              this.logger.log('Model not downloaded, starting download...');
               // Trigger download with progress events
               await this.llmManager.downloadModel((progress) => {
                 this._broadcastTextPredictionDownloadProgress(progress);
               });
+              this.logger.log('Model download completed');
+            } else {
+              this.logger.log('Model already downloaded, skipping download');
             }
             // Load model if not already loaded
             if (!this.llmManager.isModelLoaded()) {
+              this.logger.log('Model not loaded, starting load...');
               await this.llmManager.loadModel();
+              this.logger.log('Model load completed');
+            } else {
+              this.logger.log('Model already loaded');
             }
           } else if (!enabled && this.llmManager) {
             // Unload model when disabling
+            this.logger.log('Disabling text prediction, unloading model');
             this.llmManager.unloadModel();
           }
 
@@ -1196,9 +1255,33 @@ export default class IpcManager {
           this.store.set('textPredictionGpuEnabled', enabled);
           this.logger.log(`Text prediction GPU enabled set to: ${enabled}`);
 
-          // Update LlmManager GPU setting (requires reload to take effect)
+          // Update LlmManager GPU setting and reload model if loaded
           if (this.llmManager) {
+            const wasLoaded = this.llmManager.isModelLoaded();
+            const previousGpuState = this.llmManager.isGpuEnabled();
+            this.logger.log('GPU setting change requested', {
+              previousGpuEnabled: previousGpuState,
+              newGpuEnabled: enabled,
+              modelWasLoaded: wasLoaded,
+            });
+
             this.llmManager.setGpuEnabled(enabled);
+
+            // Reload model to apply GPU setting change
+            if (wasLoaded) {
+              this.logger.log('Model reload required - unloading current model...');
+              this.llmManager.unloadModel();
+              this.logger.log('Model unloaded - loading with new GPU setting...');
+              await this.llmManager.loadModel();
+              const newStatus = this.llmManager.getStatus();
+              this.logger.log('Model reload complete', {
+                gpuEnabled: this.llmManager.isGpuEnabled(),
+                newStatus,
+              });
+              this._broadcastTextPredictionStatusChange();
+            } else {
+              this.logger.log('Model not loaded, GPU setting will apply on next load');
+            }
           }
         } catch (error) {
           this.logger.error('Error setting text prediction GPU enabled:', {
@@ -1211,7 +1294,9 @@ export default class IpcManager {
 
     // Get full text prediction status
     ipcMain.handle(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS, (): TextPredictionSettings => {
-      return this._getTextPredictionStatus();
+      const status = this._getTextPredictionStatus();
+      this.logger.log('TEXT_PREDICTION_GET_STATUS called, returning:', status);
+      return status;
     });
 
     // Predict text
@@ -1229,7 +1314,13 @@ export default class IpcManager {
             return null;
           }
 
-          return await this.llmManager.predict(partialText);
+          this.logger.log('TEXT_PREDICTION_PREDICT called, input length:', partialText.length);
+          const result = await this.llmManager.predict(partialText);
+          this.logger.log(
+            'TEXT_PREDICTION_PREDICT result:',
+            result ? `${result.length} chars` : 'null'
+          );
+          return result;
         } catch (error) {
           this.logger.error('Error predicting text:', {
             error: (error as Error).message,
@@ -1275,6 +1366,12 @@ export default class IpcManager {
   private _broadcastTextPredictionStatusChange(): void {
     const status = this._getTextPredictionStatus();
     const windows = BrowserWindow.getAllWindows();
+
+    this.logger.log(
+      'Broadcasting text prediction status change:',
+      status,
+      `to ${windows.length} windows`
+    );
 
     windows.forEach((win) => {
       try {

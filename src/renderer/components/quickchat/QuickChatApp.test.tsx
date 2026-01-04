@@ -5,13 +5,14 @@
  * - Rendering and focus behavior
  * - Input handling
  * - Submit functionality
- * - Keyboard shortcuts (Enter, Escape)
+ * - Keyboard shortcuts (Enter, Escape, Tab)
+ * - Text prediction ghost text (tasks 7.10-7.11)
  *
  * @module QuickChatApp.test
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import QuickChatApp from './QuickChatApp';
 
 describe('QuickChatApp', () => {
@@ -19,13 +20,30 @@ describe('QuickChatApp', () => {
   const mockSubmitQuickChat = vi.fn();
   const mockCancelQuickChat = vi.fn();
   const mockHideQuickChat = vi.fn();
+  const mockGetTextPredictionStatus = vi.fn();
+  const mockPredictText = vi.fn();
+  const mockOnTextPredictionStatusChanged = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    // Default text prediction mock - disabled
+    mockGetTextPredictionStatus.mockResolvedValue({
+      enabled: false,
+      gpuEnabled: false,
+      status: 'not-downloaded',
+    });
+    mockPredictText.mockResolvedValue(null);
+    mockOnTextPredictionStatusChanged.mockReturnValue(() => {});
+
     window.electronAPI = {
       submitQuickChat: mockSubmitQuickChat,
       cancelQuickChat: mockCancelQuickChat,
       hideQuickChat: mockHideQuickChat,
+      getTextPredictionStatus: mockGetTextPredictionStatus,
+      predictText: mockPredictText,
+      onTextPredictionStatusChanged: mockOnTextPredictionStatusChanged,
       minimizeWindow: vi.fn(),
       maximizeWindow: vi.fn(),
       closeWindow: vi.fn(),
@@ -39,6 +57,10 @@ describe('QuickChatApp', () => {
       platform: 'win32',
       isElectron: true,
     };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('Rendering', () => {
@@ -212,6 +234,255 @@ describe('QuickChatApp', () => {
       expect(() => {
         fireEvent.click(screen.getByTestId('quick-chat-submit'));
       }).not.toThrow();
+    });
+  });
+
+  // Task 7.10: QuickChatApp displays ghost text when prediction available
+  describe('Text Prediction - Ghost Text', () => {
+    beforeEach(() => {
+      // Enable text prediction for these tests
+      mockGetTextPredictionStatus.mockResolvedValue({
+        enabled: true,
+        gpuEnabled: false,
+        status: 'ready',
+      });
+    });
+
+    it('does not show ghost text when prediction disabled', async () => {
+      mockGetTextPredictionStatus.mockResolvedValue({
+        enabled: false,
+        gpuEnabled: false,
+        status: 'not-downloaded',
+      });
+
+      render(<QuickChatApp />);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      // Wait for debounce
+      await vi.advanceTimersByTimeAsync(350);
+
+      // Ghost text should not appear because prediction is disabled
+      expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+      expect(mockPredictText).not.toHaveBeenCalled();
+    });
+
+    it('does not show ghost text when model not ready', async () => {
+      mockGetTextPredictionStatus.mockResolvedValue({
+        enabled: true,
+        gpuEnabled: false,
+        status: 'downloading',
+      });
+
+      render(<QuickChatApp />);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      // Wait for debounce
+      await vi.advanceTimersByTimeAsync(350);
+
+      // Ghost text should not appear because model is not ready
+      expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+      expect(mockPredictText).not.toHaveBeenCalled();
+    });
+
+    it('shows ghost text when prediction is available', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      // Wait for status to load
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      // Wait for debounce (300ms)
+      await vi.advanceTimersByTimeAsync(350);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+      });
+    });
+
+    it('ghost text contains the prediction', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      await vi.advanceTimersByTimeAsync(350);
+
+      await waitFor(() => {
+        const ghostText = screen.getByTestId('quick-chat-ghost-text');
+        expect(ghostText).toHaveTextContent('world!');
+      });
+    });
+
+    it('clears ghost text when typing continues', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      await vi.advanceTimersByTimeAsync(350);
+
+      // Ghost text should appear
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+      });
+
+      // Continue typing - should clear ghost text
+      fireEvent.change(input, { target: { value: 'Hello world' } });
+
+      expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+    });
+
+    it('clears ghost text on blur', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      await vi.advanceTimersByTimeAsync(350);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+      });
+
+      // Blur the input
+      fireEvent.blur(input);
+
+      expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+    });
+
+    it('requests prediction after debounce delay', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      // Should not have called predictText yet
+      expect(mockPredictText).not.toHaveBeenCalled();
+
+      // Wait for debounce
+      await vi.advanceTimersByTimeAsync(350);
+
+      expect(mockPredictText).toHaveBeenCalledWith('Hello ');
+    });
+  });
+
+  // Task 7.11: QuickChatApp accepts prediction on Tab key
+  describe('Text Prediction - Tab Key Acceptance', () => {
+    beforeEach(() => {
+      mockGetTextPredictionStatus.mockResolvedValue({
+        enabled: true,
+        gpuEnabled: false,
+        status: 'ready',
+      });
+    });
+
+    it('accepts prediction on Tab key press', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      await vi.advanceTimersByTimeAsync(350);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+      });
+
+      // Press Tab to accept prediction
+      fireEvent.keyDown(input, { key: 'Tab' });
+
+      // Input should now contain the original text + prediction
+      expect(input).toHaveValue('Hello world!');
+    });
+
+    it('clears ghost text after accepting prediction', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      await vi.advanceTimersByTimeAsync(350);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+      });
+
+      fireEvent.keyDown(input, { key: 'Tab' });
+
+      // Ghost text should be cleared after acceptance
+      expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+    });
+
+    it('Tab does nothing when no prediction available', async () => {
+      mockPredictText.mockResolvedValue(null);
+
+      render(<QuickChatApp />);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      // Without prediction, Tab should not modify input
+      const originalValue = 'Hello ';
+      fireEvent.keyDown(input, { key: 'Tab' });
+
+      // Value should remain unchanged
+      expect(input).toHaveValue(originalValue);
+    });
+
+    it('clears prediction on submit', async () => {
+      mockPredictText.mockResolvedValue('world!');
+
+      render(<QuickChatApp />);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const input = screen.getByTestId('quick-chat-input');
+      fireEvent.change(input, { target: { value: 'Hello ' } });
+
+      await vi.advanceTimersByTimeAsync(350);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+      });
+
+      // Submit without accepting prediction
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      // Should submit original text, not prediction
+      expect(mockSubmitQuickChat).toHaveBeenCalledWith('Hello');
+      expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
     });
   });
 });

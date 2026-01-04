@@ -10,8 +10,11 @@
 import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { CapsuleToggle } from '../common/CapsuleToggle';
 import { isDevMode } from '../../utils/platform';
+import { createRendererLogger } from '../../utils';
 import type { TextPredictionSettings as TextPredictionSettingsType } from '../../../shared/types/text-prediction';
 import './TextPredictionSettings.css';
+
+const logger = createRendererLogger('[TextPredictionSettings]');
 
 /**
  * TextPredictionSettings component.
@@ -34,13 +37,17 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
   // Load initial state from main process
   useEffect(() => {
     const loadState = async () => {
+      logger.log('Loading initial state from main process');
       try {
         const status = await window.electronAPI?.getTextPredictionStatus();
         if (status) {
+          logger.log('Initial state loaded:', status);
           setSettings(status);
+        } else {
+          logger.log('No status returned from getTextPredictionStatus');
         }
       } catch (error) {
-        console.error('Failed to load text prediction state:', error);
+        logger.error('Failed to load text prediction state:', error);
       } finally {
         setLoading(false);
       }
@@ -50,11 +57,13 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
 
     // Subscribe to status changes
     const unsubscribeStatus = window.electronAPI?.onTextPredictionStatusChanged((newSettings) => {
+      logger.log('Status changed event received:', newSettings);
       setSettings(newSettings);
     });
 
     // Subscribe to download progress
     const unsubscribeProgress = window.electronAPI?.onTextPredictionDownloadProgress((progress) => {
+      logger.log('Download progress:', progress + '%');
       setSettings((prev) => ({
         ...prev,
         downloadProgress: progress,
@@ -69,11 +78,14 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
 
   // Handle enable toggle change
   const handleEnableChange = useCallback(async (newEnabled: boolean) => {
+    logger.log('Enable toggle changed:', newEnabled);
     setSettings((prev) => ({ ...prev, enabled: newEnabled }));
     try {
+      logger.log('Calling setTextPredictionEnabled IPC...');
       await window.electronAPI?.setTextPredictionEnabled(newEnabled);
+      logger.log('setTextPredictionEnabled IPC completed');
     } catch (error) {
-      console.error('Failed to set text prediction enabled:', error);
+      logger.error('Failed to set text prediction enabled:', error);
       // Revert on error
       setSettings((prev) => ({ ...prev, enabled: !newEnabled }));
     }
@@ -81,11 +93,14 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
 
   // Handle GPU toggle change
   const handleGpuChange = useCallback(async (newEnabled: boolean) => {
+    logger.log('GPU toggle changed:', newEnabled);
     setSettings((prev) => ({ ...prev, gpuEnabled: newEnabled }));
     try {
+      logger.log('Calling setTextPredictionGpuEnabled IPC...');
       await window.electronAPI?.setTextPredictionGpuEnabled(newEnabled);
+      logger.log('setTextPredictionGpuEnabled IPC completed');
     } catch (error) {
-      console.error('Failed to set GPU enabled:', error);
+      logger.error('Failed to set GPU enabled:', error);
       // Revert on error
       setSettings((prev) => ({ ...prev, gpuEnabled: !newEnabled }));
     }

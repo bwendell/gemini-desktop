@@ -181,42 +181,176 @@
 
 **Tasks:**
 
-- [ ] 4.1 Add prediction state to `QuickChatApp.tsx`
+- [x] 4.1 Add prediction state to `QuickChatApp.tsx`
   - `prediction: string | null` state
   - `isLoadingPrediction: boolean` state
   - `isPredictionEnabled: boolean` from settings
   - **Acceptance:** State variables added, component compiles
 
-- [ ] 4.2 Implement debounced prediction requests
+- [x] 4.2 Implement debounced prediction requests
   - Call `predictText()` 300ms after user stops typing
   - Cancel pending requests on new input
   - Only request if prediction enabled and model ready
   - **Acceptance:** Predictions requested at correct timing
 
-- [ ] 4.3 Render ghost text after input
+- [x] 4.3 Render ghost text after input
   - Display prediction as semi-transparent text after cursor position
   - Position absolutely to overlay input
   - **Acceptance:** Ghost text visible, positioned correctly
 
-- [ ] 4.4 Handle Tab key to accept prediction
+- [x] 4.4 Handle Tab key to accept prediction
   - On Tab press with prediction visible, insert text
   - Clear prediction after accepting
   - Prevent default Tab behavior
   - **Acceptance:** Tab inserts prediction, input updates
 
-- [ ] 4.5 Handle prediction dismissal
+- [x] 4.5 Handle prediction dismissal
   - Clear prediction when user continues typing
   - Clear prediction when input loses focus
   - **Acceptance:** Prediction clears appropriately
 
-- [ ] 4.6 Add ghost text CSS styling in `QuickChat.css`
+- [x] 4.6 Add ghost text CSS styling in `QuickChat.css`
   - `.quick-chat-ghost-text` class for prediction overlay
   - Match input font, semi-transparent, no pointer events
   - **Acceptance:** Ghost text styled correctly, non-interactive
 
 ---
 
-## 5. Unit Tests
+## 5. Main Process Integration
+
+**Files to modify:**
+
+- `src/main/main.ts`
+
+**Verification:** `npm run electron:dev` → Enable text prediction in Options → Type in Quick Chat → Ghost text appears
+
+**References:**
+
+- [main.ts](file:///c:/Users/bwend/repos/gemini/src/main/main.ts) - Main process entry point
+- [llmManager.ts](file:///c:/Users/bwend/repos/gemini/src/main/managers/llmManager.ts) - LlmManager implementation
+- [ipcManager.ts](file:///c:/Users/bwend/repos/gemini/src/main/managers/ipcManager.ts) - IpcManager expecting LlmManager dependency
+
+**Tasks:**
+
+- [x] 5.1 Import `LlmManager` in `main.ts`
+  - Add import statement: `import LlmManager from './managers/llmManager';`
+  - **Acceptance:** Import resolves, TypeScript compiles
+
+- [x] 5.2 Add `llmManager` variable declaration
+  - Add `let llmManager: LlmManager;` alongside other manager declarations (line ~133)
+  - **Acceptance:** Variable declared, TypeScript compiles
+
+- [x] 5.3 Instantiate `LlmManager` in `initializeManagers()`
+  - Create instance: `llmManager = new LlmManager();`
+  - Add after `printManager` creation, before `ipcManager` creation
+  - Add debug logging: `logger.log('[DEBUG] initializeManagers() - creating LlmManager');`
+  - **Acceptance:** LlmManager instantiated, logs visible on startup
+
+- [x] 5.4 Pass `llmManager` to `IpcManager` constructor
+  - Update line 180: `ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, printManager, llmManager);`
+  - **Acceptance:** IpcManager receives LlmManager, text prediction IPC handlers work
+
+- [x] 5.5 Expose `llmManager` globally for E2E testing
+  - Add to `globalWithManagers` type definition
+  - Add assignment: `globalWithManagers.llmManager = llmManager;`
+  - **Acceptance:** LlmManager accessible via `global.llmManager` in E2E tests
+
+- [x] 5.6 Add `llmManager` cleanup to `gracefulShutdown()`
+  - Call `llmManager.dispose()` during shutdown to free model resources
+  - Add after hotkeyManager cleanup, before tray destruction
+  - **Acceptance:** Model unloaded cleanly on app quit
+
+- [x] 5.7 Add `llmManager` cleanup to `will-quit` event
+  - Call `llmManager.dispose()` in the `will-quit` handler
+  - **Acceptance:** Model resources freed on quit event
+
+---
+
+## 6. E2E Feature Validation
+
+**Purpose:** Validate the complete text prediction feature through observable UI and system behavior. Each subtask is independently verifiable.
+
+**Files to reference:**
+
+- `src/renderer/components/options/TextPredictionSettings.tsx` - Options UI component
+- `src/renderer/components/quickchat/QuickChatApp.tsx` - Quick Chat with ghost text
+- `src/main/managers/llmManager.ts` - LLM lifecycle management
+- `src/renderer/utils/testIds.ts` - Test data attributes
+
+**Verification:** Manual testing via `npm run electron:dev` or automated via E2E tests
+
+**References:**
+
+- [TextPredictionSettings.tsx](file:///c:/Users/bwend/repos/gemini/src/renderer/components/options/TextPredictionSettings.tsx) - Options component
+- [QuickChatApp.tsx](file:///c:/Users/bwend/repos/gemini/src/renderer/components/quickchat/QuickChatApp.tsx) - Quick Chat component
+- [llmManager.ts](file:///c:/Users/bwend/repos/gemini/src/main/managers/llmManager.ts) - LLM Manager
+
+**Tasks:**
+
+- [x] 6.1 Verify text prediction option visible in Options menu
+  - Open Options window → Settings tab
+  - **Acceptance:** "Text Prediction" section visible with enable toggle, GPU toggle, status indicator
+
+- [x] 6.2 Toggle text prediction: disabled → enabled (model already cached)
+  - **Precondition:** LLM model already downloaded to `userData/models/`
+  - Click enable toggle when status is "Not Downloaded" but model file exists
+  - **Acceptance:**
+    - Download progress bar immediately shows 100% (full, green)
+    - Status text updates to "Download Complete" or "Ready"
+    - No network download initiated
+
+- [x] 6.3 Toggle text prediction: disabled → enabled (model not cached)
+  - **Precondition:** LLM model NOT present in `userData/models/`
+  - Click enable toggle
+  - **Acceptance:**
+    - Download progress bar animates from 0% → 100%
+    - Status text shows "Downloading..." during download
+    - On completion: progress bar full and green, status shows "Download Complete" or "Ready"
+
+- [x] 6.4 Toggle text prediction: enabled → disabled
+  - **Precondition:** Text prediction currently enabled
+  - Click enable toggle to disable
+  - **Acceptance:**
+    - Download progress bar hidden
+    - Status text below progress bar hidden
+    - GPU toggle disabled or hidden
+
+- [x] 6.5 Toggle GPU acceleration: disabled → enabled
+  - **Precondition:** Text prediction enabled, GPU toggle visible
+  - Click GPU acceleration toggle to enable
+  - **Acceptance:**
+    - GPU toggle shows enabled state
+    - Setting persists on Options close/reopen
+    - If model loaded, triggers reload with GPU acceleration
+
+- [x] 6.6 Toggle GPU acceleration: enabled → disabled
+  - **Precondition:** GPU acceleration currently enabled
+  - Click GPU acceleration toggle to disable
+  - **Acceptance:**
+    - GPU toggle shows disabled state
+    - Setting persists on Options close/reopen
+    - Falls back to CPU-only inference
+
+- [x] 6.7 Verify LLM properly loaded
+  - **Precondition:** Text prediction enabled, model downloaded
+  - Check status indicator in Options
+  - **Acceptance:**
+    - Status shows "Ready" (not "Initializing" or "Error")
+    - No error messages displayed
+    - Model loaded into memory (verify via debug logs or IPC status call)
+
+- [x] 6.8 Verify text prediction displays in Quick Chat
+  - **Precondition:** Text prediction enabled, model ready
+  - Open Quick Chat (Ctrl+Shift+Space)
+  - Type partial text and wait 300ms+ for prediction
+  - **Acceptance:**
+    - Ghost text (semi-transparent prediction) appears after cursor
+    - Ghost text is styled differently from user input
+    - Press Tab to accept prediction into input field
+
+---
+
+## 7. Unit Tests
 
 **Files to create/modify:**
 
@@ -236,45 +370,45 @@
 
 **Tasks:**
 
-- [ ] 5.1 Unit test: `LlmManager.downloadModel()` reports progress and validates checksum
+- [x] 7.1 Unit test: `LlmManager.downloadModel()` reports progress and validates checksum
   - Mock HTTP download
   - **Acceptance:** Progress callbacks fire, checksum validation works
 
-- [ ] 5.2 Unit test: `LlmManager.loadModel()` transitions status correctly
+- [x] 7.2 Unit test: `LlmManager.loadModel()` transitions status correctly
   - Mock node-llama-cpp
   - **Acceptance:** Status: not-downloaded → initializing → ready
 
-- [ ] 5.3 Unit test: `LlmManager.predict()` returns suggestion or null
+- [x] 7.3 Unit test: `LlmManager.predict()` returns suggestion or null
   - Mock inference
   - **Acceptance:** Returns string on success, null on timeout/error
 
-- [ ] 5.4 Unit test: `LlmManager.unloadModel()` frees resources
+- [x] 7.4 Unit test: `LlmManager.unloadModel()` frees resources
   - **Acceptance:** Status returns to appropriate state, memory freed
 
-- [ ] 5.5 Unit test: `LlmManager.setGpuEnabled()` updates configuration
+- [x] 7.5 Unit test: `LlmManager.setGpuEnabled()` updates configuration
   - **Acceptance:** GPU setting stored, takes effect on next load
 
-- [ ] 5.6 Unit test: IPC handlers call `LlmManager` methods correctly
+- [x] 7.6 Unit test: IPC handlers call `LlmManager` methods correctly
   - **Acceptance:** Each handler invokes correct manager method
 
-- [ ] 5.7 Unit test: Preload `predictText` sends correct IPC message
+- [x] 7.7 Unit test: Preload `predictText` sends correct IPC message
   - **Acceptance:** IPC invoke called with correct channel
 
-- [ ] 5.8 Unit test: `TextPredictionSettings` renders toggle states
+- [x] 7.8 Unit test: `TextPredictionSettings` renders toggle states
   - **Acceptance:** Enabled/disabled states render correctly
 
-- [ ] 5.9 Unit test: `TextPredictionSettings` shows download progress
+- [x] 7.9 Unit test: `TextPredictionSettings` shows download progress
   - **Acceptance:** Progress bar updates with percentage
 
-- [ ] 5.10 Unit test: `QuickChatApp` displays ghost text when prediction available
+- [x] 7.10 Unit test: `QuickChatApp` displays ghost text when prediction available
   - **Acceptance:** Ghost text element appears with prediction content
 
-- [ ] 5.11 Unit test: `QuickChatApp` accepts prediction on Tab key
+- [x] 7.11 Unit test: `QuickChatApp` accepts prediction on Tab key
   - **Acceptance:** Input value updated with prediction
 
 ---
 
-## 6. Coordinated Tests
+## 8. Coordinated Tests
 
 **Files to create:**
 
@@ -291,48 +425,48 @@
 
 **Tasks:**
 
-- [ ] 6.1 Coordinated test: Enable toggle → triggers model download
+- [ ] 8.1 Coordinated test: Enable toggle → triggers model download
   - Mock LlmManager, verify download initiated
   - **Acceptance:** Toggle ON triggers downloadModel() call
 
-- [ ] 6.2 Coordinated test: Download progress → UI updates
+- [ ] 8.2 Coordinated test: Download progress → UI updates
   - Emit progress events, verify settings component updates
   - **Acceptance:** Progress bar reflects emitted percentages
 
-- [ ] 6.3 Coordinated test: Status changes → component re-renders
+- [ ] 8.3 Coordinated test: Status changes → component re-renders
   - Emit status: downloading → initializing → ready
   - **Acceptance:** Status indicator text updates for each state
 
-- [ ] 6.4 Coordinated test: GPU toggle → setting persisted
+- [ ] 8.4 Coordinated test: GPU toggle → setting persisted
   - Toggle GPU, verify store updated
   - **Acceptance:** Setting round-trips through IPC correctly
 
-- [ ] 6.5 Coordinated test: Predict request → response received in Quick Chat
+- [ ] 8.5 Coordinated test: Predict request → response received in Quick Chat
   - Type text, mock prediction response
   - **Acceptance:** Ghost text appears with mocked prediction
 
-- [ ] 6.6 Coordinated test: Tab key → prediction accepted in Quick Chat
+- [ ] 8.6 Coordinated test: Tab key → prediction accepted in Quick Chat
   - Show prediction, press Tab, verify input updated
   - **Acceptance:** Input contains full text + prediction
 
-- [ ] 6.7 Coordinated test: Continued typing → prediction dismissed
+- [ ] 8.7 Coordinated test: Continued typing → prediction dismissed
   - Show prediction, type more, verify ghost text cleared
   - **Acceptance:** Ghost text removed on new input
 
-- [ ] 6.8 Coordinated test: Prediction disabled → no ghost text
+- [ ] 8.8 Coordinated test: Prediction disabled → no ghost text
   - Disable feature, type text
   - **Acceptance:** No prediction requests made, no ghost text
 
-- [ ] 6.9 Coordinated test: Error status → retry button works
+- [ ] 8.9 Coordinated test: Error status → retry button works
   - Set error status, click retry
   - **Acceptance:** Download re-initiated on retry click
 
-- [ ] 6.10 Coordinated test: IPC getTextPredictionStatus returns full state
+- [ ] 8.10 Coordinated test: IPC getTextPredictionStatus returns full state
   - **Acceptance:** Returns enabled, gpuEnabled, status, progress, error
 
 ---
 
-## 7. Integration Tests
+## 9. Integration Tests
 
 **Files to create:**
 
@@ -349,59 +483,59 @@
 
 **Tasks:**
 
-- [ ] 7.1 Integration test: IPC `getTextPredictionEnabled` returns stored value
+- [ ] 9.1 Integration test: IPC `getTextPredictionEnabled` returns stored value
   - **Acceptance:** Round-trip through main process returns correct boolean
 
-- [ ] 7.2 Integration test: IPC `setTextPredictionEnabled` updates store
+- [ ] 9.2 Integration test: IPC `setTextPredictionEnabled` updates store
   - **Acceptance:** Value persists and can be retrieved
 
-- [ ] 7.3 Integration test: IPC `getTextPredictionGpuEnabled` returns stored value
+- [ ] 9.3 Integration test: IPC `getTextPredictionGpuEnabled` returns stored value
   - **Acceptance:** GPU setting round-trips correctly
 
-- [ ] 7.4 Integration test: IPC `setTextPredictionGpuEnabled` updates store
+- [ ] 9.4 Integration test: IPC `setTextPredictionGpuEnabled` updates store
   - **Acceptance:** GPU setting persists
 
-- [ ] 7.5 Integration test: IPC `getTextPredictionStatus` returns complete state
+- [ ] 9.5 Integration test: IPC `getTextPredictionStatus` returns complete state
   - **Acceptance:** All fields present: enabled, gpuEnabled, status
 
-- [ ] 7.6 Integration test: Status change emits `TEXT_PREDICTION_STATUS_CHANGED` event
+- [ ] 9.6 Integration test: Status change emits `TEXT_PREDICTION_STATUS_CHANGED` event
   - **Acceptance:** Renderer receives event when status changes
 
-- [ ] 7.7 Integration test: Download progress emits `TEXT_PREDICTION_DOWNLOAD_PROGRESS` events
+- [ ] 9.7 Integration test: Download progress emits `TEXT_PREDICTION_DOWNLOAD_PROGRESS` events
   - Mock download, verify progress events emitted
   - **Acceptance:** Progress events received by renderer
 
-- [ ] 7.8 Integration test: IPC `predictText` returns prediction from LlmManager
+- [ ] 9.8 Integration test: IPC `predictText` returns prediction from LlmManager
   - Mock LlmManager.predict()
   - **Acceptance:** Prediction returned through IPC
 
-- [ ] 7.9 Integration test: Options window Settings tab shows Text Prediction section
+- [ ] 9.9 Integration test: Options window Settings tab shows Text Prediction section
   - Open Options, navigate to Settings
   - **Acceptance:** Section visible with toggles
 
-- [ ] 7.10 Integration test: Enable toggle triggers download flow
+- [ ] 9.10 Integration test: Enable toggle triggers download flow
   - Click enable, verify download progress events
   - **Acceptance:** Full flow observable through integration
 
-- [ ] 7.11 Integration test: Quick Chat receives predictions when enabled
+- [ ] 9.11 Integration test: Quick Chat receives predictions when enabled
   - Enable prediction, open Quick Chat, type
   - **Acceptance:** Ghost text appears after debounce
 
-- [ ] 7.12 Integration test: Quick Chat Tab key sends accepted text
+- [ ] 9.12 Integration test: Quick Chat Tab key sends accepted text
   - Accept prediction, submit
   - **Acceptance:** Submitted text includes prediction
 
-- [ ] 7.13 Integration test: Settings persist across app restart
+- [ ] 9.13 Integration test: Settings persist across app restart
   - Enable prediction, close app, reopen
   - **Acceptance:** Toggle still enabled after restart
 
-- [ ] 7.14 Integration test: Model status persists across app restart
+- [ ] 9.14 Integration test: Model status persists across app restart
   - Download model, close app, reopen
   - **Acceptance:** Status shows "Ready" after restart
 
 ---
 
-## 8. E2E Tests
+## 10. E2E Tests
 
 **Files to create:**
 
@@ -418,42 +552,42 @@
 
 **Tasks:**
 
-- [ ] 8.1 E2E test: Toggle text prediction ON in Options → verify status changes
+- [ ] 10.1 E2E test: Toggle text prediction ON in Options → verify status changes
   - Click toggle, observe status indicator
   - **Acceptance:** Status transitions visible to user
 
-- [ ] 8.2 E2E test: Toggle text prediction OFF → verify model unloaded
+- [ ] 10.2 E2E test: Toggle text prediction OFF → verify model unloaded
   - Toggle OFF, verify status returns to disabled state
   - **Acceptance:** Status shows disabled state
 
-- [ ] 8.3 E2E test: Toggle GPU acceleration → verify setting persists
+- [ ] 10.3 E2E test: Toggle GPU acceleration → verify setting persists
   - Toggle ON, close/reopen Options, verify still ON
   - **Acceptance:** Setting survives app lifecycle
 
-- [ ] 8.4 E2E test: Download progress bar visible during download
+- [ ] 10.4 E2E test: Download progress bar visible during download
   - Enable prediction, observe progress UI
   - **Acceptance:** Progress bar animates during download
 
-- [ ] 8.5 E2E test: Error state shows retry button
+- [ ] 10.5 E2E test: Error state shows retry button
   - Simulate download failure, verify retry button
   - **Acceptance:** User can click retry to re-attempt
 
-- [ ] 8.6 E2E test: Type in Quick Chat → ghost text appears
+- [ ] 10.6 E2E test: Type in Quick Chat → ghost text appears
   - Type partial sentence, wait, observe prediction
   - **Acceptance:** Ghost text visible in UI
 
-- [ ] 8.7 E2E test: Press Tab in Quick Chat → prediction accepted
+- [ ] 10.7 E2E test: Press Tab in Quick Chat → prediction accepted
   - Type, wait for prediction, press Tab, verify input contains prediction
   - **Acceptance:** Input value includes accepted prediction
 
-- [ ] 8.8 E2E test: Continue typing → prediction dismissed
+- [ ] 10.8 E2E test: Continue typing → prediction dismissed
   - Type, wait for prediction, type more, verify prediction gone
   - **Acceptance:** Ghost text clears on continued input
 
-- [ ] 8.9 E2E test: Escape key dismisses prediction
+- [ ] 10.9 E2E test: Escape key dismisses prediction
   - Type, wait for prediction, press Escape
   - **Acceptance:** Ghost text clears, input unchanged
 
-- [ ] 8.10 E2E test: Submit with Enter ignores pending prediction
+- [ ] 10.10 E2E test: Submit with Enter ignores pending prediction
   - Type, wait for prediction, press Enter
   - **Acceptance:** Only original text submitted, not prediction

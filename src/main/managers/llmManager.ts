@@ -10,17 +10,24 @@
 import { app } from 'electron';
 import * as path from 'path';
 import { existsSync } from 'fs';
-import {
-  createModelDownloader,
-  getLlama,
-  LlamaChatSession,
-  type Llama,
-  type LlamaModel,
-  type LlamaContext,
-} from 'node-llama-cpp';
+// node-llama-cpp is ESM-only with top-level await, so we must use dynamic import()
+// Types are imported for TypeScript but the actual module is loaded dynamically
+import type { Llama, LlamaModel, LlamaContext, LlamaChatSession } from 'node-llama-cpp';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('[LlmManager]');
+
+/**
+ * Helper to dynamically import ESM modules in CommonJS context.
+ * Uses Function constructor to prevent TypeScript from transpiling import() to require().
+ * This is necessary because node-llama-cpp is ESM-only with top-level await.
+ */
+async function importNodeLlamaCpp(): Promise<typeof import('node-llama-cpp')> {
+  // Using Function constructor prevents TypeScript from transpiling this to require()
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const dynamicImport = new Function('specifier', 'return import(specifier)');
+  return dynamicImport('node-llama-cpp');
+}
 
 /**
  * Model status states for tracking lifecycle.
@@ -51,17 +58,19 @@ export interface ModelConfig {
  * Add new models here to extend LLM support.
  */
 export const MODEL_REGISTRY: Record<string, ModelConfig> = {
-  'phi-3.5-mini': {
-    id: 'phi-3.5-mini',
-    displayName: 'Phi 3.5 Mini',
-    uri: 'hf:microsoft/Phi-3.5-mini-instruct-gguf:Q4_K_M',
-    fileName: 'hf--microsoft--Phi-3.5-mini-instruct-gguf--Phi-3.5-mini-instruct-Q4_K_M.gguf',
-    sizeBytes: 2_400_000_000, // ~2.4 GB
+  'tinyllama-1.1b-chat': {
+    id: 'tinyllama-1.1b-chat',
+    displayName: 'TinyLlama 1.1B Chat',
+    // TheBloke's public GGUF - no authentication required
+    uri: 'hf:TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+    // Note: node-llama-cpp prefixes the filename with the HF org name
+    fileName: 'hf_TheBloke_tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+    sizeBytes: 669_000_000, // ~669 MB
   },
 };
 
 /** Default model to use for text prediction */
-export const DEFAULT_MODEL_ID = 'phi-3.5-mini';
+export const DEFAULT_MODEL_ID = 'tinyllama-1.1b-chat';
 
 /**
  * Callback for download progress updates.
@@ -217,11 +226,14 @@ export default class LlmManager {
     this.abortController = new AbortController();
 
     try {
+      // Dynamic import for ESM module using helper to prevent transpilation
+      const { createModelDownloader } = await importNodeLlamaCpp();
+
       const downloader = await createModelDownloader({
         modelUri: config.uri,
         dirPath: this.getModelsDirectory(),
         showCliProgress: false,
-        onProgress: (status) => {
+        onProgress: (status: { downloadedSize: number; totalSize: number }) => {
           const percent = Math.round((status.downloadedSize / status.totalSize) * 100);
           this.downloadProgress = percent;
           onProgress?.(percent);
@@ -233,14 +245,16 @@ export default class LlmManager {
         },
       });
 
-      this.modelPath = await downloader.download({
+      const downloadedPath = await downloader.download({
         signal: this.abortController.signal,
       });
+
+      this.modelPath = downloadedPath;
 
       logger.log('Model download complete', { modelPath: this.modelPath });
 
       // Verify file exists
-      if (!existsSync(this.modelPath)) {
+      if (!this.modelPath || !existsSync(this.modelPath)) {
         throw new Error('Downloaded file not found after download');
       }
 
@@ -297,10 +311,21 @@ export default class LlmManager {
     this.setStatus('initializing');
 
     try {
+      // Dynamic import for ESM module using helper to prevent transpilation
+      const { getLlama, LlamaChatSession } = await importNodeLlamaCpp();
+
       // Get llama instance with GPU setting
+      const gpuMode = this.gpuEnabled ? 'auto' : false;
+      logger.log('Initializing Llama with GPU mode', { gpuMode, gpuEnabled: this.gpuEnabled });
+
       this.llama = await getLlama({
-        gpu: this.gpuEnabled ? 'auto' : false,
+        gpu: gpuMode,
         build: 'never', // Don't build from source in Electron
+      });
+
+      logger.log('Llama instance created', {
+        gpuEnabled: this.gpuEnabled,
+        gpuModeRequested: gpuMode,
       });
 
       // Get model path

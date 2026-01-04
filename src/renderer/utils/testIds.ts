@@ -88,6 +88,7 @@ export const QUICK_CHAT_TEST_IDS = {
   QUICK_CHAT_CONTAINER: 'quick-chat-container',
   QUICK_CHAT_INPUT: 'quick-chat-input',
   QUICK_CHAT_SUBMIT: 'quick-chat-submit',
+  QUICK_CHAT_GHOST_TEXT: 'quick-chat-ghost-text',
 } as const;
 
 // =============================================================================

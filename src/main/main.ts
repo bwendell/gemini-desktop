@@ -105,6 +105,7 @@ import TrayManager from './managers/trayManager';
 import BadgeManager from './managers/badgeManager';
 import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
 import PrintManager from './managers/printManager';
+import LlmManager from './managers/llmManager';
 import SettingsStore from './store';
 
 // Path to the production build
@@ -131,6 +132,7 @@ let trayManager: TrayManager;
 let updateManager: UpdateManager;
 let badgeManager: BadgeManager;
 let printManager: PrintManager;
+let llmManager: LlmManager;
 
 /**
  * Initialize all application managers.
@@ -176,8 +178,18 @@ function initializeManagers(): void {
   printManager = new PrintManager(windowManager);
   logger.log('[DEBUG] initializeManagers() - PrintManager created');
 
+  logger.log('[DEBUG] initializeManagers() - creating LlmManager');
+  llmManager = new LlmManager();
+  logger.log('[DEBUG] initializeManagers() - LlmManager created');
+
   logger.log('[DEBUG] initializeManagers() - creating IpcManager');
-  ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, printManager);
+  ipcManager = new IpcManager(
+    windowManager,
+    hotkeyManager,
+    updateManager,
+    printManager,
+    llmManager
+  );
   logger.log('[DEBUG] initializeManagers() - IpcManager created');
 
   // Expose managers globally for E2E testing
@@ -191,6 +203,7 @@ function initializeManagers(): void {
     badgeManager: BadgeManager;
     hotkeyManager: HotkeyManager;
     printManager: PrintManager;
+    llmManager: LlmManager;
   };
   globalWithManagers.windowManager = windowManager;
   globalWithManagers.ipcManager = ipcManager;
@@ -199,6 +212,7 @@ function initializeManagers(): void {
   globalWithManagers.badgeManager = badgeManager;
   globalWithManagers.hotkeyManager = hotkeyManager;
   globalWithManagers.printManager = printManager;
+  globalWithManagers.llmManager = llmManager;
 
   logger.log('[DEBUG] initializeManagers() - All managers initialized successfully');
 }
@@ -215,6 +229,11 @@ function gracefulShutdown(exitCode: number = 0): void {
     // Unregister hotkeys first to prevent new interactions
     if (hotkeyManager) {
       hotkeyManager.unregisterAll();
+    }
+
+    // Dispose LLM manager to free model resources
+    if (llmManager) {
+      llmManager.dispose();
     }
 
     // Destroy tray
@@ -325,6 +344,12 @@ if (!gotTheLock) {
     hotkeyManager.registerShortcuts();
     logger.log('Hotkeys registered');
 
+    // Initialize text prediction (auto-load model if enabled)
+    // This is async but we don't need to block startup on it
+    ipcManager.initializeTextPrediction().catch((error) => {
+      logger.error('Failed to initialize text prediction:', error);
+    });
+
     // Start auto-update checks (only in production)
     if (app.isPackaged) {
       updateManager.startPeriodicChecks();
@@ -354,6 +379,7 @@ app.on('will-quit', () => {
   hotkeyManager.unregisterAll();
   trayManager.destroyTray();
   updateManager.destroy();
+  llmManager.dispose();
 });
 
 // App-level crash handlers to prevent OS crash dialogs
