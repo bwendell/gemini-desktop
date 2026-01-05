@@ -4,18 +4,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, dialog } from 'electron';
 
-// Mock logger - must use hoisted
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-
-const mockCreateLogger = vi.hoisted(() => vi.fn().mockReturnValue(mockLogger));
-
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: mockCreateLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 // Mock other dependencies with hoisted
 const mockExistsSync = vi.hoisted(() => vi.fn().mockReturnValue(false));

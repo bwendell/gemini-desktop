@@ -9,15 +9,9 @@ import WindowManager from '../../src/main/managers/windowManager';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import UpdateManager from '../../src/main/managers/updateManager';
 
-// Mock logger
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 // Mock electron-updater to avoid side effects
 vi.mock('electron-updater', () => ({

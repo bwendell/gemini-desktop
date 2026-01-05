@@ -5,15 +5,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { setupHeaderStripping, setupWebviewSecurity } from '../../src/main/utils/security';
 
-// Mock logger
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 describe('Security Integration', () => {
   beforeEach(() => {

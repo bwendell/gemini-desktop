@@ -12,15 +12,9 @@ import WindowManager from '../../src/main/managers/windowManager';
 import PrintManager from '../../src/main/managers/printManager';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 
-// Mock logger - must use hoisted to avoid initialization issues
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 // Hoisted mock for fs/promises - must be defined before imports
 const mockWriteFile = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));

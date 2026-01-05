@@ -46,17 +46,9 @@ vi.mock('electron-log', () => ({
   },
 }));
 
-// Mock logger (utils wrapper)
-// ... keeping existing logger mock but ensuring consistency
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-  transports: { file: { level: 'info' } },
-}));
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 // Mock Electron ipcMain
 const mockIpcMain = vi.hoisted(() => {

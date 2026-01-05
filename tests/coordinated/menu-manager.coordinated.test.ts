@@ -7,15 +7,9 @@ import { Menu, app } from 'electron';
 import MenuManager from '../../src/main/managers/menuManager';
 import WindowManager from '../../src/main/managers/windowManager';
 
-// Mock logger
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 // Mock fs
 vi.mock('fs', () => ({

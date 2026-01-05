@@ -13,15 +13,9 @@ import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
 
 import type { IndividualHotkeySettings } from '../../src/main/types';
 
-// Mock logger
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 // Mock constants to ensure isLinux is false (so hotkey registration tests work on all platforms)
 vi.mock('../../src/main/utils/constants', async (importOriginal) => {

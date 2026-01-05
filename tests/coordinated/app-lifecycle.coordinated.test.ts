@@ -9,15 +9,9 @@ import TrayManager from '../../src/main/managers/trayManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import UpdateManager from '../../src/main/managers/updateManager';
 
-// Mock logger
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 describe('App Lifecycle Integration', () => {
   let mockHotkeyManager: any;

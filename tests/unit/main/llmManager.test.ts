@@ -31,14 +31,8 @@ vi.mock('fs', () => ({
   existsSync: vi.fn().mockReturnValue(false),
 }));
 
-// Mock logger
-vi.mock('../../../src/main/utils/logger', () => ({
-  createLogger: () => ({
-    log: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+// Mock logger - uses __mocks__ directory
+vi.mock('../../../src/main/utils/logger');
 
 // Mock node-llama-cpp dynamic import
 const mockCreateModelDownloader = vi.fn();

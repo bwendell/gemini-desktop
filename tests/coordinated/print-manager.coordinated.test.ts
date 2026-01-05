@@ -9,18 +9,9 @@ import { app, dialog, BrowserWindow } from 'electron';
 const mockExistsSync = vi.hoisted(() => vi.fn());
 const mockWriteFile = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
-// Mock logger - must use hoisted to avoid initialization issues
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-
-const mockCreateLogger = vi.hoisted(() => vi.fn().mockReturnValue(mockLogger));
-
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: mockCreateLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 // Mock fs with hoisted function
 vi.mock('fs', () => ({

@@ -7,15 +7,9 @@ import { shell } from 'electron';
 
 import MainWindow from '../../src/main/windows/mainWindow';
 
-// Mock logger
-const mockLogger = vi.hoisted(() => ({
-  log: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-}));
-vi.mock('../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Use the centralized logger mock from __mocks__ directory
+vi.mock('../../src/main/utils/logger');
+import { mockLogger } from '../../src/main/utils/logger';
 
 // Mock constants to be dynamic for platform testing
 vi.mock('../../src/main/utils/constants', async (importOriginal) => {

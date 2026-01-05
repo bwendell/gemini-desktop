@@ -16,7 +16,7 @@ export default defineConfig({
     root: projectRoot,
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['tests/unit/main/test/setup.ts'],
+    setupFiles: ['tests/unit/main/test/setup.ts', 'tests/helpers/setup/coordinated.ts'],
     include: ['tests/coordinated/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'dist'],
     alias: {

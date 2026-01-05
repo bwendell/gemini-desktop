@@ -40,15 +40,9 @@ vi.mock('electron', () => ({
 }));
 
 /**
- * Mock for the logger utility.
+ * Mock for the logger utility - uses __mocks__ directory
  */
-vi.mock('../../../src/main/utils/logger', () => ({
-  createLogger: () => ({
-    log: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+vi.mock('../../../src/main/utils/logger');
 
 /**
  * Mock for constants module.
