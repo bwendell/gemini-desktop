@@ -19,9 +19,7 @@
 import { browser, $, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
-import {
-  waitForAppReady,
-} from './helpers/workflows';
+import { waitForAppReady } from './helpers/workflows';
 import {
   expectElementDisplayed,
   expectElementNotDisplayed,

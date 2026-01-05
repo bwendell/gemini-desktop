@@ -51,7 +51,7 @@ describe('Context Menu', () => {
   // 1. JS dispatch of contextmenu event - doesn't trigger webContents 'context-menu' listener
   // 2. webContents.sendInputEvent() with mouseDown/mouseUp right button - also doesn't trigger it
   // The keyboard shortcut tests below provide equivalent coverage for copy/paste/cut functionality.
-  
+
   it.skip('should show context menu on right-click', async () => {
     // Focus and type into the input
     await testInput.click();
@@ -80,7 +80,7 @@ describe('Context Menu', () => {
 
     // Right-click to open context menu
     await contextMenu.openContextMenu(testInput);
-    
+
     // Verify Copy item is present and enabled
     const copyItem = await contextMenu.getMenuItemState('copy');
     expect(copyItem?.enabled).toBe(true);
@@ -100,7 +100,7 @@ describe('Context Menu', () => {
 
     // Right-click to open context menu
     await contextMenu.openContextMenu(testInput);
-    
+
     // Verify Paste item is present and enabled
     const pasteItem = await contextMenu.getMenuItemState('paste');
     expect(pasteItem?.enabled).toBe(true);
@@ -117,7 +117,7 @@ describe('Context Menu', () => {
 
     // Right-click to open context menu
     await contextMenu.openContextMenu(testInput);
-    
+
     // Verify Cut item is present and enabled
     const cutItem = await contextMenu.getMenuItemState('cut');
     expect(cutItem?.enabled).toBe(true);
@@ -139,7 +139,7 @@ describe('Context Menu', () => {
 
     // Right-click to open context menu
     await contextMenu.openContextMenu(testInput);
-    
+
     // Verify Select All item is present and enabled
     const selectAllItem = await contextMenu.getMenuItemState('selectAll');
     expect(selectAllItem?.enabled).toBe(true);
@@ -156,11 +156,11 @@ describe('Context Menu', () => {
 
     // Right-click to open context menu
     await contextMenu.openContextMenu(testInput);
-    
+
     // Verify Delete item is present (enabled state might vary by platform/implementation if text is selected, but usually enabled)
     const deleteItem = await contextMenu.getMenuItemState('delete');
     expect(deleteItem).not.toBeNull();
-    // Some implementations might not have explicit "Delete" item, but checking if it's there if expected. 
+    // Some implementations might not have explicit "Delete" item, but checking if it's there if expected.
     // If it's missing, this test fails, which is correct if we expect it.
     // Assuming standard Electron context menu has Delete.
 
@@ -179,7 +179,7 @@ describe('Context Menu', () => {
       // Right-click to open context menu
       await contextMenu.openContextMenu(testInput);
 
-    // Navigate to Cut and try to execute
+      // Navigate to Cut and try to execute
       // await contextMenu.selectCut(); // Removed action
 
       // Verify Cut/Copy/Delete are disabled
@@ -189,12 +189,15 @@ describe('Context Menu', () => {
 
       expect(cutItem?.enabled).toBe(false);
       expect(copyItem?.enabled).toBe(false);
-      // Delete might be enabled even if no text selected (deletes character after cursor)? 
-      // Or disabled? Usually disabled if no selection. 
+      // Delete might be enabled even if no text selected (deletes character after cursor)?
+      // Or disabled? Usually disabled if no selection.
       // Let's assume strict disabled for this test case intent.
       expect(deleteItem?.enabled).toBe(false);
 
-      E2ELogger.info('context-menu', 'Disabled state test completed - items disabled on empty input');
+      E2ELogger.info(
+        'context-menu',
+        'Disabled state test completed - items disabled on empty input'
+      );
     });
 
     it('should allow Paste when clipboard has content', async () => {
@@ -337,7 +340,7 @@ describe('Context Menu', () => {
 
       // Copy via context menu
       await contextMenu.openContextMenu(testInput);
-      
+
       const copyItem = await contextMenu.getMenuItemState('copy');
       expect(copyItem?.enabled).toBe(true);
 
@@ -347,7 +350,7 @@ describe('Context Menu', () => {
 
       // Paste via context menu
       await contextMenu.openContextMenu(targetInput);
-      
+
       const pasteItem = await contextMenu.getMenuItemState('paste');
       expect(pasteItem?.enabled).toBe(true);
 
@@ -375,7 +378,7 @@ describe('Context Menu', () => {
       // Step 4: Paste via context menu (simulated sequence, we re-open menu)
       await browser.keys(['Escape']); // Close previous menu if open (via mock it isn't, but good practice)
       // Actually mock menu doesn't show, so we just trigger again
-      
+
       await contextMenu.openContextMenu(testInput);
       const pasteItem = await contextMenu.getMenuItemState('paste');
       expect(pasteItem).not.toBeNull();

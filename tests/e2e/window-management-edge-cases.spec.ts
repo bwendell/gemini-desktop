@@ -86,13 +86,13 @@ describe('Window Management Edge Cases', () => {
           break;
         }
       }
-      
+
       // Fallback: use the second handle if no options handle found
       if (!optionsHandle && handles.length === 2) {
         const mainHandle = handles[0];
         optionsHandle = handles.find((h) => h !== mainHandle) || handles[1];
       }
-      
+
       expect(optionsHandle).not.toBe('');
 
       // 3. Focus main window to blur options

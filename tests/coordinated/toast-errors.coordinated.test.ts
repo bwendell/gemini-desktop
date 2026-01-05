@@ -11,6 +11,7 @@ import { ToastProvider, useToast } from '../../src/renderer/context/ToastContext
 import { showToast as mainProcessShowToast } from '../../src/main/utils/toast';
 import type { BrowserWindow } from 'electron';
 import type { ToastPayload } from '../../src/shared/types/toast';
+import { useFakeTimers, useRealTimers } from '../helpers/harness';
 
 // Mock electron
 vi.mock('electron', () => ({
@@ -25,11 +26,11 @@ vi.mock('electron', () => ({
 describe('Toast Error Handling Coordination', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
   });
 
   describe('useToast() outside ToastProvider', () => {

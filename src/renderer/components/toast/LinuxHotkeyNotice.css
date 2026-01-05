@@ -52,7 +52,9 @@
   font-size: 16px;
   padding: 4px;
   border-radius: 4px;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   flex-shrink: 0;
 }
 

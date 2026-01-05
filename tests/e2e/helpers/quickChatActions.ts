@@ -178,10 +178,7 @@ export async function getQuickChatState(): Promise<QuickChatState> {
  * @returns Promise<void>
  */
 export async function hideAndFocusMainWindow(): Promise<void> {
-  E2ELogger.info(
-    'quick-chat-action',
-    'Hiding Quick Chat via IPC and switching to main window'
-  );
+  E2ELogger.info('quick-chat-action', 'Hiding Quick Chat via IPC and switching to main window');
 
   // Send IPC to cancel Quick Chat (works from any window context)
   await browser.electron.execute((electron: typeof import('electron')) => {
@@ -216,14 +213,11 @@ export async function submitQuickChatText(text: string): Promise<void> {
   E2ELogger.info('quick-chat-action', `Submitting text via IPC (${text.length} chars)`);
 
   // Send the same IPC message that the Quick Chat submit button sends
-  await browser.electron.execute(
-    (electron: typeof import('electron'), submittedText: string) => {
-      // Send via ipcMain emit - same as if renderer called ipcRenderer.send()
-      const { ipcMain } = electron;
-      ipcMain.emit('quick-chat:submit', { sender: null }, submittedText);
-    },
-    text
-  );
+  await browser.electron.execute((electron: typeof import('electron'), submittedText: string) => {
+    // Send via ipcMain emit - same as if renderer called ipcRenderer.send()
+    const { ipcMain } = electron;
+    ipcMain.emit('quick-chat:submit', { sender: null }, submittedText);
+  }, text);
 
   // Wait for IPC processing
   await browser.pause(200);
@@ -299,8 +293,6 @@ export async function getAllWindowStates(): Promise<
   });
 }
 
-
-
 // =============================================================================
 // Gemini Editor State Verification (READ-ONLY)
 // =============================================================================
@@ -326,13 +318,13 @@ export interface GeminiEditorState {
 
 /**
  * Read the current state of the Gemini editor (READ-ONLY verification).
- * 
+ *
  * This helper READS from the Gemini editor to verify text was injected
  * via the production Quick Chat flow. It does NOT inject or modify anything.
- * 
+ *
  * Use this after triggering Quick Chat submission via real user actions
  * to verify the text actually appeared in the Gemini editor.
- * 
+ *
  * @returns Promise<GeminiEditorState> - Current state of the editor
  */
 export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
@@ -462,7 +454,7 @@ export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
         // Note: executeJavaScript is async, but we're in a sync context here
         // This will be awaited by the outer browser.electron.execute
         const resultPromise = geminiFrame.executeJavaScript(readScript);
-        
+
         // Return a promise-wrapped result
         return {
           iframeFound: true,
@@ -492,7 +484,7 @@ export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
 /**
  * Wait for text to appear in Gemini editor, with timeout.
  * Polls the editor state until expected text is found.
- * 
+ *
  * @param expectedText - Text that should appear in editor
  * @param timeoutMs - Maximum time to wait (default 5000ms)
  * @returns Promise<GeminiEditorState> - Final state
@@ -510,22 +502,30 @@ export async function waitForTextInGeminiEditor(
     lastState = state;
 
     if (state.editorFound && state.editorText?.includes(expectedText)) {
-      E2ELogger.info('gemini-verify', `Text found in editor: "${expectedText.substring(0, 30)}..."`);
+      E2ELogger.info(
+        'gemini-verify',
+        `Text found in editor: "${expectedText.substring(0, 30)}..."`
+      );
       return state;
     }
 
     await browser.pause(200);
   }
 
-  E2ELogger.info('gemini-verify', `Timeout waiting for text. Last state: ${JSON.stringify(lastState)}`);
-  return lastState || {
-    iframeFound: false,
-    editorFound: false,
-    editorText: null,
-    submitButtonFound: false,
-    submitButtonEnabled: false,
-    error: 'Timeout waiting for text',
-  };
+  E2ELogger.info(
+    'gemini-verify',
+    `Timeout waiting for text. Last state: ${JSON.stringify(lastState)}`
+  );
+  return (
+    lastState || {
+      iframeFound: false,
+      editorFound: false,
+      editorText: null,
+      submitButtonFound: false,
+      submitButtonEnabled: false,
+      error: 'Timeout waiting for text',
+    }
+  );
 }
 
 /**

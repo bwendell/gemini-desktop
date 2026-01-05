@@ -71,33 +71,12 @@ const getListener = (channel: string) => (ipcMain as any)._listeners.get(channel
 
 /**
  * Creates a mock webContents with all required methods for scrolling capture.
- * Uses values that result in exactly 1 capture to keep tests fast.
+ * Uses shared factory with defaults that result in exactly 1 capture.
  */
+import { createMockWebContents } from '../helpers/mocks';
 function createMockWebContentsForCapture() {
-  // scrollHeight = 800, clientHeight = 1000 -> stepSize = 900, totalCaptures = 1
-  const mockImage = {
-    toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png-data')),
-    getSize: vi.fn().mockReturnValue({ width: 1920, height: 1000 }),
-  };
-
-  const mockGeminiFrame = {
-    url: 'https://gemini.google.com/app',
-    executeJavaScript: vi.fn().mockResolvedValue({
-      scrollHeight: 800,
-      scrollTop: 0,
-      clientHeight: 1000,
-    }),
-  };
-
-  return {
-    send: vi.fn(),
-    getURL: vi.fn().mockReturnValue('file:///mock/app.html'),
-    isDestroyed: vi.fn().mockReturnValue(false),
-    capturePage: vi.fn().mockResolvedValue(mockImage),
-    mainFrame: {
-      frames: [mockGeminiFrame],
-    },
-  };
+  // Wrapper for backward compatibility, uses shared factory with scroll capture
+  return createMockWebContents({ withScrollCapture: true, url: 'file:///mock/app.html' });
 }
 
 describe('Print to PDF IPC Handler Coordination', () => {

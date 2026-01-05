@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Tray, Menu, app } from 'electron';
 import TrayManager from '../../../src/main/managers/trayManager';
 import type WindowManager from '../../../src/main/managers/windowManager';
+import { createMockWindowManager } from '../../helpers/mocks';
 
 describe('TrayManager', () => {
   let trayManager: TrayManager;
@@ -29,11 +30,10 @@ describe('TrayManager', () => {
 
     originalPlatform = process.platform;
 
-    // Mock WindowManager
-    mockWindowManager = {
-      restoreFromTray: vi.fn(),
+    // Mock WindowManager using shared factory
+    mockWindowManager = createMockWindowManager({
       getMainWindow: vi.fn().mockReturnValue({}),
-    };
+    });
 
     trayManager = new TrayManager(mockWindowManager as WindowManager);
   });

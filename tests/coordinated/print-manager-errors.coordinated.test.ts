@@ -65,35 +65,15 @@ vi.mock('pdfkit', () => {
 import PrintManager from '../../src/main/managers/printManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import { IPC_CHANNELS } from '../../src/shared/constants/ipc-channels';
+import { createMockWebContents } from '../helpers/mocks';
+import { useFakeTimers, useRealTimers } from '../helpers/harness';
 
 /**
  * Creates a mock webContents with all required methods for scrolling capture.
- * Uses values that result in exactly 1 capture to keep tests fast.
+ * Uses shared factory with defaults that result in exactly 1 capture.
  */
 function createMockWebContentsForCapture() {
-  // scrollHeight = 800, clientHeight = 1000 -> stepSize = 900, totalCaptures = 1
-  const mockImage = {
-    toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png-data')),
-    getSize: vi.fn().mockReturnValue({ width: 1920, height: 1000 }),
-  };
-
-  const mockGeminiFrame = {
-    url: 'https://gemini.google.com/app',
-    executeJavaScript: vi.fn().mockResolvedValue({
-      scrollHeight: 800,
-      scrollTop: 0,
-      clientHeight: 1000,
-    }),
-  };
-
-  return {
-    send: vi.fn(),
-    isDestroyed: vi.fn().mockReturnValue(false),
-    capturePage: vi.fn().mockResolvedValue(mockImage),
-    mainFrame: {
-      frames: [mockGeminiFrame],
-    },
-  };
+  return createMockWebContents({ withScrollCapture: true });
 }
 
 describe('PrintManager Error Handling (Isolated)', () => {
@@ -102,8 +82,7 @@ describe('PrintManager Error Handling (Isolated)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'));
+    useFakeTimers('2025-01-15T12:00:00Z');
 
     (app.getPath as any).mockReturnValue('/mock/downloads');
     (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
@@ -113,7 +92,7 @@ describe('PrintManager Error Handling (Isolated)', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
   });
 
   it('5.3.12.1: Logger Context - should be initialized with [PrintManager]', () => {

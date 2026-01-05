@@ -38,7 +38,7 @@ describe('OfflineOverlay', () => {
     it('renders retry button when onRetry prop is provided', () => {
       const mockRetry = vi.fn();
       render(<OfflineOverlay onRetry={mockRetry} />);
-      
+
       const button = screen.getByTestId('offline-retry-button');
       expect(button).toBeInTheDocument();
       expect(button).toHaveTextContent('Retry Connection');
@@ -46,7 +46,7 @@ describe('OfflineOverlay', () => {
 
     it('does not render retry button when onRetry prop is not provided', () => {
       render(<OfflineOverlay />);
-      
+
       const button = screen.queryByTestId('offline-retry-button');
       expect(button).not.toBeInTheDocument();
     });
@@ -56,22 +56,22 @@ describe('OfflineOverlay', () => {
     it('calls onRetry callback when retry button is clicked', () => {
       const mockRetry = vi.fn();
       render(<OfflineOverlay onRetry={mockRetry} />);
-      
+
       const button = screen.getByTestId('offline-retry-button');
       fireEvent.click(button);
-      
+
       expect(mockRetry).toHaveBeenCalledTimes(1);
     });
 
     it('calls onRetry multiple times if clicked multiple times', () => {
       const mockRetry = vi.fn();
       render(<OfflineOverlay onRetry={mockRetry} />);
-      
+
       const button = screen.getByTestId('offline-retry-button');
       fireEvent.click(button);
       fireEvent.click(button);
       fireEvent.click(button);
-      
+
       expect(mockRetry).toHaveBeenCalledTimes(3);
     });
   });
@@ -80,14 +80,14 @@ describe('OfflineOverlay', () => {
     it('has aria-label on retry button', () => {
       const mockRetry = vi.fn();
       render(<OfflineOverlay onRetry={mockRetry} />);
-      
+
       const button = screen.getByTestId('offline-retry-button');
       expect(button).toHaveAttribute('aria-label', 'Retry connection');
     });
 
     it('has aria-hidden on SVG icon', () => {
       render(<OfflineOverlay />);
-      
+
       const icon = screen.getByTestId('offline-icon');
       expect(icon).toHaveAttribute('aria-hidden', 'true');
     });
@@ -96,21 +96,21 @@ describe('OfflineOverlay', () => {
   describe('structure', () => {
     it('contains offline-content wrapper', () => {
       render(<OfflineOverlay />);
-      
+
       const content = document.querySelector('.offline-content');
       expect(content).toBeInTheDocument();
     });
 
     it('contains offline-message wrapper', () => {
       render(<OfflineOverlay />);
-      
+
       const message = document.querySelector('.offline-message');
       expect(message).toBeInTheDocument();
     });
 
     it('icon has correct CSS class', () => {
       render(<OfflineOverlay />);
-      
+
       const icon = screen.getByTestId('offline-icon');
       expect(icon).toHaveClass('offline-icon');
     });
@@ -118,7 +118,7 @@ describe('OfflineOverlay', () => {
     it('button has correct CSS class when rendered', () => {
       const mockRetry = vi.fn();
       render(<OfflineOverlay onRetry={mockRetry} />);
-      
+
       const button = screen.getByTestId('offline-retry-button');
       expect(button).toHaveClass('offline-retry-button');
     });

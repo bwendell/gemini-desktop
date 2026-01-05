@@ -44,7 +44,7 @@ const STORAGE_KEY = 'linux-hotkey-notice-dismissed';
 
 /**
  * Linux Hotkey Notice component
- * 
+ *
  * Shows an informational toast on Linux explaining that global hotkeys
  * are disabled due to Wayland limitations.
  */
@@ -98,12 +98,10 @@ export function LinuxHotkeyNotice() {
           </div>
 
           <div className="linux-hotkey-notice__content">
-            <div className="linux-hotkey-notice__title">
-              Global Hotkeys Disabled
-            </div>
+            <div className="linux-hotkey-notice__title">Global Hotkeys Disabled</div>
             <div className="linux-hotkey-notice__message">
-              Global keyboard shortcuts are currently unavailable on Linux due to 
-              Wayland limitations.
+              Global keyboard shortcuts are currently unavailable on Linux due to Wayland
+              limitations.
             </div>
           </div>
 

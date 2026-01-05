@@ -54,7 +54,7 @@ describe('MainWindow Navigation', () => {
     };
 
     // Setup mock BrowserWindow
-    (BrowserWindow as unknown as Mock).mockImplementation(function() {
+    (BrowserWindow as unknown as Mock).mockImplementation(function () {
       return {
         webContents: mockWebContents,
         on: vi.fn(),

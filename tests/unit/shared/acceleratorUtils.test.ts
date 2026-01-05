@@ -273,15 +273,11 @@ describe('acceleratorUtils', () => {
       });
 
       it('should convert CmdOrCtrl to Cmd', () => {
-        expect(formatAcceleratorForDisplay('CmdOrCtrl+Shift+T', 'darwin')).toBe(
-          'Cmd+Shift+T'
-        );
+        expect(formatAcceleratorForDisplay('CmdOrCtrl+Shift+T', 'darwin')).toBe('Cmd+Shift+T');
       });
 
       it('should keep Alt as Alt', () => {
-        expect(formatAcceleratorForDisplay('CommandOrControl+Alt+E', 'darwin')).toBe(
-          'Cmd+Alt+E'
-        );
+        expect(formatAcceleratorForDisplay('CommandOrControl+Alt+E', 'darwin')).toBe('Cmd+Alt+E');
       });
 
       it('should convert Meta to Cmd', () => {
@@ -295,9 +291,7 @@ describe('acceleratorUtils', () => {
       });
 
       it('should convert CmdOrCtrl to Ctrl', () => {
-        expect(formatAcceleratorForDisplay('CmdOrCtrl+Shift+T', 'win32')).toBe(
-          'Ctrl+Shift+T'
-        );
+        expect(formatAcceleratorForDisplay('CmdOrCtrl+Shift+T', 'win32')).toBe('Ctrl+Shift+T');
       });
 
       it('should convert Command to Ctrl', () => {

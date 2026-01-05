@@ -1,8 +1,11 @@
 # print-to-pdf Specification
 
 ## Purpose
+
 TBD - created by archiving change add-pdf-export-toast. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: PDF Export Success Toast
 
 When a PDF export completes successfully, the system SHALL display a success toast notification showing the saved file location with an option to reveal the file in the system file explorer.
@@ -57,4 +60,3 @@ The system SHALL provide a cross-platform API for revealing files in the system'
 - **GIVEN** the application is running on Linux
 - **WHEN** `revealInFolder(path)` is called with a valid file path
 - **THEN** the default file manager opens with the file or its containing folder visible
-

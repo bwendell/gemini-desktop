@@ -47,4 +47,3 @@ export function getIconPath(): string {
   // In development, icons are in build/ directory
   return path.join(__dirname, '../../../build', iconFilename);
 }
-

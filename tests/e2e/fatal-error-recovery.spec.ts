@@ -1,9 +1,6 @@
 import { browser, expect, $ } from '@wdio/globals';
 import { MainWindowPage } from './pages';
-import {
-  waitForAppReady,
-  pressShortcut,
-} from './helpers/workflows';
+import { waitForAppReady, pressShortcut } from './helpers/workflows';
 import {
   expectElementDisplayed,
   expectElementNotDisplayed,
@@ -42,8 +39,8 @@ describe('Fatal Error Recovery E2E', () => {
       // Trigger a real renderer process crash via Debug menu
       await browser.electron.execute((electron) => {
         const menu = electron.Menu.getApplicationMenu();
-        const debugMenu = menu?.items.find(item => item.label === 'Debug');
-        const crashItem = debugMenu?.submenu?.items.find(item => item.label === 'Crash Renderer');
+        const debugMenu = menu?.items.find((item) => item.label === 'Debug');
+        const crashItem = debugMenu?.submenu?.items.find((item) => item.label === 'Crash Renderer');
         crashItem?.click();
       });
 
@@ -81,10 +78,10 @@ describe('Fatal Error Recovery E2E', () => {
       await browser.execute(() => {
         // @ts-ignore
         if (window.__GEMINI_TRIGGER_FATAL_ERROR__) {
-            // @ts-ignore
-            window.__GEMINI_TRIGGER_FATAL_ERROR__();
+          // @ts-ignore
+          window.__GEMINI_TRIGGER_FATAL_ERROR__();
         } else {
-            throw new Error('Global error trigger not found');
+          throw new Error('Global error trigger not found');
         }
       });
 

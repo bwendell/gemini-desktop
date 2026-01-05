@@ -74,7 +74,9 @@ describe('Auto-Update Integration', () => {
       });
 
       // UpdateManager now masks error messages for security
-      expect(errorMsg).toBe('The auto-update service encountered an error. Please try again later.');
+      expect(errorMsg).toBe(
+        'The auto-update service encountered an error. Please try again later.'
+      );
     });
 
     it('should receive auto-update:checking event when check starts', async () => {

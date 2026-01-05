@@ -30,13 +30,8 @@ export const mockApp = {
 // ============================================================================
 // Mock: Electron BrowserWindow
 // ============================================================================
-export const createMockWebContents = () => ({
-  send: vi.fn(),
-  on: vi.fn(),
-  once: vi.fn(),
-  openDevTools: vi.fn(),
-  setWindowOpenHandler: vi.fn(),
-});
+// Re-export from shared factory for backward compatibility
+export { createMockWebContents } from '../../../helpers/mocks/main/webContents';
 
 export const createMockBrowserWindow = () => {
   const webContents = createMockWebContents();
@@ -140,7 +135,6 @@ export const mockIpcRenderer = {
 // ============================================================================
 // Vitest alias works for ESM import, but not for CJS require.
 // We patch Module.prototype.require to capture require('electron') calls.
-
 
 import electronMock from './electron-mock';
 

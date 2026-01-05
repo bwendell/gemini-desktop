@@ -23,16 +23,16 @@
 
 Users have been asking for a desktop Gemini client with these features—**we deliver on all of them**:
 
-| What Users Want                                | Status                         |
-| ---------------------------------------------- | ------------------------------ |
-| 🖥️ Native desktop app (not just a browser tab) | ✅ **Native & Fast**           |
-| ⌨️ Global keyboard shortcuts                   | ✅ **Fully Customizable**      |
-| 🚀 Spotlight-style Quick Chat                  | ✅ **Instant Access**          |
-| 📌 Always-on-top window                        | ✅ **Easy Access to Gemini**   |
-| 🕵️ Quick Privacy / Hiding                     | ✅ **Stealth Mode**            |
-| 💻 Cross-platform (Windows, macOS, Linux)      | ✅ **All three**               |
-| 🔐 Stable login & persistent sessions          | ✅ **OAuth done right**        |
-| 🔒 No data collection                          | ✅ **Zero telemetry**          |
+| What Users Want                                | Status                       |
+| ---------------------------------------------- | ---------------------------- |
+| 🖥️ Native desktop app (not just a browser tab) | ✅ **Native & Fast**         |
+| ⌨️ Global keyboard shortcuts                   | ✅ **Fully Customizable**    |
+| 🚀 Spotlight-style Quick Chat                  | ✅ **Instant Access**        |
+| 📌 Always-on-top window                        | ✅ **Easy Access to Gemini** |
+| 🕵️ Quick Privacy / Hiding                      | ✅ **Stealth Mode**          |
+| 💻 Cross-platform (Windows, macOS, Linux)      | ✅ **All three**             |
+| 🔐 Stable login & persistent sessions          | ✅ **OAuth done right**      |
+| 🔒 No data collection                          | ✅ **Zero telemetry**        |
 
 ---
 

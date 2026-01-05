@@ -18,7 +18,9 @@ import { E2E_TIMING } from './e2eConstants';
  *
  * @param waitMs - Time to wait after pressing keys (defaults to E2E_TIMING.IPC_ROUND_TRIP)
  */
-export async function openOptionsWindowViaHotkey(waitMs = E2E_TIMING.IPC_ROUND_TRIP): Promise<void> {
+export async function openOptionsWindowViaHotkey(
+  waitMs = E2E_TIMING.IPC_ROUND_TRIP
+): Promise<void> {
   const isMac = await isMacOS();
   const modifier = isMac ? 'Meta' : 'Control';
   E2ELogger.info('optionsWindowActions', `Opening Options window via hotkey: ${modifier}+,`);
@@ -36,10 +38,10 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
   E2ELogger.info('optionsWindowActions', 'Waiting for Options window to load');
 
   // Wait for a second window to appear if not already there
-  await browser.waitUntil(
-    async () => (await browser.getWindowHandles()).length > 1,
-    { timeout, timeoutMsg: 'Options window handle did not appear' }
-  );
+  await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 1, {
+    timeout,
+    timeoutMsg: 'Options window handle did not appear',
+  });
 
   const handles = await browser.getWindowHandles();
   // Assume the last window is the new one (Options)
@@ -60,7 +62,7 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
 export async function closeOptionsWindow(): Promise<void> {
   E2ELogger.info('optionsWindowActions', 'Closing Options window');
   await browser.closeWindow();
-  
+
   const handles = await browser.getWindowHandles();
   if (handles.length > 0) {
     await browser.switchToWindow(handles[0]);
@@ -98,7 +100,10 @@ export async function navigateToOptionsTab(tabName: string): Promise<void> {
   E2ELogger.info('optionsWindowActions', `Navigating to options tab: ${tabName}`);
   const tabSelector = `[data-testid="options-tab-${tabName}"]`;
   const tab = await browser.$(tabSelector);
-  
-  await tab.waitForDisplayed({ timeout: 5000, timeoutMsg: `Options tab '${tabName}' not displayed` });
+
+  await tab.waitForDisplayed({
+    timeout: 5000,
+    timeoutMsg: `Options tab '${tabName}' not displayed`,
+  });
   await tab.click();
 }

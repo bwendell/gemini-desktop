@@ -68,4 +68,3 @@ describe('Tray Quit Functionality', () => {
     // Any browser.* call would block for the bridge timeout and fail.
   });
 });
-

@@ -4,6 +4,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ipcMain, nativeTheme, BrowserWindow, shell } from 'electron';
 import IpcManager from '../../../src/main/managers/ipcManager';
+import {
+  createMockWindowManager,
+  createMockStore,
+  createMockUpdateManager,
+  createMockPrintManager,
+} from '../../helpers/mocks';
 
 // Mock Electron
 const { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell } = vi.hoisted(() => {
@@ -79,15 +85,9 @@ vi.mock('fs', () => ({
   existsSync: vi.fn(),
 }));
 
-// Mock logger
-const mockLogger = {
-  log: vi.fn((...args) => console.log('[MOCK_LOG]', ...args)),
-  error: vi.fn((...args) => console.error('[MOCK_ERROR]', ...args)),
-  warn: vi.fn((...args) => console.warn('[MOCK_WARN]', ...args)),
-};
-vi.mock('../../../src/main/utils/logger', () => ({
-  createLogger: () => mockLogger,
-}));
+// Mock logger - uses __mocks__/logger.ts
+vi.mock('../../../src/main/utils/logger');
+import { mockLogger } from '../../../src/main/utils/__mocks__/logger';
 
 describe('IpcManager', () => {
   let ipcManager: any;
@@ -105,46 +105,11 @@ describe('IpcManager', () => {
     if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
     if ((shell as any)._reset) (shell as any)._reset();
 
-    // Setup WindowManager mock
-    mockWindowManager = {
-      createOptionsWindow: vi.fn(),
-      createAuthWindow: vi.fn().mockReturnValue({
-        on: vi.fn((event, handler) => {
-          if (event === 'closed') handler();
-        }),
-      }),
-      setAlwaysOnTop: vi.fn(),
-      isAlwaysOnTop: vi.fn(),
-      on: vi.fn(),
-      emit: vi.fn(),
-      removeListener: vi.fn(),
-      // Mock other methods used in tests
-      hideQuickChat: vi.fn(),
-      focusMainWindow: vi.fn(),
-      getMainWindow: vi.fn(),
-      restoreFromTray: vi.fn(),
-    };
-
-    // Create mock store explicitly
-    mockStore = {
-      get: vi.fn().mockReturnValue('system'),
-      set: vi.fn(),
-    };
-
-    // Mock UpdateManager
-    mockUpdateManager = {
-      isEnabled: vi.fn().mockReturnValue(true),
-      setEnabled: vi.fn(),
-      checkForUpdates: vi.fn(),
-      quitAndInstall: vi.fn(),
-      devShowBadge: vi.fn(),
-      devClearBadge: vi.fn(),
-    };
-
-    // Mock PrintManager
-    mockPrintManager = {
-      printToPdf: vi.fn().mockResolvedValue(undefined),
-    };
+    // Create mocks using shared factories
+    mockWindowManager = createMockWindowManager();
+    mockStore = createMockStore({ theme: 'system' });
+    mockUpdateManager = createMockUpdateManager();
+    mockPrintManager = createMockPrintManager();
 
     ipcManager = new IpcManager(
       mockWindowManager,

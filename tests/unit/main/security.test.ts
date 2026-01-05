@@ -165,11 +165,9 @@ describe('setupMediaPermissions', () => {
     mockSession.defaultSession.setPermissionRequestHandler.mockClear();
 
     // Capture the permission handler when it's set
-    mockSession.defaultSession.setPermissionRequestHandler.mockImplementation(
-      (handler: any) => {
-        permissionHandler = handler;
-      }
-    );
+    mockSession.defaultSession.setPermissionRequestHandler.mockImplementation((handler: any) => {
+      permissionHandler = handler;
+    });
   });
 
   it('registers permission handler on session', async () => {
@@ -301,9 +299,8 @@ describe('setupMediaPermissions', () => {
 
       // Re-import to get the new mock
       vi.resetModules();
-      const { setupMediaPermissions: setupMediaPermissionsMocked } = await import(
-        '../../../src/main/utils/security'
-      );
+      const { setupMediaPermissions: setupMediaPermissionsMocked } =
+        await import('../../../src/main/utils/security');
 
       // Create a fresh mock session
       const freshMockSession = {
@@ -339,9 +336,8 @@ describe('setupMediaPermissions', () => {
       }));
 
       vi.resetModules();
-      const { setupMediaPermissions: setupMediaPermissionsMocked } = await import(
-        '../../../src/main/utils/security'
-      );
+      const { setupMediaPermissions: setupMediaPermissionsMocked } =
+        await import('../../../src/main/utils/security');
 
       const freshMockSession = {
         setPermissionRequestHandler: vi.fn(),
@@ -374,9 +370,8 @@ describe('setupMediaPermissions', () => {
       }));
 
       vi.resetModules();
-      const { setupMediaPermissions: setupMediaPermissionsMocked } = await import(
-        '../../../src/main/utils/security'
-      );
+      const { setupMediaPermissions: setupMediaPermissionsMocked } =
+        await import('../../../src/main/utils/security');
 
       const freshMockSession = {
         setPermissionRequestHandler: vi.fn(),

@@ -217,11 +217,11 @@ export async function showWindow(): Promise<void> {
 
 /**
  * Forces focus on the current window.
- * 
+ *
  * In automated E2E environments, the Electron window may not have OS-level focus.
  * This helper forces focus using BrowserWindow.focus() and returns whether
  * focus was successfully gained (verified via document.hasFocus()).
- * 
+ *
  * @returns True if focus was gained, false if environment doesn't support programmatic focus
  */
 export async function focusWindow(): Promise<boolean> {
@@ -240,11 +240,14 @@ export async function focusWindow(): Promise<boolean> {
 
   // Verify focus was gained
   const hasFocus = await browser.execute(() => document.hasFocus());
-  
+
   if (!hasFocus) {
-    E2ELogger.info('windowStateActions', 'Window focus not gained - environment may not support programmatic focus');
+    E2ELogger.info(
+      'windowStateActions',
+      'Window focus not gained - environment may not support programmatic focus'
+    );
   }
-  
+
   return hasFocus;
 }
 

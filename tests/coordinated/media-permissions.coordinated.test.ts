@@ -22,11 +22,9 @@ describe('Media Permissions Integration', () => {
     vi.clearAllMocks();
 
     // Capture the permission handler when it's set
-    mockSession.defaultSession.setPermissionRequestHandler.mockImplementation(
-      (handler: any) => {
-        permissionHandler = handler;
-      }
-    );
+    mockSession.defaultSession.setPermissionRequestHandler.mockImplementation((handler: any) => {
+      permissionHandler = handler;
+    });
   });
 
   afterEach(() => {

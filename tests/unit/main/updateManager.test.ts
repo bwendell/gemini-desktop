@@ -3,6 +3,7 @@ import { app, BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import UpdateManager from '../../../src/main/managers/updateManager';
 import type SettingsStore from '../../../src/main/store';
+import { useFakeTimers, useRealTimers } from '../../helpers/harness';
 
 // Mock dependencies
 vi.mock('electron', () => ({
@@ -63,7 +64,7 @@ describe('UpdateManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    useFakeTimers();
 
     // Mock platform to win32 to avoid Linux-specific update disabling in CI
     originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
@@ -91,7 +92,7 @@ describe('UpdateManager', () => {
     if (updateManager) {
       updateManager.destroy();
     }
-    vi.useRealTimers();
+    useRealTimers();
     // Restore original platform
     if (originalPlatform) {
       Object.defineProperty(process, 'platform', originalPlatform);
@@ -416,7 +417,6 @@ describe('UpdateManager', () => {
     });
 
     it('triggers check in setInterval callback', async () => {
-      vi.useFakeTimers();
       updateManager = new UpdateManager(mockSettingsStore);
       updateManager.startPeriodicChecks(60 * 60 * 1000);
       (autoUpdater.checkForUpdatesAndNotify as any).mockResolvedValue(undefined);
@@ -427,7 +427,6 @@ describe('UpdateManager', () => {
     });
 
     it('triggers check in initial startup setTimeout callback', async () => {
-      vi.useFakeTimers();
       updateManager = new UpdateManager(mockSettingsStore);
       updateManager.startPeriodicChecks();
       (autoUpdater.checkForUpdatesAndNotify as any).mockResolvedValue(undefined);

@@ -41,7 +41,10 @@ export const OptionsWindowTitlebar = memo(function OptionsWindowTitlebar({
   const { minimize, close } = useWindowControls();
 
   return (
-    <header className={`options-titlebar${isMacOS() ? ' macos' : ''}`} data-testid="options-titlebar">
+    <header
+      className={`options-titlebar${isMacOS() ? ' macos' : ''}`}
+      data-testid="options-titlebar"
+    >
       {/* Icon - Left justified */}
       <div className="options-titlebar-icon">
         <img

@@ -78,7 +78,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
       E2ELogger.info('full-workflow', '4. Clicking REAL submit button...');
       const isSubmitEnabled = await quickChat.isSubmitEnabled();
       expect(isSubmitEnabled).toBe(true);
-      
+
       // Click submit - this triggers the production code path:
       // renderer → IPC → ipcManager → navigate → inject text
       await quickChat.submit();
@@ -87,7 +87,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
       // Step 5: Wait for Quick Chat to hide and main window to process
       E2ELogger.info('full-workflow', '5. Waiting for Quick Chat to hide...');
       await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
-      
+
       // Quick Chat should be hidden after submission
       await quickChat.waitForHidden();
       E2ELogger.info('full-workflow', '   Quick Chat hidden ✓');
@@ -95,19 +95,19 @@ describe('Quick Chat Full Workflow (E2E)', () => {
       // Step 6: Switch to main window and wait for Gemini to load
       E2ELogger.info('full-workflow', '6. Switching to main window...');
       await switchToMainWindow();
-      
+
       // Wait for navigation and iframe loading
       await browser.pause(E2E_TIMING.IFRAME_LOAD_WAIT_MS);
       E2ELogger.info('full-workflow', '   Main window focused ✓');
 
       // Step 7: Verify text was injected into Gemini editor
       E2ELogger.info('full-workflow', '7. Verifying text injection into Gemini...');
-      
+
       // Wait for text to appear in Gemini editor (with timeout)
       const editorState = await waitForTextInGeminiEditor(testMessage, 10000);
-      
+
       E2ELogger.info('full-workflow', `   Editor state: ${JSON.stringify(editorState)}`);
-      
+
       // Verify the text was injected
       expect(editorState.iframeFound).toBe(true);
       expect(editorState.editorFound).toBe(true);
@@ -120,10 +120,16 @@ describe('Quick Chat Full Workflow (E2E)', () => {
       // The button should be enabled (text is present)
       expect(editorState.submitButtonEnabled).toBe(true);
       E2ELogger.info('full-workflow', '   Submit button visible and clickable ✓');
-      E2ELogger.info('full-workflow', '   (NOT clicked due to E2E flag - message NOT sent to Gemini)');
+      E2ELogger.info(
+        'full-workflow',
+        '   (NOT clicked due to E2E flag - message NOT sent to Gemini)'
+      );
 
       E2ELogger.info('full-workflow', '\n=== Full Workflow Complete ===');
-      E2ELogger.info('full-workflow', 'Verified: Quick Chat → Type → Submit → Inject → Ready to send');
+      E2ELogger.info(
+        'full-workflow',
+        'Verified: Quick Chat → Type → Submit → Inject → Ready to send'
+      );
       E2ELogger.info('full-workflow', 'E2E flag prevented actual Gemini submission ✓');
     });
 
@@ -138,7 +144,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
       // Open Quick Chat
       await quickChat.show();
       await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
-      
+
       const foundQuickChat = await quickChat.switchToQuickChatWindow();
       expect(foundQuickChat).toBe(true);
 
@@ -159,10 +165,10 @@ describe('Quick Chat Full Workflow (E2E)', () => {
       await browser.pause(E2E_TIMING.IFRAME_LOAD_WAIT_MS);
 
       const editorState = await waitForTextInGeminiEditor(testMessage, 10000);
-      
+
       expect(editorState.editorText).toContain(testMessage);
       expect(editorState.submitButtonFound).toBe(true);
-      
+
       E2ELogger.info('enter-workflow', 'Enter key workflow complete ✓');
     });
   });
@@ -172,21 +178,21 @@ describe('Quick Chat Full Workflow (E2E)', () => {
       // Open Quick Chat
       await quickChat.show();
       await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
-      
+
       const initialVisible = await quickChat.isVisible();
       expect(initialVisible).toBe(true);
 
       // Toggle hide
       await quickChat.hide();
       await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
-      
+
       const afterHideVisible = await quickChat.isVisible();
       expect(afterHideVisible).toBe(false);
 
       // Toggle show again
       await quickChat.show();
       await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
-      
+
       const finalVisible = await quickChat.isVisible();
       expect(finalVisible).toBe(true);
 
@@ -198,17 +204,17 @@ describe('Quick Chat Full Workflow (E2E)', () => {
     it('should clear input and reject empty submission', async () => {
       await quickChat.show();
       await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
-      
+
       const found = await quickChat.switchToQuickChatWindow();
       expect(found).toBe(true);
 
       // Verify submit is disabled with empty input
       await quickChat.clearInput();
       await browser.pause(200);
-      
+
       const isEnabled = await quickChat.isSubmitEnabled();
       expect(isEnabled).toBe(false);
-      
+
       E2ELogger.info('edge-case', 'Empty submission rejected ✓');
 
       // Cleanup

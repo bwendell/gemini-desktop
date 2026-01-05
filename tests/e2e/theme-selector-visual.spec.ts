@@ -162,8 +162,7 @@ describe('Theme Selector Visual Verification', () => {
         const testId = card.getAttribute('data-testid');
         const preview = card.querySelector('.theme-card__preview') as HTMLElement;
         if (testId && preview) {
-          results[testId] =
-            preview.style.background || window.getComputedStyle(preview).background;
+          results[testId] = preview.style.background || window.getComputedStyle(preview).background;
         }
       });
 

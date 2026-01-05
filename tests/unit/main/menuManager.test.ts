@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Menu, shell } from 'electron';
 import MenuManager from '../../../src/main/managers/menuManager';
 import WindowManager from '../../../src/main/managers/windowManager';
+import { createMockWindowManager } from '../../helpers/mocks';
 
 // Mock electron
 vi.mock('electron', () => ({
@@ -37,19 +38,13 @@ describe('MenuManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock WindowManager
-    mockWindowManager = {
-      createOptionsWindow: vi.fn(),
+    // Mock WindowManager using shared factory
+    mockWindowManager = createMockWindowManager({
       createAuthWindow: vi.fn().mockResolvedValue(undefined),
       getMainWindow: vi.fn().mockReturnValue({
         reload: vi.fn(),
       }),
-      isAlwaysOnTop: vi.fn().mockReturnValue(false),
-      setAlwaysOnTop: vi.fn(),
-      on: vi.fn(), // For event subscription
-      emit: vi.fn(),
-      restoreFromTray: vi.fn(),
-    };
+    });
 
     // Mock HotkeyManager
     mockHotkeyManager = {

@@ -1,8 +1,11 @@
 # toast-system Specification
 
 ## Purpose
+
 TBD - created by archiving change refactor-toast-system. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Generic Toast Component
 
 The system SHALL provide a generic Toast component that supports multiple notification types (success, error, info, warning, progress) with consistent styling and animations.
@@ -154,4 +157,3 @@ The toast system SHALL support action buttons that can trigger IPC calls, specif
 - **WHEN** the user clicks the action button
 - **THEN** the action's callback is executed
 - **AND** the IPC call to reveal the file in folder is triggered
-

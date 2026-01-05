@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { useFakeTimers, useRealTimers } from '../../helpers/harness';
 import { existsSync as existsSyncFn } from 'fs';
 import LlmManager, {
   type ModelStatus,
@@ -66,7 +67,7 @@ describe('LlmManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    useFakeTimers();
 
     // Reset fs mock
     existsSync.mockReturnValue(false);
@@ -86,7 +87,7 @@ describe('LlmManager', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
     if (llmManager) {
       llmManager.dispose();
     }

@@ -49,10 +49,10 @@ export class GeminiErrorBoundary extends Component<
     // Expose direct trigger for E2E tests (bypasses IPC channel complexity)
     // @ts-ignore
     window.__GEMINI_TRIGGER_FATAL_ERROR__ = () => {
-       this.setState({
-          hasError: true,
-          error: new Error('Global Trigger Manual Error'),
-       });
+      this.setState({
+        hasError: true,
+        error: new Error('Global Trigger Manual Error'),
+      });
     };
   }
 

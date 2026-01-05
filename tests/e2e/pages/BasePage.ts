@@ -55,10 +55,7 @@ export abstract class BasePage {
    * @param selector - CSS selector string
    * @param timeout - Timeout in milliseconds (default: 5000)
    */
-  protected async waitForElement(
-    selector: string,
-    timeout = 5000
-  ): Promise<WebdriverIO.Element> {
+  protected async waitForElement(selector: string, timeout = 5000): Promise<WebdriverIO.Element> {
     const element = await this.$(selector);
     await element.waitForDisplayed({
       timeout,
@@ -89,10 +86,7 @@ export abstract class BasePage {
    * @param selector - CSS selector string
    * @param timeout - Timeout in milliseconds (default: 5000)
    */
-  protected async waitForElementToDisappear(
-    selector: string,
-    timeout = 5000
-  ): Promise<void> {
+  protected async waitForElementToDisappear(selector: string, timeout = 5000): Promise<void> {
     const element = await this.$(selector);
     await element.waitForDisplayed({
       timeout,
@@ -163,10 +157,7 @@ export abstract class BasePage {
    * @param selector - CSS selector string
    * @param attribute - Attribute name
    */
-  protected async getElementAttribute(
-    selector: string,
-    attribute: string
-  ): Promise<string | null> {
+  protected async getElementAttribute(selector: string, attribute: string): Promise<string | null> {
     const element = await this.$(selector);
     return element.getAttribute(attribute);
   }

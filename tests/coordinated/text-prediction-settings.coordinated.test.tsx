@@ -12,6 +12,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { TextPredictionSettings } from '../../src/renderer/components/options/TextPredictionSettings';
 import type { TextPredictionSettings as TextPredictionSettingsType } from '../../src/shared/types/text-prediction';
+import { setupMockElectronAPI } from '../helpers/mocks';
 
 // Mock platform utils
 vi.mock('../../src/renderer/utils/platform', () => ({
@@ -81,25 +82,14 @@ describe('TextPredictionSettings Coordination', () => {
       };
     });
 
-    // Set up window.electronAPI
-    (window as any).electronAPI = {
+    // Use shared factory with test-specific overrides
+    setupMockElectronAPI({
       getTextPredictionStatus: mockGetTextPredictionStatus,
       setTextPredictionEnabled: mockSetTextPredictionEnabled,
       setTextPredictionGpuEnabled: mockSetTextPredictionGpuEnabled,
       onTextPredictionStatusChanged: mockOnTextPredictionStatusChanged,
       onTextPredictionDownloadProgress: mockOnTextPredictionDownloadProgress,
-      minimizeWindow: vi.fn(),
-      maximizeWindow: vi.fn(),
-      closeWindow: vi.fn(),
-      isMaximized: vi.fn().mockResolvedValue(false),
-      openOptions: vi.fn(),
-      openGoogleSignIn: vi.fn().mockResolvedValue(undefined),
-      getTheme: vi.fn().mockResolvedValue({ preference: 'system', effectiveTheme: 'dark' }),
-      setTheme: vi.fn(),
-      onThemeChanged: vi.fn().mockReturnValue(() => {}),
-      platform: 'win32',
-      isElectron: true,
-    };
+    });
   });
 
   afterEach(() => {

@@ -124,7 +124,7 @@ describe('Quick Chat Feature', () => {
       // Check if input has focus (this tests the auto-focus functionality)
       const isFocused = await quickChatPage.isInputFocused();
       expect(isFocused).toBe(true);
-      
+
       E2ELogger.info('quick-chat', 'Input field is auto-focused');
     });
 
@@ -187,7 +187,7 @@ describe('Quick Chat Feature', () => {
     it('should accept typed text in the input field', async () => {
       // REAL USER ACTION: Type into the input
       const testText = 'Hello from E2E test';
-      
+
       // Type character by character (simulating real typing)
       await quickChatPage.typeText(testText);
 
@@ -199,9 +199,9 @@ describe('Quick Chat Feature', () => {
     });
 
     it('should enable submit button when text is entered', async () => {
-      // Keep using explicit selector where semantic wrapper doesn't exist yet, 
+      // Keep using explicit selector where semantic wrapper doesn't exist yet,
       // but prefer Page Object methods where possible.
-      // We will check button status via Page Object helper if we add one, 
+      // We will check button status via Page Object helper if we add one,
       // or standard element check if not. QuickChatPage has isSubmitEnabled().
 
       // Initially, button should be disabled (empty input)

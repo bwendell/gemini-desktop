@@ -131,7 +131,7 @@
   - Export `createMockHotkeyManager(overrides?)` with hotkey methods
   - **Acceptance:** All factories compile, return correctly typed mocks
 
-- [ ] 2.2 Update `ipcManager.test.ts` to use shared factories
+- [x] 2.2 Update `ipcManager.test.ts` to use shared factories
   - Replace inline `mockWindowManager` definition with `createMockWindowManager()`
   - Replace inline `mockStore` definition with `createMockStore()`
   - Replace inline `mockUpdateManager` definition with `createMockUpdateManager()`
@@ -139,16 +139,16 @@
   - Customize using overrides where tests need specific behavior
   - **Acceptance:** `npm run test:electron -- --testPathPattern="ipcManager"` passes, file size reduced by 30%+
 
-- [ ] 2.3 Update `hotkeyManager.test.ts` to use shared factories
+- [x] 2.3 Update `hotkeyManager.test.ts` to use shared factories
   - Replace inline `mockWindowManager` with `createMockWindowManager()`
   - **Acceptance:** `npm run test:electron -- --testPathPattern="hotkeyManager"` passes
 
-- [ ] 2.4 Update coordinated tests to use shared manager factories (batch 1)
+- [x] 2.4 Update coordinated tests to use shared manager factories (batch 1)
   - Update `app-lifecycle.coordinated.test.ts` to use `createMockWindowManager()`
   - Update `print-manager.coordinated.test.ts` to use shared factories where applicable
   - **Acceptance:** Updated tests pass
 
-- [ ] 2.5 Update remaining unit tests to use shared manager factories
+- [x] 2.5 Update remaining unit tests to use shared manager factories
   - Search for remaining `mockWindowManager` definitions in `tests/unit/`
   - Replace with factory calls
   - **Acceptance:** `npm run test:electron` passes
@@ -176,7 +176,7 @@
 
 **Tasks:**
 
-- [ ] 3.1 Create `tests/helpers/mocks/main/webContents.ts` with unified factory
+- [x] 3.1 Create `tests/helpers/mocks/main/webContents.ts` with unified factory
   - Export `createMockWebContents(options?)` with configurable capabilities:
     - `options.withScrollCapture?: boolean` - Include scrolling capture mocks
     - `options.scrollHeight?: number` - Mock scroll height (default: 800)
@@ -185,17 +185,17 @@
   - Include all common methods: `send`, `on`, `once`, `capturePage`, `printToPDF`, `getURL`, `isDestroyed`, `mainFrame`
   - **Acceptance:** Factory supports all use cases from existing 3 implementations
 
-- [ ] 3.2 Update `tests/unit/main/test/setup.ts` to use shared factory
+- [x] 3.2 Update `tests/unit/main/test/setup.ts` to use shared factory
   - Import from shared location
   - Re-export for backward compatibility
   - **Acceptance:** Existing unit tests continue to pass
 
-- [ ] 3.3 Update `tests/unit/main/test/electron-mock.ts` to use shared factory
+- [x] 3.3 Update `tests/unit/main/test/electron-mock.ts` to use shared factory
   - Replace inline implementation with import from shared factory
   - Configure BrowserWindow to use shared factory
   - **Acceptance:** `npm run test:electron` passes
 
-- [ ] 3.4 Update print coordinated tests to use shared webContents factory
+- [x] 3.4 Update print coordinated tests to use shared webContents factory
   - Replace `createMockWebContentsForCapture()` in:
     - `print-manager.coordinated.test.ts`
     - `print-to-pdf-ipc.coordinated.test.ts`
@@ -223,7 +223,7 @@
 
 **Tasks:**
 
-- [ ] 4.1 Create `tests/helpers/mocks/renderer/electronAPI.ts` with mock factory
+- [x] 4.1 Create `tests/helpers/mocks/renderer/electronAPI.ts` with mock factory
   - Export `createMockElectronAPI(overrides?)` with all ElectronAPI methods
   - Include window controls: `minimizeWindow`, `maximizeWindow`, `closeWindow`, `isMaximized`
   - Include theme methods: `getTheme`, `setTheme`, `onThemeChanged`
@@ -232,17 +232,17 @@
   - Export `setupMockElectronAPI(overrides?)` to assign to `window.electronAPI`
   - **Acceptance:** Factory covers all methods in ElectronAPI interface
 
-- [ ] 4.2 Update `TextPredictionSettings.test.tsx` to use shared factory
+- [x] 4.2 Update `TextPredictionSettings.test.tsx` to use shared factory
   - Replace inline `window.electronAPI = { ... }` with `setupMockElectronAPI({ ... })`
   - Use overrides for test-specific mock implementations
   - **Acceptance:** `npm run test -- --testPathPattern="TextPredictionSettings"` passes
 
-- [ ] 4.3 Update `text-prediction-settings.coordinated.test.tsx` to use shared factory
+- [x] 4.3 Update `text-prediction-settings.coordinated.test.tsx` to use shared factory
   - Replace inline electronAPI setup with factory call
   - Keep test-specific callback captures as overrides
   - **Acceptance:** `npm run test:coordinated -- --testPathPattern="text-prediction"` passes
 
-- [ ] 4.4 Update `HotkeyAcceleratorInput.test.tsx` to use shared factory
+- [x] 4.4 Update `HotkeyAcceleratorInput.test.tsx` to use shared factory
   - Replace all inline `window.electronAPI` assignments
   - **Acceptance:** `npm run test -- --testPathPattern="HotkeyAcceleratorInput"` passes
 
@@ -267,29 +267,29 @@
 
 **Tasks:**
 
-- [ ] 5.1 Create `tests/helpers/harness/timers.ts` with timer utilities
+- [x] 5.1 Create `tests/helpers/harness/timers.ts` with timer utilities
   - Export `useFakeTimers(date?: string | Date)` - Sets up fake timers with optional date
   - Export `advanceTimers(ms: number)` - Advances timers by milliseconds
   - Export `runAllTimers()` - Runs all pending timers
   - Include automatic cleanup in `afterEach`
   - **Acceptance:** Utilities work in vitest tests
 
-- [ ] 5.2 Create `tests/helpers/harness/platform.ts` with platform utilities
+- [x] 5.2 Create `tests/helpers/harness/platform.ts` with platform utilities
   - Export `stubPlatform(platform: 'darwin' | 'win32' | 'linux')` - Stubs process.platform
   - Export `stubPlatformAll(platforms: Platform[], testFn: (platform) => void)` - Run test on all platforms
   - Include automatic cleanup in `afterEach`
   - **Acceptance:** Platform stubs work correctly
 
-- [ ] 5.3 Create `tests/helpers/harness/index.ts` barrel export
+- [x] 5.3 Create `tests/helpers/harness/index.ts` barrel export
   - Re-export from timers.ts and platform.ts
   - **Acceptance:** All harness utilities importable from single location
 
-- [ ] 5.4 Update print tests to use harness utilities
+- [x] 5.4 Update print tests to use harness utilities
   - Replace inline `vi.useFakeTimers()` / `vi.useRealTimers()` patterns
   - Replace inline platform stubbing patterns
   - **Acceptance:** `npm run test:coordinated -- --testPathPattern="print"` passes
 
-- [ ] 5.5 Update remaining tests to use harness utilities where applicable
+- [x] 5.5 Update remaining tests to use harness utilities where applicable
   - Search for `vi.useFakeTimers` and `vi.stubGlobal('process'` patterns
   - Update to use shared utilities
   - **Acceptance:** All tests pass with reduced boilerplate
@@ -307,18 +307,18 @@
 
 **Tasks:**
 
-- [ ] 6.1 Create `tests/helpers/README.md` documentation
+- [x] 6.1 Create `tests/helpers/README.md` documentation
   - Document all available mock factories with examples
   - Document harness utilities with usage patterns
   - Include migration guide for adding new tests
   - **Acceptance:** README is clear and comprehensive
 
-- [ ] 6.2 Run full test suite to verify no regressions
-  - Run `npm run test:all`
-  - Fix any failing tests
-  - **Acceptance:** All tests pass
-
-- [ ] 6.3 Remove any remaining duplicate mock code
+- [x] 6.2 Remove any remaining duplicate mock code
   - Search for patterns that should now use shared mocks
   - Update any missed files
   - **Acceptance:** No duplicate mock definitions remain
+
+- [ ] 6.3 Run full test suite to verify no regressions
+  - Run `npm run test:all`
+  - Fix any failing tests
+  - **Acceptance:** All tests pass

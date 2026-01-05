@@ -74,7 +74,7 @@ describe('OptionsWindowTitlebar', () => {
     it('should apply macos class when running on macOS', () => {
       setMockPlatform('darwin');
       render(<OptionsWindowTitlebar />);
-      
+
       const header = screen.getByTestId('options-titlebar');
       expect(header).toHaveClass('macos');
     });
@@ -82,7 +82,7 @@ describe('OptionsWindowTitlebar', () => {
     it('should NOT apply macos class when running on Windows', () => {
       setMockPlatform('win32');
       render(<OptionsWindowTitlebar />);
-      
+
       const header = screen.getByTestId('options-titlebar');
       expect(header).not.toHaveClass('macos');
     });

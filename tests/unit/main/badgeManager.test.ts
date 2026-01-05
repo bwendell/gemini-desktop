@@ -38,12 +38,12 @@ describe.each([
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Set platform for this test
     mockPlatform.isMacOS = isMacOS;
     mockPlatform.isWindows = isWindows;
     mockPlatform.isLinux = isLinux;
-    
+
     badgeManager = new BadgeManager();
   });
 
@@ -118,7 +118,10 @@ describe.each([
         badgeManager.setMainWindow(mockWindow);
 
         badgeManager.showUpdateBadge();
-        expect(mockWindow.setOverlayIcon).toHaveBeenCalledWith(expect.anything(), 'Update available');
+        expect(mockWindow.setOverlayIcon).toHaveBeenCalledWith(
+          expect.anything(),
+          'Update available'
+        );
       });
 
       it('handles null window gracefully on Windows', () => {

@@ -12,6 +12,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import QuickChatApp from '../../src/renderer/components/quickchat/QuickChatApp';
 import type { TextPredictionSettings } from '../../src/shared/types/text-prediction';
+import { useFakeTimers, useRealTimers } from '../helpers/harness';
 
 // Mock the CSS import
 vi.mock('../../src/renderer/components/quickchat/QuickChat.css', () => ({}));
@@ -29,7 +30,7 @@ describe('QuickChatApp Text Prediction Coordination', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    useFakeTimers();
 
     // Reset callback reference
     statusChangedCallback = null;
@@ -82,7 +83,7 @@ describe('QuickChatApp Text Prediction Coordination', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
     vi.restoreAllMocks();
   });
 

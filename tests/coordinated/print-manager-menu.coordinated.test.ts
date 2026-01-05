@@ -12,6 +12,7 @@ import HotkeyManager from '../../src/main/managers/hotkeyManager';
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
 import { mockLogger } from '../../src/main/utils/logger';
+import { stubPlatform, restorePlatform } from '../helpers/harness';
 
 // Mock fs
 vi.mock('fs', () => ({
@@ -36,8 +37,7 @@ describe('Print to PDF Menu Integration', () => {
 
   describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
     beforeEach(() => {
-      // Mock platform
-      vi.stubGlobal('process', { ...process, platform });
+      stubPlatform(platform);
 
       // Create managers
       windowManager = new WindowManager(false);
@@ -49,7 +49,7 @@ describe('Print to PDF Menu Integration', () => {
     });
 
     afterEach(() => {
-      vi.unstubAllGlobals();
+      restorePlatform();
     });
 
     describe('Menu Item Existence', () => {

@@ -10,6 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type WindowManager from '../../../src/main/managers/windowManager';
+import { createMockWindowManager } from '../../helpers/mocks';
 import {
   DEFAULT_ACCELERATORS,
   GLOBAL_HOTKEY_IDS,
@@ -68,7 +69,7 @@ describe('HotkeyManager', () => {
   let hotkeyManager: HotkeyManager;
 
   /** Mock WindowManager for verifying shortcut actions */
-  let mockWindowManager: WindowManager;
+  let mockWindowManager: any;
 
   /**
    * Set up fresh mocks and instance before each test.
@@ -76,14 +77,8 @@ describe('HotkeyManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Create mock WindowManager with required methods
-    mockWindowManager = {
-      minimizeMainWindow: vi.fn(),
-      toggleQuickChat: vi.fn(),
-      isAlwaysOnTop: vi.fn().mockReturnValue(false),
-      setAlwaysOnTop: vi.fn(),
-      emit: vi.fn(),
-    } as unknown as WindowManager;
+    // Create mock WindowManager using shared factory
+    mockWindowManager = createMockWindowManager();
 
     hotkeyManager = new HotkeyManager(mockWindowManager);
   });

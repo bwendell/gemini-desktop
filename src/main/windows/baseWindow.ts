@@ -69,7 +69,7 @@ export default abstract class BaseWindow extends EventEmitter {
    */
   protected createWindow(): BrowserWindow {
     this.logger.log('[DEBUG] BaseWindow.createWindow() called');
-    
+
     if (this.window && !this.window.isDestroyed()) {
       this.logger.log('[DEBUG] Window already exists, focusing');
       this.window.focus();
@@ -78,7 +78,9 @@ export default abstract class BaseWindow extends EventEmitter {
 
     try {
       this.logger.log('[DEBUG] Creating new BrowserWindow...');
-      this.logger.log(`Creating window with props: partition=${this.windowConfig.webPreferences?.partition}`);
+      this.logger.log(
+        `Creating window with props: partition=${this.windowConfig.webPreferences?.partition}`
+      );
 
       this.window = new BrowserWindow({
         ...this.windowConfig,
@@ -92,7 +94,7 @@ export default abstract class BaseWindow extends EventEmitter {
       this.logger.log('[DEBUG] About to call loadContent()');
       this.loadContent();
       this.logger.log('[DEBUG] loadContent() completed');
-      
+
       this.logger.log('[DEBUG] About to call setupBaseHandlers()');
       this.setupBaseHandlers();
       this.logger.log('[DEBUG] setupBaseHandlers() completed');

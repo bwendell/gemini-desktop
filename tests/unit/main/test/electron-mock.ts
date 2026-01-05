@@ -3,6 +3,7 @@
  * This file is aliased in vitest.electron.config.ts.
  */
 import { vi } from 'vitest';
+import { createMockWebContents as createSharedMockWebContents } from '../../../helpers/mocks/main/webContents';
 
 export const app = {
   getPath: vi.fn((name) => `/mock/${name}`),
@@ -31,40 +32,8 @@ export const systemPreferences = {
   },
 };
 
-const createMockWebContents = () => {
-  // Create a mock image with required methods
-  // Use values that result in exactly 1 capture: ceil(800 / (1000 * 0.9)) = 1
-  const mockImage = {
-    toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png-data')),
-    getSize: vi.fn().mockReturnValue({ width: 1920, height: 1000 }),
-  };
-
-  // Create mock frame for iframe scroll info and scrolling
-  const mockGeminiFrame = {
-    url: 'https://gemini.google.com/app',
-    executeJavaScript: vi.fn().mockResolvedValue({
-      scrollHeight: 800,
-      scrollTop: 0,
-      clientHeight: 1000,
-    }),
-  };
-
-  return {
-    send: vi.fn(),
-    on: vi.fn(),
-    once: vi.fn(),
-    openDevTools: vi.fn(),
-    setWindowOpenHandler: vi.fn(),
-    getURL: vi.fn().mockReturnValue('https://gemini.google.com/app'),
-    printToPDF: vi.fn().mockResolvedValue(Buffer.from('mock-pdf')),
-    isDestroyed: vi.fn().mockReturnValue(false),
-    // Methods for scrolling capture
-    capturePage: vi.fn().mockResolvedValue(mockImage),
-    mainFrame: {
-      frames: [mockGeminiFrame],
-    },
-  };
-};
+// Use shared factory with scroll capture for BrowserWindow tests
+const createMockWebContents = () => createSharedMockWebContents({ withScrollCapture: true });
 
 export class BrowserWindow {
   static _instances: any[] = [];

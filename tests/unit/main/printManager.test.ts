@@ -5,6 +5,7 @@ import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 import PrintManager from '../../../../src/main/managers/printManager';
 import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
+import { createMockWindowManager } from '../../helpers/mocks';
 
 // Mocks
 vi.mock('electron', () => ({
@@ -102,9 +103,9 @@ describe('PrintManager', () => {
       isDestroyed: vi.fn().mockReturnValue(false),
     };
 
-    mockWindowManager = {
+    mockWindowManager = createMockWindowManager({
       getMainWindow: vi.fn().mockReturnValue(mockMainWindow),
-    };
+    });
 
     (fs.existsSync as any).mockReturnValue(false);
 

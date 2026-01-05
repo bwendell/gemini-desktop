@@ -8,6 +8,11 @@ import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import TrayManager from '../../src/main/managers/trayManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import UpdateManager from '../../src/main/managers/updateManager';
+import {
+  createMockWindowManager,
+  createMockUpdateManager,
+  createMockHotkeyManager,
+} from '../helpers/mocks';
 
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
@@ -22,25 +27,16 @@ describe('App Lifecycle Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Create mock managers
-    mockHotkeyManager = {
-      unregisterAll: vi.fn(),
-      registerShortcuts: vi.fn(),
-    } as unknown as HotkeyManager;
+    // Create mock managers using shared factories
+    mockHotkeyManager = createMockHotkeyManager();
 
     mockTrayManager = {
       destroyTray: vi.fn(),
       createTray: vi.fn(),
     } as unknown as TrayManager;
 
-    mockWindowManager = {
-      setQuitting: vi.fn(),
-      createMainWindow: vi.fn(),
-    } as unknown as WindowManager;
-
-    mockUpdateManager = {
-      destroy: vi.fn(),
-    } as unknown as UpdateManager;
+    mockWindowManager = createMockWindowManager();
+    mockUpdateManager = createMockUpdateManager();
   });
 
   describe('Shutdown Sequence', () => {

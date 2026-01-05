@@ -12,6 +12,8 @@ const mockWriteFile = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
 import { mockLogger } from '../../src/main/utils/logger';
+import { createMockWindowManager } from '../helpers/mocks';
+import { useFakeTimers, useRealTimers, stubPlatform, restorePlatform } from '../helpers/harness';
 
 // Mock fs with hoisted function
 vi.mock('fs', () => ({
@@ -76,6 +78,7 @@ vi.mock('pdfkit', () => {
 
 // Import PrintManager after mocks are set up
 import PrintManager from '../../src/main/managers/printManager';
+import { createMockWebContents } from '../helpers/mocks';
 
 /**
  * Creates a mock webContents with all required methods for scrolling capture.
@@ -87,33 +90,13 @@ function createMockWebContentsForCapture(
     clientHeight?: number;
   } = {}
 ) {
-  // Use values that result in exactly 1 capture: ceil(scrollHeight / (clientHeight * 0.9)) = 1
-  // With scrollHeight = 800 and clientHeight = 1000, stepSize = 900, totalCaptures = 1
   const { scrollHeight = 800, clientHeight = 1000 } = options;
-
-  const mockImage = {
-    toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png-data')),
-    getSize: vi.fn().mockReturnValue({ width: 1920, height: clientHeight }),
-  };
-
-  const mockGeminiFrame = {
-    url: 'https://gemini.google.com/app',
-    executeJavaScript: vi.fn().mockResolvedValue({
-      scrollHeight,
-      scrollTop: 0,
-      clientHeight,
-    }),
-  };
-
-  return {
-    send: vi.fn(),
-    getURL: vi.fn().mockReturnValue('file:///mock/app.html'),
-    isDestroyed: vi.fn().mockReturnValue(false),
-    capturePage: vi.fn().mockResolvedValue(mockImage),
-    mainFrame: {
-      frames: [mockGeminiFrame],
-    },
-  };
+  return createMockWebContents({
+    withScrollCapture: true,
+    scrollHeight,
+    clientHeight,
+    url: 'file:///mock/app.html',
+  });
 }
 
 describe('PrintManager Filename Uniqueness', () => {
@@ -135,11 +118,11 @@ describe('PrintManager Filename Uniqueness', () => {
 
     mockWebContents = createMockWebContentsForCapture();
 
-    mockWindowManager = {
+    mockWindowManager = createMockWindowManager({
       getMainWindow: vi.fn().mockReturnValue({
         webContents: mockWebContents,
       }),
-    };
+    });
 
     printManager = new PrintManager(mockWindowManager);
 
@@ -147,12 +130,11 @@ describe('PrintManager Filename Uniqueness', () => {
     (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
 
     // Use fake timers for deterministic filenames
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'));
+    useFakeTimers('2025-01-15T12:00:00Z');
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
   });
 
   /**
@@ -313,7 +295,7 @@ describe('PrintManager Filename Uniqueness', () => {
     it.each(['darwin', 'win32', 'linux'] as const)(
       'generates unique filename on %s',
       async (platform) => {
-        vi.stubGlobal('process', { ...process, platform });
+        stubPlatform(platform);
 
         // Ensure default downloads folder
         (app.getPath as any).mockReturnValue('/mock/downloads');
@@ -330,7 +312,7 @@ describe('PrintManager Filename Uniqueness', () => {
         const defaultPath = getDefaultPath();
         expect(defaultPath).toContain('gemini-chat-2025-01-15-1.pdf');
 
-        vi.unstubAllGlobals();
+        restorePlatform();
       }
     );
   });
@@ -361,18 +343,17 @@ describe('PrintManager ↔ WindowManager Integration', () => {
     (app.getPath as any).mockReturnValue('/mock/downloads');
     (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
     (dialog.showSaveDialog as any).mockClear();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'));
+    useFakeTimers('2025-01-15T12:00:00Z');
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
+    useRealTimers();
+    restorePlatform();
   });
 
   describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
     beforeEach(() => {
-      vi.stubGlobal('process', { ...process, platform });
+      stubPlatform(platform);
 
       // Create REAL WindowManager
       windowManager = new WindowManager(false);
@@ -858,17 +839,14 @@ describe('Full Conversation Print Coordination (Task 7.7)', () => {
     mockWriteFile.mockResolvedValue(undefined);
     (app.getPath as any).mockReturnValue('/mock/downloads');
     (dialog.showSaveDialog as any).mockResolvedValue({ canceled: true });
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'));
+    useFakeTimers('2025-01-15T12:00:00Z');
 
-    mockWindowManager = {
-      getMainWindow: vi.fn().mockReturnValue(null),
-    };
+    mockWindowManager = createMockWindowManager();
     printManager = new PrintManager(mockWindowManager);
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
   });
 
   // ===========================================================================

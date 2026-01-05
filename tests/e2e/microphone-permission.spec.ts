@@ -81,11 +81,7 @@ describe('Microphone Permission', () => {
 
       // Click microphone button via main process (to access iframe frames)
       const clickResult = await browser.electron.execute(
-        (
-          electron: typeof import('electron'),
-          micSels: string[],
-          domains: string[]
-        ) => {
+        (electron: typeof import('electron'), micSels: string[], domains: string[]) => {
           const windows = electron.BrowserWindow.getAllWindows();
           const mainWindow = windows[0];
           if (!mainWindow) throw new Error('No main window found');

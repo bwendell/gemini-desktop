@@ -55,12 +55,7 @@ describe('Fatal Error Handling - Coordinated Tests', () => {
 
   describe('Error Handler Types', () => {
     it('should define all required process event handlers', () => {
-      const requiredHandlers = [
-        'uncaughtException',
-        'unhandledRejection',
-        'SIGTERM',
-        'SIGINT',
-      ];
+      const requiredHandlers = ['uncaughtException', 'unhandledRejection', 'SIGTERM', 'SIGINT'];
 
       expect(requiredHandlers).toContain('uncaughtException');
       expect(requiredHandlers).toContain('unhandledRejection');

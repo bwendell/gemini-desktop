@@ -8,11 +8,7 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { OptionsPage } from './pages';
-import {
-  waitForAppReady,
-  ensureSingleWindow,
-  withOptionsWindowViaMenu,
-} from './helpers/workflows';
+import { waitForAppReady, ensureSingleWindow, withOptionsWindowViaMenu } from './helpers/workflows';
 
 describe('Theme Selector Keyboard Navigation', () => {
   const optionsPage = new OptionsPage();

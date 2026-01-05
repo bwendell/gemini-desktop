@@ -31,28 +31,29 @@ async function blockGeminiRequests(): Promise<void> {
     const wc = wins[0].webContents;
     try {
       if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
-      
+
       // Enable request interception for Gemini URLs
       await wc.debugger.sendCommand('Fetch.enable', {
-        patterns: [
-          { urlPattern: '*gemini.google.com*', requestStage: 'Request' }
-        ]
+        patterns: [{ urlPattern: '*gemini.google.com*', requestStage: 'Request' }],
       });
-      
+
       // Listen for requests and fail them
-      wc.debugger.on('message', (_event: unknown, method: string, params: { requestId: string }) => {
-        if (method === 'Fetch.requestPaused') {
-          wc.debugger.sendCommand('Fetch.failRequest', {
-            requestId: params.requestId,
-            errorReason: 'InternetDisconnected'
-          });
+      wc.debugger.on(
+        'message',
+        (_event: unknown, method: string, params: { requestId: string }) => {
+          if (method === 'Fetch.requestPaused') {
+            wc.debugger.sendCommand('Fetch.failRequest', {
+              requestId: params.requestId,
+              errorReason: 'InternetDisconnected',
+            });
+          }
         }
-      });
+      );
     } catch (e) {
       console.error('CDP Fetch.enable Error:', e);
     }
   });
-  
+
   // Give CDP time to set up interception
   await browser.pause(500);
 }
@@ -72,7 +73,7 @@ async function restoreNetwork(): Promise<void> {
       console.error('CDP Fetch.disable Error:', e);
     }
   });
-  
+
   await browser.pause(500);
 }
 
@@ -120,20 +121,20 @@ describe('Offline Behavior', () => {
 
     // 4. Verify the OfflineOverlay is visible
     await expectElementDisplayed('[data-testid="offline-overlay"]', { timeout: 10000 });
-    
+
     // Verify SVG icon is present
     await expectElementDisplayed('[data-testid="offline-icon"]');
-    
+
     // Verify Retry button is present and clickable
     const retryButton = await $('[data-testid="offline-retry-button"]');
     expect(await retryButton.isDisplayed()).toBe(true);
     expect(await retryButton.isEnabled()).toBe(true);
-    
+
     E2ELogger.info('offline', 'Verified OfflineOverlay, Icon, and Retry Button are visible');
 
     // 5. Test Retry button click (should trigger reload)
     await retryButton.click();
-    
+
     // 6. Verify the app is still responsive (not crashed)
     expect(await isAppResponsive()).toBe(true);
     E2ELogger.info('offline', 'App remained responsive after retry click');
@@ -176,10 +177,10 @@ describe('Offline Behavior', () => {
     // 5. Click retry
     const retryButton = await $('[data-testid="offline-retry-button"]');
     await retryButton.click();
-    
+
     // 6. Verify overlay disappears (reload happened and connectivity check passed)
     await expectElementNotDisplayed('[data-testid="offline-overlay"]', { timeout: 15000 });
-    
+
     // 7. Verify gemini iframe is visible
     await expectElementDisplayed('[data-testid="gemini-iframe"]');
 

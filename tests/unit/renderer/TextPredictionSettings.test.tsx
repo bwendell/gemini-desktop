@@ -13,6 +13,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TextPredictionSettings } from '../../../src/renderer/components/options/TextPredictionSettings';
+import { setupMockElectronAPI, clearMockElectronAPI } from '../../helpers/mocks';
 
 // Mock platform utils
 vi.mock('../../../src/renderer/utils/platform', () => ({
@@ -21,7 +22,7 @@ vi.mock('../../../src/renderer/utils/platform', () => ({
 }));
 
 describe('TextPredictionSettings', () => {
-  // Mock electronAPI
+  // Mock electronAPI methods - these need to be at describe scope for test access
   const mockGetTextPredictionStatus = vi.fn();
   const mockSetTextPredictionEnabled = vi.fn();
   const mockSetTextPredictionGpuEnabled = vi.fn();
@@ -42,24 +43,14 @@ describe('TextPredictionSettings', () => {
     mockOnTextPredictionStatusChanged.mockReturnValue(() => {});
     mockOnTextPredictionDownloadProgress.mockReturnValue(() => {});
 
-    window.electronAPI = {
+    // Use shared factory with test-specific overrides
+    setupMockElectronAPI({
       getTextPredictionStatus: mockGetTextPredictionStatus,
       setTextPredictionEnabled: mockSetTextPredictionEnabled,
       setTextPredictionGpuEnabled: mockSetTextPredictionGpuEnabled,
       onTextPredictionStatusChanged: mockOnTextPredictionStatusChanged,
       onTextPredictionDownloadProgress: mockOnTextPredictionDownloadProgress,
-      minimizeWindow: vi.fn(),
-      maximizeWindow: vi.fn(),
-      closeWindow: vi.fn(),
-      isMaximized: vi.fn().mockResolvedValue(false),
-      openOptions: vi.fn(),
-      openGoogleSignIn: vi.fn().mockResolvedValue(undefined),
-      getTheme: vi.fn().mockResolvedValue({ preference: 'system', effectiveTheme: 'dark' }),
-      setTheme: vi.fn(),
-      onThemeChanged: vi.fn().mockReturnValue(() => {}),
-      platform: 'win32',
-      isElectron: true,
-    };
+    });
   });
 
   describe('Rendering', () => {

@@ -61,13 +61,10 @@ describe('First-Run Experience', () => {
       await clickMenuItemById('menu-file-options');
 
       // Verify Options window opens
-      await browser.waitUntil(
-        async () => (await browser.getWindowHandles()).length > 1,
-        {
-          timeout: 10000,
-          timeoutMsg: 'Expected Settings window to open via menu'
-        }
-      );
+      await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 1, {
+        timeout: 10000,
+        timeoutMsg: 'Expected Settings window to open via menu',
+      });
 
       // Switch to the new window
       const handles = await browser.getWindowHandles();
@@ -77,12 +74,12 @@ describe('First-Run Experience', () => {
       // Verify content
       const optionsTitlebar = await $(Selectors.optionsTitlebar);
       await expect(optionsTitlebar).toBeExisting();
-      
+
       E2ELogger.info('first-run', 'Menu verification: Settings window opened via menu item');
 
       // Close the options window
       await browser.closeWindow();
-      
+
       // Switch back to main window
       await browser.switchToWindow(handles[0]);
     });
@@ -110,4 +107,3 @@ describe('First-Run Experience', () => {
     });
   });
 });
-

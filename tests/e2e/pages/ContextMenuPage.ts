@@ -269,7 +269,7 @@ export class ContextMenuPage extends BasePage {
       const { Menu } = require('electron');
       if (!(global as any).originalPopup) {
         (global as any).originalPopup = Menu.prototype.popup;
-        Menu.prototype.popup = function(options) {
+        Menu.prototype.popup = function (options) {
           (global as any).lastContextMenu = this;
           console.log('[E2E] Menu.popup mocked - menu captured, native popup suppressed');
           // Do NOT call originalPopup to avoid blocking the main process
@@ -279,30 +279,36 @@ export class ContextMenuPage extends BasePage {
     });
   }
 
-  async getMenuItemState(roleOrLabel: string): Promise<{ enabled: boolean; visible: boolean; label: string } | null> {
+  async getMenuItemState(
+    roleOrLabel: string
+  ): Promise<{ enabled: boolean; visible: boolean; label: string } | null> {
     return browser.electron.execute((electron, filter) => {
-        const menu = (global as any).lastContextMenu;
-        if (!menu) return null;
-        
-        let item = menu.items.find((i: any) => i.role === filter || i.label === filter);
-        if (!item) {
-             item = menu.items.find((i: any) => i.label && i.label.toLowerCase() === filter.toLowerCase());
-        }
-        
-        if (!item) {
-          console.log(`[E2E] Item "${filter}" not found in menu. Available items:`);
-          menu.items.forEach((i: any) => console.log(` - Label: "${i.label}", Role: "${i.role}", Enabled: ${i.enabled}`));
-          return null;
-        }
-        
-        return {
-            enabled: item.enabled,
-            visible: item.visible,
-            label: item.label
-        };
+      const menu = (global as any).lastContextMenu;
+      if (!menu) return null;
+
+      let item = menu.items.find((i: any) => i.role === filter || i.label === filter);
+      if (!item) {
+        item = menu.items.find(
+          (i: any) => i.label && i.label.toLowerCase() === filter.toLowerCase()
+        );
+      }
+
+      if (!item) {
+        console.log(`[E2E] Item "${filter}" not found in menu. Available items:`);
+        menu.items.forEach((i: any) =>
+          console.log(` - Label: "${i.label}", Role: "${i.role}", Enabled: ${i.enabled}`)
+        );
+        return null;
+      }
+
+      return {
+        enabled: item.enabled,
+        visible: item.visible,
+        label: item.label,
+      };
     }, roleOrLabel);
   }
-  
+
   /**
    * Selects "Cut" from the context menu
    */

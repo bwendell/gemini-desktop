@@ -34,9 +34,7 @@ export interface QuickChatNavigationState {
  * @param originalHandleLoad - The original iframe load handler from useGeminiIframe
  * @returns {QuickChatNavigationState} State and handlers for Quick Chat navigation
  */
-export function useQuickChatNavigation(
-  originalHandleLoad: () => void
-): QuickChatNavigationState {
+export function useQuickChatNavigation(originalHandleLoad: () => void): QuickChatNavigationState {
   // State for Quick Chat navigation
   const [iframeKey, setIframeKey] = useState(0);
   const [pendingText, setPendingText] = useState<string | null>(null);

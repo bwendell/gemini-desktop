@@ -34,3 +34,19 @@ export {
   type MockHotkeyManager,
   type MockLlmManager,
 } from './main/managers';
+
+// Main process mocks - WebContents
+export {
+  createMockWebContents,
+  type MockWebContents,
+  type MockWebContentsOptions,
+} from './main/webContents';
+
+// Renderer process mocks - ElectronAPI
+export {
+  createMockElectronAPI,
+  setupMockElectronAPI,
+  clearMockElectronAPI,
+  type MockElectronAPIOverrides,
+  type MockedElectronAPI,
+} from './renderer/electronAPI';

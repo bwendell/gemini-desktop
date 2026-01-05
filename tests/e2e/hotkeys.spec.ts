@@ -63,7 +63,9 @@ describe('Global Hotkeys', () => {
         console.log(
           '⚠️  Skipping hotkey test: Quick Chat hotkey not registered in this environment'
         );
-        console.log('   This is expected in restricted environments (CI, certain Windows/Linux configs)');
+        console.log(
+          '   This is expected in restricted environments (CI, certain Windows/Linux configs)'
+        );
         return; // Early return = skip test
       }
 

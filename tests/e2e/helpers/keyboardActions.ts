@@ -50,7 +50,7 @@ export const KeyboardShortcuts = {
 
   // Navigation
   QUIT: 'CmdOrCtrl+Q',
-  
+
   // Features
   QUICK_CHAT: 'CmdOrCtrl+Shift+Space',
 } as const;

@@ -175,7 +175,6 @@ describe('Crash Simulation Tests', () => {
     it.skip('should recover from renderer crash by reloading', async () => {
       // This test would use browser.electron.execute to call
       // webContents.forcefullyCrashRenderer() and verify reload
-
       // Skip in CI - run manually to verify crash recovery
     });
   });

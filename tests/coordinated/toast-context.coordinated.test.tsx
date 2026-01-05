@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act as reactAct } from '@testing-library/react';
 import { ToastProvider, useToast } from '../../src/renderer/context/ToastContext';
+import { useFakeTimers, useRealTimers } from '../helpers/harness';
 
 // Mock framer-motion to avoid animation timing issues in tests
 vi.mock('framer-motion', () => ({
@@ -44,12 +45,12 @@ function TestComponent({ onMount }: { onMount?: (api: ReturnType<typeof useToast
 
 describe('ToastContext ↔ ToastContainer Coordination', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    useFakeTimers();
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
   });
 
   describe('7.2.1 - showToast adds toast and ToastContainer receives it', () => {

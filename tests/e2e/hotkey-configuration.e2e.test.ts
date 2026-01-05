@@ -12,7 +12,12 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { openOptionsWindowViaHotkey, waitForOptionsWindow, closeOptionsWindow, switchToOptionsWindow } from './helpers/optionsWindowActions';
+import {
+  openOptionsWindowViaHotkey,
+  waitForOptionsWindow,
+  closeOptionsWindow,
+  switchToOptionsWindow,
+} from './helpers/optionsWindowActions';
 import { OptionsPage } from './pages/OptionsPage';
 
 // Create page object instance for use in tests
@@ -27,7 +32,7 @@ describe('Hotkey Configuration E2E', () => {
     // Ensure we are focused on the main window before pressing keys
     const handles = await browser.getWindowHandles();
     await browser.switchToWindow(handles[0]);
-    
+
     await openOptionsWindowViaHotkey();
     await waitForOptionsWindow();
   });
@@ -55,10 +60,12 @@ describe('Hotkey Configuration E2E', () => {
       expect(hotkeyRows.length).toBe(3);
 
       // Verify Always on Top shows the default accelerator (Ctrl+Alt+P or ⌘⌥P on Mac)
-      const alwaysOnTopRow = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]').parentElement();
+      const alwaysOnTopRow = await browser
+        .$('[data-testid="hotkey-toggle-alwaysOnTop"]')
+        .parentElement();
       const alwaysOnTopAccelerator = await alwaysOnTopRow.$('.keycap-container');
       const acceleratorText = await alwaysOnTopAccelerator.getText();
-      
+
       // Should contain the keys (platform-aware)
       expect(acceleratorText).toMatch(/(Ctrl|⌘).*(Alt|⌥).*P/);
     });
@@ -93,10 +100,10 @@ describe('Hotkey Configuration E2E', () => {
       await optionsPage.clickAcceleratorInput('alwaysOnTop');
 
       // Should show recording prompt - verify with Page Object method
-      await browser.waitUntil(
-        async () => await optionsPage.isRecordingModeActive('alwaysOnTop'),
-        { timeout: 2000, timeoutMsg: 'Recording mode did not activate' }
-      );
+      await browser.waitUntil(async () => await optionsPage.isRecordingModeActive('alwaysOnTop'), {
+        timeout: 2000,
+        timeoutMsg: 'Recording mode did not activate',
+      });
 
       // Verify prompt text
       const prompt = await browser.$(optionsPage.recordingPromptSelector('alwaysOnTop'));
@@ -329,7 +336,7 @@ describe('Hotkey Configuration E2E', () => {
       // Ensure we are focused on the main window
       const mainHandles = await browser.getWindowHandles();
       await browser.switchToWindow(mainHandles[0]);
-      
+
       await openOptionsWindowViaHotkey();
       await waitForOptionsWindow();
 
@@ -376,10 +383,10 @@ describe('Hotkey Configuration E2E', () => {
 
     it('should show hover effects on non-recording state', async () => {
       const acceleratorDisplay = await browser.$('.keycap-container');
-      
+
       // Get initial border color
       const initialBorder = await acceleratorDisplay.getCSSProperty('border-color');
-      
+
       // Hover over element
       await acceleratorDisplay.moveTo();
       await browser.pause(100);
@@ -406,7 +413,7 @@ describe('Hotkey Configuration E2E', () => {
     it('should have proper ARIA labels', async () => {
       const acceleratorDisplay = await browser.$('.keycap-container');
       const ariaLabel = await acceleratorDisplay.getAttribute('aria-label');
-      
+
       expect(ariaLabel).toContain('Keyboard shortcut');
       expect(ariaLabel).toContain('Click to change');
     });
@@ -465,7 +472,7 @@ describe('Hotkey Configuration E2E', () => {
       // This would require mocking IPC failures
       // For now, verify current state is maintained
       const initialText = await browser.$('.keycap-container').getText();
-      
+
       // Try to record and cancel
       const acceleratorDisplay = await browser.$('.keycap-container');
       await acceleratorDisplay.click();
@@ -574,7 +581,7 @@ describe('Hotkey Configuration E2E', () => {
       // Get the Always on Top hotkey which has Alt (default: CommandOrControl+Alt+P)
       const acceleratorDisplay = await browser.$('.keycap-container');
       const keycaps = await acceleratorDisplay.$$('kbd.keycap');
-      
+
       // Second keycap should be Alt
       const altKeycap = keycaps[1];
       const altText = await altKeycap.getText();

@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act as reactAct, fireEvent } from '@testing-library/react';
 import App from '../../src/renderer/App';
+import { useFakeTimers, useRealTimers } from '../helpers/harness';
 
 // Mock framer-motion to avoid animation timing issues in tests
 vi.mock('framer-motion', () => ({
@@ -41,7 +42,7 @@ describe('PDF Export Toast Coordination', () => {
   const mockRevealInFolder = vi.fn();
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    useFakeTimers();
     vi.clearAllMocks();
     successCallback = null;
     errorCallback = null;
@@ -93,7 +94,7 @@ describe('PDF Export Toast Coordination', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
     delete (window as any).electronAPI;
   });
 

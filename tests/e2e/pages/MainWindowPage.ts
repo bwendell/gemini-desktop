@@ -293,7 +293,10 @@ export class MainWindowPage extends BasePage {
     height: number;
   }): Promise<void> {
     await browser.electron.execute(
-      (electron: typeof import('electron'), b: { x: number; y: number; width: number; height: number }) => {
+      (
+        electron: typeof import('electron'),
+        b: { x: number; y: number; width: number; height: number }
+      ) => {
         const wins = electron.BrowserWindow.getAllWindows();
         const mainWindow = wins.find((w) => !w.isDestroyed());
         if (mainWindow) {

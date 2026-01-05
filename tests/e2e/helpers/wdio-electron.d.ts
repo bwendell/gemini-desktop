@@ -115,4 +115,3 @@ declare module '@wdio/globals' {
 }
 
 export { WdioCookie };
-

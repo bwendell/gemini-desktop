@@ -65,7 +65,7 @@ describe('Offline Handling (Coordinated)', () => {
       });
 
       const retryButton = screen.getByTestId('offline-retry-button');
-      
+
       await act(async () => {
         fireEvent.click(retryButton);
       });

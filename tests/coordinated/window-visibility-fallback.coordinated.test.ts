@@ -9,6 +9,7 @@ import MainWindow from '../../src/main/windows/mainWindow';
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
 import { mockLogger } from '../../src/main/utils/logger';
+import { useFakeTimers, useRealTimers, stubPlatform, restorePlatform } from '../helpers/harness';
 
 // Mock constants to be dynamic for platform testing
 vi.mock('../../src/main/utils/constants', async (importOriginal) => {
@@ -34,8 +35,8 @@ describe('Window Visibility Fallback Integration', () => {
   describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
     beforeEach(() => {
       vi.clearAllMocks();
-      vi.useFakeTimers();
-      vi.stubGlobal('process', { ...process, platform });
+      useFakeTimers();
+      stubPlatform(platform);
       registeredListeners = {};
 
       mockBrowserWindow = {
@@ -70,8 +71,8 @@ describe('Window Visibility Fallback Integration', () => {
     });
 
     afterEach(() => {
-      vi.useRealTimers();
-      vi.unstubAllGlobals();
+      useRealTimers();
+      restorePlatform();
     });
 
     it('should show window immediately when ready-to-show fires (Happy Path)', () => {

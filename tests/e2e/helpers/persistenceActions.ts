@@ -63,10 +63,7 @@ export function cookiesFileExists(userDataPath: string): boolean {
  * @param userDataPath - The userData directory path
  * @param timeout - Max wait time in ms (default: 5000)
  */
-export async function waitForCookiesFile(
-  userDataPath: string,
-  timeout = 5000
-): Promise<boolean> {
+export async function waitForCookiesFile(userDataPath: string, timeout = 5000): Promise<boolean> {
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
@@ -295,4 +292,3 @@ export async function waitForUserPreferencesFile(timeout = 5000): Promise<boolea
   E2ELogger.info('persistence', 'User preferences file not found within timeout');
   return false;
 }
-

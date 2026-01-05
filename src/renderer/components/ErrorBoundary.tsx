@@ -89,10 +89,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <pre data-testid="error-fallback-message">{this.state.error.message}</pre>
               </details>
             )}
-            <button
-              onClick={() => window.location.reload()}
-              data-testid="error-fallback-reload"
-            >
+            <button onClick={() => window.location.reload()} data-testid="error-fallback-reload">
               Reload Application
             </button>
           </div>

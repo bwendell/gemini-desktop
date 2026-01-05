@@ -177,7 +177,6 @@ export function isOAuthDomain(hostname: string): boolean {
  * Enforces security best practices across the application.
  */
 
-
 /**
  * Get titleBarStyle based on platform.
  * macOS uses 'hidden' for custom titlebar, others use default frame.
