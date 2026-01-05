@@ -94,6 +94,7 @@ describe('IPC Round-Trip Integration', () => {
       hotkeyManager,
       updateManager,
       null,
+      null,
       mockStore,
       mockLogger
     );

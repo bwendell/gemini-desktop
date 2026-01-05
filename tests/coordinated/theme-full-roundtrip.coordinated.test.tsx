@@ -13,7 +13,11 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { ThemeProvider, useTheme, type Theme } from '../../src/renderer/context/ThemeContext';
+import {
+  ThemeProvider,
+  useTheme,
+  type Theme as _Theme,
+} from '../../src/renderer/context/ThemeContext';
 
 // Mock logger
 vi.mock('../../src/renderer/utils', () => ({

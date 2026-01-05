@@ -106,6 +106,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
         hotkeyManager,
         mockUpdateManager,
         null,
+        null,
         mockStore,
         mockLogger
       );

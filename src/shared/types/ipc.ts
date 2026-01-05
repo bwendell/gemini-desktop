@@ -14,6 +14,7 @@ import type {
 } from './hotkeys';
 import type { UpdateInfo, DownloadProgress } from './updates';
 import type { ToastPayload } from './toast';
+import type { TextPredictionSettings } from './text-prediction';
 
 /**
  * Print progress event data types
@@ -306,4 +307,67 @@ export interface ElectronAPI {
    * @param path - Absolute path to the file to reveal
    */
   revealInFolder: (path: string) => void;
+
+  // =========================================================================
+  // Text Prediction API
+  // =========================================================================
+
+  /**
+   * Get whether text prediction is enabled.
+   * @returns Promise resolving to the enabled state
+   */
+  getTextPredictionEnabled: () => Promise<boolean>;
+
+  /**
+   * Set whether text prediction is enabled.
+   * When enabling, triggers model download if not already downloaded.
+   * @param enabled - Whether to enable text prediction
+   */
+  setTextPredictionEnabled: (enabled: boolean) => Promise<void>;
+
+  /**
+   * Get whether GPU acceleration is enabled for text prediction.
+   * @returns Promise resolving to the GPU enabled state
+   */
+  getTextPredictionGpuEnabled: () => Promise<boolean>;
+
+  /**
+   * Set whether GPU acceleration is enabled for text prediction.
+   * Requires model reload to take effect.
+   * @param enabled - Whether to enable GPU acceleration
+   */
+  setTextPredictionGpuEnabled: (enabled: boolean) => Promise<void>;
+
+  /**
+   * Get the current text prediction status including enabled state,
+   * GPU state, model status, download progress, and any error message.
+   * @returns Promise resolving to the full settings state
+   */
+  getTextPredictionStatus: () => Promise<TextPredictionSettings>;
+
+  /**
+   * Listen for text prediction status changes.
+   * Called when model status, enabled state, or GPU state changes.
+   * @param callback - Function to call with updated settings
+   * @returns Unsubscribe function
+   */
+  onTextPredictionStatusChanged: (
+    callback: (settings: TextPredictionSettings) => void
+  ) => () => void;
+
+  /**
+   * Listen for model download progress events.
+   * Called during model download with percentage complete.
+   * @param callback - Function to call with progress percentage (0-100)
+   * @returns Unsubscribe function
+   */
+  onTextPredictionDownloadProgress: (callback: (progress: number) => void) => () => void;
+
+  /**
+   * Request a text prediction for partial input.
+   * Returns null if model not ready or prediction times out.
+   * @param partialText - The partial text to get prediction for
+   * @returns Promise resolving to predicted text continuation or null
+   */
+  predictText: (partialText: string) => Promise<string | null>;
 }

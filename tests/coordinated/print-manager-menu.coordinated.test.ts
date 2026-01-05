@@ -4,7 +4,7 @@
  * and responds to hotkey setting changes.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Menu, app } from 'electron';
+import { Menu } from 'electron';
 import MenuManager from '../../src/main/managers/menuManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';

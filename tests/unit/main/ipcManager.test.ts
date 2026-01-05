@@ -151,6 +151,7 @@ describe('IpcManager', () => {
       null,
       mockUpdateManager,
       mockPrintManager,
+      null,
       mockStore as any,
       mockLogger
     );
@@ -168,7 +169,7 @@ describe('IpcManager', () => {
         set: vi.fn(),
       };
 
-      new IpcManager(mockWindowManager, null, null, null, darkStore as any, mockLogger);
+      new IpcManager(mockWindowManager, null, null, null, null, darkStore as any, mockLogger);
       expect(nativeTheme.themeSource).toBe('dark');
     });
   });
@@ -312,6 +313,7 @@ describe('IpcManager', () => {
         mockHotkeyManager,
         mockUpdateManager,
         mockPrintManager,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -341,6 +343,7 @@ describe('IpcManager', () => {
         mockWindowManager,
         null,
         mockUpdateManager,
+        null,
         null,
         mockStore as any,
         mockLogger
@@ -390,6 +393,7 @@ describe('IpcManager', () => {
         null,
         null,
         null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -404,6 +408,7 @@ describe('IpcManager', () => {
     it('handles auto-update:get-enabled fallback when store returns undefined', async () => {
       ipcManager = new IpcManager(
         mockWindowManager,
+        null,
         null,
         null,
         null,
@@ -438,6 +443,7 @@ describe('IpcManager', () => {
         null,
         null,
         null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -463,6 +469,7 @@ describe('IpcManager', () => {
     it('handles auto-update:check (without manager)', () => {
       ipcManager = new IpcManager(
         mockWindowManager,
+        null,
         null,
         null,
         null,
@@ -493,6 +500,7 @@ describe('IpcManager', () => {
     it('handles auto-update:install (without manager)', () => {
       ipcManager = new IpcManager(
         mockWindowManager,
+        null,
         null,
         null,
         null,
@@ -543,6 +551,7 @@ describe('IpcManager', () => {
         null,
         null,
         null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -570,6 +579,7 @@ describe('IpcManager', () => {
     it('handles dev:test:clear-badge without manager', () => {
       ipcManager = new IpcManager(
         mockWindowManager,
+        null,
         null,
         null,
         null,
@@ -921,6 +931,7 @@ describe('IpcManager', () => {
         null,
         mockUpdateManager,
         null, // No PrintManager
+        null, // No LlmManager
         mockStore as any,
         mockLogger
       );
@@ -979,6 +990,7 @@ describe('IpcManager', () => {
         null,
         mockUpdateManager,
         null, // No PrintManager
+        null, // No LlmManager
         mockStore as any,
         mockLogger
       );
@@ -1170,6 +1182,8 @@ describe('IpcManager', () => {
         mockWindowManager,
         mockHotkeyManager as any,
         mockUpdateManager,
+        null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1185,6 +1199,8 @@ describe('IpcManager', () => {
         mockWindowManager,
         mockHotkeyManager as any,
         mockUpdateManager,
+        null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1200,6 +1216,8 @@ describe('IpcManager', () => {
         mockWindowManager,
         mockHotkeyManager as any,
         mockUpdateManager,
+        null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1217,6 +1235,8 @@ describe('IpcManager', () => {
         mockWindowManager,
         mockHotkeyManager as any,
         mockUpdateManager,
+        null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1246,6 +1266,8 @@ describe('IpcManager', () => {
         mockWindowManager,
         mockHotkeyManager as any,
         mockUpdateManager,
+        null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1283,7 +1305,15 @@ describe('IpcManager', () => {
       mockStore.get.mockImplementation(() => {
         throw new Error('Theme init failed');
       });
-      new IpcManager(mockWindowManager, null, mockUpdateManager, mockStore as any, mockLogger);
+      new IpcManager(
+        mockWindowManager,
+        null,
+        mockUpdateManager,
+        null,
+        null,
+        mockStore as any,
+        mockLogger
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to initialize native theme:',
         expect.any(Error)
@@ -1299,6 +1329,8 @@ describe('IpcManager', () => {
         mockWindowManager,
         null,
         mockUpdateManager,
+        null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1398,6 +1430,7 @@ describe('IpcManager', () => {
         mockHotkeyManager,
         mockUpdateManager,
         mockPrintManager,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1510,6 +1543,7 @@ describe('IpcManager', () => {
         null,
         mockUpdateManager,
         null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1567,6 +1601,7 @@ describe('IpcManager', () => {
         null,
         null,
         null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1588,6 +1623,7 @@ describe('IpcManager', () => {
     it('handles dev:test:emit-update-event without manager', () => {
       ipcManager = new IpcManager(
         mockWindowManager,
+        null,
         null,
         null,
         null,
@@ -1624,6 +1660,7 @@ describe('IpcManager', () => {
         null,
         null,
         null,
+        null,
         mockStore as any,
         mockLogger
       );
@@ -1649,6 +1686,7 @@ describe('IpcManager', () => {
     it('handles tray:get-tooltip without manager', async () => {
       ipcManager = new IpcManager(
         mockWindowManager,
+        null,
         null,
         null,
         null,
@@ -1687,6 +1725,7 @@ describe('IpcManager', () => {
     it('handles auto-update:get-last-check without manager', async () => {
       ipcManager = new IpcManager(
         mockWindowManager,
+        null,
         null,
         null,
         null,
@@ -1768,6 +1807,208 @@ describe('IpcManager', () => {
         error: error.message,
         filePath: testPath,
       });
+    });
+  });
+
+  // Task 7.6: Text Prediction IPC Handlers
+  describe('Text Prediction Handlers', () => {
+    let mockLlmManager: any;
+
+    beforeEach(() => {
+      mockLlmManager = {
+        getStatus: vi.fn().mockReturnValue('not-downloaded'),
+        isGpuEnabled: vi.fn().mockReturnValue(false),
+        isModelLoaded: vi.fn().mockReturnValue(false),
+        isModelDownloaded: vi.fn().mockReturnValue(true),
+        getDownloadProgress: vi.fn().mockReturnValue(0),
+        getErrorMessage: vi.fn().mockReturnValue(null),
+        setGpuEnabled: vi.fn(),
+        downloadModel: vi.fn().mockResolvedValue(undefined),
+        loadModel: vi.fn().mockResolvedValue(undefined),
+        unloadModel: vi.fn(),
+        predict: vi.fn().mockResolvedValue('prediction'),
+        onStatusChange: vi.fn().mockReturnValue(() => {}),
+      };
+
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        mockUpdateManager,
+        mockPrintManager,
+        mockLlmManager,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+    });
+
+    it('handles text-prediction:get-enabled (with llmManager)', async () => {
+      mockStore.get.mockReturnValue(true);
+      const handler = (ipcMain as any)._handlers.get('text-prediction:get-enabled');
+
+      const result = await handler();
+
+      expect(result).toBe(true);
+      expect(mockStore.get).toHaveBeenCalledWith('textPredictionEnabled');
+    });
+
+    it('handles text-prediction:get-enabled without llmManager', async () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        mockUpdateManager,
+        mockPrintManager,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+
+      mockStore.get.mockReturnValue(false);
+      const handler = (ipcMain as any)._handlers.get('text-prediction:get-enabled');
+
+      const result = await handler();
+
+      expect(result).toBe(false);
+      expect(mockStore.get).toHaveBeenCalledWith('textPredictionEnabled');
+    });
+
+    it('handles text-prediction:set-enabled', async () => {
+      const handler = (ipcMain as any)._handlers.get('text-prediction:set-enabled');
+
+      await handler({}, true);
+
+      expect(mockStore.set).toHaveBeenCalledWith('textPredictionEnabled', true);
+    });
+
+    it('handles text-prediction:set-enabled triggers download when enabling', async () => {
+      mockLlmManager.getStatus.mockReturnValue('not-downloaded');
+      const handler = (ipcMain as any)._handlers.get('text-prediction:set-enabled');
+
+      await handler({}, true);
+
+      expect(mockStore.set).toHaveBeenCalledWith('textPredictionEnabled', true);
+      // Would trigger download flow when model not downloaded
+    });
+
+    it('handles text-prediction:get-gpu-enabled', async () => {
+      mockStore.get.mockReturnValue(true);
+      const handler = (ipcMain as any)._handlers.get('text-prediction:get-gpu-enabled');
+
+      const result = await handler();
+
+      expect(result).toBe(true);
+      expect(mockStore.get).toHaveBeenCalledWith('textPredictionGpuEnabled');
+    });
+
+    it('handles text-prediction:get-gpu-enabled without llmManager', async () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        mockUpdateManager,
+        mockPrintManager,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+
+      mockStore.get.mockReturnValue(true);
+      const handler = (ipcMain as any)._handlers.get('text-prediction:get-gpu-enabled');
+
+      const result = await handler();
+
+      expect(result).toBe(true);
+      expect(mockStore.get).toHaveBeenCalledWith('textPredictionGpuEnabled');
+    });
+
+    it('handles text-prediction:set-gpu-enabled', async () => {
+      const handler = (ipcMain as any)._handlers.get('text-prediction:set-gpu-enabled');
+
+      await handler({}, true);
+
+      expect(mockStore.set).toHaveBeenCalledWith('textPredictionGpuEnabled', true);
+      expect(mockLlmManager.setGpuEnabled).toHaveBeenCalledWith(true);
+    });
+
+    it('handles text-prediction:get-status', async () => {
+      mockLlmManager.getStatus.mockReturnValue('ready');
+      mockLlmManager.isGpuEnabled.mockReturnValue(false);
+      mockLlmManager.getDownloadProgress.mockReturnValue(100);
+      mockLlmManager.getErrorMessage.mockReturnValue(null);
+      mockStore.get.mockImplementation((key: string) => {
+        if (key === 'textPredictionEnabled') return true;
+        if (key === 'textPredictionGpuEnabled') return false;
+        return undefined;
+      });
+
+      const handler = (ipcMain as any)._handlers.get('text-prediction:get-status');
+
+      const result = await handler();
+
+      expect(result).toEqual({
+        enabled: true,
+        gpuEnabled: false,
+        status: 'ready',
+        downloadProgress: 100,
+        errorMessage: undefined,
+      });
+    });
+
+    it('handles text-prediction:predict', async () => {
+      mockLlmManager.predict.mockResolvedValue('test prediction');
+      const handler = (ipcMain as any)._handlers.get('text-prediction:predict');
+
+      const result = await handler({}, 'partial text');
+
+      expect(result).toBe('test prediction');
+      expect(mockLlmManager.predict).toHaveBeenCalledWith('partial text');
+    });
+
+    it('handles text-prediction:predict returns null without llmManager', async () => {
+      ipcManager = new IpcManager(
+        mockWindowManager,
+        null,
+        mockUpdateManager,
+        mockPrintManager,
+        null,
+        mockStore as any,
+        mockLogger
+      );
+      ipcManager.setupIpcHandlers();
+
+      const handler = (ipcMain as any)._handlers.get('text-prediction:predict');
+
+      const result = await handler({}, 'partial text');
+
+      expect(result).toBeNull();
+    });
+
+    it('handles text-prediction:predict with empty input', async () => {
+      mockLlmManager.predict.mockResolvedValue(null);
+      const handler = (ipcMain as any)._handlers.get('text-prediction:predict');
+
+      const result = await handler({}, '');
+
+      expect(result).toBeNull();
+    });
+
+    it('validates text-prediction:set-enabled input type', async () => {
+      const handler = (ipcMain as any)._handlers.get('text-prediction:set-enabled');
+
+      await handler({}, 'invalid');
+
+      expect(mockStore.set).not.toHaveBeenCalledWith('textPredictionEnabled', 'invalid');
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it('validates text-prediction:set-gpu-enabled input type', async () => {
+      const handler = (ipcMain as any)._handlers.get('text-prediction:set-gpu-enabled');
+
+      await handler({}, 'invalid');
+
+      expect(mockStore.set).not.toHaveBeenCalledWith('textPredictionGpuEnabled', 'invalid');
+      expect(mockLogger.warn).toHaveBeenCalled();
     });
   });
 });

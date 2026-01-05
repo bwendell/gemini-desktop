@@ -47,6 +47,11 @@ export class QuickChatPage extends BasePage {
     return Selectors.quickChatSubmit;
   }
 
+  /** Selector for the ghost text prediction overlay */
+  get ghostTextSelector(): string {
+    return Selectors.quickChatGhostText;
+  }
+
   // ===========================================================================
   // VISIBILITY
   // ===========================================================================
@@ -186,6 +191,24 @@ export class QuickChatPage extends BasePage {
     this.log('Cancelled via Escape key');
   }
 
+  /**
+   * Press Escape to dismiss prediction (does not hide Quick Chat if prediction was visible).
+   * Use this when testing prediction dismissal behavior.
+   */
+  async pressEscape(): Promise<void> {
+    await browser.keys(['Escape']);
+    this.log('Pressed Escape key');
+  }
+
+  /**
+   * Press Tab to accept the current prediction.
+   * This inserts the prediction text into the input field.
+   */
+  async pressTab(): Promise<void> {
+    await browser.keys(['Tab']);
+    this.log('Pressed Tab key to accept prediction');
+  }
+
   // ===========================================================================
   // STATE QUERIES
   // ===========================================================================
@@ -241,6 +264,50 @@ export class QuickChatPage extends BasePage {
    */
   async getWindowState() {
     return getQuickChatState();
+  }
+
+  /**
+   * Check if ghost text (text prediction) is displayed.
+   * @returns True if ghost text is visible
+   */
+  async isGhostTextDisplayed(): Promise<boolean> {
+    return this.isElementDisplayed(this.ghostTextSelector);
+  }
+
+  /**
+   * Wait for ghost text to appear.
+   * @param timeout - Timeout in milliseconds (default: 5000)
+   */
+  async waitForGhostText(timeout = 5000): Promise<void> {
+    await browser.waitUntil(
+      async () => {
+        return this.isGhostTextDisplayed();
+      },
+      {
+        timeout,
+        interval: 100,
+        timeoutMsg: `[${this.pageName}] Ghost text did not appear within ${timeout}ms`,
+      }
+    );
+    this.log('Ghost text is displayed');
+  }
+
+  /**
+   * Get the ghost text prediction content.
+   * Returns only the prediction part (not the typed text).
+   * @returns The prediction text, or null if not displayed
+   */
+  async getGhostTextPrediction(): Promise<string | null> {
+    const ghostText = await this.$(this.ghostTextSelector);
+    if (!(await ghostText.isExisting())) {
+      return null;
+    }
+    // The prediction is in the second span: .quick-chat-ghost-text-prediction
+    const predictionSpan = await ghostText.$('.quick-chat-ghost-text-prediction');
+    if (!(await predictionSpan.isExisting())) {
+      return null;
+    }
+    return predictionSpan.getText();
   }
 
   // ===========================================================================

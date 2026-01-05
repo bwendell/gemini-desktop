@@ -75,10 +75,12 @@ export function useGeminiIframe(): GeminiIframeState {
   // Initial connectivity check
   useEffect(() => {
     if (!hasCheckedConnectivity.current && !navigator.onLine) {
-      // If we're already offline, set error immediately
-      setError('Network unavailable');
-      setIsLoading(false);
+      // If we're already offline, set error via microtask to avoid synchronous setState in effect
       hasCheckedConnectivity.current = true;
+      queueMicrotask(() => {
+        setError('Network unavailable');
+        setIsLoading(false);
+      });
     }
   }, []);
 

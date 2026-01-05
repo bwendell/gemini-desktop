@@ -30,6 +30,7 @@
     "test:integration": "wdio run config/wdio/wdio.integration.conf.js",
     "test:integration:watch": "wdio run config/wdio/wdio.integration.conf.js --watch",
     "test:e2e": "node scripts/run-e2e-sequential.cjs",
+    "test:e2e:spec": "wdio run config/wdio/wdio.conf.js",
     "test:e2e:group:startup": "wdio run config/wdio/wdio.group.startup.conf.js",
     "test:e2e:group:window": "wdio run config/wdio/wdio.group.window.conf.js",
     "test:e2e:group:menu": "wdio run config/wdio/wdio.group.menu.conf.js",
@@ -52,6 +53,7 @@
     "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
     "framer-motion": "^12.23.26",
+    "node-llama-cpp": "^3.14.5",
     "pdfkit": "^0.17.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

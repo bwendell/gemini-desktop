@@ -168,6 +168,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -208,6 +209,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -230,6 +232,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         null, // No PrintManager
+        null,
         mockStore,
         mockLogger
       );
@@ -262,6 +265,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -296,6 +300,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -333,6 +338,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -367,6 +373,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -395,6 +402,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -435,6 +443,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
           hotkeyManager,
           mockUpdateManager,
           printManager,
+          null,
           mockStore,
           mockLogger
         );
@@ -469,6 +478,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
           mockHotkeyManager,
           mockUpdateManager,
           printManager,
+          null,
           mockStore,
           mockLogger
         );
@@ -492,6 +502,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
           mockHotkeyManager,
           mockUpdateManager,
           printManager,
+          null,
           mockStore,
           mockLogger
         );
@@ -528,6 +539,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
         mockHotkeyManager,
         mockUpdateManager,
         printManager,
+        null,
         mockStore,
         mockLogger
       );
@@ -655,7 +667,7 @@ describe('Print to PDF IPC Handler Coordination', () => {
       );
     });
 
-    it('should send \"Unknown error\" when non-Error object is thrown', async () => {
+    it('should send "Unknown error" when non-Error object is thrown', async () => {
       const { IPC_CHANNELS } = await import('../../src/shared/constants/ipc-channels');
 
       const mockWebContents = createMockWebContentsForCapture();

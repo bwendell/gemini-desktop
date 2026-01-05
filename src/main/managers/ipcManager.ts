@@ -22,16 +22,15 @@ import {
 import SettingsStore from '../store';
 import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS, isGeminiDomain } from '../utils/constants';
 import { GEMINI_APP_URL } from '../../shared/constants/index';
-import {
-  InjectionScriptBuilder,
-  DEFAULT_INJECTION_CONFIG,
-  InjectionResult,
-} from '../utils/injectionScript';
+import { InjectionScriptBuilder, InjectionResult } from '../utils/injectionScript';
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type HotkeyManager from './hotkeyManager';
 import type UpdateManager from './updateManager';
 import type PrintManager from './printManager';
+import type LlmManager from './llmManager';
+import type { ModelStatus } from './llmManager';
+import type { TextPredictionSettings } from '../../shared/types';
 import type {
   ThemePreference,
   ThemeData,
@@ -61,6 +60,11 @@ interface UserPreferences extends Record<string, unknown> {
   acceleratorPrintToPdf: string;
   // Auto-update settings
   autoUpdateEnabled: boolean;
+  // Text prediction settings
+  textPredictionEnabled: boolean;
+  textPredictionGpuEnabled: boolean;
+  textPredictionModelStatus: ModelStatus;
+  textPredictionModelId: string;
 }
 
 /**
@@ -72,6 +76,7 @@ export default class IpcManager {
   private hotkeyManager: HotkeyManager | null = null;
   private updateManager: UpdateManager | null = null;
   private printManager: PrintManager | null = null;
+  private llmManager: LlmManager | null = null;
   private store: SettingsStore<UserPreferences>;
   private logger: Logger;
 
@@ -86,6 +91,7 @@ export default class IpcManager {
     hotkeyManager?: HotkeyManager | null,
     updateManager?: UpdateManager | null,
     printManager?: PrintManager | null,
+    llmManager?: LlmManager | null,
     store?: SettingsStore<UserPreferences>,
     logger?: Logger
   ) {
@@ -93,6 +99,7 @@ export default class IpcManager {
     this.hotkeyManager = hotkeyManager || null;
     this.updateManager = updateManager || null;
     this.printManager = printManager || null;
+    this.llmManager = llmManager || null;
     /* v8 ignore next 6 -- production fallback, tests always inject dependencies */
     this.store =
       store ||
@@ -108,6 +115,11 @@ export default class IpcManager {
           hotkeyPrintToPdf: true,
           // Auto-update defaults
           autoUpdateEnabled: true,
+          // Text prediction defaults
+          textPredictionEnabled: false,
+          textPredictionGpuEnabled: false,
+          textPredictionModelStatus: 'not-downloaded',
+          textPredictionModelId: 'qwen3-0.6b',
         },
       });
     /* v8 ignore next -- production fallback, tests always inject logger */
@@ -190,6 +202,7 @@ export default class IpcManager {
     this._setupAutoUpdateHandlers();
     this._setupPrintHandlers();
     this._setupShellHandlers();
+    this._setupTextPredictionHandlers();
 
     // Listen for internal changes (from hotkeys or menu)
     this.windowManager.on('always-on-top-changed', this._handleAlwaysOnTopChanged.bind(this));
@@ -198,6 +211,54 @@ export default class IpcManager {
     this._initializeAlwaysOnTop();
 
     this.logger.log('All IPC handlers registered');
+  }
+
+  /**
+   * Initialize text prediction on app startup.
+   * Loads the model if text prediction was previously enabled.
+   * Should be called after setupIpcHandlers().
+   */
+  async initializeTextPrediction(): Promise<void> {
+    if (!this.llmManager) {
+      this.logger.log('Text prediction initialization skipped - no LlmManager');
+      return;
+    }
+
+    try {
+      const enabled = this.store.get('textPredictionEnabled') ?? false;
+      const gpuEnabled = this.store.get('textPredictionGpuEnabled') ?? false;
+
+      this.logger.log('Initializing text prediction on startup', {
+        enabled,
+        gpuEnabled,
+      });
+
+      if (!enabled) {
+        this.logger.log('Text prediction disabled, skipping model load');
+        return;
+      }
+
+      // Set GPU preference from stored setting
+      this.llmManager.setGpuEnabled(gpuEnabled);
+
+      // Check if model is downloaded
+      if (!this.llmManager.isModelDownloaded()) {
+        this.logger.log('Text prediction enabled but model not downloaded, skipping auto-load');
+        return;
+      }
+
+      // Load the model
+      this.logger.log('Auto-loading text prediction model on startup...');
+      await this.llmManager.loadModel();
+      this.logger.log('Text prediction model loaded successfully on startup');
+
+      // Broadcast status to any open windows
+      this._broadcastTextPredictionStatusChange();
+    } catch (error) {
+      this.logger.error('Failed to initialize text prediction on startup:', {
+        error: (error as Error).message,
+      });
+    }
   }
 
   /**
@@ -1094,6 +1155,261 @@ export default class IpcManager {
         this.logger.error('Error revealing file in folder:', {
           error: (error as Error).message,
           filePath,
+        });
+      }
+    });
+  }
+
+  /**
+   * Set up Text Prediction IPC handlers.
+   * Handles communication with LlmManager for local LLM text prediction.
+   * @private
+   */
+  private _setupTextPredictionHandlers(): void {
+    // Get text prediction enabled state
+    ipcMain.handle(IPC_CHANNELS.TEXT_PREDICTION_GET_ENABLED, (): boolean => {
+      try {
+        const enabled = this.store.get('textPredictionEnabled') ?? false;
+        this.logger.log('TEXT_PREDICTION_GET_ENABLED called, returning:', enabled);
+        return enabled;
+      } catch (error) {
+        this.logger.error('Error getting text prediction enabled:', error);
+        return false;
+      }
+    });
+
+    // Set text prediction enabled state
+    ipcMain.handle(
+      IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED,
+      async (_event, enabled: boolean): Promise<void> => {
+        try {
+          if (typeof enabled !== 'boolean') {
+            this.logger.warn(`Invalid textPredictionEnabled value: ${enabled}`);
+            return;
+          }
+
+          // Persist preference
+          this.store.set('textPredictionEnabled', enabled);
+          this.logger.log(`Text prediction enabled set to: ${enabled}`);
+
+          // If enabling and LlmManager exists, trigger model download/load if needed
+          if (enabled && this.llmManager) {
+            // Skip native module operations in CI - the native module cannot be reliably loaded
+            // in headless CI environments, which would crash the Electron process
+            if (process.env.CI === 'true') {
+              this.logger.log('CI environment detected - skipping native module operations');
+            } else {
+              if (!this.llmManager.isModelDownloaded()) {
+                this.logger.log('Model not downloaded, starting download...');
+                // Trigger download with progress events
+                await this.llmManager.downloadModel((progress) => {
+                  this._broadcastTextPredictionDownloadProgress(progress);
+                });
+                this.logger.log('Model download completed');
+              } else {
+                this.logger.log('Model already downloaded, skipping download');
+              }
+              // Load model if not already loaded
+              if (!this.llmManager.isModelLoaded()) {
+                this.logger.log('Model not loaded, starting load...');
+                await this.llmManager.loadModel();
+                this.logger.log('Model load completed');
+              } else {
+                this.logger.log('Model already loaded');
+              }
+            }
+          } else if (!enabled && this.llmManager) {
+            // Unload model when disabling
+            this.logger.log('Disabling text prediction, unloading model');
+            this.llmManager.unloadModel();
+          }
+
+          // Broadcast status change
+          this._broadcastTextPredictionStatusChange();
+        } catch (error) {
+          this.logger.error('Error setting text prediction enabled:', {
+            error: (error as Error).message,
+            enabled,
+          });
+          // Broadcast the error state
+          this._broadcastTextPredictionStatusChange();
+        }
+      }
+    );
+
+    // Get GPU acceleration enabled state
+    ipcMain.handle(IPC_CHANNELS.TEXT_PREDICTION_GET_GPU_ENABLED, (): boolean => {
+      try {
+        return this.store.get('textPredictionGpuEnabled') ?? false;
+      } catch (error) {
+        this.logger.error('Error getting text prediction GPU enabled:', error);
+        return false;
+      }
+    });
+
+    // Set GPU acceleration enabled state
+    ipcMain.handle(
+      IPC_CHANNELS.TEXT_PREDICTION_SET_GPU_ENABLED,
+      async (_event, enabled: boolean): Promise<void> => {
+        try {
+          if (typeof enabled !== 'boolean') {
+            this.logger.warn(`Invalid textPredictionGpuEnabled value: ${enabled}`);
+            return;
+          }
+
+          // Persist preference
+          this.store.set('textPredictionGpuEnabled', enabled);
+          this.logger.log(`Text prediction GPU enabled set to: ${enabled}`);
+
+          // Update LlmManager GPU setting and reload model if loaded
+          if (this.llmManager) {
+            const wasLoaded = this.llmManager.isModelLoaded();
+            const previousGpuState = this.llmManager.isGpuEnabled();
+            this.logger.log('GPU setting change requested', {
+              previousGpuEnabled: previousGpuState,
+              newGpuEnabled: enabled,
+              modelWasLoaded: wasLoaded,
+            });
+
+            this.llmManager.setGpuEnabled(enabled);
+
+            // Reload model to apply GPU setting change
+            if (wasLoaded) {
+              this.logger.log('Model reload required - unloading current model...');
+              this.llmManager.unloadModel();
+              this.logger.log('Model unloaded - loading with new GPU setting...');
+              await this.llmManager.loadModel();
+              const newStatus = this.llmManager.getStatus();
+              this.logger.log('Model reload complete', {
+                gpuEnabled: this.llmManager.isGpuEnabled(),
+                newStatus,
+              });
+              this._broadcastTextPredictionStatusChange();
+            } else {
+              this.logger.log('Model not loaded, GPU setting will apply on next load');
+            }
+          }
+        } catch (error) {
+          this.logger.error('Error setting text prediction GPU enabled:', {
+            error: (error as Error).message,
+            enabled,
+          });
+        }
+      }
+    );
+
+    // Get full text prediction status
+    ipcMain.handle(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS, (): TextPredictionSettings => {
+      const status = this._getTextPredictionStatus();
+      this.logger.log('TEXT_PREDICTION_GET_STATUS called, returning:', status);
+      return status;
+    });
+
+    // Predict text
+    ipcMain.handle(
+      IPC_CHANNELS.TEXT_PREDICTION_PREDICT,
+      async (_event, partialText: string): Promise<string | null> => {
+        try {
+          if (typeof partialText !== 'string') {
+            this.logger.warn(`Invalid partialText value: ${typeof partialText}`);
+            return null;
+          }
+
+          if (!this.llmManager) {
+            this.logger.warn('LlmManager not available for prediction');
+            return null;
+          }
+
+          this.logger.log('TEXT_PREDICTION_PREDICT called, input length:', partialText.length);
+          const result = await this.llmManager.predict(partialText);
+          this.logger.log(
+            'TEXT_PREDICTION_PREDICT result:',
+            result ? `${result.length} chars` : 'null'
+          );
+          return result;
+        } catch (error) {
+          this.logger.error('Error predicting text:', {
+            error: (error as Error).message,
+            partialTextLength: partialText?.length,
+          });
+          return null;
+        }
+      }
+    );
+
+    // Register for LlmManager status changes
+    if (this.llmManager) {
+      this.llmManager.onStatusChange(() => {
+        // Update stored status and broadcast change
+        const status = this.llmManager?.getStatus() ?? 'not-downloaded';
+        this.store.set('textPredictionModelStatus', status);
+        this._broadcastTextPredictionStatusChange();
+      });
+    }
+  }
+
+  /**
+   * Get the current text prediction status.
+   * @private
+   */
+  private _getTextPredictionStatus(): TextPredictionSettings {
+    return {
+      enabled: this.store.get('textPredictionEnabled') ?? false,
+      gpuEnabled: this.store.get('textPredictionGpuEnabled') ?? false,
+      status:
+        this.llmManager?.getStatus() ??
+        (this.store.get('textPredictionModelStatus') as ModelStatus) ??
+        'not-downloaded',
+      downloadProgress: this.llmManager?.getDownloadProgress(),
+      errorMessage: this.llmManager?.getErrorMessage() ?? undefined,
+    };
+  }
+
+  /**
+   * Broadcast text prediction status change to all open windows.
+   * @private
+   */
+  private _broadcastTextPredictionStatusChange(): void {
+    const status = this._getTextPredictionStatus();
+    const windows = BrowserWindow.getAllWindows();
+
+    this.logger.log(
+      'Broadcasting text prediction status change:',
+      status,
+      `to ${windows.length} windows`
+    );
+
+    windows.forEach((win) => {
+      try {
+        if (!win.isDestroyed()) {
+          win.webContents.send(IPC_CHANNELS.TEXT_PREDICTION_STATUS_CHANGED, status);
+        }
+      } catch (error) {
+        this.logger.error('Error broadcasting text prediction status change to window:', {
+          error: (error as Error).message,
+          windowId: win.id,
+        });
+      }
+    });
+  }
+
+  /**
+   * Broadcast text prediction download progress to all open windows.
+   * @private
+   * @param progress - Download progress percentage (0-100)
+   */
+  private _broadcastTextPredictionDownloadProgress(progress: number): void {
+    const windows = BrowserWindow.getAllWindows();
+
+    windows.forEach((win) => {
+      try {
+        if (!win.isDestroyed()) {
+          win.webContents.send(IPC_CHANNELS.TEXT_PREDICTION_DOWNLOAD_PROGRESS, progress);
+        }
+      } catch (error) {
+        this.logger.error('Error broadcasting text prediction download progress to window:', {
+          error: (error as Error).message,
+          windowId: win.id,
         });
       }
     });

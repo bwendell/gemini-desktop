@@ -11,6 +11,7 @@ export * from './hotkeys';
 export * from './updates';
 export * from './ipc';
 export * from './toast';
+export * from './text-prediction';
 
 // Re-export ElectronAPI explicitly for easier imports
 export type { ElectronAPI } from './ipc';

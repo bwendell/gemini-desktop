@@ -154,4 +154,108 @@ describe('Preload Script', () => {
       expect(ipcRendererMock.send).toHaveBeenCalledWith('shell:show-item-in-folder', testPath);
     });
   });
+
+  // Task 7.7: Text Prediction preload tests
+  describe('Text Prediction API', () => {
+    it('getTextPredictionEnabled should invoke IPC handler', async () => {
+      (ipcRendererMock.invoke as any).mockResolvedValue(true);
+      const result = await exposedAPI.getTextPredictionEnabled();
+      expect(ipcRendererMock.invoke).toHaveBeenCalledWith('text-prediction:get-enabled');
+      expect(result).toBe(true);
+    });
+
+    it('setTextPredictionEnabled should invoke IPC handler', async () => {
+      await exposedAPI.setTextPredictionEnabled(true);
+      expect(ipcRendererMock.invoke).toHaveBeenCalledWith('text-prediction:set-enabled', true);
+    });
+
+    it('getTextPredictionGpuEnabled should invoke IPC handler', async () => {
+      (ipcRendererMock.invoke as any).mockResolvedValue(false);
+      const result = await exposedAPI.getTextPredictionGpuEnabled();
+      expect(ipcRendererMock.invoke).toHaveBeenCalledWith('text-prediction:get-gpu-enabled');
+      expect(result).toBe(false);
+    });
+
+    it('setTextPredictionGpuEnabled should invoke IPC handler', async () => {
+      await exposedAPI.setTextPredictionGpuEnabled(true);
+      expect(ipcRendererMock.invoke).toHaveBeenCalledWith('text-prediction:set-gpu-enabled', true);
+    });
+
+    it('getTextPredictionStatus should invoke IPC handler', async () => {
+      const mockStatus = {
+        enabled: true,
+        gpuEnabled: false,
+        status: 'ready',
+        downloadProgress: 100,
+      };
+      (ipcRendererMock.invoke as any).mockResolvedValue(mockStatus);
+
+      const result = await exposedAPI.getTextPredictionStatus();
+
+      expect(ipcRendererMock.invoke).toHaveBeenCalledWith('text-prediction:get-status');
+      expect(result).toEqual(mockStatus);
+    });
+
+    it('predictText should invoke IPC handler with partial text', async () => {
+      (ipcRendererMock.invoke as any).mockResolvedValue('predicted completion');
+
+      const result = await exposedAPI.predictText('Hello ');
+
+      expect(ipcRendererMock.invoke).toHaveBeenCalledWith('text-prediction:predict', 'Hello ');
+      expect(result).toBe('predicted completion');
+    });
+
+    it('onTextPredictionStatusChanged should register listener and return unsubscribe', () => {
+      const callback = vi.fn();
+      const unsubscribe = exposedAPI.onTextPredictionStatusChanged(callback);
+
+      expect(ipcRendererMock.on).toHaveBeenCalledWith(
+        'text-prediction:status-changed',
+        expect.any(Function)
+      );
+
+      // simulate event
+      const handler = (ipcRendererMock.on as any).mock.calls.find(
+        (call: any[]) => call[0] === 'text-prediction:status-changed'
+      )?.[1];
+      if (handler) {
+        const mockSettings = { enabled: true, gpuEnabled: false, status: 'ready' };
+        handler({}, mockSettings);
+        expect(callback).toHaveBeenCalledWith(mockSettings);
+      }
+
+      // test unsubscribe
+      unsubscribe();
+      expect(ipcRendererMock.removeListener).toHaveBeenCalledWith(
+        'text-prediction:status-changed',
+        expect.any(Function)
+      );
+    });
+
+    it('onTextPredictionDownloadProgress should register listener and return unsubscribe', () => {
+      const callback = vi.fn();
+      const unsubscribe = exposedAPI.onTextPredictionDownloadProgress(callback);
+
+      expect(ipcRendererMock.on).toHaveBeenCalledWith(
+        'text-prediction:download-progress',
+        expect.any(Function)
+      );
+
+      // simulate event
+      const handler = (ipcRendererMock.on as any).mock.calls.find(
+        (call: any[]) => call[0] === 'text-prediction:download-progress'
+      )?.[1];
+      if (handler) {
+        handler({}, 75);
+        expect(callback).toHaveBeenCalledWith(75);
+      }
+
+      // test unsubscribe
+      unsubscribe();
+      expect(ipcRendererMock.removeListener).toHaveBeenCalledWith(
+        'text-prediction:download-progress',
+        expect.any(Function)
+      );
+    });
+  });
 });

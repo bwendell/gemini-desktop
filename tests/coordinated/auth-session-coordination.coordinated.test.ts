@@ -141,9 +141,7 @@ describe('Auth Session Coordination', () => {
 
         // Window should be closed
         expect(window.close).toHaveBeenCalled();
-        expect(mockLogger.log).toHaveBeenCalledWith(
-          expect.stringContaining('Login successful')
-        );
+        expect(mockLogger.log).toHaveBeenCalledWith(expect.stringContaining('Login successful'));
       });
 
       it('should not close auth window when navigating within external domains', () => {
@@ -207,9 +205,7 @@ describe('Auth Session Coordination', () => {
 
         // Should deny connection (not bypass cert error)
         expect(callback).toHaveBeenCalledWith(false);
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('Certificate error')
-        );
+        expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('Certificate error'));
       });
 
       it('should handle invalid URL in navigation gracefully', () => {
@@ -321,7 +317,7 @@ describe('Auth Session Coordination', () => {
       it('should handle multiple auth window creations', () => {
         const windowManager = new WindowManager(false);
 
-        const authWindow1 = windowManager.createAuthWindow('https://accounts.google.com/signin');
+        const _authWindow1 = windowManager.createAuthWindow('https://accounts.google.com/signin');
         const authWindow2 = windowManager.createAuthWindow('https://accounts.google.com/o/oauth2');
 
         // The second call should still work (AuthWindow handles closing previous)

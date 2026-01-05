@@ -51,7 +51,7 @@ describe('Quick Chat Injection Flow Integration (Option A)', () => {
     };
 
     windowManager = new WindowManager(false);
-    ipcManager = new IpcManager(windowManager, null, null, null, mockStore, mockLogger);
+    ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
     ipcManager.setupIpcHandlers();
   });
 

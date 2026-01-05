@@ -112,6 +112,16 @@ export const IPC_CHANNELS = {
   PRINT_CANCEL: 'print:cancel',
   PRINT_OVERLAY_HIDE: 'print:overlay-hide',
   PRINT_OVERLAY_SHOW: 'print:overlay-show',
+
+  // Text Prediction (local LLM inference)
+  TEXT_PREDICTION_GET_ENABLED: 'text-prediction:get-enabled',
+  TEXT_PREDICTION_SET_ENABLED: 'text-prediction:set-enabled',
+  TEXT_PREDICTION_GET_GPU_ENABLED: 'text-prediction:get-gpu-enabled',
+  TEXT_PREDICTION_SET_GPU_ENABLED: 'text-prediction:set-gpu-enabled',
+  TEXT_PREDICTION_GET_STATUS: 'text-prediction:get-status',
+  TEXT_PREDICTION_STATUS_CHANGED: 'text-prediction:status-changed',
+  TEXT_PREDICTION_DOWNLOAD_PROGRESS: 'text-prediction:download-progress',
+  TEXT_PREDICTION_PREDICT: 'text-prediction:predict',
 } as const;
 
 // Expose window control APIs to renderer
@@ -714,6 +724,87 @@ const electronAPI: ElectronAPI = {
    * @param path - Absolute path to the file to reveal
    */
   revealInFolder: (path: string) => ipcRenderer.send(IPC_CHANNELS.SHELL_SHOW_ITEM_IN_FOLDER, path),
+
+  // =========================================================================
+  // Text Prediction API
+  // Local LLM text prediction for Quick Chat
+  // =========================================================================
+
+  /**
+   * Get whether text prediction is enabled.
+   * @returns Promise resolving to boolean
+   */
+  getTextPredictionEnabled: () => ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_GET_ENABLED),
+
+  /**
+   * Set whether text prediction is enabled.
+   * When enabling, triggers model download if not already downloaded.
+   * @param enabled - Whether to enable text prediction
+   */
+  setTextPredictionEnabled: (enabled) =>
+    ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED, enabled),
+
+  /**
+   * Get whether GPU acceleration is enabled for text prediction.
+   * @returns Promise resolving to boolean
+   */
+  getTextPredictionGpuEnabled: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_GET_GPU_ENABLED),
+
+  /**
+   * Set whether GPU acceleration is enabled for text prediction.
+   * Requires model reload to take effect.
+   * @param enabled - Whether to enable GPU acceleration
+   */
+  setTextPredictionGpuEnabled: (enabled) =>
+    ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_SET_GPU_ENABLED, enabled),
+
+  /**
+   * Get the current text prediction status.
+   * @returns Promise resolving to TextPredictionSettings
+   */
+  getTextPredictionStatus: () => ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS),
+
+  /**
+   * Subscribe to text prediction status changes.
+   * Called when model status, enabled state, or GPU state changes.
+   * @param callback - Function called with TextPredictionSettings
+   * @returns Cleanup function to unsubscribe
+   */
+  onTextPredictionStatusChanged: (callback) => {
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      settings: Parameters<typeof callback>[0]
+    ) => callback(settings);
+    ipcRenderer.on(IPC_CHANNELS.TEXT_PREDICTION_STATUS_CHANGED, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TEXT_PREDICTION_STATUS_CHANGED, subscription);
+    };
+  },
+
+  /**
+   * Subscribe to model download progress events.
+   * Called during model download with percentage complete.
+   * @param callback - Function called with progress (0-100)
+   * @returns Cleanup function to unsubscribe
+   */
+  onTextPredictionDownloadProgress: (callback) => {
+    const subscription = (_event: Electron.IpcRendererEvent, progress: number) =>
+      callback(progress);
+    ipcRenderer.on(IPC_CHANNELS.TEXT_PREDICTION_DOWNLOAD_PROGRESS, subscription);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TEXT_PREDICTION_DOWNLOAD_PROGRESS, subscription);
+    };
+  },
+
+  /**
+   * Request a text prediction for partial input.
+   * Returns null if model not ready or prediction times out.
+   * @param partialText - The partial text to get prediction for
+   * @returns Promise resolving to predicted text or null
+   */
+  predictText: (partialText) =>
+    ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_PREDICT, partialText),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

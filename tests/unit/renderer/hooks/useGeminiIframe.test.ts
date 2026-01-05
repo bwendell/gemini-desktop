@@ -44,7 +44,10 @@ describe('useGeminiIframe', () => {
         result.current.handleLoad();
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('favicon.ico'), expect.any(Object));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('favicon.ico'),
+        expect.any(Object)
+      );
       expect(result.current.isLoading).toBe(false);
       expect(result.current.error).toBeNull();
     });
@@ -123,8 +126,10 @@ describe('useGeminiIframe', () => {
 
       const { result } = renderHook(() => useGeminiIframe());
 
-      // Initial effect runs on mount
-      expect(result.current.isLoading).toBe(false);
+      // Initial effect runs on mount via queueMicrotask, so we need to wait
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
       expect(result.current.error).toBe('Network unavailable');
 
       // Restore navigator.onLine

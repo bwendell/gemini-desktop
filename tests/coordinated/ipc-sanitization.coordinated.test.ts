@@ -63,6 +63,7 @@ describe('IPC Sanitization Integration', () => {
         hotkeyManager,
         updateManager,
         null,
+        null,
         mockStore,
         mockLogger as any
       );

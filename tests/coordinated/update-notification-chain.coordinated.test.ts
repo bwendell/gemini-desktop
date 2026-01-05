@@ -189,6 +189,7 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
         mockHotkeyManager,
         updateManager,
         null,
+        null,
         mockStore,
         mockLogger
       );
