@@ -1194,23 +1194,29 @@ export default class IpcManager {
 
           // If enabling and LlmManager exists, trigger model download/load if needed
           if (enabled && this.llmManager) {
-            if (!this.llmManager.isModelDownloaded()) {
-              this.logger.log('Model not downloaded, starting download...');
-              // Trigger download with progress events
-              await this.llmManager.downloadModel((progress) => {
-                this._broadcastTextPredictionDownloadProgress(progress);
-              });
-              this.logger.log('Model download completed');
+            // Skip native module operations in CI - the native module cannot be reliably loaded
+            // in headless CI environments, which would crash the Electron process
+            if (process.env.CI === 'true') {
+              this.logger.log('CI environment detected - skipping native module operations');
             } else {
-              this.logger.log('Model already downloaded, skipping download');
-            }
-            // Load model if not already loaded
-            if (!this.llmManager.isModelLoaded()) {
-              this.logger.log('Model not loaded, starting load...');
-              await this.llmManager.loadModel();
-              this.logger.log('Model load completed');
-            } else {
-              this.logger.log('Model already loaded');
+              if (!this.llmManager.isModelDownloaded()) {
+                this.logger.log('Model not downloaded, starting download...');
+                // Trigger download with progress events
+                await this.llmManager.downloadModel((progress) => {
+                  this._broadcastTextPredictionDownloadProgress(progress);
+                });
+                this.logger.log('Model download completed');
+              } else {
+                this.logger.log('Model already downloaded, skipping download');
+              }
+              // Load model if not already loaded
+              if (!this.llmManager.isModelLoaded()) {
+                this.logger.log('Model not loaded, starting load...');
+                await this.llmManager.loadModel();
+                this.logger.log('Model load completed');
+              } else {
+                this.logger.log('Model already loaded');
+              }
             }
           } else if (!enabled && this.llmManager) {
             // Unload model when disabling

@@ -343,7 +343,7 @@ export default class LlmManager {
 
       this.llama = await getLlama({
         gpu: gpuMode,
-        build: 'never', // Don't build from source in Electron
+        build: 'never', // Don't build from source in Electron - users may not have build tools
       });
 
       logger.log('Llama instance created', {
