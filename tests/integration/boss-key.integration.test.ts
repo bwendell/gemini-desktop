@@ -24,6 +24,28 @@ describe('Boss Key / Stealth Mode Integration', () => {
         });
     });
 
+    beforeEach(async () => {
+        // Ensure main window is visible before each test
+        // This is necessary because the window may not be visible yet after the before() hook
+        // or may have been hidden by a previous test
+        await browser.electron.execute(() => {
+            // @ts-ignore
+            global.windowManager.restoreFromTray();
+        });
+
+        // Wait for window to be visible
+        await browser.waitUntil(
+            async () => {
+                return await browser.electron.execute(() => {
+                    // @ts-ignore
+                    const win = global.windowManager.getMainWindow();
+                    return win && win.isVisible();
+                });
+            },
+            { timeout: 5000, timeoutMsg: 'Main window did not become visible in beforeEach' }
+        );
+    });
+
     afterEach(async () => {
         // Ensure main window is visible after each test
         await browser.electron.execute(() => {

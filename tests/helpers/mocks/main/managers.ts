@@ -61,6 +61,13 @@ export interface MockWindowManager {
     hideToTray: ReturnType<typeof vi.fn>;
     minimizeMainWindow: ReturnType<typeof vi.fn>;
     setQuitting: ReturnType<typeof vi.fn>;
+    // Zoom control methods
+    getZoomLevel: ReturnType<typeof vi.fn>;
+    setZoomLevel: ReturnType<typeof vi.fn>;
+    zoomIn: ReturnType<typeof vi.fn>;
+    zoomOut: ReturnType<typeof vi.fn>;
+    initializeZoomLevel: ReturnType<typeof vi.fn>;
+    applyZoomLevel: ReturnType<typeof vi.fn>;
     _reset: () => void;
 }
 
@@ -183,6 +190,13 @@ export function createMockWindowManager(overrides?: Partial<Omit<MockWindowManag
         hideToTray: vi.fn(),
         minimizeMainWindow: vi.fn(),
         setQuitting: vi.fn(),
+        // Zoom control methods
+        getZoomLevel: vi.fn().mockReturnValue(100),
+        setZoomLevel: vi.fn(),
+        zoomIn: vi.fn(),
+        zoomOut: vi.fn(),
+        initializeZoomLevel: vi.fn(),
+        applyZoomLevel: vi.fn(),
         _reset() {
             Object.values(manager).forEach((value) => {
                 if (typeof value === 'function' && value !== manager._reset && 'mockClear' in value) {

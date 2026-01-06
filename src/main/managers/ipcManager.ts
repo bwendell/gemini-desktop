@@ -58,6 +58,8 @@ interface UserPreferences extends Record<string, unknown> {
     textPredictionGpuEnabled: boolean;
     textPredictionModelStatus: ModelStatus;
     textPredictionModelId: string;
+    // Zoom settings
+    zoomLevel: number;
 }
 
 /**
@@ -113,6 +115,8 @@ export default class IpcManager {
                     textPredictionGpuEnabled: false,
                     textPredictionModelStatus: 'not-downloaded',
                     textPredictionModelId: 'qwen3-0.6b',
+                    // Zoom defaults
+                    zoomLevel: 100,
                 },
             });
         /* v8 ignore next -- production fallback, tests always inject logger */
@@ -190,6 +194,7 @@ export default class IpcManager {
         this._setupIndividualHotkeyHandlers();
         this._setupAcceleratorHandlers();
         this._setupAlwaysOnTopHandlers();
+        this._setupZoomHandlers();
         this._setupAppHandlers();
         this._setupQuickChatHandlers();
         this._setupAutoUpdateHandlers();
@@ -199,9 +204,11 @@ export default class IpcManager {
 
         // Listen for internal changes (from hotkeys or menu)
         this.windowManager.on('always-on-top-changed', this._handleAlwaysOnTopChanged.bind(this));
+        this.windowManager.on('zoom-level-changed', this._handleZoomLevelChanged.bind(this));
 
         // Initialize settings that require window to exist
         this._initializeAlwaysOnTop();
+        this._initializeZoomLevel();
 
         this.logger.log('All IPC handlers registered');
     }
@@ -759,6 +766,100 @@ export default class IpcManager {
                     error: (error as Error).message,
                     windowId: win.id,
                 });
+            }
+        });
+    }
+
+    /**
+     * Initialize zoom level from stored preference.
+     * Called after window is created.
+     * @private
+     */
+    private _initializeZoomLevel(): void {
+        try {
+            const savedZoomLevel = this.store.get('zoomLevel');
+            this.windowManager.initializeZoomLevel(savedZoomLevel);
+            // Apply zoom after a short delay to ensure window is fully ready
+            setTimeout(() => {
+                this.windowManager.applyZoomLevel();
+            }, 100);
+            this.logger.log('Zoom level initialized');
+        } catch (error) {
+            this.logger.error('Failed to initialize zoom level:', error);
+        }
+    }
+
+    /**
+     * Handle zoom level changes from WindowManager.
+     * Persists the zoom level to store and broadcasts to all windows.
+     * @private
+     * @param level - New zoom level percentage
+     */
+    private _handleZoomLevelChanged(level: number): void {
+        try {
+            // Persist preference
+            this.store.set('zoomLevel', level);
+
+            // Broadcast to all windows
+            this._broadcastZoomLevelChange(level);
+
+            this.logger.log(`Zoom level changed to: ${level}% (persisted and broadcast)`);
+        } catch (error) {
+            this.logger.error('Error handling zoom level change:', {
+                error: (error as Error).message,
+                level,
+            });
+        }
+    }
+
+    /**
+     * Broadcast zoom level change to all open windows.
+     * @private
+     * @param level - New zoom level percentage
+     */
+    private _broadcastZoomLevelChange(level: number): void {
+        const windows = BrowserWindow.getAllWindows();
+        for (const window of windows) {
+            if (!window.isDestroyed()) {
+                window.webContents.send(IPC_CHANNELS.ZOOM_LEVEL_CHANGED, level);
+            }
+        }
+    }
+
+    /**
+     * Set up Zoom level IPC handlers.
+     * @private
+     */
+    private _setupZoomHandlers(): void {
+        // Get current zoom level
+        ipcMain.handle(IPC_CHANNELS.ZOOM_GET_LEVEL, (): number => {
+            try {
+                return this.windowManager.getZoomLevel();
+            } catch (error) {
+                this.logger.error('Error getting zoom level:', error);
+                return 100; // Default
+            }
+        });
+
+        // Zoom in
+        ipcMain.handle(IPC_CHANNELS.ZOOM_IN, (): number => {
+            try {
+                this.windowManager.zoomIn();
+                return this.windowManager.getZoomLevel();
+            } catch (error) {
+                this.logger.error('Error zooming in:', error);
+                return this.windowManager.getZoomLevel();
+            }
+        });
+
+        // Zoom out
+        ipcMain.handle(IPC_CHANNELS.ZOOM_OUT, (): number => {
+            try {
+                this.windowManager.zoomOut();
+                return this.windowManager.getZoomLevel();
+            } catch (error) {
+                this.logger.error('Error zooming out:', error);
+                return this.windowManager.getZoomLevel();
             }
         });
     }

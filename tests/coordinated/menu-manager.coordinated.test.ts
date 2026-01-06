@@ -294,12 +294,14 @@ describe('MenuManager Coordinated Tests', () => {
 
         describe('Error Handling', () => {
             it('should handle missing window manager methods gracefully', () => {
-                // Create minimal WindowManager mock
+                // Create minimal WindowManager mock with required methods
                 const minimalManager = {
                     createOptionsWindow: null,
                     restoreFromTray: null,
                     toggleQuickChat: null,
-                    isAlwaysOnTop: () => false, // Added missing method
+                    isAlwaysOnTop: () => false,
+                    getZoomLevel: () => 100,
+                    on: vi.fn(), // Required for event subscription
                 } as any;
 
                 const minimalMenuManager = new MenuManager(minimalManager);

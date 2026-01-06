@@ -93,6 +93,86 @@ async function clickNativeMenuItemById(id: string): Promise<void> {
 }
 
 /**
+ * Triggers a menu item via the native Electron Menu API.
+ *
+ * **Use this when you need to reliably trigger menu items that have keyboard
+ * accelerators on all platforms.** Unlike `clickMenuItemById`, this function
+ * always uses the native Electron Menu API regardless of platform, bypassing
+ * the custom titlebar menu on Windows/Linux.
+ *
+ * This is particularly useful for testing menu accelerators that don't respond
+ * to synthesized keyboard events via WebDriver (e.g., zoom, print).
+ *
+ * @param id - The unique menu item ID (defined in MenuManager.ts)
+ * @throws Error if menu item with given ID is not found
+ *
+ * @example
+ * // Zoom in via menu
+ * await triggerMenuItemViaElectronApi('menu-view-zoom-in');
+ *
+ * // Zoom out via menu
+ * await triggerMenuItemViaElectronApi('menu-view-zoom-out');
+ */
+export async function triggerMenuItemViaElectronApi(id: string): Promise<void> {
+    const result = await browser.electron.execute((electron, itemId) => {
+        const menu = electron.Menu.getApplicationMenu();
+        if (!menu) {
+            return { success: false, error: 'Application menu not found' };
+        }
+
+        const item = menu.getMenuItemById(itemId);
+        if (!item) {
+            return { success: false, error: `Menu item with id "${itemId}" not found` };
+        }
+
+        item.click();
+        return { success: true };
+    }, id);
+
+    if (!result.success) {
+        throw new Error(`[E2E] ${result.error}`);
+    }
+
+    E2ELogger.info('menuActions', `Triggered menu item via Electron API: ${id}`);
+}
+
+// ============================================================================
+// Zoom Menu Helpers
+// ============================================================================
+
+/**
+ * Triggers a zoom-in action via the application menu.
+ *
+ * This function uses the native Electron Menu API to reliably trigger the
+ * zoom-in menu item, which is more reliable than synthesizing keyboard
+ * events via WebDriver.
+ *
+ * @example
+ * await triggerZoomIn();
+ * // Zoom level increases by one step
+ */
+export async function triggerZoomIn(): Promise<void> {
+    await triggerMenuItemViaElectronApi('menu-view-zoom-in');
+    E2ELogger.info('menuActions', 'Triggered zoom in via menu');
+}
+
+/**
+ * Triggers a zoom-out action via the application menu.
+ *
+ * This function uses the native Electron Menu API to reliably trigger the
+ * zoom-out menu item, which is more reliable than synthesizing keyboard
+ * events via WebDriver.
+ *
+ * @example
+ * await triggerZoomOut();
+ * // Zoom level decreases by one step
+ */
+export async function triggerZoomOut(): Promise<void> {
+    await triggerMenuItemViaElectronApi('menu-view-zoom-out');
+    E2ELogger.info('menuActions', 'Triggered zoom out via menu');
+}
+
+/**
  * Clicks a custom HTML menu item by ID (Windows/Linux).
  * Finds element by `data-menu-id` attribute.
  * @private
@@ -272,6 +352,8 @@ export interface MenuItemState {
     enabled: boolean;
     /** The accelerator string (e.g., 'CommandOrControl+Shift+P') */
     accelerator: string | undefined;
+    /** The menu item label */
+    label: string | undefined;
 }
 
 /**
@@ -295,13 +377,14 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
             const item = menu?.getMenuItemById(itemId);
 
             if (!item) {
-                return { exists: false, enabled: false, accelerator: undefined };
+                return { exists: false, enabled: false, accelerator: undefined, label: undefined };
             }
 
             return {
                 exists: true,
                 enabled: item.enabled,
                 accelerator: item.accelerator,
+                label: item.label,
             };
         }, id);
     } else {
@@ -312,13 +395,14 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
             const item = menu?.getMenuItemById(itemId);
 
             if (!item) {
-                return { exists: false, enabled: false, accelerator: undefined };
+                return { exists: false, enabled: false, accelerator: undefined, label: undefined };
             }
 
             return {
                 exists: true,
                 enabled: item.enabled,
                 accelerator: item.accelerator,
+                label: item.label,
             };
         }, id);
 

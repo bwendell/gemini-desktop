@@ -21,6 +21,7 @@ export function useMenuDefinitions(): MenuDefinition[] {
     // to ensure the native menu (macOS/Fallback) remains in sync.
     const [alwaysOnTop, setAlwaysOnTop] = useState(false);
     const [printToPdfAccelerator, setPrintToPdfAccelerator] = useState<string | undefined>(undefined);
+    const [zoomLevel, setZoomLevel] = useState(100);
 
     // Initialize state from main process and subscribe to changes
     useEffect(() => {
@@ -66,6 +67,28 @@ export function useMenuDefinitions(): MenuDefinition[] {
         };
     }, []);
 
+    // Initialize zoom level from main process and subscribe to changes
+    useEffect(() => {
+        // Get initial state
+        window.electronAPI
+            ?.getZoomLevel()
+            .then((level) => {
+                setZoomLevel(level);
+            })
+            .catch((error) => {
+                logger.error('Failed to get zoom level:', error);
+            });
+
+        // Subscribe to changes
+        const cleanup = window.electronAPI?.onZoomLevelChanged((level) => {
+            setZoomLevel(level);
+        });
+
+        return () => {
+            cleanup?.();
+        };
+    }, []);
+
     // Format accelerator for display (Windows/Linux use Ctrl)
     // Replaces "CommandOrControl" with "Ctrl"
     const formattedPrintToPdfAccelerator = printToPdfAccelerator
@@ -77,6 +100,16 @@ export function useMenuDefinitions(): MenuDefinition[] {
         // Fire and forget - state update will come via onAlwaysOnTopChanged event
         window.electronAPI?.setAlwaysOnTop(newState);
     }, [alwaysOnTop]);
+
+    const handleZoomIn = useCallback(() => {
+        // Fire and forget - state update will come via onZoomLevelChanged event
+        window.electronAPI?.zoomIn();
+    }, []);
+
+    const handleZoomOut = useCallback(() => {
+        // Fire and forget - state update will come via onZoomLevelChanged event
+        window.electronAPI?.zoomOut();
+    }, []);
 
     return [
         {
@@ -136,6 +169,19 @@ export function useMenuDefinitions(): MenuDefinition[] {
                     label: 'Reload',
                     shortcut: 'Ctrl+R',
                     action: () => window.location.reload(),
+                },
+                { separator: true },
+                {
+                    id: 'menu-view-zoom-in',
+                    label: `Zoom In (${zoomLevel}%)`,
+                    shortcut: 'Ctrl+=',
+                    action: handleZoomIn,
+                },
+                {
+                    id: 'menu-view-zoom-out',
+                    label: `Zoom Out (${zoomLevel}%)`,
+                    shortcut: 'Ctrl+-',
+                    action: handleZoomOut,
                 },
                 { separator: true },
                 {

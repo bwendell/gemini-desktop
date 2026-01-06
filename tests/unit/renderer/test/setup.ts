@@ -94,6 +94,12 @@ const mockElectronAPI = {
     setAlwaysOnTop: vi.fn(),
     onAlwaysOnTopChanged: vi.fn().mockReturnValue(() => {}),
 
+    // Zoom API
+    getZoomLevel: vi.fn().mockResolvedValue(100),
+    zoomIn: vi.fn().mockResolvedValue(110),
+    zoomOut: vi.fn().mockResolvedValue(90),
+    onZoomLevelChanged: vi.fn().mockReturnValue(() => {}),
+
     // Quick Chat API
     submitQuickChat: vi.fn(),
     hideQuickChat: vi.fn(),

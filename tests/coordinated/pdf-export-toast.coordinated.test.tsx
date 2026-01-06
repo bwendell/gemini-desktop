@@ -90,6 +90,11 @@ describe('PDF Export Toast Coordination', () => {
             onPrintProgress: vi.fn().mockReturnValue(vi.fn()),
             onLinuxHotkeyNotice: vi.fn().mockReturnValue(vi.fn()),
             onAuthSessionExpired: vi.fn().mockReturnValue(vi.fn()),
+            // Zoom API
+            getZoomLevel: vi.fn().mockResolvedValue(100),
+            zoomIn: vi.fn().mockResolvedValue(110),
+            zoomOut: vi.fn().mockResolvedValue(90),
+            onZoomLevelChanged: vi.fn().mockReturnValue(vi.fn()),
         };
     });
 

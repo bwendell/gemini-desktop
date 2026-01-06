@@ -43,6 +43,12 @@ export const IPC_CHANNELS = {
     ALWAYS_ON_TOP_SET: 'always-on-top:set',
     ALWAYS_ON_TOP_CHANGED: 'always-on-top:changed',
 
+    // Zoom
+    ZOOM_GET_LEVEL: 'zoom:get-level',
+    ZOOM_IN: 'zoom:zoom-in',
+    ZOOM_OUT: 'zoom:zoom-out',
+    ZOOM_LEVEL_CHANGED: 'zoom:level-changed',
+
     // Individual Hotkeys
     HOTKEYS_INDIVIDUAL_GET: 'hotkeys:individual:get',
     HOTKEYS_INDIVIDUAL_SET: 'hotkeys:individual:set',

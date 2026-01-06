@@ -46,6 +46,11 @@ export default class MenuManager {
                 }
             });
         }
+
+        // Subscribe to zoom level changes to update menu labels
+        windowManager.on('zoom-level-changed', () => {
+            this.rebuildMenuWithAccelerators();
+        });
     }
 
     /**
@@ -309,12 +314,32 @@ export default class MenuManager {
     }
 
     private buildViewMenu(): MenuItemConstructorOptions {
+        const zoomLevel = this.windowManager.getZoomLevel();
+        const zoomLabel = `(${zoomLevel}%)`;
+
         return {
             label: 'View',
             submenu: [
                 { role: 'reload', id: 'menu-view-reload' },
                 { role: 'forceReload', id: 'menu-view-forcereload' },
                 { role: 'toggleDevTools', id: 'menu-view-devtools' },
+                { type: 'separator' },
+                {
+                    label: `Zoom In ${zoomLabel}`,
+                    id: 'menu-view-zoom-in',
+                    accelerator: 'CmdOrCtrl+=',
+                    click: () => {
+                        this.windowManager.zoomIn();
+                    },
+                },
+                {
+                    label: `Zoom Out ${zoomLabel}`,
+                    id: 'menu-view-zoom-out',
+                    accelerator: 'CmdOrCtrl+-',
+                    click: () => {
+                        this.windowManager.zoomOut();
+                    },
+                },
                 { type: 'separator' },
                 {
                     label: 'Always On Top',

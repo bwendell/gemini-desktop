@@ -74,6 +74,12 @@ interface Window {
         setAlwaysOnTop: (enabled: boolean) => void;
         onAlwaysOnTopChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
 
+        // Zoom API
+        getZoomLevel: () => Promise<number>;
+        zoomIn: () => Promise<number>;
+        zoomOut: () => Promise<number>;
+        onZoomLevelChanged: (callback: (level: number) => void) => () => void;
+
         // Auto-Update API
         getAutoUpdateEnabled: () => Promise<boolean>;
         setAutoUpdateEnabled: (enabled: boolean) => void;

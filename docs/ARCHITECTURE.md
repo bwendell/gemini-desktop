@@ -176,9 +176,17 @@ gemini-desktop/
 
 **Name:** `WindowManager` (`src/main/managers/windowManager.ts`)
 
-**Description:** Orchestrates the creation, lifecycle, and state of all application windows. Manages show/hide operations, tray minimization, and cross-window coordination. Maintains references to MainWindow, OptionsWindow, QuickChatWindow, and AuthWindow instances.
+**Description:** Orchestrates the creation, lifecycle, and state of all application windows. Manages show/hide operations, tray minimization, and cross-window coordination. Maintains references to MainWindow, OptionsWindow, QuickChatWindow, and AuthWindow instances. Also provides zoom control functionality for the main window.
 
 **Technologies:** Electron BrowserWindow API, TypeScript
+
+**Zoom Control:**
+
+- `getZoomLevel()` / `setZoomLevel(level)` - Get/set zoom percentage (50%-200%)
+- `zoomIn()` / `zoomOut()` - Step through standard zoom levels
+- Zoom steps: 50%, 67%, 75%, 80%, 90%, 100%, 110%, 125%, 150%, 175%, 200%
+- **Scope:** Main window only - Options and Quick Chat windows are not affected
+- Zoom level persists to settings and is restored on app restart
 
 #### 3.2.2. IPC Manager
 
@@ -216,9 +224,15 @@ gemini-desktop/
 
 **Name:** `MenuManager` (`src/main/managers/menuManager.ts`)
 
-**Description:** Constructs the application menu bar with platform-specific layouts. Provides menu items for window controls, editing, view options, and help/about access.
+**Description:** Constructs the application menu bar with platform-specific layouts. Provides menu items for window controls, editing, view options (including zoom), and help/about access.
 
 **Technologies:** Electron Menu API, TypeScript
+
+**View Menu Zoom Items:**
+
+- "Zoom In (X%)" - `Ctrl+=` / `Cmd+=` - Increases zoom to next step
+- "Zoom Out (X%)" - `Ctrl+-` / `Cmd+-` - Decreases zoom to previous step
+- Menu labels display current zoom percentage and update after changes
 
 #### 3.2.7. Toast Utility (Main Process)
 
@@ -315,6 +329,7 @@ The application uses a layered toast system to provide non-intrusive feedback:
 - `individualHotkeys` - Per-hotkey enabled/disabled state
 - `autoUpdateEnabled` - Auto-update preference
 - `windowBounds` - Last window position and size
+- `zoomLevel` - Main window zoom percentage (50-200, default: 100)
 
 ### 4.2. Session Storage
 

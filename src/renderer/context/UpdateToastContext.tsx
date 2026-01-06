@@ -137,38 +137,38 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         installUpdate: baseInstallUpdate,
     } = useUpdateNotifications();
 
+    // Stable ID for update toasts (must match the ID used in showToast below)
+    const UPDATE_TOAST_ID = 'update-notification';
+
     /**
      * Dismiss the current toast and call the base dismiss function
      */
     const dismissNotification = useCallback(() => {
-        if (currentToastId) {
-            dismissToast(currentToastId);
-            setCurrentToastId(null);
-        }
+        // Always dismiss using the stable ID to avoid race condition with queueMicrotask
+        dismissToast(UPDATE_TOAST_ID);
+        setCurrentToastId(null);
         baseDismissNotification();
-    }, [currentToastId, dismissToast, baseDismissNotification]);
+    }, [dismissToast, baseDismissNotification]);
 
     /**
      * Handle "Later" action - dismiss toast but keep pending flag
      */
     const handleLater = useCallback(() => {
-        if (currentToastId) {
-            dismissToast(currentToastId);
-            setCurrentToastId(null);
-        }
+        // Always dismiss using the stable ID to avoid race condition with queueMicrotask
+        dismissToast(UPDATE_TOAST_ID);
+        setCurrentToastId(null);
         baseHandleLater();
-    }, [currentToastId, dismissToast, baseHandleLater]);
+    }, [dismissToast, baseHandleLater]);
 
     /**
      * Install the update
      */
     const installUpdate = useCallback(() => {
-        if (currentToastId) {
-            dismissToast(currentToastId);
-            setCurrentToastId(null);
-        }
+        // Always dismiss using the stable ID to avoid race condition with queueMicrotask
+        dismissToast(UPDATE_TOAST_ID);
+        setCurrentToastId(null);
         baseInstallUpdate();
-    }, [currentToastId, dismissToast, baseInstallUpdate]);
+    }, [dismissToast, baseInstallUpdate]);
 
     // Update callbacks ref in effect to avoid updating during render
     useEffect(() => {
@@ -211,17 +211,14 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         const version = updateInfo?.version;
         const message = getMessage(type, version, errorMessage, downloadProgress);
 
-        // Use a stable ID for update toasts so we can update them
-        const toastId = 'update-notification';
-
         // Dismiss existing toast before showing new one (for type changes)
-        if (currentToastId && currentToastId !== toastId) {
+        if (currentToastId && currentToastId !== UPDATE_TOAST_ID) {
             dismissToast(currentToastId);
         }
 
         // Show the toast via the generic ToastContext
         const id = showToast({
-            id: toastId,
+            id: UPDATE_TOAST_ID,
             type: mapToToastType(type),
             title: getTitle(type),
             message,
@@ -230,7 +227,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             persistent: true, // Update toasts should not auto-dismiss
         });
 
-        setCurrentToastId(id);
+        queueMicrotask(() => setCurrentToastId(id));
     }, [type, visible, updateInfo, errorMessage, downloadProgress, showToast, dismissToast]);
 
     const contextValue: UpdateToastContextType = {

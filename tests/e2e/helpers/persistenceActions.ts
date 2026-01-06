@@ -165,6 +165,7 @@ export interface UserPreferencesData {
     acceleratorBossKey?: string;
     acceleratorQuickChat?: string;
     autoUpdateEnabled?: boolean;
+    zoomLevel?: number;
     [key: string]: unknown;
 }
 

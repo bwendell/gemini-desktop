@@ -135,6 +135,12 @@ const mockElectronAPI = {
     // Tray API
     getTrayTooltip: vi.fn().mockResolvedValue('Gemini'),
 
+    // Zoom API
+    getZoomLevel: vi.fn().mockResolvedValue(100),
+    zoomIn: vi.fn().mockResolvedValue(110),
+    zoomOut: vi.fn().mockResolvedValue(90),
+    onZoomLevelChanged: vi.fn().mockReturnValue(() => {}),
+
     // Dev Testing API
     devShowBadge: vi.fn(),
     devClearBadge: vi.fn(),

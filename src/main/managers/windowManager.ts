@@ -18,12 +18,19 @@ import QuickChatWindow from '../windows/quickChatWindow';
 
 const logger = createLogger('[WindowManager]');
 
+/**
+ * Standard zoom level steps matching Chrome/Firefox behavior.
+ * Range: 50% to 200% inclusive.
+ */
+export const ZOOM_LEVEL_STEPS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200] as const;
+
 export default class WindowManager extends EventEmitter {
     readonly isDev: boolean;
     private mainWindow: MainWindow;
     private optionsWindow: OptionsWindow;
     private authWindow: AuthWindow;
     private quickChatWindow: QuickChatWindow;
+    private _zoomLevel: number = 100;
 
     /**
      * Creates a new WindowManager instance.
@@ -197,5 +204,163 @@ export default class WindowManager extends EventEmitter {
      */
     isAlwaysOnTop(): boolean {
         return this.mainWindow.isAlwaysOnTop();
+    }
+
+    /**
+     * Get the current zoom level percentage.
+     * @returns The zoom level as a percentage (e.g., 100 for 100%)
+     */
+    getZoomLevel(): number {
+        return this._zoomLevel;
+    }
+
+    /**
+     * Validate and sanitize a zoom level value.
+     * Returns the closest valid zoom step if the value is invalid or out of range.
+     * @param level - The zoom level to validate (percentage)
+     * @returns A valid zoom level percentage
+     */
+    private _sanitizeZoomLevel(level: unknown): number {
+        // Handle invalid types
+        if (typeof level !== 'number' || isNaN(level) || !isFinite(level)) {
+            return 100; // Default to 100%
+        }
+
+        // Clamp to valid range
+        const minZoom = ZOOM_LEVEL_STEPS[0];
+        const maxZoom = ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1];
+        if (level <= minZoom) return minZoom;
+        if (level >= maxZoom) return maxZoom;
+
+        // Find the nearest valid step
+        return this._findNearestZoomStep(level);
+    }
+
+    /**
+     * Find the nearest valid zoom step for a given level.
+     * @param level - The zoom level to find nearest step for
+     * @returns The nearest valid zoom step
+     */
+    private _findNearestZoomStep(level: number): number {
+        let nearestStep: number = ZOOM_LEVEL_STEPS[0];
+        let minDistance = Math.abs(level - nearestStep);
+
+        for (const step of ZOOM_LEVEL_STEPS) {
+            const distance = Math.abs(level - step);
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestStep = step;
+            }
+        }
+
+        return nearestStep;
+    }
+
+    /**
+     * Apply the current zoom level to the main window's webContents.
+     * Silently returns if window is unavailable.
+     * @private
+     */
+    private _applyZoomToWindow(): void {
+        const win = this.getMainWindow();
+        if (!win || win.isDestroyed()) {
+            logger.warn('Cannot apply zoom: main window unavailable');
+            return;
+        }
+
+        try {
+            // WebContents.setZoomFactor uses a multiplier (1.0 = 100%)
+            const zoomFactor = this._zoomLevel / 100;
+            win.webContents.setZoomFactor(zoomFactor);
+            logger.log(`Zoom applied: ${this._zoomLevel}% (factor: ${zoomFactor})`);
+        } catch (error) {
+            logger.error('Failed to apply zoom to window:', error);
+        }
+    }
+
+    /**
+     * Set the zoom level for the main window.
+     * Validates the level and persists/broadcasts the change.
+     * @param level - The zoom level percentage (50-200)
+     */
+    setZoomLevel(level: number): void {
+        const sanitizedLevel = this._sanitizeZoomLevel(level);
+
+        // Avoid unnecessary updates
+        if (sanitizedLevel === this._zoomLevel) {
+            return;
+        }
+
+        this._zoomLevel = sanitizedLevel;
+        this._applyZoomToWindow();
+        this.emit('zoom-level-changed', sanitizedLevel);
+        logger.log(`Zoom level set to: ${sanitizedLevel}%`);
+    }
+
+    /**
+     * Zoom in to the next zoom step.
+     * Capped at 200%.
+     */
+    zoomIn(): void {
+        const steps = ZOOM_LEVEL_STEPS as readonly number[];
+        const currentIndex = steps.indexOf(this._zoomLevel);
+
+        if (currentIndex === -1) {
+            // Current zoom is not a standard step, snap to next higher step
+            const nextStep = ZOOM_LEVEL_STEPS.find((step) => step > this._zoomLevel);
+            if (nextStep !== undefined) {
+                this.setZoomLevel(nextStep);
+            } else {
+                // Already at or above max, set to max
+                this.setZoomLevel(ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1]);
+            }
+        } else if (currentIndex < ZOOM_LEVEL_STEPS.length - 1) {
+            // Move to next step
+            this.setZoomLevel(ZOOM_LEVEL_STEPS[currentIndex + 1]);
+        }
+        // else: already at max, do nothing
+    }
+
+    /**
+     * Zoom out to the previous zoom step.
+     * Capped at 50%.
+     */
+    zoomOut(): void {
+        const steps = ZOOM_LEVEL_STEPS as readonly number[];
+        const currentIndex = steps.indexOf(this._zoomLevel);
+
+        if (currentIndex === -1) {
+            // Current zoom is not a standard step, snap to next lower step
+            const reversedSteps = [...ZOOM_LEVEL_STEPS].reverse();
+            const nextStep = reversedSteps.find((step) => step < this._zoomLevel);
+            if (nextStep !== undefined) {
+                this.setZoomLevel(nextStep);
+            } else {
+                // Already at or below min, set to min
+                this.setZoomLevel(ZOOM_LEVEL_STEPS[0]);
+            }
+        } else if (currentIndex > 0) {
+            // Move to previous step
+            this.setZoomLevel(ZOOM_LEVEL_STEPS[currentIndex - 1]);
+        }
+        // else: already at min, do nothing
+    }
+
+    /**
+     * Initialize zoom level from a stored value.
+     * Called during app initialization to restore persisted zoom.
+     * @param level - The stored zoom level (may be invalid)
+     */
+    initializeZoomLevel(level: unknown): void {
+        this._zoomLevel = this._sanitizeZoomLevel(level);
+        logger.log(`Zoom level initialized to: ${this._zoomLevel}%`);
+    }
+
+    /**
+     * Apply the current zoom level to the main window.
+     * Called after main window is created to restore persisted zoom.
+     */
+    applyZoomLevel(): void {
+        this._applyZoomToWindow();
     }
 }

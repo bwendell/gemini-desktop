@@ -157,7 +157,7 @@ describe('useMenuDefinitions', () => {
         it('Toggle Fullscreen is disabled', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
-            const toggleItem = viewMenu.items[4]; // After Always On Top and separator
+            const toggleItem = viewMenu.items[7]; // After Zoom In, Zoom Out, Always On Top and separators
 
             expect(toggleItem).toHaveProperty('label', 'Toggle Fullscreen');
             expect(toggleItem).toHaveProperty('disabled', true);
@@ -166,7 +166,7 @@ describe('useMenuDefinitions', () => {
         it('has Always On Top item with correct properties', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
-            const alwaysOnTopItem = viewMenu.items[2];
+            const alwaysOnTopItem = viewMenu.items[5]; // After Reload, separator, Zoom In, Zoom Out, separator
 
             expect(alwaysOnTopItem).toHaveProperty('id', 'menu-view-always-on-top');
             expect(alwaysOnTopItem).toHaveProperty('label', 'Always On Top');
@@ -178,7 +178,7 @@ describe('useMenuDefinitions', () => {
         it('Always On Top action calls setAlwaysOnTop and updates state', async () => {
             const { result, rerender } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
-            const alwaysOnTopItem = viewMenu.items[2];
+            const alwaysOnTopItem = viewMenu.items[5];
 
             // Initial state should be false
             expect(alwaysOnTopItem).toHaveProperty('checked', false);
@@ -202,22 +202,22 @@ describe('useMenuDefinitions', () => {
             // After rerender, checked should be true
             rerender();
             const updatedViewMenu = result.current[1];
-            const updatedItem = updatedViewMenu.items[2];
+            const updatedItem = updatedViewMenu.items[5];
             expect(updatedItem).toHaveProperty('checked', true);
         });
 
-        it('has separator before Always On Top', () => {
+        it('has separator before Zoom In', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
 
             expect(viewMenu.items[1]).toEqual({ separator: true });
         });
 
-        it('has separator after Always On Top', () => {
+        it('has separator after Zoom Out', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
 
-            expect(viewMenu.items[3]).toEqual({ separator: true });
+            expect(viewMenu.items[4]).toEqual({ separator: true });
         });
 
         it('subscribes to always-on-top changes on mount', () => {
@@ -252,7 +252,7 @@ describe('useMenuDefinitions', () => {
 
             // alwaysOnTop state should remain at default (false)
             const viewMenu = result.current[1];
-            const alwaysOnTopItem = viewMenu.items[2];
+            const alwaysOnTopItem = viewMenu.items[5];
             expect(alwaysOnTopItem).toHaveProperty('checked', false);
         });
     });

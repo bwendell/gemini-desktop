@@ -160,6 +160,22 @@ export interface ElectronAPI {
     onAlwaysOnTopChanged: (callback: (data: { enabled: boolean }) => void) => () => void;
 
     // =========================================================================
+    // Zoom API
+    // =========================================================================
+
+    /** Get current zoom level percentage (50-200) */
+    getZoomLevel: () => Promise<number>;
+
+    /** Increase zoom level to next step */
+    zoomIn: () => Promise<number>;
+
+    /** Decrease zoom level to previous step */
+    zoomOut: () => Promise<number>;
+
+    /** Listen for zoom level changes. Returns unsubscribe function. */
+    onZoomLevelChanged: (callback: (level: number) => void) => () => void;
+
+    // =========================================================================
     // Auto-Update API
     // =========================================================================
 

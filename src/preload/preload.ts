@@ -59,6 +59,12 @@ export const IPC_CHANNELS = {
     ALWAYS_ON_TOP_SET: 'always-on-top:set',
     ALWAYS_ON_TOP_CHANGED: 'always-on-top:changed',
 
+    // Zoom
+    ZOOM_GET_LEVEL: 'zoom:get-level',
+    ZOOM_IN: 'zoom:zoom-in',
+    ZOOM_OUT: 'zoom:zoom-out',
+    ZOOM_LEVEL_CHANGED: 'zoom:level-changed',
+
     // Individual Hotkeys
     HOTKEYS_INDIVIDUAL_GET: 'hotkeys:individual:get',
     HOTKEYS_INDIVIDUAL_SET: 'hotkeys:individual:set',
@@ -397,6 +403,43 @@ const electronAPI: ElectronAPI = {
 
         return () => {
             ipcRenderer.removeListener(IPC_CHANNELS.ALWAYS_ON_TOP_CHANGED, subscription);
+        };
+    },
+
+    // =========================================================================
+    // Zoom API
+    // Window zoom level control
+    // =========================================================================
+
+    /**
+     * Get the current zoom level percentage.
+     * @returns Promise resolving to zoom level (50-200)
+     */
+    getZoomLevel: () => ipcRenderer.invoke(IPC_CHANNELS.ZOOM_GET_LEVEL),
+
+    /**
+     * Zoom in (increase zoom level to next step).
+     * @returns Promise resolving to new zoom level
+     */
+    zoomIn: () => ipcRenderer.invoke(IPC_CHANNELS.ZOOM_IN),
+
+    /**
+     * Zoom out (decrease zoom level to previous step).
+     * @returns Promise resolving to new zoom level
+     */
+    zoomOut: () => ipcRenderer.invoke(IPC_CHANNELS.ZOOM_OUT),
+
+    /**
+     * Subscribe to zoom level change events.
+     * @param callback - Function called with new zoom level percentage
+     * @returns Cleanup function to unsubscribe
+     */
+    onZoomLevelChanged: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, level: number) => callback(level);
+        ipcRenderer.on(IPC_CHANNELS.ZOOM_LEVEL_CHANGED, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.ZOOM_LEVEL_CHANGED, subscription);
         };
     },
 
