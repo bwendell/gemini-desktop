@@ -23,9 +23,9 @@ describe('Auto-Update User Interactions', () => {
 
         // Disable auto-updates settings via IPC to stop the startup check
         await browser.execute(() => {
-            // @ts-ignore - electronAPI exposed at runtime
+            // @ts-expect-error - electronAPI exposed at runtime
             if (window.electronAPI) {
-                // @ts-ignore
+                // @ts-expect-error
                 window.electronAPI.setAutoUpdateEnabled(false);
             }
         });

@@ -59,7 +59,7 @@ describe('Fatal Error Integration', () => {
                 try {
                     // Intentionally throw an error
                     throw new Error('Test error in renderer');
-                } catch (e) {
+                } catch (_e) {
                     return 'caught';
                 }
             });
@@ -95,7 +95,7 @@ describe('Fatal Error Integration', () => {
                         el.innerHTML = 'test';
                     }
                     return 'handled';
-                } catch (e) {
+                } catch (_e) {
                     return 'error';
                 }
             });
@@ -145,7 +145,7 @@ describe('Fatal Error Integration', () => {
                     const val = localStorage.getItem('test-key');
                     localStorage.removeItem('test-key');
                     return val === 'test-value';
-                } catch (e) {
+                } catch (_e) {
                     return false;
                 }
             });

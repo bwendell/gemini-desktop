@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         const triggerId = this.props.testId || 'app';
         const triggerName = `__ERROR_BOUNDARY_TRIGGER_${triggerId.toUpperCase()}__`;
 
-        // @ts-ignore - E2E testing hook
+        // @ts-expect-error - E2E testing hook
         window[triggerName] = () => {
             this.setState({
                 hasError: true,
@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         // Cleanup E2E test trigger
         const triggerId = this.props.testId || 'app';
         const triggerName = `__ERROR_BOUNDARY_TRIGGER_${triggerId.toUpperCase()}__`;
-        // @ts-ignore
+        // @ts-expect-error
         delete window[triggerName];
     }
 

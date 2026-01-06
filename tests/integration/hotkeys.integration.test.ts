@@ -12,7 +12,7 @@ describe('Global Hotkeys Integration', () => {
             // Check if the 'quickChat' accelerator is registered
             // We know the accelerator is 'CommandOrControl+Shift+Space'
             // We can also check internal manager state
-            // @ts-ignore
+            // @ts-expect-error
             return global.hotkeyManager.isIndividualEnabled('quickChat');
         });
 
@@ -28,7 +28,7 @@ describe('Global Hotkeys Integration', () => {
 
         // Verify in Main Process
         const isEnabled = await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             return global.hotkeyManager.isIndividualEnabled('quickChat');
         });
 
@@ -43,7 +43,7 @@ describe('Global Hotkeys Integration', () => {
 
         // Verify in Main Process
         const isEnabled = await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             return global.hotkeyManager.isIndividualEnabled('quickChat');
         });
 
@@ -75,7 +75,7 @@ describe('Global Hotkeys Integration', () => {
 
         // 2. Verify in Main Process
         const savedAccelerator = await browser.electron.execute((_electron) => {
-            // @ts-ignore
+            // @ts-expect-error
             return global.hotkeyManager.getAccelerator('alwaysOnTop');
         });
 
@@ -89,7 +89,7 @@ describe('Global Hotkeys Integration', () => {
     describe('Cross-Platform Behavior', () => {
         it('should use CommandOrControl in all default accelerators', async () => {
             const accelerators = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.getAccelerators();
             });
 
@@ -118,7 +118,7 @@ describe('Global Hotkeys Integration', () => {
 
             // Verify it's stored as-is (not expanded to Ctrl/Cmd)
             const stored = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.getAccelerator('bossKey');
             });
 

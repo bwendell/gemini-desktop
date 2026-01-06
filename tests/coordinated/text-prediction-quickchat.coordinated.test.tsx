@@ -9,7 +9,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import QuickChatApp from '../../src/renderer/components/quickchat/QuickChatApp';
 import type { TextPredictionSettings } from '../../src/shared/types/text-prediction';
 import { useFakeTimers, useRealTimers } from '../helpers/harness';

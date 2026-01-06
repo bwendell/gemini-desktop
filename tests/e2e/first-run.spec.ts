@@ -29,9 +29,7 @@
 import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
-import { sendKeyboardShortcut, KeyboardShortcuts } from './helpers/keyboardActions';
 import { clickMenuItemById } from './helpers/menuActions';
-import { isMacOS } from './helpers/platform';
 
 describe('First-Run Experience', () => {
     beforeEach(async () => {

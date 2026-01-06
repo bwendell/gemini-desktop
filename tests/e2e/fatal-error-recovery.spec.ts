@@ -50,7 +50,7 @@ describe('Fatal Error Recovery E2E', () => {
                     try {
                         const title = await browser.getTitle();
                         return title === 'Gemini Desktop';
-                    } catch (error) {
+                    } catch (_error) {
                         // Ignore tab crashed errors during reload
                         return false;
                     }
@@ -76,9 +76,9 @@ describe('Fatal Error Recovery E2E', () => {
             // Note: We use a global function instead of IPC to avoid test environment flakiness
             // This still tests the error boundary UI rendering and recovery flow
             await browser.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 if (window.__GEMINI_TRIGGER_FATAL_ERROR__) {
-                    // @ts-ignore
+                    // @ts-expect-error
                     window.__GEMINI_TRIGGER_FATAL_ERROR__();
                 } else {
                     throw new Error('Global error trigger not found');

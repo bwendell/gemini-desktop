@@ -106,7 +106,7 @@ export class ToastPage extends BasePage {
     async showToast(options: ShowToastOptions): Promise<string> {
         this.log(`Showing toast: type=${options.type}, message=${options.message}`);
         const id = await browser.execute((opts: ShowToastOptions) => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             return window.__toastTestHelpers.showToast(opts);
         }, options);
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
@@ -123,7 +123,7 @@ export class ToastPage extends BasePage {
         this.log(`Showing success toast: ${message}`);
         const id = await browser.execute(
             (msg: string, opts: Partial<ShowToastOptions> | undefined) => {
-                // @ts-ignore - test helper
+                // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showSuccess(msg, opts);
             },
             message,
@@ -143,7 +143,7 @@ export class ToastPage extends BasePage {
         this.log(`Showing error toast: ${message}`);
         const id = await browser.execute(
             (msg: string, opts: Partial<ShowToastOptions> | undefined) => {
-                // @ts-ignore - test helper
+                // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showError(msg, opts);
             },
             message,
@@ -163,7 +163,7 @@ export class ToastPage extends BasePage {
         this.log(`Showing info toast: ${message}`);
         const id = await browser.execute(
             (msg: string, opts: Partial<ShowToastOptions> | undefined) => {
-                // @ts-ignore - test helper
+                // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showInfo(msg, opts);
             },
             message,
@@ -183,7 +183,7 @@ export class ToastPage extends BasePage {
         this.log(`Showing warning toast: ${message}`);
         const id = await browser.execute(
             (msg: string, opts: Partial<ShowToastOptions> | undefined) => {
-                // @ts-ignore - test helper
+                // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showWarning(msg, opts);
             },
             message,
@@ -204,7 +204,7 @@ export class ToastPage extends BasePage {
         this.log(`Showing progress toast: ${message} (${progress}%)`);
         const id = await browser.execute(
             (msg: string, prog: number, opts: Partial<ShowToastOptions> | undefined) => {
-                // @ts-ignore - test helper
+                // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showToast({
                     type: 'progress',
                     message: msg,
@@ -228,7 +228,7 @@ export class ToastPage extends BasePage {
     async dismissToastById(id: string): Promise<void> {
         this.log(`Dismissing toast by ID: ${id}`);
         await browser.execute((toastId: string) => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             window.__toastTestHelpers.dismissToast(toastId);
         }, id);
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
@@ -240,7 +240,7 @@ export class ToastPage extends BasePage {
     async dismissAll(): Promise<void> {
         this.log('Dismissing all toasts');
         await browser.execute(() => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             window.__toastTestHelpers.dismissAll();
         });
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
@@ -251,7 +251,7 @@ export class ToastPage extends BasePage {
      */
     async getToasts(): Promise<Array<{ id: string; type: ToastType; message: string }>> {
         return browser.execute(() => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             return window.__toastTestHelpers.getToasts();
         });
     }
@@ -670,7 +670,7 @@ export class ToastPage extends BasePage {
         for (let i = 0; i < count; i++) {
             const id = await browser.execute(
                 (t: ToastType, msg: string, opts: typeof options) => {
-                    // @ts-ignore - test helper
+                    // @ts-expect-error - test helper
                     return window.__toastTestHelpers.showToast({
                         type: t,
                         message: msg,
@@ -750,7 +750,7 @@ export class ToastPage extends BasePage {
      */
     async getLastActionClicked(): Promise<{ label: string; index: number } | null> {
         return browser.execute(() => {
-            // @ts-ignore - test tracking
+            // @ts-expect-error - test tracking
             return window.__lastActionClicked ?? null;
         });
     }
@@ -761,7 +761,7 @@ export class ToastPage extends BasePage {
      */
     async clearActionClickTracking(): Promise<void> {
         await browser.execute(() => {
-            // @ts-ignore - test tracking
+            // @ts-expect-error - test tracking
             delete window.__lastActionClicked;
         });
     }
@@ -792,7 +792,7 @@ export class ToastPage extends BasePage {
                 actionDefs: Array<{ label: string; primary?: boolean }>,
                 opts: Partial<ShowToastOptions> | undefined
             ) => {
-                // @ts-ignore - test helper
+                // @ts-expect-error - test helper
                 const helpers = window.__toastTestHelpers;
                 if (!helpers) {
                     throw new Error('Toast test helpers not found. Is the app running in dev mode?');
@@ -803,7 +803,7 @@ export class ToastPage extends BasePage {
                     (action: { label: string; primary?: boolean }, index: number) => ({
                         ...action,
                         onClick: () => {
-                            // @ts-ignore - test tracking
+                            // @ts-expect-error - test tracking
                             window.__lastActionClicked = { label: action.label, index };
                         },
                     })

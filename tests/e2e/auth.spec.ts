@@ -9,13 +9,12 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { MainWindowPage, AuthWindowPage } from './pages';
-import { waitForWindowCount, switchToWindowByIndex } from './helpers/windowActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 
 describe('Authentication Flow', () => {
-    const mainWindow = new MainWindowPage();
+    const _mainWindow = new MainWindowPage();
     const authWindow = new AuthWindowPage();
 
     /**
@@ -249,7 +248,7 @@ describe('Authentication Flow', () => {
         );
 
         expect(testCookie).toBeDefined();
-        // @ts-ignore
+        // @ts-expect-error
         expect(testCookie.value).toBe('shared-session-verified');
 
         E2ELogger.info('auth', 'Verified cookie set in Auth window is visible in Main window');

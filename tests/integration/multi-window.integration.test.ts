@@ -14,7 +14,7 @@ describe('Multi-Window Coordination (Quick Chat)', () => {
     it('should open Quick Chat window via Main Process invocation', async () => {
         // Invoke toggleQuickChat directly in Main Process via wdio-electron-service
         await browser.electron.execute(() => {
-            // @ts-ignore - exposed in main.ts
+            // @ts-expect-error - exposed in main.ts
             global.windowManager.toggleQuickChat();
         });
 
@@ -45,7 +45,7 @@ describe('Multi-Window Coordination (Quick Chat)', () => {
     it('should close Quick Chat window via Main Process invocation', async () => {
         // Toggle again to close
         await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             global.windowManager.toggleQuickChat();
         });
 
@@ -53,7 +53,7 @@ describe('Multi-Window Coordination (Quick Chat)', () => {
         await browser.waitUntil(
             async () => {
                 return await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const win = global.windowManager.getQuickChatWindow();
                     return win ? !win.isVisible() : true;
                 });

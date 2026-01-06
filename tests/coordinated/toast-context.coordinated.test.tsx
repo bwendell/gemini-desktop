@@ -134,19 +134,19 @@ describe('ToastContext ↔ ToastContainer Coordination', () => {
                 await vi.advanceTimersByTimeAsync(10);
             });
 
-            let id1: string = '';
+            let _id1: string = '';
             let id2: string = '';
-            let id3: string = '';
+            let _id3: string = '';
 
             // Add three toasts
             await reactAct(async () => {
-                id1 = toastApi!.showToast({
+                _id1 = toastApi!.showToast({
                     type: 'success',
                     message: 'Toast 1',
                     persistent: true,
                 });
                 id2 = toastApi!.showToast({ type: 'info', message: 'Toast 2', persistent: true });
-                id3 = toastApi!.showToast({
+                _id3 = toastApi!.showToast({
                     type: 'warning',
                     message: 'Toast 3',
                     persistent: true,

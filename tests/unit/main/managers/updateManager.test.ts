@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
-import EventEmitter from 'events';
 import UpdateManager from '../../../../src/main/managers/updateManager';
 import SettingsStore from '../../../../src/store';
 

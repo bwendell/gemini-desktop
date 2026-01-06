@@ -11,7 +11,7 @@ import HotkeyManager from '../../src/main/managers/hotkeyManager';
 
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+
 import { stubPlatform, restorePlatform } from '../helpers/harness';
 
 // Mock fs

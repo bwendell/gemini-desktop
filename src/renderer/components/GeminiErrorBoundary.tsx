@@ -44,7 +44,7 @@ export class GeminiErrorBoundary extends Component<GeminiErrorBoundaryProps, Gem
         }
 
         // Expose direct trigger for E2E tests (bypasses IPC channel complexity)
-        // @ts-ignore
+        // @ts-expect-error
         window.__GEMINI_TRIGGER_FATAL_ERROR__ = () => {
             this.setState({
                 hasError: true,

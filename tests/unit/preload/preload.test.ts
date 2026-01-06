@@ -1,5 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
-import type { IpcRenderer, IpcRendererEvent } from 'electron';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 
 // Mock electron
 const { ipcRendererMock, contextBridgeMock } = vi.hoisted(() => {

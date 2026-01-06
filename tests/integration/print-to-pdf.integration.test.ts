@@ -113,13 +113,13 @@ describe('Print to PDF IPC Integration', () => {
         before(async () => {
             // Set up tracking in main process for print trigger
             await browser.electron.execute(() => {
-                // @ts-ignore - Set up spy to track PrintManager invocations
+                // @ts-expect-error - Set up spy to track PrintManager invocations
                 (global as any)._printToPdfTracking = {
                     triggered: false,
                     webContentsId: null,
                 };
 
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
                 if (pm) {
                     // Store reference to original method
@@ -138,9 +138,9 @@ describe('Print to PDF IPC Integration', () => {
         after(async () => {
             // Restore original PrintManager.printToPdf
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
-                // @ts-ignore
+                // @ts-expect-error
                 const original = (global as any)._originalPrintToPdf;
                 if (pm && original) {
                     pm.printToPdf = original;
@@ -154,7 +154,7 @@ describe('Print to PDF IPC Integration', () => {
         beforeEach(async () => {
             // Reset tracking before each test
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 if ((global as any)._printToPdfTracking) {
                     (global as any)._printToPdfTracking.triggered = false;
                     (global as any)._printToPdfTracking.webContentsId = null;
@@ -173,7 +173,7 @@ describe('Print to PDF IPC Integration', () => {
 
             // Verify invocation in main process
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -183,7 +183,7 @@ describe('Print to PDF IPC Integration', () => {
         it('should pass correct webContents ID from main window', async () => {
             // Get expected main window webContents ID
             const mainWebContentsId = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any).windowManager?.getMainWindow()?.webContents?.id;
             });
 
@@ -197,7 +197,7 @@ describe('Print to PDF IPC Integration', () => {
 
             // Verify correct webContents was passed
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -211,13 +211,13 @@ describe('Print to PDF IPC Integration', () => {
         before(async () => {
             // Set up tracking in main process for print trigger
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 (global as any)._printToPdfTracking = {
                     triggered: false,
                     webContentsId: null,
                 };
 
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
                 if (pm && !(global as any)._originalPrintToPdf) {
                     // Store reference to original method
@@ -257,7 +257,7 @@ describe('Print to PDF IPC Integration', () => {
 
             // Close Options window if open
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const { BrowserWindow } = require('electron');
                 const mainWin = (global as any).windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {
@@ -271,9 +271,9 @@ describe('Print to PDF IPC Integration', () => {
 
             // Restore original PrintManager.printToPdf
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
-                // @ts-ignore
+                // @ts-expect-error
                 const original = (global as any)._originalPrintToPdf;
                 if (pm && original) {
                     pm.printToPdf = original;
@@ -286,7 +286,7 @@ describe('Print to PDF IPC Integration', () => {
         beforeEach(async () => {
             // Reset tracking before each test
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 if ((global as any)._printToPdfTracking) {
                     (global as any)._printToPdfTracking.triggered = false;
                     (global as any)._printToPdfTracking.webContentsId = null;
@@ -327,7 +327,7 @@ describe('Print to PDF IPC Integration', () => {
 
             // Verify invocation in main process
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -344,7 +344,7 @@ describe('Print to PDF IPC Integration', () => {
 
             // Get main window webContents ID for comparison
             const mainWebContentsId = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any).windowManager?.getMainWindow()?.webContents?.id;
             });
 
@@ -358,7 +358,7 @@ describe('Print to PDF IPC Integration', () => {
 
             // Verify webContents ID is different from main window
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -373,13 +373,13 @@ describe('Print to PDF IPC Integration', () => {
         before(async () => {
             // Set up tracking in main process
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 (global as any)._printToPdfTracking = {
                     triggered: false,
                     webContentsId: null,
                 };
 
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
                 if (pm && !(global as any)._originalPrintToPdf) {
                     (global as any)._originalPrintToPdf = pm.printToPdf.bind(pm);
@@ -397,9 +397,9 @@ describe('Print to PDF IPC Integration', () => {
         after(async () => {
             // Restore original PrintManager.printToPdf
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
-                // @ts-ignore
+                // @ts-expect-error
                 const original = (global as any)._originalPrintToPdf;
                 if (pm && original) {
                     pm.printToPdf = original;
@@ -412,7 +412,7 @@ describe('Print to PDF IPC Integration', () => {
         beforeEach(async () => {
             // Reset tracking
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 if ((global as any)._printToPdfTracking) {
                     (global as any)._printToPdfTracking.triggered = false;
                     (global as any)._printToPdfTracking.webContentsId = null;
@@ -429,7 +429,7 @@ describe('Print to PDF IPC Integration', () => {
             await browser.pause(300);
 
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -441,7 +441,7 @@ describe('Print to PDF IPC Integration', () => {
         it('should receive webContents ID matching the sender window', async () => {
             // Get the webContents ID of the main window (since we're in main window context)
             const mainWindowWebContentsId = await browser.electron.execute(() => {
-                // @ts-ignore - Get webContents ID of the main window from WindowManager
+                // @ts-expect-error - Get webContents ID of the main window from WindowManager
                 return (global as any).windowManager?.getMainWindow()?.webContents?.id ?? null;
             });
 
@@ -453,7 +453,7 @@ describe('Print to PDF IPC Integration', () => {
             await browser.pause(300);
 
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -470,14 +470,14 @@ describe('Print to PDF IPC Integration', () => {
         before(async () => {
             // Set up tracking in main process
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 (global as any)._printToPdfTracking = {
                     triggered: false,
                     webContentsId: null,
                     triggerSource: null,
                 };
 
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
                 if (pm && !(global as any)._originalPrintToPdf) {
                     (global as any)._originalPrintToPdf = pm.printToPdf.bind(pm);
@@ -493,9 +493,9 @@ describe('Print to PDF IPC Integration', () => {
 
         after(async () => {
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
-                // @ts-ignore
+                // @ts-expect-error
                 const original = (global as any)._originalPrintToPdf;
                 if (pm && original) {
                     pm.printToPdf = original;
@@ -507,7 +507,7 @@ describe('Print to PDF IPC Integration', () => {
 
         beforeEach(async () => {
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 if ((global as any)._printToPdfTracking) {
                     (global as any)._printToPdfTracking.triggered = false;
                     (global as any)._printToPdfTracking.webContentsId = null;
@@ -518,14 +518,14 @@ describe('Print to PDF IPC Integration', () => {
         it('should trigger print flow via WindowManager print-to-pdf-triggered event', async () => {
             // Trigger print via WindowManager event (simulates menu/hotkey)
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 (global as any).windowManager.emit('print-to-pdf-triggered');
             });
 
             await browser.pause(300);
 
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -534,14 +534,14 @@ describe('Print to PDF IPC Integration', () => {
 
         it('should trigger print via HotkeyManager executeHotkeyAction', async () => {
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 (global as any).hotkeyManager?.executeHotkeyAction?.('printToPdf');
             });
 
             await browser.pause(300);
 
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -553,7 +553,7 @@ describe('Print to PDF IPC Integration', () => {
         it.skip('should verify HotkeyManager and MenuManager are wired to PrintManager', async () => {
             // Verify HotkeyManager has printToPdf in its accelerators
             const hasPrintToPdf = await browser.electron.execute(() => {
-                // @ts-ignore - Check if printToPdf accelerator exists
+                // @ts-expect-error - Check if printToPdf accelerator exists
                 const hm = (global as any).hotkeyManager;
                 // HotkeyManager stores accelerators, not shortcutActions Map
                 return typeof hm?.accelerators?.printToPdf === 'string';
@@ -671,7 +671,7 @@ describe('Print to PDF IPC Integration', () => {
 
             // Simulate success from main process - use inline channel name
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const mainWindow = (global as any).windowManager?.getMainWindow();
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     // Use the literal channel name to avoid require path issues
@@ -701,7 +701,7 @@ describe('Print to PDF IPC Integration', () => {
 
             // Simulate error from main process - use inline channel name
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const mainWindow = (global as any).windowManager?.getMainWindow();
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     // Use the literal channel name to avoid require path issues
@@ -730,7 +730,7 @@ describe('Print to PDF IPC Integration', () => {
 
         it('should verify WindowManager has main window available', async () => {
             const hasMainWindow = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const mainWin = (global as any).windowManager?.getMainWindow();
                 return mainWin && !mainWin.isDestroyed();
             });
@@ -740,7 +740,7 @@ describe('Print to PDF IPC Integration', () => {
 
         it('should verify PrintManager is initialized', async () => {
             const hasPrintManager = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return !!(global as any).printManager;
             });
 
@@ -752,7 +752,7 @@ describe('Print to PDF IPC Integration', () => {
         it.skip('should verify IpcManager has print handlers registered', async () => {
             // Verify IPC handler exists by checking listener count for the trigger channel
             const ipcWorking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const { ipcMain } = require('electron');
                 // Use literal channel name to avoid require path issues
                 return ipcMain.listenerCount('print-to-pdf-trigger') > 0;
@@ -790,12 +790,12 @@ describe('Print to PDF IPC Integration', () => {
     describe('Edge Case Workflows', () => {
         before(async () => {
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 (global as any)._printToPdfTracking = {
                     triggerCount: 0,
                 };
 
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
                 if (pm && !(global as any)._originalPrintToPdf) {
                     (global as any)._originalPrintToPdf = pm.printToPdf.bind(pm);
@@ -812,9 +812,9 @@ describe('Print to PDF IPC Integration', () => {
 
         after(async () => {
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
-                // @ts-ignore
+                // @ts-expect-error
                 const original = (global as any)._originalPrintToPdf;
                 if (pm && original) {
                     pm.printToPdf = original;
@@ -827,7 +827,7 @@ describe('Print to PDF IPC Integration', () => {
         it('should verify isPrinting flag prevents concurrent execution', async () => {
             // PrintManager has an isPrinting flag - verify it exists
             const hasIsPrintingFlag = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const pm = (global as any).printManager;
                 return typeof pm?.isPrinting !== 'undefined';
             });
@@ -839,7 +839,7 @@ describe('Print to PDF IPC Integration', () => {
 
         it('should handle print trigger when main window exists', async () => {
             const result = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const mainWin = (global as any).windowManager?.getMainWindow();
                 return {
                     exists: !!mainWin,
@@ -854,7 +854,7 @@ describe('Print to PDF IPC Integration', () => {
         it('should verify print trigger increments when called', async () => {
             // Reset counter
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 (global as any)._printToPdfTracking.triggerCount = 0;
             });
 
@@ -866,7 +866,7 @@ describe('Print to PDF IPC Integration', () => {
             await browser.pause(300);
 
             const tracking = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return (global as any)._printToPdfTracking;
             });
 
@@ -898,7 +898,7 @@ describe('Print to PDF IPC Integration', () => {
             before(async () => {
                 // Set up mocks for scrolling screenshot capture
                 await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const pm = (global as any).printManager;
                     if (!pm) return;
 
@@ -925,7 +925,7 @@ describe('Print to PDF IPC Integration', () => {
             after(async () => {
                 // Restore original methods
                 await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const pm = (global as any).printManager;
                     const originals = (global as any)._originalScrollMethods;
                     if (pm && originals) {
@@ -942,7 +942,7 @@ describe('Print to PDF IPC Integration', () => {
             beforeEach(async () => {
                 // Reset tracking
                 await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     if ((global as any)._scrollCaptureTracking) {
                         (global as any)._scrollCaptureTracking = {
                             captureCount: 0,
@@ -974,7 +974,7 @@ describe('Print to PDF IPC Integration', () => {
 
             it('should verify PrintManager has captureFullPage method', async () => {
                 const hasCaptureFullPage = await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const pm = (global as any).printManager;
                     return typeof pm?.captureFullPage === 'function';
                 });
@@ -986,7 +986,7 @@ describe('Print to PDF IPC Integration', () => {
 
             it('should verify PrintManager has getIframeScrollInfo method', async () => {
                 const hasMethod = await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const pm = (global as any).printManager;
                     return typeof pm?.getIframeScrollInfo === 'function';
                 });
@@ -996,7 +996,7 @@ describe('Print to PDF IPC Integration', () => {
 
             it('should verify PrintManager has scrollIframeTo method', async () => {
                 const hasMethod = await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const pm = (global as any).printManager;
                     return typeof pm?.scrollIframeTo === 'function';
                 });
@@ -1006,7 +1006,7 @@ describe('Print to PDF IPC Integration', () => {
 
             it('should verify PrintManager has captureViewport method', async () => {
                 const hasMethod = await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const pm = (global as any).printManager;
                     return typeof pm?.captureViewport === 'function';
                 });
@@ -1016,7 +1016,7 @@ describe('Print to PDF IPC Integration', () => {
 
             it('should verify PrintManager has stitchImagesToPdf method', async () => {
                 const hasMethod = await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const pm = (global as any).printManager;
                     return typeof pm?.stitchImagesToPdf === 'function';
                 });
@@ -1198,7 +1198,7 @@ describe('Print to PDF IPC Integration', () => {
 
             it('should verify main window webContents is accessible for frame operations', async () => {
                 const result = await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const mainWindow = (global as any).windowManager?.getMainWindow();
                     if (!mainWindow) return { accessible: false };
 
@@ -1220,9 +1220,9 @@ describe('Print to PDF IPC Integration', () => {
 
             it('should verify PrintManager can access WindowManager for frame detection', async () => {
                 const result = await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const pm = (global as any).printManager;
-                    // @ts-ignore
+                    // @ts-expect-error
                     const wm = (global as any).windowManager;
 
                     return {

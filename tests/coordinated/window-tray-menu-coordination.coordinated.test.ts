@@ -12,7 +12,6 @@ import MenuManager from '../../src/main/managers/menuManager';
 
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
 
 // Mock paths
 vi.mock('../../src/main/utils/paths', () => ({

@@ -141,7 +141,7 @@ describe('Hotkey Configuration E2E', () => {
 
             // Verify IPC call was made
             const newAccelerator = await browser.electron.execute((_electron) => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.getAccelerator('alwaysOnTop');
             });
 
@@ -306,7 +306,7 @@ describe('Hotkey Configuration E2E', () => {
 
             // Should still have custom accelerator
             const currentAccelerator = await browser.electron.execute((_electron) => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.getAccelerator('alwaysOnTop');
             });
 
@@ -353,7 +353,7 @@ describe('Hotkey Configuration E2E', () => {
 
             // Verify in main process
             const mainProcessAccelerator = await browser.electron.execute((_electron) => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.getAccelerator('alwaysOnTop');
             });
 
@@ -502,7 +502,7 @@ describe('Hotkey Configuration E2E', () => {
 
             // Verify all three have different accelerators
             const accelerators = await browser.electron.execute((_electron) => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.getAccelerators();
             });
 
@@ -516,7 +516,7 @@ describe('Hotkey Configuration E2E', () => {
             // If we validate for duplicates, test here
             // For now, just verify each can be set independently
             const accelerators = await browser.electron.execute((_electron) => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.getAccelerators();
             });
 

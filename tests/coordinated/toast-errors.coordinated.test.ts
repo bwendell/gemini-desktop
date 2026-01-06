@@ -4,8 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, render, screen } from '@testing-library/react';
-import React from 'react';
+import { renderHook, act } from '@testing-library/react';
 
 import { ToastProvider, useToast } from '../../src/renderer/context/ToastContext';
 import { showToast as mainProcessShowToast } from '../../src/main/utils/toast';

@@ -82,7 +82,7 @@ export class UpdateToastPage extends BasePage {
     async showAvailable(version: string): Promise<void> {
         this.log(`Showing available toast for version ${version}`);
         await browser.execute((v: string) => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             window.__testUpdateToast.showAvailable(v);
         }, version);
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
@@ -95,7 +95,7 @@ export class UpdateToastPage extends BasePage {
     async showDownloaded(version: string): Promise<void> {
         this.log(`Showing downloaded toast for version ${version}`);
         await browser.execute((v: string) => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             window.__testUpdateToast.showDownloaded(v);
         }, version);
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
@@ -108,7 +108,7 @@ export class UpdateToastPage extends BasePage {
     async showError(errorMessage: string | null): Promise<void> {
         this.log(`Showing error toast: ${errorMessage}`);
         await browser.execute((msg: string | null) => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             window.__testUpdateToast.showError(msg);
         }, errorMessage);
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
@@ -121,7 +121,7 @@ export class UpdateToastPage extends BasePage {
     async showProgress(percent: number): Promise<void> {
         this.log(`Showing progress toast: ${percent}%`);
         await browser.execute((p: number) => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             window.__testUpdateToast.showProgress(p);
         }, percent);
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
@@ -134,7 +134,7 @@ export class UpdateToastPage extends BasePage {
     async showNotAvailable(currentVersion: string): Promise<void> {
         this.log(`Showing not-available toast for version ${currentVersion}`);
         await browser.execute((v: string) => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             window.__testUpdateToast.showNotAvailable(v);
         }, currentVersion);
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
@@ -146,9 +146,9 @@ export class UpdateToastPage extends BasePage {
     async hide(): Promise<void> {
         this.log('Hiding toast');
         await browser.execute(() => {
-            // @ts-ignore - test helper
+            // @ts-expect-error - test helper
             if (window.__testUpdateToast?.hide) {
-                // @ts-ignore
+                // @ts-expect-error
                 window.__testUpdateToast.hide();
             }
         });
@@ -321,7 +321,7 @@ export class UpdateToastPage extends BasePage {
     async showBadge(version: string): Promise<void> {
         this.log(`Showing badge for version ${version}`);
         await browser.execute((v: string) => {
-            // @ts-ignore - electronAPI exposed at runtime
+            // @ts-expect-error - electronAPI exposed at runtime
             window.electronAPI.devShowBadge(v);
         }, version);
     }
@@ -332,7 +332,7 @@ export class UpdateToastPage extends BasePage {
     async clearBadge(): Promise<void> {
         this.log('Clearing badge');
         await browser.execute(() => {
-            // @ts-ignore - electronAPI exposed at runtime
+            // @ts-expect-error - electronAPI exposed at runtime
             window.electronAPI.devClearBadge();
         });
     }
@@ -355,7 +355,7 @@ export class UpdateToastPage extends BasePage {
      * Get the tray tooltip text.
      */
     async getTrayTooltip(): Promise<string> {
-        // @ts-ignore - electronAPI exposed at runtime
+        // @ts-expect-error - electronAPI exposed at runtime
         return browser.execute(() => window.electronAPI.getTrayTooltip());
     }
 

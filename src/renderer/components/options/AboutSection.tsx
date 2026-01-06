@@ -17,9 +17,11 @@ import {
 } from '../../utils/constants';
 
 /**
- * Application version - pulled from package.json at build time.
+ * Application version - injected from package.json at build time via Vite define.
+ * See vite.config.ts for the define configuration.
  */
-const APP_VERSION = '0.1.0';
+declare const __APP_VERSION__: string;
+const APP_VERSION = __APP_VERSION__;
 
 /**
  * AboutSection component displays legal attribution and version information.

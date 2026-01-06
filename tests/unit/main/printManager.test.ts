@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { app, dialog, BrowserWindow } from 'electron';
+import { dialog } from 'electron';
 import * as fs from 'fs';
-import * as fsPromises from 'fs/promises';
-import * as path from 'path';
 import PrintManager from '../../../../src/main/managers/printManager';
 import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
 import { createMockWindowManager } from '../../helpers/mocks';

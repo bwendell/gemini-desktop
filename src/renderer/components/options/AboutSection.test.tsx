@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AboutSection } from './AboutSection';
 
+// Version injected from package.json via vitest define
+declare const __APP_VERSION__: string;
+
 describe('AboutSection', () => {
     it('renders the title and version', () => {
         render(<AboutSection />);
         expect(screen.getByText('Gemini Desktop')).toBeInTheDocument();
-        expect(screen.getByTestId('about-version')).toHaveTextContent(/Version 0\.1\.0/);
+        expect(screen.getByTestId('about-version')).toHaveTextContent(`Version ${__APP_VERSION__}`);
     });
 
     it('renders the legal disclaimer', () => {

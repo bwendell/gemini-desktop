@@ -11,7 +11,6 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { E2ELogger } from './logger';
-import { E2E_TIMING } from './e2eConstants';
 
 // =============================================================================
 // Element Display Assertions

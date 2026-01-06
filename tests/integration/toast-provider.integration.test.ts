@@ -49,6 +49,27 @@ describe('Toast Provider Integration', () => {
     });
 
     describe('Context Access', () => {
+        beforeEach(async () => {
+            // Ensure no toasts are present before each test
+            await browser.execute(() => {
+                const win = window as any;
+                if (win.__toastTestHelpers?.dismissAll) {
+                    win.__toastTestHelpers.dismissAll();
+                }
+            });
+            // Wait for any toasts to be removed
+            await browser
+                .waitUntil(
+                    async () => {
+                        const toasts = await browser.$$('.toast');
+                        return toasts.length === 0;
+                    },
+                    { timeout: 3000, interval: 100 }
+                )
+                .catch(() => {
+                    // Ignore timeout - toasts may already be gone
+                });
+        });
         it('7.5.1.3 - should allow nested components to access useToast()', async () => {
             // The __toastTestHelpers prove that useToast() is accessible
             // from within the app component tree
@@ -77,11 +98,18 @@ describe('Toast Provider Integration', () => {
             expect(typeof toastId).toBe('string');
             expect(toastId.length).toBeGreaterThan(0);
 
-            // Wait for toast to appear
-            const toast = await browser.$('.toast');
-            await toast.waitForExist({ timeout: 2000 });
+            // Wait for toast to appear with correct message using robust polling
+            await browser.waitUntil(
+                async () => {
+                    const toastMessage = await browser.$('.toast__message');
+                    if (!(await toastMessage.isExisting())) return false;
+                    const text = await toastMessage.getText();
+                    return text === 'Integration test toast';
+                },
+                { timeout: 5000, interval: 200, timeoutMsg: 'Toast with expected message did not appear' }
+            );
 
-            // Verify toast content
+            // Verify toast content after wait completes
             const toastMessage = await browser.$('.toast__message');
             const messageText = await toastMessage.getText();
             expect(messageText).toBe('Integration test toast');
@@ -93,6 +121,7 @@ describe('Toast Provider Integration', () => {
             });
 
             // Verify toast is removed
+            const toast = await browser.$('.toast');
             await toast.waitForExist({ timeout: 2000, reverse: true });
         });
     });

@@ -110,7 +110,7 @@ describe('Release Build: Startup Performance', () => {
                         if (!mainWindow) return false;
 
                         return !mainWindow.webContents.isLoading();
-                    } catch (error) {
+                    } catch (_error) {
                         return false;
                     }
                 });

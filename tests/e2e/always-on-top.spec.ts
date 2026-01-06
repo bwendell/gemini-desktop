@@ -17,11 +17,11 @@
 import { browser, expect } from '@wdio/globals';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 import { closeAllSecondaryWindows } from './helpers/WindowManagerHelper';
-import { ensureSingleWindow } from './helpers/workflows';
+
 import { MainWindowPage } from './pages/MainWindowPage';
 import { OptionsPage } from './pages/OptionsPage';
 import { E2ELogger } from './helpers/logger';
-import { getPlatform, isMacOS, isWindows, isLinux, isLinuxCI } from './helpers/platform';
+import { getPlatform, isMacOS, isWindows, isLinuxCI } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import {
     getAlwaysOnTopState,
@@ -43,7 +43,7 @@ import {
     hideWindow,
     showWindow,
 } from './helpers/windowStateActions';
-import { readUserPreferences, UserPreferencesData } from './helpers/persistenceActions';
+import { readUserPreferences } from './helpers/persistenceActions';
 
 // ============================================================================
 // Local Helper Functions

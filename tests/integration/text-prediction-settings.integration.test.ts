@@ -405,7 +405,7 @@ describe('Text Prediction Settings IPC Integration', () => {
         afterEach(async () => {
             // Close options window if open
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const { BrowserWindow } = require('electron');
                 const mainWin = (global as any).windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {

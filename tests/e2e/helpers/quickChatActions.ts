@@ -19,12 +19,7 @@
 import { browser } from '@wdio/globals';
 import { registerHotkeyActionHandler, type HotkeyActionHandler, type HotkeyActionState } from './hotkeyHelpers';
 import { E2ELogger } from './logger';
-import {
-    GEMINI_DOMAIN_PATTERNS,
-    GEMINI_EDITOR_SELECTORS,
-    GEMINI_SUBMIT_BUTTON_SELECTORS,
-    GEMINI_EDITOR_BLANK_CLASS,
-} from './e2eConstants';
+import { GEMINI_DOMAIN_PATTERNS, GEMINI_EDITOR_SELECTORS, GEMINI_SUBMIT_BUTTON_SELECTORS } from './e2eConstants';
 
 // =============================================================================
 // Quick Chat State Interface
@@ -447,7 +442,7 @@ export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
             try {
                 // Note: executeJavaScript is async, but we're in a sync context here
                 // This will be awaited by the outer browser.electron.execute
-                const resultPromise = geminiFrame.executeJavaScript(readScript);
+                const _resultPromise = geminiFrame.executeJavaScript(readScript);
 
                 // Return a promise-wrapped result
                 return {

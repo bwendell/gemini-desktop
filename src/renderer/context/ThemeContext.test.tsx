@@ -95,7 +95,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-ignore - Explicitly set electronAPI to undefined to test browser fallback
+            // @ts-expect-error - Explicitly set electronAPI to undefined to test browser fallback
             window.electronAPI = undefined;
 
             await act(async () => {
@@ -159,7 +159,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-ignore - Delete electronAPI to test browser fallback
+            // @ts-expect-error - Delete electronAPI to test browser fallback
             delete window.electronAPI;
 
             await act(async () => {
@@ -336,7 +336,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-ignore - Set electronAPI to undefined to test browser fallback
+            // @ts-expect-error - Set electronAPI to undefined to test browser fallback
             window.electronAPI = undefined;
 
             await act(async () => {
@@ -381,7 +381,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-ignore - Set electronAPI to undefined to test browser fallback
+            // @ts-expect-error - Set electronAPI to undefined to test browser fallback
             window.electronAPI = undefined;
 
             await act(async () => {

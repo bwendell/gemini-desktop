@@ -184,10 +184,10 @@ describe('PDF Export Toast Integration', () => {
         it('should send IPC message when revealInFolder is called', async () => {
             // Set up IPC tracking in main process
             await browser.electron.execute(() => {
-                // @ts-ignore - track IPC calls
+                // @ts-expect-error - track IPC calls
                 (global as any)._revealInFolderCalls = [];
 
-                // @ts-ignore
+                // @ts-expect-error
                 const { ipcMain } = require('electron');
 
                 // Add listener to track calls (note: the handler is already registered, we just spy on it)

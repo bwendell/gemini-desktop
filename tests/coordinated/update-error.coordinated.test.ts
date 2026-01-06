@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
-import EventEmitter from 'events';
 import UpdateManager from '../../src/main/managers/updateManager';
-import SettingsStore from '../../src/store';
 
 // Mock electron-log
 vi.mock('electron-log', () => ({
@@ -72,7 +70,7 @@ describe('UpdateManager Error Coordination', () => {
         mockAutoUpdater.emit('error', rawError);
 
         // Verify all windows received the masked message
-        [win1, win2].forEach((win, index) => {
+        [win1, win2].forEach((win, _index) => {
             expect(win.webContents.send).toHaveBeenCalledWith(
                 'auto-update:error',
                 'The auto-update service encountered an error. Please try again later.'

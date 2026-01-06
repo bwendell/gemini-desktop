@@ -34,7 +34,7 @@ describe('Options Window Integration', () => {
     afterEach(async () => {
         // Close options window if open
         await browser.electron.execute(() => {
-            // @ts-ignore - Close all windows except main
+            // @ts-expect-error - Close all windows except main
             const { BrowserWindow } = require('electron');
             const mainWin = global.windowManager.getMainWindow();
             BrowserWindow.getAllWindows().forEach((win: any) => {
@@ -57,7 +57,7 @@ describe('Options Window Integration', () => {
         it('should open options window via WindowManager', async () => {
             // Open options window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 
@@ -99,7 +99,7 @@ describe('Options Window Integration', () => {
         it('should have correct URL pattern for options window', async () => {
             // Open options window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 
@@ -127,7 +127,7 @@ describe('Options Window Integration', () => {
         it('should open directly to settings tab', async () => {
             // Open to settings tab
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow('settings');
             });
 
@@ -155,7 +155,7 @@ describe('Options Window Integration', () => {
         it('should open directly to about tab', async () => {
             // Open to about tab
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow('about');
             });
 
@@ -205,7 +205,7 @@ describe('Options Window Integration', () => {
         it('should focus existing options window instead of creating new one', async () => {
             // Open first options window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 
@@ -219,7 +219,7 @@ describe('Options Window Integration', () => {
 
             // Try to open again
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 
@@ -233,7 +233,7 @@ describe('Options Window Integration', () => {
         it('should navigate existing window to new tab instead of creating new window', async () => {
             // Open to settings tab
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow('settings');
             });
 
@@ -247,7 +247,7 @@ describe('Options Window Integration', () => {
 
             // Now open to about tab
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow('about');
             });
 
@@ -272,7 +272,7 @@ describe('Options Window Integration', () => {
         it('should close options window properly', async () => {
             // Open options window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 
@@ -317,7 +317,7 @@ describe('Options Window Integration', () => {
         it('should have electronAPI available in options window', async () => {
             // Open options window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 
@@ -349,7 +349,7 @@ describe('Options Window Integration', () => {
         it('should be able to get theme settings from options window', async () => {
             // Open options window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 
@@ -386,7 +386,7 @@ describe('Options Window Integration', () => {
         it('should be able to get hotkey settings from options window', async () => {
             // Open options window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 
@@ -426,7 +426,7 @@ describe('Options Window Integration', () => {
         it('should receive theme change events in options window', async () => {
             // Open options window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.createOptionsWindow();
             });
 

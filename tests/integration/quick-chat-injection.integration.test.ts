@@ -33,7 +33,7 @@ describe('Quick Chat Injection Integration', () => {
     afterEach(async () => {
         // Ensure Quick Chat is closed and we're back in main window
         await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             const quickChatWin = global.windowManager.getQuickChatWindow();
             if (quickChatWin && !quickChatWin.isDestroyed() && quickChatWin.isVisible()) {
                 quickChatWin.hide();
@@ -51,7 +51,7 @@ describe('Quick Chat Injection Integration', () => {
         it('should open Quick Chat window and verify it appears', async () => {
             // Open Quick Chat via main process
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.showQuickChat();
             });
 
@@ -59,7 +59,7 @@ describe('Quick Chat Injection Integration', () => {
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return win && !win.isDestroyed() && win.isVisible();
                     });
@@ -68,7 +68,7 @@ describe('Quick Chat Injection Integration', () => {
             );
 
             const isVisible = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();
                 return win && win.isVisible();
             });
@@ -79,14 +79,14 @@ describe('Quick Chat Injection Integration', () => {
         it('should hide Quick Chat window after submit via IPC', async () => {
             // First, ensure Quick Chat is open
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.showQuickChat();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return win && !win.isDestroyed() && win.isVisible();
                     });
@@ -97,7 +97,7 @@ describe('Quick Chat Injection Integration', () => {
             // Simulate submit action via main process - hideQuickChat is called after submit
             // We test the window hiding behavior which is the outcome of submit
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideQuickChat();
             });
 
@@ -105,7 +105,7 @@ describe('Quick Chat Injection Integration', () => {
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return !win || win.isDestroyed() || !win.isVisible();
                     });
@@ -114,7 +114,7 @@ describe('Quick Chat Injection Integration', () => {
             );
 
             const isHidden = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();
                 return !win || !win.isVisible();
             });
@@ -125,14 +125,14 @@ describe('Quick Chat Injection Integration', () => {
         it('should focus main window after Quick Chat submit', async () => {
             // Open Quick Chat
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.showQuickChat();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return win && !win.isDestroyed() && win.isVisible();
                     });
@@ -142,7 +142,7 @@ describe('Quick Chat Injection Integration', () => {
 
             // Simulate submit action - hide Quick Chat (which is what submit does)
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideQuickChat();
             });
 
@@ -151,7 +151,7 @@ describe('Quick Chat Injection Integration', () => {
 
             // Verify Quick Chat is hidden (focus may not work in all environments)
             const quickChatHidden = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();
                 return !win || !win.isVisible();
             });
@@ -164,14 +164,14 @@ describe('Quick Chat Injection Integration', () => {
         it('should hide Quick Chat window on cancel', async () => {
             // Open Quick Chat
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.showQuickChat();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return win && !win.isDestroyed() && win.isVisible();
                     });
@@ -181,7 +181,7 @@ describe('Quick Chat Injection Integration', () => {
 
             // Cancel via main process - directly hide the Quick Chat window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideQuickChat();
             });
 
@@ -189,7 +189,7 @@ describe('Quick Chat Injection Integration', () => {
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return !win || win.isDestroyed() || !win.isVisible();
                     });
@@ -198,7 +198,7 @@ describe('Quick Chat Injection Integration', () => {
             );
 
             const isHidden = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();
                 return !win || !win.isVisible();
             });
@@ -209,14 +209,14 @@ describe('Quick Chat Injection Integration', () => {
         it('should hide Quick Chat window via hideQuickChat IPC', async () => {
             // Open Quick Chat
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.showQuickChat();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return win && !win.isDestroyed() && win.isVisible();
                     });
@@ -226,7 +226,7 @@ describe('Quick Chat Injection Integration', () => {
 
             // Hide via main process - directly call hideQuickChat
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideQuickChat();
             });
 
@@ -234,7 +234,7 @@ describe('Quick Chat Injection Integration', () => {
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return !win || win.isDestroyed() || !win.isVisible();
                     });
@@ -243,7 +243,7 @@ describe('Quick Chat Injection Integration', () => {
             );
 
             const isHidden = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();
                 return !win || !win.isVisible();
             });
@@ -256,21 +256,21 @@ describe('Quick Chat Injection Integration', () => {
         it('should toggle Quick Chat visibility', async () => {
             // Ensure starts hidden
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();
                 if (win && win.isVisible()) win.hide();
             });
 
             // Toggle on
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.toggleQuickChat();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return win && win.isVisible();
                     });
@@ -279,7 +279,7 @@ describe('Quick Chat Injection Integration', () => {
             );
 
             let isVisible = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();
                 return win && win.isVisible();
             });
@@ -287,14 +287,14 @@ describe('Quick Chat Injection Integration', () => {
 
             // Toggle off
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.toggleQuickChat();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return !win || !win.isVisible();
                     });
@@ -303,7 +303,7 @@ describe('Quick Chat Injection Integration', () => {
             );
 
             isVisible = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();
                 return win && win.isVisible();
             });
@@ -336,14 +336,14 @@ describe('Quick Chat Injection Integration', () => {
 
             // 1. Show Quick Chat window
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.showQuickChat();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getQuickChatWindow();
                         return win && !win.isDestroyed() && win.isVisible();
                     });
@@ -365,7 +365,7 @@ describe('Quick Chat Injection Integration', () => {
 
             // 3. Cleanup
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideQuickChat();
             });
         });

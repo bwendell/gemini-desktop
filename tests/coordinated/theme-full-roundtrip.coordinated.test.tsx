@@ -76,7 +76,7 @@ describe('Theme Full Round-Trip Coordination', () => {
 
     describe('Initial Theme Load from Store', () => {
         it('should load theme from Electron store via IPC on mount', async () => {
-            const { result } = renderHook(() => useTheme(), { wrapper });
+            const { result: _result } = renderHook(() => useTheme(), { wrapper });
 
             await waitFor(() => {
                 expect(mockGetTheme).toHaveBeenCalled();
@@ -256,7 +256,7 @@ describe('Theme Full Round-Trip Coordination', () => {
         it('should handle invalid theme data gracefully', async () => {
             mockGetTheme.mockResolvedValueOnce({ invalid: 'data' });
 
-            const { result } = renderHook(() => useTheme(), { wrapper });
+            const { result: _result } = renderHook(() => useTheme(), { wrapper });
 
             await waitFor(() => {
                 // Should fallback to system preference

@@ -21,7 +21,7 @@ describe('macOS Options Titlebar Integration Tests', () => {
     afterEach(async () => {
         // Close options window if open
         await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             const { BrowserWindow } = require('electron');
             const mainWin = global.windowManager.getMainWindow();
             BrowserWindow.getAllWindows().forEach((win: any) => {
@@ -54,7 +54,7 @@ describe('macOS Options Titlebar Integration Tests', () => {
 
         // Open options window
         await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             global.windowManager.createOptionsWindow();
         });
 
@@ -111,7 +111,7 @@ describe('macOS Options Titlebar Integration Tests', () => {
 
         // Open options window
         await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             global.windowManager.createOptionsWindow();
         });
 

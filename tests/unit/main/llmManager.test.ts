@@ -11,7 +11,7 @@
  * @module llmManager.test
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useFakeTimers, useRealTimers } from '../../helpers/harness';
 import { existsSync as existsSyncFn } from 'fs';
 import LlmManager, { type ModelStatus, MODEL_REGISTRY, DEFAULT_MODEL_ID } from '../../../src/main/managers/llmManager';
@@ -142,7 +142,7 @@ describe('LlmManager', () => {
     describe('downloadModel', () => {
         it('reports progress callbacks during download', async () => {
             const progressCallback = vi.fn();
-            const lastProgress = 0;
+            const _lastProgress = 0;
 
             // Mock download with simulated progress
             mockCreateModelDownloader.mockResolvedValue({

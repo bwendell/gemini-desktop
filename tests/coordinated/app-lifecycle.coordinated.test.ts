@@ -4,15 +4,11 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import TrayManager from '../../src/main/managers/trayManager';
-import WindowManager from '../../src/main/managers/windowManager';
-import UpdateManager from '../../src/main/managers/updateManager';
 import { createMockWindowManager, createMockUpdateManager, createMockHotkeyManager } from '../helpers/mocks';
 
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
 
 describe('App Lifecycle Integration', () => {
     let mockHotkeyManager: any;

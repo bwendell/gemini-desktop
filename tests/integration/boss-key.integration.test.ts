@@ -29,7 +29,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
         // This is necessary because the window may not be visible yet after the before() hook
         // or may have been hidden by a previous test
         await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             global.windowManager.restoreFromTray();
         });
 
@@ -37,7 +37,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
         await browser.waitUntil(
             async () => {
                 return await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const win = global.windowManager.getMainWindow();
                     return win && win.isVisible();
                 });
@@ -49,7 +49,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
     afterEach(async () => {
         // Ensure main window is visible after each test
         await browser.electron.execute(() => {
-            // @ts-ignore
+            // @ts-expect-error
             global.windowManager.restoreFromTray();
         });
 
@@ -68,7 +68,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
         it('should hide main window when hideToTray is called', async () => {
             // Verify window is visible initially
             const initiallyVisible = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 return win && win.isVisible();
             });
@@ -76,7 +76,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Hide to tray
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideToTray();
             });
 
@@ -84,7 +84,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
@@ -93,7 +93,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
             );
 
             const isHidden = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 return win && !win.isVisible();
             });
@@ -104,14 +104,14 @@ describe('Boss Key / Stealth Mode Integration', () => {
         it('should restore main window from tray', async () => {
             // First hide to tray
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideToTray();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
@@ -121,7 +121,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Now restore
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.restoreFromTray();
             });
 
@@ -129,7 +129,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getMainWindow();
                         return win && win.isVisible();
                     });
@@ -138,7 +138,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
             );
 
             const isVisible = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 return win && win.isVisible();
             });
@@ -157,14 +157,14 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Hide to tray
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideToTray();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
@@ -174,7 +174,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // On Windows, skipTaskbar should be true when hidden
             const skipTaskbar = await browser.electron.execute(() => {
-                // @ts-ignore - skipTaskbar isn't a standard property but we can check visibility state
+                // @ts-expect-error - skipTaskbar isn't a standard property but we can check visibility state
                 const win = global.windowManager.getMainWindow();
                 // When hidden, the window is not on taskbar
                 return win && !win.isVisible();
@@ -196,7 +196,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Verify disabled in main process
             let isEnabled = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.isIndividualEnabled('bossKey');
             });
             expect(isEnabled).toBe(false);
@@ -211,7 +211,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Verify enabled
             isEnabled = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.isIndividualEnabled('bossKey');
             });
             expect(isEnabled).toBe(true);
@@ -236,7 +236,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Verify disabled
             const isEnabled = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 return global.hotkeyManager.isIndividualEnabled('bossKey');
             });
             expect(isEnabled).toBe(false);
@@ -276,7 +276,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
         it('should hide even when window is maximized', async () => {
             // Maximize window first
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 if (win) win.maximize();
             });
@@ -285,14 +285,14 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Hide to tray
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideToTray();
             });
 
             await browser.waitUntil(
                 async () => {
                     return await browser.electron.execute(() => {
-                        // @ts-ignore
+                        // @ts-expect-error
                         const win = global.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
@@ -301,7 +301,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
             );
 
             const isHidden = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 return win && !win.isVisible();
             });
@@ -312,14 +312,14 @@ describe('Boss Key / Stealth Mode Integration', () => {
         it('should restore to previous state after hiding', async () => {
             // Get initial bounds
             const initialBounds = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 return win ? win.getBounds() : null;
             });
 
             // Hide to tray
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideToTray();
             });
 
@@ -327,7 +327,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Restore
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.restoreFromTray();
             });
 
@@ -335,7 +335,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Get final bounds
             const finalBounds = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 return win ? win.getBounds() : null;
             });
@@ -357,21 +357,21 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // First minimize
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.minimizeMainWindow();
             });
 
             await browser.pause(300);
 
             const isMinimized = await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 return win && win.isMinimized();
             });
 
             // Restore from minimize
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 const win = global.windowManager.getMainWindow();
                 if (win) win.restore();
             });
@@ -380,7 +380,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
             // Now hide to tray
             await browser.electron.execute(() => {
-                // @ts-ignore
+                // @ts-expect-error
                 global.windowManager.hideToTray();
             });
 
@@ -395,7 +395,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 await browser.waitUntil(
                     async () => {
                         return await browser.electron.execute(() => {
-                            // @ts-ignore
+                            // @ts-expect-error
                             const win = global.windowManager.getMainWindow();
                             return win && !win.isVisible();
                         });
@@ -404,7 +404,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 );
 
                 const isHidden = await browser.electron.execute(() => {
-                    // @ts-ignore
+                    // @ts-expect-error
                     const win = global.windowManager.getMainWindow();
                     return win && !win.isVisible();
                 });

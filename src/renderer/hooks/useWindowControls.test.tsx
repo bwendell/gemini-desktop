@@ -55,7 +55,7 @@ describe('useWindowControls', () => {
     describe('when API is not available', () => {
         it('logs warning when minimize is called without API', () => {
             const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
+            // @ts-expect-error - Testing undefined case
             delete window.electronAPI;
 
             const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -75,7 +75,7 @@ describe('useWindowControls', () => {
 
         it('logs warning when maximize is called without API', () => {
             const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
+            // @ts-expect-error - Testing undefined case
             delete window.electronAPI;
 
             const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -95,7 +95,7 @@ describe('useWindowControls', () => {
 
         it('logs warning when close is called without API', () => {
             const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
+            // @ts-expect-error - Testing undefined case
             delete window.electronAPI;
 
             const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

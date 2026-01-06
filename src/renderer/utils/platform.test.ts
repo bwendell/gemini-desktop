@@ -100,7 +100,7 @@ describe('platform utilities', () => {
     describe('navigator.platform fallback', () => {
         it('detects macOS from navigator.platform when electronAPI is unavailable', () => {
             const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
+            // @ts-expect-error - Testing undefined case
             delete window.electronAPI;
 
             // Mock navigator.platform
@@ -117,7 +117,7 @@ describe('platform utilities', () => {
 
         it('detects Windows from navigator.platform when electronAPI is unavailable', () => {
             const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
+            // @ts-expect-error - Testing undefined case
             delete window.electronAPI;
 
             Object.defineProperty(navigator, 'platform', {
@@ -133,7 +133,7 @@ describe('platform utilities', () => {
 
         it('defaults to Linux from navigator.platform when electronAPI is unavailable', () => {
             const originalAPI = window.electronAPI;
-            // @ts-ignore - Testing undefined case
+            // @ts-expect-error - Testing undefined case
             delete window.electronAPI;
 
             Object.defineProperty(navigator, 'platform', {

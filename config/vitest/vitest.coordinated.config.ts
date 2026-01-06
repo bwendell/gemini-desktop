@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import packageJson from '../../package.json';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '../..');
@@ -12,6 +13,11 @@ const projectRoot = path.resolve(__dirname, '../..');
  */
 export default defineConfig({
     plugins: [react()],
+
+    // Inject version from package.json at test time (matches vite.config.ts)
+    define: {
+        __APP_VERSION__: JSON.stringify(packageJson.version),
+    },
     test: {
         root: projectRoot,
         globals: true,

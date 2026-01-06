@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type WindowManager from '../../../src/main/managers/windowManager';
+
 import { createMockWindowManager } from '../../helpers/mocks';
 import {
     DEFAULT_ACCELERATORS,
