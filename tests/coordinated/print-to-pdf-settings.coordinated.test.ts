@@ -77,7 +77,7 @@ describe('Print to PDF Settings Persistence', () => {
             const printManager = new PrintManager(windowManager, hotkeyManager, menuManager);
 
             // Initialize IpcManager - this is where we expect sync to happen in the real app
-            const _ipcManager = new IpcManager(
+            const ipcManager = new IpcManager(
                 windowManager,
                 hotkeyManager,
                 null,
@@ -86,6 +86,8 @@ describe('Print to PDF Settings Persistence', () => {
                 mockStore,
                 mockLogger
             );
+            // Initialization now happens during setupIpcHandlers (via handler.initialize())
+            ipcManager.setupIpcHandlers();
 
             // Verify store was queried
             // We expect IpcManager (or logic we add) to read these

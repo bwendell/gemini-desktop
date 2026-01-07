@@ -13,7 +13,22 @@ gemini-desktop/
 │   │   ├── main.ts           # Application entry point, lifecycle management
 │   │   ├── managers/         # Core functionality managers
 │   │   │   ├── windowManager.ts    # Window creation and state management
-│   │   │   ├── ipcManager.ts       # IPC message handling between processes
+│   │   │   ├── ipcManager.ts       # IPC orchestrator (delegates to handlers)
+│   │   │   ├── ipc/                # Domain-specific IPC handlers
+│   │   │   │   ├── index.ts              # Barrel exports for handlers
+│   │   │   │   ├── types.ts              # Handler dependency types
+│   │   │   │   ├── BaseIpcHandler.ts     # Abstract base class
+│   │   │   │   ├── ShellIpcHandler.ts    # Shell operations
+│   │   │   │   ├── WindowIpcHandler.ts   # Window controls
+│   │   │   │   ├── ThemeIpcHandler.ts    # Theme management
+│   │   │   │   ├── ZoomIpcHandler.ts     # Zoom level control
+│   │   │   │   ├── AlwaysOnTopIpcHandler.ts  # Window pin state
+│   │   │   │   ├── PrintIpcHandler.ts    # Print to PDF
+│   │   │   │   ├── HotkeyIpcHandler.ts   # Hotkey settings
+│   │   │   │   ├── AppIpcHandler.ts      # App-level operations
+│   │   │   │   ├── AutoUpdateIpcHandler.ts   # Auto-update controls
+│   │   │   │   ├── QuickChatIpcHandler.ts    # Quick Chat flow
+│   │   │   │   └── TextPredictionIpcHandler.ts # Text prediction
 │   │   │   ├── hotkeyManager.ts    # Global keyboard shortcut registration
 │   │   │   ├── trayManager.ts      # System tray icon and menu
 │   │   │   ├── menuManager.ts      # Application menu construction
@@ -192,9 +207,49 @@ gemini-desktop/
 
 **Name:** `IpcManager` (`src/main/managers/ipcManager.ts`)
 
-**Description:** Central hub for all inter-process communication. Registers handlers for all IPC channels defined in `src/shared/constants/ipc-channels.ts`. Routes messages between renderer processes and the appropriate managers. Handles Quick Chat text injection, theme synchronization, and settings updates.
+**Description:** Lightweight orchestrator for inter-process communication. Delegates to domain-specific handlers in `src/main/managers/ipc/` for all IPC functionality. Responsible for handler instantiation, registration, and initialization during app startup.
 
 **Technologies:** Electron ipcMain API, TypeScript
+
+**Handler Pattern Architecture:**
+
+The IPC system uses a handler-based architecture where each domain-specific handler extends `BaseIpcHandler` and manages its own IPC channels:
+
+```
+IpcManager (orchestrator)
+    │
+    ├── BaseIpcHandler (abstract)
+    │       ├── getWindowFromEvent()
+    │       ├── broadcastToAllWindows()
+    │       └── handleError()
+    │
+    └── Domain Handlers
+            ├── ShellIpcHandler     - shell:show-item-in-folder
+            ├── WindowIpcHandler    - window:minimize/maximize/close/show
+            ├── ThemeIpcHandler     - theme:get/set + broadcast
+            ├── ZoomIpcHandler      - zoom:get-level/zoom-in/zoom-out
+            ├── AlwaysOnTopIpcHandler - always-on-top:get/set
+            ├── PrintIpcHandler     - print:trigger/cancel
+            ├── HotkeyIpcHandler    - hotkeys:individual/accelerator settings
+            ├── AppIpcHandler       - open-options/open-google-signin
+            ├── AutoUpdateIpcHandler - auto-update:get/set/check/install
+            ├── QuickChatIpcHandler - quick-chat:submit/hide/cancel
+            └── TextPredictionIpcHandler - text-prediction:enable/predict
+```
+
+**Handler Lifecycle:**
+
+1. `IpcManager` instantiates all handlers with shared dependencies
+2. Each handler's `register()` method is called to set up IPC channels
+3. Each handler's `initialize()` method (if defined) is called for startup state
+4. Handlers manage their own event subscriptions and broadcasting
+
+**Key Benefits:**
+
+- **Single Responsibility**: Each handler owns one domain (theme, zoom, hotkeys, etc.)
+- **Testability**: Handlers can be unit tested in isolation with mocked dependencies
+- **Maintainability**: ~200 line orchestrator vs 1500+ line monolith
+- **Dependency Injection**: `IpcHandlerDependencies` interface enables clean testing
 
 #### 3.2.3. Hotkey Manager
 
@@ -465,7 +520,7 @@ npm run electron:dev    # Start development
 
 **Primary Contact/Team:** Ben Wendell (github@benwendell.com)
 
-**Date of Last Update:** 2026-01-01
+**Date of Last Update:** 2026-01-06
 
 ## 11. Glossary / Acronyms
 

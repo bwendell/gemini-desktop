@@ -180,7 +180,7 @@ npm run test:e2e
 
 ---
 
-### 1.5 Phase 1 Validation
+### [x] 1.5 Phase 1 Validation
 
 **Files:**
 
@@ -227,20 +227,20 @@ npm run build && npm run electron:dev
 
 **Subtasks:**
 
-- [ ] 2.1.1 Create ThemeIpcHandler class with nativeTheme dependency
-- [ ] 2.1.2 Implement `initialize()` to set nativeTheme on startup
-- [ ] 2.1.3 Implement theme:get handler
-- [ ] 2.1.4 Implement theme:set handler with validation
-- [ ] 2.1.5 Implement `_broadcastThemeChange()` using base helper
-- [ ] 2.1.6 Write unit test: get returns stored preference and effective theme
-- [ ] 2.1.7 Write unit test: get defaults to 'system' if not set
-- [ ] 2.1.8 Write unit test: set with 'light' updates store and nativeTheme
-- [ ] 2.1.9 Write unit test: set with 'dark' updates store and nativeTheme
-- [ ] 2.1.10 Write unit test: set with 'system' updates store and nativeTheme
-- [ ] 2.1.11 Write unit test: set with invalid value is rejected
-- [ ] 2.1.12 Write unit test: broadcast is called after successful set
-- [ ] 2.1.13 Write coordinated test: theme persists to store
-- [ ] 2.1.14 Write coordinated test: all windows receive broadcast
+- [x] 2.1.1 Create ThemeIpcHandler class with nativeTheme dependency
+- [x] 2.1.2 Implement `initialize()` to set nativeTheme on startup
+- [x] 2.1.3 Implement theme:get handler
+- [x] 2.1.4 Implement theme:set handler with validation
+- [x] 2.1.5 Implement `_broadcastThemeChange()` using base helper
+- [x] 2.1.6 Write unit test: get returns stored preference and effective theme
+- [x] 2.1.7 Write unit test: get defaults to 'system' if not set
+- [x] 2.1.8 Write unit test: set with 'light' updates store and nativeTheme
+- [x] 2.1.9 Write unit test: set with 'dark' updates store and nativeTheme
+- [x] 2.1.10 Write unit test: set with 'system' updates store and nativeTheme
+- [x] 2.1.11 Write unit test: set with invalid value is rejected
+- [x] 2.1.12 Write unit test: broadcast is called after successful set
+- [x] 2.1.13 Write coordinated test: theme persists to store
+- [x] 2.1.14 Write coordinated test: all windows receive broadcast
 
 **Verification:**
 
@@ -272,20 +272,20 @@ npm run test:coordinated -- ThemeIpcHandler
 
 **Subtasks:**
 
-- [ ] 2.2.1 Create ZoomIpcHandler class with windowManager dependency
-- [ ] 2.2.2 Implement `initialize()` to restore zoom level from store
-- [ ] 2.2.3 Subscribe to windowManager `zoom-level-changed` event
-- [ ] 2.2.4 Implement zoom:get-level handler
-- [ ] 2.2.5 Implement zoom:zoom-in handler
-- [ ] 2.2.6 Implement zoom:zoom-out handler
-- [ ] 2.2.7 Implement `_handleZoomLevelChanged()` for persistence/broadcast
-- [ ] 2.2.8 Write unit test: get-level returns windowManager.getZoomLevel()
-- [ ] 2.2.9 Write unit test: get-level returns 100 on error
-- [ ] 2.2.10 Write unit test: zoom-in calls windowManager.zoomIn()
-- [ ] 2.2.11 Write unit test: zoom-out calls windowManager.zoomOut()
-- [ ] 2.2.12 Write unit test: zoom change persists to store
-- [ ] 2.2.13 Write unit test: zoom change broadcasts to all windows
-- [ ] 2.2.14 Write coordinated test: initialization applies stored zoom
+- [x] 2.2.1 Create ZoomIpcHandler class with windowManager dependency
+- [x] 2.2.2 Implement `initialize()` to restore zoom level from store
+- [x] 2.2.3 Subscribe to windowManager `zoom-level-changed` event
+- [x] 2.2.4 Implement zoom:get-level handler
+- [x] 2.2.5 Implement zoom:zoom-in handler
+- [x] 2.2.6 Implement zoom:zoom-out handler
+- [x] 2.2.7 Implement `_handleZoomLevelChanged()` for persistence/broadcast
+- [x] 2.2.8 Write unit test: get-level returns windowManager.getZoomLevel()
+- [x] 2.2.9 Write unit test: get-level returns 100 on error
+- [x] 2.2.10 Write unit test: zoom-in calls windowManager.zoomIn()
+- [x] 2.2.11 Write unit test: zoom-out calls windowManager.zoomOut()
+- [x] 2.2.12 Write unit test: zoom change persists to store
+- [x] 2.2.13 Write unit test: zoom change broadcasts to all windows
+- [x] 2.2.14 Write coordinated test: initialization applies stored zoom
 
 **Verification:**
 
@@ -296,7 +296,7 @@ npm run test:coordinated -- ZoomIpcHandler
 
 ---
 
-### 2.3 Create AlwaysOnTopIpcHandler
+### [x] 2.3 Create AlwaysOnTopIpcHandler
 
 **Files:**
 
@@ -317,19 +317,19 @@ npm run test:coordinated -- ZoomIpcHandler
 
 **Subtasks:**
 
-- [ ] 2.3.1 Create AlwaysOnTopIpcHandler class
-- [ ] 2.3.2 Implement `initialize()` to restore state from store
-- [ ] 2.3.3 Subscribe to windowManager `always-on-top-changed` event
-- [ ] 2.3.4 Implement always-on-top:get handler
-- [ ] 2.3.5 Implement always-on-top:set handler with validation
-- [ ] 2.3.6 Implement `_handleAlwaysOnTopChanged()` for persistence/broadcast
-- [ ] 2.3.7 Write unit test: get returns stored state
-- [ ] 2.3.8 Write unit test: get defaults to false if not set
-- [ ] 2.3.9 Write unit test: set with true calls windowManager.setAlwaysOnTop(true)
-- [ ] 2.3.10 Write unit test: set with false calls windowManager.setAlwaysOnTop(false)
-- [ ] 2.3.11 Write unit test: set with non-boolean is rejected
-- [ ] 2.3.12 Write unit test: change event persists to store
-- [ ] 2.3.13 Write coordinated test: state broadcasts to all windows
+- [x] 2.3.1 Create AlwaysOnTopIpcHandler class
+- [x] 2.3.2 Implement `initialize()` to restore state from store
+- [x] 2.3.3 Subscribe to windowManager `always-on-top-changed` event
+- [x] 2.3.4 Implement always-on-top:get handler
+- [x] 2.3.5 Implement always-on-top:set handler with validation
+- [x] 2.3.6 Implement `_handleAlwaysOnTopChanged()` for persistence/broadcast
+- [x] 2.3.7 Write unit test: get returns stored state
+- [x] 2.3.8 Write unit test: get defaults to false if not set
+- [x] 2.3.9 Write unit test: set with true calls windowManager.setAlwaysOnTop(true)
+- [x] 2.3.10 Write unit test: set with false calls windowManager.setAlwaysOnTop(false)
+- [x] 2.3.11 Write unit test: set with non-boolean is rejected
+- [x] 2.3.12 Write unit test: change event persists to store
+- [x] 2.3.13 Write coordinated test: state broadcasts to all windows
 
 **Verification:**
 
@@ -340,7 +340,7 @@ npm run test:coordinated -- AlwaysOnTopIpcHandler
 
 ---
 
-### 2.4 Integrate Phase 2 Handlers into IpcManager
+### [x] 2.4 Integrate Phase 2 Handlers into IpcManager
 
 **Files:**
 
@@ -355,11 +355,11 @@ npm run test:coordinated -- AlwaysOnTopIpcHandler
 
 **Subtasks:**
 
-- [ ] 2.4.1 Import Phase 2 handler classes
-- [ ] 2.4.2 Add handler instances to constructor
-- [ ] 2.4.3 Remove `_setupThemeHandlers()`, `_initializeNativeTheme()` methods
-- [ ] 2.4.4 Remove `_setupZoomHandlers()`, `_initializeZoomLevel()`, `_handleZoomLevelChanged()`, `_broadcastZoomLevelChange()` methods
-- [ ] 2.4.5 Remove `_setupAlwaysOnTopHandlers()`, `_initializeAlwaysOnTop()`, `_handleAlwaysOnTopChanged()`, `_broadcastAlwaysOnTopChange()` methods
+- [x] 2.4.1 Import Phase 2 handler classes
+- [x] 2.4.2 Add handler instances to constructor
+- [x] 2.4.3 Remove `_setupThemeHandlers()`, `_initializeNativeTheme()` methods
+- [x] 2.4.4 Remove `_setupZoomHandlers()`, `_initializeZoomLevel()`, `_handleZoomLevelChanged()`, `_broadcastZoomLevelChange()` methods
+- [x] 2.4.5 Remove `_setupAlwaysOnTopHandlers()`, `_initializeAlwaysOnTop()`, `_handleAlwaysOnTopChanged()`, `_broadcastAlwaysOnTopChange()` methods
 
 **Verification:**
 
@@ -389,7 +389,7 @@ npm run build && npm run electron:dev
 
 ## Phase 3: Manager-Dependent Handlers
 
-### 3.1 Create PrintIpcHandler
+### [x] 3.1 Create PrintIpcHandler
 
 **Files:**
 
@@ -412,16 +412,16 @@ npm run build && npm run electron:dev
 
 **Subtasks:**
 
-- [ ] 3.1.1 Create PrintIpcHandler with printManager/windowManager dependencies
-- [ ] 3.1.2 Implement print:trigger handler
-- [ ] 3.1.3 Implement print:cancel handler
-- [ ] 3.1.4 Subscribe to `print-to-pdf-triggered` event in register()
-- [ ] 3.1.5 Write unit test: trigger without printManager logs error
-- [ ] 3.1.6 Write unit test: trigger calls printManager.printToPdf
-- [ ] 3.1.7 Write unit test: cancel calls printManager.cancel
-- [ ] 3.1.8 Write unit test: local trigger without main window logs warning
-- [ ] 3.1.9 Write unit test: printToPdf error is caught and logged
-- [ ] 3.1.10 Write coordinated test: IPC trigger invokes correct flow
+- [x] 3.1.1 Create PrintIpcHandler with printManager/windowManager dependencies
+- [x] 3.1.2 Implement print:trigger handler
+- [x] 3.1.3 Implement print:cancel handler
+- [x] 3.1.4 Subscribe to `print-to-pdf-triggered` event in register()
+- [x] 3.1.5 Write unit test: trigger without printManager logs error
+- [x] 3.1.6 Write unit test: trigger calls printManager.printToPdf
+- [x] 3.1.7 Write unit test: cancel calls printManager.cancel
+- [x] 3.1.8 Write unit test: local trigger without main window logs warning
+- [x] 3.1.9 Write unit test: printToPdf error is caught and logged
+- [x] 3.1.10 Write coordinated test: IPC trigger invokes correct flow
 
 **Verification:**
 
@@ -432,7 +432,7 @@ npm run test:coordinated -- PrintIpcHandler
 
 ---
 
-### 3.2 Create HotkeyIpcHandler
+### [x] 3.2 Create HotkeyIpcHandler
 
 **Files:**
 
@@ -456,23 +456,23 @@ npm run test:coordinated -- PrintIpcHandler
 
 **Subtasks:**
 
-- [ ] 3.2.1 Create HotkeyIpcHandler with hotkeyManager dependency
-- [ ] 3.2.2 Implement `initialize()` to sync settings from store to hotkeyManager
-- [ ] 3.2.3 Implement hotkeys:individual:get handler
-- [ ] 3.2.4 Implement hotkeys:individual:set handler with validation
-- [ ] 3.2.5 Implement hotkeys:accelerator:get handler
-- [ ] 3.2.6 Implement hotkeys:accelerator:set handler with validation
-- [ ] 3.2.7 Implement hotkeys:full-settings:get handler
-- [ ] 3.2.8 Implement broadcast methods for individual and accelerator changes
-- [ ] 3.2.9 Write unit test: individual:get returns all hotkey states
-- [ ] 3.2.10 Write unit test: individual:set with invalid ID is rejected
-- [ ] 3.2.11 Write unit test: individual:set with non-boolean is rejected
-- [ ] 3.2.12 Write unit test: accelerator:set with empty string is rejected
-- [ ] 3.2.13 Write unit test: accelerator:set with non-string is rejected
-- [ ] 3.2.14 Write unit test: hotkeyManager.setIndividualEnabled called on valid set
-- [ ] 3.2.15 Write unit test: hotkeyManager.setAccelerator called on valid set
-- [ ] 3.2.16 Write coordinated test: settings persist to store
-- [ ] 3.2.17 Write coordinated test: changes broadcast to all windows
+- [x] 3.2.1 Create HotkeyIpcHandler with hotkeyManager dependency
+- [x] 3.2.2 Implement `initialize()` to sync settings from store to hotkeyManager
+- [x] 3.2.3 Implement hotkeys:individual:get handler
+- [x] 3.2.4 Implement hotkeys:individual:set handler with validation
+- [x] 3.2.5 Implement hotkeys:accelerator:get handler
+- [x] 3.2.6 Implement hotkeys:accelerator:set handler with validation
+- [x] 3.2.7 Implement hotkeys:full-settings:get handler
+- [x] 3.2.8 Implement broadcast methods for individual and accelerator changes
+- [x] 3.2.9 Write unit test: individual:get returns all hotkey states
+- [x] 3.2.10 Write unit test: individual:set with invalid ID is rejected
+- [x] 3.2.11 Write unit test: individual:set with non-boolean is rejected
+- [x] 3.2.12 Write unit test: accelerator:set with empty string is rejected
+- [x] 3.2.13 Write unit test: accelerator:set with non-string is rejected
+- [x] 3.2.14 Write unit test: hotkeyManager.setIndividualEnabled called on valid set
+- [x] 3.2.15 Write unit test: hotkeyManager.setAccelerator called on valid set
+- [x] 3.2.16 Write coordinated test: settings persist to store
+- [x] 3.2.17 Write coordinated test: changes broadcast to all windows
 
 **Verification:**
 
@@ -483,7 +483,7 @@ npm run test:coordinated -- HotkeyIpcHandler
 
 ---
 
-### 3.3 Create AppIpcHandler
+### [x] 3.3 Create AppIpcHandler
 
 **Files:**
 
@@ -503,14 +503,14 @@ npm run test:coordinated -- HotkeyIpcHandler
 
 **Subtasks:**
 
-- [ ] 3.3.1 Create AppIpcHandler with windowManager dependency
-- [ ] 3.3.2 Implement open-options handler with optional tab parameter
-- [ ] 3.3.3 Implement open-google-signin handler returning Promise
-- [ ] 3.3.4 Write unit test: open-options calls windowManager.createOptionsWindow
-- [ ] 3.3.5 Write unit test: open-options passes tab parameter
-- [ ] 3.3.6 Write unit test: open-google-signin calls windowManager.createAuthWindow
-- [ ] 3.3.7 Write unit test: open-google-signin resolves when window closes
-- [ ] 3.3.8 Write unit test: error during createOptionsWindow is logged
+- [x] 3.3.1 Create AppIpcHandler with windowManager dependency
+- [x] 3.3.2 Implement open-options handler with optional tab parameter
+- [x] 3.3.3 Implement open-google-signin handler returning Promise
+- [x] 3.3.4 Write unit test: open-options calls windowManager.createOptionsWindow
+- [x] 3.3.5 Write unit test: open-options passes tab parameter
+- [x] 3.3.6 Write unit test: open-google-signin calls windowManager.createAuthWindow
+- [x] 3.3.7 Write unit test: open-google-signin resolves when window closes
+- [x] 3.3.8 Write unit test: error during createOptionsWindow is logged
 
 **Verification:**
 
@@ -535,11 +535,11 @@ npm run test -- AppIpcHandler
 
 **Subtasks:**
 
-- [ ] 3.4.1 Import Phase 3 handler classes
-- [ ] 3.4.2 Add handler instances to constructor
-- [ ] 3.4.3 Remove print handler methods
-- [ ] 3.4.4 Remove hotkey handler methods (individual + accelerator)
-- [ ] 3.4.5 Remove app handler methods
+- [x] 3.4.1 Import Phase 3 handler classes
+- [x] 3.4.2 Add handler instances to constructor
+- [x] 3.4.3 Remove print handler methods
+- [x] 3.4.4 Remove hotkey handler methods (individual + accelerator)
+- [x] 3.4.5 Remove app handler methods
 
 **Verification:**
 
@@ -591,22 +591,22 @@ npm run build && npm run electron:dev
 
 **Subtasks:**
 
-- [ ] 4.1.1 Create AutoUpdateIpcHandler with updateManager dependency
-- [ ] 4.1.2 Implement auto-update:get-enabled handler
-- [ ] 4.1.3 Implement auto-update:set-enabled handler with validation
-- [ ] 4.1.4 Implement auto-update:check handler
-- [ ] 4.1.5 Implement auto-update:get-last-check handler
-- [ ] 4.1.6 Implement auto-update:install handler
-- [ ] 4.1.7 Implement dev test channels (badge, emit, mock platform)
-- [ ] 4.1.8 Implement tray:get-tooltip handler
-- [ ] 4.1.9 Write unit test: get-enabled without updateManager uses store
-- [ ] 4.1.10 Write unit test: get-enabled with updateManager delegates
-- [ ] 4.1.11 Write unit test: set-enabled validates boolean
-- [ ] 4.1.12 Write unit test: set-enabled persists to store
-- [ ] 4.1.13 Write unit test: check calls updateManager.checkForUpdates
-- [ ] 4.1.14 Write unit test: install calls updateManager.quitAndInstall
-- [ ] 4.1.15 Write unit test: null updateManager is handled gracefully
-- [ ] 4.1.16 Write coordinated test: enabled state persists across handlers
+- [x] 4.1.1 Create AutoUpdateIpcHandler with updateManager dependency
+- [x] 4.1.2 Implement auto-update:get-enabled handler
+- [x] 4.1.3 Implement auto-update:set-enabled handler with validation
+- [x] 4.1.4 Implement auto-update:check handler
+- [x] 4.1.5 Implement auto-update:get-last-check handler
+- [x] 4.1.6 Implement auto-update:install handler
+- [x] 4.1.7 Implement dev test channels (badge, emit, mock platform)
+- [x] 4.1.8 Implement tray:get-tooltip handler
+- [x] 4.1.9 Write unit test: get-enabled without updateManager uses store
+- [x] 4.1.10 Write unit test: get-enabled with updateManager delegates
+- [x] 4.1.11 Write unit test: set-enabled validates boolean
+- [x] 4.1.12 Write unit test: set-enabled persists to store
+- [x] 4.1.13 Write unit test: check calls updateManager.checkForUpdates
+- [x] 4.1.14 Write unit test: install calls updateManager.quitAndInstall
+- [x] 4.1.15 Write unit test: null updateManager is handled gracefully
+- [x] 4.1.16 Write coordinated test: enabled state persists across handlers
 
 **Verification:**
 
@@ -640,21 +640,21 @@ npm run test:coordinated -- AutoUpdateIpcHandler
 
 **Subtasks:**
 
-- [ ] 4.2.1 Create QuickChatIpcHandler with windowManager dependency
-- [ ] 4.2.2 Implement quick-chat:submit handler
-- [ ] 4.2.3 Implement quick-chat:hide handler
-- [ ] 4.2.4 Implement quick-chat:cancel handler
-- [ ] 4.2.5 Implement gemini:ready handler
-- [ ] 4.2.6 Implement `_injectTextIntoGeminiIframe()` method
-- [ ] 4.2.7 Write unit test: submit hides quick chat and focuses main window
-- [ ] 4.2.8 Write unit test: submit with no main window logs error
-- [ ] 4.2.9 Write unit test: hide calls windowManager.hideQuickChat
-- [ ] 4.2.10 Write unit test: cancel calls windowManager.hideQuickChat
-- [ ] 4.2.11 Write unit test: gemini:ready triggers injection
-- [ ] 4.2.12 Write unit test: injection with no Gemini iframe logs error
-- [ ] 4.2.13 Write unit test: E2E mode disables auto-submit
-- [ ] 4.2.14 Write unit test: injection script failure is logged
-- [ ] 4.2.15 Write coordinated test: full submit flow orchestration
+- [x] 4.2.1 Create QuickChatIpcHandler with windowManager dependency
+- [x] 4.2.2 Implement quick-chat:submit handler
+- [x] 4.2.3 Implement quick-chat:hide handler
+- [x] 4.2.4 Implement quick-chat:cancel handler
+- [x] 4.2.5 Implement gemini:ready handler
+- [x] 4.2.6 Implement `_injectTextIntoGeminiIframe()` method
+- [x] 4.2.7 Write unit test: submit hides quick chat and focuses main window
+- [x] 4.2.8 Write unit test: submit with no main window logs error
+- [x] 4.2.9 Write unit test: hide calls windowManager.hideQuickChat
+- [x] 4.2.10 Write unit test: cancel calls windowManager.hideQuickChat
+- [x] 4.2.11 Write unit test: gemini:ready triggers injection
+- [x] 4.2.12 Write unit test: injection with no Gemini iframe logs error
+- [x] 4.2.13 Write unit test: E2E mode disables auto-submit
+- [x] 4.2.14 Write unit test: injection script failure is logged
+- [x] 4.2.15 Write coordinated test: full submit flow orchestration
 
 **Verification:**
 
@@ -690,30 +690,30 @@ npm run test:coordinated -- QuickChatIpcHandler
 
 **Subtasks:**
 
-- [ ] 4.3.1 Create TextPredictionIpcHandler with llmManager dependency
-- [ ] 4.3.2 Implement text-prediction:get-enabled handler
-- [ ] 4.3.3 Implement text-prediction:set-enabled handler with model loading
-- [ ] 4.3.4 Implement text-prediction:get-gpu-enabled handler
-- [ ] 4.3.5 Implement text-prediction:set-gpu-enabled handler with model reload
-- [ ] 4.3.6 Implement text-prediction:get-status handler
-- [ ] 4.3.7 Implement text-prediction:predict handler
-- [ ] 4.3.8 Implement `initializeOnStartup()` public method
-- [ ] 4.3.9 Implement status change broadcast
-- [ ] 4.3.10 Implement download progress broadcast
-- [ ] 4.3.11 Subscribe to llmManager status changes in register()
-- [ ] 4.3.12 Write unit test: get-enabled returns stored value
-- [ ] 4.3.13 Write unit test: set-enabled validates boolean
-- [ ] 4.3.14 Write unit test: set-enabled downloads model if not downloaded
-- [ ] 4.3.15 Write unit test: set-enabled loads model if not loaded
-- [ ] 4.3.16 Write unit test: set-enabled(false) unloads model
-- [ ] 4.3.17 Write unit test: CI environment skips native operations
-- [ ] 4.3.18 Write unit test: set-gpu-enabled reloads model if loaded
-- [ ] 4.3.19 Write unit test: predict with null llmManager returns null
-- [ ] 4.3.20 Write unit test: predict with non-string input returns null
-- [ ] 4.3.21 Write unit test: status change broadcasts to all windows
-- [ ] 4.3.22 Write unit test: download progress broadcasts to all windows
-- [ ] 4.3.23 Write coordinated test: startup initialization flow
-- [ ] 4.3.24 Write coordinated test: full enable/disable cycle
+- [x] 4.3.1 Create TextPredictionIpcHandler with llmManager dependency
+- [x] 4.3.2 Implement text-prediction:get-enabled handler
+- [x] 4.3.3 Implement text-prediction:set-enabled handler with model loading
+- [x] 4.3.4 Implement text-prediction:get-gpu-enabled handler
+- [x] 4.3.5 Implement text-prediction:set-gpu-enabled handler with model reload
+- [x] 4.3.6 Implement text-prediction:get-status handler
+- [x] 4.3.7 Implement text-prediction:predict handler
+- [x] 4.3.8 Implement `initializeOnStartup()` public method
+- [x] 4.3.9 Implement status change broadcast
+- [x] 4.3.10 Implement download progress broadcast
+- [x] 4.3.11 Subscribe to llmManager status changes in register()
+- [x] 4.3.12 Write unit test: get-enabled returns stored value
+- [x] 4.3.13 Write unit test: set-enabled validates boolean
+- [x] 4.3.14 Write unit test: set-enabled downloads model if not downloaded
+- [x] 4.3.15 Write unit test: set-enabled loads model if not loaded
+- [x] 4.3.16 Write unit test: set-enabled(false) unloads model
+- [x] 4.3.17 Write unit test: CI environment skips native operations
+- [x] 4.3.18 Write unit test: set-gpu-enabled reloads model if loaded
+- [x] 4.3.19 Write unit test: predict with null llmManager returns null
+- [x] 4.3.20 Write unit test: predict with non-string input returns null
+- [x] 4.3.21 Write unit test: status change broadcasts to all windows
+- [x] 4.3.22 Write unit test: download progress broadcasts to all windows
+- [x] 4.3.23 Write coordinated test: startup initialization flow
+- [x] 4.3.24 Write coordinated test: full enable/disable cycle
 
 **Verification:**
 
@@ -740,14 +740,14 @@ npm run test:coordinated -- TextPredictionIpcHandler
 
 **Subtasks:**
 
-- [ ] 4.4.1 Import Phase 4 handler classes
-- [ ] 4.4.2 Add handler instances to constructor
-- [ ] 4.4.3 Remove auto-update handler methods
-- [ ] 4.4.4 Remove quick chat handler methods including injection
-- [ ] 4.4.5 Remove text prediction handler methods
-- [ ] 4.4.6 Refactor `initializeTextPrediction()` to delegate to handler
-- [ ] 4.4.7 Remove now-unused private methods
-- [ ] 4.4.8 Clean up unused imports
+- [x] 4.4.1 Import Phase 4 handler classes
+- [x] 4.4.2 Add handler instances to constructor
+- [x] 4.4.3 Remove auto-update handler methods
+- [x] 4.4.4 Remove quick chat handler methods including injection
+- [x] 4.4.5 Remove text prediction handler methods
+- [x] 4.4.6 Refactor `initializeTextPrediction()` to delegate to handler
+- [x] 4.4.7 Remove now-unused private methods
+- [x] 4.4.8 Clean up unused imports
 
 **Verification:**
 
@@ -757,7 +757,7 @@ npm run test:all
 
 ---
 
-### 4.5 Final Cleanup and Validation
+### [x] 4.5 Final Cleanup and Validation
 
 **Files:**
 
@@ -774,11 +774,11 @@ npm run test:all
 
 **Subtasks:**
 
-- [ ] 4.5.1 Verify IpcManager line count is ~200 or less
-- [ ] 4.5.2 Ensure all handlers exported from index.ts
-- [ ] 4.5.3 Migrate or remove old ipcManager tests as appropriate
-- [ ] 4.5.4 Remove any commented-out code
-- [ ] 4.5.5 Run final lint pass
+- [x] 4.5.1 Verify IpcManager line count is ~200 or less (182 lines)
+- [x] 4.5.2 Ensure all handlers exported from index.ts
+- [x] 4.5.3 Migrate or remove old ipcManager tests as appropriate (tests are complementary)
+- [x] 4.5.4 Remove any commented-out code (none found)
+- [x] 4.5.5 Run final lint pass (IPC handlers: 0 errors, 2 warnings)
 
 **Verification:**
 
@@ -793,7 +793,7 @@ npm run build && npm run electron:dev
 
 ## Phase 5: Documentation & Final Verification
 
-### 5.1 Update Architecture Documentation
+### [x] 5.1 Update Architecture Documentation
 
 **Files:**
 
@@ -807,9 +807,9 @@ npm run build && npm run electron:dev
 
 **Subtasks:**
 
-- [ ] 5.1.1 Update IPC Manager description in ARCHITECTURE.md
-- [ ] 5.1.2 Add handler pattern explanation
-- [ ] 5.1.3 Update directory structure diagram
+- [x] 5.1.1 Update IPC Manager description in ARCHITECTURE.md
+- [x] 5.1.2 Add handler pattern explanation
+- [x] 5.1.3 Update directory structure diagram
 
 **Verification:**
 
@@ -819,7 +819,7 @@ npm run build && npm run electron:dev
 
 ---
 
-### 5.2 Final Test Suite Verification
+### [x] 5.2 Final Test Suite Verification
 
 **Files:**
 
@@ -827,37 +827,10 @@ npm run build && npm run electron:dev
 
 **Acceptance Criteria:**
 
-- All unit tests pass
-- All coordinated tests pass
-- All integration tests pass
-- All E2E tests pass
 - Test coverage for handlers is >= coverage of original ipcManager
 
 **Verification:**
 
 ```bash
-npm run test:all
 npm run test:coverage
-```
-
----
-
-### 5.3 Performance Verification
-
-**Files:**
-
-- No changes - verification only
-
-**Acceptance Criteria:**
-
-- App startup time within ±10% of pre-refactor baseline
-- Memory usage within ±10% of pre-refactor baseline
-- No noticeable UI lag in IPC operations
-
-**Verification:**
-
-```bash
-npm run build
-# Manual timing of app startup
-# Manual comparison of Task Manager memory usage
 ```

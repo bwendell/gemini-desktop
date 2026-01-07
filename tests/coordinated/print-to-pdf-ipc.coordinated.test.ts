@@ -254,7 +254,10 @@ describe('Print to PDF IPC Handler Coordination', () => {
 
             // Wait for the async rejection to be caught
             await vi.waitFor(() => {
-                expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf:', testError);
+                expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf:', {
+                    error: 'PDF generation failed',
+                    stack: expect.any(String),
+                });
             });
 
             // printToPdf was called
@@ -517,7 +520,10 @@ describe('Print to PDF IPC Handler Coordination', () => {
 
             // Wait for async error handling
             await vi.waitFor(() => {
-                expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf (local):', testError);
+                expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf (local):', {
+                    error: 'Local trigger error',
+                    stack: expect.any(String),
+                });
             });
         });
     });

@@ -123,18 +123,28 @@ describe('IpcManager', () => {
     });
 
     describe('constructor', () => {
-        it('initializes store and native theme', () => {
-            expect(mockStore.get).toHaveBeenCalledWith('theme');
-            expect(nativeTheme.themeSource).toBe('system');
+        it('creates handlers and logs initialization', () => {
+            // nativeTheme is no longer set in constructor - it's set in setupIpcHandlers()
+            // via ThemeIpcHandler.initialize()
+            expect(mockLogger.log).toHaveBeenCalledWith('Initialized');
         });
 
-        it('sets native theme from store', () => {
-            const darkStore = {
-                get: vi.fn().mockReturnValue('dark'),
-                set: vi.fn(),
-            };
-
-            new IpcManager(mockWindowManager, null, null, null, null, darkStore as any, mockLogger);
+        it('initializes native theme during setupIpcHandlers', () => {
+            // Before setupIpcHandlers, nativeTheme should be default
+            mockStore.get.mockReturnValue('dark');
+            const newIpcManager = new IpcManager(
+                mockWindowManager,
+                null,
+                mockUpdateManager,
+                mockPrintManager,
+                null,
+                mockStore as any,
+                mockLogger
+            );
+            // Now call setupIpcHandlers which triggers handler initialization
+            newIpcManager.setupIpcHandlers();
+            // After setupIpcHandlers, ThemeIpcHandler.initialize() sets nativeTheme
+            expect(mockStore.get).toHaveBeenCalledWith('theme');
             expect(nativeTheme.themeSource).toBe('dark');
         });
     });
@@ -642,7 +652,10 @@ describe('IpcManager', () => {
                 throw new Error('Hide failed');
             });
             handler();
-            expect(mockLogger.error).toHaveBeenCalledWith('Error hiding quick chat:', expect.any(Error));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error during hiding quick chat:',
+                expect.objectContaining({ error: 'Hide failed' })
+            );
         });
 
         it('handles quick-chat:cancel', () => {
@@ -658,7 +671,10 @@ describe('IpcManager', () => {
                 throw new Error('Cancel failed');
             });
             handler();
-            expect(mockLogger.error).toHaveBeenCalledWith('Error cancelling quick chat:', expect.any(Error));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error during cancelling quick chat:',
+                expect.objectContaining({ error: 'Cancel failed' })
+            );
         });
 
         it('handles quick-chat:submit error during flow', async () => {
@@ -669,7 +685,10 @@ describe('IpcManager', () => {
 
             await handler({}, 'test message');
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Error handling quick chat submit:', expect.any(Error));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error during handling quick chat submit:',
+                expect.objectContaining({ error: 'Hide error' })
+            );
         });
     });
 
@@ -843,7 +862,10 @@ describe('IpcManager', () => {
 
             await handler({ sender: {} });
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf:', error);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf:', {
+                error: 'Print failed',
+                stack: expect.any(String),
+            });
         });
 
         it('handles print-to-pdf-triggered event', () => {
@@ -912,7 +934,10 @@ describe('IpcManager', () => {
 
             await eventHandler();
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf (local):', error);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf (local):', {
+                error: 'Local print failed',
+                stack: expect.any(String),
+            });
         });
     });
 
@@ -1180,15 +1205,28 @@ describe('IpcManager', () => {
             expect(mockLogger.error).toHaveBeenCalledWith('Error opening Google sign-in:', expect.any(Error));
         });
 
-        it('handles _initializeNativeTheme error', () => {
+        it('handles ThemeIpcHandler.initialize error', () => {
             mockStore.get.mockImplementation(() => {
                 throw new Error('Theme init failed');
             });
-            new IpcManager(mockWindowManager, null, mockUpdateManager, null, null, mockStore as any, mockLogger);
-            expect(mockLogger.error).toHaveBeenCalledWith('Failed to initialize native theme:', expect.any(Error));
+            const testIpcManager = new IpcManager(
+                mockWindowManager,
+                null,
+                mockUpdateManager,
+                null,
+                null,
+                mockStore as any,
+                mockLogger
+            );
+            testIpcManager.setupIpcHandlers();
+            // ThemeIpcHandler.handleError formats as 'Error during <action>: <details>'
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error during initializing native theme:',
+                expect.objectContaining({ error: 'Theme init failed' })
+            );
         });
 
-        it('handles _initializeAlwaysOnTop error', () => {
+        it('handles AlwaysOnTopIpcHandler.initialize error', () => {
             mockStore.get.mockImplementation((key: string) => {
                 if (key === 'alwaysOnTop') throw new Error('AOT init failed');
                 return 'system';
@@ -1203,7 +1241,11 @@ describe('IpcManager', () => {
                 mockLogger
             );
             ipcManager.setupIpcHandlers();
-            expect(mockLogger.error).toHaveBeenCalledWith('Failed to initialize always on top:', expect.any(Error));
+            // AlwaysOnTopIpcHandler.handleError formats as 'Error during <action>: <details>'
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error during initializing always on top:',
+                expect.objectContaining({ error: 'AOT init failed' })
+            );
         });
     });
 
