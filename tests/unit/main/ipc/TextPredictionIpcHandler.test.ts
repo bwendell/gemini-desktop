@@ -172,8 +172,22 @@ describe('TextPredictionIpcHandler', () => {
     });
 
     describe('text-prediction:set-enabled handler', () => {
+        let originalCI: string | undefined;
+
         beforeEach(() => {
+            // Save and clear CI env to ensure tests exercise the full code path
+            originalCI = process.env.CI;
+            delete process.env.CI;
             handler.register();
+        });
+
+        afterEach(() => {
+            // Restore CI env
+            if (originalCI === undefined) {
+                delete process.env.CI;
+            } else {
+                process.env.CI = originalCI;
+            }
         });
 
         it('validates boolean input (4.3.13)', async () => {
@@ -345,6 +359,23 @@ describe('TextPredictionIpcHandler', () => {
     });
 
     describe('download progress broadcasting (4.3.22)', () => {
+        let originalCI: string | undefined;
+
+        beforeEach(() => {
+            // Save and clear CI env to ensure download code path is exercised
+            originalCI = process.env.CI;
+            delete process.env.CI;
+        });
+
+        afterEach(() => {
+            // Restore CI env
+            if (originalCI === undefined) {
+                delete process.env.CI;
+            } else {
+                process.env.CI = originalCI;
+            }
+        });
+
         it('broadcasts download progress to all windows', async () => {
             handler.register();
 

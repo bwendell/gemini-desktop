@@ -116,6 +116,23 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
     });
 
     describe('Full Enable/Disable Cycle (4.3.24)', () => {
+        let originalCI: string | undefined;
+
+        beforeEach(() => {
+            // Save and clear CI env to ensure tests exercise the full code path
+            originalCI = process.env.CI;
+            delete process.env.CI;
+        });
+
+        afterEach(() => {
+            // Restore CI env
+            if (originalCI === undefined) {
+                delete process.env.CI;
+            } else {
+                process.env.CI = originalCI;
+            }
+        });
+
         it('should coordinate full enable -> disable cycle', async () => {
             const windowManager = new WindowManager(false);
             const ipcManager = new IpcManager(windowManager, null, null, null, mockLlmManager, mockStore, mockLogger);
