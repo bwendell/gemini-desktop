@@ -67,7 +67,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
     describe('9.3.1 - Test zoom IPC handlers registered on setup', () => {
         it('should register zoom:get-level handler via ipcMain.handle', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.ZOOM_GET_LEVEL, expect.any(Function));
@@ -75,7 +75,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should register zoom:zoom-in handler via ipcMain.handle', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.ZOOM_IN, expect.any(Function));
@@ -83,7 +83,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should register zoom:zoom-out handler via ipcMain.handle', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.ZOOM_OUT, expect.any(Function));
@@ -91,7 +91,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should register all three zoom handlers', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             const handleCalls = (ipcMain.handle as any).mock.calls;
@@ -106,7 +106,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
     describe('9.3.2 - Test zoom:get-level returns current zoom level', () => {
         it('should return windowManager.getZoomLevel() value', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             // Get the registered handler
@@ -122,7 +122,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
             sharedStoreData.zoomLevel = 150;
 
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             // Get the registered handler
@@ -135,7 +135,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should return 100 when windowManager has default zoom', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             const handler = registeredHandlers[IPC_CHANNELS.ZOOM_GET_LEVEL];
@@ -148,7 +148,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
             const windowManager = new WindowManager(false);
             const zoomInSpy = vi.spyOn(windowManager, 'zoomIn');
 
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             const handler = registeredHandlers[IPC_CHANNELS.ZOOM_IN];
@@ -163,7 +163,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should return new zoom level after zoomIn', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             const handler = registeredHandlers[IPC_CHANNELS.ZOOM_IN];
@@ -178,7 +178,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should update internal zoom level state', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             windowManager.createMainWindow();
@@ -198,7 +198,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
             const windowManager = new WindowManager(false);
             const zoomOutSpy = vi.spyOn(windowManager, 'zoomOut');
 
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             const handler = registeredHandlers[IPC_CHANNELS.ZOOM_OUT];
@@ -213,7 +213,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should return new zoom level after zoomOut', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             const handler = registeredHandlers[IPC_CHANNELS.ZOOM_OUT];
@@ -228,7 +228,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should update internal zoom level state', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             windowManager.createMainWindow();
@@ -246,7 +246,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
     describe('9.3.5 - Test zoom-level-changed event sent to renderer', () => {
         it('should broadcast zoom-level-changed IPC message when zoom changes', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             // Create a window to receive broadcasts
@@ -266,7 +266,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should broadcast after zoomIn via IPC handler', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             windowManager.createMainWindow();
@@ -283,7 +283,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should broadcast after zoomOut via IPC handler', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             windowManager.createMainWindow();
@@ -300,7 +300,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should broadcast to all open windows', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             // Create main window
@@ -325,7 +325,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should not throw when window is destroyed during broadcast', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             windowManager.createMainWindow();
@@ -342,7 +342,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
     describe('Integration: End-to-end IPC flow', () => {
         it('should persist zoom level to store when changed via IPC', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             windowManager.createMainWindow();
@@ -358,7 +358,7 @@ describe('Zoom Titlebar Coordinated Tests', () => {
 
         it('should return correct value from get-level after multiple zoom operations', () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             windowManager.createMainWindow();

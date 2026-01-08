@@ -82,7 +82,7 @@ describe('QuickChatIpcHandler Coordinated Tests', () => {
             vi.spyOn(windowManager, 'focusMainWindow').mockImplementation(() => {});
 
             // Initialize IpcManager
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             // Step 1: Submit quick chat text
@@ -117,7 +117,7 @@ describe('QuickChatIpcHandler Coordinated Tests', () => {
             const windowManager = new WindowManager(false);
             vi.spyOn(windowManager, 'hideQuickChat').mockImplementation(() => {});
 
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             // Test hide
@@ -140,7 +140,7 @@ describe('QuickChatIpcHandler Coordinated Tests', () => {
             vi.spyOn(windowManager, 'hideQuickChat').mockImplementation(() => {});
             vi.spyOn(windowManager, 'focusMainWindow').mockImplementation(() => {});
 
-            const ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
             // Trigger gemini:ready - should handle missing window

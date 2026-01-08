@@ -703,6 +703,101 @@ export class OptionsPage extends BasePage {
     }
 
     // ===========================================================================
+    // RESPONSE NOTIFICATION SETTINGS
+    // ===========================================================================
+
+    /** Selector for the notifications settings section */
+    get notificationSettingsSectionSelector(): string {
+        return '[data-testid="notification-settings"]';
+    }
+
+    /** Selector for the response notifications toggle switch (the actual button with role="switch") */
+    get responseNotificationsSwitchSelector(): string {
+        return '[data-testid="response-notifications-toggle-switch"]';
+    }
+
+    /** Selector for the response notifications loading indicator */
+    get responseNotificationsLoadingSelector(): string {
+        return '[data-testid="notification-settings-loading"]';
+    }
+
+    /**
+     * Check if the Notifications settings section is displayed.
+     */
+    async isNotificationsSectionDisplayed(): Promise<boolean> {
+        return this.isElementDisplayed(this.notificationSettingsSectionSelector);
+    }
+
+    /**
+     * Get the Notifications section text (label and description).
+     */
+    async getNotificationsSectionText(): Promise<string> {
+        return this.getElementText(this.notificationSettingsSectionSelector);
+    }
+
+    /**
+     * Check if response notifications toggle is enabled.
+     * Waits for the toggle to finish loading before reading state.
+     */
+    async isResponseNotificationsEnabled(): Promise<boolean> {
+        // Wait for loading state to complete (loading element should not exist)
+        try {
+            await browser.waitUntil(
+                async () => {
+                    const loadingEl = await this.$(this.responseNotificationsLoadingSelector);
+                    return !(await loadingEl.isExisting());
+                },
+                { timeout: 5000, timeoutMsg: 'Response notifications toggle did not finish loading' }
+            );
+        } catch {
+            this.log('Warning: Response notifications toggle may still be loading');
+        }
+
+        // Now wait for the switch to exist and be displayed
+        const toggle = await this.waitForElementToExist(this.responseNotificationsSwitchSelector, 5000);
+        const checked = await toggle.getAttribute('aria-checked');
+        return checked === 'true';
+    }
+
+    /**
+     * Toggle response notifications on or off.
+     */
+    async toggleResponseNotifications(): Promise<void> {
+        this.log('Toggling response notifications');
+        const toggle = await this.waitForElement(this.responseNotificationsSwitchSelector);
+        await toggle.click();
+        // Wait for IPC round-trip and state propagation
+        await browser.pause(500);
+    }
+
+    /**
+     * Enable response notifications (if not already enabled).
+     */
+    async enableResponseNotifications(): Promise<void> {
+        const isEnabled = await this.isResponseNotificationsEnabled();
+        if (!isEnabled) {
+            await this.toggleResponseNotifications();
+        }
+    }
+
+    /**
+     * Disable response notifications (if not already disabled).
+     */
+    async disableResponseNotifications(): Promise<void> {
+        const isEnabled = await this.isResponseNotificationsEnabled();
+        if (isEnabled) {
+            await this.toggleResponseNotifications();
+        }
+    }
+
+    /**
+     * Check if the response notifications toggle switch is displayed.
+     */
+    async isResponseNotificationsToggleDisplayed(): Promise<boolean> {
+        return this.isElementDisplayed(this.responseNotificationsSwitchSelector);
+    }
+
+    // ===========================================================================
     // ABOUT TAB QUERIES
     // ===========================================================================
 

@@ -83,7 +83,16 @@ describe('IPC Round-Trip Integration', () => {
         hotkeyManager = new HotkeyManager(windowManager);
         updateManager = new UpdateManager(mockStore as any);
 
-        ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, null, null, mockStore, mockLogger);
+        ipcManager = new IpcManager(
+            windowManager,
+            hotkeyManager,
+            updateManager,
+            null,
+            null,
+            null,
+            mockStore,
+            mockLogger
+        );
         ipcManager.setupIpcHandlers();
     });
 

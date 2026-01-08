@@ -18,15 +18,15 @@ import { createLogger } from './utils/logger';
 // Setup Logger
 const logger = createLogger('[Main]');
 
-// DEBUG: Log critical environment info early for CI debugging
-logger.log('=== ELECTRON STARTUP DEBUG INFO ===');
-logger.log('Platform:', process.platform);
-logger.log('DISPLAY:', process.env.DISPLAY || 'NOT SET');
-logger.log('XDG_SESSION_TYPE:', process.env.XDG_SESSION_TYPE || 'NOT SET');
-logger.log('CI:', process.env.CI || 'NOT SET');
-logger.log('ELECTRON_USE_DIST:', process.env.ELECTRON_USE_DIST || 'NOT SET');
-logger.log('app.isReady():', app.isReady());
-logger.log('===================================');
+// Log critical environment info early for CI debugging
+logger.debug('=== ELECTRON STARTUP DEBUG INFO ===');
+logger.debug('Platform:', process.platform);
+logger.debug('DISPLAY:', process.env.DISPLAY || 'NOT SET');
+logger.debug('XDG_SESSION_TYPE:', process.env.XDG_SESSION_TYPE || 'NOT SET');
+logger.debug('CI:', process.env.CI || 'NOT SET');
+logger.debug('ELECTRON_USE_DIST:', process.env.ELECTRON_USE_DIST || 'NOT SET');
+logger.debug('app.isReady():', app.isReady());
+logger.debug('===================================');
 
 if (isLinux) {
     // On Linux, the internal app name should match the executable/id for better WM_CLASS matching
@@ -97,6 +97,7 @@ import MenuManager from './managers/menuManager';
 import HotkeyManager from './managers/hotkeyManager';
 import TrayManager from './managers/trayManager';
 import BadgeManager from './managers/badgeManager';
+import NotificationManager, { type NotificationSettings } from './managers/notificationManager';
 import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
 import PrintManager from './managers/printManager';
 import LlmManager from './managers/llmManager';
@@ -126,62 +127,63 @@ let updateManager: UpdateManager;
 let badgeManager: BadgeManager;
 let printManager: PrintManager;
 let llmManager: LlmManager;
+let notificationManager: NotificationManager;
 
 /**
  * Initialize all application managers.
  * This function encapsulates manager creation for better testability and clarity.
  */
 function initializeManagers(): void {
-    logger.log('[DEBUG] initializeManagers() - creating WindowManager');
+    logger.debug('initializeManagers() - creating WindowManager');
     windowManager = new WindowManager(isDev);
-    logger.log('[DEBUG] initializeManagers() - WindowManager created');
+    logger.debug('initializeManagers() - WindowManager created');
 
-    logger.log('[DEBUG] initializeManagers() - creating HotkeyManager');
+    logger.debug('initializeManagers() - creating HotkeyManager');
     hotkeyManager = new HotkeyManager(windowManager);
-    logger.log('[DEBUG] initializeManagers() - HotkeyManager created');
+    logger.debug('initializeManagers() - HotkeyManager created');
 
     // Create tray and badge managers
-    logger.log('[DEBUG] initializeManagers() - creating TrayManager');
+    logger.debug('initializeManagers() - creating TrayManager');
     trayManager = new TrayManager(windowManager);
-    logger.log('[DEBUG] initializeManagers() - TrayManager created');
+    logger.debug('initializeManagers() - TrayManager created');
 
-    logger.log('[DEBUG] initializeManagers() - creating BadgeManager');
+    logger.debug('initializeManagers() - creating BadgeManager');
     badgeManager = new BadgeManager();
-    logger.log('[DEBUG] initializeManagers() - BadgeManager created');
+    logger.debug('initializeManagers() - BadgeManager created');
 
     // Create settings store for auto-update preferences
-    logger.log('[DEBUG] initializeManagers() - creating SettingsStore');
+    logger.debug('initializeManagers() - creating SettingsStore');
     const updateSettings = new SettingsStore<AutoUpdateSettings>({
         configName: 'update-settings',
         defaults: {
             autoUpdateEnabled: true,
         },
     });
-    logger.log('[DEBUG] initializeManagers() - SettingsStore created');
+    logger.debug('initializeManagers() - SettingsStore created');
 
     // Create update manager with optional badge/tray dependencies
-    logger.log('[DEBUG] initializeManagers() - creating UpdateManager');
+    logger.debug('initializeManagers() - creating UpdateManager');
     updateManager = new UpdateManager(updateSettings, {
         badgeManager,
         trayManager,
     });
-    logger.log('[DEBUG] initializeManagers() - UpdateManager created');
+    logger.debug('initializeManagers() - UpdateManager created');
 
-    logger.log('[DEBUG] initializeManagers() - creating PrintManager');
+    logger.debug('initializeManagers() - creating PrintManager');
     printManager = new PrintManager(windowManager);
-    logger.log('[DEBUG] initializeManagers() - PrintManager created');
+    logger.debug('initializeManagers() - PrintManager created');
 
-    logger.log('[DEBUG] initializeManagers() - creating LlmManager');
+    logger.debug('initializeManagers() - creating LlmManager');
     llmManager = new LlmManager();
-    logger.log('[DEBUG] initializeManagers() - LlmManager created');
+    logger.debug('initializeManagers() - LlmManager created');
 
-    logger.log('[DEBUG] initializeManagers() - creating IpcManager');
-    ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, printManager, llmManager);
-    logger.log('[DEBUG] initializeManagers() - IpcManager created');
+    logger.debug('initializeManagers() - creating IpcManager');
+    ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, printManager, llmManager, null);
+    logger.debug('initializeManagers() - IpcManager created');
 
     // Expose managers globally for E2E testing
     // Type-safe global exposure for E2E tests
-    logger.log('[DEBUG] initializeManagers() - exposing managers globally');
+    logger.debug('initializeManagers() - exposing managers globally');
     const globalWithManagers = global as typeof globalThis & {
         windowManager: WindowManager;
         ipcManager: IpcManager;
@@ -201,7 +203,7 @@ function initializeManagers(): void {
     globalWithManagers.printManager = printManager;
     globalWithManagers.llmManager = llmManager;
 
-    logger.log('[DEBUG] initializeManagers() - All managers initialized successfully');
+    logger.debug('initializeManagers() - All managers initialized successfully');
 }
 
 /**
@@ -246,20 +248,20 @@ function gracefulShutdown(exitCode: number = 0): void {
 }
 
 // Initialize managers before requesting instance lock
-logger.log('[DEBUG] About to call initializeManagers()');
+logger.debug('About to call initializeManagers()');
 initializeManagers();
-logger.log('[DEBUG] initializeManagers() completed');
+logger.debug('initializeManagers() completed');
 
 // Single Instance Lock
-logger.log('[DEBUG] About to request single instance lock');
+logger.debug('About to request single instance lock');
 const gotTheLock = app.requestSingleInstanceLock();
-logger.log('[DEBUG] Single instance lock result:', gotTheLock);
+logger.debug('Single instance lock result:', gotTheLock);
 
 if (!gotTheLock) {
     logger.log('Another instance is already running. Quitting...');
     app.exit(0);
 } else {
-    logger.log('[DEBUG] Got the lock, setting up second-instance handler');
+    logger.debug('Got the lock, setting up second-instance handler');
 
     app.on('second-instance', () => {
         // Someone tried to run a second instance, we should focus our window.
@@ -274,24 +276,24 @@ if (!gotTheLock) {
     });
 
     // App lifecycle
-    logger.log('[DEBUG] Setting up app.whenReady() handler');
-    logger.log('[DEBUG] Current app.isReady():', app.isReady());
+    logger.debug('Setting up app.whenReady() handler');
+    logger.debug('Current app.isReady():', app.isReady());
 
     // Also listen to the 'ready' event directly for debugging
     app.on('ready', () => {
-        logger.log('[DEBUG] app "ready" event fired!');
+        logger.debug('app "ready" event fired!');
     });
 
     // Log if whenReady takes too long
     const readyTimeout = setTimeout(() => {
-        logger.error('[DEBUG] WARNING: app.whenReady() has not resolved after 10 seconds!');
-        logger.error('[DEBUG] DISPLAY:', process.env.DISPLAY);
-        logger.error('[DEBUG] This may indicate a display/xvfb issue');
+        logger.debug('WARNING: app.whenReady() has not resolved after 10 seconds!');
+        logger.debug('DISPLAY:', process.env.DISPLAY);
+        logger.debug('This may indicate a display/xvfb issue');
     }, 10000);
 
     app.whenReady().then(() => {
         clearTimeout(readyTimeout);
-        logger.log('[DEBUG] app.whenReady() resolved!');
+        logger.debug('app.whenReady() resolved!');
         logger.log('App ready - starting initialization');
 
         // Apply security settings to default session (used by all windows)
@@ -307,14 +309,43 @@ if (!gotTheLock) {
         (global as any).menuManager = menuManager;
         logger.log('Menu setup complete');
 
-        logger.log('[DEBUG] About to create main window');
+        logger.debug('About to create main window');
         windowManager.createMainWindow();
-        logger.log('[DEBUG] createMainWindow() returned');
+        logger.debug('createMainWindow() returned');
         logger.log('Main window created');
 
         // Set main window reference for badge manager (needed for Windows overlay)
         badgeManager.setMainWindow(windowManager.getMainWindow());
         logger.log('Badge manager configured');
+
+        // Create notification manager for response notifications
+        const mainWindow = windowManager.getMainWindow();
+        if (mainWindow) {
+            const notificationSettings = new SettingsStore<NotificationSettings>({
+                configName: 'notification-settings',
+                defaults: {
+                    responseNotificationsEnabled: true,
+                },
+            });
+            notificationManager = new NotificationManager(mainWindow, badgeManager, notificationSettings);
+
+            // Subscribe to response-complete events from MainWindow
+            const mainWindowInstance = windowManager.getMainWindowInstance();
+            if (mainWindowInstance) {
+                mainWindowInstance.on('response-complete', () => {
+                    notificationManager.onResponseComplete();
+                });
+                logger.log('NotificationManager subscribed to response-complete events');
+            }
+
+            // Expose notification manager globally for E2E testing
+            (global as typeof globalThis & { notificationManager: NotificationManager }).notificationManager =
+                notificationManager;
+            logger.log('NotificationManager configured');
+
+            // Inject NotificationManager into IpcManager for response notification IPC handlers
+            ipcManager.setNotificationManager(notificationManager);
+        }
 
         // Create system tray icon (may fail on headless Linux environments)
         try {

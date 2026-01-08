@@ -117,6 +117,7 @@ describe('IpcManager', () => {
             mockUpdateManager,
             mockPrintManager,
             null,
+            null, // No NotificationManager
             mockStore as any,
             mockLogger
         );
@@ -138,6 +139,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 mockPrintManager,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -287,6 +289,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 mockPrintManager,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -318,6 +321,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -361,7 +365,7 @@ describe('IpcManager', () => {
         });
 
         it('handles auto-update:get-enabled (without manager)', async () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._handlers.get('auto-update:get-enabled');
             mockStore.get.mockReturnValue(false);
@@ -371,7 +375,7 @@ describe('IpcManager', () => {
         });
 
         it('handles auto-update:get-enabled fallback when store returns undefined', async () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._handlers.get('auto-update:get-enabled');
             mockStore.get.mockReturnValue(undefined);
@@ -395,7 +399,7 @@ describe('IpcManager', () => {
         });
 
         it('handles auto-update:set-enabled (without manager)', () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._listeners.get('auto-update:set-enabled');
             handler({}, true);
@@ -416,7 +420,7 @@ describe('IpcManager', () => {
         });
 
         it('handles auto-update:check (without manager)', () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._listeners.get('auto-update:check');
             handler(); // Should not crash
@@ -439,7 +443,7 @@ describe('IpcManager', () => {
         });
 
         it('handles auto-update:install (without manager)', () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._listeners.get('auto-update:install');
             handler(); // Should not crash
@@ -479,7 +483,7 @@ describe('IpcManager', () => {
         });
 
         it('handles dev:test:show-badge without manager', () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._listeners.get('dev:test:show-badge');
             handler({}, '2.0.0-test'); // Should not crash
@@ -502,7 +506,7 @@ describe('IpcManager', () => {
         });
 
         it('handles dev:test:clear-badge without manager', () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._listeners.get('dev:test:clear-badge');
             handler(); // Should not crash
@@ -844,6 +848,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null, // No PrintManager
                 null, // No LlmManager
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -904,6 +909,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null, // No PrintManager
                 null, // No LlmManager
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1094,6 +1100,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1111,6 +1118,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1128,6 +1136,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1147,6 +1156,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1178,6 +1188,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1215,6 +1226,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1237,6 +1249,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1338,6 +1351,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 mockPrintManager,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1448,6 +1462,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 null,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1500,7 +1515,7 @@ describe('IpcManager', () => {
         });
 
         it('handles dev:test:set-update-enabled without manager', () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._listeners.get('dev:test:set-update-enabled');
             handler({}, true);
@@ -1517,7 +1532,7 @@ describe('IpcManager', () => {
         });
 
         it('handles dev:test:emit-update-event without manager', () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._listeners.get('dev:test:emit-update-event');
             handler({}, 'update-available', {});
@@ -1543,7 +1558,7 @@ describe('IpcManager', () => {
         });
 
         it('handles dev:test:mock-platform without manager', () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._listeners.get('dev:test:mock-platform');
             handler({}, 'win32', {});
@@ -1564,7 +1579,7 @@ describe('IpcManager', () => {
         });
 
         it('handles tray:get-tooltip without manager', async () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._handlers.get('tray:get-tooltip');
             const result = await handler();
@@ -1595,7 +1610,7 @@ describe('IpcManager', () => {
         });
 
         it('handles auto-update:get-last-check without manager', async () => {
-            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, mockStore as any, mockLogger);
+            ipcManager = new IpcManager(mockWindowManager, null, null, null, null, null, mockStore as any, mockLogger);
             ipcManager.setupIpcHandlers();
             const handler = (ipcMain as any)._handlers.get('auto-update:get-last-check');
             const result = await handler();
@@ -1698,6 +1713,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 mockPrintManager,
                 mockLlmManager,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1721,6 +1737,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 mockPrintManager,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1770,6 +1787,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 mockPrintManager,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );
@@ -1834,6 +1852,7 @@ describe('IpcManager', () => {
                 mockUpdateManager,
                 mockPrintManager,
                 null,
+                null, // No NotificationManager
                 mockStore as any,
                 mockLogger
             );

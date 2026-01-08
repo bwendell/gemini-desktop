@@ -68,16 +68,16 @@ export default abstract class BaseWindow extends EventEmitter {
      * @returns The created BrowserWindow
      */
     protected createWindow(): BrowserWindow {
-        this.logger.log('[DEBUG] BaseWindow.createWindow() called');
+        this.logger.debug('BaseWindow.createWindow() called');
 
         if (this.window && !this.window.isDestroyed()) {
-            this.logger.log('[DEBUG] Window already exists, focusing');
+            this.logger.debug('Window already exists, focusing');
             this.window.focus();
             return this.window;
         }
 
         try {
-            this.logger.log('[DEBUG] Creating new BrowserWindow...');
+            this.logger.debug('Creating new BrowserWindow...');
             this.logger.log(`Creating window with props: partition=${this.windowConfig.webPreferences?.partition}`);
 
             this.window = new BrowserWindow({
@@ -87,15 +87,15 @@ export default abstract class BaseWindow extends EventEmitter {
                     preload: getPreloadPath(),
                 },
             });
-            this.logger.log('[DEBUG] BrowserWindow created successfully');
+            this.logger.debug('BrowserWindow created successfully');
 
-            this.logger.log('[DEBUG] About to call loadContent()');
+            this.logger.debug('About to call loadContent()');
             this.loadContent();
-            this.logger.log('[DEBUG] loadContent() completed');
+            this.logger.debug('loadContent() completed');
 
-            this.logger.log('[DEBUG] About to call setupBaseHandlers()');
+            this.logger.debug('About to call setupBaseHandlers()');
             this.setupBaseHandlers();
-            this.logger.log('[DEBUG] setupBaseHandlers() completed');
+            this.logger.debug('setupBaseHandlers() completed');
 
             return this.window;
         } catch (error) {

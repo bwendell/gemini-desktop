@@ -12,6 +12,8 @@ export interface Logger {
     log(message: string, ...args: unknown[]): void;
     error(message: string, ...args: unknown[]): void;
     warn(message: string, ...args: unknown[]): void;
+    /** Debug logs - only output in development mode */
+    debug(message: string, ...args: unknown[]): void;
 }
 
 /**
@@ -19,11 +21,12 @@ export interface Logger {
  *
  * @param prefix - The prefix to prepend to all log messages (e.g., '[useMenuDefinitions]')
  * @param envOverride - Optional environment object for testing (defaults to import.meta.env)
- * @returns Logger object with log, error, and warn methods
+ * @returns Logger object with log, error, warn, and debug methods
  *
  * @example
  * const logger = createRendererLogger('[MyComponent]');
  * logger.log('Component mounted');
+ * logger.debug('Debug info'); // Only logs in development mode
  * logger.error('Failed to load data');
  */
 export function createRendererLogger(prefix: string, envOverride?: { DEV?: boolean; MODE?: string }): Logger {
@@ -44,6 +47,17 @@ export function createRendererLogger(prefix: string, envOverride?: { DEV?: boole
         warn(message: string, ...args: unknown[]): void {
             if (isDev) {
                 console.warn(`${prefix} ${message}`, ...args);
+            }
+        },
+
+        /**
+         * Log a debug message (only in development mode).
+         * In production, this is a no-op with minimal overhead.
+         * Adds [DEBUG] prefix for easy filtering.
+         */
+        debug(message: string, ...args: unknown[]): void {
+            if (isDev) {
+                console.log(`${prefix} [DEBUG] ${message}`, ...args);
             }
         },
     };

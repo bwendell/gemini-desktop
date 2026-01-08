@@ -24,6 +24,7 @@ import {
     AutoUpdateIpcHandler,
     QuickChatIpcHandler,
     TextPredictionIpcHandler,
+    ResponseNotificationIpcHandler,
     IpcHandlerDependencies,
 } from './ipc/index';
 import SettingsStore from '../store';
@@ -33,6 +34,7 @@ import type HotkeyManager from './hotkeyManager';
 import type UpdateManager from './updateManager';
 import type PrintManager from './printManager';
 import type LlmManager from './llmManager';
+import type NotificationManager from './notificationManager';
 import type { ModelStatus } from './llmManager';
 import type { ThemePreference, Logger } from '../types';
 
@@ -61,6 +63,8 @@ interface UserPreferences extends Record<string, unknown> {
     textPredictionModelId: string;
     // Zoom settings
     zoomLevel: number;
+    // Response notification settings
+    responseNotificationsEnabled: boolean;
 }
 
 /**
@@ -70,6 +74,7 @@ interface UserPreferences extends Record<string, unknown> {
 export default class IpcManager {
     private readonly handlers: BaseIpcHandler[] = [];
     private readonly textPredictionHandler: TextPredictionIpcHandler;
+    private readonly responseNotificationHandler: ResponseNotificationIpcHandler;
     private readonly logger: Logger;
     /** Settings store exposed for integration tests */
     public readonly store: SettingsStore<UserPreferences>;
@@ -81,6 +86,7 @@ export default class IpcManager {
      * @param updateManager - Optional update manager for auto-updates
      * @param printManager - Optional print manager for PDF printing
      * @param llmManager - Optional LLM manager for text prediction
+     * @param notificationManager - Optional notification manager for response notifications
      * @param store - Optional store instance for testing
      * @param logger - Optional logger instance for testing
      */
@@ -90,6 +96,7 @@ export default class IpcManager {
         updateManager?: UpdateManager | null,
         printManager?: PrintManager | null,
         llmManager?: LlmManager | null,
+        notificationManager?: NotificationManager | null,
         store?: SettingsStore<UserPreferences>,
         logger?: Logger
     ) {
@@ -111,6 +118,7 @@ export default class IpcManager {
                     textPredictionModelStatus: 'not-downloaded',
                     textPredictionModelId: 'qwen3-0.6b',
                     zoomLevel: 100,
+                    responseNotificationsEnabled: true,
                 },
             });
         /* v8 ignore next -- production fallback, tests always inject logger */
@@ -126,10 +134,14 @@ export default class IpcManager {
             updateManager: updateManager || null,
             printManager: printManager || null,
             llmManager: llmManager || null,
+            notificationManager: notificationManager || null,
         };
 
         // Create TextPredictionIpcHandler first (we need reference for initializeTextPrediction)
         this.textPredictionHandler = new TextPredictionIpcHandler(handlerDeps);
+
+        // Create ResponseNotificationIpcHandler (we need reference for setNotificationManager)
+        this.responseNotificationHandler = new ResponseNotificationIpcHandler(handlerDeps);
 
         // Instantiate all handlers
         this.handlers = [
@@ -148,6 +160,8 @@ export default class IpcManager {
             new AutoUpdateIpcHandler(handlerDeps),
             new QuickChatIpcHandler(handlerDeps),
             this.textPredictionHandler,
+            // Response notification handler
+            this.responseNotificationHandler,
         ];
 
         this.logger.log('Initialized');
@@ -180,5 +194,15 @@ export default class IpcManager {
      */
     async initializeTextPrediction(): Promise<void> {
         await this.textPredictionHandler.initializeOnStartup();
+    }
+
+    /**
+     * Set the NotificationManager for response notifications.
+     * This is used for late injection when NotificationManager is created after IpcManager.
+     * @param manager - The NotificationManager instance to use
+     */
+    setNotificationManager(manager: NotificationManager | null): void {
+        this.responseNotificationHandler.setNotificationManager(manager);
+        this.logger.log(`NotificationManager ${manager ? 'injected' : 'cleared'}`);
     }
 }

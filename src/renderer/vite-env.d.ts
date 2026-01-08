@@ -179,6 +179,10 @@ interface Window {
         onTextPredictionDownloadProgress: (callback: (progress: number) => void) => () => void;
         predictText: (partialText: string) => Promise<string | null>;
 
+        // Response Notifications API
+        getResponseNotificationsEnabled: () => Promise<boolean>;
+        setResponseNotificationsEnabled: (enabled: boolean) => void;
+
         platform: string;
         isElectron: boolean;
     };

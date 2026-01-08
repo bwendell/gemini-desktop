@@ -242,5 +242,237 @@ describe.each([
             badgeManager.clearUpdateBadge();
             expect(badgeManager.hasBadgeShown()).toBe(false);
         });
+
+        it('returns true after showNotificationBadge', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showNotificationBadge();
+            expect(badgeManager.hasBadgeShown()).toBe(true);
+        });
+    });
+
+    describe('showNotificationBadge', () => {
+        it('sets hasNotificationBadgeShown flag to true', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showNotificationBadge();
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(true);
+        });
+
+        it('does not call platform APIs again if already shown', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showNotificationBadge();
+            badgeManager.showNotificationBadge();
+
+            // Should early return and log
+            if (name === 'Windows') {
+                expect(mockWindow.setOverlayIcon).toHaveBeenCalledTimes(1);
+            }
+        });
+
+        if (name === 'Windows') {
+            it('sets overlay icon on Windows with correct description', () => {
+                const mockWindow = {
+                    isDestroyed: vi.fn().mockReturnValue(false),
+                    setOverlayIcon: vi.fn(),
+                } as unknown as BrowserWindow;
+                badgeManager.setMainWindow(mockWindow);
+
+                badgeManager.showNotificationBadge();
+                expect(mockWindow.setOverlayIcon).toHaveBeenCalledWith(expect.anything(), 'Response ready');
+            });
+
+            it('handles null window gracefully on Windows', () => {
+                badgeManager.setMainWindow(null);
+                badgeManager.showNotificationBadge();
+                // Should not throw, badge state is still set
+                expect(badgeManager.hasNotificationBadgeShown()).toBe(true);
+            });
+        }
+
+        if (name === 'macOS') {
+            it('uses app.dock.setBadge on macOS', () => {
+                const { app } = require('electron');
+                badgeManager.showNotificationBadge('•');
+                expect(app.dock?.setBadge).toHaveBeenCalledWith('•');
+            });
+        }
+
+        if (name === 'Linux') {
+            it('gracefully handles no native badge support on Linux', () => {
+                badgeManager.showNotificationBadge();
+                // Badge state should still be set even though no visual badge is shown
+                expect(badgeManager.hasNotificationBadgeShown()).toBe(true);
+            });
+        }
+    });
+
+    describe('clearNotificationBadge', () => {
+        if (name === 'Windows') {
+            it('clears the overlay icon with null on Windows', () => {
+                const mockWindow = {
+                    isDestroyed: vi.fn().mockReturnValue(false),
+                    setOverlayIcon: vi.fn(),
+                } as unknown as BrowserWindow;
+                badgeManager.setMainWindow(mockWindow);
+
+                badgeManager.showNotificationBadge();
+                badgeManager.clearNotificationBadge();
+
+                expect(mockWindow.setOverlayIcon).toHaveBeenLastCalledWith(null, '');
+            });
+        }
+
+        if (name === 'macOS') {
+            it('clears app.dock badge on macOS', () => {
+                const { app } = require('electron');
+                badgeManager.showNotificationBadge();
+                badgeManager.clearNotificationBadge();
+                expect(app.dock?.setBadge).toHaveBeenCalledWith('');
+            });
+        }
+
+        it('sets hasNotificationBadgeShown flag to false', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showNotificationBadge();
+            badgeManager.clearNotificationBadge();
+
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(false);
+        });
+
+        it('does nothing if badge not shown', () => {
+            badgeManager.clearNotificationBadge();
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(false);
+        });
+    });
+
+    describe('hasNotificationBadgeShown', () => {
+        it('returns false initially', () => {
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(false);
+        });
+
+        it('returns true after showNotificationBadge', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showNotificationBadge();
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(true);
+        });
+
+        it('returns false after clearNotificationBadge', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showNotificationBadge();
+            badgeManager.clearNotificationBadge();
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(false);
+        });
+    });
+
+    describe('badge coexistence', () => {
+        it('can show both update and notification badges simultaneously', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showUpdateBadge();
+            badgeManager.showNotificationBadge();
+
+            expect(badgeManager.hasBadgeShown()).toBe(true);
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(true);
+        });
+
+        it('keeps badge visible after clearing only one type', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showUpdateBadge();
+            badgeManager.showNotificationBadge();
+            badgeManager.clearNotificationBadge();
+
+            // Update badge should still be shown
+            expect(badgeManager.hasBadgeShown()).toBe(true);
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(false);
+        });
+
+        it('keeps badge visible after clearing update badge when notification badge active', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                setOverlayIcon: vi.fn(),
+            } as unknown as BrowserWindow;
+            badgeManager.setMainWindow(mockWindow);
+
+            badgeManager.showUpdateBadge();
+            badgeManager.showNotificationBadge();
+            badgeManager.clearUpdateBadge();
+
+            // Notification badge should still be shown
+            expect(badgeManager.hasBadgeShown()).toBe(true);
+            expect(badgeManager.hasNotificationBadgeShown()).toBe(true);
+        });
+
+        if (name === 'Windows') {
+            it('does not clear overlay icon when one badge type remains on Windows', () => {
+                const mockWindow = {
+                    isDestroyed: vi.fn().mockReturnValue(false),
+                    setOverlayIcon: vi.fn(),
+                } as unknown as BrowserWindow;
+                badgeManager.setMainWindow(mockWindow);
+
+                badgeManager.showUpdateBadge();
+                badgeManager.showNotificationBadge();
+                badgeManager.clearNotificationBadge();
+
+                // Should NOT have called setOverlayIcon with null
+
+                const calls = (mockWindow.setOverlayIcon as any).mock.calls;
+                const nullCalls = calls.filter((call: [Electron.NativeImage | null, string]) => call[0] === null);
+                expect(nullCalls.length).toBe(0);
+            });
+
+            it('clears overlay icon only when all badge types are cleared on Windows', () => {
+                const mockWindow = {
+                    isDestroyed: vi.fn().mockReturnValue(false),
+                    setOverlayIcon: vi.fn(),
+                } as unknown as BrowserWindow;
+                badgeManager.setMainWindow(mockWindow);
+
+                badgeManager.showUpdateBadge();
+                badgeManager.showNotificationBadge();
+                badgeManager.clearUpdateBadge();
+                badgeManager.clearNotificationBadge();
+
+                expect(mockWindow.setOverlayIcon).toHaveBeenLastCalledWith(null, '');
+            });
+        }
     });
 });

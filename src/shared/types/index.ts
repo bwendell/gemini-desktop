@@ -12,6 +12,7 @@ export * from './updates';
 export * from './ipc';
 export * from './toast';
 export * from './text-prediction';
+export * from './notifications';
 
 // Re-export ElectronAPI explicitly for easier imports
 export type { ElectronAPI } from './ipc';

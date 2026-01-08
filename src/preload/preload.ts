@@ -98,6 +98,7 @@ export const IPC_CHANNELS = {
     DEV_TEST_SET_UPDATE_ENABLED: 'dev:test:set-update-enabled',
     DEV_TEST_EMIT_UPDATE_EVENT: 'dev:test:emit-update-event',
     DEV_TEST_MOCK_PLATFORM: 'dev:test:mock-platform',
+    DEV_TEST_TRIGGER_RESPONSE_NOTIFICATION: 'dev:test:trigger-response-notification',
     DEBUG_TRIGGER_ERROR: 'debug-trigger-error',
 
     // Print to PDF
@@ -128,6 +129,10 @@ export const IPC_CHANNELS = {
     TEXT_PREDICTION_STATUS_CHANGED: 'text-prediction:status-changed',
     TEXT_PREDICTION_DOWNLOAD_PROGRESS: 'text-prediction:download-progress',
     TEXT_PREDICTION_PREDICT: 'text-prediction:predict',
+
+    // Response Notifications
+    RESPONSE_NOTIFICATIONS_GET_ENABLED: 'response-notifications:get-enabled',
+    RESPONSE_NOTIFICATIONS_SET_ENABLED: 'response-notifications:set-enabled',
 } as const;
 
 // Expose window control APIs to renderer
@@ -573,6 +578,12 @@ const electronAPI: ElectronAPI = {
      */
     devMockPlatform: (platform, env) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_MOCK_PLATFORM, platform, env),
 
+    /**
+     * Trigger a response notification for dev testing.
+     * Call this from the Options window to trigger a notification while main window is unfocused.
+     */
+    devTriggerResponseNotification: () => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_TRIGGER_RESPONSE_NOTIFICATION),
+
     // =========================================================================
     // E2E Testing Helpers
     // =========================================================================
@@ -812,6 +823,23 @@ const electronAPI: ElectronAPI = {
      * @returns Promise resolving to predicted text or null
      */
     predictText: (partialText) => ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_PREDICT, partialText),
+
+    // =========================================================================
+    // Response Notifications API
+    // =========================================================================
+
+    /**
+     * Get whether response notifications are enabled.
+     * @returns Promise resolving to boolean
+     */
+    getResponseNotificationsEnabled: () => ipcRenderer.invoke(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_GET_ENABLED),
+
+    /**
+     * Set whether response notifications are enabled.
+     * @param enabled - Whether to enable response notifications
+     */
+    setResponseNotificationsEnabled: (enabled) =>
+        ipcRenderer.send(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_SET_ENABLED, enabled),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

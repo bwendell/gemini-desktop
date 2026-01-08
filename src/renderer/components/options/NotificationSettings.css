@@ -1,0 +1,16 @@
+/**
+ * NotificationSettings Component Styles
+ *
+ * Styles for the response notifications toggle in Options window.
+ */
+
+.notification-settings {
+    /* Spacing matches other options sections */
+    padding: 0;
+}
+
+.notification-settings.loading {
+    padding: 8px 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+}

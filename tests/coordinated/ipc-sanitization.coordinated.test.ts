@@ -58,6 +58,7 @@ describe('IPC Sanitization Integration', () => {
                 updateManager,
                 null,
                 null,
+                null,
                 mockStore,
                 mockLogger as any
             );

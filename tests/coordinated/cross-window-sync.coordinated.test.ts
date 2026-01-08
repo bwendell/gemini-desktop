@@ -62,6 +62,7 @@ describe('Cross-Window Sync Integration', () => {
                 null, // updateManager not crucial for these tests
                 null,
                 null,
+                null,
                 mockStore,
                 mockLogger
             );
