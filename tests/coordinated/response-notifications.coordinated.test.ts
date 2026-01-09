@@ -260,7 +260,7 @@ describe('Response Notifications Coordinated Tests', () => {
 
             // Verify notification was created and shown
             expect((mockNotification as any)._instances.length).toBe(1);
-            expect((mockNotification as any)._instances[0].title).toBe('Gemini');
+            expect((mockNotification as any)._instances[0].title).toBe('Gemini Desktop');
             expect((mockNotification as any)._instances[0].body).toBe('Response ready');
             expect((mockNotification as any)._instances[0].show).toHaveBeenCalled();
         });
@@ -400,7 +400,7 @@ describe('Response Notifications Coordinated Tests', () => {
 
             // Full chain verification
             expect((mockNotification as any)._instances.length).toBe(1);
-            expect((mockNotification as any)._instances[0].title).toBe('Gemini');
+            expect((mockNotification as any)._instances[0].title).toBe('Gemini Desktop');
             expect(mockBadgeManager.showNotificationBadge).toHaveBeenCalledTimes(1);
         });
 

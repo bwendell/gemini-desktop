@@ -37,10 +37,21 @@ export const NotificationSettings = memo(function NotificationSettings() {
     }, []);
 
     // Handle toggle change
-    const handleChange = useCallback((newEnabled: boolean) => {
-        setEnabled(newEnabled);
-        window.electronAPI?.setResponseNotificationsEnabled(newEnabled);
-    }, []);
+    const handleChange = useCallback(
+        async (newEnabled: boolean) => {
+            const previousEnabled = enabled;
+            setEnabled(newEnabled);
+
+            try {
+                await window.electronAPI?.setResponseNotificationsEnabled(newEnabled);
+            } catch (error) {
+                // Revert state on failure
+                console.error('Failed to set response notifications state:', error);
+                setEnabled(previousEnabled);
+            }
+        },
+        [enabled]
+    );
 
     if (loading) {
         return (

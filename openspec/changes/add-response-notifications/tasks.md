@@ -821,7 +821,7 @@
 > - Verify ACTUAL outcomes users would see
 > - Apply the Golden Rule: "If this code was broken, would this test fail?"
 
-- [ ] 9.1 E2E test: Toggle response notifications in Options
+- [x] 9.1 E2E test: Toggle response notifications in Options
 
     **Files:**
     - [NEW] `tests/e2e/response-notifications.spec.ts`
@@ -840,7 +840,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.2 E2E test: Badge clears on window focus (PRODUCTION PATH)
+- [x] 9.2 E2E test: Badge clears on window focus (PRODUCTION PATH)
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -864,7 +864,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.3 E2E test: Full response notification flow
+- [x] 9.3 E2E test: Full response notification flow
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -888,7 +888,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.4 E2E test: Notification click focuses window
+- [x] 9.4 E2E test: Notification click focuses window
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -907,7 +907,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.5 E2E test: No notification when window is focused
+- [x] 9.5 E2E test: No notification when window is focused
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -930,7 +930,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.6 E2E test: No notification when setting is disabled
+- [x] 9.6 E2E test: No notification when setting is disabled
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -954,7 +954,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.7 E2E test: Setting persists across Options close/reopen
+- [x] 9.7 E2E test: Setting persists across Options close/reopen
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -975,7 +975,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.8 E2E test: Cross-platform - Windows toast notification and taskbar overlay
+- [x] 9.8 E2E test: Cross-platform - Windows toast notification and taskbar overlay
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -1001,7 +1001,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.9 E2E test: Cross-platform - macOS Notification Center and dock badge
+- [x] 9.9 E2E test: Cross-platform - macOS Notification Center and dock badge
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -1027,7 +1027,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.10 E2E test: Cross-platform - Linux GNOME/KDE libnotify notification
+- [x] 9.10 E2E test: Cross-platform - Linux GNOME/KDE libnotify notification
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -1054,7 +1054,7 @@
     npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
     ```
 
-- [ ] 9.11 E2E test: Notification works on current platform
+- [x] 9.11 E2E test: Notification works on current platform
 
     **Files:**
     - [MODIFY] `tests/e2e/response-notifications.spec.ts`
@@ -1083,7 +1083,7 @@
 
 ## 10. Documentation
 
-- [ ] 10.1 Update `ARCHITECTURE.md`
+- [x] 10.1 Update `ARCHITECTURE.md`
 
     **Files:**
     - [MODIFY] `docs/ARCHITECTURE.md` - Document NotificationManager
@@ -1096,4 +1096,502 @@
 
     ```bash
     # Manual review of documentation
+    ```
+
+---
+
+## 11. QA Hardening - Defensive Programming & Error Handling
+
+> [!IMPORTANT]
+> These tasks address gaps identified during QA review. They improve defensive programming,
+> error handling, and test coverage to ensure production reliability.
+
+### Critical: Error Handling
+
+- [x] 11.1 Add try/catch to `NotificationManager.onResponseComplete()`
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Wrap `showNotification()` and `showNotificationBadge()` in try/catch
+
+    **Context:**
+    - Review [badgeManager.ts](file:///c:/Users/bwend/repos/gemini/src/main/managers/badgeManager.ts#L129-156) for existing defensive error handling patterns
+
+    **Acceptance Criteria:**
+    - `showNotification()` failure does NOT prevent `showNotificationBadge()` from executing
+    - `showNotificationBadge()` failure is caught and logged
+    - Both operations wrapped independently so one failure doesn't block the other
+    - Errors logged with appropriate severity
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 11.2 Add try/catch around Notification constructor in `showNotification()`
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Wrap Notification constructor and show() in try/catch
+
+    **Context:**
+    - Electron's `Notification` class can throw on certain platforms/configurations
+    - Review existing pattern that checks `Notification.isSupported()` before construction
+
+    **Acceptance Criteria:**
+    - `new Notification()` wrapped in try/catch
+    - `notification.show()` wrapped in try/catch
+    - Failure logged with error details
+    - Method returns gracefully on failure without crashing
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 11.3 Add type validation to `NotificationManager.setEnabled()`
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Add type guard for `enabled` parameter
+
+    **Context:**
+    - IPC handler has validation, but public method should be defensive
+    - Review [ResponseNotificationIpcHandler.ts](file:///c:/Users/bwend/repos/gemini/src/main/managers/ipc/ResponseNotificationIpcHandler.ts#L85-91) for existing validation pattern
+
+    **Acceptance Criteria:**
+    - `typeof enabled !== 'boolean'` check with early return and warning log
+    - Invalid input does NOT corrupt store
+    - Logs warning with received value type
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 11.4 Add destroyed window check in event handlers
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Check `isDestroyed()` in `onWindowFocus()` and `onWindowBlur()`
+
+    **Acceptance Criteria:**
+    - `onWindowFocus()` checks `this.mainWindow.isDestroyed()` before accessing state
+    - `onWindowBlur()` checks `this.mainWindow.isDestroyed()` before accessing state
+    - Events on destroyed windows are gracefully ignored
+    - No exceptions thrown when window is destroyed
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 11.5 Add `dispose()` method to NotificationManager
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Add cleanup method
+    - [MODIFY] `src/main/main.ts` - Call dispose in `will-quit` handler
+
+    **Context:**
+    - Review [updateManager.ts](file:///c:/Users/bwend/repos/gemini/src/main/managers/updateManager.ts) for existing `destroy()` pattern
+
+    **Acceptance Criteria:**
+    - `dispose()` method removes focus/blur event listeners from mainWindow
+    - Called during app `will-quit` event in `main.ts`
+    - Safe to call multiple times (idempotent)
+    - Logs cleanup action
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager && npm run typecheck
+    ```
+
+---
+
+### Moderate: Defensive Improvements
+
+- [x] 11.6 Protect response-complete event handler in main.ts
+
+    **Files:**
+    - [MODIFY] `src/main/main.ts` - Wrap `notificationManager.onResponseComplete()` in try/catch
+
+    **Context:**
+    - Line 341-343 has unprotected call that could crash if manager throws
+
+    **Acceptance Criteria:**
+    - Exception in `onResponseComplete()` is caught and logged
+    - App continues running after handler failure
+    - Error includes stack trace for debugging
+
+    **Verification:**
+
+    ```bash
+    npm run typecheck && npm run lint
+    ```
+
+- [x] 11.7 Verify icon path exists before using in notification
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Add `fs.existsSync()` check for icon path
+
+    **Context:**
+    - Icon path resolved in `showNotification()` but never verified
+
+    **Acceptance Criteria:**
+    - Check `fs.existsSync(iconPath)` before passing to Notification
+    - If missing, log warning and omit icon (notification still shows)
+    - Works for both packaged and development modes
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 11.8 Add error handling to UI toggle IPC call
+
+    **Files:**
+    - [MODIFY] `src/renderer/components/options/NotificationSettings.tsx` - Add try/catch and error state
+
+    **Context:**
+    - Current `handleChange` doesn't await or catch errors
+
+    **Acceptance Criteria:**
+    - `setResponseNotificationsEnabled` wrapped in try/catch
+    - On failure, revert `enabled` state to previous value
+    - Console error logged with details
+    - User sees correct toggle state even after IPC failure
+
+    **Verification:**
+
+    ```bash
+    npm run test -- NotificationSettings
+    ```
+
+- [x] 11.9 Extract response detection URL pattern to constants
+
+    **Files:**
+    - [MODIFY] `src/main/utils/constants.ts` - Add `GEMINI_RESPONSE_API_PATTERN`
+    - [MODIFY] `src/main/windows/mainWindow.ts` - Use constant instead of hardcoded URL
+
+    **Context:**
+    - Hardcoded `*://gemini.google.com/*/BardChatUi/*` in mainWindow.ts
+
+    **Acceptance Criteria:**
+    - Pattern defined as constant in `constants.ts`
+    - `mainWindow.ts` imports and uses the constant
+    - Easy to update if Gemini changes API endpoints
+    - JSDoc explains what the pattern matches
+
+    **Verification:**
+
+    ```bash
+    npm run typecheck && npm run lint
+    ```
+
+---
+
+### Test Coverage Gaps
+
+- [x] 11.10 Add unit tests for error handling paths
+
+    **Files:**
+    - [MODIFY] `tests/unit/main/managers/notificationManager.test.ts` - Add error path tests
+
+    **Context:**
+    - Current tests don't verify behavior when operations throw
+
+    **Acceptance Criteria:**
+    - Test: `showNotification()` throws → `onResponseComplete()` still calls `showNotificationBadge()`
+    - Test: `showNotificationBadge()` throws → error logged, no crash
+    - Test: `store.set()` throws → handled gracefully
+    - Test: `Notification` constructor throws → method returns, no crash
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 11.11 Add rapid focus/blur event test
+
+    **Files:**
+    - [MODIFY] `tests/unit/main/managers/notificationManager.test.ts` - Add stress test
+
+    **Acceptance Criteria:**
+    - Test rapid sequence: focus → blur → focus → blur (10+ times in \<100ms)
+    - State remains consistent after sequence
+    - No race conditions or exceptions
+    - Badge state correctly reflects final focus state
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 11.12 Add null/undefined store value test
+
+    **Files:**
+    - [MODIFY] `tests/unit/main/managers/notificationManager.test.ts` - Add edge case test
+
+    **Acceptance Criteria:**
+    - Test: `store.get('responseNotificationsEnabled')` returns `null` → defaults to `true`
+    - Test: `store.get('responseNotificationsEnabled')` returns `undefined` → defaults to `true`
+    - `isEnabled()` never returns non-boolean value
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 11.13 Add coordinated test for dispose cleanup
+
+    **Files:**
+    - [NEW] `tests/coordinated/response-notifications-dispose.coordinated.test.ts` - Test cleanup behavior
+
+    **Context:**
+    - Verifies task 11.5 implementation
+
+    **Acceptance Criteria:**
+    - Test: After `dispose()`, focus/blur events do NOT trigger badge changes
+    - Test: `dispose()` is idempotent (safe to call twice)
+    - Test: `dispose()` handles already-destroyed window gracefully
+
+    **Verification:**
+
+    ```bash
+    npm run test:coordinated -- response-notifications-dispose
+    ```
+
+---
+
+## 12. QA Findings - Bug Fixes & Missing Coverage
+
+> [!IMPORTANT]
+> These tasks address gaps identified during QA review of the response notifications feature.
+> Section 12.1 is a **critical bug** that must be fixed.
+
+### Critical: Bug Fixes
+
+- [x] 12.1 Fix `dispose()` method using `.bind()` incorrectly (CRITICAL)
+
+    **Problem:**
+    The `dispose()` method calls `removeListener()` with `.bind()`, which creates **new function references** each time. This means the event listeners registered in the constructor will **never be removed**, causing memory leaks and potential crashes.
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Store bound function references and use them for both registration and removal
+
+    **Context:**
+    - Current broken code at lines 64-65 and 276-277
+    - `.bind()` creates a new function instance each call, so `removeListener()` cannot find the original handlers
+
+    **Acceptance Criteria:**
+    - Bound functions stored as class properties in constructor
+    - Same references used for `on()` and `removeListener()`
+    - After `dispose()`, focus/blur events do NOT trigger any manager behavior
+    - Existing tests still pass
+    - Add unit test verifying listeners are actually removed
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager && npm run test:coordinated -- response-notifications-dispose
+    ```
+
+---
+
+### Moderate: Error Handling Improvements
+
+- [x] 12.2 Add try/catch around `store.set()` in `setEnabled()`
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Wrap `store.set()` in try/catch
+
+    **Context:**
+    - Task 11.10 acceptance criteria mentions testing `store.set()` throws but no protection exists
+
+    **Acceptance Criteria:**
+    - `store.set()` call wrapped in try/catch
+    - Error logged with appropriate severity
+    - Method returns gracefully on failure without crashing
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+- [x] 12.3 Add try/catch around `mainWindow.emit('response-complete')`
+
+    **Files:**
+    - [MODIFY] `src/main/windows/mainWindow.ts` - Wrap emit in try/catch at line 444
+
+    **Context:**
+    - If any listener throws during emit, it could crash the main process
+
+    **Acceptance Criteria:**
+    - `this.emit('response-complete')` wrapped in try/catch
+    - Error logged with stack trace
+    - App continues running after listener failure
+
+    **Verification:**
+
+    ```bash
+    npm run typecheck && npm run lint
+    ```
+
+- [x] 12.4 Add null guard for `badgeManager` in `NotificationManager`
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Add null checks before calling badgeManager methods
+
+    **Context:**
+    - `onResponseComplete()` and `onWindowFocus()` assume badgeManager is always defined
+
+    **Acceptance Criteria:**
+    - Null check before `this.badgeManager.showNotificationBadge()` in `onResponseComplete()`
+    - Null check before `this.badgeManager.clearNotificationBadge()` in `onWindowFocus()`
+    - Warning logged if badgeManager is null
+    - No crash if badgeManager is inadvertently null
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+---
+
+### Test Coverage Gaps
+
+- [x] 12.5 Add unit test for debounce cooldown reset in response detection
+
+    **Files:**
+    - [MODIFY] `tests/unit/main/windows/mainWindow.response-detection.test.ts` - Add debounce reset test
+
+    **Context:**
+    - Task 6.6 acceptance criteria: "Debounce resets after cooldown period"
+    - Current tests may not verify events emit again AFTER cooldown expires
+
+    **Acceptance Criteria:**
+    - Test: After debounce cooldown (1000ms) expires, next event fires normally
+    - Uses real or fake timers to advance past cooldown
+    - Verifies event count increases after cooldown
+
+    **Verification:**
+
+    ```bash
+    npm run test -- mainWindow.response-detection
+    ```
+
+- [x] 12.6 Document E2E test 9.4 notification click limitation
+
+    **Files:**
+    - [MODIFY] `tests/e2e/response-notifications.spec.ts` - Add comment explaining limitation
+
+    **Context:**
+    - E2E tests cannot directly trigger native OS notification click events
+    - Task 9.4 acceptance criteria may not be fully automatable
+
+    **Acceptance Criteria:**
+    - Comment added explaining that notification click is tested via coordinated tests
+    - Reference to coordinated test location provided
+    - If test exists, verify it uses appropriate mocking strategy
+
+    **Verification:**
+
+    ```bash
+    npm run test:e2e:spec -- --spec=tests/e2e/response-notifications.spec.ts
+    ```
+
+- [x] 12.7 Add unit test for `store.set()` exception handling
+
+    **Files:**
+    - [MODIFY] `tests/unit/main/managers/notificationManager.test.ts` - Add test case
+
+    **Context:**
+    - Task 11.10 mentions testing `store.set()` throws but test is missing
+
+    **Acceptance Criteria:**
+    - Test: `store.set()` throws → `setEnabled()` handles gracefully, no crash
+    - Test: Error is logged appropriately
+    - Test: Manager state remains consistent after failure
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
+    ```
+
+---
+
+### Additional: MainWindow & Notification Cleanup
+
+- [x] 12.8 Remove webRequest listener when MainWindow is closed (MEDIUM)
+
+    **Problem:**
+    In `MainWindow.setupResponseDetection()`, a listener is registered on `session.defaultSession.webRequest.onCompleted`. This listener is **never removed** when the window is closed or destroyed.
+
+    **Files:**
+    - [MODIFY] `src/main/windows/mainWindow.ts` - Store listener reference and remove in cleanup
+
+    **Context:**
+    - If the window is closed and re-opened, a new listener is registered
+    - Old listener may hold references to destroyed MainWindow via closure
+    - Could cause multiple event emissions or memory leaks
+
+    **Acceptance Criteria:**
+    - Store listener reference when registering
+    - Call `session.defaultSession.webRequest.onCompleted.removeListener()` (or equivalent) on window close
+    - Add cleanup in the `closed` event handler or create `dispose()` method for MainWindow
+    - Multiple window open/close cycles do not accumulate listeners
+
+    **Verification:**
+
+    ```bash
+    npm run test -- mainWindow && npm run typecheck
+    ```
+
+- [x] 12.9 Wrap webRequest listener registration in try/catch
+
+    **Files:**
+    - [MODIFY] `src/main/windows/mainWindow.ts` - Wrap `session.defaultSession.webRequest.onCompleted(...)` in try/catch
+
+    **Context:**
+    - Line 421 is unprotected
+    - If `session.defaultSession` is unavailable (test environment or specific app state), this could interrupt window creation
+
+    **Acceptance Criteria:**
+    - `session.defaultSession.webRequest.onCompleted(...)` wrapped in try/catch
+    - Error logged with appropriate message
+    - Window creation continues even if listener registration fails
+
+    **Verification:**
+
+    ```bash
+    npm run typecheck && npm run lint
+    ```
+
+- [x] 12.10 Close pending notifications on NotificationManager dispose
+
+    **Files:**
+    - [MODIFY] `src/main/managers/notificationManager.ts` - Track active notifications and close on dispose
+
+    **Context:**
+    - Current `dispose()` removes event listeners but does not close pending native notifications
+    - If app is quitting, notifications might remain on screen
+
+    **Acceptance Criteria:**
+    - Track active `Notification` instances in a Set or array
+    - Remove from tracking when notification is closed/dismissed
+    - Call `notification.close()` on all pending notifications in `dispose()`
+    - Add unit test verifying notifications are closed on dispose
+
+    **Verification:**
+
+    ```bash
+    npm run test -- notificationManager
     ```

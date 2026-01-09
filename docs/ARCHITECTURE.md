@@ -28,12 +28,14 @@ gemini-desktop/
 │   │   │   │   ├── AppIpcHandler.ts      # App-level operations
 │   │   │   │   ├── AutoUpdateIpcHandler.ts   # Auto-update controls
 │   │   │   │   ├── QuickChatIpcHandler.ts    # Quick Chat flow
-│   │   │   │   └── TextPredictionIpcHandler.ts # Text prediction
+│   │   │   │   ├── TextPredictionIpcHandler.ts # Text prediction
+│   │   │   │   └── ResponseNotificationIpcHandler.ts # Notification settings
 │   │   │   ├── hotkeyManager.ts    # Global keyboard shortcut registration
 │   │   │   ├── trayManager.ts      # System tray icon and menu
 │   │   │   ├── menuManager.ts      # Application menu construction
 │   │   │   ├── updateManager.ts    # Auto-update functionality
-│   │   │   └── badgeManager.ts     # Update notification badges
+│   │   │   ├── badgeManager.ts     # Update notification badges
+│   │   │   └── notificationManager.ts # Response notification handling
 │   │   ├── windows/          # Window class implementations
 │   │   │   ├── baseWindow.ts       # Abstract base window class
 │   │   │   ├── mainWindow.ts       # Primary application window
@@ -134,7 +136,12 @@ gemini-desktop/
 │  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────────┐   │   │
 │  │  │ MainWindow │  │OptionsWin  │  │ QuickChat  │  │  AuthWindow  │   │   │
 │  │  │  (iframe)  │  │  (React)   │  │  (React)   │  │  (Google)    │   │   │
-│  │  └─────┬──────┘  └────────────┘  └────────────┘  └──────────────┘   │   │
+│  │  │  (emits    │  └────────────┘  └────────────┘  └──────────────┘   │   │
+│  │  │  response- │                                                     │   │
+│  │  │  complete) │  ┌─────────────────────┐                            │   │
+│  │  └─────┬──────┘  │ NotificationManager │                            │   │
+│  │        │         │ (OS notifications + │                            │   │
+│  │        └────────►│  badge coordination)│                            │   │
 │  │        │                                                            │   │
 │  │        ▼                                                            │   │
 │  │  ┌──────────────────────────────────────────────────────────────┐   │   │
@@ -234,7 +241,8 @@ IpcManager (orchestrator)
             ├── AppIpcHandler       - open-options/open-google-signin
             ├── AutoUpdateIpcHandler - auto-update:get/set/check/install
             ├── QuickChatIpcHandler - quick-chat:submit/hide/cancel
-            └── TextPredictionIpcHandler - text-prediction:enable/predict
+            ├── TextPredictionIpcHandler - text-prediction:enable/predict
+            └── ResponseNotificationIpcHandler - response-notifications:get/set
 ```
 
 **Handler Lifecycle:**
@@ -289,7 +297,31 @@ IpcManager (orchestrator)
 - "Zoom Out (X%)" - `Ctrl+-` / `Cmd+-` - Decreases zoom to previous step
 - Menu labels display current zoom percentage and update after changes
 
-#### 3.2.7. Toast Utility (Main Process)
+#### 3.2.7. Notification Manager
+
+**Name:** `NotificationManager` (`src/main/managers/notificationManager.ts`)
+
+**Description:** Manages native OS notifications and taskbar badges when Gemini finishes generating a response while the application is unfocused. Coordinates with `BadgeManager` for visual indicators and listens to the MainWindow's `response-complete` event. Respects user preference for enabling/disabling response notifications.
+
+**Technologies:** Electron Notification API, TypeScript
+
+**Key Features:**
+
+- **Focus State Tracking**: Monitors main window focus/blur events
+- **Native Notifications**: Shows "Response ready" notification when window is unfocused
+- **Notification Click Handling**: Clicking notification focuses the main window
+- **Badge Coordination**: Shows/clears notification badge via BadgeManager
+- **Setting Respect**: Only triggers when `responseNotificationsEnabled` is true
+
+**Platform Support:**
+
+| Platform | OS Notification             | Taskbar Badge        | Notes                              |
+| -------- | --------------------------- | -------------------- | ---------------------------------- |
+| Windows  | ✅ Toast via `Notification` | ✅ Green dot overlay | Uses existing BadgeManager pattern |
+| macOS    | ✅ Native notification      | ✅ Dock badge text   | Uses existing BadgeManager pattern |
+| Linux    | ✅ libnotify (GNOME/KDE)    | ⚠️ No native API     | Notification works, badge skipped  |
+
+#### 3.2.8. Toast Utility (Main Process)
 
 **Name:** `showToast` (`src/main/utils/toast.ts`)
 
@@ -385,6 +417,7 @@ The application uses a layered toast system to provide non-intrusive feedback:
 - `autoUpdateEnabled` - Auto-update preference
 - `windowBounds` - Last window position and size
 - `zoomLevel` - Main window zoom percentage (50-200, default: 100)
+- `responseNotificationsEnabled` - Response notification preference (default: true)
 
 ### 4.2. Session Storage
 

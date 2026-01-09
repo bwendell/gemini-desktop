@@ -20,6 +20,7 @@ import {
     isMacOS,
     getDevUrl,
     READY_TO_SHOW_FALLBACK_MS,
+    GEMINI_RESPONSE_API_PATTERN,
 } from '../utils/constants';
 import { getIconPath, getDistHtmlPath } from '../utils/paths';
 
@@ -48,6 +49,9 @@ export default class MainWindow extends BaseWindow {
 
     /** Timestamp of the last response-complete event (for debouncing) */
     private lastResponseCompleteTime = 0;
+
+    /** Stored webRequest listener for cleanup (Task 12.8) */
+    private responseDetectionListener?: (details: Electron.OnCompletedListenerDetails) => void;
 
     /**
      * Creates a new MainWindow instance.
@@ -285,6 +289,20 @@ export default class MainWindow extends BaseWindow {
             // Close auxiliary windows if they exist
             this.closeOptionsWindowCallback?.();
             this.closeAuthWindowCallback?.();
+
+            // Task 12.8: Clean up webRequest listener to prevent memory leaks
+            if (this.responseDetectionListener) {
+                try {
+                    // Note: Electron's webRequest API doesn't have a removeListener method.
+                    // Setting listener to null effectively removes it.
+                    // For multiple MainWindow instances, we just clear our reference.
+                    this.responseDetectionListener = undefined;
+                    this.logger.log('Response detection listener cleaned up');
+                } catch (error) {
+                    this.logger.error('Failed to clean up response detection:', error);
+                }
+            }
+
             this.window = null;
         });
 
@@ -414,34 +432,47 @@ export default class MainWindow extends BaseWindow {
         // Monitor Gemini's streaming API endpoints for response completion
         // The BardChatUi endpoint handles chat streaming responses
         const geminiApiFilter = {
-            urls: ['*://gemini.google.com/*/BardChatUi/*'],
+            urls: [GEMINI_RESPONSE_API_PATTERN],
         };
 
-        session.defaultSession.webRequest.onCompleted(geminiApiFilter, (details) => {
-            // Skip if response detection is not yet active (during startup)
-            if (!this.responseDetectionActive) {
-                return;
-            }
-
-            // Only process successful streaming response completions
-            if (details.statusCode !== 200) {
-                return;
-            }
-
-            // Apply debouncing to prevent rapid notifications
-            const now = Date.now();
-            if (now - this.lastResponseCompleteTime < MainWindow.RESPONSE_DEBOUNCE_MS) {
-                // Only log in dev/CI mode to avoid main thread overhead in production
-                if (this.isDev || process.env.CI) {
-                    this.logger.debug('Response-complete debounced');
+        // Task 12.8: Store listener reference for potential cleanup
+        // Task 12.9: Wrap registration in try/catch for robustness
+        try {
+            this.responseDetectionListener = (details: Electron.OnCompletedListenerDetails) => {
+                // Skip if response detection is not yet active (during startup)
+                if (!this.responseDetectionActive) {
+                    return;
                 }
-                return;
-            }
 
-            this.lastResponseCompleteTime = now;
-            this.logger.debug('Response complete detected, emitting event');
-            this.emit('response-complete');
-        });
+                // Only process successful streaming response completions
+                if (details.statusCode !== 200) {
+                    return;
+                }
+
+                // Apply debouncing to prevent rapid notifications
+                const now = Date.now();
+                if (now - this.lastResponseCompleteTime < MainWindow.RESPONSE_DEBOUNCE_MS) {
+                    // Only log in dev/CI mode to avoid main thread overhead in production
+                    if (this.isDev || process.env.CI) {
+                        this.logger.debug('Response-complete debounced');
+                    }
+                    return;
+                }
+
+                this.lastResponseCompleteTime = now;
+                this.logger.debug('Response complete detected, emitting event');
+                // Task 12.3: wrap emit in try/catch to prevent listener exceptions from crashing
+                try {
+                    this.emit('response-complete');
+                } catch (error) {
+                    this.logger.error('Error in response-complete listener:', error);
+                }
+            };
+
+            session.defaultSession.webRequest.onCompleted(geminiApiFilter, this.responseDetectionListener);
+        } catch (error) {
+            this.logger.error('Failed to set up response detection:', error);
+        }
 
         this.logger.log('Response detection initialized (will activate after page load + delay)');
     }

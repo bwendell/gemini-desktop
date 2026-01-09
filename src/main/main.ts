@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
-import { isLinux } from './utils/constants';
+import { isLinux, isWindows, APP_ID } from './utils/constants';
 
 import { createLogger } from './utils/logger';
 
@@ -61,6 +61,12 @@ if (isLinux) {
 } else {
     // Set application name for Windows/macOS
     app.setName('Gemini Desktop');
+}
+
+// Set Windows Application User Model ID (required for proper notification branding)
+// This controls app name in notifications and taskbar grouping
+if (isWindows) {
+    app.setAppUserModelId(APP_ID);
 }
 
 /**
@@ -333,7 +339,12 @@ if (!gotTheLock) {
             const mainWindowInstance = windowManager.getMainWindowInstance();
             if (mainWindowInstance) {
                 mainWindowInstance.on('response-complete', () => {
-                    notificationManager.onResponseComplete();
+                    // Wrap in try/catch to protect against crashes (task 11.6)
+                    try {
+                        notificationManager.onResponseComplete();
+                    } catch (error) {
+                        logger.error('Error in NotificationManager.onResponseComplete:', error);
+                    }
                 });
                 logger.log('NotificationManager subscribed to response-complete events');
             }
@@ -398,6 +409,10 @@ app.on('will-quit', () => {
     trayManager.destroyTray();
     updateManager.destroy();
     llmManager.dispose();
+    // Clean up NotificationManager event listeners (task 11.5)
+    if (notificationManager) {
+        notificationManager.dispose();
+    }
 });
 
 // App-level crash handlers to prevent OS crash dialogs

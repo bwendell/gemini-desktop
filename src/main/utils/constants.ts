@@ -97,6 +97,17 @@ export const AI_STUDIO_DOMAIN = 'aistudio.google.com' as const;
  */
 export const AI_STUDIO_URL = `https://${AI_STUDIO_DOMAIN}` as const;
 
+/**
+ * URL pattern for detecting Gemini response completion.
+ * Used in webRequest.onCompleted to detect when Gemini finishes generating a response.
+ *
+ * The BardChatUi endpoint handles chat streaming responses.
+ * Pattern format: protocol://gemini.google.com/wildcard/BardChatUi/wildcard
+ *
+ * @example "https://gemini.google.com/u/0/app/BardChatUi/stream"
+ */
+export const GEMINI_RESPONSE_API_PATTERN = '*://gemini.google.com/*/BardChatUi/*' as const;
+
 // =========================================================================
 // Gemini DOM Selectors
 // =========================================================================
@@ -280,6 +291,18 @@ export const isMacOS = process.platform === 'darwin';
 export const isWindows = process.platform === 'win32';
 export const isLinux = process.platform === 'linux';
 export const isDev = process.env.NODE_ENV === 'development';
+
+/**
+ * Application ID used for Windows notifications, taskbar grouping, and app identification.
+ * Must match `appId` in `config/electron-builder.config.cjs` for consistency.
+ */
+export const APP_ID = 'com.benwendell.gemini-desktop' as const;
+
+/**
+ * Application display name used in notifications, dialogs, and UI.
+ * Must match `productName` in `package.json` for consistency.
+ */
+export const APP_NAME = 'Gemini Desktop' as const;
 
 /**
  * Fallback timeout (ms) if ready-to-show event doesn't fire.
