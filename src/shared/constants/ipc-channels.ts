@@ -95,6 +95,10 @@ export const IPC_CHANNELS = {
     // Shell (filesystem operations)
     SHELL_SHOW_ITEM_IN_FOLDER: 'shell:show-item-in-folder',
 
+    // Response Notifications
+    RESPONSE_NOTIFICATIONS_GET_ENABLED: 'response-notifications:get-enabled',
+    RESPONSE_NOTIFICATIONS_SET_ENABLED: 'response-notifications:set-enabled',
+
     // Text Prediction (local LLM inference)
     TEXT_PREDICTION_GET_ENABLED: 'text-prediction:get-enabled',
     TEXT_PREDICTION_SET_ENABLED: 'text-prediction:set-enabled',
@@ -111,6 +115,7 @@ export const IPC_CHANNELS = {
     DEV_TEST_SET_UPDATE_ENABLED: 'dev:test:set-update-enabled',
     DEV_TEST_EMIT_UPDATE_EVENT: 'dev:test:emit-update-event',
     DEV_TEST_MOCK_PLATFORM: 'dev:test:mock-platform',
+    DEV_TEST_TRIGGER_RESPONSE_NOTIFICATION: 'dev:test:trigger-response-notification',
     DEBUG_TRIGGER_ERROR: 'debug-trigger-error',
 } as const;
 

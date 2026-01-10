@@ -80,9 +80,10 @@ describe('Print to PDF Settings Persistence', () => {
             const ipcManager = new IpcManager(
                 windowManager,
                 hotkeyManager,
-                null,
+                null, // updateManager
                 printManager,
-                null,
+                null, // llmManager
+                null, // notificationManager
                 mockStore,
                 mockLogger
             );
@@ -111,7 +112,8 @@ describe('Print to PDF Settings Persistence', () => {
                 hotkeyManager,
                 null, // updateManager
                 printManager,
-                null,
+                null, // llmManager
+                null, // notificationManager
                 mockStore,
                 mockLogger
             );
@@ -149,7 +151,16 @@ describe('Print to PDF Settings Persistence', () => {
         it('should broadcast enable/disable state to all windows', () => {
             const windowManager = new WindowManager(false);
             const hotkeyManager = new HotkeyManager(windowManager);
-            const ipcManager = new IpcManager(windowManager, hotkeyManager, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                hotkeyManager,
+                null,
+                null,
+                null,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
 
             // Mock multiple open windows
@@ -173,7 +184,16 @@ describe('Print to PDF Settings Persistence', () => {
         it('should broadcast accelerator changes to all windows', () => {
             const windowManager = new WindowManager(false);
             const hotkeyManager = new HotkeyManager(windowManager);
-            const ipcManager = new IpcManager(windowManager, hotkeyManager, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                hotkeyManager,
+                null,
+                null,
+                null,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
 
             // Mock multiple open windows
@@ -198,7 +218,16 @@ describe('Print to PDF Settings Persistence', () => {
         it('should skip destroyed windows during broadcast without crashing', () => {
             const windowManager = new WindowManager(false);
             const hotkeyManager = new HotkeyManager(windowManager);
-            const ipcManager = new IpcManager(windowManager, hotkeyManager, null, null, null, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                hotkeyManager,
+                null,
+                null,
+                null,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
 
             // Mock one active and one destroyed window

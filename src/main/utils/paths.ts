@@ -47,3 +47,31 @@ export function getIconPath(): string {
     // In development, icons are in build/ directory
     return path.join(__dirname, '../../../build', iconFilename);
 }
+
+/**
+ * Get the notification icon path.
+ * Notifications always require PNG format (even on Windows).
+ * Supports Flatpak, standard packaging, and development environments.
+ *
+ * @returns Absolute path to notification icon (PNG)
+ */
+export function getNotificationIconPath(): string {
+    // Icon filename - always PNG for notifications (Electron Notification requirement)
+    const iconFilename = 'icon.png';
+
+    if (app.isPackaged) {
+        // Check Flatpak environment first
+        // Flatpak sets FLATPAK_ID and stores icons in /app/share/icons
+        if (process.env.FLATPAK_ID) {
+            // Flatpak standard icon location
+            const flatpakIconPath = path.join('/app/share/icons/hicolor/256x256/apps', `${process.env.FLATPAK_ID}.png`);
+            return flatpakIconPath;
+        }
+
+        // Standard electron-builder packaging (AppImage, deb, rpm, dmg, nsis)
+        return path.join(process.resourcesPath, iconFilename);
+    }
+
+    // In development, icons are in build/ directory
+    return path.join(__dirname, '../../../build', iconFilename);
+}

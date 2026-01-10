@@ -10,7 +10,7 @@
  * @module MainWindow
  */
 
-import { BrowserWindow, shell, type BrowserWindowConstructorOptions } from 'electron';
+import { BrowserWindow, session, shell, type BrowserWindowConstructorOptions } from 'electron';
 import BaseWindow from './baseWindow';
 import {
     MAIN_WINDOW_CONFIG,
@@ -20,6 +20,7 @@ import {
     isMacOS,
     getDevUrl,
     READY_TO_SHOW_FALLBACK_MS,
+    GEMINI_RESPONSE_API_PATTERN,
 } from '../utils/constants';
 import { getIconPath, getDistHtmlPath } from '../utils/paths';
 
@@ -42,6 +43,18 @@ export default class MainWindow extends BaseWindow {
 
     /** Callback to close auth window when closing main window */
     private closeAuthWindowCallback?: () => void;
+
+    /** Debounce cooldown in milliseconds for response-complete events */
+    private static readonly RESPONSE_DEBOUNCE_MS = 1000;
+
+    /** Timestamp of the last response-complete event (for debouncing) */
+    private lastResponseCompleteTime = 0;
+
+    /** Stored webRequest listener for cleanup (Task 12.8) */
+    private responseDetectionListener?: (details: Electron.OnCompletedListenerDetails) => void;
+
+    /** Stored webRequest filter for cleanup */
+    private responseDetectionFilter?: Electron.WebRequestFilter;
 
     /**
      * Creates a new MainWindow instance.
@@ -88,17 +101,17 @@ export default class MainWindow extends BaseWindow {
      * @returns The created BrowserWindow
      */
     create(): BrowserWindow {
-        this.logger.log('[DEBUG] MainWindow.create() called');
+        this.logger.debug('MainWindow.create() called');
         const win = this.createWindow();
-        this.logger.log('[DEBUG] createWindow() returned');
+        this.logger.debug('createWindow() returned');
 
         if (this.isDev && this.window) {
-            this.logger.log('[DEBUG] Opening dev tools');
+            this.logger.debug('Opening dev tools');
             this.window.webContents.openDevTools();
         }
 
         this.window?.once('ready-to-show', () => {
-            this.logger.log('[DEBUG] ready-to-show event fired, calling show()');
+            this.logger.debug('ready-to-show event fired, calling show()');
             this.window?.show();
         });
 
@@ -116,6 +129,7 @@ export default class MainWindow extends BaseWindow {
         this.setupNavigationHandler();
         this.setupCloseHandler();
         this.setupCrashHandlers();
+        this.setupResponseDetection();
 
         return win;
     }
@@ -278,6 +292,20 @@ export default class MainWindow extends BaseWindow {
             // Close auxiliary windows if they exist
             this.closeOptionsWindowCallback?.();
             this.closeAuthWindowCallback?.();
+
+            // Task 12.8: Clean up webRequest listener to prevent memory leaks
+            if (this.responseDetectionListener && this.responseDetectionFilter) {
+                try {
+                    // Properly clear the session listener by calling onCompleted with null
+                    session.defaultSession.webRequest.onCompleted(this.responseDetectionFilter, null);
+                    this.responseDetectionListener = undefined;
+                    this.responseDetectionFilter = undefined;
+                    this.logger.log('Response detection listener cleaned up');
+                } catch (error) {
+                    this.logger.error('Failed to clean up response detection:', error);
+                }
+            }
+
             this.window = null;
         });
 
@@ -372,5 +400,85 @@ export default class MainWindow extends BaseWindow {
      */
     isAlwaysOnTop(): boolean {
         return this.window?.isAlwaysOnTop() ?? false;
+    }
+
+    /** Delay in milliseconds before enabling response detection after page load */
+    private static readonly RESPONSE_DETECTION_STARTUP_DELAY_MS = 10000;
+
+    /** Whether response detection is active (disabled during startup) */
+    private responseDetectionActive = false;
+
+    /**
+     * Set up response detection to monitor when Gemini finishes generating a response.
+     * Uses network request monitoring to detect streaming completion.
+     * Emits 'response-complete' event with debouncing to prevent rapid-fire notifications.
+     *
+     * Note: Detection is delayed until after page load + startup delay to avoid
+     * false positives from initial page load network requests.
+     */
+    private setupResponseDetection(): void {
+        if (!this.window) return;
+
+        // Wait for page to finish loading before enabling response detection
+        // This prevents false positives from initial page load network requests
+        this.window.webContents.once('did-finish-load', () => {
+            this.logger.log(
+                `Response detection will activate in ${MainWindow.RESPONSE_DETECTION_STARTUP_DELAY_MS / 1000}s`
+            );
+
+            setTimeout(() => {
+                this.responseDetectionActive = true;
+                this.logger.log('Response detection now active');
+            }, MainWindow.RESPONSE_DETECTION_STARTUP_DELAY_MS);
+        });
+
+        // Monitor Gemini's streaming API endpoints for response completion
+        // The BardChatUi endpoint handles chat streaming responses
+        const geminiApiFilter = {
+            urls: [GEMINI_RESPONSE_API_PATTERN],
+        };
+        // Store filter for cleanup (Task 12.8)
+        this.responseDetectionFilter = geminiApiFilter;
+
+        // Task 12.8: Store listener reference for potential cleanup
+        // Task 12.9: Wrap registration in try/catch for robustness
+        try {
+            this.responseDetectionListener = (details: Electron.OnCompletedListenerDetails) => {
+                // Skip if response detection is not yet active (during startup)
+                if (!this.responseDetectionActive) {
+                    return;
+                }
+
+                // Only process successful streaming response completions
+                if (details.statusCode !== 200) {
+                    return;
+                }
+
+                // Apply debouncing to prevent rapid notifications
+                const now = Date.now();
+                if (now - this.lastResponseCompleteTime < MainWindow.RESPONSE_DEBOUNCE_MS) {
+                    // Only log in dev/CI mode to avoid main thread overhead in production
+                    if (this.isDev || process.env.CI) {
+                        this.logger.debug('Response-complete debounced');
+                    }
+                    return;
+                }
+
+                this.lastResponseCompleteTime = now;
+                this.logger.debug('Response complete detected, emitting event');
+                // Task 12.3: wrap emit in try/catch to prevent listener exceptions from crashing
+                try {
+                    this.emit('response-complete');
+                } catch (error) {
+                    this.logger.error('Error in response-complete listener:', error);
+                }
+            };
+
+            session.defaultSession.webRequest.onCompleted(geminiApiFilter, this.responseDetectionListener);
+        } catch (error) {
+            this.logger.error('Failed to set up response detection:', error);
+        }
+
+        this.logger.log('Response detection initialized (will activate after page load + delay)');
     }
 }

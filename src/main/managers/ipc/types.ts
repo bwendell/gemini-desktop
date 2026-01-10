@@ -10,6 +10,7 @@ import type HotkeyManager from '../hotkeyManager';
 import type UpdateManager from '../updateManager';
 import type PrintManager from '../printManager';
 import type LlmManager from '../llmManager';
+import type NotificationManager from '../notificationManager';
 import type { Logger } from '../../types';
 
 /**
@@ -38,6 +39,8 @@ export interface UserPreferences extends Record<string, unknown> {
     textPredictionModelId: string;
     // Zoom settings
     zoomLevel: number;
+    // Response notification settings
+    responseNotificationsEnabled: boolean;
 }
 
 /**
@@ -59,4 +62,6 @@ export interface IpcHandlerDependencies {
     printManager?: PrintManager | null;
     /** Optional LLM manager for text prediction */
     llmManager?: LlmManager | null;
+    /** Optional notification manager for response notifications */
+    notificationManager?: NotificationManager | null;
 }

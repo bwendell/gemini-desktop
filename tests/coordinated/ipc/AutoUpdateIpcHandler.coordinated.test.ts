@@ -73,6 +73,7 @@ describe('AutoUpdateIpcHandler Coordinated Tests', () => {
                 mockUpdateManager as any,
                 null,
                 null,
+                null,
                 mockStore,
                 mockLogger
             );
@@ -97,6 +98,7 @@ describe('AutoUpdateIpcHandler Coordinated Tests', () => {
                 windowManager,
                 null,
                 mockUpdateManager as any,
+                null,
                 null,
                 null,
                 mockStore,
@@ -124,6 +126,7 @@ describe('AutoUpdateIpcHandler Coordinated Tests', () => {
                 windowManager,
                 null,
                 null, // No updateManager
+                null,
                 null,
                 null,
                 mockStore,
@@ -159,6 +162,7 @@ describe('AutoUpdateIpcHandler Coordinated Tests', () => {
                 mockUpdateManager as any,
                 null,
                 null,
+                null,
                 mockStore,
                 mockLogger
             );
@@ -191,6 +195,7 @@ describe('AutoUpdateIpcHandler Coordinated Tests', () => {
                 windowManager,
                 null,
                 mockUpdateManager as any,
+                null,
                 null,
                 null,
                 mockStore,

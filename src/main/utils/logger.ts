@@ -5,17 +5,33 @@
  * @module Logger
  */
 
+import { app } from 'electron';
 import type { Logger } from '../types';
+
+/**
+ * Check if we're in production mode.
+ * Uses app.isPackaged when available, falls back to NODE_ENV check.
+ * Lazily evaluated to handle early startup scenarios.
+ */
+function isProduction(): boolean {
+    try {
+        return app.isPackaged;
+    } catch {
+        // app may not be ready yet during very early startup
+        return process.env.NODE_ENV === 'production';
+    }
+}
 
 /**
  * Creates a logger instance with a consistent prefix.
  *
  * @param prefix - The prefix to prepend to all log messages (e.g., '[WindowManager]')
- * @returns Logger object with log, error, and warn methods
+ * @returns Logger object with log, error, warn, and debug methods
  *
  * @example
  * const logger = createLogger('[MyModule]');
  * logger.log('Hello world'); // [MyModule] Hello world
+ * logger.debug('Debug info'); // Only logs in development mode
  * logger.error('Something failed'); // [MyModule] Something failed
  */
 export function createLogger(prefix: string): Logger {
@@ -59,6 +75,18 @@ export function createLogger(prefix: string): Logger {
          */
         warn(message: string, ...args: unknown[]): void {
             safeWrite('warn', message, args);
+        },
+
+        /**
+         * Log a debug message (only in development mode).
+         * In production, this is a no-op with minimal overhead.
+         * @param message - Message to log
+         * @param args - Additional arguments
+         */
+        debug(message: string, ...args: unknown[]): void {
+            // Early exit in production - minimal overhead (just a function call + boolean check)
+            if (isProduction()) return;
+            safeWrite('log', `[DEBUG] ${message}`, args);
         },
     };
 }

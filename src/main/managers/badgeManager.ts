@@ -1,6 +1,6 @@
 /**
  * Badge Manager for the Electron main process.
- * Handles platform-specific dock/taskbar badges for update notifications.
+ * Handles platform-specific dock/taskbar badges for update and response notifications.
  *
  * @module BadgeManager
  */
@@ -30,8 +30,11 @@ export default class BadgeManager {
     /** Badge overlay icon for Windows */
     private badgeIcon: Electron.NativeImage | null = null;
 
-    /** Current badge state */
-    private hasBadge = false;
+    /** Current update badge state */
+    private hasUpdateBadge = false;
+
+    /** Current notification badge state */
+    private hasNotificationBadge = false;
 
     constructor() {
         logger.log('BadgeManager initialized');
@@ -124,15 +127,11 @@ export default class BadgeManager {
     }
 
     /**
-     * Show the update badge on dock/taskbar.
-     * @param text - Optional text to show (macOS only, defaults to "•")
+     * Internal method to show the badge on dock/taskbar.
+     * Called by both update and notification badge methods.
+     * @private
      */
-    showUpdateBadge(text = '•'): void {
-        if (this.hasBadge) {
-            logger.log('Badge already shown');
-            return;
-        }
-
+    private showBadge(description: string, text = '•'): void {
         try {
             if (isMacOS) {
                 // macOS: Set dock badge
@@ -141,7 +140,7 @@ export default class BadgeManager {
             } else if (isWindows) {
                 // Windows: Set taskbar overlay icon
                 if (this.mainWindow && !this.mainWindow.isDestroyed() && this.badgeIcon) {
-                    this.mainWindow.setOverlayIcon(this.badgeIcon, 'Update available');
+                    this.mainWindow.setOverlayIcon(this.badgeIcon, description);
                     logger.log('Windows taskbar overlay set');
                 } else {
                     logger.warn('Cannot set Windows overlay: window or icon not available');
@@ -150,8 +149,6 @@ export default class BadgeManager {
                 // Linux: No native badge support
                 logger.log('Linux: Native badge not supported, skipping');
             }
-
-            this.hasBadge = true;
         } catch (error) {
             /* v8 ignore next 2 -- defensive error handling */
             logger.error('Failed to show badge:', error);
@@ -159,11 +156,13 @@ export default class BadgeManager {
     }
 
     /**
-     * Clear the update badge from dock/taskbar.
+     * Internal method to clear the badge from dock/taskbar.
+     * Only clears if no badges of any type are active.
+     * @private
      */
-    clearUpdateBadge(): void {
-        if (!this.hasBadge) {
-            return;
+    private clearBadgeIfNoneActive(): void {
+        if (this.hasUpdateBadge || this.hasNotificationBadge) {
+            return; // Another badge type is still active
         }
 
         try {
@@ -179,8 +178,6 @@ export default class BadgeManager {
                 }
             }
             // Linux: Nothing to clear
-
-            this.hasBadge = false;
         } catch (error) {
             /* v8 ignore next 2 -- defensive error handling */
             logger.error('Failed to clear badge:', error);
@@ -188,10 +185,71 @@ export default class BadgeManager {
     }
 
     /**
-     * Check if badge is currently shown.
-     * @returns True if badge is visible
+     * Show the update badge on dock/taskbar.
+     * @param text - Optional text to show (macOS only, defaults to "•")
+     */
+    showUpdateBadge(text = '•'): void {
+        if (this.hasUpdateBadge) {
+            logger.log('Update badge already shown');
+            return;
+        }
+
+        this.hasUpdateBadge = true;
+        this.showBadge('Update available', text);
+    }
+
+    /**
+     * Clear the update badge from dock/taskbar.
+     */
+    clearUpdateBadge(): void {
+        if (!this.hasUpdateBadge) {
+            return;
+        }
+
+        this.hasUpdateBadge = false;
+        this.clearBadgeIfNoneActive();
+    }
+
+    /**
+     * Show the notification badge on dock/taskbar.
+     * Used for response notifications when the window is unfocused.
+     * @param text - Optional text to show (macOS only, defaults to "•")
+     */
+    showNotificationBadge(text = '•'): void {
+        if (this.hasNotificationBadge) {
+            logger.log('Notification badge already shown');
+            return;
+        }
+
+        this.hasNotificationBadge = true;
+        this.showBadge('Response ready', text);
+    }
+
+    /**
+     * Clear the notification badge from dock/taskbar.
+     */
+    clearNotificationBadge(): void {
+        if (!this.hasNotificationBadge) {
+            return;
+        }
+
+        this.hasNotificationBadge = false;
+        this.clearBadgeIfNoneActive();
+    }
+
+    /**
+     * Check if any badge is currently shown.
+     * @returns True if any badge (update or notification) is visible
      */
     hasBadgeShown(): boolean {
-        return this.hasBadge;
+        return this.hasUpdateBadge || this.hasNotificationBadge;
+    }
+
+    /**
+     * Check if notification badge is currently shown.
+     * @returns True if notification badge is visible
+     */
+    hasNotificationBadgeShown(): boolean {
+        return this.hasNotificationBadge;
     }
 }

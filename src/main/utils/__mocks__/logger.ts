@@ -25,6 +25,7 @@ export const mockLogger = {
     log: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
+    debug: vi.fn(),
 };
 
 /**
@@ -40,6 +41,7 @@ export function resetMockLogger(): void {
     mockLogger.log.mockClear();
     mockLogger.error.mockClear();
     mockLogger.warn.mockClear();
+    mockLogger.debug.mockClear();
     createLogger.mockClear();
 }
 

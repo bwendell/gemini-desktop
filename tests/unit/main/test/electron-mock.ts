@@ -152,6 +152,7 @@ export const session = {
         webRequest: {
             onHeadersReceived: vi.fn(),
             onBeforeSendHeaders: vi.fn(),
+            onCompleted: vi.fn(),
         },
         cookies: {
             get: vi.fn(),

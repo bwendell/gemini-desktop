@@ -151,7 +151,7 @@ describe('BadgeManager Coordinated Tests', () => {
                 badgeManager.showUpdateBadge();
 
                 // Should early return and log
-                expect(mockLogger.log).toHaveBeenCalledWith('Badge already shown');
+                expect(mockLogger.log).toHaveBeenCalledWith('Update badge already shown');
 
                 // Should not call platform APIs again
                 if (platform === 'win32') {

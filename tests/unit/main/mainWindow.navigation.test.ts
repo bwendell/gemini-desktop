@@ -5,7 +5,6 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import MainWindow from '../../../../src/main/windows/mainWindow';
 import { BrowserWindow } from 'electron';
-import { store } from '../../../../src/main/store';
 
 // Mock Electron
 vi.mock('electron', () => ({
@@ -16,6 +15,13 @@ vi.mock('electron', () => ({
     },
     shell: {
         openExternal: vi.fn(),
+    },
+    session: {
+        defaultSession: {
+            webRequest: {
+                onCompleted: vi.fn(),
+            },
+        },
     },
 }));
 
@@ -42,6 +48,7 @@ describe('MainWindow Navigation', () => {
                     navigationHandler = handler;
                 }
             }),
+            once: vi.fn(),
             loadURL: vi.fn(),
             loadFile: vi.fn(),
             setWindowOpenHandler: vi.fn(),

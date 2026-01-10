@@ -24,6 +24,7 @@ export interface MockLogger {
     log: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
+    debug: ReturnType<typeof vi.fn>;
     _reset: () => void;
 }
 
@@ -38,10 +39,12 @@ export function createMockLogger(): MockLogger {
         log: vi.fn(),
         error: vi.fn(),
         warn: vi.fn(),
+        debug: vi.fn(),
         _reset() {
             logger.log.mockClear();
             logger.error.mockClear();
             logger.warn.mockClear();
+            logger.debug.mockClear();
         },
     };
     return logger;
@@ -61,6 +64,7 @@ export function hoistedMockLogger() {
         log: vi.fn(),
         error: vi.fn(),
         warn: vi.fn(),
+        debug: vi.fn(),
     };
 }
 

@@ -49,7 +49,7 @@ describe('Auth Coordination Integration', () => {
             // We'll spy on createAuthWindow to verify it's called
             vi.spyOn(windowManager, 'createAuthWindow');
 
-            ipcManager = new IpcManager(windowManager, null, null, null, null, mockStore, mockLogger);
+            ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
         });
 

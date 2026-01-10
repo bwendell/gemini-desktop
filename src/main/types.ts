@@ -71,6 +71,8 @@ export interface Logger {
     log(message: string, ...args: unknown[]): void;
     error(message: string, ...args: unknown[]): void;
     warn(message: string, ...args: unknown[]): void;
+    /** Debug logs - only output in development mode */
+    debug(message: string, ...args: unknown[]): void;
 }
 
 // =========================================================================

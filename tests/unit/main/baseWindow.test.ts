@@ -123,5 +123,25 @@ describe('BaseWindow', () => {
 
             expect(testWindow.getWindow()).toBeNull();
         });
+
+        it('calls removeAllListeners on closed event to prevent memory leaks', () => {
+            testWindow.callCreateWindow();
+
+            // Spy on removeAllListeners (inherited from EventEmitter)
+            const removeAllListenersSpy = vi.spyOn(testWindow, 'removeAllListeners');
+
+            // Add a test listener to verify cleanup
+            const testCallback = vi.fn();
+            testWindow.on('test-event', testCallback);
+
+            // Simulate closed event
+            const win = testWindow.getWindow()!;
+            const closedHandler = (vi.mocked(win.on).mock.calls as any[]).find((call) => call[0] === 'closed')?.[1];
+            if (typeof closedHandler === 'function') {
+                (closedHandler as Function)();
+            }
+
+            expect(removeAllListenersSpy).toHaveBeenCalled();
+        });
     });
 });

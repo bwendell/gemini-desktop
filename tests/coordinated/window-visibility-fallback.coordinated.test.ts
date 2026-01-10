@@ -55,6 +55,7 @@ describe('Window Visibility Fallback Integration', () => {
                 webContents: {
                     openDevTools: vi.fn(),
                     on: vi.fn(),
+                    once: vi.fn(),
                     setWindowOpenHandler: vi.fn(),
                     loadURL: vi.fn(),
                     loadFile: vi.fn(),

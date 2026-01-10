@@ -75,7 +75,16 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
             mockLlmManager.isModelDownloaded.mockReturnValue(true);
 
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, mockLlmManager, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
 
             // Call initializeTextPrediction (which delegates to handler)
@@ -92,7 +101,16 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
             });
 
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, mockLlmManager, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
             await ipcManager.initializeTextPrediction();
 
@@ -107,7 +125,16 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
             mockLlmManager.isModelDownloaded.mockReturnValue(false);
 
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, mockLlmManager, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
             await ipcManager.initializeTextPrediction();
 
@@ -135,7 +162,16 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
 
         it('should coordinate full enable -> disable cycle', async () => {
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, mockLlmManager, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
 
             // Get the set-enabled handler
@@ -164,7 +200,16 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
             mockLlmManager.isModelLoaded.mockReturnValue(true);
 
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, mockLlmManager, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
 
             // Get the set-gpu-enabled handler
@@ -184,7 +229,16 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
             mockLlmManager.predict.mockResolvedValue('Hello world!');
 
             const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(windowManager, null, null, null, mockLlmManager, mockStore, mockLogger);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
             ipcManager.setupIpcHandlers();
 
             // Get the predict handler

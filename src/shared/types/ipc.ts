@@ -225,6 +225,9 @@ export interface ElectronAPI {
     /** Mock platform (dev only) */
     devMockPlatform: (platform: NodeJS.Platform | null, env: Record<string, string> | null) => void;
 
+    /** Trigger a response notification for dev testing (dev only) */
+    devTriggerResponseNotification: () => void;
+
     // =========================================================================
     // E2E Testing Helpers
     // =========================================================================
@@ -316,6 +319,22 @@ export interface ElectronAPI {
      * @param path - Absolute path to the file to reveal
      */
     revealInFolder: (path: string) => void;
+
+    // =========================================================================
+    // Response Notifications API
+    // =========================================================================
+
+    /**
+     * Get whether response notifications are enabled.
+     * @returns Promise resolving to the enabled state
+     */
+    getResponseNotificationsEnabled: () => Promise<boolean>;
+
+    /**
+     * Set whether response notifications are enabled.
+     * @param enabled - Whether to enable response notifications
+     */
+    setResponseNotificationsEnabled: (enabled: boolean) => void;
 
     // =========================================================================
     // Text Prediction API

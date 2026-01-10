@@ -17,6 +17,7 @@ import { IndividualHotkeyToggles } from './IndividualHotkeyToggles';
 import { AutoUpdateToggle } from './AutoUpdateToggle';
 import { AboutSection } from './AboutSection';
 import { TextPredictionSettings } from './TextPredictionSettings';
+import { NotificationSettings } from './NotificationSettings';
 import './options-window.css';
 
 // ============================================================================
@@ -182,6 +183,11 @@ export function OptionsWindow() {
                             {/* Text Prediction Settings */}
                             <OptionsSection title="Text Prediction" testId="options-text-prediction">
                                 <TextPredictionSettings />
+                            </OptionsSection>
+
+                            {/* Notifications Settings */}
+                            <OptionsSection title="Notifications" testId="options-notifications">
+                                <NotificationSettings />
                             </OptionsSection>
                         </>
                     )}
