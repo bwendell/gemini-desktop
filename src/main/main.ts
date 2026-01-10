@@ -135,6 +135,9 @@ let printManager: PrintManager;
 let llmManager: LlmManager;
 let notificationManager: NotificationManager;
 
+/** Handler for response-complete events (stored for cleanup) */
+let responseCompleteHandler: (() => void) | null = null;
+
 /**
  * Initialize all application managers.
  * This function encapsulates manager creation for better testability and clarity.
@@ -338,14 +341,16 @@ if (!gotTheLock) {
             // Subscribe to response-complete events from MainWindow
             const mainWindowInstance = windowManager.getMainWindowInstance();
             if (mainWindowInstance) {
-                mainWindowInstance.on('response-complete', () => {
+                // Store handler reference for cleanup in will-quit
+                responseCompleteHandler = () => {
                     // Wrap in try/catch to protect against crashes (task 11.6)
                     try {
                         notificationManager.onResponseComplete();
                     } catch (error) {
                         logger.error('Error in NotificationManager.onResponseComplete:', error);
                     }
-                });
+                };
+                mainWindowInstance.on('response-complete', responseCompleteHandler);
                 logger.log('NotificationManager subscribed to response-complete events');
             }
 
@@ -409,6 +414,13 @@ app.on('will-quit', () => {
     trayManager.destroyTray();
     updateManager.destroy();
     llmManager.dispose();
+    ipcManager.dispose();
+    // Clean up response-complete listener
+    const mainWindowInstance = windowManager?.getMainWindowInstance();
+    if (mainWindowInstance && responseCompleteHandler) {
+        mainWindowInstance.off('response-complete', responseCompleteHandler);
+        responseCompleteHandler = null;
+    }
     // Clean up NotificationManager event listeners (task 11.5)
     if (notificationManager) {
         notificationManager.dispose();

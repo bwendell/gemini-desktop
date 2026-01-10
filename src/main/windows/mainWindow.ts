@@ -53,6 +53,9 @@ export default class MainWindow extends BaseWindow {
     /** Stored webRequest listener for cleanup (Task 12.8) */
     private responseDetectionListener?: (details: Electron.OnCompletedListenerDetails) => void;
 
+    /** Stored webRequest filter for cleanup */
+    private responseDetectionFilter?: Electron.WebRequestFilter;
+
     /**
      * Creates a new MainWindow instance.
      * @param isDev - Whether running in development mode
@@ -291,12 +294,12 @@ export default class MainWindow extends BaseWindow {
             this.closeAuthWindowCallback?.();
 
             // Task 12.8: Clean up webRequest listener to prevent memory leaks
-            if (this.responseDetectionListener) {
+            if (this.responseDetectionListener && this.responseDetectionFilter) {
                 try {
-                    // Note: Electron's webRequest API doesn't have a removeListener method.
-                    // Setting listener to null effectively removes it.
-                    // For multiple MainWindow instances, we just clear our reference.
+                    // Properly clear the session listener by calling onCompleted with null
+                    session.defaultSession.webRequest.onCompleted(this.responseDetectionFilter, null);
                     this.responseDetectionListener = undefined;
+                    this.responseDetectionFilter = undefined;
                     this.logger.log('Response detection listener cleaned up');
                 } catch (error) {
                     this.logger.error('Failed to clean up response detection:', error);
@@ -434,6 +437,8 @@ export default class MainWindow extends BaseWindow {
         const geminiApiFilter = {
             urls: [GEMINI_RESPONSE_API_PATTERN],
         };
+        // Store filter for cleanup (Task 12.8)
+        this.responseDetectionFilter = geminiApiFilter;
 
         // Task 12.8: Store listener reference for potential cleanup
         // Task 12.9: Wrap registration in try/catch for robustness

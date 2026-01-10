@@ -205,4 +205,22 @@ export default class IpcManager {
         this.responseNotificationHandler.setNotificationManager(manager);
         this.logger.log(`NotificationManager ${manager ? 'injected' : 'cleared'}`);
     }
+
+    /**
+     * Clean up all IPC handlers.
+     * Calls unregister() on all handlers that implement it.
+     * Should be called during app shutdown to prevent memory leaks.
+     */
+    dispose(): void {
+        for (const handler of this.handlers) {
+            if (handler.unregister) {
+                try {
+                    handler.unregister();
+                } catch (error) {
+                    this.logger.error('Error unregistering handler:', error);
+                }
+            }
+        }
+        this.logger.log('All IPC handlers unregistered');
+    }
 }

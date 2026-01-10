@@ -539,13 +539,63 @@ npm run electron:dev    # Start development
 - Prettier for formatting (`.prettierrc`)
 - TypeScript for type safety (`tsconfig.json`)
 
-## 9. Future Considerations / Roadmap
+## 9. Memory Management
+
+> This section documents patterns for preventing memory leaks in the Electron application.
+
+**Manager Dispose Pattern:**
+
+All long-lived managers should implement cleanup methods called during app shutdown:
+
+| Manager             | Cleanup Method    | Cleans Up                                    |
+| ------------------- | ----------------- | -------------------------------------------- |
+| IpcManager          | `dispose()`       | IPC handlers via `unregister()` on handlers  |
+| HotkeyManager       | `unregisterAll()` | Global shortcuts                             |
+| TrayManager         | `destroyTray()`   | System tray icon                             |
+| UpdateManager       | `destroy()`       | Check intervals, autoUpdater listeners       |
+| NotificationManager | `dispose()`       | Window event listeners, active notifications |
+| LlmManager          | `dispose()`       | Model resources                              |
+
+**Cleanup in `will-quit` event (main.ts):**
+
+```typescript
+app.on('will-quit', () => {
+    hotkeyManager.unregisterAll();
+    trayManager.destroyTray();
+    updateManager.destroy();
+    llmManager.dispose();
+    ipcManager.dispose();
+    notificationManager?.dispose();
+});
+```
+
+**Event Listener Best Practices:**
+
+1. **Store handler references for cleanup:** When registering listeners, store the handler reference so it can be removed later:
+
+    ```typescript
+    // Good - store for cleanup
+    this.onFocus = () => this.handleFocus();
+    window.on('focus', this.onFocus);
+    // Later: window.off('focus', this.onFocus);
+
+    // Bad - anonymous function can't be removed
+    window.on('focus', () => this.handleFocus());
+    ```
+
+2. **BaseWindow cleanup:** All window classes extending `BaseWindow` automatically call `removeAllListeners()` on close to clean up EventEmitter listeners.
+
+3. **WebRequest listeners:** Use `session.webRequest.onCompleted(filter, null)` to properly unregister session-level listeners, not just clearing the reference.
+
+4. **Preload script:** All `ipcRenderer.on()` subscriptions return cleanup functions for React's `useEffect` pattern.
+
+## 10. Future Considerations / Roadmap
 
 - **Preload Bundling:** Currently preload script duplicates some constants from shared. A proper bundling step (Vite/esbuild) would allow true code sharing.
 - **Linux Wayland Support:** Global shortcuts require `GlobalShortcutsPortal` on Wayland; further testing and refinement needed.
 - **Deep Linking:** Potential for URL scheme handling (`gemini://`) for external integrations.
 
-## 10. Project Identification
+## 11. Project Identification
 
 **Project Name:** Gemini Desktop
 
@@ -555,7 +605,7 @@ npm run electron:dev    # Start development
 
 **Date of Last Update:** 2026-01-06
 
-## 11. Glossary / Acronyms
+## 12. Glossary / Acronyms
 
 > Define any project-specific terms or acronyms.
 

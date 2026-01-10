@@ -49,6 +49,13 @@ export abstract class BaseIpcHandler {
     initialize?(): void | Promise<void>;
 
     /**
+     * Unregister IPC handlers from ipcMain.
+     * Override in subclasses to clean up registered handlers.
+     * Called during application shutdown to prevent memory leaks.
+     */
+    unregister?(): void;
+
+    /**
      * Get the BrowserWindow from an IPC event safely.
      *
      * Extracts the window that sent the IPC message, handling cases where

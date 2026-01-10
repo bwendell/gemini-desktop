@@ -131,6 +131,8 @@ export default abstract class BaseWindow extends EventEmitter {
             this.logger.log('Window closed');
             this.window = null;
             this.emit('closed');
+            // Clean up EventEmitter listeners to prevent memory leaks
+            this.removeAllListeners();
         });
     }
 
