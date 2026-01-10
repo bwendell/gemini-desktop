@@ -4,7 +4,7 @@
     "description": "A desktop wrapper for Google Gemini with enhanced features",
     "author": "Ben Wendell <github@benwendell.com>",
     "private": true,
-    "version": "0.3.0",
+    "version": "0.4.0",
     "type": "module",
     "main": "dist-electron/main/main.cjs",
     "scripts": {
