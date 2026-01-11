@@ -154,7 +154,7 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
             <CapsuleToggle
                 checked={settings.enabled}
                 onChange={handleEnableChange}
-                label="Enable Text Prediction"
+                label="Enable Text Prediction (Experimental)"
                 description="Use local AI to suggest text completions in Quick Chat"
                 testId="text-prediction-enable-toggle"
             />
