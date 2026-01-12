@@ -68,6 +68,7 @@ jobs:
                       release/*.dmg
                       release/*.zip
                       release/*.zip.blockmap
+                      release/latest-mac.yml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -126,6 +127,7 @@ jobs:
                       release/*.dmg
                       release/*.zip
                       release/*.zip.blockmap
+                      release/latest-mac.yml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -195,6 +197,7 @@ jobs:
                   files: |
                       release/*.exe
                       release/*.exe.blockmap
+                      release/latest.yml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -255,6 +258,7 @@ jobs:
                       release/*.deb
                       release/*.rpm
                       release/*.tar.gz
+                      release/latest-linux.yml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
