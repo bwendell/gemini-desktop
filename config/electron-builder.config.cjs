@@ -29,7 +29,7 @@ module.exports = {
             },
         ],
         icon: 'build/icon.png',
-        artifactName: '${productName}-${version}-${arch}.${ext}',
+        artifactName: 'Gemini-Desktop-${version}-${arch}.${ext}',
         ...(process.env.AZURE_SIGN_ENDPOINT &&
         process.env.AZURE_CODE_SIGNING_ACCOUNT_NAME &&
         process.env.AZURE_CERT_PROFILE_NAME &&
@@ -51,13 +51,13 @@ module.exports = {
         createDesktopShortcut: true,
         createStartMenuShortcut: true,
         perMachine: false,
-        artifactName: '${productName}-${version}-${arch}-installer.${ext}',
+        artifactName: 'Gemini-Desktop-${version}-${arch}-installer.${ext}',
     },
     mac: {
         target: ['dmg', 'zip'],
         icon: 'build/icon.png',
         identity: null,
-        artifactName: '${productName}-${version}-${arch}.${ext}',
+        artifactName: 'Gemini-Desktop-${version}-${arch}.${ext}',
         extendInfo: {
             NSMicrophoneUsageDescription: 'Gemini Desktop needs microphone access for voice input features.',
         },
@@ -89,7 +89,7 @@ module.exports = {
         ],
         icon: 'build/icon.png',
         category: 'Utility',
-        artifactName: '${productName}-${version}-${arch}.${ext}',
+        artifactName: 'Gemini-Desktop-${version}-${arch}.${ext}',
         executableName: 'gemini-desktop',
     },
     deb: {
