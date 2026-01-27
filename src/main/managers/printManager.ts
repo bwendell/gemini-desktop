@@ -13,7 +13,6 @@ import * as path from 'path';
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
-import PDFDocument from 'pdfkit';
 
 const logger = createLogger('[PrintManager]');
 
@@ -47,94 +46,7 @@ export default class PrintManager {
      *                            If not provided, uses the main window.
      */
     async printToPdf(senderWebContents?: WebContents): Promise<void> {
-        // Reset cancellation flag
-        this.isCancelled = false;
-
-        if (this.isPrinting) {
-            logger.warn('Print-to-pdf already in progress, ignoring request');
-            return;
-        }
-
-        this.isPrinting = true;
-        logger.log('Starting print-to-pdf flow');
-
-        // 1. Determine which WebContents to print
-        let contentsToPrint = senderWebContents;
-
-        try {
-            if (!contentsToPrint) {
-                const mainWindow = this.windowManager.getMainWindow();
-                if (!mainWindow) {
-                    logger.error('Cannot print: Main window not found');
-                    return;
-                }
-                contentsToPrint = mainWindow.webContents;
-            }
-
-            // 2. Capture full page via scrolling screenshots
-            const imageBuffers = await this.captureFullPage(contentsToPrint);
-
-            // Check if cancelled during capture
-            if (this.isCancelled) {
-                logger.log('Print cancelled, skipping PDF generation');
-                return;
-            }
-
-            // Handle empty captures
-            if (imageBuffers.length === 0) {
-                logger.error('No images captured');
-                contentsToPrint.send(IPC_CHANNELS.PRINT_TO_PDF_ERROR, 'No content captured');
-                return;
-            }
-
-            // 3. Stitch images into PDF
-            const pdfData = await this.stitchImagesToPdf(imageBuffers);
-
-            logger.log(`PDF generated, size: ${pdfData.length} bytes`);
-
-            // 4. Generate unique default filename
-            // Format: gemini-chat-YYYY-MM-DD.pdf
-            // If file exists, append numeric suffix: gemini-chat-YYYY-MM-DD-1.pdf, etc.
-            const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-            const defaultFilename = `gemini-chat-${dateStr}.pdf`;
-            const downloadsFolder = this.getDownloadsFolder();
-            const uniqueDefaultPath = this.getUniqueFilePath(path.join(downloadsFolder, defaultFilename));
-
-            // 5. Show save dialog
-            const mainWindow = this.windowManager.getMainWindow();
-            const parentWindow = mainWindow || BrowserWindow.getFocusedWindow();
-
-            const { canceled, filePath } = await dialog.showSaveDialog(parentWindow as BrowserWindow, {
-                title: 'Save Chat as PDF',
-                defaultPath: uniqueDefaultPath,
-                filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
-            });
-
-            // If user cancels, silently return without error
-            if (canceled || !filePath) {
-                logger.log('Print to PDF canceled by user');
-                return;
-            }
-
-            // 6. Write file to disk
-            await fs.writeFile(filePath, pdfData);
-            logger.log(`PDF saved to: ${filePath}`);
-
-            // 7. Send success notification to the renderer
-            if (contentsToPrint && !contentsToPrint.isDestroyed()) {
-                contentsToPrint.send(IPC_CHANNELS.PRINT_TO_PDF_SUCCESS, filePath);
-            }
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            logger.error('Error generating/saving PDF:', error);
-
-            // Send error notification to the renderer
-            if (contentsToPrint && !contentsToPrint.isDestroyed()) {
-                contentsToPrint.send(IPC_CHANNELS.PRINT_TO_PDF_ERROR, errorMessage);
-            }
-        } finally {
-            this.isPrinting = false;
-        }
+        logger.warn('PrintManager.printToPdf is deprecated. Use ExportManager instead.');
     }
 
     /**
@@ -460,78 +372,5 @@ export default class PrintManager {
                 });
             }
         }
-    }
-
-    /**
-     * Combines multiple PNG image buffers into a single PDF document.
-     *
-     * Each image becomes a separate page with dimensions matching the original image.
-     * Uses pdfkit with autoFirstPage: false to control page sizing precisely.
-     *
-     * @param imageBuffers - Array of PNG image buffers to combine
-     * @returns A Buffer containing the combined PDF document
-     */
-    private async stitchImagesToPdf(imageBuffers: Buffer[]): Promise<Buffer> {
-        logger.log('Stitching images to PDF', {
-            imageCount: imageBuffers.length,
-        });
-
-        return new Promise((resolve, reject) => {
-            try {
-                // Create PDF with no automatic first page
-                const doc = new PDFDocument({ autoFirstPage: false });
-
-                // Collect output chunks
-                const chunks: Buffer[] = [];
-                doc.on('data', (chunk) => chunks.push(chunk));
-                doc.on('end', () => {
-                    const pdfBuffer = Buffer.concat(chunks);
-                    logger.log('PDF created', {
-                        size: pdfBuffer.length,
-                        pages: imageBuffers.length,
-                    });
-                    resolve(pdfBuffer);
-                });
-                doc.on('error', (error) => {
-                    logger.error('PDF generation error', { error });
-                    reject(error);
-                });
-
-                // Add each image as a page
-                for (let i = 0; i < imageBuffers.length; i++) {
-                    const imageBuffer = imageBuffers[i];
-
-                    // Open the image to get dimensions
-                    // Note: openImage is a runtime method not in @types/pdfkit
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const image = (doc as any).openImage(imageBuffer) as {
-                        width: number;
-                        height: number;
-                    };
-
-                    // Add page with image dimensions
-                    doc.addPage({
-                        size: [image.width, image.height],
-                        margin: 0,
-                    });
-
-                    // Draw image at full page size
-                    // Note: pdfkit accepts pre-opened images but types don't reflect this
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (doc as any).image(image, 0, 0, {
-                        width: image.width,
-                        height: image.height,
-                    });
-
-                    logger.log(`Added page ${i + 1}/${imageBuffers.length}`);
-                }
-
-                // Finalize the PDF
-                doc.end();
-            } catch (error) {
-                logger.error('Failed to stitch images to PDF', { error });
-                reject(error);
-            }
-        });
     }
 }

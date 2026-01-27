@@ -4,10 +4,10 @@ import * as path from 'path';
 import { createLogger } from '../utils/logger';
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import { CHAT_EXTRACTION_SCRIPT } from '../utils/chatExtraction';
-import PDFDocument from 'pdfkit';
 import TurndownService from 'turndown';
 // @ts-ignore
 import { gfm } from 'turndown-plugin-gfm';
+import { marked } from 'marked';
 
 const logger = createLogger('[ExportManager]');
 
@@ -115,7 +115,7 @@ export default class ExportManager {
     }
 
     /**
-     * Exports chat to PDF (Vector-based with selectable text).
+     * Exports chat to PDF (High-fidelity rendered HTML).
      */
     async exportToPdf(webContents: WebContents): Promise<void> {
         const data = await this.extractChatData(webContents);
@@ -132,35 +132,170 @@ export default class ExportManager {
 
         if (canceled || !filePath) return;
 
-        return new Promise((resolve, reject) => {
-            const doc = new PDFDocument({ margin: 50 });
-            const stream = require('fs').createWriteStream(filePath);
-            doc.pipe(stream);
+        try {
+            const htmlContent = this.generatePdfHtml(data);
+            const pdfBuffer = await this.renderHtmlToPdf(htmlContent);
+            await fs.writeFile(filePath, pdfBuffer);
+            webContents.send(IPC_CHANNELS.TOAST_SHOW, { message: 'Chat exported to PDF', type: 'success' });
+        } catch (error) {
+            logger.error('Failed to generate PDF:', error);
+            webContents.send(IPC_CHANNELS.TOAST_SHOW, { message: 'Failed to generate PDF', type: 'error' });
+        }
+    }
 
-            // Title
-            doc.fontSize(20).text(data.title, { align: 'center' });
-            doc.fontSize(10).text(`Exported on ${new Date(data.timestamp).toLocaleString()}`, { align: 'center' });
-            doc.moveDown(2);
+    /**
+     * Generates a professionally styled HTML document for the PDF.
+     */
+    private generatePdfHtml(data: ChatData): string {
+        const turnsHtml = data.conversation
+            .map((turn) => {
+                const roleLabel = turn.role === 'user' ? 'You' : 'Gemini';
+                const roleClass = turn.role === 'user' ? 'user-role' : 'model-role';
+                // Use the extracted HTML if available, otherwise convert Markdown to HTML
+                const contentHtml = turn.html || marked.parse(turn.text);
 
-            for (const turn of data.conversation) {
-                doc.fontSize(14)
-                    .fillColor(turn.role === 'user' ? '#1a73e8' : '#1e1e1e')
-                    .text(turn.role === 'user' ? 'You' : 'Gemini', { underline: true });
-                doc.moveDown(0.5);
+                return `
+                <div class="chat-turn">
+                    <div class="role-header ${roleClass}">${roleLabel}</div>
+                    <div class="content">${contentHtml}</div>
+                </div>
+            `;
+            })
+            .join('');
 
-                const content = turn.html ? this.turndown.turndown(turn.html) : turn.text;
-                doc.fontSize(11).fillColor('#333').text(content);
-                doc.moveDown(1.5);
-                doc.strokeColor('#eee').moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-                doc.moveDown(1.5);
-            }
+        return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 40px;
+                    background: #fff;
+                }
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #eee;
+                    margin-bottom: 40px;
+                    padding-bottom: 20px;
+                }
+                .title {
+                    font-size: 28px;
+                    font-weight: bold;
+                    margin: 0;
+                    color: #1a1a1b;
+                }
+                .timestamp {
+                    font-size: 14px;
+                    color: #666;
+                    margin-top: 8px;
+                }
+                .chat-turn {
+                    margin-bottom: 40px;
+                    page-break-inside: avoid;
+                }
+                .role-header {
+                    font-size: 18px;
+                    font-weight: 600;
+                    margin-bottom: 12px;
+                    padding-bottom: 4px;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                .user-role { color: #1a73e8; }
+                .model-role { color: #1e1e1e; }
+                .content {
+                    font-size: 15px;
+                    overflow-wrap: break-word;
+                }
+                pre {
+                    background: #f6f8fa;
+                    padding: 16px;
+                    border-radius: 8px;
+                    overflow-x: auto;
+                    font-family: inherit;
+                    border: 1px solid #e1e4e8;
+                }
+                code {
+                    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+                    font-size: 85%;
+                    background: rgba(175, 184, 193, 0.2);
+                    padding: 0.2em 0.4em;
+                    border-radius: 6px;
+                }
+                pre code {
+                    background: none;
+                    padding: 0;
+                    font-size: 13px;
+                }
+                table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 16px 0;
+                }
+                th, td {
+                    border: 1px solid #dfe2e5;
+                    padding: 8px 12px;
+                    text-align: left;
+                }
+                th { background-color: #f6f8fa; }
+                tr:nth-child(even) { background-color: #fafbfc; }
+                blockquote {
+                    margin: 0 0 16px;
+                    padding: 0 1em;
+                    color: #6a737d;
+                    border-left: 0.25em solid #dfe2e5;
+                }
+                img { max-width: 100%; }
+                @media print {
+                    body { padding: 0; }
+                    .chat-turn { page-break-inside: avoid; border-bottom: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1 class="title">${data.title}</h1>
+                <div class="timestamp">Exported on ${new Date(data.timestamp).toLocaleString()}</div>
+            </div>
+            <div class="conversation">
+                ${turnsHtml}
+            </div>
+        </body>
+        </html>
+        `;
+    }
 
-            doc.end();
-            stream.on('finish', () => {
-                webContents.send(IPC_CHANNELS.TOAST_SHOW, { message: 'Chat exported to PDF', type: 'success' });
-                resolve();
-            });
-            stream.on('error', (err: any) => reject(err));
+    /**
+     * Renders HTML content to a PDF buffer using a hidden BrowserWindow.
+     */
+    private async renderHtmlToPdf(html: string): Promise<Buffer> {
+        const win = new BrowserWindow({
+            show: false,
+            webPreferences: {
+                offscreen: true,
+            },
         });
+
+        try {
+            await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+            const data = await win.webContents.printToPDF({
+                printBackground: true,
+                margins: {
+                    top: 1,
+                    bottom: 1,
+                    left: 1,
+                    right: 1,
+                },
+                pageSize: 'A4',
+            });
+            return Buffer.from(data);
+        } finally {
+            win.destroy();
+        }
     }
 }
