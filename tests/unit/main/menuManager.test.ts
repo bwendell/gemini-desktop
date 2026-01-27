@@ -43,6 +43,7 @@ describe('MenuManager', () => {
             createAuthWindow: vi.fn().mockResolvedValue(undefined),
             getMainWindow: vi.fn().mockReturnValue({
                 reload: vi.fn(),
+                isDestroyed: vi.fn().mockReturnValue(false),
             }),
         });
 
@@ -219,19 +220,33 @@ describe('MenuManager', () => {
             expect(mockWindowManager.getMainWindow().reload).toHaveBeenCalled();
         });
 
-        it('Print to PDF item calls emit("print-to-pdf-triggered")', () => {
+        it('Export as PDF item calls emit("print-to-pdf-triggered")', () => {
             setPlatform('win32');
             menuManager.buildMenu();
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
             const fileMenu = findMenuItem(template, 'File');
-            const printItem = findSubmenuItem(fileMenu, 'Print to PDF');
+            const exportPdfItem = findSubmenuItem(fileMenu, 'Export as PDF');
 
-            expect(printItem).toBeTruthy();
-            expect(printItem.id).toBe('menu-file-print-to-pdf');
-            expect(printItem.accelerator).toBe('CmdOrCtrl+Shift+P');
+            expect(exportPdfItem).toBeTruthy();
+            expect(exportPdfItem.id).toBe('menu-view-export-pdf');
+            expect(exportPdfItem.accelerator).toBe('CmdOrCtrl+Shift+P');
 
-            printItem.click();
+            exportPdfItem.click();
             expect(mockWindowManager.emit).toHaveBeenCalledWith('print-to-pdf-triggered');
+        });
+
+        it('Export as Markdown item calls emit("export-markdown-triggered")', () => {
+            setPlatform('win32');
+            menuManager.buildMenu();
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const fileMenu = findMenuItem(template, 'File');
+            const exportMdItem = findSubmenuItem(fileMenu, 'Export as Markdown');
+
+            expect(exportMdItem).toBeTruthy();
+            expect(exportMdItem.id).toBe('menu-view-export-markdown');
+
+            exportMdItem.click();
+            expect(mockWindowManager.emit).toHaveBeenCalledWith('export-markdown-triggered');
         });
 
         it('Options/Settings item logic adapts to platform', () => {
@@ -542,16 +557,16 @@ describe('MenuManager', () => {
             expect(alwaysOnTopItem.accelerator).toBeUndefined();
         });
 
-        it('returns undefined accelerator for Print to PDF when disabled', () => {
+        it('returns undefined accelerator for Export as PDF when disabled', () => {
             mockHotkeyManager.isIndividualEnabled.mockReturnValue(false);
 
             setPlatform('win32');
             menuManager.buildMenu();
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
             const fileMenu = findMenuItem(template, 'File');
-            const printItem = findSubmenuItem(fileMenu, 'Print to PDF');
+            const exportPdfItem = findSubmenuItem(fileMenu, 'Export as PDF');
 
-            expect(printItem.accelerator).toBeUndefined();
+            expect(exportPdfItem.accelerator).toBeUndefined();
         });
     });
 

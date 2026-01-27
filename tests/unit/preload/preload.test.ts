@@ -98,42 +98,15 @@ describe('Preload Script', () => {
         });
     });
 
-    describe('Print to PDF API', () => {
-        it('printToPdf should send IPC message', () => {
-            exposedAPI.printToPdf();
-            expect(ipcRendererMock.send).toHaveBeenCalledWith('print-to-pdf:trigger');
+    describe('Export API', () => {
+        it('exportChatToPdf should send IPC message', () => {
+            exposedAPI.exportChatToPdf();
+            expect(ipcRendererMock.send).toHaveBeenCalledWith('export-chat:pdf');
         });
 
-        it('onPrintToPdfSuccess should register listener and return unsubscribe', () => {
-            const callback = vi.fn();
-            const unsubscribe = exposedAPI.onPrintToPdfSuccess(callback);
-
-            expect(ipcRendererMock.on).toHaveBeenCalledWith('print-to-pdf:success', expect.any(Function));
-
-            // simulate event
-            const handler = (ipcRendererMock.on as any).mock.calls[0][1];
-            handler({}, '/path/to/file.pdf');
-            expect(callback).toHaveBeenCalledWith('/path/to/file.pdf');
-
-            // test unsubscribe
-            unsubscribe();
-            expect(ipcRendererMock.removeListener).toHaveBeenCalledWith('print-to-pdf:success', expect.any(Function));
-        });
-
-        it('onPrintToPdfError should register listener and return unsubscribe', () => {
-            const callback = vi.fn();
-            const unsubscribe = exposedAPI.onPrintToPdfError(callback);
-
-            expect(ipcRendererMock.on).toHaveBeenCalledWith('print-to-pdf:error', expect.any(Function));
-
-            // simulate event
-            const handler = (ipcRendererMock.on as any).mock.calls[0][1];
-            handler({}, 'Error saving PDF');
-            expect(callback).toHaveBeenCalledWith('Error saving PDF');
-
-            // test unsubscribe
-            unsubscribe();
-            expect(ipcRendererMock.removeListener).toHaveBeenCalledWith('print-to-pdf:error', expect.any(Function));
+        it('exportChatToMarkdown should send IPC message', () => {
+            exposedAPI.exportChatToMarkdown();
+            expect(ipcRendererMock.send).toHaveBeenCalledWith('export-chat:markdown');
         });
     });
 

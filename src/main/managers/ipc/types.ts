@@ -8,7 +8,6 @@ import type SettingsStore from '../../store';
 import type WindowManager from '../windowManager';
 import type HotkeyManager from '../hotkeyManager';
 import type UpdateManager from '../updateManager';
-import type PrintManager from '../printManager';
 import type LlmManager from '../llmManager';
 import type NotificationManager from '../notificationManager';
 import type ExportManager from '../exportManager';
@@ -59,8 +58,6 @@ export interface IpcHandlerDependencies {
     hotkeyManager?: HotkeyManager | null;
     /** Optional update manager for auto-update functionality */
     updateManager?: UpdateManager | null;
-    /** Optional print manager for PDF printing */
-    printManager?: PrintManager | null;
     /** Optional LLM manager for text prediction */
     llmManager?: LlmManager | null;
     /** Optional notification manager for response notifications */

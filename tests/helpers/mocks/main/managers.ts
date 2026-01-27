@@ -94,11 +94,11 @@ export interface MockUpdateManager {
 }
 
 /**
- * Type for a mock PrintManager with all public methods.
+ * Type for a mock ExportManager with all public methods.
  */
-export interface MockPrintManager {
-    printToPdf: ReturnType<typeof vi.fn>;
-    cancel: ReturnType<typeof vi.fn>;
+export interface MockExportManager {
+    exportToPdf: ReturnType<typeof vi.fn>;
+    exportToMarkdown: ReturnType<typeof vi.fn>;
     _reset: () => void;
 }
 
@@ -304,25 +304,18 @@ export function createMockUpdateManager(overrides?: Partial<Omit<MockUpdateManag
 }
 
 /**
- * Creates a mock PrintManager with all methods as vi.fn().
+ * Creates a mock ExportManager with all methods as vi.fn().
  *
  * @param overrides - Optional object with mock implementations to override defaults
- * @returns A mock PrintManager instance
- *
- * @example
- * ```typescript
- * const mockPrintManager = createMockPrintManager({
- *   printToPdf: vi.fn().mockRejectedValue(new Error('Print failed')),
- * });
- * ```
+ * @returns A mock ExportManager instance
  */
-export function createMockPrintManager(overrides?: Partial<Omit<MockPrintManager, '_reset'>>): MockPrintManager {
-    const manager: MockPrintManager = {
-        printToPdf: vi.fn().mockResolvedValue(undefined),
-        cancel: vi.fn(),
+export function createMockExportManager(overrides?: Partial<Omit<MockExportManager, '_reset'>>): MockExportManager {
+    const manager: MockExportManager = {
+        exportToPdf: vi.fn().mockResolvedValue(undefined),
+        exportToMarkdown: vi.fn().mockResolvedValue(undefined),
         _reset() {
-            manager.printToPdf.mockClear();
-            manager.cancel.mockClear();
+            manager.exportToPdf.mockClear();
+            manager.exportToMarkdown.mockClear();
         },
         ...overrides,
     };

@@ -7,7 +7,7 @@ import {
     createMockWindowManager,
     createMockStore,
     createMockUpdateManager,
-    createMockPrintManager,
+    createMockExportManager,
 } from '../../../helpers/mocks';
 
 // Mock Electron
@@ -54,7 +54,7 @@ describe('IpcManager.dispose()', () => {
     let mockWindowManager: ReturnType<typeof createMockWindowManager>;
     let mockStore: ReturnType<typeof createMockStore>;
     let mockUpdateManager: ReturnType<typeof createMockUpdateManager>;
-    let mockPrintManager: ReturnType<typeof createMockPrintManager>;
+    let mockExportManager: ReturnType<typeof createMockExportManager>;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -62,13 +62,13 @@ describe('IpcManager.dispose()', () => {
         mockWindowManager = createMockWindowManager();
         mockStore = createMockStore({ theme: 'system' });
         mockUpdateManager = createMockUpdateManager();
-        mockPrintManager = createMockPrintManager();
+        mockExportManager = createMockExportManager();
 
         ipcManager = new IpcManager(
             mockWindowManager,
             null,
             mockUpdateManager,
-            mockPrintManager,
+            mockExportManager,
             null,
             null,
             mockStore as any,

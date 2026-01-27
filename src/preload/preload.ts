@@ -101,24 +101,11 @@ export const IPC_CHANNELS = {
     DEV_TEST_TRIGGER_RESPONSE_NOTIFICATION: 'dev:test:trigger-response-notification',
     DEBUG_TRIGGER_ERROR: 'debug-trigger-error',
 
-    // Print to PDF
-    PRINT_TO_PDF_TRIGGER: 'print-to-pdf:trigger',
-    PRINT_TO_PDF_SUCCESS: 'print-to-pdf:success',
-    PRINT_TO_PDF_ERROR: 'print-to-pdf:error',
-
     // Toast (main process → renderer notifications)
     TOAST_SHOW: 'toast:show',
 
     // Shell (filesystem operations)
     SHELL_SHOW_ITEM_IN_FOLDER: 'shell:show-item-in-folder',
-
-    // Print Progress (for scrolling screenshot capture)
-    PRINT_PROGRESS_START: 'print:progress-start',
-    PRINT_PROGRESS_UPDATE: 'print:progress-update',
-    PRINT_PROGRESS_END: 'print:progress-end',
-    PRINT_CANCEL: 'print:cancel',
-    PRINT_OVERLAY_HIDE: 'print:overlay-hide',
-    PRINT_OVERLAY_SHOW: 'print:overlay-show',
 
     // Text Prediction (local LLM inference)
     TEXT_PREDICTION_GET_ENABLED: 'text-prediction:get-enabled',
@@ -176,7 +163,7 @@ const electronAPI: ElectronAPI = {
      * Open the options/settings window.
      * @param tab - Optional tab to open ('settings' or 'about')
      */
-    openOptions: (tab) => ipcRenderer.send(IPC_CHANNELS.OPEN_OPTIONS, tab),
+    openOptions: (tab?: 'settings' | 'about') => ipcRenderer.send(IPC_CHANNELS.OPEN_OPTIONS, tab),
 
     /**
      * Open Google sign-in in a new BrowserWindow.
@@ -217,7 +204,7 @@ const electronAPI: ElectronAPI = {
      * Set the theme preference.
      * @param theme - The theme to set (light, dark, or system)
      */
-    setTheme: (theme) => ipcRenderer.send(IPC_CHANNELS.THEME_SET, theme),
+    setTheme: (theme: 'light' | 'dark' | 'system') => ipcRenderer.send(IPC_CHANNELS.THEME_SET, theme),
 
     /**
      * Subscribe to theme change events from other windows.
@@ -324,7 +311,8 @@ const electronAPI: ElectronAPI = {
      * @param id - The hotkey identifier ('alwaysOnTop' | 'bossKey' | 'quickChat')
      * @param enabled - Whether to enable (true) or disable (false) the hotkey
      */
-    setIndividualHotkey: (id, enabled) => ipcRenderer.send(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET, id, enabled),
+    setIndividualHotkey: (id: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf', enabled: boolean) =>
+        ipcRenderer.send(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET, id, enabled),
 
     /**
      * Subscribe to individual hotkey settings changes from other windows.
@@ -366,7 +354,8 @@ const electronAPI: ElectronAPI = {
      * @param id - The hotkey identifier ('alwaysOnTop' | 'bossKey' | 'quickChat')
      * @param accelerator - The new accelerator string (e.g., 'CommandOrControl+Shift+T')
      */
-    setHotkeyAccelerator: (id, accelerator) => ipcRenderer.send(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET, id, accelerator),
+    setHotkeyAccelerator: (id: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf', accelerator: string) =>
+        ipcRenderer.send(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET, id, accelerator),
 
     /**
      * Subscribe to hotkey accelerator changes from other windows.
@@ -398,7 +387,7 @@ const electronAPI: ElectronAPI = {
      * Set the always-on-top state.
      * @param enabled - Whether to enable always-on-top
      */
-    setAlwaysOnTop: (enabled) => ipcRenderer.send(IPC_CHANNELS.ALWAYS_ON_TOP_SET, enabled),
+    setAlwaysOnTop: (enabled: boolean) => ipcRenderer.send(IPC_CHANNELS.ALWAYS_ON_TOP_SET, enabled),
 
     /**
      * Subscribe to always-on-top state changes.
@@ -466,7 +455,7 @@ const electronAPI: ElectronAPI = {
      * Set whether auto-updates are enabled.
      * @param enabled - Whether to enable auto-updates
      */
-    setAutoUpdateEnabled: (enabled) => ipcRenderer.send(IPC_CHANNELS.AUTO_UPDATE_SET_ENABLED, enabled),
+    setAutoUpdateEnabled: (enabled: boolean) => ipcRenderer.send(IPC_CHANNELS.AUTO_UPDATE_SET_ENABLED, enabled),
 
     /**
      * Manually check for updates.
@@ -625,106 +614,6 @@ const electronAPI: ElectronAPI = {
     },
 
     // =========================================================================
-    // Print to PDF API
-    // =========================================================================
-
-    /**
-     * Trigger print-to-pdf.
-     */
-    printToPdf: () => ipcRenderer.send(IPC_CHANNELS.PRINT_TO_PDF_TRIGGER),
-
-    /**
-     * Subscribe to print-to-pdf success events.
-     */
-    onPrintToPdfSuccess: (callback) => {
-        const subscription = (_event: Electron.IpcRendererEvent, filePath: string) => callback(filePath);
-        ipcRenderer.on(IPC_CHANNELS.PRINT_TO_PDF_SUCCESS, subscription);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.PRINT_TO_PDF_SUCCESS, subscription);
-        };
-    },
-
-    /**
-     * Subscribe to print-to-pdf error events.
-     */
-    onPrintToPdfError: (callback) => {
-        const subscription = (_event: Electron.IpcRendererEvent, error: string) => callback(error);
-        ipcRenderer.on(IPC_CHANNELS.PRINT_TO_PDF_ERROR, subscription);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.PRINT_TO_PDF_ERROR, subscription);
-        };
-    },
-
-    /**
-     * Cancel an in-progress print operation.
-     */
-    cancelPrint: () => ipcRenderer.send(IPC_CHANNELS.PRINT_CANCEL),
-
-    /**
-     * Subscribe to print progress start events.
-     * Called when capture begins with total page count estimate.
-     */
-    onPrintProgressStart: (callback) => {
-        const subscription = (_event: Electron.IpcRendererEvent, data: { totalPages: number }) => callback(data);
-        ipcRenderer.on(IPC_CHANNELS.PRINT_PROGRESS_START, subscription);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.PRINT_PROGRESS_START, subscription);
-        };
-    },
-
-    /**
-     * Subscribe to print progress update events.
-     * Called for each captured page with current progress.
-     */
-    onPrintProgressUpdate: (callback) => {
-        const subscription = (
-            _event: Electron.IpcRendererEvent,
-            data: { currentPage: number; totalPages: number; progress: number }
-        ) => callback(data);
-        ipcRenderer.on(IPC_CHANNELS.PRINT_PROGRESS_UPDATE, subscription);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.PRINT_PROGRESS_UPDATE, subscription);
-        };
-    },
-
-    /**
-     * Subscribe to print progress end events.
-     * Called when capture completes or is cancelled.
-     */
-    onPrintProgressEnd: (callback) => {
-        const subscription = (_event: Electron.IpcRendererEvent, data: { cancelled: boolean; success: boolean }) =>
-            callback(data);
-        ipcRenderer.on(IPC_CHANNELS.PRINT_PROGRESS_END, subscription);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.PRINT_PROGRESS_END, subscription);
-        };
-    },
-
-    /**
-     * Subscribe to print overlay hide events.
-     * Called before each viewport capture to hide the overlay.
-     */
-    onPrintOverlayHide: (callback) => {
-        const subscription = () => callback();
-        ipcRenderer.on(IPC_CHANNELS.PRINT_OVERLAY_HIDE, subscription);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.PRINT_OVERLAY_HIDE, subscription);
-        };
-    },
-
-    /**
-     * Subscribe to print overlay show events.
-     * Called after each viewport capture to show the overlay again.
-     */
-    onPrintOverlayShow: (callback) => {
-        const subscription = () => callback();
-        ipcRenderer.on(IPC_CHANNELS.PRINT_OVERLAY_SHOW, subscription);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.PRINT_OVERLAY_SHOW, subscription);
-        };
-    },
-
-    // =========================================================================
     // Toast API
     // =========================================================================
 
@@ -770,7 +659,8 @@ const electronAPI: ElectronAPI = {
      * When enabling, triggers model download if not already downloaded.
      * @param enabled - Whether to enable text prediction
      */
-    setTextPredictionEnabled: (enabled) => ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED, enabled),
+    setTextPredictionEnabled: (enabled: boolean) =>
+        ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED, enabled),
 
     /**
      * Get whether GPU acceleration is enabled for text prediction.
@@ -783,7 +673,8 @@ const electronAPI: ElectronAPI = {
      * Requires model reload to take effect.
      * @param enabled - Whether to enable GPU acceleration
      */
-    setTextPredictionGpuEnabled: (enabled) => ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_SET_GPU_ENABLED, enabled),
+    setTextPredictionGpuEnabled: (enabled: boolean) =>
+        ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_SET_GPU_ENABLED, enabled),
 
     /**
      * Get the current text prediction status.
@@ -826,7 +717,7 @@ const electronAPI: ElectronAPI = {
      * @param partialText - The partial text to get prediction for
      * @returns Promise resolving to predicted text or null
      */
-    predictText: (partialText) => ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_PREDICT, partialText),
+    predictText: (partialText: string) => ipcRenderer.invoke(IPC_CHANNELS.TEXT_PREDICTION_PREDICT, partialText),
 
     // =========================================================================
     // Response Notifications API
@@ -842,7 +733,7 @@ const electronAPI: ElectronAPI = {
      * Set whether response notifications are enabled.
      * @param enabled - Whether to enable response notifications
      */
-    setResponseNotificationsEnabled: (enabled) =>
+    setResponseNotificationsEnabled: (enabled: boolean) =>
         ipcRenderer.send(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_SET_ENABLED, enabled),
 
     // =========================================================================

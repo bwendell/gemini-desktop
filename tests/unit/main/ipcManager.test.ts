@@ -8,8 +8,9 @@ import {
     createMockWindowManager,
     createMockStore,
     createMockUpdateManager,
-    createMockPrintManager,
+    createMockExportManager,
 } from '../../helpers/mocks';
+import { IPC_CHANNELS } from '../../../src/shared/constants/ipc-channels';
 
 // Mock Electron
 const { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell } = vi.hoisted(() => {
@@ -94,7 +95,7 @@ describe('IpcManager', () => {
     let mockWindowManager: any;
     let mockStore: any;
     let mockUpdateManager: any;
-    let mockPrintManager: any;
+    let mockExportManager: any;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -109,13 +110,13 @@ describe('IpcManager', () => {
         mockWindowManager = createMockWindowManager();
         mockStore = createMockStore({ theme: 'system' });
         mockUpdateManager = createMockUpdateManager();
-        mockPrintManager = createMockPrintManager();
+        mockExportManager = createMockExportManager();
 
         ipcManager = new IpcManager(
             mockWindowManager,
             null,
             mockUpdateManager,
-            mockPrintManager,
+            mockExportManager,
             null,
             null, // No NotificationManager
             mockStore as any,
@@ -137,7 +138,7 @@ describe('IpcManager', () => {
                 mockWindowManager,
                 null,
                 mockUpdateManager,
-                mockPrintManager,
+                mockExportManager,
                 null,
                 null, // No NotificationManager
                 mockStore as any,
@@ -287,7 +288,7 @@ describe('IpcManager', () => {
                 mockWindowManager,
                 mockHotkeyManager,
                 mockUpdateManager,
-                mockPrintManager,
+                mockExportManager,
                 null,
                 null, // No NotificationManager
                 mockStore as any,
@@ -829,24 +830,31 @@ describe('IpcManager', () => {
         });
     });
 
-    describe('Print Handlers', () => {
+    describe('Export Handlers', () => {
         beforeEach(() => {
             ipcManager.setupIpcHandlers();
         });
 
-        it('handles print-to-pdf:trigger', () => {
-            const handler = (ipcMain as any)._listeners.get('print-to-pdf:trigger');
+        it('handles export-chat:pdf', () => {
+            const handler = (ipcMain as any)._listeners.get(IPC_CHANNELS.EXPORT_CHAT_PDF);
             const mockEvent = { sender: {} };
             handler(mockEvent);
-            expect(mockPrintManager.printToPdf).toHaveBeenCalledWith(mockEvent.sender);
+            expect(mockExportManager.exportToPdf).toHaveBeenCalledWith(mockEvent.sender);
         });
 
-        it('handles print-to-pdf:trigger with uninitialized manager', () => {
+        it('handles export-chat:markdown', () => {
+            const handler = (ipcMain as any)._listeners.get(IPC_CHANNELS.EXPORT_CHAT_MARKDOWN);
+            const mockEvent = { sender: {} };
+            handler(mockEvent);
+            expect(mockExportManager.exportToMarkdown).toHaveBeenCalledWith(mockEvent.sender);
+        });
+
+        it('handles export-chat:pdf with uninitialized manager', () => {
             ipcManager = new IpcManager(
                 mockWindowManager,
                 null,
                 mockUpdateManager,
-                null, // No PrintManager
+                null, // No ExportManager
                 null, // No LlmManager
                 null, // No NotificationManager
                 mockStore as any,
@@ -854,21 +862,21 @@ describe('IpcManager', () => {
             );
             ipcManager.setupIpcHandlers();
 
-            const handler = (ipcMain as any)._listeners.get('print-to-pdf:trigger');
+            const handler = (ipcMain as any)._listeners.get(IPC_CHANNELS.EXPORT_CHAT_PDF);
             handler({ sender: {} });
 
-            expect(mockLogger.error).toHaveBeenCalledWith('PrintManager not initialized');
+            expect(mockLogger.error).toHaveBeenCalledWith('ExportManager not initialized');
         });
 
-        it('handles print-to-pdf:trigger error', async () => {
-            const handler = (ipcMain as any)._listeners.get('print-to-pdf:trigger');
-            const error = new Error('Print failed');
-            mockPrintManager.printToPdf.mockRejectedValue(error);
+        it('handles exportToPdf error', async () => {
+            const handler = (ipcMain as any)._listeners.get(IPC_CHANNELS.EXPORT_CHAT_PDF);
+            const error = new Error('Export failed');
+            mockExportManager.exportToPdf.mockRejectedValue(error);
 
             await handler({ sender: {} });
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf:', {
-                error: 'Print failed',
+            expect(mockLogger.error).toHaveBeenCalledWith('Error during exportToPdf:', {
+                error: 'Export failed',
                 stack: expect.any(String),
             });
         });
@@ -886,7 +894,23 @@ describe('IpcManager', () => {
 
             eventHandler();
 
-            expect(mockPrintManager.printToPdf).toHaveBeenCalledWith(mockMainWindow.webContents);
+            expect(mockExportManager.exportToPdf).toHaveBeenCalledWith(mockMainWindow.webContents);
+        });
+
+        it('handles export-markdown-triggered event', () => {
+            const eventHandler = mockWindowManager.on.mock.calls.find(
+                (call: any) => call[0] === 'export-markdown-triggered'
+            )[1];
+
+            const mockMainWindow = {
+                webContents: {},
+                isDestroyed: () => false,
+            };
+            mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
+
+            eventHandler();
+
+            expect(mockExportManager.exportToMarkdown).toHaveBeenCalledWith(mockMainWindow.webContents);
         });
 
         it('handles print-to-pdf-triggered with missing main window', () => {
@@ -898,8 +922,23 @@ describe('IpcManager', () => {
 
             eventHandler();
 
-            expect(mockLogger.warn).toHaveBeenCalledWith('Cannot print: Main window not found or destroyed');
-            expect(mockPrintManager.printToPdf).not.toHaveBeenCalled();
+            expect(mockLogger.warn).toHaveBeenCalledWith('Cannot export to PDF: Main window not found or destroyed');
+            expect(mockExportManager.exportToPdf).not.toHaveBeenCalled();
+        });
+
+        it('handles export-markdown-triggered with missing main window', () => {
+            const eventHandler = mockWindowManager.on.mock.calls.find(
+                (call: any) => call[0] === 'export-markdown-triggered'
+            )[1];
+
+            mockWindowManager.getMainWindow.mockReturnValue(null);
+
+            eventHandler();
+
+            expect(mockLogger.warn).toHaveBeenCalledWith(
+                'Cannot export to Markdown: Main window not found or destroyed'
+            );
+            expect(mockExportManager.exportToMarkdown).not.toHaveBeenCalled();
         });
 
         it('handles print-to-pdf-triggered with uninitialized manager', () => {
@@ -907,7 +946,7 @@ describe('IpcManager', () => {
                 mockWindowManager,
                 null,
                 mockUpdateManager,
-                null, // No PrintManager
+                null, // No ExportManager
                 null, // No LlmManager
                 null, // No NotificationManager
                 mockStore as any,
@@ -922,7 +961,7 @@ describe('IpcManager', () => {
 
             eventHandler();
 
-            expect(mockLogger.error).toHaveBeenCalledWith('PrintManager not initialized');
+            expect(mockLogger.error).toHaveBeenCalledWith('ExportManager not initialized');
         });
 
         it('handles print-to-pdf-triggered error', async () => {
@@ -935,13 +974,13 @@ describe('IpcManager', () => {
                 isDestroyed: () => false,
             };
             mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
-            const error = new Error('Local print failed');
-            mockPrintManager.printToPdf.mockRejectedValue(error);
+            const error = new Error('Local export failed');
+            mockExportManager.exportToPdf.mockRejectedValue(error);
 
             await eventHandler();
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Error during printToPdf (local):', {
-                error: 'Local print failed',
+            expect(mockLogger.error).toHaveBeenCalledWith('Error during exportToPdf (local):', {
+                error: 'Local export failed',
                 stack: expect.any(String),
             });
         });
@@ -1349,7 +1388,7 @@ describe('IpcManager', () => {
                 mockWindowManager,
                 mockHotkeyManager,
                 mockUpdateManager,
-                mockPrintManager,
+                mockExportManager,
                 null,
                 null, // No NotificationManager
                 mockStore as any,
@@ -1618,7 +1657,7 @@ describe('IpcManager', () => {
         });
     });
 
-    describe('Print to PDF with destroyed window', () => {
+    describe('Export with destroyed window', () => {
         beforeEach(() => {
             ipcManager.setupIpcHandlers();
         });
@@ -1636,8 +1675,8 @@ describe('IpcManager', () => {
 
             eventHandler();
 
-            expect(mockLogger.warn).toHaveBeenCalledWith('Cannot print: Main window not found or destroyed');
-            expect(mockPrintManager.printToPdf).not.toHaveBeenCalled();
+            expect(mockLogger.warn).toHaveBeenCalledWith('Cannot export to PDF: Main window not found or destroyed');
+            expect(mockExportManager.exportToPdf).not.toHaveBeenCalled();
         });
     });
 
@@ -1711,7 +1750,7 @@ describe('IpcManager', () => {
                 mockWindowManager,
                 null,
                 mockUpdateManager,
-                mockPrintManager,
+                mockExportManager,
                 mockLlmManager,
                 null, // No NotificationManager
                 mockStore as any,
@@ -1735,7 +1774,7 @@ describe('IpcManager', () => {
                 mockWindowManager,
                 null,
                 mockUpdateManager,
-                mockPrintManager,
+                mockExportManager,
                 null,
                 null, // No NotificationManager
                 mockStore as any,
@@ -1785,7 +1824,7 @@ describe('IpcManager', () => {
                 mockWindowManager,
                 null,
                 mockUpdateManager,
-                mockPrintManager,
+                mockExportManager,
                 null,
                 null, // No NotificationManager
                 mockStore as any,
@@ -1850,7 +1889,7 @@ describe('IpcManager', () => {
                 mockWindowManager,
                 null,
                 mockUpdateManager,
-                mockPrintManager,
+                mockExportManager,
                 null,
                 null, // No NotificationManager
                 mockStore as any,

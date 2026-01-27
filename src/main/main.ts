@@ -105,7 +105,6 @@ import TrayManager from './managers/trayManager';
 import BadgeManager from './managers/badgeManager';
 import NotificationManager, { type NotificationSettings } from './managers/notificationManager';
 import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
-import PrintManager from './managers/printManager';
 import ExportManager from './managers/exportManager';
 import LlmManager from './managers/llmManager';
 import SettingsStore from './store';
@@ -132,7 +131,6 @@ let ipcManager: IpcManager;
 let trayManager: TrayManager;
 let updateManager: UpdateManager;
 let badgeManager: BadgeManager;
-let printManager: PrintManager;
 let llmManager: LlmManager;
 let notificationManager: NotificationManager;
 let exportManager: ExportManager;
@@ -180,11 +178,8 @@ function initializeManagers(): void {
     });
     logger.debug('initializeManagers() - UpdateManager created');
 
-    logger.debug('initializeManagers() - creating PrintManager');
-    printManager = new PrintManager(windowManager);
-    logger.debug('initializeManagers() - PrintManager created');
-
     logger.debug('initializeManagers() - creating LlmManager');
+
     llmManager = new LlmManager();
     logger.debug('initializeManagers() - LlmManager created');
 
@@ -197,10 +192,9 @@ function initializeManagers(): void {
         windowManager,
         hotkeyManager,
         updateManager,
-        printManager,
+        exportManager,
         llmManager,
-        notificationManager,
-        exportManager
+        notificationManager
     );
     logger.debug('initializeManagers() - IpcManager created');
 
@@ -214,7 +208,6 @@ function initializeManagers(): void {
         updateManager: UpdateManager;
         badgeManager: BadgeManager;
         hotkeyManager: HotkeyManager;
-        printManager: PrintManager;
         llmManager: LlmManager;
     };
     globalWithManagers.windowManager = windowManager;
@@ -223,7 +216,6 @@ function initializeManagers(): void {
     globalWithManagers.updateManager = updateManager;
     globalWithManagers.badgeManager = badgeManager;
     globalWithManagers.hotkeyManager = hotkeyManager;
-    globalWithManagers.printManager = printManager;
     globalWithManagers.llmManager = llmManager;
 
     logger.debug('initializeManagers() - All managers initialized successfully');
