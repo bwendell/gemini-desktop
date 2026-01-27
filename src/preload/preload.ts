@@ -133,6 +133,10 @@ export const IPC_CHANNELS = {
     // Response Notifications
     RESPONSE_NOTIFICATIONS_GET_ENABLED: 'response-notifications:get-enabled',
     RESPONSE_NOTIFICATIONS_SET_ENABLED: 'response-notifications:set-enabled',
+
+    // Chat Export (Structured)
+    EXPORT_CHAT_PDF: 'export-chat:pdf',
+    EXPORT_CHAT_MARKDOWN: 'export-chat:markdown',
 } as const;
 
 // Expose window control APIs to renderer
@@ -840,6 +844,20 @@ const electronAPI: ElectronAPI = {
      */
     setResponseNotificationsEnabled: (enabled) =>
         ipcRenderer.send(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_SET_ENABLED, enabled),
+
+    // =========================================================================
+    // Chat Export API (Structured)
+    // =========================================================================
+
+    /**
+     * Export the current chat to a high-quality, text-selectable PDF.
+     */
+    exportChatToPdf: () => ipcRenderer.send(IPC_CHANNELS.EXPORT_CHAT_PDF),
+
+    /**
+     * Export the current chat to a Markdown file.
+     */
+    exportChatToMarkdown: () => ipcRenderer.send(IPC_CHANNELS.EXPORT_CHAT_MARKDOWN),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

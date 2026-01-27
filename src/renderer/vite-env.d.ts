@@ -183,6 +183,10 @@ interface Window {
         getResponseNotificationsEnabled: () => Promise<boolean>;
         setResponseNotificationsEnabled: (enabled: boolean) => void;
 
+        // Chat Export API (Structured)
+        exportChatToPdf: () => void;
+        exportChatToMarkdown: () => void;
+
         platform: string;
         isElectron: boolean;
     };

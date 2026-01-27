@@ -106,6 +106,7 @@ import BadgeManager from './managers/badgeManager';
 import NotificationManager, { type NotificationSettings } from './managers/notificationManager';
 import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
 import PrintManager from './managers/printManager';
+import ExportManager from './managers/exportManager';
 import LlmManager from './managers/llmManager';
 import SettingsStore from './store';
 
@@ -134,6 +135,7 @@ let badgeManager: BadgeManager;
 let printManager: PrintManager;
 let llmManager: LlmManager;
 let notificationManager: NotificationManager;
+let exportManager: ExportManager;
 
 /** Handler for response-complete events (stored for cleanup) */
 let responseCompleteHandler: (() => void) | null = null;
@@ -186,8 +188,20 @@ function initializeManagers(): void {
     llmManager = new LlmManager();
     logger.debug('initializeManagers() - LlmManager created');
 
+    logger.debug('initializeManagers() - creating ExportManager');
+    exportManager = new ExportManager();
+    logger.debug('initializeManagers() - ExportManager created');
+
     logger.debug('initializeManagers() - creating IpcManager');
-    ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, printManager, llmManager, null);
+    ipcManager = new IpcManager(
+        windowManager,
+        hotkeyManager,
+        updateManager,
+        printManager,
+        llmManager,
+        notificationManager,
+        exportManager
+    );
     logger.debug('initializeManagers() - IpcManager created');
 
     // Expose managers globally for E2E testing

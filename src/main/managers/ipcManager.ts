@@ -25,6 +25,7 @@ import {
     QuickChatIpcHandler,
     TextPredictionIpcHandler,
     ResponseNotificationIpcHandler,
+    ExportIpcHandler,
     IpcHandlerDependencies,
 } from './ipc/index';
 import SettingsStore from '../store';
@@ -35,6 +36,7 @@ import type UpdateManager from './updateManager';
 import type PrintManager from './printManager';
 import type LlmManager from './llmManager';
 import type NotificationManager from './notificationManager';
+import type ExportManager from './exportManager';
 import type { ModelStatus } from './llmManager';
 import type { ThemePreference, Logger } from '../types';
 
@@ -97,6 +99,7 @@ export default class IpcManager {
         printManager?: PrintManager | null,
         llmManager?: LlmManager | null,
         notificationManager?: NotificationManager | null,
+        exportManager?: ExportManager | null,
         store?: SettingsStore<UserPreferences>,
         logger?: Logger
     ) {
@@ -135,6 +138,7 @@ export default class IpcManager {
             printManager: printManager || null,
             llmManager: llmManager || null,
             notificationManager: notificationManager || null,
+            exportManager: exportManager || null,
         };
 
         // Create TextPredictionIpcHandler first (we need reference for initializeTextPrediction)
@@ -162,6 +166,8 @@ export default class IpcManager {
             this.textPredictionHandler,
             // Response notification handler
             this.responseNotificationHandler,
+            // Export handler
+            new ExportIpcHandler(handlerDeps),
         ];
 
         this.logger.log('Initialized');

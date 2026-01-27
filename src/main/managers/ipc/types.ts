@@ -11,6 +11,7 @@ import type UpdateManager from '../updateManager';
 import type PrintManager from '../printManager';
 import type LlmManager from '../llmManager';
 import type NotificationManager from '../notificationManager';
+import type ExportManager from '../exportManager';
 import type { Logger } from '../../types';
 
 /**
@@ -64,4 +65,6 @@ export interface IpcHandlerDependencies {
     llmManager?: LlmManager | null;
     /** Optional notification manager for response notifications */
     notificationManager?: NotificationManager | null;
+    /** Optional export manager for high-quality PDF/MD export */
+    exportManager?: ExportManager | null;
 }

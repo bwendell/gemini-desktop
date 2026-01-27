@@ -50,13 +50,13 @@ export class PrintIpcHandler extends BaseIpcHandler {
     private _handlePrintTrigger(event: IpcMainEvent): void {
         this.logger.log('Print to PDF triggered via IPC');
 
-        if (!this.deps.printManager) {
-            this.logger.error('PrintManager not initialized');
+        if (!this.deps.exportManager) {
+            this.logger.error('ExportManager not initialized');
             return;
         }
 
-        this.deps.printManager.printToPdf(event.sender).catch((err) => {
-            this.handleError('printToPdf', err);
+        this.deps.exportManager.exportToPdf(event.sender).catch((err) => {
+            this.handleError('exportToPdf', err);
         });
     }
 
@@ -75,8 +75,8 @@ export class PrintIpcHandler extends BaseIpcHandler {
     private _handleLocalPrintTrigger(): void {
         this.logger.log('Print to PDF triggered via local event');
 
-        if (!this.deps.printManager) {
-            this.logger.error('PrintManager not initialized');
+        if (!this.deps.exportManager) {
+            this.logger.error('ExportManager not initialized');
             return;
         }
 
@@ -87,8 +87,8 @@ export class PrintIpcHandler extends BaseIpcHandler {
             return;
         }
 
-        this.deps.printManager.printToPdf(mainWindow.webContents).catch((err) => {
-            this.handleError('printToPdf (local)', err);
+        this.deps.exportManager.exportToPdf(mainWindow.webContents).catch((err) => {
+            this.handleError('exportToPdf (local)', err);
         });
     }
 }

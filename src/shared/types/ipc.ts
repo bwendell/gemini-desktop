@@ -396,4 +396,18 @@ export interface ElectronAPI {
      * @returns Promise resolving to predicted text continuation or null
      */
     predictText: (partialText: string) => Promise<string | null>;
+
+    // =========================================================================
+    // Chat Export API (Structured)
+    // =========================================================================
+
+    /**
+     * Export the current chat to a high-quality, text-selectable PDF.
+     */
+    exportChatToPdf: () => void;
+
+    /**
+     * Export the current chat to a Markdown file.
+     */
+    exportChatToMarkdown: () => void;
 }

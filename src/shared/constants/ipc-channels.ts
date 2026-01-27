@@ -80,6 +80,8 @@ export const IPC_CHANNELS = {
     PRINT_TO_PDF_TRIGGER: 'print-to-pdf:trigger',
     PRINT_TO_PDF_SUCCESS: 'print-to-pdf:success',
     PRINT_TO_PDF_ERROR: 'print-to-pdf:error',
+    EXPORT_CHAT_PDF: 'export-chat:pdf',
+    EXPORT_CHAT_MARKDOWN: 'export-chat:markdown',
 
     // Print Progress (for scrolling screenshot capture)
     PRINT_PROGRESS_START: 'print:progress-start',

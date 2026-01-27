@@ -57,7 +57,8 @@
         "node-llama-cpp": "^3.14.5",
         "pdfkit": "^0.17.2",
         "react": "^19.1.0",
-        "react-dom": "^19.1.0"
+        "react-dom": "^19.1.0",
+        "turndown": "^7.2.2"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.2",
@@ -67,6 +68,7 @@
         "@types/pdfkit": "^0.17.4",
         "@types/react": "^19.1.8",
         "@types/react-dom": "^19.1.6",
+        "@types/turndown": "^5.0.6",
         "@vitejs/plugin-react": "^5.1.2",
         "@vitest/coverage-v8": "^4.0.16",
         "@wdio/cli": "^9.22.0",

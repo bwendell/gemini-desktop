@@ -124,11 +124,25 @@ export function useMenuDefinitions(): MenuDefinition[] {
                 { separator: true },
                 {
                     id: 'menu-file-print-to-pdf',
-                    label: 'Print to PDF',
+                    label: 'Print to PDF (Screenshot)',
                     shortcut: formattedPrintToPdfAccelerator || 'Ctrl+Shift+P',
                     disabled: false,
                     action: () => {
                         window.electronAPI?.printToPdf();
+                    },
+                },
+                {
+                    id: 'menu-view-export-pdf',
+                    label: 'Export as PDF (Structured)',
+                    action: () => {
+                        window.electronAPI?.exportChatToPdf();
+                    },
+                },
+                {
+                    id: 'menu-view-export-markdown',
+                    label: 'Export as Markdown',
+                    action: () => {
+                        window.electronAPI?.exportChatToMarkdown();
                     },
                 },
                 { separator: true },

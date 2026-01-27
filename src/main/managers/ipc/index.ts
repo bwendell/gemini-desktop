@@ -25,3 +25,4 @@ export { AutoUpdateIpcHandler } from './AutoUpdateIpcHandler';
 export { QuickChatIpcHandler } from './QuickChatIpcHandler';
 export { TextPredictionIpcHandler } from './TextPredictionIpcHandler';
 export { ResponseNotificationIpcHandler } from './ResponseNotificationIpcHandler';
+export { ExportIpcHandler } from './ExportIpcHandler';
