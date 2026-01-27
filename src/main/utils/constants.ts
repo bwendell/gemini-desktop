@@ -101,12 +101,13 @@ export const AI_STUDIO_URL = `https://${AI_STUDIO_DOMAIN}` as const;
  * URL pattern for detecting Gemini response completion.
  * Used in webRequest.onCompleted to detect when Gemini finishes generating a response.
  *
- * The BardChatUi endpoint handles chat streaming responses.
- * Pattern format: protocol://gemini.google.com/wildcard/BardChatUi/wildcard
+ * The StreamGenerate endpoint handles actual chat streaming responses.
+ * This is more specific than matching all BardChatUi calls, which would also
+ * match log, batchexecute, and other non-response API calls.
  *
- * @example "https://gemini.google.com/u/0/app/BardChatUi/stream"
+ * @example "https://gemini.google.com/u/0/_/BardChatUi/data/StreamGenerate?..."
  */
-export const GEMINI_RESPONSE_API_PATTERN = '*://gemini.google.com/*/BardChatUi/*' as const;
+export const GEMINI_RESPONSE_API_PATTERN = '*://gemini.google.com/*StreamGenerate*' as const;
 
 // =========================================================================
 // Gemini DOM Selectors
