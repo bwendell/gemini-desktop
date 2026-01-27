@@ -18,13 +18,13 @@ import {
     ThemeIpcHandler,
     ZoomIpcHandler,
     AlwaysOnTopIpcHandler,
-    PrintIpcHandler,
     HotkeyIpcHandler,
     AppIpcHandler,
     AutoUpdateIpcHandler,
     QuickChatIpcHandler,
     TextPredictionIpcHandler,
     ResponseNotificationIpcHandler,
+    ExportIpcHandler,
     IpcHandlerDependencies,
 } from './ipc/index';
 import SettingsStore from '../store';
@@ -32,9 +32,9 @@ import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
 import type HotkeyManager from './hotkeyManager';
 import type UpdateManager from './updateManager';
-import type PrintManager from './printManager';
 import type LlmManager from './llmManager';
 import type NotificationManager from './notificationManager';
+import type ExportManager from './exportManager';
 import type { ModelStatus } from './llmManager';
 import type { ThemePreference, Logger } from '../types';
 
@@ -94,7 +94,7 @@ export default class IpcManager {
         windowManager: WindowManager,
         hotkeyManager?: HotkeyManager | null,
         updateManager?: UpdateManager | null,
-        printManager?: PrintManager | null,
+        exportManager?: ExportManager | null,
         llmManager?: LlmManager | null,
         notificationManager?: NotificationManager | null,
         store?: SettingsStore<UserPreferences>,
@@ -132,9 +132,9 @@ export default class IpcManager {
             windowManager: windowManager,
             hotkeyManager: hotkeyManager || null,
             updateManager: updateManager || null,
-            printManager: printManager || null,
             llmManager: llmManager || null,
             notificationManager: notificationManager || null,
+            exportManager: exportManager || null,
         };
 
         // Create TextPredictionIpcHandler first (we need reference for initializeTextPrediction)
@@ -153,7 +153,6 @@ export default class IpcManager {
             new ZoomIpcHandler(handlerDeps),
             new AlwaysOnTopIpcHandler(handlerDeps),
             // Phase 3 handlers
-            new PrintIpcHandler(handlerDeps),
             new HotkeyIpcHandler(handlerDeps),
             new AppIpcHandler(handlerDeps),
             // Phase 4 handlers
@@ -162,6 +161,8 @@ export default class IpcManager {
             this.textPredictionHandler,
             // Response notification handler
             this.responseNotificationHandler,
+            // Export handler
+            new ExportIpcHandler(handlerDeps),
         ];
 
         this.logger.log('Initialized');

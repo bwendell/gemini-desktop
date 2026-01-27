@@ -110,18 +110,9 @@ const mockElectronAPI = {
     onGeminiNavigate: vi.fn().mockReturnValue(() => {}),
     signalGeminiReady: vi.fn(),
 
-    // Print to PDF API
-    printToPdf: vi.fn(),
-    onPrintToPdfSuccess: vi.fn().mockReturnValue(() => {}),
-    onPrintToPdfError: vi.fn().mockReturnValue(() => {}),
-
-    // Print Progress API (for scrolling screenshot capture)
-    cancelPrint: vi.fn(),
-    onPrintProgressStart: vi.fn().mockReturnValue(() => {}),
-    onPrintProgressUpdate: vi.fn().mockReturnValue(() => {}),
-    onPrintProgressEnd: vi.fn().mockReturnValue(() => {}),
-    onPrintOverlayHide: vi.fn().mockReturnValue(() => {}),
-    onPrintOverlayShow: vi.fn().mockReturnValue(() => {}),
+    // Export API
+    exportChatToPdf: vi.fn(),
+    exportChatToMarkdown: vi.fn(),
 
     // Toast API
     onToastShow: vi.fn().mockReturnValue(() => {}),

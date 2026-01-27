@@ -15,26 +15,20 @@ describe('Shared Constants', () => {
             expect(IPC_CHANNELS.WINDOW_CLOSE).toBeDefined();
         });
 
-        describe('Print to PDF channels', () => {
-            it('should define PRINT_TO_PDF_TRIGGER channel', () => {
-                expect(IPC_CHANNELS.PRINT_TO_PDF_TRIGGER).toBeDefined();
-                expect(IPC_CHANNELS.PRINT_TO_PDF_TRIGGER).toBe('print-to-pdf:trigger');
+        describe('Export channels', () => {
+            it('should define EXPORT_CHAT_PDF channel', () => {
+                expect(IPC_CHANNELS.EXPORT_CHAT_PDF).toBeDefined();
+                expect(IPC_CHANNELS.EXPORT_CHAT_PDF).toBe('export-chat:pdf');
             });
 
-            it('should define PRINT_TO_PDF_SUCCESS channel', () => {
-                expect(IPC_CHANNELS.PRINT_TO_PDF_SUCCESS).toBeDefined();
-                expect(IPC_CHANNELS.PRINT_TO_PDF_SUCCESS).toBe('print-to-pdf:success');
+            it('should define EXPORT_CHAT_MARKDOWN channel', () => {
+                expect(IPC_CHANNELS.EXPORT_CHAT_MARKDOWN).toBeDefined();
+                expect(IPC_CHANNELS.EXPORT_CHAT_MARKDOWN).toBe('export-chat:markdown');
             });
 
-            it('should define PRINT_TO_PDF_ERROR channel', () => {
-                expect(IPC_CHANNELS.PRINT_TO_PDF_ERROR).toBeDefined();
-                expect(IPC_CHANNELS.PRINT_TO_PDF_ERROR).toBe('print-to-pdf:error');
-            });
-
-            it('should follow the print-to-pdf: namespace pattern', () => {
-                expect(IPC_CHANNELS.PRINT_TO_PDF_TRIGGER).toMatch(/^print-to-pdf:/);
-                expect(IPC_CHANNELS.PRINT_TO_PDF_SUCCESS).toMatch(/^print-to-pdf:/);
-                expect(IPC_CHANNELS.PRINT_TO_PDF_ERROR).toMatch(/^print-to-pdf:/);
+            it('should follow the export-chat: namespace pattern', () => {
+                expect(IPC_CHANNELS.EXPORT_CHAT_PDF).toMatch(/^export-chat:/);
+                expect(IPC_CHANNELS.EXPORT_CHAT_MARKDOWN).toMatch(/^export-chat:/);
             });
         });
     });

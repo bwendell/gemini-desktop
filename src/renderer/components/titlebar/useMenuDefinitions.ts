@@ -123,12 +123,18 @@ export function useMenuDefinitions(): MenuDefinition[] {
                 },
                 { separator: true },
                 {
-                    id: 'menu-file-print-to-pdf',
-                    label: 'Print to PDF',
+                    id: 'menu-view-export-pdf',
+                    label: 'Export as PDF',
                     shortcut: formattedPrintToPdfAccelerator || 'Ctrl+Shift+P',
-                    disabled: false,
                     action: () => {
-                        window.electronAPI?.printToPdf();
+                        window.electronAPI?.exportChatToPdf();
+                    },
+                },
+                {
+                    id: 'menu-view-export-markdown',
+                    label: 'Export as Markdown',
+                    action: () => {
+                        window.electronAPI?.exportChatToMarkdown();
                     },
                 },
                 { separator: true },

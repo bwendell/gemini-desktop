@@ -282,11 +282,28 @@ export default class MenuManager {
                     visible: false, // Hidden until functionality is implemented
                 },
                 {
-                    label: 'Print to PDF',
-                    id: 'menu-file-print-to-pdf',
+                    label: 'Export as PDF',
+                    id: 'menu-view-export-pdf',
                     accelerator: this.getApplicationHotkeyAccelerator('printToPdf'),
                     click: () => {
-                        this.windowManager.emit('print-to-pdf-triggered');
+                        const mainWindow = this.windowManager.getMainWindow();
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            this.windowManager.emit('print-to-pdf-triggered');
+                        }
+                    },
+                },
+                {
+                    label: 'Export as Markdown',
+                    id: 'menu-view-export-markdown',
+                    click: async () => {
+                        const win = this.windowManager.getMainWindow();
+                        if (win && !win.isDestroyed()) {
+                            // We need to trigger this via IPC or ExportManager directly if available
+                            // For simplicity and consistency with IpcManager, we'll use a direct call if we can get ExportManager
+                            // But MenuManager doesn't have ExportManager.
+                            // Let's emit an event that IpcManager/Main can catch, or just use the windowManager to emit.
+                            this.windowManager.emit('export-markdown-triggered');
+                        }
                     },
                 },
                 { type: 'separator' },

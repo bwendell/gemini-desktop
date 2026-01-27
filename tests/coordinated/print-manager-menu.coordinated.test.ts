@@ -22,7 +22,7 @@ vi.mock('fs', () => ({
     mkdirSync: vi.fn(),
 }));
 
-describe('Print to PDF Menu Integration', () => {
+describe('Export Menu Integration', () => {
     let menuManager: MenuManager;
     let windowManager: WindowManager;
     let hotkeyManager: HotkeyManager;
@@ -41,6 +41,7 @@ describe('Print to PDF Menu Integration', () => {
 
             // Create managers
             windowManager = new WindowManager(false);
+            windowManager.createMainWindow(); // Ensure main window exists for menu click handlers
             hotkeyManager = new HotkeyManager(windowManager);
             menuManager = new MenuManager(windowManager, hotkeyManager);
 
@@ -53,7 +54,7 @@ describe('Print to PDF Menu Integration', () => {
         });
 
         describe('Menu Item Existence', () => {
-            it('should have "Print to PDF" in the File menu', () => {
+            it('should have "Export as PDF" in the File menu', () => {
                 menuManager.buildMenu();
 
                 const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
@@ -62,26 +63,39 @@ describe('Print to PDF Menu Integration', () => {
                 const fileMenu = template.find((menu: any) => menu.label === 'File');
                 expect(fileMenu).toBeDefined();
 
-                // Find Print to PDF item
-                const printItem = fileMenu.submenu?.find((item: any) => item.id === 'menu-file-print-to-pdf');
+                // Find Export as PDF item
+                const exportItem = fileMenu.submenu?.find((item: any) => item.id === 'menu-view-export-pdf');
 
-                expect(printItem).toBeDefined();
-                expect(printItem.label).toBe('Print to PDF');
+                expect(exportItem).toBeDefined();
+                expect(exportItem.label).toBe('Export as PDF');
             });
 
             it('should have correct default accelerator', () => {
                 menuManager.buildMenu();
                 const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
                 const fileMenu = template.find((menu: any) => menu.label === 'File');
-                const printItem = fileMenu.submenu.find((item: any) => item.id === 'menu-file-print-to-pdf');
+                const exportItem = fileMenu.submenu.find((item: any) => item.id === 'menu-view-export-pdf');
 
                 // Default accelerator for printToPdf is CommandOrControl+Shift+P
-                // But since we are mocking HotkeyManager (which reads from store defaults), check what HotkeyManager provides
-                // In unit environment, store mocks might return defaults.
-                // Let's check against what the hotkey manager actually returns.
                 const expectedAccelerator = hotkeyManager.getAccelerator('printToPdf');
-                expect(printItem.accelerator).toBe(expectedAccelerator);
-                expect(printItem.accelerator).toBe('CommandOrControl+Shift+P');
+                expect(exportItem.accelerator).toBe(expectedAccelerator);
+                expect(exportItem.accelerator).toBe('CommandOrControl+Shift+P');
+            });
+
+            it('should have "Export as Markdown" in the File menu', () => {
+                menuManager.buildMenu();
+
+                const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+
+                // Find File menu
+                const fileMenu = template.find((menu: any) => menu.label === 'File');
+                expect(fileMenu).toBeDefined();
+
+                // Find Export as Markdown item
+                const exportMdItem = fileMenu.submenu?.find((item: any) => item.id === 'menu-view-export-markdown');
+
+                expect(exportMdItem).toBeDefined();
+                expect(exportMdItem.label).toBe('Export as Markdown');
             });
         });
 
@@ -90,13 +104,26 @@ describe('Print to PDF Menu Integration', () => {
                 menuManager.buildMenu();
                 const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
                 const fileMenu = template.find((menu: any) => menu.label === 'File');
-                const printItem = fileMenu.submenu.find((item: any) => item.id === 'menu-file-print-to-pdf');
+                const exportItem = fileMenu.submenu.find((item: any) => item.id === 'menu-view-export-pdf');
 
                 // Click the item
-                printItem.click();
+                exportItem.click();
 
                 // Verify event emission
                 expect(windowManager.emit).toHaveBeenCalledWith('print-to-pdf-triggered');
+            });
+
+            it('should trigger "export-markdown-triggered" event on WindowManager when clicked', () => {
+                menuManager.buildMenu();
+                const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+                const fileMenu = template.find((menu: any) => menu.label === 'File');
+                const exportMdItem = fileMenu.submenu.find((item: any) => item.id === 'menu-view-export-markdown');
+
+                // Click the item
+                exportMdItem.click();
+
+                // Verify event emission
+                expect(windowManager.emit).toHaveBeenCalledWith('export-markdown-triggered');
             });
         });
 
@@ -106,10 +133,9 @@ describe('Print to PDF Menu Integration', () => {
                 menuManager.buildMenu();
 
                 // Change accelerator in HotkeyManager
-                // This should trigger 'accelerator-changed' which MenuManager listens to
                 hotkeyManager.setAccelerator('printToPdf', 'CommandOrControl+P');
 
-                // Verify Menu was rebuilt (called at least once after update)
+                // Verify Menu was rebuilt
                 expect(Menu.buildFromTemplate).toHaveBeenCalled();
 
                 // Check the new template
@@ -119,8 +145,8 @@ describe('Print to PDF Menu Integration', () => {
                 calls.forEach((callArgs: any) => {
                     const template = callArgs[0];
                     const fileMenu = template.find((menu: any) => menu.label === 'File');
-                    const printItem = fileMenu?.submenu?.find((item: any) => item.id === 'menu-file-print-to-pdf');
-                    if (printItem?.accelerator === 'CommandOrControl+P') {
+                    const exportItem = fileMenu?.submenu?.find((item: any) => item.id === 'menu-view-export-pdf');
+                    if (exportItem?.accelerator === 'CommandOrControl+P') {
                         foundUpdate = true;
                     }
                 });
@@ -141,10 +167,10 @@ describe('Print to PDF Menu Integration', () => {
                 const calls = (Menu.buildFromTemplate as any).mock.calls;
                 const lastCallTemplate = calls[calls.length - 1][0];
                 const fileMenu = lastCallTemplate.find((menu: any) => menu.label === 'File');
-                const printItem = fileMenu?.submenu?.find((item: any) => item.id === 'menu-file-print-to-pdf');
+                const exportItem = fileMenu?.submenu?.find((item: any) => item.id === 'menu-view-export-pdf');
 
                 // Accelerator should be undefined when disabled
-                expect(printItem?.accelerator).toBeUndefined();
+                expect(exportItem?.accelerator).toBeUndefined();
             });
 
             it('should restore accelerator hint when hotkey is re-enabled', () => {
@@ -165,8 +191,8 @@ describe('Print to PDF Menu Integration', () => {
                 calls.forEach((callArgs: any) => {
                     const template = callArgs[0];
                     const fileMenu = template.find((menu: any) => menu.label === 'File');
-                    const printItem = fileMenu?.submenu?.find((item: any) => item.id === 'menu-file-print-to-pdf');
-                    if (printItem?.accelerator === 'CommandOrControl+Shift+P') {
+                    const exportItem = fileMenu?.submenu?.find((item: any) => item.id === 'menu-view-export-pdf');
+                    if (exportItem?.accelerator === 'CommandOrControl+Shift+P') {
                         foundRestore = true;
                     }
                 });

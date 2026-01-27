@@ -1,12 +1,11 @@
 import { useEffect } from 'react';
 
 import { MainLayout, OfflineOverlay, GeminiErrorBoundary } from './components';
-import { PrintProgressOverlay } from './components/print';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { UpdateToastProvider } from './context/UpdateToastContext';
 import { LinuxHotkeyNotice } from './components/toast';
-import { useGeminiIframe, useQuickChatNavigation, usePrintProgress } from './hooks';
+import { useGeminiIframe, useQuickChatNavigation } from './hooks';
 import { GEMINI_APP_URL } from './utils/constants';
 import './App.css';
 
@@ -35,39 +34,7 @@ import './App.css';
 function AppContent() {
     const { isLoading, error, isOnline, handleLoad, handleError, retry } = useGeminiIframe();
     const { iframeKey, handleIframeLoad } = useQuickChatNavigation(handleLoad);
-    const { state: printProgress, handleCancel: handlePrintCancel } = usePrintProgress();
     const { showToast, showSuccess, showError, showInfo, showWarning, dismissAll } = useToast();
-
-    // Listen for PDF export results and show toast notifications
-    useEffect(() => {
-        // Only subscribe if running in Electron
-        if (typeof window === 'undefined' || !window.electronAPI) return;
-
-        // Handle successful PDF export
-        const cleanupSuccess = window.electronAPI.onPrintToPdfSuccess((filePath: string) => {
-            showSuccess(`PDF saved to ${filePath}`, {
-                persistent: true, // Don't auto-dismiss so user can click the action
-                actions: [
-                    {
-                        label: 'Show in Folder',
-                        onClick: () => {
-                            window.electronAPI?.revealInFolder(filePath);
-                        },
-                    },
-                ],
-            });
-        });
-
-        // Handle PDF export error
-        const cleanupError = window.electronAPI.onPrintToPdfError((error: string) => {
-            showError(`Failed to export PDF: ${error}`);
-        });
-
-        return () => {
-            cleanupSuccess?.();
-            cleanupError?.();
-        };
-    }, [showSuccess, showError]);
 
     // Expose toast helpers globally for console testing (dev mode and testing)
     useEffect(() => {
@@ -116,13 +83,6 @@ function AppContent() {
                     />
                 </div>
             </GeminiErrorBoundary>
-            <PrintProgressOverlay
-                visible={printProgress.visible}
-                currentPage={printProgress.currentPage}
-                totalPages={printProgress.totalPages}
-                progress={printProgress.progress}
-                onCancel={handlePrintCancel}
-            />
         </MainLayout>
     );
 }
