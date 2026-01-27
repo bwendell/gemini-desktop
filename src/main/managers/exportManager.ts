@@ -6,6 +6,8 @@ import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import { CHAT_EXTRACTION_SCRIPT } from '../utils/chatExtraction';
 import PDFDocument from 'pdfkit';
 import TurndownService from 'turndown';
+// @ts-ignore
+import { gfm } from 'turndown-plugin-gfm';
 
 const logger = createLogger('[ExportManager]');
 
@@ -29,6 +31,7 @@ export default class ExportManager {
             headingStyle: 'atx',
             codeBlockStyle: 'fenced',
         });
+        this.turndown.use(gfm);
     }
 
     /**
