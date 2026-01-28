@@ -9,37 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
-
-/**
- * Deep merge implementation matching SettingsStore.
- * Extracted for testability.
- */
-function deepMerge<T extends Record<string, unknown>>(target: T, source: T): T {
-    const result = { ...target } as T;
-
-    for (const key of Object.keys(source) as (keyof T)[]) {
-        const sourceValue = source[key];
-        const targetValue = target[key];
-
-        if (
-            typeof sourceValue === 'object' &&
-            sourceValue !== null &&
-            !Array.isArray(sourceValue) &&
-            typeof targetValue === 'object' &&
-            targetValue !== null &&
-            !Array.isArray(targetValue)
-        ) {
-            result[key] = deepMerge(
-                targetValue as Record<string, unknown>,
-                sourceValue as Record<string, unknown>
-            ) as T[keyof T];
-        } else {
-            result[key] = sourceValue;
-        }
-    }
-
-    return result;
-}
+import { deepMerge } from '../../../src/main/store';
 
 describe('SettingsStore deepMerge property tests', () => {
     // ==========================================================================
@@ -82,9 +52,14 @@ describe('SettingsStore deepMerge property tests', () => {
                 fc.property(shallowSettings, shallowSettings, (target, source) => {
                     const result = deepMerge(target, source);
 
-                    // Every key in source should have source's value in result
+                    // Dangerous keys that are filtered out by deepMerge for security
+                    const dangerousKeys = new Set(['__proto__', 'constructor', 'prototype']);
+
+                    // Every key in source (except dangerous ones) should have source's value in result
                     for (const key of Object.keys(source)) {
-                        expect(result[key]).toEqual(source[key]);
+                        if (!dangerousKeys.has(key)) {
+                            expect(result[key]).toEqual(source[key]);
+                        }
                     }
                 }),
                 { numRuns: 500 }
@@ -145,7 +120,8 @@ describe('SettingsStore deepMerge property tests', () => {
     describe('prototype pollution prevention', () => {
         it('__proto__ key in source does not pollute Object prototype', () => {
             const target = { safe: true };
-            const source = { __proto__: { polluted: true } } as any;
+            // Use JSON.parse to create an actual enumerable __proto__ property
+            const source = JSON.parse('{"__proto__": {"polluted": true}}');
 
             const result = deepMerge(target, source);
 
@@ -153,29 +129,39 @@ describe('SettingsStore deepMerge property tests', () => {
             const newObj = {};
             expect((newObj as any).polluted).toBeUndefined();
 
-            // Result should not have prototype pollution
-            expect(Object.prototype.hasOwnProperty.call(result, 'polluted')).toBe(false);
+            // Result should not have prototype pollution via its prototype chain
+            expect((result as any).polluted).toBeUndefined();
+
+            // Verify the result's prototype is still Object.prototype
+            expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
 
         it('constructor key in source does not affect prototype', () => {
             const target = { safe: true };
-            const source = { constructor: { prototype: { polluted: true } } } as any;
+            const source = JSON.parse('{"constructor": {"prototype": {"polluted": true}}}');
 
-            const _result = deepMerge(target, source);
+            const result = deepMerge(target, source);
 
             // Verify no pollution occurred
             const newObj = {};
             expect((newObj as any).polluted).toBeUndefined();
+
+            // Result should not have the dangerous constructor property
+            expect(result.constructor).toBe(Object);
         });
 
         it('nested __proto__ does not cause pollution', () => {
             const target = { nested: { value: 1 } };
-            const source = { nested: { __proto__: { evil: true } } } as any;
+            const source = JSON.parse('{"nested": {"__proto__": {"evil": true}}}');
 
-            const _result = deepMerge(target, source);
+            const result = deepMerge(target, source);
 
             const newObj = {};
             expect((newObj as any).evil).toBeUndefined();
+
+            // Check that nested object's prototype isn't polluted
+            expect((result.nested as any).evil).toBeUndefined();
+            expect(Object.getPrototypeOf(result.nested)).toBe(Object.prototype);
         });
 
         it('random keys including dangerous patterns are handled safely', () => {
@@ -184,6 +170,7 @@ describe('SettingsStore deepMerge property tests', () => {
             fc.assert(
                 fc.property(dangerousKey, primitiveValue, (key, value) => {
                     const target = { safe: true };
+                    // Use computed property to create the key
                     const source = { [key]: value } as any;
 
                     expect(() => deepMerge(target, source)).not.toThrow();
@@ -264,11 +251,18 @@ describe('SettingsStore deepMerge property tests', () => {
             );
         });
 
-        it('merging empty with source returns source values', () => {
+        it('merging empty with source returns source values (except dangerous keys)', () => {
             fc.assert(
                 fc.property(shallowSettings, (source) => {
                     const result = deepMerge({}, source);
-                    expect(result).toEqual(source);
+
+                    // Dangerous keys are filtered out for security
+                    const dangerousKeys = new Set(['__proto__', 'constructor', 'prototype']);
+                    const expectedSource = Object.fromEntries(
+                        Object.entries(source).filter(([key]) => !dangerousKeys.has(key))
+                    );
+
+                    expect(result).toEqual(expectedSource);
                 }),
                 { numRuns: 200 }
             );
