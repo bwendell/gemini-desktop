@@ -4,7 +4,7 @@
     "description": "A desktop wrapper for Google Gemini with enhanced features",
     "author": "Ben Wendell <github@benwendell.com>",
     "private": true,
-    "version": "0.4.1",
+    "version": "0.5.0",
     "type": "module",
     "main": "dist-electron/main/main.cjs",
     "scripts": {
@@ -92,7 +92,7 @@
         "jsdom": "^27.4.0",
         "lint-staged": "^16.2.7",
         "prettier": "^3.7.4",
-        "typedoc": "^0.28.15",
+        "typedoc": "^0.28.16",
         "typescript": "~5.9.3",
         "typescript-eslint": "^8.54.0",
         "vite": "^7.0.4",
