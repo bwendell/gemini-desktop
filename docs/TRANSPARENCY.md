@@ -92,6 +92,9 @@ This means:
 > [!IMPORTANT]
 > Malware authors avoid code signing because it creates a traceable paper trail. A signed executable is a strong signal that the developer is accountable.
 
+<p align="center">
+  <img src="assets/certificate_signature.png" alt="Code Signing Certificate Signature">
+</p>
 ---
 
 ## 🛡️ Verify Your Download
