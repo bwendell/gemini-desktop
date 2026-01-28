@@ -35,6 +35,44 @@ export default class ExportManager {
     }
 
     /**
+     * Allowed domains for Gemini content extraction.
+     * The hostname must match exactly or be a subdomain of these.
+     */
+    private static readonly ALLOWED_DOMAINS = ['gemini.google.com', 'aistudio.google.com'] as const;
+
+    /**
+     * Checks if a hostname matches an allowed domain exactly or is a subdomain.
+     * Uses domain part comparison to prevent substring bypass attacks.
+     */
+    private isHostnameAllowed(hostname: string): boolean {
+        const hostParts = hostname.toLowerCase().split('.');
+        for (const domain of ExportManager.ALLOWED_DOMAINS) {
+            const domainParts = domain.split('.');
+            // Check if hostname has enough parts and the rightmost parts match exactly
+            if (hostParts.length >= domainParts.length) {
+                const hostSuffix = hostParts.slice(-domainParts.length);
+                if (hostSuffix.every((part, i) => part === domainParts[i])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if a URL is from an allowed Gemini domain.
+     * Uses proper URL parsing to prevent bypass attacks.
+     */
+    private isAllowedGeminiUrl(url: string): boolean {
+        try {
+            const parsedUrl = new URL(url);
+            return this.isHostnameAllowed(parsedUrl.hostname);
+        } catch {
+            return false;
+        }
+    }
+
+    /**
      * Extracts chat data from the provided WebContents.
      */
     private async extractChatData(webContents: WebContents): Promise<ChatData | null> {
@@ -43,7 +81,7 @@ export default class ExportManager {
             const mainFrameUrl = webContents.getURL();
             let targetFrame: Electron.WebFrameMain | null = null;
 
-            if (mainFrameUrl.includes('gemini.google.com') || mainFrameUrl.includes('aistudio.google.com')) {
+            if (this.isAllowedGeminiUrl(mainFrameUrl)) {
                 targetFrame = webContents.mainFrame;
             } else {
                 const frames = webContents.mainFrame.frames;
@@ -51,9 +89,7 @@ export default class ExportManager {
                     'Available frames:',
                     frames.map((f) => f.url)
                 );
-                const geminiFrame = frames.find(
-                    (frame) => frame.url.includes('gemini.google.com') || frame.url.includes('aistudio.google.com')
-                );
+                const geminiFrame = frames.find((frame) => this.isAllowedGeminiUrl(frame.url));
                 if (geminiFrame) targetFrame = geminiFrame;
             }
 

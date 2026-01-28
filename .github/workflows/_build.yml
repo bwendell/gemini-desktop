@@ -15,6 +15,13 @@ name: Build (DO NOT USE)
 on:
     workflow_call:
 
+# =============================================================================
+# Permissions
+# =============================================================================
+# Restrict default GITHUB_TOKEN permissions (OpenSSF Scorecard best practice)
+# Jobs declare their own permissions as needed
+permissions: {}
+
 env:
     NODE_VERSION: '20'
     CI: true
@@ -28,10 +35,10 @@ jobs:
 
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -49,14 +56,14 @@ jobs:
 
             # Upload build outputs for use by test and release workflows
             - name: Upload Frontend Build
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: frontend-dist
                   path: dist/
                   retention-days: 1
 
             - name: Upload Electron Build
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: electron-dist
                   path: dist-electron/
