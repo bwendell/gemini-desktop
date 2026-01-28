@@ -26,14 +26,26 @@ const logger = createLogger('[SettingsStore]');
 /**
  * Deep merge two objects, with source values taking precedence.
  * Arrays and non-object values in source replace target values entirely.
+ *
+ * SECURITY: This function filters out dangerous keys like __proto__, constructor,
+ * and prototype to prevent prototype pollution attacks.
+ *
  * @param target - The base object (defaults)
  * @param source - The object to merge in (loaded settings)
  * @returns Merged object with source values taking precedence
  */
-function deepMerge<T extends Record<string, unknown>>(target: T, source: T): T {
+export function deepMerge<T extends Record<string, unknown>>(target: T, source: T): T {
     const result = { ...target } as T;
 
+    // Dangerous keys that could lead to prototype pollution
+    const dangerousKeys = new Set(['__proto__', 'constructor', 'prototype']);
+
     for (const key of Object.keys(source) as (keyof T)[]) {
+        // Skip dangerous keys to prevent prototype pollution
+        if (dangerousKeys.has(String(key))) {
+            continue;
+        }
+
         const sourceValue = source[key];
         const targetValue = target[key];
 

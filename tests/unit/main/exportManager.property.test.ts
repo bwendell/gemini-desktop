@@ -7,44 +7,74 @@
  * @module exportManager.property.test
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as fc from 'fast-check';
+import ExportManager from '../../../src/main/managers/exportManager';
 
-// Since isHostnameAllowed and isAllowedGeminiUrl are private methods,
-// we need to test them through a testable wrapper or extract the logic.
-// For this test, we'll create a standalone version of the validation logic.
+// Mock electron-log
+vi.mock('electron-log', () => ({
+    default: {
+        transports: {
+            file: { level: 'info' },
+        },
+        scope: vi.fn().mockReturnThis(),
+        log: vi.fn(),
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+    },
+}));
 
-const ALLOWED_DOMAINS = ['gemini.google.com', 'aistudio.google.com'] as const;
+// Mock electron
+vi.mock('electron', () => ({
+    app: {
+        getPath: vi.fn().mockReturnValue('/mock/downloads'),
+    },
+    dialog: {
+        showSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
+    },
+    BrowserWindow: vi.fn(),
+}));
+
+// Mock turndown
+vi.mock('turndown', () => ({
+    default: class MockTurndownService {
+        use() {}
+        turndown() {
+            return 'mocked markdown';
+        }
+    },
+}));
+
+vi.mock('turndown-plugin-gfm', () => ({
+    gfm: {},
+}));
+
+vi.mock('marked', () => ({
+    marked: {
+        parse: vi.fn().mockReturnValue('<p>mocked html</p>'),
+    },
+}));
+
+// Create an instance of ExportManager to access its private methods
+const exportManager = new ExportManager();
+
+// Access private methods and ALLOWED_DOMAINS constant for testing
+const ALLOWED_DOMAINS = (ExportManager as any).ALLOWED_DOMAINS as readonly string[];
 
 /**
- * Checks if a hostname matches an allowed domain exactly or is a subdomain.
- * This is the same logic as ExportManager.isHostnameAllowed.
+ * Wrapper around ExportManager.isHostnameAllowed.
  */
 function isHostnameAllowed(hostname: string): boolean {
-    const hostParts = hostname.toLowerCase().split('.');
-    for (const domain of ALLOWED_DOMAINS) {
-        const domainParts = domain.split('.');
-        if (hostParts.length >= domainParts.length) {
-            const hostSuffix = hostParts.slice(-domainParts.length);
-            if (hostSuffix.every((part, i) => part === domainParts[i])) {
-                return true;
-            }
-        }
-    }
-    return false;
+    return (exportManager as any).isHostnameAllowed(hostname);
 }
 
 /**
- * Checks if a URL is from an allowed Gemini domain.
- * This is the same logic as ExportManager.isAllowedGeminiUrl.
+ * Wrapper around ExportManager.isAllowedGeminiUrl.
  */
 function isAllowedGeminiUrl(url: string): boolean {
-    try {
-        const parsedUrl = new URL(url);
-        return isHostnameAllowed(parsedUrl.hostname);
-    } catch {
-        return false;
-    }
+    return (exportManager as any).isAllowedGeminiUrl(url);
 }
 
 describe('ExportManager URL validation property tests', () => {

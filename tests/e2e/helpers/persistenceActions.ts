@@ -174,26 +174,34 @@ export interface UserPreferencesData {
  * Uses getUserDataPath() to get the path, then local fs to read.
  *
  * @param filename - The settings filename (e.g., 'user-preferences.json')
+ * @param options - Optional settings (silent: suppress logging)
  * @returns The parsed settings object, or null if file doesn't exist or is invalid
  */
 export async function readSettingsFile<T = UserPreferencesData>(
-    filename: string = SETTINGS_FILES.USER_PREFERENCES
+    filename: string = SETTINGS_FILES.USER_PREFERENCES,
+    options: { silent?: boolean } = {}
 ): Promise<T | null> {
     try {
         const userDataPath = await getUserDataPath();
         const settingsPath = path.join(userDataPath, filename);
 
         if (!fs.existsSync(settingsPath)) {
-            E2ELogger.info('persistence', `Settings file not found: ${filename}`);
+            if (!options.silent) {
+                E2ELogger.info('persistence', `Settings file not found: ${filename}`);
+            }
             return null;
         }
 
         const content = fs.readFileSync(settingsPath, 'utf-8');
         const settings = JSON.parse(content) as T;
-        E2ELogger.info('persistence', `Read settings from: ${filename}`);
+        if (!options.silent) {
+            E2ELogger.info('persistence', `Read settings from: ${filename}`);
+        }
         return settings;
     } catch (error) {
-        E2ELogger.info('persistence', `Failed to read settings file: ${error}`);
+        if (!options.silent) {
+            E2ELogger.info('persistence', `Failed to read settings file: ${error}`);
+        }
         return null;
     }
 }
@@ -310,7 +318,8 @@ export async function waitForSettingValue(
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
-        const prefs = await readUserPreferences();
+        // Use silent option to avoid log flooding during polling
+        const prefs = await readSettingsFile<UserPreferencesData>(SETTINGS_FILES.USER_PREFERENCES, { silent: true });
         if (prefs && prefs[key] === expectedValue) {
             E2ELogger.info('persistence', `Setting ${key} = ${String(expectedValue)}`);
             return true;
