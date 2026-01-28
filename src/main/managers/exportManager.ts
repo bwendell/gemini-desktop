@@ -140,7 +140,10 @@ export default class ExportManager {
 
         const { filePath, canceled } = await dialog.showSaveDialog({
             title: 'Save Chat as Markdown',
-            defaultPath: path.join(app.getPath('downloads'), `${data.title.replace(/[/\\?%*:|"<>]/g, '-')}.md`),
+            defaultPath: path.join(
+                app.getPath('downloads'),
+                `${data.title.replace(/\s+/g, '_').replace(/[/\\?%*:|"<>]/g, '-')}.md`
+            ),
             filters: [{ name: 'Markdown Files', extensions: ['md'] }],
         });
 
@@ -162,7 +165,10 @@ export default class ExportManager {
 
         const { filePath, canceled } = await dialog.showSaveDialog({
             title: 'Save Chat as PDF',
-            defaultPath: path.join(app.getPath('downloads'), `${data.title.replace(/[/\\?%*:|"<>]/g, '-')}.pdf`),
+            defaultPath: path.join(
+                app.getPath('downloads'),
+                `${data.title.replace(/\s+/g, '_').replace(/[/\\?%*:|"<>]/g, '-')}.pdf`
+            ),
             filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
         });
 
