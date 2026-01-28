@@ -15,8 +15,12 @@ name: Manual Release
 on:
     workflow_dispatch:
 
-permissions:
-    contents: write # Required for creating releases
+# =============================================================================
+# Permissions
+# =============================================================================
+# Restrict default GITHUB_TOKEN permissions (OpenSSF Scorecard best practice)
+# The _release.yml reusable workflow declares its own job-level permissions
+permissions: {}
 
 # Prevent concurrent releases
 concurrency:

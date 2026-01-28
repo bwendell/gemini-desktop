@@ -23,8 +23,12 @@ concurrency:
     group: release-${{ github.ref }}
     cancel-in-progress: false
 
-permissions:
-    contents: write # Required for creating releases
+# =============================================================================
+# Permissions
+# =============================================================================
+# Restrict default GITHUB_TOKEN permissions (OpenSSF Scorecard best practice)
+# The _release.yml reusable workflow declares its own job-level permissions
+permissions: {}
 
 jobs:
     # Build application
