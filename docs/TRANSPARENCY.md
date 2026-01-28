@@ -12,10 +12,10 @@ Here is a direct comparison of the malicious behaviors found in that clone versu
 
 | Malicious Behavior (GeminiDesk)                                      | Gemini Desktop (This App)                                                                                                                           | Verification                                                   |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **Credential Theft**<br>Captures email/password fields               | **❌ No Access**<br>Authentication is handled entirely by Google's login page. The app never sees your credentials.                                 | [View Auth Code](../src/main/auth)                             |
-| **Cookie Exfiltration**<br>Zips cookies and sends to external server | **❌ Local Only**<br>Cookies are stored encrypted on your local machine, just like Chrome. They are never transmitted anywhere except `google.com`. | [View Session Code](../src/main/session)                       |
+| **Credential Theft**<br>Captures email/password fields               | **❌ No Access**<br>Authentication is handled entirely by Google's login page. The app never sees your credentials.                                 | [View Auth Code](../src/main/windows/authWindow.ts)           |
+| **Cookie Exfiltration**<br>Zips cookies and sends to external server | **❌ Local Only**<br>Cookies are stored encrypted on your local machine, just like Chrome. They are never transmitted anywhere except `google.com`. | [View Session Code](../src/main/utils/security.ts)             |
 | **Hidden Files**<br>Uses `.svchost` and `attrib +H` to hide files    | **❌ Standard Install**<br>Installs to standard OS application folders. No hidden system files.                                                     | [View Installer Config](../config/electron-builder.config.cjs) |
-| **External Code**<br>Downloads `MicrosoftEdgeUpdate.exe` from GitHub | **❌ No External Downloads**<br>The app is self-contained. It never downloads executable code from the internet.                                    | [Audit Network Requests](../src/main/net)                      |
+| **External Code**<br>Downloads `MicrosoftEdgeUpdate.exe` from GitHub | **❌ No External Downloads**<br>The app is self-contained. It never downloads executable code from the internet.                                    | [Audit Network Requests](../src/main)                          |
 | **Persistence**<br>Uses `takeown` to lock files                      | **❌ No Persistence**<br>Uninstalling the app removes it completely.                                                                                |                                                                |
 
 ---
@@ -29,7 +29,7 @@ We believe you should know exactly who your computer is talking to. Gemini Deskt
 | `*.google.com`     | Loading the Gemini web interface and authentication.         |
 | `*.gstatic.com`    | Google static assets (images, scripts).                      |
 | `*.googleapis.com` | Google API calls required for the web interface.             |
-| `github.com`       | Checking for app updates (metadata only, no user data sent). |
+| `api.github.com`   | Checking for app updates (metadata only, no user data sent). |
 
 **We do not have a backend server.** There is no "Gemini Desktop Cloud." All data flows directly between your machine and Google.
 
@@ -91,4 +91,4 @@ To ensure you have the genuine, unaltered version of Gemini Desktop:
     - **Mac/Linux**: `shasum -a 256 Gemini-Desktop.dmg`
     - Compare the output hash with the one in `checksums.txt`.
 
-If you find _anything_ suspicious, strictly open an issue or contact me directly.
+If you find _anything_ suspicious, please open an issue or contact me directly.

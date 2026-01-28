@@ -13,7 +13,7 @@ Before cutting any release of Gemini Desktop, the release engineer must verify t
 - [ ] **Network Request Review**: Search for `net.request`, `axios`, `fetch`, or `XMLHttpRequest` in the codebase.
     - [ ] Confirm no new domains are being contacted (only `google.com` and related).
 - [ ] **Native Modules**: Confirm no new native Node modules have been added without explicit review.
-- [ ] **IPC Bridges**: Review comprehensive changes to `preload.ts` to ensure no sensitive Electron APIs are exposed to the renderer.
+- [ ] **IPC Bridges**: Review any changes to `preload.ts` to ensure no sensitive Electron APIs are exposed to the renderer.
 
 ## 🏗️ Build Artifacts
 
@@ -25,7 +25,7 @@ Before cutting any release of Gemini Desktop, the release engineer must verify t
 
 ## 📝 Transparency
 
-- [ ] Update `docs/TRANSPARENCY.md` if any extensive changes to data handling or network activity occurred.
+- [ ] Update `docs/TRANSPARENCY.md` if any significant changes to data handling or network activity occurred.
 
 ---
 

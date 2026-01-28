@@ -204,7 +204,7 @@ jobs:
             - name: Generate Checksums
               run: |
                   cd release
-                  Get-ChildItem *.exe | Get-FileHash | Select-Object Hash, @{N='Path';E={$_.Path | Split-Path -Leaf}} | Format-Table -AutoSize | Out-File checksums-windows.txt
+                  Get-FileHash *.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
               shell: pwsh
 
             - name: Upload to GitHub Release

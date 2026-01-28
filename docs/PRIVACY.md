@@ -18,7 +18,7 @@ The Application acts strictly as a web wrapper (browser) for `https://gemini.goo
 
 - Authentication happens directly on Google's secure login pages (`accounts.google.com`).
 - The Application uses standard Electron `session` storage to persist your login cookies locally on your device, just like Chrome or Edge.
-- We generally do not have access to your raw credentials.
+- We do NOT have access to your raw credentials.
 
 ### Telemetry & Analytics
 
