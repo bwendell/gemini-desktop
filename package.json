@@ -53,7 +53,7 @@
     "dependencies": {
         "electron-log": "^5.4.3",
         "electron-updater": "^6.6.2",
-        "framer-motion": "^12.23.26",
+        "framer-motion": "^12.29.2",
         "marked": "^17.0.1",
         "node-llama-cpp": "^3.14.5",
         "react": "^19.2.4",
