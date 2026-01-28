@@ -2,8 +2,10 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)]()
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
 [![Built with Electron](https://img.shields.io/badge/Built%20with-Electron-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Security Scan](https://github.com/bwendell/gemini-desktop/actions/workflows/security.yml/badge.svg)](https://github.com/bwendell/gemini-desktop/actions/workflows/security.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bwendell/gemini-desktop/badge)](https://securityscorecards.dev/viewer/?uri=github.com/bwendell/gemini-desktop)
 
 > **Gemini, but better.** A native desktop experience with global hotkeys, spotlight-style Quick Chat, and zero data collection.
 
@@ -20,6 +22,10 @@
 ---
 
 ## ✨ Why This App?
+
+### 🛡️ Safety Guarantee
+
+Start here: **[Read our Transparency Report](docs/TRANSPARENCY.md)** which includes a direct comparison to the "GeminiDesk" malware and explains exactly how we protect your data. We verify every release with checksums and strictly limit network traffic to `google.com`.
 
 Users have been asking for a desktop Gemini client with these features—**we deliver on all of them**:
 
@@ -98,14 +104,19 @@ sudo dpkg -i "Gemini Desktop-x.x.x-x64.deb"
 
 ## 🔒 Privacy & Security Practices
 
-**One table. Complete transparency.**
+> 📢 **Detailed Breakdown:** See our full **[Transparency Report](docs/TRANSPARENCY.md)** for network logs, data storage details, and author identity.
+
+**We take your security seriously.**
+
+For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**Security Policy**](docs/SECURITY.md).
 
 | Category            | Practice            | Details                                                                     |
 | ------------------- | ------------------- | --------------------------------------------------------------------------- |
 | **🔐 Data**         | No collection       | Zero analytics, telemetry, or tracking                                      |
 |                     | Direct connection   | Only connects to `google.com` domains                                       |
 |                     | No password storage | Auth handled entirely by Google                                             |
-| **🛡️ Security**     | Context Isolation   | Renderer cannot access Node.js                                              |
+| **🛡️ Security**     | **Automated Scans** | **CodeQL and Dependency Audits run on every commit**                        |
+|                     | Context Isolation   | Renderer cannot access Node.js                                              |
 |                     | Sandboxed Renderer  | Process isolation enforced                                                  |
 |                     | Minimal Permissions | Restricted system access                                                    |
 | **💾 Storage**      | Encrypted cookies   | Standard Chromium session storage                                           |
