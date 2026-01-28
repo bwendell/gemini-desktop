@@ -17,7 +17,7 @@ Before cutting any release of Gemini Desktop, the release engineer must verify t
 
 ## 🏗️ Build Artifacts
 
-- [ ] **Checksum Generation**: verify that `checksums.txt` is generated in the `dist` folder.
+- [ ] **Checksum Generation**: verify that platform-specific checksum files (`checksums-windows.txt`, `checksums-mac.txt`, `checksums-linux.txt`) are generated in the `dist` folder.
 - [ ] **Manual Sanity Check**:
     - [ ] Install the generated artifact on a clean VM/sandbox.
     - [ ] Launch the app and monitor network traffic (e.g., using Fiddler or Wireshark) for 1 minute.
@@ -30,5 +30,5 @@ Before cutting any release of Gemini Desktop, the release engineer must verify t
 ---
 
 > **Verification:**
-> Signed off by: ********\_\_\_\_********
-> Date: ********\_\_\_\_********
+> Signed off by: **\*\*\*\***\_\_\_\_**\*\*\*\***
+> Date: **\*\*\*\***\_\_\_\_**\*\*\*\***

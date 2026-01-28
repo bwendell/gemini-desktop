@@ -12,10 +12,10 @@ Here is a direct comparison of the malicious behaviors found in that clone versu
 
 | Malicious Behavior (GeminiDesk)                                      | Gemini Desktop (This App)                                                                                                                           | Verification                                                   |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **Credential Theft**<br>Captures email/password fields               | **❌ No Access**<br>Authentication is handled entirely by Google's login page. The app never sees your credentials.                                 | [View Auth Code](../src/main/windows/authWindow.ts)           |
+| **Credential Theft**<br>Captures email/password fields               | **❌ No Access**<br>Authentication is handled entirely by Google's login page. The app never sees your credentials.                                 | [View Auth Code](../src/main/windows/authWindow.ts)            |
 | **Cookie Exfiltration**<br>Zips cookies and sends to external server | **❌ Local Only**<br>Cookies are stored encrypted on your local machine, just like Chrome. They are never transmitted anywhere except `google.com`. | [View Session Code](../src/main/utils/security.ts)             |
 | **Hidden Files**<br>Uses `.svchost` and `attrib +H` to hide files    | **❌ Standard Install**<br>Installs to standard OS application folders. No hidden system files.                                                     | [View Installer Config](../config/electron-builder.config.cjs) |
-| **External Code**<br>Downloads `MicrosoftEdgeUpdate.exe` from GitHub | **❌ No External Downloads**<br>The app is self-contained. It never downloads executable code from the internet.                                    | [Audit Network Requests](../src/main)                          |
+| **External Code**<br>Downloads `MicrosoftEdgeUpdate.exe` from GitHub | **❌ No External Downloads**<br>The app is self-contained. It never downloads executable code from the internet.                                    | [View Security Policy](../src/main/utils/security.ts)          |
 | **Persistence**<br>Uses `takeown` to lock files                      | **❌ No Persistence**<br>Uninstalling the app removes it completely.                                                                                |                                                                |
 
 ---
@@ -35,7 +35,20 @@ We believe you should know exactly who your computer is talking to. Gemini Deskt
 
 ---
 
-## 🔐 Data Privacy
+## � Navigation Security
+
+Malicious apps often redirect users to phishing sites or load remote payloads from attacker-controlled servers. Gemini Desktop blocks these attack vectors at the code level:
+
+| Protection                   | Description                                                                                              | Verification                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **URL Allowlist**            | Navigation is restricted to `gemini.google.com` and Google OAuth domains. All other URLs are blocked.    | [View Navigation Handler](../src/main/windows/mainWindow.ts)  |
+| **External Links → Browser** | Clicking a non-Google link opens your system browser, not inside the app. The app cannot be hijacked.    | [View Window Open Handler](../src/main/windows/mainWindow.ts) |
+| **Permission Lockdown**      | Camera and microphone access is only granted to `*.google.com` domains. All other requests are denied.   | [View Permission Handler](../src/main/utils/security.ts)      |
+| **Domain Constants**         | Allowed domains are defined in a single, auditable file—no hidden allowlists scattered through the code. | [View Domain Config](../src/main/utils/constants.ts)          |
+
+---
+
+## �🔐 Data Privacy
 
 ### What We Store Locally
 
@@ -86,9 +99,9 @@ This means:
 To ensure you have the genuine, unaltered version of Gemini Desktop:
 
 1. **Only download** from the [Official Releases Page](https://github.com/bwendell/gemini-desktop/releases).
-2. **Check the Checksum**: We publish `checksums.txt` with every release.
-    - **Windows (PowerShell)**: `Get-FileHash .\Gemini-Desktop-Setup.exe`
-    - **Mac/Linux**: `shasum -a 256 Gemini-Desktop.dmg`
-    - Compare the output hash with the one in `checksums.txt`.
+2. **Check the Checksum**: We publish a checksum file for each platform with every release.
+    - **Windows (PowerShell)**: `Get-FileHash .\Gemini-Desktop-Setup.exe` — compare with `checksums-windows.txt`
+    - **Mac**: `shasum -a 256 Gemini-Desktop.dmg` — compare with `checksums-mac.txt`
+    - **Linux**: `sha256sum Gemini-Desktop.AppImage` — compare with `checksums-linux.txt`
 
 If you find _anything_ suspicious, please open an issue or contact me directly.
