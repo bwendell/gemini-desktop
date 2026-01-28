@@ -20,6 +20,7 @@ import { SettingsHelper } from './helpers/SettingsHelper';
 import { E2ELogger } from './helpers/logger';
 import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForSettingValue } from './helpers/persistenceActions';
 
 describe('Settings Persistence', () => {
     const mainWindow = new MainWindowPage();
@@ -45,7 +46,7 @@ describe('Settings Persistence', () => {
             await optionsPage.selectTheme('dark');
 
             // Wait for settings file to be written
-            await browser.pause(500);
+            await waitForSettingValue('theme', 'dark', 3000);
 
             // 3. Read settings file and verify theme is saved
             const theme = await settings.getTheme();
@@ -57,7 +58,7 @@ describe('Settings Persistence', () => {
             await optionsPage.selectTheme('light');
 
             // Wait for settings file to be written
-            await browser.pause(500);
+            await waitForSettingValue('theme', 'light', 3000);
 
             const themeAfterLight = await settings.getTheme();
             expect(themeAfterLight).toBe('light');
@@ -76,6 +77,9 @@ describe('Settings Persistence', () => {
 
             // 2. Click system theme card
             await optionsPage.selectTheme('system');
+
+            // Wait for settings file to be written
+            await waitForSettingValue('theme', 'system', 3000);
 
             // 3. Verify settings
             const theme = await settings.getTheme();
@@ -106,20 +110,20 @@ describe('Settings Persistence', () => {
             // 3. Click toggle to change state
             await optionsPage.toggleHotkey('alwaysOnTop');
 
-            // Wait for settings file to be written
-            await browser.pause(500);
+            // 4. Wait for settings to be persisted (condition-based, not static timeout)
+            await waitForSettingValue('hotkeyAlwaysOnTop', !wasEnabled, 3000);
 
-            // 4. Verify settings file was updated
+            // 5. Verify settings file was updated
             const hotkeysEnabled = await settings.getHotkeyEnabled('alwaysOnTop');
             expect(hotkeysEnabled).toBe(!wasEnabled);
 
             E2ELogger.info('settings-persistence', `Hotkey state saved: ${hotkeysEnabled}`);
 
-            // 5. Toggle back to original state
+            // 6. Toggle back to original state
             await optionsPage.toggleHotkey('alwaysOnTop');
 
-            // Wait for settings file to be written
-            await browser.pause(500);
+            // Wait for settings to be persisted
+            await waitForSettingValue('hotkeyAlwaysOnTop', wasEnabled, 3000);
 
             const restoredState = await settings.getHotkeyEnabled('alwaysOnTop');
             expect(restoredState).toBe(wasEnabled);
@@ -150,7 +154,7 @@ describe('Settings Persistence', () => {
 
             // 3. Toggle Always-on-Top hotkey and verify persistence
             await optionsPage.toggleHotkey('alwaysOnTop');
-            await browser.pause(500);
+            await waitForSettingValue('hotkeyAlwaysOnTop', !initialAlwaysOnTop, 3000);
 
             let hotkeyState = await settings.getHotkeyEnabled('alwaysOnTop');
             expect(hotkeyState).toBe(!initialAlwaysOnTop);
@@ -158,7 +162,7 @@ describe('Settings Persistence', () => {
 
             // 4. Toggle Boss Key hotkey and verify persistence
             await optionsPage.toggleHotkey('bossKey');
-            await browser.pause(500);
+            await waitForSettingValue('hotkeyBossKey', !initialBossKey, 3000);
 
             hotkeyState = await settings.getHotkeyEnabled('bossKey');
             expect(hotkeyState).toBe(!initialBossKey);
@@ -166,7 +170,7 @@ describe('Settings Persistence', () => {
 
             // 5. Toggle Quick Chat hotkey and verify persistence
             await optionsPage.toggleHotkey('quickChat');
-            await browser.pause(500);
+            await waitForSettingValue('hotkeyQuickChat', !initialQuickChat, 3000);
 
             hotkeyState = await settings.getHotkeyEnabled('quickChat');
             expect(hotkeyState).toBe(!initialQuickChat);
@@ -176,6 +180,11 @@ describe('Settings Persistence', () => {
             await optionsPage.toggleHotkey('alwaysOnTop');
             await optionsPage.toggleHotkey('bossKey');
             await optionsPage.toggleHotkey('quickChat');
+
+            // Wait for all to be persisted
+            await waitForSettingValue('hotkeyAlwaysOnTop', initialAlwaysOnTop, 3000);
+            await waitForSettingValue('hotkeyBossKey', initialBossKey, 3000);
+            await waitForSettingValue('hotkeyQuickChat', initialQuickChat, 3000);
 
             // 7. Verify all states restored
             expect(await settings.getHotkeyEnabled('alwaysOnTop')).toBe(initialAlwaysOnTop);
@@ -198,12 +207,18 @@ describe('Settings Persistence', () => {
             const initialBossKey = await optionsPage.isHotkeyEnabled('bossKey');
             await optionsPage.toggleHotkey('bossKey');
 
+            // Wait for settings to be persisted
+            await waitForSettingValue('hotkeyBossKey', !initialBossKey, 3000);
+
             // 3. Verify only Boss Key changed in settings
             const bossKeyState = await settings.getHotkeyEnabled('bossKey');
             expect(bossKeyState).toBe(!initialBossKey);
 
             // 4. Restore and verify
             await optionsPage.toggleHotkey('bossKey');
+
+            // Wait for settings to be persisted
+            await waitForSettingValue('hotkeyBossKey', initialBossKey, 3000);
 
             const restoredBossKey = await settings.getHotkeyEnabled('bossKey');
             expect(restoredBossKey).toBe(initialBossKey);
