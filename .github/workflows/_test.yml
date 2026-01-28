@@ -28,6 +28,13 @@ on:
                 type: string
                 default: ''
 
+# =============================================================================
+# Permissions
+# =============================================================================
+# Restrict default GITHUB_TOKEN permissions (OpenSSF Scorecard best practice)
+# Jobs declare their own permissions as needed
+permissions: {}
+
 env:
     NODE_VERSION: '20'
     CI: true
@@ -45,10 +52,10 @@ jobs:
 
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -58,13 +65,13 @@ jobs:
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -76,7 +83,7 @@ jobs:
 
             # Optionally upload coverage (CI workflow only)
             - name: Upload Frontend Coverage Report
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               if: inputs.upload-coverage
               with:
                   name: coverage-frontend
@@ -84,7 +91,7 @@ jobs:
                   retention-days: 7
 
             - name: Upload Electron Coverage Report
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               if: inputs.upload-coverage
               with:
                   name: coverage-electron
@@ -108,10 +115,10 @@ jobs:
 
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -120,13 +127,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -171,10 +178,10 @@ jobs:
 
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -183,13 +190,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -202,7 +209,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-windows-latest
@@ -229,10 +236,10 @@ jobs:
 
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -241,13 +248,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -260,7 +267,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-macos-latest
@@ -287,10 +294,10 @@ jobs:
 
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -308,13 +315,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -329,7 +336,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-ubuntu-latest
@@ -370,10 +377,10 @@ jobs:
 
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -393,13 +400,13 @@ jobs:
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -419,7 +426,7 @@ jobs:
 
             # Upload artifacts on failure for debugging
             - name: Upload Release E2E Screenshots (on failure)
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               if: failure()
               with:
                   name: release-e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.os }}
