@@ -62,7 +62,17 @@ Gemini Desktop follows Electron security best practices:
 | **HTTPS Only**        | Only connects to google.com over HTTPS   |
 | **IPC Validation**    | All IPC messages are validated           |
 
+### 🛡️ Automated Checks
+
+We employ automated security scanning to ensure code quality and safety:
+
+- **CodeQL**: All code changes are scanned for vulnerabilities using GitHub's CodeQL.
+- **Dependency Auditing**: We regularly audit dependencies (`npm audit`) for known vulnerabilities.
+- **Open Source**: You can view our [Security Scan Workflows](https://github.com/bwendell/gemini-desktop/actions/workflows/security.yml) publicly.
+
 ### 🔒 Data Handling
+
+For detailed information on how we handle data, please see our [**Privacy Policy**](./PRIVACY.md).
 
 - **No telemetry** - Zero data collection or analytics
 - **No remote servers** - Only connects to Google's servers
