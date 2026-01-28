@@ -13,6 +13,7 @@ export const CHAT_EXTRACTION_SCRIPT = `
             userQueryText: ['.query-text', '.user-prompt-container', '.query-text-line'],
             modelResponse: ['.model-response', 'model-response', '.markdown'],
             modelResponseContent: ['.message-content', '.markdown', '.model-response-text'],
+            title: ['.conversation-title', 'span.conversation-title'],
             codeBlocks: 'pre',
             tables: 'table'
         };
@@ -23,6 +24,14 @@ export const CHAT_EXTRACTION_SCRIPT = `
                 if (els && els.length > 0) return { elements: els, selector: sel };
             }
             return { elements: [], selector: null };
+        };
+
+        const findFirstElement = (selList) => {
+            for (const sel of selList) {
+                const el = document.querySelector(sel);
+                if (el) return el;
+            }
+            return null;
         };
 
         const { elements: turns, selector: turnSelector } = findElements(selectors.turns);
@@ -70,15 +79,25 @@ export const CHAT_EXTRACTION_SCRIPT = `
 
         console.log('[Extraction] Final conversation turns captured:', conversation.length);
 
+        // Try to find the conversation title from the DOM first
+        const titleEl = findFirstElement(selectors.title);
+        let extractedTitle = titleEl ? titleEl.innerText.trim() : '';
+        
+        // Fallback to document title if DOM element not found or empty
+        if (!extractedTitle) {
+            extractedTitle = document.title.replace(' - Gemini', '').trim();
+        }
+
         return {
-            title: document.title.replace(' - Gemini', '').trim(),
+            title: extractedTitle || 'Untitled Conversation',
             timestamp: new Date().toISOString(),
             conversation,
             diagnostics: {
                 turnSelector,
                 totalTurns: turns.length,
                 capturedTurns: conversation.length,
-                url: window.location.href
+                url: window.location.href,
+                titleSelector: titleEl ? selectors.title.find(s => document.querySelector(s) === titleEl) : null
             }
         };
     } catch (err) {

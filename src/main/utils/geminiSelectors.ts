@@ -148,6 +148,22 @@ export const GeminiSelectors = {
          */
         description: 'Delay timings for DOM interactions',
     },
+
+    /**
+     * Conversation title configuration.
+     * Used for determining the default filename for exports.
+     */
+    conversationTitle: {
+        /**
+         * CSS selectors for finding the conversation title.
+         */
+        selectors: ['.conversation-title', 'span.conversation-title'] as const,
+
+        /**
+         * Description for logging/debugging.
+         */
+        description: 'Conversation title element',
+    },
 } as const;
 
 /**
@@ -224,3 +240,4 @@ export const GEMINI_SUBMIT_DELAY_MS = GeminiSelectors.timing.submitDelayMs;
 export const GEMINI_MICROPHONE_BUTTON_SELECTORS = GeminiSelectors.microphoneButton.selectors;
 export const GEMINI_ERROR_TOAST_SELECTORS = GeminiSelectors.errorToast.selectors;
 export const GEMINI_MICROPHONE_ERROR_TEXT = GeminiSelectors.errorToast.microphoneErrorText;
+export const GEMINI_CONVERSATION_TITLE_SELECTORS = GeminiSelectors.conversationTitle.selectors;
