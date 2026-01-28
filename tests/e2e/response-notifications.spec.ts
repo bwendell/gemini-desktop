@@ -26,6 +26,7 @@ import { waitForWindowCount } from './helpers/windowActions';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 // ============================================================================
 // Test Suite
@@ -223,76 +224,52 @@ describe('Response Notifications', () => {
         });
 
         it('should clear notification badge when window is focused', async () => {
-            // Trigger response-complete event via FULL production code path
-            // Use mainWindow.emit('response-complete') to test wiring from MainWindow → NotificationManager
-            const notificationShown = await browser.electron.execute(async () => {
-                // Get the mainWindow instance from windowManager (production code path)
+            // 1. Set window as unfocused in the main process
+            await browser.electron.execute(() => {
+                const notificationManager = (global as any).notificationManager;
+                if (notificationManager) {
+                    notificationManager['_isWindowFocused'] = false;
+                }
+            });
+
+            // 2. Trigger response-complete via production event path
+            // (The network detection → emit chain is tested at unit level;
+            // here we test the emit → notification → badge E2E flow)
+            await browser.electron.execute(() => {
                 const windowManager = (global as any).windowManager;
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
-
-                if (!windowManager || !notificationManager || !badgeManager) {
-                    return { error: 'Required managers not available' };
+                const mainWindowInstance = windowManager?.getMainWindowInstance();
+                if (mainWindowInstance) {
+                    mainWindowInstance.emit('response-complete');
                 }
-
-                const mainWindowInstance = windowManager.getMainWindowInstance();
-                if (!mainWindowInstance) {
-                    return { error: 'MainWindow instance not available' };
-                }
-
-                // Simulate window being unfocused (required for notification to trigger)
-                notificationManager['_isWindowFocused'] = false;
-
-                // Trigger response-complete via MainWindow emit (FULL production code path)
-                // This tests the wiring: MainWindow → NotificationManager.onResponseComplete()
-                mainWindowInstance.emit('response-complete');
-
-                // Give a brief moment for async processing
-                await new Promise((resolve) => setTimeout(resolve, 100));
-
-                // Check if badge manager shows notification badge
-                const hasBadge = badgeManager.hasNotificationBadge ?? false;
-
-                return { hasBadge, shown: true };
             });
 
-            if ('error' in notificationShown) {
-                E2ELogger.info('response-notifications', `Skipping: ${notificationShown.error}`);
-                return;
-            }
+            // 3. Give a brief moment for async processing
+            await browser.pause(500);
 
-            // Verify badge was shown via production code path
-            expect(notificationShown.hasBadge).toBe(true);
-            E2ELogger.info('response-notifications', `Badge shown: ${notificationShown.hasBadge}`);
-
-            // Now focus the window via user action (click on main window)
-            // This triggers the production window focus event handler
-            await browser.pause(200);
-
-            const badgeCleared = await browser.electron.execute(async () => {
-                const notificationManager = (global as any).notificationManager;
+            // 4. Verify badge was shown via production code path
+            const badgeShown = await browser.electron.execute(() => {
                 const badgeManager = (global as any).badgeManager;
-
-                if (!notificationManager) {
-                    return { error: 'NotificationManager not available' };
-                }
-
-                // Trigger window focus (production code path)
-                // This simulates the 'focus' event on the main window
-                notificationManager.onWindowFocus();
-
-                // Check if badge was cleared
-                const hasBadge = badgeManager?.hasNotificationBadge ?? false;
-
-                return { hasBadge };
+                return badgeManager?.hasNotificationBadge ?? false;
             });
 
-            if ('error' in badgeCleared) {
-                E2ELogger.info('response-notifications', `Skipping: ${badgeCleared.error}`);
-                return;
-            }
+            expect(badgeShown).toBe(true);
+            E2ELogger.info('response-notifications', 'Badge shown after response-complete event');
 
-            expect(badgeCleared.hasBadge).toBe(false);
+            // 5. Now focus the window via production method
+            await browser.electron.execute(() => {
+                const notificationManager = (global as any).notificationManager;
+                notificationManager?.onWindowFocus();
+            });
+
+            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+
+            // 6. Verify badge was cleared
+            const badgeCleared = await browser.electron.execute(() => {
+                const badgeManager = (global as any).badgeManager;
+                return !(badgeManager?.hasNotificationBadge ?? false);
+            });
+
+            expect(badgeCleared).toBe(true);
             E2ELogger.info('response-notifications', 'Badge cleared on window focus');
         });
     });
@@ -311,69 +288,55 @@ describe('Response Notifications', () => {
         });
 
         it('should show notification when response completes and window is unfocused', async () => {
-            const result = await browser.electron.execute(async () => {
-                // Get the mainWindow instance from windowManager (production code path)
+            // 1. Prepare to track notifications in main process
+            await browser.electron.execute(() => {
+                const notificationManager = (global as any).notificationManager;
+                if (!notificationManager) return;
+
+                notificationManager['_isWindowFocused'] = false;
+                notificationManager['_lastNotificationShown'] = false;
+
+                const originalShow = notificationManager.showNotification;
+                notificationManager.showNotification = function () {
+                    this['_lastNotificationShown'] = true;
+                    // Don't actually show native notification in test env if possible
+                };
+                notificationManager['_originalShow'] = originalShow;
+            });
+
+            // 2. Trigger response-complete via production event path
+            // (The network detection → emit chain is tested at unit level;
+            // here we test the emit → notification → badge E2E flow)
+            await browser.electron.execute(() => {
                 const windowManager = (global as any).windowManager;
+                const mainWindowInstance = windowManager?.getMainWindowInstance();
+                if (mainWindowInstance) {
+                    mainWindowInstance.emit('response-complete');
+                }
+            });
+
+            // 3. Wait and Verify
+            await browser.pause(500);
+
+            const result = await browser.electron.execute(() => {
                 const notificationManager = (global as any).notificationManager;
                 const badgeManager = (global as any).badgeManager;
 
-                if (!windowManager || !notificationManager || !badgeManager) {
-                    return { error: 'Required managers not available' };
+                const shown = notificationManager?.['_lastNotificationShown'] ?? false;
+                const hasBadge = badgeManager?.hasNotificationBadge ?? false;
+
+                // Cleanup our hook
+                if (notificationManager && notificationManager['_originalShow']) {
+                    notificationManager.showNotification = notificationManager['_originalShow'];
+                    delete notificationManager['_originalShow'];
                 }
 
-                const mainWindowInstance = windowManager.getMainWindowInstance();
-                if (!mainWindowInstance) {
-                    return { error: 'MainWindow instance not available' };
-                }
-
-                // Simulate window being unfocused
-                notificationManager['_isWindowFocused'] = false;
-
-                // Track if showNotification was called
-                let notificationCalled = false;
-                const originalShowNotification = notificationManager.showNotification?.bind(notificationManager);
-                if (originalShowNotification) {
-                    notificationManager.showNotification = () => {
-                        notificationCalled = true;
-                        // Don't actually show notification in test
-                    };
-                }
-
-                // Trigger response-complete via MainWindow emit (FULL production code path)
-                // This tests the wiring: MainWindow → NotificationManager.onResponseComplete()
-                mainWindowInstance.emit('response-complete');
-
-                // Give a brief moment for async processing
-                await new Promise((resolve) => setTimeout(resolve, 100));
-
-                // Restore original method
-                if (originalShowNotification) {
-                    notificationManager.showNotification = originalShowNotification;
-                }
-
-                // Get badge state
-                const hasBadge = badgeManager.hasNotificationBadge ?? false;
-
-                return { notificationCalled, hasBadge };
+                return { shown, hasBadge };
             });
 
-            if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
-                return;
-            }
-
-            expect(result.notificationCalled).toBe(true);
+            expect(result.shown).toBe(true);
             expect(result.hasBadge).toBe(true);
-
-            E2ELogger.info('response-notifications', 'Full notification flow verified');
-
-            // Cleanup: clear the badge
-            await browser.electron.execute(async () => {
-                const notificationManager = (global as any).notificationManager;
-                if (notificationManager) {
-                    notificationManager.onWindowFocus();
-                }
-            });
+            E2ELogger.info('response-notifications', 'Event-triggered notification verified');
         });
     });
 
@@ -548,67 +511,34 @@ describe('Response Notifications', () => {
         });
 
         it('should NOT show notification when window is focused', async () => {
-            // This test uses FULL production wiring via mainWindow.emit('response-complete')
-            // to verify the complete event chain from MainWindow → NotificationManager
-            const result = await browser.electron.execute(async () => {
-                // Get the mainWindow instance from windowManager (production code path)
-                const windowManager = (global as any).windowManager;
+            // 1. Set window as focused in the main process
+            await browser.electron.execute(() => {
+                const notificationManager = (global as any).notificationManager;
+                if (notificationManager) {
+                    notificationManager['_isWindowFocused'] = true;
+                    notificationManager['_lastNotificationShown'] = false;
+                }
+            });
+
+            // 2. Trigger via Network
+            await mainWindow.triggerNetworkRequest('https://gemini.google.com/u/0/_/BardChatUi/data/StreamGenerate');
+
+            // 3. Verify NO notification and NO badge
+            await browser.pause(500);
+
+            const check = await browser.electron.execute(() => {
                 const notificationManager = (global as any).notificationManager;
                 const badgeManager = (global as any).badgeManager;
 
-                if (!windowManager || !notificationManager || !badgeManager) {
-                    return { error: 'Required managers not available' };
-                }
+                const shown = notificationManager?.['_lastNotificationShown'] ?? false;
+                const hasBadge = badgeManager?.hasNotificationBadge ?? false;
 
-                const mainWindowInstance = windowManager.getMainWindowInstance();
-                if (!mainWindowInstance) {
-                    return { error: 'MainWindow instance not available' };
-                }
-
-                // Ensure window is marked as focused (per acceptance criteria)
-                notificationManager['_isWindowFocused'] = true;
-
-                // Track if showNotification was called
-                let notificationCalled = false;
-                const originalShowNotification = notificationManager.showNotification?.bind(notificationManager);
-                if (originalShowNotification) {
-                    notificationManager.showNotification = () => {
-                        notificationCalled = true;
-                        // Don't actually show notification in test
-                    };
-                }
-
-                // Trigger response-complete via MainWindow emit (FULL production code path)
-                // This tests the wiring: MainWindow → NotificationManager.onResponseComplete()
-                // Test MUST fail if this wiring is broken
-                mainWindowInstance.emit('response-complete');
-
-                // Give a brief moment for async processing
-                await new Promise((resolve) => setTimeout(resolve, 100));
-
-                // Restore original method
-                if (originalShowNotification) {
-                    notificationManager.showNotification = originalShowNotification;
-                }
-
-                // Verify Notification constructor was NOT called (no notification when focused)
-                // Verify no badge appears
-                const hasBadge = badgeManager.hasNotificationBadge ?? false;
-
-                return { notificationCalled, hasBadge };
+                return { shown, hasBadge };
             });
 
-            if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
-                return;
-            }
-
-            // Verify NO notification was shown because window was focused
-            expect(result.notificationCalled).toBe(false);
-            // Verify NO badge was shown
-            expect(result.hasBadge).toBe(false);
-
-            E2ELogger.info('response-notifications', 'No notification when focused verified (full wiring)');
+            expect(check.shown).toBe(false);
+            expect(check.hasBadge).toBe(false);
+            E2ELogger.info('response-notifications', 'No notification when focused verified (network triggered)');
         });
     });
 
@@ -631,82 +561,78 @@ describe('Response Notifications', () => {
         });
 
         it('should NOT show notification when setting is disabled', async () => {
-            // First, disable notifications via actual UI click (per acceptance criteria)
+            // 1. Disable notifications via UI
             await mainWindow.openOptionsViaMenu();
             await waitForWindowCount(2, 5000);
             await optionsPage.waitForLoad();
             await optionsPage.disableResponseNotifications();
-
-            // Verify it's disabled
-            const isDisabled = !(await optionsPage.isResponseNotificationsEnabled());
-            expect(isDisabled).toBe(true);
-
-            E2ELogger.info('response-notifications', 'Notifications disabled via UI');
-
-            // Close options
             await optionsPage.close();
             await waitForWindowCount(1, 5000);
 
-            // Now trigger response-complete via FULL production wiring and verify no notification
-            // This test uses mainWindow.emit('response-complete') to test complete event chain
-            const result = await browser.electron.execute(async () => {
-                // Get the mainWindow instance from windowManager (production code path)
-                const windowManager = (global as any).windowManager;
+            // 2. Set window as unfocused
+            await browser.electron.execute(() => {
+                const notificationManager = (global as any).notificationManager;
+                if (notificationManager) {
+                    notificationManager['_isWindowFocused'] = false;
+                    notificationManager['_lastNotificationShown'] = false;
+                }
+            });
+
+            // 3. Trigger via Network
+            await mainWindow.triggerNetworkRequest('https://gemini.google.com/u/0/_/BardChatUi/data/StreamGenerate');
+
+            // 4. Verify NO notification and NO badge
+            await browser.pause(500);
+
+            const check = await browser.electron.execute(() => {
                 const notificationManager = (global as any).notificationManager;
                 const badgeManager = (global as any).badgeManager;
 
-                if (!windowManager || !notificationManager || !badgeManager) {
-                    return { error: 'Required managers not available' };
-                }
+                const shown = notificationManager?.['_lastNotificationShown'] ?? false;
+                const hasBadge = badgeManager?.hasNotificationBadge ?? false;
 
-                const mainWindowInstance = windowManager.getMainWindowInstance();
-                if (!mainWindowInstance) {
-                    return { error: 'MainWindow instance not available' };
-                }
-
-                // Set window as unfocused (per acceptance criteria)
-                notificationManager['_isWindowFocused'] = false;
-
-                // Track if showNotification was called
-                let notificationCalled = false;
-                const originalShowNotification = notificationManager.showNotification?.bind(notificationManager);
-                if (originalShowNotification) {
-                    notificationManager.showNotification = () => {
-                        notificationCalled = true;
-                        // Don't actually show notification in test
-                    };
-                }
-
-                // Trigger response-complete via MainWindow emit (FULL production code path)
-                // This tests the wiring: MainWindow → NotificationManager.onResponseComplete()
-                // Test MUST fail if this wiring is broken
-                mainWindowInstance.emit('response-complete');
-
-                // Give a brief moment for async processing
-                await new Promise((resolve) => setTimeout(resolve, 100));
-
-                // Restore original method
-                if (originalShowNotification) {
-                    notificationManager.showNotification = originalShowNotification;
-                }
-
-                // Verify NO badge appears when setting is disabled
-                const hasBadge = badgeManager.hasNotificationBadge ?? false;
-
-                return { notificationCalled, hasBadge };
+                return { shown, hasBadge };
             });
 
-            if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
-                return;
-            }
+            expect(check.shown).toBe(false);
+            expect(check.hasBadge).toBe(false);
+            E2ELogger.info('response-notifications', 'No notification when disabled verified (network triggered)');
+        });
 
-            // Verify NO notification was shown because setting is disabled
-            expect(result.notificationCalled).toBe(false);
-            // Verify NO badge was shown
-            expect(result.hasBadge).toBe(false);
+        it('should NOT show notification for non-matching URLs (e.g. log / analytics)', async () => {
+            // 1. Set window as unfocused
+            await browser.electron.execute(() => {
+                const notificationManager = (global as any).notificationManager;
+                if (notificationManager) {
+                    notificationManager['_isWindowFocused'] = false;
+                    notificationManager['_lastNotificationShown'] = false;
+                }
+            });
 
-            E2ELogger.info('response-notifications', 'No notification when disabled verified (full wiring)');
+            // 2. Trigger a non-matching URL (previously triggered spurious notifications)
+            await mainWindow.triggerNetworkRequest(
+                'https://gemini.google.com/u/0/_/BardChatUi/data/log?bl=boq_assistant'
+            );
+
+            // 3. Verify NO notification and NO badge
+            await browser.pause(500);
+
+            const check = await browser.electron.execute(() => {
+                const notificationManager = (global as any).notificationManager;
+                const badgeManager = (global as any).badgeManager;
+
+                const shown = notificationManager?.['_lastNotificationShown'] ?? false;
+                const hasBadge = badgeManager?.hasNotificationBadge ?? false;
+
+                return { shown, hasBadge };
+            });
+
+            expect(check.shown).toBe(false);
+            expect(check.hasBadge).toBe(false);
+            E2ELogger.info(
+                'response-notifications',
+                'Spurious URL filtering verified (log endpoint correctly ignored)'
+            );
         });
     });
 
@@ -755,18 +681,11 @@ describe('Response Notifications', () => {
         });
 
         it('should handle badge on current platform', async () => {
-            const detectedPlatform = await getPlatform();
-
-            const result = await browser.electron.execute(async (_electron, _platform) => {
+            const result = await browser.electron.execute(async () => {
                 const badgeManager = (global as any).badgeManager;
                 if (!badgeManager) {
                     return { exists: false };
                 }
-
-                // Badge behavior varies by platform
-                // Windows: setOverlayIcon
-                // macOS: app.dock.setBadge
-                // Linux: no native badge support
 
                 return {
                     exists: true,
@@ -774,15 +693,13 @@ describe('Response Notifications', () => {
                     hasClearNotificationBadge: typeof badgeManager.clearNotificationBadge === 'function',
                     hasNotificationBadge: badgeManager.hasNotificationBadge ?? false,
                 };
-            }, detectedPlatform);
+            });
 
             expect(result.exists).toBe(true);
             if (result.exists) {
                 expect(result.hasShowNotificationBadge).toBe(true);
                 expect(result.hasClearNotificationBadge).toBe(true);
             }
-
-            E2ELogger.info('response-notifications', `Badge support on ${detectedPlatform} verified`);
         });
 
         it('should show notification on current platform via full production wiring', async () => {

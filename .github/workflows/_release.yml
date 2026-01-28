@@ -59,6 +59,11 @@ jobs:
             - name: Build (without publish)
               run: npm run dist:mac-x64
 
+            - name: Generate Checksums
+              run: |
+                  cd release
+                  shasum -a 256 *.dmg *.zip > checksums-macos-x64.txt
+
             - name: Upload to GitHub Release
               uses: softprops/action-gh-release@v2
               with:
@@ -69,6 +74,7 @@ jobs:
                       release/*.zip
                       release/*.zip.blockmap
                       release/latest-mac.yml
+                      release/checksums-macos-x64.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -118,6 +124,11 @@ jobs:
             - name: Build (without publish)
               run: npm run dist:mac-arm64
 
+            - name: Generate Checksums
+              run: |
+                  cd release
+                  shasum -a 256 *.dmg *.zip > checksums-macos-arm64.txt
+
             - name: Upload to GitHub Release
               uses: softprops/action-gh-release@v2
               with:
@@ -128,6 +139,7 @@ jobs:
                       release/*.zip
                       release/*.zip.blockmap
                       release/latest-mac.yml
+                      release/checksums-macos-arm64.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -189,6 +201,12 @@ jobs:
               run: npm run test:e2e:release
               shell: bash
 
+            - name: Generate Checksums
+              run: |
+                  cd release
+                  Get-FileHash *.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
+              shell: pwsh
+
             - name: Upload to GitHub Release
               uses: softprops/action-gh-release@v2
               with:
@@ -198,6 +216,7 @@ jobs:
                       release/*.exe
                       release/*.exe.blockmap
                       release/latest.yml
+                      release/checksums-windows.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -248,6 +267,11 @@ jobs:
             - name: Run Release E2E Tests
               run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run test:e2e:release
 
+            - name: Generate Checksums
+              run: |
+                  cd release
+                  sha256sum *.AppImage *.deb *.rpm *.tar.gz > checksums-linux.txt
+
             - name: Upload to GitHub Release
               uses: softprops/action-gh-release@v2
               with:
@@ -259,6 +283,7 @@ jobs:
                       release/*.rpm
                       release/*.tar.gz
                       release/latest-linux.yml
+                      release/checksums-linux.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
