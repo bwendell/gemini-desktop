@@ -4,8 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
 [![Built with Electron](https://img.shields.io/badge/Built%20with-Electron-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![Security Scan](https://github.com/bwendell/gemini-desktop/actions/workflows/security.yml/badge.svg)](https://github.com/bwendell/gemini-desktop/actions/workflows/security.yml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bwendell/gemini-desktop/badge)](https://securityscorecards.dev/viewer/?uri=github.com/bwendell/gemini-desktop)
+[![CodeQL](https://img.shields.io/badge/CodeQL-enabled-brightgreen?logo=github)](https://github.com/bwendell/gemini-desktop/security/code-scanning)
 
 > **Gemini, but better.** A native desktop experience with global hotkeys, spotlight-style Quick Chat, and zero data collection.
 
