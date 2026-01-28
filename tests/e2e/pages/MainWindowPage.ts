@@ -9,6 +9,7 @@
 
 /// <reference path="../helpers/wdio-electron.d.ts" />
 
+import { browser } from '@wdio/globals';
 import { BasePage } from './BasePage';
 import { Selectors } from '../helpers/selectors';
 import { clickMenuItemById } from '../helpers/menuActions';
@@ -332,5 +333,24 @@ export class MainWindowPage extends BasePage {
         });
         this.log(`Read window bounds from settings: ${JSON.stringify(bounds)}`);
         return bounds;
+    }
+
+    /**
+     * Triggers a network request from the main window's renderer context.
+     * Useful for testing network-triggered behaviors like response notifications.
+     * @param url - The URL to fetch
+     * @param method - The HTTP method (default: 'POST')
+     */
+    async triggerNetworkRequest(url: string, method: string = 'POST'): Promise<void> {
+        await browser.execute(
+            (targetUrl: string, targetMethod: string) => {
+                fetch(targetUrl, { method: targetMethod }).catch(() => {
+                    // We don't care about the response, just that the request happened
+                });
+            },
+            url,
+            method
+        );
+        this.log(`Triggered ${method} request to: ${url}`);
     }
 }

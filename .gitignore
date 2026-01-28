@@ -41,3 +41,5 @@ electron-builder.env
 .wdio-test-data/
 
 prompts/
+
+.agent/skills

@@ -57,7 +57,7 @@ describe('MainWindow cleanup lifecycle', () => {
 
             // Verify filter and listener are stored
             expect(privateWindow.responseDetectionFilter).toBeDefined();
-            expect(privateWindow.responseDetectionFilter.urls).toContain('*://gemini.google.com/*/BardChatUi/*');
+            expect(privateWindow.responseDetectionFilter.urls).toContain('*://gemini.google.com/*StreamGenerate*');
             expect(privateWindow.responseDetectionListener).toBeDefined();
         });
 
