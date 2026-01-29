@@ -85,8 +85,12 @@ export function setupMediaPermissions(session: Session): void {
     session.setPermissionRequestHandler((webContents, permission, callback, details) => {
         const url = details.requestingUrl || '';
 
-        // Allow media requests from Gemini/Google domains
-        if (permission === 'media') {
+        // Allowed permissions for Gemini/Google domains:
+        // - media: Required for microphone access (voice input/Gemini Live)
+        // - clipboard-sanitized-write: Required for "Copy" buttons in the UI
+        const allowedPermissions = ['media', 'clipboard-sanitized-write'];
+
+        if (allowedPermissions.includes(permission)) {
             // Use URL parser to safely validate hostname (fixes CWE-20 vulnerability)
             let hostname = '';
             try {
@@ -100,7 +104,7 @@ export function setupMediaPermissions(session: Session): void {
 
             // Allow only trusted Google domains
             if (hostname.endsWith('.google.com') || hostname === 'google.com') {
-                logger.log(`Granting media permission to: ${url}`);
+                logger.log(`Granting ${permission} permission to: ${url}`);
                 callback(true);
                 return;
             }
