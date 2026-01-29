@@ -104,7 +104,7 @@ describe('App', () => {
 
             const iframe = screen.getByTestId('gemini-iframe') as HTMLIFrameElement;
             const allowAttr = iframe.getAttribute('allow');
-            expect(allowAttr).toBe('microphone; camera; display-capture');
+            expect(allowAttr).toBe('microphone; display-capture');
         });
     });
 

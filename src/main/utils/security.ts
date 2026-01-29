@@ -73,7 +73,7 @@ export function setupWebviewSecurity(app: App): void {
 }
 
 /**
- * Setup media permission handler for microphone/camera access.
+ * Setup media permission handler for microphone access.
  * Allows media requests from trusted Gemini/Google domains.
  *
  * SECURITY: Only approves media permissions for Google domains.

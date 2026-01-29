@@ -118,4 +118,4 @@ We appreciate security researchers who help keep Gemini Desktop safe. With your 
 
 This security policy may be updated from time to time. Check back for the latest version.
 
-Last updated: December 2025
+Last updated: January 2026
