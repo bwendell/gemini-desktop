@@ -7,6 +7,17 @@
     "version": "0.5.4",
     "type": "module",
     "main": "dist-electron/main/main.cjs",
+    "keywords": [
+        "gemini",
+        "google-gemini",
+        "desktop-client",
+        "electron",
+        "ai",
+        "artificial-intelligence",
+        "wrapper",
+        "productivity",
+        "chatgpt-alternative"
+    ],
     "scripts": {
         "dev": "vite",
         "prepare": "husky",

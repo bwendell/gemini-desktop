@@ -10,7 +10,7 @@
 
 </div>
 
-> **Gemini, but better.** The privacy-first, native desktop client for Google Gemini. Features global hotkeys, Spotlight-style Quick Chat, and zero data collection.
+> **Gemini, but better.** The privacy-first, native desktop client for Google Gemini. Experience the best free AI desktop app for Windows, macOS, and Linux. Features global hotkeys, Spotlight-style Quick Chat, and zero data collection.
 
 <p align="center">
   <a href="#-installation">Installation</a> •
@@ -57,7 +57,7 @@ Users have been asking for a desktop Gemini client with these features—**we de
 
 <div align="center">
 
-![alt text](docs/assets/quick_chat.png)
+![Gemini Desktop Quick Chat Interface](docs/assets/quick_chat.png)
 
 </div>
 
@@ -176,7 +176,7 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 <div align="center">
 
-![alt text](docs/assets/main_window.png)
+![Gemini Desktop Main Window Interface](docs/assets/main_window.png)
 
 </div>
 
