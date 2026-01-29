@@ -79,7 +79,9 @@ function AppContent() {
                         onLoad={handleIframeLoad}
                         onError={handleError}
                         data-testid="gemini-iframe"
-                        allow="microphone; camera; display-capture"
+                        allow="microphone; clipboard-write"
+                        // microphone: Required for voice input (Gemini Live)
+                        // clipboard-write: Required for "Copy code" and "Copy response" functionality
                     />
                 </div>
             </GeminiErrorBoundary>

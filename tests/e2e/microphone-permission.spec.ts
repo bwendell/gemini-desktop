@@ -36,8 +36,7 @@ describe('Microphone Permission', () => {
             });
 
             expect(allowAttr).toContain('microphone');
-            expect(allowAttr).toContain('camera');
-            expect(allowAttr).toContain('display-capture');
+            expect(allowAttr).not.toContain('camera'); // Camera access intentionally removed
             E2ELogger.info('microphone', `Iframe allow attribute: ${allowAttr}`);
         });
     });

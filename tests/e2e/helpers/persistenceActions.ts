@@ -132,9 +132,9 @@ export async function getCookiesFromSession(name: string): Promise<Array<{ name:
 
 /**
  * Reloads the current page and waits for it to settle.
- * @param waitMs - Time to wait after reload (default: 2000)
+ * @param waitMs - Time to wait after reload (default: 500ms extended pause)
  */
-export async function reloadPage(waitMs = E2E_TIMING.PAGE_LOAD): Promise<void> {
+export async function reloadPage(waitMs = E2E_TIMING.EXTENDED_PAUSE_MS): Promise<void> {
     await browser.execute(() => window.location.reload());
     await browser.pause(waitMs);
     E2ELogger.info('persistence', 'Page reloaded');
@@ -174,26 +174,34 @@ export interface UserPreferencesData {
  * Uses getUserDataPath() to get the path, then local fs to read.
  *
  * @param filename - The settings filename (e.g., 'user-preferences.json')
+ * @param options - Optional settings (silent: suppress logging)
  * @returns The parsed settings object, or null if file doesn't exist or is invalid
  */
 export async function readSettingsFile<T = UserPreferencesData>(
-    filename: string = SETTINGS_FILES.USER_PREFERENCES
+    filename: string = SETTINGS_FILES.USER_PREFERENCES,
+    options: { silent?: boolean } = {}
 ): Promise<T | null> {
     try {
         const userDataPath = await getUserDataPath();
         const settingsPath = path.join(userDataPath, filename);
 
         if (!fs.existsSync(settingsPath)) {
-            E2ELogger.info('persistence', `Settings file not found: ${filename}`);
+            if (!options.silent) {
+                E2ELogger.info('persistence', `Settings file not found: ${filename}`);
+            }
             return null;
         }
 
         const content = fs.readFileSync(settingsPath, 'utf-8');
         const settings = JSON.parse(content) as T;
-        E2ELogger.info('persistence', `Read settings from: ${filename}`);
+        if (!options.silent) {
+            E2ELogger.info('persistence', `Read settings from: ${filename}`);
+        }
         return settings;
     } catch (error) {
-        E2ELogger.info('persistence', `Failed to read settings file: ${error}`);
+        if (!options.silent) {
+            E2ELogger.info('persistence', `Failed to read settings file: ${error}`);
+        }
         return null;
     }
 }
@@ -289,5 +297,36 @@ export async function waitForUserPreferencesFile(timeout = 5000): Promise<boolea
     }
 
     E2ELogger.info('persistence', 'User preferences file not found within timeout');
+    return false;
+}
+
+/**
+ * Wait for a specific setting to have the expected value.
+ * Uses condition-based polling instead of static timeouts to handle
+ * IPC propagation and file write timing on slower CI runners.
+ *
+ * @param key - The settings key to check (e.g., 'hotkeyAlwaysOnTop')
+ * @param expectedValue - The expected value
+ * @param timeout - Max wait time in ms (default: 3000)
+ * @returns true if value matched within timeout, false otherwise
+ */
+export async function waitForSettingValue(
+    key: keyof UserPreferencesData,
+    expectedValue: unknown,
+    timeout = 3000
+): Promise<boolean> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+        // Use silent option to avoid log flooding during polling
+        const prefs = await readSettingsFile<UserPreferencesData>(SETTINGS_FILES.USER_PREFERENCES, { silent: true });
+        if (prefs && prefs[key] === expectedValue) {
+            E2ELogger.info('persistence', `Setting ${key} = ${String(expectedValue)}`);
+            return true;
+        }
+        await browser.pause(100); // Poll every 100ms
+    }
+
+    E2ELogger.info('persistence', `Timeout waiting for ${key} = ${String(expectedValue)}`);
     return false;
 }

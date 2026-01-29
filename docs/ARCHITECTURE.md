@@ -6,7 +6,7 @@ This document serves as a critical, living template designed to equip agents wit
 
 > This section provides a high-level overview of the project's directory and file structure, categorised by architectural layer or major functional area. It is essential for quickly navigating the codebase, locating relevant files, and understanding the overall organization and separation of concerns.
 
-```
+```text
 gemini-desktop/
 ├── src/                      # Main source code
 │   ├── main/                 # Electron main process (Node.js context)
@@ -14,6 +14,7 @@ gemini-desktop/
 │   │   ├── managers/         # Core functionality managers
 │   │   │   ├── windowManager.ts    # Window creation and state management
 │   │   │   ├── ipcManager.ts       # IPC orchestrator (delegates to handlers)
+│   │   │   ├── llmManager.ts       # Local LLM resource management
 │   │   │   ├── ipc/                # Domain-specific IPC handlers
 │   │   │   │   ├── index.ts              # Barrel exports for handlers
 │   │   │   │   ├── types.ts              # Handler dependency types
@@ -53,8 +54,7 @@ gemini-desktop/
 │   │   │   ├── titlebar/     # Custom window title bar
 │   │   │   ├── options/      # Settings panels and controls
 │   │   │   ├── quickchat/    # Quick Chat input interface
-│   │   │   ├── toast/        # Generic notification toasts [NEW]
-│   │   │   ├── update-toast/ # Specialized update notifications
+│   │   │   ├── toast/        # Generic and update notifications
 │   │   │   ├── layout/       # Layout components
 │   │   │   └── common/       # Shared UI elements
 │   │   ├── context/          # React context providers (theme, settings)
@@ -102,7 +102,7 @@ gemini-desktop/
 
 > Provide a simple block diagram (e.g., a C4 Model Level 1: System Context diagram, or a basic component diagram) or a clear text-based description of the major components and their interactions. Focus on how data flows, services communicate, and key architectural boundaries.
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                           Gemini Desktop Application                       │
 ├────────────────────────────────────────────────────────────────────────────┤
@@ -189,7 +189,7 @@ gemini-desktop/
 - `src/renderer/components/options/` - Settings panels for themes, hotkeys, updates
 - `src/renderer/components/quickchat/` - Floating prompt input interface
 - `src/renderer/context/` - React contexts for theme and settings state
-- `src/renderer/components/toast/` - Generic toast notifications for successes, errors, and progress
+- `src/renderer/components/toast/` - Generic and specialized update notification toasts
 - `src/renderer/context/ToastContext.tsx` - Central API for showing toasts via `useToast` hook
 
 ### 3.2. Backend Services (Main Process)
@@ -222,7 +222,7 @@ gemini-desktop/
 
 The IPC system uses a handler-based architecture where each domain-specific handler extends `BaseIpcHandler` and manages its own IPC channels:
 
-```
+```text
 IpcManager (orchestrator)
     │
     ├── BaseIpcHandler (abstract)
@@ -301,7 +301,7 @@ IpcManager (orchestrator)
 
 **Name:** `NotificationManager` (`src/main/managers/notificationManager.ts`)
 
-**Description:** Manages native OS notifications and taskbar badges when Gemini finishes generating a response while the application is unfocused. Coordinates with `BadgeManager` for visual indicators and listens to the MainWindow's `response-complete` event. Respects user preference for enabling/disabling response notifications.
+**Description:** Manages native OS notifications and taskbar badges when Gemini finishes generating a response while the application is unfocused. Coordinates with `BadgeManager` (`src/main/managers/badgeManager.ts`) for visual indicators and listens to the MainWindow's `response-complete` event. Respects user preference for enabling/disabling response notifications.
 
 **Technologies:** Electron Notification API, TypeScript
 
@@ -523,7 +523,7 @@ npm run electron:dev    # Start development
 | Electron Unit Tests | Vitest      | `config/vitest/vitest.electron.config.ts`    | `npm run test:electron`    |
 | Coordinated Tests   | Vitest      | `config/vitest/vitest.coordinated.config.ts` | `npm run test:coordinated` |
 | Integration Tests   | WebdriverIO | `config/wdio/wdio.integration.conf.js`       | `npm run test:integration` |
-| E2E Tests           | WebdriverIO | `config/wdio/wdio.e2e.conf.js`               | `npm run test:e2e`         |
+| E2E Tests           | WebdriverIO | `config/wdio/wdio.conf.js`                   | `npm run test:e2e`         |
 | All Tests           | -           | -                                            | `npm run test:all`         |
 
 **E2E Testing Principles:**
@@ -599,11 +599,11 @@ app.on('will-quit', () => {
 
 **Project Name:** Gemini Desktop
 
-**Repository URL:** https://github.com/bwendell/gemini-desktop
+**Repository URL:** [https://github.com/bwendell/gemini-desktop](https://github.com/bwendell/gemini-desktop)
 
-**Primary Contact/Team:** Ben Wendell (github@benwendell.com)
+**Primary Contact/Team:** Ben Wendell ([github@benwendell.com](mailto:github@benwendell.com))
 
-**Date of Last Update:** 2026-01-06
+**Date of Last Update:** 2026-01-28
 
 ## 12. Glossary / Acronyms
 

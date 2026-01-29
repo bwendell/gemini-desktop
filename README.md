@@ -1,15 +1,16 @@
-# Gemini Desktop
+# Gemini Desktop — Native, Private AI Experience
+
+<div align="center">
 
 [![GitHub release](https://img.shields.io/github/v/release/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/commits/main)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
-[![Built with Electron](https://img.shields.io/badge/Built%20with-Electron-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![Security Scan](https://github.com/bwendell/gemini-desktop/actions/workflows/security.yml/badge.svg)](https://github.com/bwendell/gemini-desktop/actions/workflows/security.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bwendell/gemini-desktop/badge)](https://securityscorecards.dev/viewer/?uri=github.com/bwendell/gemini-desktop)
+[![CodeQL](https://img.shields.io/badge/CodeQL-enabled-brightgreen?logo=github)](https://github.com/bwendell/gemini-desktop/security/code-scanning)
 
-> **Gemini, but better.** A native desktop experience with global hotkeys, spotlight-style Quick Chat, and zero data collection.
+</div>
 
-<!-- [INSERT HERO SCREENSHOT HERE] -->
+> **Gemini, but better.** The privacy-first, native desktop client for Google Gemini. Experience the best free AI desktop app for Windows, macOS, and Linux. Features global hotkeys, Spotlight-style Quick Chat, and zero data collection.
 
 <p align="center">
   <a href="#-installation">Installation</a> •
@@ -29,6 +30,8 @@ Start here: **[Read our Transparency Report](docs/TRANSPARENCY.md)** which inclu
 
 Users have been asking for a desktop Gemini client with these features—**we deliver on all of them**:
 
+<div align="center">
+
 | What Users Want                                | Status                       |
 | ---------------------------------------------- | ---------------------------- |
 | 🖥️ Native desktop app (not just a browser tab) | ✅ **Native & Fast**         |
@@ -42,6 +45,8 @@ Users have been asking for a desktop Gemini client with these features—**we de
 | 🖨️ Print to PDF                                | ✅ **Export Chats**          |
 | 🔔 Desktop Notifications                       | ✅ **Notify on Reply**       |
 
+</div>
+
 ---
 
 ### 🚀 Quick Chat - Spotlight for Gemini
@@ -50,7 +55,11 @@ Users have been asking for a desktop Gemini client with these features—**we de
 
 <!-- [INSERT QUICK CHAT SCREENSHOT HERE] -->
 
-![alt text](docs/assets/quick_chat.png)
+<div align="center">
+
+![Gemini Desktop Quick Chat Interface](docs/assets/quick_chat.png)
+
+</div>
 
 **What makes it powerful:**
 
@@ -110,6 +119,8 @@ sudo dpkg -i "Gemini Desktop-x.x.x-x64.deb"
 
 For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**Security Policy**](docs/SECURITY.md).
 
+<div align="center">
+
 | Category            | Practice            | Details                                                                     |
 | ------------------- | ------------------- | --------------------------------------------------------------------------- |
 | **🔐 Data**         | No collection       | Zero analytics, telemetry, or tracking                                      |
@@ -125,9 +136,13 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 | **🔍 Transparency** | Open source         | [Full code available](https://github.com/bwendell/gemini-desktop) for audit |
 |                     | No paywall bypass   | Respects Google's terms                                                     |
 
+</div>
+
 ---
 
 ## ⌨️ Keyboard Shortcuts
+
+<div align="center">
 
 | Shortcut            | Action                              |
 | ------------------- | ----------------------------------- |
@@ -137,6 +152,8 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 | `Ctrl+=` / `Ctrl+-` | Zoom In / Out                       |
 | `Ctrl+,`            | Open Settings                       |
 | `Escape`            | Close Quick Chat                    |
+
+</div>
 
 > 💡 Hotkeys can be modified in Settings if they conflict with other apps.
 
@@ -157,7 +174,11 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 ---
 
-![alt text](docs/assets/main_window.png)
+<div align="center">
+
+![Gemini Desktop Main Window Interface](docs/assets/main_window.png)
+
+</div>
 
 ---
 
@@ -171,7 +192,7 @@ Contributions are welcome! Whether it's bug reports, feature requests, or code c
 4. **Push** to the branch (`git push origin feature/amazing-feature`)
 5. **Open** a Pull Request
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
 
 ### Reporting Issues
 

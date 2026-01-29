@@ -23,17 +23,25 @@ concurrency:
     group: release-${{ github.ref }}
     cancel-in-progress: false
 
-permissions:
-    contents: write # Required for creating releases
+# =============================================================================
+# Permissions
+# =============================================================================
+# Restrict default GITHUB_TOKEN permissions (OpenSSF Scorecard best practice)
+# The _release.yml reusable workflow declares its own job-level permissions
+permissions: {}
 
 jobs:
     # Build application
     build:
+        permissions:
+            contents: read
         uses: ./.github/workflows/_build.yml
 
     # Run tests (no coverage uploads, fail-fast enabled for release quality gate)
     test:
         needs: build
+        permissions:
+            contents: read
         uses: ./.github/workflows/_test.yml
         with:
             upload-coverage: false
@@ -43,5 +51,7 @@ jobs:
     # Build and publish release after tests pass
     release:
         needs: [build, test]
+        permissions:
+            contents: write
         uses: ./.github/workflows/_release.yml
         secrets: inherit

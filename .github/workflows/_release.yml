@@ -15,6 +15,13 @@ name: Release (Reusable)
 on:
     workflow_call:
 
+# =============================================================================
+# Permissions
+# =============================================================================
+# Restrict default GITHUB_TOKEN permissions (OpenSSF Scorecard best practice)
+# Jobs declare their own permissions as needed
+permissions: {}
+
 env:
     NODE_VERSION: '20'
     CI: true
@@ -33,10 +40,10 @@ jobs:
             npm_config_arch: x64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -45,13 +52,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -65,7 +72,7 @@ jobs:
                   shasum -a 256 *.dmg *.zip > checksums-macos-x64.txt
 
             - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@v2
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -79,7 +86,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: release-artifacts-macos-x64
                   path: release/
@@ -98,10 +105,10 @@ jobs:
             npm_config_arch: arm64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -110,13 +117,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -130,7 +137,7 @@ jobs:
                   shasum -a 256 *.dmg *.zip > checksums-macos-arm64.txt
 
             - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@v2
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -144,7 +151,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: release-artifacts-macos-arm64
                   path: release/
@@ -161,10 +168,10 @@ jobs:
             contents: write # Required for release upload
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -173,13 +180,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -192,7 +199,7 @@ jobs:
                   AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
                   AZURE_PUBLISHER_NAME: ${{ secrets.AZURE_PUBLISHER_NAME }}
                   AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
-                  AZURE_CERTIFICATE_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+                  AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
                   AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
                   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
                   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -208,7 +215,7 @@ jobs:
               shell: pwsh
 
             - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@v2
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -221,7 +228,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: release-artifacts-windows
                   path: release/
@@ -238,10 +245,10 @@ jobs:
             contents: write # Required for release upload
         steps:
             - name: Checkout Code
-              uses: actions/checkout@v4
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -250,13 +257,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@v7
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -273,7 +280,7 @@ jobs:
                   sha256sum *.AppImage *.deb *.rpm *.tar.gz > checksums-linux.txt
 
             - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@v2
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -288,7 +295,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: release-artifacts-linux
                   path: release/

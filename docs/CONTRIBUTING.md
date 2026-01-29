@@ -160,7 +160,7 @@ npm run test:e2e
 ### Writing Tests
 
 - Unit tests go in `*.test.ts` files next to the source
-- E2E tests go in `tests/specs/`
+- E2E tests go in `tests/e2e/`
 - Mock external dependencies
 
 ---
