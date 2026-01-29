@@ -1,4 +1,4 @@
-# Gemini Desktop
+# Gemini Desktop — Native, Private AI Experience
 
 <div align="center">
 
@@ -10,7 +10,7 @@
 
 </div>
 
-> **Gemini, but better.** A native desktop experience with global hotkeys, spotlight-style Quick Chat, and zero data collection.
+> **Gemini, but better.** The privacy-first, native desktop client for Google Gemini. Features global hotkeys, Spotlight-style Quick Chat, and zero data collection.
 
 <p align="center">
   <a href="#-installation">Installation</a> •
