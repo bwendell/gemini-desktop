@@ -39,12 +39,12 @@ We believe you should know exactly who your computer is talking to. Gemini Deskt
 
 Malicious apps often redirect users to phishing sites or load remote payloads from attacker-controlled servers. Gemini Desktop blocks these attack vectors at the code level:
 
-| Protection                   | Description                                                                                              | Verification                                                  |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **URL Allowlist**            | Navigation is restricted to `gemini.google.com` and Google OAuth domains. All other URLs are blocked.    | [View Navigation Handler](../src/main/windows/mainWindow.ts)  |
-| **External Links → Browser** | Clicking a non-Google link opens your system browser, not inside the app. The app cannot be hijacked.    | [View Window Open Handler](../src/main/windows/mainWindow.ts) |
-| **Permission Lockdown**      | Camera and microphone access is only granted to `*.google.com` domains. All other requests are denied.   | [View Permission Handler](../src/main/utils/security.ts)      |
-| **Domain Constants**         | Allowed domains are defined in a single, auditable file—no hidden allowlists scattered through the code. | [View Domain Config](../src/main/utils/constants.ts)          |
+| Protection                   | Description                                                                                              | Verification                                                     |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **URL Allowlist**            | Navigation is restricted to `gemini.google.com` and Google OAuth domains. All other URLs are blocked.    | [View Navigation Handler](../src/main/windows/mainWindow.ts)     |
+| **External Links → Browser** | Clicking a non-Google link opens your system browser, not inside the app. The app cannot be hijacked.    | [View Window Open Handler](../src/main/windows/mainWindow.ts)    |
+| **Permission Lockdown**      | Microphone access is only granted to `*.google.com` domains. All other requests are denied.              | [View Permission Handler](../src/main/utils/security.ts#L84-112) |
+| **Domain Constants**         | Allowed domains are defined in a single, auditable file—no hidden allowlists scattered through the code. | [View Domain Config](../src/main/utils/constants.ts)             |
 
 ---
 

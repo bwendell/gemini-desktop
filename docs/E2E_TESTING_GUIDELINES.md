@@ -2,7 +2,7 @@
 
 > **Target Audience**: AI coding agents (Gemini, Claude, GPT, etc.)  
 > **Purpose**: Prevent E2E test gaps that allow bugs to pass through CI/CD  
-> **Last Updated**: 2025-12-28
+> **Last Updated**: 2026-01-28
 
 ---
 
