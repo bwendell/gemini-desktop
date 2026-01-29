@@ -301,7 +301,7 @@ IpcManager (orchestrator)
 
 **Name:** `NotificationManager` (`src/main/managers/notificationManager.ts`)
 
-**Description:** Manages native OS notifications and taskbar badges when Gemini finishes generating a response while the application is unfocused. Coordinates with `BadgeManager` for visual indicators and listens to the MainWindow's `response-complete` event. Respects user preference for enabling/disabling response notifications.
+**Description:** Manages native OS notifications and taskbar badges when Gemini finishes generating a response while the application is unfocused. Coordinates with `BadgeManager` (`src/main/managers/badgeManager.ts`) for visual indicators and listens to the MainWindow's `response-complete` event. Respects user preference for enabling/disabling response notifications.
 
 **Technologies:** Electron Notification API, TypeScript
 
@@ -523,7 +523,7 @@ npm run electron:dev    # Start development
 | Electron Unit Tests | Vitest      | `config/vitest/vitest.electron.config.ts`    | `npm run test:electron`    |
 | Coordinated Tests   | Vitest      | `config/vitest/vitest.coordinated.config.ts` | `npm run test:coordinated` |
 | Integration Tests   | WebdriverIO | `config/wdio/wdio.integration.conf.js`       | `npm run test:integration` |
-| E2E Tests           | WebdriverIO | `config/wdio/wdio.e2e.conf.js`               | `npm run test:e2e`         |
+| E2E Tests           | WebdriverIO | `config/wdio/wdio.conf.js`                   | `npm run test:e2e`         |
 | All Tests           | -           | -                                            | `npm run test:all`         |
 
 **E2E Testing Principles:**
