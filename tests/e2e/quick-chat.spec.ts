@@ -85,7 +85,7 @@ describe('Quick Chat Feature', () => {
             // Clean up: ensure Quick Chat is hidden and only main window remains
             try {
                 await quickChatPage.hide();
-                await waitForWindowTransition();
+                await waitForWindowTransition(async () => !(await quickChatPage.isVisible()));
                 await ensureSingleWindow();
             } catch {
                 // Ignore cleanup errors
@@ -141,7 +141,7 @@ describe('Quick Chat Feature', () => {
             // This exercises the 'blur' event handler in quickChatWindow.ts
             // Note: WebDriver window switching doesn't trigger OS-level blur,
             // so we use mainWindow.focus() which actually steals focus from Quick Chat
-            await browser.electron.execute((electron: typeof import('electron')) => {
+            await browser.electron.execute((_electron: typeof import('electron')) => {
                 const windowManager = (global as any).windowManager;
                 const mainWindow = windowManager?.getMainWindow?.();
                 if (mainWindow && !mainWindow.isDestroyed()) {
@@ -149,8 +149,9 @@ describe('Quick Chat Feature', () => {
                 }
             });
 
-            // Wait for the blur event to trigger hide
-            await waitForWindowTransition();
+            // Wait for the blur event to trigger hide using condition-based polling
+            // This handles timing variability on slower CI runners
+            await waitForWindowTransition(async () => !(await quickChatPage.isVisible()));
 
             // Verify Quick Chat is now hidden
             const isVisible = await quickChatPage.isVisible();
@@ -177,7 +178,7 @@ describe('Quick Chat Feature', () => {
             // Clean up: ensure Quick Chat is hidden and only main window remains
             try {
                 await quickChatPage.hide();
-                await waitForWindowTransition();
+                await waitForWindowTransition(async () => !(await quickChatPage.isVisible()));
                 await ensureSingleWindow();
             } catch {
                 // Ignore
@@ -231,7 +232,7 @@ describe('Quick Chat Feature', () => {
 
             // Press Escape
             await quickChatPage.cancel();
-            await waitForWindowTransition();
+            await waitForWindowTransition(async () => !(await quickChatPage.isVisible()));
 
             // Window should be hidden
             const isVisible = await quickChatPage.isVisible();
