@@ -224,7 +224,41 @@ describe('setupMediaPermissions', () => {
         expect(granted).toBe(false);
     });
 
-    it('denies non-media permissions from any domain', async () => {
+    it('grants clipboard-sanitized-write permission to Google domains', async () => {
+        const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        setupMediaPermissions(mockSession.defaultSession);
+
+        let granted: boolean | undefined;
+        permissionHandler(
+            {} as any,
+            'clipboard-sanitized-write',
+            (result) => {
+                granted = result;
+            },
+            { requestingUrl: 'https://gemini.google.com/app' }
+        );
+
+        expect(granted).toBe(true);
+    });
+
+    it('denies clipboard-sanitized-write permission to non-Google domains', async () => {
+        const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        setupMediaPermissions(mockSession.defaultSession);
+
+        let granted: boolean | undefined;
+        permissionHandler(
+            {} as any,
+            'clipboard-sanitized-write',
+            (result) => {
+                granted = result;
+            },
+            { requestingUrl: 'https://example.com' }
+        );
+
+        expect(granted).toBe(false);
+    });
+
+    it('denies other permissions from any domain', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
         setupMediaPermissions(mockSession.defaultSession);
 
