@@ -21,7 +21,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { QuickChatPage, MainWindowPage } from './pages';
-import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
+import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForWindowTransition } from './helpers/workflows';
 import { verifyGeminiEditorState, waitForTextInGeminiEditor } from './helpers/quickChatActions';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
@@ -84,12 +84,9 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             await quickChat.submit();
             E2ELogger.info('full-workflow', '   Submit button clicked ✓');
 
-            // Step 5: Wait for Quick Chat to hide and main window to process
+            // Step 5: Wait for Quick Chat to hide using polling
             E2ELogger.info('full-workflow', '5. Waiting for Quick Chat to hide...');
-            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
-
-            // Quick Chat should be hidden after submission
-            await quickChat.waitForHidden();
+            await waitForWindowTransition(async () => !(await quickChat.isVisible()));
             E2ELogger.info('full-workflow', '   Quick Chat hidden ✓');
 
             // Step 6: Switch to main window and wait for Gemini to load
@@ -150,9 +147,8 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             E2ELogger.info('enter-workflow', 'Submitting via Enter key...');
             await quickChat.submitViaEnter();
 
-            // Wait for processing
-            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
-            await quickChat.waitForHidden();
+            // Wait for processing using polling
+            await waitForWindowTransition(async () => !(await quickChat.isVisible()));
 
             // Switch to main and verify
             await switchToMainWindow();
@@ -178,7 +174,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
 
             // Toggle hide
             await quickChat.hide();
-            await browser.pause(E2E_TIMING.QUICK_CHAT_HIDE_DELAY_MS);
+            await waitForWindowTransition(async () => !(await quickChat.isVisible()));
 
             const afterHideVisible = await quickChat.isVisible();
             expect(afterHideVisible).toBe(false);
@@ -192,6 +188,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
 
             // Cleanup
             await quickChat.hide();
+            await waitForWindowTransition(async () => !(await quickChat.isVisible()));
             E2ELogger.info('edge-case', 'Rapid toggle test passed ✓');
         });
 

@@ -446,8 +446,43 @@ export async function waitForIpcSettle(): Promise<void> {
 
 /**
  * Waits for window animation/transition to complete.
- * Use after maximize, minimize, restore, etc.
+ * Use after maximize, minimize, restore, show/hide, etc.
+ *
+ * When called with a condition function, uses condition-based polling
+ * instead of static timeouts to handle timing variability on slower CI runners.
+ *
+ * @param condition - Optional async function that returns true when transition is complete
+ * @param timeout - Max wait time in ms (default: 3000)
+ * @returns true if condition was met within timeout, false otherwise (or void if no condition)
+ *
+ * @example
+ * // Static pause (backwards compatible)
+ * await waitForWindowTransition();
+ *
+ * // Condition-based polling (recommended for CI reliability)
+ * await waitForWindowTransition(async () => !(await quickChatPage.isVisible()));
  */
-export async function waitForWindowTransition(): Promise<void> {
-    await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+export async function waitForWindowTransition(
+    condition?: () => Promise<boolean>,
+    timeout = 3000
+): Promise<boolean | void> {
+    if (!condition) {
+        // Backwards-compatible: static pause when no condition provided
+        await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+        return;
+    }
+
+    // Condition-based polling for CI reliability
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+        if (await condition()) {
+            E2ELogger.info('workflows', `Window transition condition met after ${Date.now() - startTime}ms`);
+            return true;
+        }
+        await browser.pause(100); // Poll every 100ms
+    }
+
+    E2ELogger.info('workflows', `Timeout waiting for window transition condition after ${timeout}ms`);
+    return false;
 }
