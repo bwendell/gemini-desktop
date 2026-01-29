@@ -68,7 +68,7 @@ We employ automated security scanning to ensure code quality and safety:
 
 - **CodeQL**: All code changes are scanned for vulnerabilities using GitHub's CodeQL.
 - **Dependency Auditing**: We regularly audit dependencies (`npm audit`) for known vulnerabilities.
-- **Open Source**: You can view our [Security Scan Workflows](https://github.com/bwendell/gemini-desktop/actions/workflows/security.yml) publicly.
+- **Open Source**: You can view our [Security Scan Workflows](https://github.com/bwendell/gemini-desktop/actions/workflows/scorecard.yml) publicly.
 
 ### 🔒 Data Handling
 
