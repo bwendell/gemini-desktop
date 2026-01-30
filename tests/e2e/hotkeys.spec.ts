@@ -21,7 +21,7 @@ import {
     switchToMainWindow,
     waitForWindowTransition,
 } from './helpers/workflows';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Global Hotkeys', () => {
     const quickChat = new QuickChatPage();
@@ -68,7 +68,9 @@ describe('Global Hotkeys', () => {
             const isVisibleInitially = await quickChat.isVisible();
             if (isVisibleInitially) {
                 await quickChat.cancel(); // Press Escape to close
-                await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+                await waitForUIState(async () => !(await quickChat.isVisible()), {
+                    description: 'Quick Chat to close',
+                });
             }
 
             // 2. ACTION: Press the Hotkey via workflow helper

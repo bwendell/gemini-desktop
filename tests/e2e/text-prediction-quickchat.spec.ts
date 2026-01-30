@@ -12,7 +12,7 @@
  * @see docs/E2E_TESTING_GUIDELINES.md
  */
 
-import { browser, expect } from '@wdio/globals';
+import { expect } from '@wdio/globals';
 import { OptionsPage, QuickChatPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
