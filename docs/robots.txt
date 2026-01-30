@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bwendell.github.io/gemini-desktop/sitemap.xml
