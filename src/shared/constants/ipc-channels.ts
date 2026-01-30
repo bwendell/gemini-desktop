@@ -18,6 +18,7 @@ export const IPC_CHANNELS = {
     WINDOW_CLOSE: 'window-close',
     WINDOW_SHOW: 'window-show',
     WINDOW_IS_MAXIMIZED: 'window-is-maximized',
+    FULLSCREEN_TOGGLE: 'window-toggle-fullscreen',
 
     // Theme
     THEME_GET: 'theme:get',

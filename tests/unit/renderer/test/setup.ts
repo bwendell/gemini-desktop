@@ -54,11 +54,12 @@ const mockElectronAPI = {
     openOptions: vi.fn(),
     openGoogleSignIn: vi.fn().mockResolvedValue(undefined),
     isMaximized: vi.fn().mockResolvedValue(false),
+    toggleFullscreen: vi.fn(),
 
     // Theme API - returns object with preference and effectiveTheme
     getTheme: vi.fn().mockResolvedValue({ preference: 'system', effectiveTheme: 'dark' }),
     setTheme: vi.fn(),
-    onThemeChanged: vi.fn().mockReturnValue(() => {}),
+    onThemeChanged: vi.fn().mockReturnValue(() => { }),
 
     // Individual Hotkeys API
     getIndividualHotkeys: vi.fn().mockResolvedValue({
@@ -68,7 +69,7 @@ const mockElectronAPI = {
         printToPdf: true,
     }),
     setIndividualHotkey: vi.fn(),
-    onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
+    onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => { }),
 
     // Hotkey Accelerators API
     getHotkeyAccelerators: vi.fn().mockResolvedValue({
@@ -78,7 +79,7 @@ const mockElectronAPI = {
         printToPdf: 'Control+Alt+P',
     }),
     setHotkeyAccelerator: vi.fn(),
-    onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(() => {}),
+    onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(() => { }),
     getFullHotkeySettings: vi.fn().mockResolvedValue({
         enabled: { alwaysOnTop: true, bossKey: true, quickChat: true, printToPdf: true },
         accelerators: {
@@ -92,22 +93,22 @@ const mockElectronAPI = {
     // Always On Top API - returns object with enabled state
     getAlwaysOnTop: vi.fn().mockResolvedValue({ enabled: false }),
     setAlwaysOnTop: vi.fn(),
-    onAlwaysOnTopChanged: vi.fn().mockReturnValue(() => {}),
+    onAlwaysOnTopChanged: vi.fn().mockReturnValue(() => { }),
 
     // Zoom API
     getZoomLevel: vi.fn().mockResolvedValue(100),
     zoomIn: vi.fn().mockResolvedValue(110),
     zoomOut: vi.fn().mockResolvedValue(90),
-    onZoomLevelChanged: vi.fn().mockReturnValue(() => {}),
+    onZoomLevelChanged: vi.fn().mockReturnValue(() => { }),
 
     // Quick Chat API
     submitQuickChat: vi.fn(),
     hideQuickChat: vi.fn(),
     cancelQuickChat: vi.fn(),
-    onQuickChatExecute: vi.fn().mockReturnValue(() => {}),
+    onQuickChatExecute: vi.fn().mockReturnValue(() => { }),
 
     // Gemini Iframe Navigation API
-    onGeminiNavigate: vi.fn().mockReturnValue(() => {}),
+    onGeminiNavigate: vi.fn().mockReturnValue(() => { }),
     signalGeminiReady: vi.fn(),
 
     // Export API
@@ -115,19 +116,19 @@ const mockElectronAPI = {
     exportChatToMarkdown: vi.fn(),
 
     // Toast API
-    onToastShow: vi.fn().mockReturnValue(() => {}),
+    onToastShow: vi.fn().mockReturnValue(() => { }),
 
     // Auto-Update API
     checkForUpdates: vi.fn(),
     installUpdate: vi.fn(),
     getAutoUpdateEnabled: vi.fn().mockResolvedValue(true),
     setAutoUpdateEnabled: vi.fn(),
-    onUpdateAvailable: vi.fn().mockReturnValue(() => {}),
-    onUpdateDownloaded: vi.fn().mockReturnValue(() => {}),
-    onUpdateError: vi.fn().mockReturnValue(() => {}),
-    onUpdateNotAvailable: vi.fn().mockReturnValue(() => {}),
-    onDownloadProgress: vi.fn().mockReturnValue(() => {}),
-    onCheckingForUpdate: vi.fn().mockReturnValue(() => {}),
+    onUpdateAvailable: vi.fn().mockReturnValue(() => { }),
+    onUpdateDownloaded: vi.fn().mockReturnValue(() => { }),
+    onUpdateError: vi.fn().mockReturnValue(() => { }),
+    onUpdateNotAvailable: vi.fn().mockReturnValue(() => { }),
+    onDownloadProgress: vi.fn().mockReturnValue(() => { }),
+    onCheckingForUpdate: vi.fn().mockReturnValue(() => { }),
     getLastUpdateCheckTime: vi.fn().mockResolvedValue(Date.now()),
 
     // Tray API
@@ -143,8 +144,8 @@ const mockElectronAPI = {
         gpuEnabled: false,
         status: 'disabled',
     }),
-    onTextPredictionStatusChanged: vi.fn().mockReturnValue(() => {}),
-    onTextPredictionDownloadProgress: vi.fn().mockReturnValue(() => {}),
+    onTextPredictionStatusChanged: vi.fn().mockReturnValue(() => { }),
+    onTextPredictionDownloadProgress: vi.fn().mockReturnValue(() => { }),
     predictText: vi.fn().mockResolvedValue(null),
 
     // Dev Testing API
@@ -153,7 +154,7 @@ const mockElectronAPI = {
     devSetUpdateEnabled: vi.fn(),
     devEmitUpdateEvent: vi.fn(),
     devMockPlatform: vi.fn(),
-    onDebugTriggerError: vi.fn().mockReturnValue(() => {}),
+    onDebugTriggerError: vi.fn().mockReturnValue(() => { }),
 
     platform: 'win32', // Default to Windows
     isElectron: true,

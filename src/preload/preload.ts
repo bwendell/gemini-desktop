@@ -34,6 +34,7 @@ export const IPC_CHANNELS = {
     WINDOW_CLOSE: 'window-close',
     WINDOW_SHOW: 'window-show',
     WINDOW_IS_MAXIMIZED: 'window-is-maximized',
+    FULLSCREEN_TOGGLE: 'window-toggle-fullscreen',
 
     // Theme
     THEME_GET: 'theme:get',
@@ -158,6 +159,11 @@ const electronAPI: ElectronAPI = {
      * @returns True if maximized
      */
     isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
+
+    /**
+     * Toggle fullscreen mode for the current window.
+     */
+    toggleFullscreen: () => ipcRenderer.send(IPC_CHANNELS.FULLSCREEN_TOGGLE),
 
     /**
      * Open the options/settings window.
