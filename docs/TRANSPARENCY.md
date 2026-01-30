@@ -97,6 +97,16 @@ This means:
 </p>
 ---
 
+## 🐧 Linux Security Hardening
+
+Linux users can choose to run Gemini Desktop in an enhanced security environment. Contributor [@hightowe](https://github.com/hightowe) developed a custom launcher using **Firejail** and **Netfilter** for additional isolation from your system.
+
+- **Repository**: [linux-jails/Gemini-Desktop](https://github.com/hightowe/linux-jails/tree/main/Gemini-Desktop)
+
+This allows you to put the Linux app inside a strict jail for enhanced security if desired.
+
+---
+
 ## 🛡️ Verify Your Download
 
 To ensure you have the genuine, unaltered version of Gemini Desktop:
