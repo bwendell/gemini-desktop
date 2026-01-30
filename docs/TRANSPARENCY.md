@@ -95,6 +95,7 @@ This means:
 <p align="center">
   <img src="assets/certificate_signature.png" alt="Code Signing Certificate Signature">
 </p>
+
 ---
 
 ## 🐧 Linux Security Hardening
