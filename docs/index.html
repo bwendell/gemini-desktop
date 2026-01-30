@@ -4,6 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Gemini Desktop - Native AI client for Windows, macOS, & Linux</title>
+        <link rel="canonical" href="https://bwendell.github.io/gemini-desktop/" />
         <meta
             name="description"
             content="Get the native desktop experience for Google Gemini on Windows, macOS, and Linux. Features global hotkeys, Spotlight-style Quick Chat, and zero data collection."
@@ -42,6 +43,28 @@
         />
         <!-- FontAwesome for Icons -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+        <!-- Structured Data -->
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                "name": "Gemini Desktop",
+                "operatingSystem": "Windows, macOS, Linux",
+                "applicationCategory": "ProductivityApplication",
+                "description": "Native desktop client for Google Gemini with global hotkeys and privacy-first design.",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD"
+                },
+                "author": {
+                    "@type": "Person",
+                    "name": "Ben Wendell"
+                },
+                "url": "https://bwendell.github.io/gemini-desktop/"
+            }
+        </script>
     </head>
     <body>
         <nav class="navbar">
@@ -58,7 +81,7 @@
         <header class="hero">
             <div class="hero-content">
                 <div class="hero-text">
-                    <h1>Gemini, <span class="gradient-text">but better.</span></h1>
+                    <h1>Native Google Gemini Desktop Client: <span class="gradient-text">Gemini, but better.</span></h1>
                     <p class="hero-subtitle">
                         Experience Google Gemini as a native desktop app with global hotkeys, seamless workflow
                         integration, and privacy at its core.
