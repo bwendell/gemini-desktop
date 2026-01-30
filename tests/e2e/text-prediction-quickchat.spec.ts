@@ -17,6 +17,7 @@ import { OptionsPage, QuickChatPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow, waitForIpcSettle } from './helpers/workflows';
+import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Text Prediction Quick Chat E2E', () => {
     const optionsPage = new OptionsPage();
@@ -97,7 +98,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                 // 9. Wait for debounce period (300ms) plus some buffer for prediction
                 // The debounce is 300ms + prediction request time
                 E2ELogger.info('text-prediction-quickchat', 'Waiting for prediction debounce (400ms)');
-                await browser.pause(400);
+                await waitForDuration(400, 'Prediction debounce + buffer');
 
                 // 10. Verify the input value is correct
                 const inputValue = await quickChatPage.getInputValue();
@@ -126,7 +127,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                     // Model not ready - just verify the infrastructure is in place
                     E2ELogger.info('text-prediction-quickchat', 'Model not ready, skipping ghost text verification');
                     // Give a brief moment for any prediction attempt
-                    await browser.pause(500);
+                    await waitForDuration(500, 'Infrastructure test pause (model not ready)');
                     const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
                     E2ELogger.info(
                         'text-prediction-quickchat',
@@ -179,7 +180,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                 await quickChatPage.typeText('Hello world');
 
                 // 6. Wait for debounce period
-                await browser.pause(500);
+                await waitForDuration(500, 'UI debounce after type');
 
                 // 7. Verify ghost text is NOT displayed
                 const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
@@ -256,7 +257,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                 // 9. Wait for prediction to appear (if model is ready)
                 if (isModelReady) {
                     E2ELogger.info('text-prediction-quickchat', 'Waiting for ghost text prediction');
-                    await browser.pause(500); // Wait for debounce + prediction
+                    await waitForDuration(500, 'Debounce + prediction request');
 
                     try {
                         await quickChatPage.waitForGhostText(5000);
@@ -275,7 +276,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                         // 12. Press Tab to accept the prediction
                         E2ELogger.info('text-prediction-quickchat', 'Pressing Tab to accept prediction');
                         await quickChatPage.pressTab();
-                        await browser.pause(100); // Brief pause for state update
+                        await waitForDuration(100, 'State update after Tab');
 
                         // 13. Verify input now contains the original text + prediction
                         const inputAfterTab = await quickChatPage.getInputValue();
@@ -356,7 +357,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                 await quickChatPage.typeText(testText);
 
                 if (isModelReady) {
-                    await browser.pause(500);
+                    await waitForDuration(500, 'Debounce + prediction request');
 
                     try {
                         await quickChatPage.waitForGhostText(5000);
@@ -365,7 +366,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                         if (prediction) {
                             // Accept prediction
                             await quickChatPage.pressTab();
-                            await browser.pause(100);
+                            await waitForDuration(100, 'State update after Tab acceptance');
 
                             // Verify the input contains original + prediction
                             const finalInput = await quickChatPage.getInputValue();
@@ -435,7 +436,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                 // 7. Wait for prediction to appear (if model is ready)
                 if (isModelReady) {
                     E2ELogger.info('text-prediction-quickchat', 'Waiting for ghost text to appear');
-                    await browser.pause(400); // Debounce period
+                    await waitForDuration(400, 'Debounce period');
 
                     try {
                         await quickChatPage.waitForGhostText(5000);
@@ -451,7 +452,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                         await quickChatPage.typeText(additionalText);
 
                         // 10. Brief pause for state to update
-                        await browser.pause(100);
+                        await waitForDuration(100, 'State update after continued typing');
 
                         // 11. Verify ghost text is dismissed
                         const isGhostStillDisplayed = await quickChatPage.isGhostTextDisplayed();
@@ -529,7 +530,7 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 7. Wait briefly for prediction debounce to potentially start
                 // (but not long enough for prediction to fully complete)
-                await browser.pause(100);
+                await waitForDuration(100, 'Brief prediction debounce start');
 
                 // 8. Capture the input value before submitting
                 const inputBeforeSubmit = await quickChatPage.getInputValue();
@@ -600,7 +601,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                 if (isModelReady) {
                     // Wait for ghost text to appear
                     E2ELogger.info('text-prediction-quickchat', 'Waiting for ghost text to appear');
-                    await browser.pause(500); // Wait for debounce + prediction
+                    await waitForDuration(500, 'Debounce + prediction request');
 
                     // Check if ghost text is showing
                     const hasGhostText = await quickChatPage.isGhostTextDisplayed();
@@ -678,7 +679,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                 // 7. Wait for prediction to appear (if model is ready)
                 if (isModelReady) {
                     E2ELogger.info('text-prediction-quickchat', 'Waiting for ghost text to appear');
-                    await browser.pause(400); // Debounce period
+                    await waitForDuration(400, 'Debounce period');
 
                     try {
                         await quickChatPage.waitForGhostText(5000);
@@ -686,7 +687,7 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                         // 8. Press Escape to dismiss prediction
                         await quickChatPage.pressEscape();
-                        await browser.pause(100); // Brief pause for state update
+                        await waitForDuration(100, 'State update after Escape');
 
                         // 9. Verify ghost text is dismissed
                         const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
@@ -716,7 +717,7 @@ describe('Text Prediction Quick Chat E2E', () => {
                     // Without prediction, Escape should cancel Quick Chat
                     await quickChatPage.pressEscape();
                     // Give it time to process
-                    await browser.pause(500);
+                    await waitForDuration(500, 'Escape processing time');
                 }
 
                 // 12. Clean up - cancel Quick Chat
