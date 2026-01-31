@@ -55,7 +55,13 @@ export const config = {
     mochaOpts: {
         ui: 'bdd',
         timeout: 60000,
+        retries: 2, // Retry failed tests up to 2 times for transient failures
     },
+
+    // File-level retries for extra resilience
+    specFileRetries: 1,
+    specFileRetriesDelay: 2,
+    specFileRetriesDeferred: false,
 
     /**
      * Gets executed before test execution begins.

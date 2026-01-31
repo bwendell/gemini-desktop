@@ -1,4 +1,5 @@
 import { browser, expect } from '@wdio/globals';
+import { waitForIPCSettle, waitForAppReady } from '../helpers/integrationWaitUtilities';
 
 describe('Auto-Update Integration', () => {
     before(async () => {
@@ -89,7 +90,7 @@ describe('Auto-Update Integration', () => {
             });
 
             // 3. Verify no errors occurred
-            await browser.pause(500);
+            await waitForIPCSettle();
             await expect(Promise.resolve()).resolves.not.toThrow();
         });
     });
@@ -137,7 +138,7 @@ describe('Auto-Update Integration', () => {
 
             // 4. Verify Tray Tooltip via IPC
             // Wait a bit for main process to update tray
-            await browser.pause(500);
+            await waitForIPCSettle();
             const tooltip = await browser.execute(() => window.electronAPI.getTrayTooltip());
             expect(tooltip).toContain('2.0.0');
         });
@@ -182,7 +183,7 @@ describe('Auto-Update Integration', () => {
             await browser.execute(() => window.electronAPI.installUpdate());
 
             // Small pause to allow IPC round-trip and manager updates
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             // 4. Verify badges/tooltips were cleared as part of the quitAndInstall sequence
             // This is what users would observe: the update indicator disappears
@@ -260,7 +261,7 @@ describe('Auto-Update Integration', () => {
         it('should stop periodic checks when disabled', async () => {
             // Enable first
             await browser.execute(() => window.electronAPI.setAutoUpdateEnabled(true));
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Then disable
             await browser.execute(() => window.electronAPI.setAutoUpdateEnabled(false));
@@ -272,7 +273,7 @@ describe('Auto-Update Integration', () => {
         it('should restart periodic checks when re-enabled', async () => {
             // Disable
             await browser.execute(() => window.electronAPI.setAutoUpdateEnabled(false));
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Re-enable
             await browser.execute(() => window.electronAPI.setAutoUpdateEnabled(true));
@@ -303,7 +304,7 @@ describe('Auto-Update Integration', () => {
                 window.electronAPI.devEmitUpdateEvent('update-not-available', { version: '1.0.0' });
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Verify no update-available was broadcasted
             const received = await browser.execute(() => (window as any)._updateAvailableReceived);
@@ -317,7 +318,7 @@ describe('Auto-Update Integration', () => {
                 window.electronAPI.devEmitUpdateEvent('update-not-available', { version: '1.0.0' });
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // No error should occur, and no toast should appear
             await expect(Promise.resolve()).resolves.not.toThrow();
@@ -344,7 +345,7 @@ describe('Auto-Update Integration', () => {
                 window.electronAPI.devEmitUpdateEvent('update-not-available', { version: '1.0.0' });
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Verify event was broadcasted (if listener exists)
             const received = await browser.execute(() => (window as any)._notAvailableReceived);
@@ -381,7 +382,7 @@ describe('Auto-Update Integration', () => {
                 });
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             await browser.execute(() => {
                 window.electronAPI.devEmitUpdateEvent('download-progress', {
@@ -392,7 +393,7 @@ describe('Auto-Update Integration', () => {
                 });
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             await browser.execute(() => {
                 window.electronAPI.devEmitUpdateEvent('download-progress', {
@@ -403,7 +404,7 @@ describe('Auto-Update Integration', () => {
                 });
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Verify progress updates were received (if listener exists)
             const updates = await browser.execute(() => (window as any)._progressUpdates);
@@ -426,7 +427,7 @@ describe('Auto-Update Integration', () => {
                 window.electronAPI.devEmitUpdateEvent('update-available', { version: '2.0.0' });
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             // Toggle off during "active" operation
             await browser.execute(() => window.electronAPI.setAutoUpdateEnabled(false));
@@ -474,7 +475,7 @@ describe('Auto-Update Integration', () => {
                 window.electronAPI.devEmitUpdateEvent('update-available', { version: '3.0.0' });
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Verify event was received
             const count = await browser.execute(() => (window as any)._updateAvailableCount);

@@ -10,6 +10,11 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import {
+    waitForIPCSettle,
+    waitForSecondaryWindowsClose,
+    waitForContentReady,
+} from '../helpers/integrationWaitUtilities';
 
 describe('Options Window Integration', () => {
     let mainWindowHandle: string;
@@ -44,7 +49,7 @@ describe('Options Window Integration', () => {
             });
         });
 
-        await browser.pause(300);
+        await waitForSecondaryWindowsClose();
 
         // Switch back to main window
         const handles = await browser.getWindowHandles();
@@ -223,7 +228,7 @@ describe('Options Window Integration', () => {
                 global.windowManager.createOptionsWindow();
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Should still only have 2 windows (main + options)
             const handles = await browser.getWindowHandles();
@@ -251,7 +256,7 @@ describe('Options Window Integration', () => {
                 global.windowManager.createOptionsWindow('about');
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Should still only have 2 windows
             const handles = await browser.getWindowHandles();
@@ -337,7 +342,7 @@ describe('Options Window Integration', () => {
             }
 
             // Wait for content to load
-            await browser.pause(500);
+            await waitForContentReady();
 
             const hasElectronAPI = await browser.execute(() => {
                 return typeof (window as any).electronAPI !== 'undefined';
@@ -368,7 +373,7 @@ describe('Options Window Integration', () => {
                 await browser.switchToWindow(optionsHandle);
             }
 
-            await browser.pause(500);
+            await waitForContentReady();
 
             const themeData = await browser.execute(async () => {
                 const api = (window as any).electronAPI;
@@ -405,7 +410,7 @@ describe('Options Window Integration', () => {
                 await browser.switchToWindow(optionsHandle);
             }
 
-            await browser.pause(500);
+            await waitForContentReady();
 
             const hotkeySettings = await browser.execute(async () => {
                 const api = (window as any).electronAPI;
@@ -445,7 +450,7 @@ describe('Options Window Integration', () => {
                 await browser.switchToWindow(optionsHandle);
             }
 
-            await browser.pause(500);
+            await waitForContentReady();
 
             // Setup theme change listener
             await browser.execute(() => {
@@ -468,7 +473,7 @@ describe('Options Window Integration', () => {
                 }
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Switch back to options and verify event was received
             await browser.switchToWindow(optionsHandle!);

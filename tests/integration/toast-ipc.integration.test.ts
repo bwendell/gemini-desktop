@@ -11,6 +11,11 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import {
+    waitForIPCSettle,
+    waitForSecondaryWindowsClose,
+    waitForContentReady,
+} from '../helpers/integrationWaitUtilities';
 
 describe('Toast IPC Integration', () => {
     let mainWindowHandle: string;
@@ -121,7 +126,7 @@ describe('Toast IPC Integration', () => {
             });
 
             // Wait for IPC to process
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             // Verify toast was received
             const received = await browser.execute(() => {
@@ -158,7 +163,7 @@ describe('Toast IPC Integration', () => {
             });
 
             // Wait for IPC to process
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             // Verify all properties received
             const received = await browser.execute(() => {
@@ -216,7 +221,7 @@ describe('Toast IPC Integration', () => {
                 }, toastType);
 
                 // Wait significantly for each type to avoid race conditions
-                await browser.pause(1000);
+                await waitForIPCSettle({ timeout: 1000 });
 
                 // Verify
                 const received = await browser.execute(() => {
@@ -261,7 +266,7 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             const beforeCleanup = await browser.execute(() => {
                 return (window as any)._toastReceived;
@@ -288,7 +293,7 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             // Should NOT have received the second toast
             const afterCleanup = await browser.execute(() => {
@@ -384,7 +389,7 @@ describe('Toast IPC Integration', () => {
                 });
             });
 
-            await browser.pause(300);
+            await waitForSecondaryWindowsClose();
         });
 
         it('should have onToastShow API available in Options window', async () => {
@@ -392,7 +397,7 @@ describe('Toast IPC Integration', () => {
                 await browser.switchToWindow(optionsWindowHandle);
             }
 
-            await browser.pause(500); // Wait for content to load
+            await waitForContentReady();
 
             const hasApi = await browser.execute(() => {
                 return typeof (window as any).electronAPI?.onToastShow === 'function';
@@ -415,7 +420,7 @@ describe('Toast IPC Integration', () => {
             // Options window
             if (optionsWindowHandle) {
                 await browser.switchToWindow(optionsWindowHandle);
-                await browser.pause(300);
+                await waitForIPCSettle();
                 await browser.execute(() => {
                     (window as any)._optionsWindowToast = null;
                     (window as any)._optionsCleanup = (window as any).electronAPI.onToastShow((payload: any) => {
@@ -436,7 +441,7 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             // Check main window received it
             await browser.switchToWindow(mainWindowHandle);
@@ -484,7 +489,7 @@ describe('Toast IPC Integration', () => {
             // Set up listener in Options window only
             if (optionsWindowHandle) {
                 await browser.switchToWindow(optionsWindowHandle);
-                await browser.pause(300);
+                await waitForIPCSettle();
                 await browser.execute(() => {
                     (window as any)._optionsWindowToast = null;
                     (window as any)._optionsCleanup = (window as any).electronAPI.onToastShow((payload: any) => {
@@ -516,7 +521,7 @@ describe('Toast IPC Integration', () => {
                 }
             }, optionsWebContentsId);
 
-            await browser.pause(500);
+            await waitForIPCSettle({ timeout: 1000 });
 
             // Verify Options window received it
             if (optionsWindowHandle) {
@@ -592,7 +597,7 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle({ timeout: 1000 });
 
             const received = await browser.execute(() => {
                 return (window as any)._toastReceived;

@@ -9,6 +9,7 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import { waitForIPCSettle, waitForMainWindowVisibility } from '../helpers/integrationWaitUtilities';
 
 describe('Boss Key / Stealth Mode Integration', () => {
     before(async () => {
@@ -53,7 +54,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
             global.windowManager.restoreFromTray();
         });
 
-        await browser.pause(300);
+        await waitForMainWindowVisibility(true);
 
         // Ensure bossKey is enabled for next test
         await browser.execute(() => {
@@ -192,7 +193,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 api.setIndividualHotkey('bossKey', false);
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             // Verify disabled in main process
             let isEnabled = await browser.electron.execute(() => {
@@ -207,7 +208,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 api.setIndividualHotkey('bossKey', true);
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             // Verify enabled
             isEnabled = await browser.electron.execute(() => {
@@ -224,7 +225,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 api.setIndividualHotkey('bossKey', true);
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             // Disable
             await browser.execute(() => {
@@ -232,7 +233,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 api.setIndividualHotkey('bossKey', false);
             });
 
-            await browser.pause(200);
+            await waitForIPCSettle();
 
             // Verify disabled
             const isEnabled = await browser.electron.execute(() => {
@@ -259,7 +260,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 api.setIndividualHotkey('bossKey', false);
             });
 
-            await browser.pause(500);
+            await waitForIPCSettle({ timeout: 1000 });
 
             // Verify the setting was persisted by reading it back via IPC
             // This reads from the store which should reflect the persisted value
@@ -281,7 +282,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 if (win) win.maximize();
             });
 
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             // Hide to tray
             await browser.electron.execute(() => {
@@ -323,7 +324,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 global.windowManager.hideToTray();
             });
 
-            await browser.pause(500);
+            await waitForMainWindowVisibility(false);
 
             // Restore
             await browser.electron.execute(() => {
@@ -331,7 +332,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 global.windowManager.restoreFromTray();
             });
 
-            await browser.pause(300);
+            await waitForMainWindowVisibility(true);
 
             // Get final bounds
             const finalBounds = await browser.electron.execute(() => {
@@ -361,7 +362,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 global.windowManager.minimizeMainWindow();
             });
 
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             const isMinimized = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -376,7 +377,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 if (win) win.restore();
             });
 
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             // Now hide to tray
             await browser.electron.execute(() => {

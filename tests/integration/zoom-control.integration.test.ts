@@ -10,6 +10,13 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import {
+    waitForZoomLevel,
+    waitForIPCSettle,
+    waitForSecondaryWindowsClose,
+    waitForAppReady,
+    waitForStorePersistence,
+} from '../helpers/integrationWaitUtilities';
 
 describe('Zoom Control Integration', () => {
     let mainWindowHandle: string;
@@ -32,7 +39,7 @@ describe('Zoom Control Integration', () => {
         mainWindowHandle = handles[0];
 
         // Wait for the app to be fully initialized
-        await browser.pause(500);
+        await waitForAppReady();
     });
 
     afterEach(async () => {
@@ -42,51 +49,10 @@ describe('Zoom Control Integration', () => {
             global.windowManager.setZoomLevel(defaultZoom);
         }, DEFAULT_ZOOM);
 
-        await browser.pause(100);
+        await waitForIPCSettle();
 
         // Close any extra windows (Options, Quick Chat, etc.)
-        // Note: We use close() instead of destroy() and allow time for cleanup
-        await browser.electron.execute(() => {
-            // @ts-expect-error
-            const { BrowserWindow } = require('electron');
-            const mainWin = global.windowManager.getMainWindow();
-            BrowserWindow.getAllWindows().forEach((win: any) => {
-                if (win !== mainWin && !win.isDestroyed()) {
-                    try {
-                        win.close();
-                    } catch {
-                        // Ignore errors if window is already closing
-                    }
-                }
-            });
-        });
-
-        // Allow time for windows to close - WebDriver needs time to sync state
-        await browser.pause(500);
-
-        // Try again with destroy() for any stubborn windows
-        await browser.electron.execute(() => {
-            // @ts-expect-error
-            const { BrowserWindow } = require('electron');
-            const mainWin = global.windowManager.getMainWindow();
-            BrowserWindow.getAllWindows().forEach((win: any) => {
-                if (win !== mainWin && !win.isDestroyed()) {
-                    try {
-                        win.destroy();
-                    } catch {
-                        // Ignore errors
-                    }
-                }
-            });
-        });
-
-        await browser.pause(300);
-
-        // Switch back to main window (use first available handle)
-        const handles = await browser.getWindowHandles();
-        if (handles.length > 0) {
-            await browser.switchToWindow(handles[0]);
-        }
+        await waitForSecondaryWindowsClose();
     });
 
     beforeEach(async () => {
@@ -102,7 +68,7 @@ describe('Zoom Control Integration', () => {
             global.ipcManager.store.set('zoomLevel', defaultZoom);
         }, DEFAULT_ZOOM);
 
-        await browser.pause(200);
+        await waitForIPCSettle();
     });
 
     describe('Zoom Factor Applied to Main Window', () => {
@@ -114,7 +80,7 @@ describe('Zoom Control Integration', () => {
             });
 
             // Wait for zoom to be applied
-            await browser.pause(100);
+            await waitForZoomLevel(150);
 
             // Verify webContents.getZoomFactor() matches set level
             const actualZoomFactor = await browser.electron.execute(() => {
@@ -137,7 +103,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(50);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(50);
 
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -157,7 +123,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(200);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(200);
 
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -177,7 +143,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(25);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(50);
 
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -198,7 +164,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(300);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(200);
 
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -223,7 +189,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(150);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(150);
 
             // Read via getZoomLevel()
             const zoomLevel = await browser.electron.execute(() => {
@@ -241,7 +207,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(100);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(100);
 
             const zoomLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -258,7 +224,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(50);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(50);
 
             const minZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -273,7 +239,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(200);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(200);
 
             const maxZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -293,7 +259,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(100);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(100);
 
             // Get initial zoom factor
             const initialZoomFactor = await browser.electron.execute(() => {
@@ -313,7 +279,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.zoomIn();
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(110);
 
             // Get new zoom factor
             const newZoomFactor = await browser.electron.execute(() => {
@@ -338,7 +304,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(100);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(100);
 
             const initialLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -350,7 +316,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.zoomIn();
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(110);
 
             const newLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -368,7 +334,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(175);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(175);
 
             // Zoom in twice (175 -> 200 -> 200)
             await browser.electron.execute(() => {
@@ -378,7 +344,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.zoomIn();
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(200);
 
             const zoomLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -409,7 +375,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(100);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(100);
 
             // Get initial zoom factor
             const initialZoomFactor = await browser.electron.execute(() => {
@@ -429,7 +395,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.zoomOut();
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(90);
 
             // Get new zoom factor
             const newZoomFactor = await browser.electron.execute(() => {
@@ -454,7 +420,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(100);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(100);
 
             const initialLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -466,7 +432,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.zoomOut();
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(90);
 
             const newLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -484,7 +450,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(67);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(67);
 
             // Zoom out twice (67 -> 50 -> 50)
             await browser.electron.execute(() => {
@@ -494,7 +460,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.zoomOut();
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(50);
 
             const zoomLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -525,7 +491,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(125);
             });
 
-            await browser.pause(200);
+            await waitForStorePersistence('zoomLevel', 125);
 
             // Check stored value via ipcManager.store
             const storedZoom = await browser.electron.execute(() => {
@@ -543,14 +509,14 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(100);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(100);
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
                 global.windowManager.zoomIn();
             });
 
-            await browser.pause(200);
+            await waitForStorePersistence('zoomLevel', 110);
 
             const storedZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -568,14 +534,14 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(100);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(100);
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
                 global.windowManager.zoomOut();
             });
 
-            await browser.pause(200);
+            await waitForStorePersistence('zoomLevel', 90);
 
             const storedZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -598,7 +564,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(150);
             });
 
-            await browser.pause(200);
+            await waitForStorePersistence('zoomLevel', 150);
 
             // Verify it's stored
             const storedZoom = await browser.electron.execute(() => {
@@ -616,7 +582,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.initializeZoomLevel(savedZoom);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(150);
 
             // Verify zoom is restored
             const currentZoom = await browser.electron.execute(() => {
@@ -642,7 +608,7 @@ describe('Zoom Control Integration', () => {
             // Clear the stored zoom level - we use initializeZoomLevel(undefined) directly
             // since we can't actually delete from the store in integration tests
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Re-initialize with undefined (simulating fresh install)
             await browser.electron.execute(() => {
@@ -650,7 +616,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.initializeZoomLevel(undefined);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(100);
 
             const currentZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -676,7 +642,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(150);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(150);
 
             // Open options window and capture its ID
             const optionsWinId = await browser.electron.execute(() => {
@@ -695,7 +661,7 @@ describe('Zoom Control Integration', () => {
             );
 
             // Wait for window content to fully load
-            await browser.pause(1000);
+            await waitForIPCSettle({ timeout: 10000 });
 
             // Get options window zoom factor by finding the non-main window
             const optionsZoomFactor = await browser.electron.execute(() => {
@@ -744,7 +710,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.setZoomLevel(150);
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(150);
 
             // Open quick chat window
             await browser.electron.execute(() => {
@@ -762,7 +728,7 @@ describe('Zoom Control Integration', () => {
             );
 
             // Wait for window content to fully load
-            await browser.pause(1000);
+            await waitForIPCSettle({ timeout: 10000 });
 
             // Get quick chat window zoom factor by finding the non-main window
             const quickChatZoomFactor = await browser.electron.execute(() => {
@@ -820,7 +786,7 @@ describe('Zoom Control Integration', () => {
             );
 
             // Wait for window content to fully load
-            await browser.pause(1000);
+            await waitForIPCSettle({ timeout: 10000 });
 
             // Get initial options zoom factor by finding non-main window
             const initialOptionsZoom = await browser.electron.execute(() => {
@@ -847,7 +813,7 @@ describe('Zoom Control Integration', () => {
                 global.windowManager.zoomIn();
             });
 
-            await browser.pause(100);
+            await waitForZoomLevel(110);
 
             // Options window should still be at 1.0
             const afterZoomOptionsZoom = await browser.electron.execute(() => {

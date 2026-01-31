@@ -13,6 +13,7 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import { waitForIPCSettle, waitForNotificationState, waitForAppReady } from '../helpers/integrationWaitUtilities';
 
 describe('Response Notifications IPC Integration', () => {
     let mainWindowHandle: string;
@@ -41,8 +42,8 @@ describe('Response Notifications IPC Integration', () => {
         const handles = await browser.getWindowHandles();
         mainWindowHandle = handles[0];
 
-        // Wait a bit for NotificationManager to be initialized (happens after main window is created)
-        await browser.pause(500);
+        // Wait for NotificationManager to be initialized (happens after main window is created)
+        await waitForAppReady();
     });
 
     // Task 8.1: IPC `getResponseNotificationsEnabled` returns stored value
@@ -109,7 +110,7 @@ describe('Response Notifications IPC Integration', () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(false);
             });
 
-            await browser.pause(200);
+            await waitForNotificationState(false);
 
             // Check the result - it may be false if NotificationManager is connected,
             // or true (default) if not connected
@@ -122,7 +123,7 @@ describe('Response Notifications IPC Integration', () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(true);
             });
 
-            await browser.pause(200);
+            await waitForNotificationState(true);
 
             // Check the result
             const afterSetTrue = await browser.execute(async () => {
@@ -159,7 +160,7 @@ describe('Response Notifications IPC Integration', () => {
                 });
             });
 
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             // Switch back to main window
             await browser.switchToWindow(mainWindowHandle);
@@ -188,7 +189,7 @@ describe('Response Notifications IPC Integration', () => {
                 await browser.switchToWindow(optionsWindowHandle);
             }
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Check for notifications section or toggle
             const hasNotificationsSection = await browser.execute(() => {
@@ -222,7 +223,7 @@ describe('Response Notifications IPC Integration', () => {
                 await browser.switchToWindow(optionsWindowHandle);
             }
 
-            await browser.pause(500);
+            await waitForIPCSettle();
 
             // Find a toggle element - look for the notification toggle by its label or aria attributes
             const hasToggle = await browser.execute(() => {
@@ -263,7 +264,7 @@ describe('Response Notifications IPC Integration', () => {
                     }
                 });
             });
-            await browser.pause(300);
+            await waitForIPCSettle();
             await browser.switchToWindow(mainWindowHandle);
         }
 
@@ -290,7 +291,7 @@ describe('Response Notifications IPC Integration', () => {
                 await browser.switchToWindow(optionsWindowHandle);
             }
 
-            await browser.pause(500);
+            await waitForIPCSettle();
         }
 
         afterEach(async () => {
@@ -311,11 +312,11 @@ describe('Response Notifications IPC Integration', () => {
             await browser.execute(async () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(false);
             });
-            await browser.pause(200);
+            await waitForNotificationState(false);
 
             // Close Options window
             await closeOptionsWindows();
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             // Reopen Options window
             await openOptionsWindow();
@@ -339,18 +340,18 @@ describe('Response Notifications IPC Integration', () => {
             await browser.execute(async () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(false);
             });
-            await browser.pause(200);
+            await waitForNotificationState(false);
 
             // Set toggle to ON
             await browser.execute(async () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(true);
             });
-            await browser.pause(200);
+            await waitForNotificationState(true);
 
             // Open Options, close, and reopen
             await openOptionsWindow();
             await closeOptionsWindows();
-            await browser.pause(300);
+            await waitForIPCSettle();
             await openOptionsWindow();
 
             // Check the value via API - should still be ON
@@ -375,12 +376,12 @@ describe('Response Notifications IPC Integration', () => {
             await browser.execute(async (value: boolean) => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(value);
             }, newValue);
-            await browser.pause(200);
+            await waitForNotificationState(newValue);
 
             // Open and close Options window to trigger any potential resets
             await openOptionsWindow();
             await closeOptionsWindows();
-            await browser.pause(300);
+            await waitForIPCSettle();
 
             // Verify value persisted
             const persistedValue = await browser.execute(async () => {
@@ -460,7 +461,7 @@ describe('Response Notifications IPC Integration', () => {
             }
             expect(setFalseError).toBe(false);
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Set to true
             let setTrueError = false;
@@ -493,7 +494,7 @@ describe('Response Notifications IPC Integration', () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(false);
             });
 
-            await browser.pause(200);
+            await waitForNotificationState(false);
 
             // Get value - should be false (not default true)
             const result = await browser.execute(async () => {
@@ -514,7 +515,7 @@ describe('Response Notifications IPC Integration', () => {
             await browser.execute(async () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(false);
             });
-            await browser.pause(200);
+            await waitForNotificationState(false);
 
             // Get the value
             const valueAfterSetFalse = await browser.execute(async () => {
@@ -528,7 +529,7 @@ describe('Response Notifications IPC Integration', () => {
             await browser.execute(async () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(true);
             });
-            await browser.pause(200);
+            await waitForNotificationState(true);
 
             // Get the value again
             const valueAfterSetTrue = await browser.execute(async () => {
@@ -552,7 +553,7 @@ describe('Response Notifications IPC Integration', () => {
             await browser.execute(async () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(false);
             });
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             const afterDisable = await browser.execute(async () => {
                 return await (window as any).electronAPI.getResponseNotificationsEnabled();
@@ -562,7 +563,7 @@ describe('Response Notifications IPC Integration', () => {
             await browser.execute(async () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(true);
             });
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             const afterEnable = await browser.execute(async () => {
                 return await (window as any).electronAPI.getResponseNotificationsEnabled();
@@ -584,13 +585,13 @@ describe('Response Notifications IPC Integration', () => {
             await browser.execute(async () => {
                 await (window as any).electronAPI.setResponseNotificationsEnabled(false);
             });
-            await browser.pause(200);
+            await waitForNotificationState(false);
 
             // Get value multiple times to ensure consistency
             const value1 = await browser.execute(async () => {
                 return await (window as any).electronAPI.getResponseNotificationsEnabled();
             });
-            await browser.pause(100);
+            await waitForIPCSettle();
             const value2 = await browser.execute(async () => {
                 return await (window as any).electronAPI.getResponseNotificationsEnabled();
             });

@@ -8,6 +8,11 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import {
+    waitForIPCSettle,
+    waitForSecondaryWindowsClose,
+    waitForContentReady,
+} from '../helpers/integrationWaitUtilities';
 
 describe('Text Prediction Settings IPC Integration', () => {
     let mainWindowHandle: string;
@@ -69,8 +74,8 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(value);
             }, newValue);
 
-            // Small pause for IPC to complete
-            await browser.pause(200);
+            // Wait for IPC to settle
+            await waitForIPCSettle();
 
             // Get the updated value
             const updatedValue = await browser.execute(async () => {
@@ -92,7 +97,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(false);
             });
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Verify it's false
             const afterFalse = await browser.execute(async () => {
@@ -105,7 +110,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(true);
             });
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Verify it's true
             const afterTrue = await browser.execute(async () => {
@@ -140,7 +145,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(true);
             });
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Retrieve and verify persistence
             const valueAfterSetTrue = await browser.execute(async () => {
@@ -153,7 +158,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(false);
             });
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Retrieve and verify persistence
             const valueAfterSetFalse = await browser.execute(async () => {
@@ -173,7 +178,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(true);
             });
 
-            await browser.pause(150);
+            await waitForIPCSettle();
 
             // Verify the value was stored by retrieving it
             const storedValue = await browser.execute(async () => {
@@ -187,7 +192,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(false);
             });
 
-            await browser.pause(150);
+            await waitForIPCSettle();
 
             // Verify the new value was stored
             const updatedValue = await browser.execute(async () => {
@@ -229,7 +234,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionGpuEnabled(value);
             }, newValue);
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             // Verify
             const updatedValue = await browser.execute(async () => {
@@ -265,7 +270,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionGpuEnabled(true);
             });
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             const afterTrue = await browser.execute(async () => {
                 return await (window as any).electronAPI.getTextPredictionGpuEnabled();
@@ -277,7 +282,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionGpuEnabled(false);
             });
 
-            await browser.pause(100);
+            await waitForIPCSettle();
 
             const afterFalse = await browser.execute(async () => {
                 return await (window as any).electronAPI.getTextPredictionGpuEnabled();
@@ -415,7 +420,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 });
             });
 
-            await browser.pause(300);
+            await waitForSecondaryWindowsClose();
 
             // Switch back to main window
             await browser.switchToWindow(mainWindowHandle);
@@ -444,7 +449,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await browser.switchToWindow(optionsWindowHandle);
             }
 
-            await browser.pause(500);
+            await waitForContentReady({ timeout: 1000 });
 
             // Check for text prediction section or toggle
             const hasTextPredictionSection = await browser.execute(() => {
