@@ -27,6 +27,7 @@ import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
+import { E2E_TIMING } from './helpers/e2eConstants';
 
 // ============================================================================
 // Test Suite
@@ -252,7 +253,7 @@ describe('Response Notifications', () => {
                     });
                     return result;
                 },
-                { timeout: 2000, description: 'Notification badge triggered' }
+                { timeout: E2E_TIMING.TIMEOUTS.UI_STATE, description: 'Notification badge triggered' }
             );
 
             // 4. Verify badge was shown via production code path
@@ -278,7 +279,7 @@ describe('Response Notifications', () => {
                     });
                     return cleared;
                 },
-                { timeout: 2000, description: 'Badge cleared on focus' }
+                { timeout: E2E_TIMING.TIMEOUTS.UI_STATE, description: 'Badge cleared on focus' }
             );
 
             // 6. Verify badge was cleared
@@ -345,7 +346,7 @@ describe('Response Notifications', () => {
                     });
                     return result;
                 },
-                { timeout: 2000, description: 'Notification triggered' }
+                { timeout: E2E_TIMING.TIMEOUTS.UI_STATE, description: 'Notification triggered' }
             );
 
             // 4. Verify notification and badge state
