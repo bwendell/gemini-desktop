@@ -130,3 +130,65 @@ This project uses **OpenSpec** for planning and tracking changes.
 
 - Follow existing patterns in `.cursor/rules/` if they exist (none found currently).
 - Adhere to the `Core Mandates` in the system prompt.
+
+---
+
+## 🛡️ Boundaries
+
+### ✅ Always Do
+
+- Run `npm run lint` and `npm run test && npm run test:electron` before committing
+- Use existing patterns from `docs/ARCHITECTURE.md`
+- Reference existing components before creating new ones
+
+### ⚠️ Ask First
+
+- Adding new npm dependencies
+- Modifying IPC channel definitions in `src/shared/constants/ipc-channels.ts`
+- Changing Electron main process security settings
+- Architectural changes affecting multiple managers
+
+### 🚫 Never Do
+
+- Commit secrets, API keys, or credentials
+- Force push to main branch
+- Modify `electron-builder.yml` without explicit approval
+
+---
+
+## ✅ Pre-Commit Checklist
+
+Before committing, verify:
+
+```bash
+npm run lint          # No ESLint errors
+npm run test          # Unit tests pass
+npm run test:electron # Electron tests pass
+npm run build         # TypeScript compiles
+```
+
+For E2E changes, also run relevant group:
+
+```bash
+npm run test:e2e:group:quickchat  # Example: Quick Chat changes
+```
+
+**Commit Message Format**: `type(scope): description`
+
+- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+- Scope: `main`, `renderer`, `shared`, `e2e`, `build`
+
+---
+
+## 🤔 When Stuck
+
+If you're uncertain about how to proceed:
+
+1. **Check existing patterns first**:
+    - `docs/ARCHITECTURE.md` - System design, IPC patterns, manager patterns
+    - `docs/E2E_TESTING_GUIDELINES.md` - Test patterns and anti-patterns
+    - Search codebase for similar implementations
+
+2. **Ask clarifying questions** rather than making assumptions:
+    - "Should this follow the existing X pattern, or is a new approach needed?"
+    - "This change affects Y. Should I also update Z?"
