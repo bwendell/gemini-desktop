@@ -11,6 +11,7 @@ import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { expectUrlHash } from './helpers/assertions';
 import { isMacOS } from './helpers/platform';
+import { waitForDuration } from './helpers/waitUtilities';
 
 describe('General Menu Actions', () => {
     const mainWindow = new MainWindowPage();
@@ -65,7 +66,7 @@ describe('General Menu Actions', () => {
         await mainWindow.clickMenuById('menu-view-reload');
 
         // 3. Wait for reload to complete
-        await browser.pause(1000);
+        await waitForDuration(1000, 'Page reload');
 
         // 4. Verify variable is GONE (undefined) because page reloaded
         const valAfter = await browser.execute(() => (window as any).__e2e_test_var);

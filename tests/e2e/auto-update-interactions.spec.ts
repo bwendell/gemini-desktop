@@ -9,6 +9,7 @@
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
 import { expect, browser } from '@wdio/globals';
+import { waitForDuration } from './helpers/waitUtilities';
 import { UpdateToastPage } from './pages';
 
 describe('Auto-Update User Interactions', () => {
@@ -19,7 +20,7 @@ describe('Auto-Update User Interactions', () => {
         updateToast = new UpdateToastPage();
 
         // Wait for app to be ready
-        await browser.pause(2000);
+        await waitForDuration(2000, 'App startup');
 
         // Disable auto-updates settings via IPC to stop the startup check
         await browser.execute(() => {
@@ -31,7 +32,7 @@ describe('Auto-Update User Interactions', () => {
         });
 
         // Allow IPC to process
-        await browser.pause(1000);
+        await waitForDuration(1000, 'IPC processing');
     });
 
     beforeEach(async () => {

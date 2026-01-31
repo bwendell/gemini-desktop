@@ -24,7 +24,7 @@ import { QuickChatPage, MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForWindowTransition } from './helpers/workflows';
 import { verifyGeminiEditorState, waitForTextInGeminiEditor } from './helpers/quickChatActions';
 import { E2ELogger } from './helpers/logger';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Quick Chat Full Workflow (E2E)', () => {
     const quickChat = new QuickChatPage();
@@ -57,7 +57,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             // Step 1: Trigger Quick Chat via hotkey action (same as pressing hotkey)
             E2ELogger.info('full-workflow', '1. Opening Quick Chat window...');
             await quickChat.show();
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForUIState(async () => await quickChat.isVisible(), { description: 'Quick Chat visible' });
 
             // Step 2: Verify Quick Chat window opened
             const foundQuickChat = await quickChat.switchToQuickChatWindow();
@@ -67,7 +67,9 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             // Step 3: Type test message
             E2ELogger.info('full-workflow', '3. Typing message...');
             await quickChat.typeText(testMessage);
-            await browser.pause(300);
+            await waitForUIState(async () => (await quickChat.getInputValue()) === testMessage, {
+                description: 'Input has text',
+            });
 
             // Verify text was entered
             const enteredValue = await quickChat.getInputValue();
@@ -93,8 +95,19 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             E2ELogger.info('full-workflow', '6. Switching to main window...');
             await switchToMainWindow();
 
-            // Wait for navigation and iframe loading
-            await browser.pause(E2E_TIMING.IFRAME_LOAD_WAIT_MS);
+            // Wait for navigation and iframe loading (use increased timeout for iframe)
+            await waitForUIState(
+                async () => {
+                    // Check if we can access the Gemini editor (indicates iframe is loaded)
+                    try {
+                        const state = await verifyGeminiEditorState();
+                        return state.iframeFound && state.editorFound;
+                    } catch {
+                        return false;
+                    }
+                },
+                { timeout: 10000, description: 'Gemini iframe loaded' }
+            );
             E2ELogger.info('full-workflow', '   Main window focused ✓');
 
             // Step 7: Verify text was injected into Gemini editor
@@ -134,14 +147,16 @@ describe('Quick Chat Full Workflow (E2E)', () => {
 
             // Open Quick Chat
             await quickChat.show();
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForUIState(async () => await quickChat.isVisible(), { description: 'Quick Chat visible' });
 
             const foundQuickChat = await quickChat.switchToQuickChatWindow();
             expect(foundQuickChat).toBe(true);
 
             // Type message
             await quickChat.typeText(testMessage);
-            await browser.pause(300);
+            await waitForUIState(async () => (await quickChat.getInputValue()) === testMessage, {
+                description: 'Input has text',
+            });
 
             // Submit via Enter key
             E2ELogger.info('enter-workflow', 'Submitting via Enter key...');
@@ -152,7 +167,17 @@ describe('Quick Chat Full Workflow (E2E)', () => {
 
             // Switch to main and verify
             await switchToMainWindow();
-            await browser.pause(E2E_TIMING.IFRAME_LOAD_WAIT_MS);
+            await waitForUIState(
+                async () => {
+                    try {
+                        const state = await verifyGeminiEditorState();
+                        return state.iframeFound && state.editorFound;
+                    } catch {
+                        return false;
+                    }
+                },
+                { timeout: 10000, description: 'Gemini iframe loaded' }
+            );
 
             const editorState = await waitForTextInGeminiEditor(testMessage, 10000);
 
@@ -167,7 +192,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
         it('should handle rapid hotkey toggle during workflow', async () => {
             // Open Quick Chat
             await quickChat.show();
-            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
+            await waitForUIState(async () => await quickChat.isVisible(), { description: 'Quick Chat visible' });
 
             const initialVisible = await quickChat.isVisible();
             expect(initialVisible).toBe(true);
@@ -181,7 +206,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
 
             // Toggle show again
             await quickChat.show();
-            await browser.pause(E2E_TIMING.QUICK_CHAT_SHOW_DELAY_MS);
+            await waitForUIState(async () => await quickChat.isVisible(), { description: 'Quick Chat visible' });
 
             const finalVisible = await quickChat.isVisible();
             expect(finalVisible).toBe(true);
@@ -194,14 +219,16 @@ describe('Quick Chat Full Workflow (E2E)', () => {
 
         it('should clear input and reject empty submission', async () => {
             await quickChat.show();
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForUIState(async () => await quickChat.isVisible(), { description: 'Quick Chat visible' });
 
             const found = await quickChat.switchToQuickChatWindow();
             expect(found).toBe(true);
 
             // Verify submit is disabled with empty input
             await quickChat.clearInput();
-            await browser.pause(200);
+            await waitForUIState(async () => (await quickChat.getInputValue()) === '', {
+                description: 'Input cleared',
+            });
 
             const isEnabled = await quickChat.isSubmitEnabled();
             expect(isEnabled).toBe(false);

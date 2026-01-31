@@ -9,6 +9,7 @@
 import { browser, $, expect } from '@wdio/globals';
 import { OptionsPage } from './pages';
 import { waitForAppReady, ensureSingleWindow, withOptionsWindowViaMenu } from './helpers/workflows';
+import { waitForUIState, waitForAnimationSettle } from './helpers/waitUtilities';
 
 describe('Theme Selector Keyboard Navigation', () => {
     const optionsPage = new OptionsPage();
@@ -36,8 +37,16 @@ describe('Theme Selector Keyboard Navigation', () => {
                     found = true;
                     break;
                 }
-                // Small pause to allow focus to settle
-                await browser.pause(50);
+                // Wait for focus to settle before next iteration
+                await waitForUIState(
+                    async () => {
+                        const currentActiveTestId = await browser.execute(() => {
+                            return document.activeElement?.getAttribute('data-testid');
+                        });
+                        return currentActiveTestId === activeTestId;
+                    },
+                    { timeout: 200, interval: 20, description: 'Focus to settle' }
+                );
             }
 
             // One of the theme cards should be focused
@@ -81,7 +90,12 @@ describe('Theme Selector Keyboard Navigation', () => {
 
             // Press Enter to select
             await browser.keys(['Enter']);
-            await browser.pause(300);
+
+            // Wait for theme change animation to settle
+            await waitForAnimationSettle('[data-testid="theme-card-dark"]', {
+                property: 'opacity',
+                timeout: 1000,
+            });
 
             // Verify dark theme is now selected
             const darkCard = await $(optionsPage.themeCardSelector('dark'));
@@ -107,7 +121,12 @@ describe('Theme Selector Keyboard Navigation', () => {
 
             // Press Space to select
             await browser.keys(['Space']);
-            await browser.pause(300);
+
+            // Wait for theme change animation to settle
+            await waitForAnimationSettle('[data-testid="theme-card-light"]', {
+                property: 'opacity',
+                timeout: 1000,
+            });
 
             // Verify light theme is now selected
             const lightCard = await $(optionsPage.themeCardSelector('light'));

@@ -18,9 +18,9 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
-import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForAppReady } from './helpers/workflows';
 import { expectElementDisplayed, expectElementNotDisplayed, expectElementContainsText } from './helpers/assertions';
+import { waitForAnimationSettle, waitForUIState } from './helpers/waitUtilities';
 
 // ============================================================================
 // Test Suite
@@ -47,7 +47,7 @@ describe('Error Boundary Recovery E2E', () => {
                 // Emit the open-options-window IPC event that the renderer would send
                 ipcMain.emit('open-options-window', { sender: null });
             });
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="options-window"]', { timeout: 3000 });
 
             // Switch to the options window
             const handles = await browser.getWindowHandles();
@@ -117,7 +117,13 @@ describe('Error Boundary Recovery E2E', () => {
             });
 
             // Wait for fallback to appear
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(
+                async () => {
+                    const reloadButton = await $('[data-testid="error-fallback-reload"]');
+                    return await reloadButton.isDisplayed();
+                },
+                { description: 'Reload button to appear' }
+            );
 
             // VERIFY: Reload button is visible and has correct text
             const reloadButton = await $('[data-testid="error-fallback-reload"]');
@@ -145,7 +151,7 @@ describe('Error Boundary Recovery E2E', () => {
 
             // 3. VERIFY ACTUAL OUTCOME: Error fallback should disappear
             // After reload, the options window should be functional again
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE * 2);
+            await waitForAnimationSettle('[data-testid="error-fallback"]', { timeout: 6000 });
 
             // The page reloads, so we need to wait for the options window to load again
             const handles = await browser.getWindowHandles();
@@ -172,7 +178,13 @@ describe('Error Boundary Recovery E2E', () => {
                 window.__ERROR_BOUNDARY_TRIGGER_OPTIONS__?.();
             });
 
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(
+                async () => {
+                    const detailsSummary = await $('[data-testid="error-fallback"] details summary');
+                    return await detailsSummary.isDisplayed();
+                },
+                { description: 'Error details summary to appear' }
+            );
 
             // VERIFY: Error details are available
             const detailsSummary = await $('[data-testid="error-fallback"] details summary');

@@ -16,6 +16,7 @@ import { MainWindowPage, OptionsPage, AuthWindowPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
 import { closeWindow, showWindow, waitForAllWindowsHidden } from './helpers/windowStateActions';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
+import { waitForWindowTransition } from './helpers/waitUtilities';
 import { E2ELogger } from './helpers/logger';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -113,7 +114,10 @@ describe('Window Management Edge Cases', () => {
             });
 
             // 5. Wait for single instance restoration to focus main window
-            await browser.pause(1000);
+            await waitForWindowTransition(async () => await mainWindow.isLoaded(), {
+                description: 'Single instance restoration focus main window',
+                timeout: 5000,
+            });
 
             // 6. Verify main window is focused (main is focused on second-instance signal)
             await browser.switchToWindow(mainHandle);

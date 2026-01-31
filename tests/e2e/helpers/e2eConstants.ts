@@ -108,6 +108,44 @@ export const E2E_TIMING = {
 
     /** Time to wait for animation settling */
     ANIMATION_SETTLE: 500,
+
+    // =========================================================================
+    // TIMEOUTS: Maximum wait times for deterministic waits (waitFor* functions)
+    // These replace static pauses with condition-based polling
+    // =========================================================================
+    TIMEOUTS: {
+        /** Max time to wait for UI state change (e.g., toggle, theme update) */
+        UI_STATE: 5000,
+        /** Max time to wait for IPC operation to complete */
+        IPC_OPERATION: 3000,
+        /** Max time to wait for window transition (minimize/maximize/restore) */
+        WINDOW_TRANSITION: 5000,
+        /** Max time to wait for CSS animation to settle */
+        ANIMATION_SETTLE: 3000,
+        /** Max time to wait for fullscreen transition */
+        FULLSCREEN_TRANSITION: 10000,
+        /** Max time for macOS window stabilization */
+        MACOS_WINDOW_STABILIZE: 5000,
+        /** Max time for cleanup operations */
+        CLEANUP: 2000,
+        /** Max time per cycle operation */
+        CYCLE_PER_OPERATION: 3000,
+    },
+
+    // =========================================================================
+    // POLLING: Intervals for condition checking in waitFor* functions
+    // Smaller values = more responsive but higher CPU; larger = more efficient
+    // =========================================================================
+    POLLING: {
+        /** Interval for UI state checks (ms) */
+        UI_STATE: 50,
+        /** Interval for window state checks (ms) */
+        WINDOW_STATE: 100,
+        /** Interval for animation stability checks (ms) */
+        ANIMATION: 50,
+        /** Interval for IPC verification checks (ms) */
+        IPC: 50,
+    },
 } as const;
 
 // =============================================================================

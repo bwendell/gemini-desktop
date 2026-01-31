@@ -19,7 +19,7 @@ import { triggerZoomIn, triggerZoomOut, getMenuItemState } from './helpers/menuA
 import { readUserPreferences } from './helpers/persistenceActions';
 import { isMacOS } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Zoom Control E2E', () => {
     beforeEach(async () => {
@@ -353,7 +353,7 @@ describe('Zoom Control E2E', () => {
             expect(zoomLevel).toBe(150);
 
             // 2. Wait for settings to be persisted to disk
-            await browser.pause(E2E_TIMING.EXTENDED_PAUSE_MS);
+            await waitForDuration(500, 'Settings persistence');
 
             // 3. Read zoom level from user-preferences.json to verify persistence
             const prefs = await readUserPreferences();

@@ -19,8 +19,8 @@ import { waitForWindowCount } from './helpers/windowActions';
 import { waitForOptionsWindow, switchToOptionsWindow, closeOptionsWindow } from './helpers/optionsWindowActions';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
-import { E2E_TIMING } from './helpers/e2eConstants';
 import { Selectors } from './helpers/selectors';
+import { waitForUIState } from './helpers/waitUtilities';
 
 // ============================================================================
 // Extensible Hotkey Configuration
@@ -203,7 +203,9 @@ describe('Individual Hotkey Toggles', () => {
             E2ELogger.info('hotkey-toggle', `Initial state: ${initialChecked}`);
 
             await toggleSwitch.click();
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(async () => (await toggleSwitch.getAttribute('aria-checked')) !== initialChecked, {
+                description: 'Toggle state changed',
+            });
 
             const newChecked = await toggleSwitch.getAttribute('aria-checked');
             E2ELogger.info('hotkey-toggle', `After click: ${newChecked}`);
@@ -212,7 +214,9 @@ describe('Individual Hotkey Toggles', () => {
 
             // Restore original state
             await toggleSwitch.click();
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(async () => (await toggleSwitch.getAttribute('aria-checked')) === initialChecked, {
+                description: 'Toggle restored to original state',
+            });
         });
 
         it('should toggle back when clicked again', async () => {
@@ -221,9 +225,13 @@ describe('Individual Hotkey Toggles', () => {
 
             const initial = await toggleSwitch.getAttribute('aria-checked');
             await toggleSwitch.click();
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(async () => (await toggleSwitch.getAttribute('aria-checked')) !== initial, {
+                description: 'Toggle state changed after first click',
+            });
             await toggleSwitch.click();
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(async () => (await toggleSwitch.getAttribute('aria-checked')) === initial, {
+                description: 'Toggle state restored to initial',
+            });
 
             const final = await toggleSwitch.getAttribute('aria-checked');
             expect(final).toBe(initial);
@@ -236,7 +244,9 @@ describe('Individual Hotkey Toggles', () => {
             const initial1 = await toggle1.getAttribute('aria-checked');
 
             await toggle1.click();
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(async () => (await toggle1.getAttribute('aria-checked')) !== initial1, {
+                description: 'First hotkey toggle state changed',
+            });
 
             // Second hotkey should be unaffected
             // const config2 = HOTKEY_CONFIGS[1];
@@ -249,7 +259,9 @@ describe('Individual Hotkey Toggles', () => {
 
             // Restore
             await toggle1.click();
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(async () => (await toggle1.getAttribute('aria-checked')) === initial1, {
+                description: 'First hotkey toggle restored',
+            });
 
             E2ELogger.info('hotkey-toggle', 'Independent toggle verified');
         });
@@ -280,7 +292,9 @@ describe('Individual Hotkey Toggles', () => {
             const current = await toggle.getAttribute('aria-checked');
             if (current !== targetState) {
                 await toggle.click();
-                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                await waitForUIState(async () => (await toggle.getAttribute('aria-checked')) === targetState, {
+                    description: `Toggle set to ${targetState}`,
+                });
             }
         }
 

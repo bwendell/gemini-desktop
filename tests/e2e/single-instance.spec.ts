@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { minimizeWindow, restoreWindow, focusWindow, isWindowMinimized } from './helpers/windowStateActions';
+import { isLinuxSync } from './helpers/platform';
+import { waitForUIState } from './helpers/waitUtilities';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const mainEntry = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
@@ -52,7 +54,12 @@ describe('Single Instance Lock', () => {
 
         // 3. Verify: First instance should still be focused
         // Wait briefly for potential focus flakiness (though it should stay focused)
-        await browser.pause(1000);
+        await waitForUIState(
+            async () => {
+                return await browser.execute(() => document.hasFocus());
+            },
+            { description: 'Window remains focused after second instance' }
+        );
 
         const isFocusedAfter = await browser.execute(() => document.hasFocus());
         expect(isFocusedAfter).toBe(true);
@@ -62,7 +69,7 @@ describe('Single Instance Lock', () => {
     // The test relies on isMinimized() which always returns false when there's no WM to handle minimize states
     it('should restore window from minimized state when second instance is launched', async function () {
         // Skip on Linux due to Xvfb/headless limitations
-        if (process.platform === 'linux') {
+        if (isLinuxSync()) {
             console.log('[SKIPPED] Window minimization test skipped on headless Linux - no window manager');
             this.skip();
         }

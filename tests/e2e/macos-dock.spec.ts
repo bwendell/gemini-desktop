@@ -18,6 +18,7 @@ import { MacOSDockPage, MainWindowPage } from './pages';
 import { E2ELogger } from './helpers/logger';
 import { verifyTrayCreated, getTrayTooltip } from './helpers/trayActions';
 import { waitForAppReady, getWindowCount } from './helpers/workflows';
+import { waitForMacOSWindowStabilize } from './helpers/waitUtilities';
 
 describe('macOS Dock and Menubar Behavior', () => {
     const dockPage = new MacOSDockPage();
@@ -65,7 +66,7 @@ describe('macOS Dock and Menubar Behavior', () => {
 
             // Simulate activate - should not create extra windows if one exists
             await dockPage.simulateActivateEvent();
-            await browser.pause(500);
+            await waitForMacOSWindowStabilize(undefined, { description: 'Dock activate event' });
 
             const afterActivateCount = await getWindowCount();
 

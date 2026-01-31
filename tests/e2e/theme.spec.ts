@@ -9,6 +9,7 @@
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
+import { waitForAnimationSettle } from './helpers/waitUtilities';
 
 describe('Theme Feature', () => {
     // Create page object instances
@@ -28,8 +29,11 @@ describe('Theme Feature', () => {
         // 2. Select Light Theme using Page Object
         await optionsPage.selectTheme('light');
 
-        // Small delay for CSS to apply
-        await browser.pause(500);
+        // Wait for CSS theme transition to apply
+        await waitForAnimationSettle('[data-testid="options-titlebar-title"]', {
+            property: 'color',
+            timeout: 1000,
+        });
 
         // Debug: Log all CSS variable and computed style info for LIGHT theme
         const lightDebugInfo = await browser.execute(() => {
@@ -88,7 +92,10 @@ describe('Theme Feature', () => {
 
         // 3. Switch to dark theme using Page Object
         await optionsPage.selectTheme('dark');
-        await browser.pause(500);
+        await waitForAnimationSettle('[data-testid="options-titlebar-title"]', {
+            property: 'color',
+            timeout: 1000,
+        });
 
         const darkDebugInfo = await browser.execute(() => {
             const titleEl = document.querySelector('[data-testid="options-titlebar-title"]');

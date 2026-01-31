@@ -18,6 +18,7 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForMacOSWindowStabilize } from './helpers/waitUtilities';
 import { MainWindowPage, TrayPage } from './pages';
 
 describe('System Tray Functionality', () => {
@@ -155,8 +156,10 @@ describe('System Tray Functionality', () => {
             // Restore window for cleanup
             await tray.restoreWindowViaTrayClick();
 
-            // Extra stabilization pause for macOS WebSocket stability
-            await browser.pause(500);
+            // Extra stabilization for macOS WebSocket stability
+            await waitForMacOSWindowStabilize(async () => await tray.isWindowVisible(), {
+                description: 'Window stabilization after tray restore',
+            });
 
             E2ELogger.info('tray', 'Tray icon persists when window is hidden');
         });

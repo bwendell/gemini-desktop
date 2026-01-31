@@ -14,6 +14,7 @@ import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 import { waitForOptionsWindow } from './helpers/optionsWindowActions';
 import { E2ELogger } from './helpers/logger';
+import { waitForDuration } from './helpers/waitUtilities';
 
 /**
  * SKIP REASON: WebDriver session handling cannot gracefully handle app shutdown.
@@ -56,7 +57,7 @@ describe.skip('Application Lifecycle', () => {
         // We just need to wait briefly and verify the close was triggered.
         // Any session errors after this point indicate the app quit (expected).
         try {
-            await browser.pause(2000);
+            await waitForDuration(2000, 'App shutdown grace period');
 
             // If we can still get handles, check if app has closed
             const remainingHandles = await browser.getWindowHandles();

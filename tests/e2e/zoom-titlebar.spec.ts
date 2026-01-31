@@ -16,7 +16,7 @@ import { browser, expect, $ } from '@wdio/globals';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForIpcSettle } from './helpers/workflows';
 import { isMacOS } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Zoom Control via Custom Titlebar E2E', () => {
     beforeEach(async () => {
@@ -64,7 +64,7 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
     async function closeMenu(): Promise<void> {
         const body = await $('body');
         await body.click();
-        await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+        await waitForDuration(300, 'Menu close animation');
     }
 
     /**
@@ -268,7 +268,7 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
                 await openViewMenu();
                 await clickMenuItem('menu-view-zoom-in');
                 await waitForIpcSettle();
-                await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+                await waitForDuration(300, 'UI state settle after zoom');
             }
 
             // Verify zoom is capped at 200%
@@ -301,7 +301,7 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
                 await openViewMenu();
                 await clickMenuItem('menu-view-zoom-out');
                 await waitForIpcSettle();
-                await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+                await waitForDuration(300, 'UI state settle after zoom');
             }
 
             // Verify zoom is capped at 50%

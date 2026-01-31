@@ -17,6 +17,7 @@ import { browser, expect } from '@wdio/globals';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForUIState, waitForAnimationSettle, waitForDuration } from './helpers/waitUtilities';
 import { ToastPage } from './pages/ToastPage';
 
 // =============================================================================
@@ -30,7 +31,10 @@ describe('Toast Full Workflow E2E', () => {
         await waitForAppReady();
         // Clear any existing toasts
         await toastPage.dismissAll();
-        await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+        await waitForUIState(async () => true, {
+            timeout: E2E_TIMING.UI_STATE_PAUSE_MS,
+            description: 'Clear toasts and settle UI',
+        });
     });
 
     afterEach(async () => {
@@ -76,7 +80,7 @@ describe('Toast Full Workflow E2E', () => {
             // 4. Wait for auto-dismiss (success duration is 5000ms)
             // We wait a bit longer to account for animation time
             E2ELogger.info('toast-workflow', 'Waiting for auto-dismiss (5s + buffer)...');
-            await browser.pause(5500);
+            await waitForDuration(5500, 'INTENTIONAL: Testing 5s auto-dismiss timer for success toast');
 
             // 5. Verify toast is removed
             const remainingCount = await toastPage.getToastCount();
@@ -113,7 +117,7 @@ describe('Toast Full Workflow E2E', () => {
 
             // 3. Verify toast persists after 5 seconds (success would auto-dismiss by now)
             E2ELogger.info('toast-workflow', 'Verifying error toast persists for 5s...');
-            await browser.pause(5500);
+            await waitForDuration(5500, 'INTENTIONAL: Testing error toast persistence (success would dismiss by now)');
 
             let count = await toastPage.getToastCount();
             expect(count).toBe(1); // Error toast should still be visible
@@ -122,7 +126,9 @@ describe('Toast Full Workflow E2E', () => {
             // 4. Click dismiss button to manually remove
             E2ELogger.info('toast-workflow', 'Clicking dismiss button...');
             await toastPage.dismissToast(0);
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="toast"]', {
+                timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+            });
 
             // 5. Verify toast is removed
             count = await toastPage.getToastCount();
@@ -140,7 +146,7 @@ describe('Toast Full Workflow E2E', () => {
 
             // Wait for the full 10s duration + buffer
             E2ELogger.info('toast-workflow', 'Waiting for 10s auto-dismiss...');
-            await browser.pause(10500);
+            await waitForDuration(10500, 'INTENTIONAL: Testing 10s auto-dismiss timer for error toast');
 
             // Verify auto-dismissed
             const count = await toastPage.getToastCount();
@@ -186,7 +192,10 @@ describe('Toast Full Workflow E2E', () => {
                 title: 'Download Progress',
                 id: 'test-progress-toast',
             });
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(async () => true, {
+                timeout: E2E_TIMING.UI_STATE_PAUSE_MS,
+                description: 'Progress update to 50%',
+            });
 
             // Verify progress updated
             progressValue = await toastPage.getProgressValue();
@@ -198,19 +207,24 @@ describe('Toast Full Workflow E2E', () => {
                 title: 'Download Progress',
                 id: 'test-progress-toast',
             });
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(async () => true, {
+                timeout: E2E_TIMING.UI_STATE_PAUSE_MS,
+                description: 'Progress update to 100%',
+            });
 
             progressValue = await toastPage.getProgressValue();
             expect(parseInt(progressValue ?? '0', 10)).toBe(100);
 
             // 5. Progress toast should NOT auto-dismiss (persistent by default)
-            await browser.pause(5500);
+            await waitForDuration(5500, 'INTENTIONAL: Verify progress toast does not auto-dismiss after 5s');
             const stillVisible = await toastPage.getToastCount();
             expect(stillVisible).toBe(1);
 
             // 6. Manually dismiss to complete workflow
             await toastPage.dismissToastById(toastId);
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="toast"]', {
+                timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+            });
 
             const finalCount = await toastPage.getToastCount();
             expect(finalCount).toBe(0);
@@ -233,14 +247,20 @@ describe('Toast Full Workflow E2E', () => {
                 persistent: true,
                 id: 'multi-toast-1',
             });
-            await browser.pause(100);
+            await waitForUIState(async () => true, {
+                timeout: 100,
+                description: 'Brief delay after first toast creation',
+            });
 
             const toast2Id = await toastPage.showWarning('Second toast', {
                 title: 'Toast 2',
                 persistent: true,
                 id: 'multi-toast-2',
             });
-            await browser.pause(100);
+            await waitForUIState(async () => true, {
+                timeout: 100,
+                description: 'Brief delay after second toast creation',
+            });
 
             const toast3Id = await toastPage.showSuccess('Third toast', {
                 title: 'Toast 3',
@@ -248,7 +268,10 @@ describe('Toast Full Workflow E2E', () => {
                 id: 'multi-toast-3',
             });
 
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(async () => true, {
+                timeout: E2E_TIMING.UI_STATE_PAUSE_MS,
+                description: 'Three toasts rendered and stacked',
+            });
 
             // 2. Verify all 3 toasts are stacked
             const initialCount = await toastPage.getToastCount();
@@ -274,7 +297,9 @@ describe('Toast Full Workflow E2E', () => {
             // 3. Dismiss middle toast (toast 2)
             E2ELogger.info('toast-workflow', 'Dismissing middle toast...');
             await toastPage.dismissToastById(toast2Id);
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="toast"]', {
+                timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+            });
 
             // 4. Verify remaining toasts re-stack correctly
             const remainingCount = await toastPage.getToastCount();
@@ -295,7 +320,9 @@ describe('Toast Full Workflow E2E', () => {
             // 5. Cleanup - dismiss remaining toasts
             await toastPage.dismissToastById(toast1Id);
             await toastPage.dismissToastById(toast3Id);
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="toast"]', {
+                timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+            });
 
             const finalCount = await toastPage.getToastCount();
             expect(finalCount).toBe(0);
@@ -321,13 +348,17 @@ describe('Toast Full Workflow E2E', () => {
 
             // Click dismiss on first visible toast (index 0)
             await toastPage.dismissToast(0);
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="toast"]', {
+                timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+            });
 
             expect(await toastPage.getToastCount()).toBe(1);
 
             // Click dismiss on remaining toast
             await toastPage.dismissToast(0);
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="toast"]', {
+                timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+            });
 
             expect(await toastPage.getToastCount()).toBe(0);
 
