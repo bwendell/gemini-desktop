@@ -15,18 +15,21 @@ import { browser, expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { usesCustomControls, isMacOS, isLinuxCI } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
-import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForWindowTransition } from './helpers/waitUtilities';
 import {
     isWindowMaximized,
     isWindowMinimized,
     isWindowVisible,
     isWindowDestroyed,
+    isWindowFullScreen,
     getWindowState,
     maximizeWindow,
     restoreWindow,
     closeWindow,
     showWindow,
+    toggleFullscreen,
+    setFullScreen,
 } from './helpers/windowStateActions';
 
 describe('Window Controls Functionality', () => {
@@ -114,9 +117,9 @@ describe('Window Controls Functionality', () => {
                 return;
             }
 
-            // Skip on Linux CI
+            // Skip on Linux CI or WSL (no window manager)
             if (await isLinuxCI()) {
-                E2ELogger.info('window-controls', 'Skipping - Linux CI uses headless Xvfb without window manager');
+                E2ELogger.info('window-controls', 'Skipping - Linux CI/WSL uses headless Xvfb without window manager');
                 return;
             }
 
@@ -140,9 +143,13 @@ describe('Window Controls Functionality', () => {
 
             // 1. Click close button via Page Object
             await mainWindow.clickClose();
-            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
 
-            // 2. Verify window behavior:
+            // 2. Wait for window to transition (become hidden)
+            await waitForWindowTransition(async () => !(await isWindowVisible()), {
+                description: 'Window hide to tray',
+            });
+
+            // 3. Verify window behavior:
             // - Not destroyed (app still running)
             // - Not visible (hidden to tray)
             // - Not minimized (just hidden)
@@ -150,7 +157,7 @@ describe('Window Controls Functionality', () => {
             await expect(isWindowVisible()).resolves.toBe(false);
             await expect(isWindowMinimized()).resolves.toBe(false);
 
-            // 3. Restore window via API (simulating tray click)
+            // 4. Restore window via API (simulating tray click)
             await restoreWindow();
             await expect(isWindowVisible()).resolves.toBe(true);
 
@@ -203,7 +210,11 @@ describe('Window Controls Functionality', () => {
             // WebDriver sends keyboard events to web content, NOT to the OS,
             // so Cmd+W won't actually trigger the window close on macOS.
             await closeWindow();
-            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+
+            // Wait for window to transition (become hidden)
+            await waitForWindowTransition(async () => !(await isWindowVisible()), {
+                description: 'macOS window hide to tray',
+            });
 
             // Log state for debugging
             const stateAfterClose = await getWindowState();
@@ -220,6 +231,40 @@ describe('Window Controls Functionality', () => {
             await expect(isWindowVisible()).resolves.toBe(true);
 
             E2ELogger.info('window-controls', 'macOS close-to-tray verified');
+        });
+    });
+
+    // =========================================================================
+    // Fullscreen Toggle via IPC
+    // =========================================================================
+
+    describe('Fullscreen Toggle via IPC (All Platforms)', () => {
+        afterEach(async () => {
+            // Always exit fullscreen after each test
+            const isFS = await isWindowFullScreen();
+            if (isFS) {
+                await setFullScreen(false);
+            }
+        });
+
+        it('should toggle fullscreen via electronAPI.toggleFullscreen()', async () => {
+            // 1. Verify not in fullscreen initially
+            const initialFS = await isWindowFullScreen();
+            expect(initialFS).toBe(false);
+
+            // 2. Toggle fullscreen ON via IPC
+            await toggleFullscreen();
+            const afterToggleOn = await isWindowFullScreen();
+            expect(afterToggleOn).toBe(true);
+
+            E2ELogger.info('window-controls', 'Fullscreen entered via toggleFullscreen()');
+
+            // 3. Toggle fullscreen OFF via IPC
+            await toggleFullscreen();
+            const afterToggleOff = await isWindowFullScreen();
+            expect(afterToggleOff).toBe(false);
+
+            E2ELogger.info('window-controls', 'Fullscreen exited via toggleFullscreen()');
         });
     });
 

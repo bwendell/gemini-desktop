@@ -2,6 +2,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForWindowCount } from './helpers/waitUtilities';
 
 /**
  * E2E tests for link handling.
@@ -41,8 +42,8 @@ describe('Link Handling', () => {
         // Click the external link
         await link.click();
 
-        // Wait briefly
-        await browser.pause(500);
+        // Wait for window handles to stabilize after link click
+        await waitForWindowCount(initialHandles.length, 2000);
 
         // External links should NOT open a new Electron window
         const newHandles = await browser.getWindowHandles();
@@ -78,7 +79,9 @@ describe('Link Handling', () => {
         const initialHandles = await browser.getWindowHandles();
 
         await link.click();
-        await browser.pause(1000);
+
+        // Wait for new Electron window to open after Gemini link click
+        await waitForWindowCount(initialHandles.length + 1, 3000);
 
         const newHandles = await browser.getWindowHandles();
 

@@ -6,6 +6,7 @@ interface Window {
         maximizeWindow: () => void;
         closeWindow: () => void;
         isMaximized: () => Promise<boolean>;
+        toggleFullscreen: () => void;
         openOptions: (tab?: 'settings' | 'about') => void;
         openGoogleSignIn: () => Promise<void>;
 

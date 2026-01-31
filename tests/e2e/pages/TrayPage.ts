@@ -21,7 +21,7 @@ import {
     TrayState,
 } from '../helpers/trayActions';
 import { isWindowVisible, isWindowMinimized, closeWindow } from '../helpers/windowStateActions';
-import { isLinuxCI, isMacOS } from '../helpers/platform';
+import { isLinuxCI, isMacOS, isWindowsSync } from '../helpers/platform';
 import { Selectors } from '../helpers/selectors';
 import { E2E_TIMING } from '../helpers/e2eConstants';
 
@@ -409,10 +409,10 @@ export class TrayPage extends BasePage {
         platform: string;
         resourcesPath: string;
     }> {
-        return browser.electron.execute(() => {
-            const isWindows = process.platform === 'win32';
-            const iconFilename = isWindows ? 'icon.ico' : 'icon.png';
-            const iconPath = require('path').join(process.resourcesPath, iconFilename);
+        const isWin = isWindowsSync();
+        const iconFilename = isWin ? 'icon.ico' : 'icon.png';
+        return browser.electron.execute((_electron: typeof import('electron'), file: string) => {
+            const iconPath = require('path').join(process.resourcesPath, file);
             const exists = require('fs').existsSync(iconPath);
 
             return {
@@ -421,7 +421,7 @@ export class TrayPage extends BasePage {
                 platform: process.platform,
                 resourcesPath: process.resourcesPath,
             };
-        });
+        }, iconFilename);
     }
 
     /**
@@ -434,10 +434,10 @@ export class TrayPage extends BasePage {
         isFile: boolean;
         error?: string;
     }> {
-        return browser.electron.execute(() => {
-            const isWindows = process.platform === 'win32';
-            const iconFilename = isWindows ? 'icon.ico' : 'icon.png';
-            const iconPath = require('path').join(process.resourcesPath, iconFilename);
+        const isWin = isWindowsSync();
+        const iconFilename = isWin ? 'icon.ico' : 'icon.png';
+        return browser.electron.execute((_electron: typeof import('electron'), file: string) => {
+            const iconPath = require('path').join(process.resourcesPath, file);
 
             try {
                 const stats = require('fs').statSync(iconPath);
@@ -454,7 +454,7 @@ export class TrayPage extends BasePage {
                     error: (e as Error).message,
                 };
             }
-        });
+        }, iconFilename);
     }
 
     /**

@@ -23,6 +23,7 @@ import { OptionsPage } from './pages/OptionsPage';
 import { E2ELogger } from './helpers/logger';
 import { getPlatform, isMacOS, isWindows, isLinuxCI } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForUIState, waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
 import {
     getAlwaysOnTopState,
     getWindowAlwaysOnTopState,
@@ -113,13 +114,22 @@ describe('Always On Top', () => {
         // Ensure window is visible and restored
         await showWindow();
         await restoreWindow();
-        await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(
+            async () => {
+                const visible = await isWindowVisible();
+                const minimized = await isWindowMinimized();
+                return visible && !minimized;
+            },
+            { description: 'Window restored and visible after test' }
+        );
 
         // Exit fullscreen if active
         const isFS = await isWindowFullScreen();
         if (isFS) {
             await setFullScreen(false);
-            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+            await waitForFullscreenTransition(false, isWindowFullScreen, {
+                timeout: E2E_TIMING.TIMEOUTS.FULLSCREEN_TRANSITION,
+            });
         }
 
         // Close any extra windows safely (uses browser.closeWindow() instead of IPC)
@@ -143,12 +153,24 @@ describe('Always On Top', () => {
             E2ELogger.info('always-on-top', 'Verifying menu item exists');
 
             await mainWindow.clickMenuById('menu-view-always-on-top');
-            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+            await waitForUIState(
+                async () => {
+                    const state = await getAlwaysOnTopState();
+                    return state.enabled !== undefined;
+                },
+                { description: 'Menu toggle applied' }
+            );
             E2ELogger.info('always-on-top', 'Menu item exists and is clickable');
 
             // Toggle back to original state
             await mainWindow.clickMenuById('menu-view-always-on-top');
-            await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+            await waitForUIState(
+                async () => {
+                    const state = await getAlwaysOnTopState();
+                    return state.enabled !== undefined;
+                },
+                { description: 'Menu toggle restored' }
+            );
         });
 
         it('should toggle always on top state when menu item is clicked', async () => {
@@ -243,7 +265,13 @@ describe('Always On Top', () => {
                 await pressAlwaysOnTopHotkey(100);
             }
 
-            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+            await waitForUIState(
+                async () => {
+                    const state = await getAlwaysOnTopState();
+                    return state.enabled === !startEnabled;
+                },
+                { description: 'Final state after rapid toggles' }
+            );
 
             // 5 is odd, so final state should be opposite of start
             const finalState = await getAlwaysOnTopState();
@@ -401,13 +429,22 @@ describe('Always On Top', () => {
                 expect(stateBeforeMinimize.enabled).toBe(true);
 
                 await minimizeWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(async () => await isWindowMinimized(), {
+                    description: 'Window minimized',
+                });
 
                 const minimized = await isWindowMinimized();
                 expect(minimized).toBe(true);
 
                 await restoreWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(
+                    async () => {
+                        const vis = await isWindowVisible();
+                        const min = await isWindowMinimized();
+                        return vis && !min;
+                    },
+                    { description: 'Window restored after minimize' }
+                );
 
                 const stateAfterRestore = await getAlwaysOnTopState();
                 expect(stateAfterRestore.enabled).toBe(true);
@@ -419,10 +456,19 @@ describe('Always On Top', () => {
                 await setAlwaysOnTop(false, E2E_TIMING.IPC_ROUND_TRIP);
 
                 await minimizeWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(async () => await isWindowMinimized(), {
+                    description: 'Window minimized (disabled state test)',
+                });
 
                 await restoreWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(
+                    async () => {
+                        const vis = await isWindowVisible();
+                        const min = await isWindowMinimized();
+                        return vis && !min;
+                    },
+                    { description: 'Window restored (disabled state test)' }
+                );
 
                 const stateAfterRestore = await getAlwaysOnTopState();
                 expect(stateAfterRestore.enabled).toBe(false);
@@ -435,10 +481,19 @@ describe('Always On Top', () => {
 
                 for (let i = 0; i < 3; i++) {
                     await minimizeWindow();
-                    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                    await waitForUIState(async () => await isWindowMinimized(), {
+                        description: `Minimize cycle ${i + 1}`,
+                    });
 
                     await restoreWindow();
-                    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                    await waitForUIState(
+                        async () => {
+                            const vis = await isWindowVisible();
+                            const min = await isWindowMinimized();
+                            return vis && !min;
+                        },
+                        { description: `Restore cycle ${i + 1}` }
+                    );
 
                     const state = await getAlwaysOnTopState();
                     expect(state.enabled).toBe(true);
@@ -453,7 +508,9 @@ describe('Always On Top', () => {
                 await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
                 await maximizeWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(async () => await isWindowMaximized(), {
+                    description: 'Window maximized',
+                });
 
                 const maximized = await isWindowMaximized();
                 if (maximized) {
@@ -461,7 +518,13 @@ describe('Always On Top', () => {
                     expect(stateWhileMaximized.enabled).toBe(true);
 
                     await restoreWindow();
-                    await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                    await waitForWindowTransition(
+                        async () => {
+                            const max = await isWindowMaximized();
+                            return !max;
+                        },
+                        { description: 'Window restored from maximize' }
+                    );
 
                     const stateAfterRestore = await getAlwaysOnTopState();
                     expect(stateAfterRestore.enabled).toBe(true);
@@ -481,13 +544,21 @@ describe('Always On Top', () => {
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             await hideWindow();
-            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+            await waitForWindowTransition(
+                async () => {
+                    const vis = await isWindowVisible();
+                    return !vis;
+                },
+                { description: 'Window hidden' }
+            );
 
             const visible = await isWindowVisible();
             expect(visible).toBe(false);
 
             await showWindow();
-            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+            await waitForWindowTransition(async () => await isWindowVisible(), {
+                description: 'Window shown',
+            });
 
             const stateAfterShow = await getAlwaysOnTopState();
             expect(stateAfterShow.enabled).toBe(true);
@@ -499,9 +570,17 @@ describe('Always On Top', () => {
             await setAlwaysOnTop(false, E2E_TIMING.IPC_ROUND_TRIP);
 
             await hideWindow();
-            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+            await waitForWindowTransition(
+                async () => {
+                    const vis = await isWindowVisible();
+                    return !vis;
+                },
+                { description: 'Window hidden (disabled state test)' }
+            );
             await showWindow();
-            await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+            await waitForWindowTransition(async () => await isWindowVisible(), {
+                description: 'Window shown (disabled state test)',
+            });
 
             const state = await getAlwaysOnTopState();
             expect(state.enabled).toBe(false);
@@ -514,9 +593,17 @@ describe('Always On Top', () => {
 
             for (let i = 0; i < 3; i++) {
                 await hideWindow();
-                await browser.pause(E2E_TIMING.CYCLE_PAUSE);
+                await waitForUIState(
+                    async () => {
+                        const vis = await isWindowVisible();
+                        return !vis;
+                    },
+                    { description: `Hide cycle ${i + 1}` }
+                );
                 await showWindow();
-                await browser.pause(E2E_TIMING.CYCLE_PAUSE);
+                await waitForUIState(async () => await isWindowVisible(), {
+                    description: `Show cycle ${i + 1}`,
+                });
 
                 const state = await getAlwaysOnTopState();
                 expect(state.enabled).toBe(true);
@@ -533,7 +620,13 @@ describe('Always On Top', () => {
             // Restore original bounds
             if (originalBounds) {
                 await setWindowBounds(originalBounds);
-                await browser.pause(E2E_TIMING.CLEANUP_PAUSE);
+                await waitForUIState(
+                    async () => {
+                        const bounds = await getWindowBounds();
+                        return bounds.width === originalBounds.width && bounds.height === originalBounds.height;
+                    },
+                    { description: 'Original bounds restored' }
+                );
             }
         });
 
@@ -543,11 +636,19 @@ describe('Always On Top', () => {
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
+            const newWidth = currentBounds.width + 100;
+            const newHeight = currentBounds.height + 100;
             await setWindowBounds({
-                width: currentBounds.width + 100,
-                height: currentBounds.height + 100,
+                width: newWidth,
+                height: newHeight,
             });
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(
+                async () => {
+                    const bounds = await getWindowBounds();
+                    return bounds.width === newWidth && bounds.height === newHeight;
+                },
+                { description: 'Window resized' }
+            );
 
             const stateAfterResize = await getAlwaysOnTopState();
             expect(stateAfterResize.enabled).toBe(true);
@@ -559,11 +660,19 @@ describe('Always On Top', () => {
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
+            const newX = currentBounds.x + 50;
+            const newY = currentBounds.y + 50;
             await setWindowBounds({
-                x: currentBounds.x + 50,
-                y: currentBounds.y + 50,
+                x: newX,
+                y: newY,
             });
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(
+                async () => {
+                    const bounds = await getWindowBounds();
+                    return bounds.x === newX && bounds.y === newY;
+                },
+                { description: 'Window moved' }
+            );
 
             const stateAfterMove = await getAlwaysOnTopState();
             expect(stateAfterMove.enabled).toBe(true);
@@ -575,13 +684,28 @@ describe('Always On Top', () => {
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
+            const newX = currentBounds.x + 30;
+            const newY = currentBounds.y + 30;
+            const newWidth = currentBounds.width + 80;
+            const newHeight = currentBounds.height + 60;
             await setWindowBounds({
-                x: currentBounds.x + 30,
-                y: currentBounds.y + 30,
-                width: currentBounds.width + 80,
-                height: currentBounds.height + 60,
+                x: newX,
+                y: newY,
+                width: newWidth,
+                height: newHeight,
             });
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForUIState(
+                async () => {
+                    const bounds = await getWindowBounds();
+                    return (
+                        bounds.x === newX &&
+                        bounds.y === newY &&
+                        bounds.width === newWidth &&
+                        bounds.height === newHeight
+                    );
+                },
+                { description: 'Window resized and moved' }
+            );
 
             const stateAfterBoth = await getAlwaysOnTopState();
             expect(stateAfterBoth.enabled).toBe(true);
@@ -682,9 +806,15 @@ describe('Always On Top', () => {
                 const optionsHandle = handles.find((h) => h !== mainWindowHandle) || handles[1];
 
                 await browser.switchToWindow(optionsHandle);
-                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                await waitForUIState(
+                    async () => {
+                        const handles = await browser.getWindowHandles();
+                        return handles.length === 2;
+                    },
+                    { description: 'Options window ready' }
+                );
                 await closeCurrentWindow();
-                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                await waitForWindowCount(1, 5000);
 
                 await browser.switchToWindow(mainWindowHandle);
 
@@ -699,7 +829,13 @@ describe('Always On Top', () => {
                 await waitForWindowCount(2, 5000);
 
                 await browser.switchToWindow(mainWindowHandle);
-                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                await waitForUIState(
+                    async () => {
+                        const handle = await browser.getWindowHandle();
+                        return handle === mainWindowHandle;
+                    },
+                    { description: 'Main window focused after switch' }
+                );
 
                 await setAlwaysOnTop(true);
                 let state = await getAlwaysOnTopState();
@@ -737,9 +873,15 @@ describe('Always On Top', () => {
                 const aboutHandle = handles.find((h) => h !== mainWindowHandle) || handles[1];
 
                 await browser.switchToWindow(aboutHandle);
-                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                await waitForUIState(
+                    async () => {
+                        const handle = await browser.getWindowHandle();
+                        return handle === aboutHandle;
+                    },
+                    { description: 'About window focused' }
+                );
                 await closeCurrentWindow();
-                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                await waitForWindowCount(1, 5000);
 
                 await browser.switchToWindow(mainWindowHandle);
 
@@ -761,7 +903,13 @@ describe('Always On Top', () => {
                 const optionsHandle = handles.find((h) => h !== mainWindowHandle) || handles[1];
 
                 await browser.switchToWindow(optionsHandle);
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForUIState(
+                    async () => {
+                        const handle = await browser.getWindowHandle();
+                        return handle === optionsHandle;
+                    },
+                    { description: 'Options window focused' }
+                );
 
                 // Interact with Options window using Page Object
                 await optionsPage.waitForLoad();
@@ -770,7 +918,7 @@ describe('Always On Top', () => {
                 }
 
                 await closeCurrentWindow();
-                await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+                await waitForWindowCount(1, 5000);
 
                 await browser.switchToWindow(mainWindowHandle);
                 const state = await getAlwaysOnTopState();
@@ -805,7 +953,9 @@ describe('Always On Top', () => {
                 await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
 
                 await minimizeWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(async () => await isWindowMinimized(), {
+                    description: 'Window minimized',
+                });
 
                 const minimized = await isWindowMinimized();
                 expect(minimized).toBe(true);
@@ -814,7 +964,14 @@ describe('Always On Top', () => {
                 await setAlwaysOnTop(true);
 
                 await restoreWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(
+                    async () => {
+                        const vis = await isWindowVisible();
+                        const min = await isWindowMinimized();
+                        return vis && !min;
+                    },
+                    { description: 'Window restored from minimize' }
+                );
 
                 const state = await getWindowAlwaysOnTopState();
                 expect(state).toBe(true);
@@ -833,12 +990,21 @@ describe('Always On Top', () => {
                 await setAlwaysOnTop(true);
 
                 await minimizeWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(async () => await isWindowMinimized(), {
+                    description: 'Window minimized',
+                });
 
                 await setAlwaysOnTop(false);
 
                 await restoreWindow();
-                await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+                await waitForWindowTransition(
+                    async () => {
+                        const vis = await isWindowVisible();
+                        const min = await isWindowMinimized();
+                        return vis && !min;
+                    },
+                    { description: 'Window restored from minimize' }
+                );
 
                 const state = await getWindowAlwaysOnTopState();
                 expect(state).toBe(false);
@@ -858,12 +1024,12 @@ describe('Always On Top', () => {
                 await setAlwaysOnTop(true);
 
                 await setFullScreen(true);
-                await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE);
+                await waitForFullscreenTransition(true, isWindowFullScreen);
 
                 const isFS = await isWindowFullScreen();
                 if (isFS) {
                     await setFullScreen(false);
-                    await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE);
+                    await waitForFullscreenTransition(false, isWindowFullScreen);
 
                     const state = await getWindowAlwaysOnTopState();
                     expect(state).toBe(true);
@@ -876,7 +1042,7 @@ describe('Always On Top', () => {
                 }
 
                 await setFullScreen(true);
-                await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE);
+                await waitForFullscreenTransition(true, isWindowFullScreen);
 
                 const isFS = await isWindowFullScreen();
                 if (!isFS) {
@@ -886,7 +1052,7 @@ describe('Always On Top', () => {
                 await setAlwaysOnTop(true);
 
                 await setFullScreen(false);
-                await browser.pause(E2E_TIMING.MULTI_WINDOW_PAUSE);
+                await waitForFullscreenTransition(false, isWindowFullScreen);
 
                 const finalState = await getWindowAlwaysOnTopState();
                 expect(finalState).toBe(true);

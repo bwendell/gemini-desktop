@@ -16,6 +16,7 @@
 
 import { expect, browser } from '@wdio/globals';
 import { UpdateToastPage } from './pages';
+import { waitForDuration, waitForIPCRoundTrip } from './helpers/waitUtilities';
 
 describe('Update Toast Integration E2E', () => {
     let updateToast: UpdateToastPage;
@@ -24,11 +25,10 @@ describe('Update Toast Integration E2E', () => {
         updateToast = new UpdateToastPage();
 
         // Wait for app to be ready
-        await browser.pause(2000);
+        await waitForDuration(2000, 'App initialization');
 
         // Disable auto-updates settings via IPC to stop the startup check
         await browser.execute(() => {
-            // @ts-expect-error - electronAPI exposed at runtime
             if (window.electronAPI) {
                 // @ts-expect-error
                 window.electronAPI.setAutoUpdateEnabled(false);
@@ -36,7 +36,9 @@ describe('Update Toast Integration E2E', () => {
         });
 
         // Allow IPC to process
-        await browser.pause(1000);
+        await waitForIPCRoundTrip(async () => {
+            // IPC already triggered above, just wait for it to settle
+        });
     });
 
     beforeEach(async () => {
@@ -270,7 +272,7 @@ describe('Update Toast Integration E2E', () => {
 
             // WHEN we update to 75%
             await updateToast.showProgress(75);
-            await updateToast.pause(300); // Allow time for update
+            await waitForDuration(300, 'Progress value update');
 
             // THEN the progress bar should show 75%
             const updatedValue = await updateToast.getProgressValue();
@@ -298,7 +300,7 @@ describe('Update Toast Integration E2E', () => {
 
             // Update to 100%
             await updateToast.showProgress(100);
-            await updateToast.pause(300);
+            await waitForDuration(300, 'Progress completion');
             expect(await updateToast.getProgressValue()).toBe('100');
         });
     });

@@ -19,6 +19,7 @@ import { browser, expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
+import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 
 /**
  * Get information about the webview/iframe frames.
@@ -128,7 +129,13 @@ describe('Webview Content Verification', () => {
     describe('Gemini Content Loading', () => {
         it('should load Gemini iframe (may be flaky due to network)', async () => {
             // Wait for content to load (give network time)
-            await browser.pause(3000);
+            await waitForUIState(
+                async () => {
+                    const info = await getWebviewInfo();
+                    return info.hasWebview;
+                },
+                { timeout: 3000, description: 'Webview to load' }
+            );
 
             const info = await getWebviewInfo();
 
@@ -149,7 +156,13 @@ describe('Webview Content Verification', () => {
         });
 
         it('should have valid Gemini URL when frame is loaded', async () => {
-            await browser.pause(3000);
+            await waitForUIState(
+                async () => {
+                    const info = await getWebviewInfo();
+                    return info.geminiFrameFound;
+                },
+                { timeout: 3000, description: 'Gemini frame to load' }
+            );
 
             const info = await getWebviewInfo();
 
@@ -221,7 +234,7 @@ describe('Webview Content Verification', () => {
                 window.focus();
             });
 
-            await browser.pause(500);
+            await waitForDuration(500, 'Focus cycle stabilization');
 
             // Verify webview still exists
             const afterInfo = await getWebviewInfo();

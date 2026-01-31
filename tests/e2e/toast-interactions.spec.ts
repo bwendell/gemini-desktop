@@ -18,7 +18,7 @@ import { browser, expect } from '@wdio/globals';
 import { ToastPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForUIState, waitForAnimationSettle, waitForDuration } from './helpers/waitUtilities';
 
 // Note: Action click tracking helpers (getLastActionClicked, clearActionClickTracking,
 // showToastWithActions) are now part of ToastPage for reusability.
@@ -36,7 +36,9 @@ describe('Toast User Interactions E2E', () => {
         // Clear any existing toasts
         await toastPage.clearAll();
         await toastPage.clearActionClickTracking();
-        await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+        await waitForUIState(async () => !(await toastPage.isToastDisplayed()), {
+            description: 'All toasts cleared',
+        });
     });
 
     afterEach(async () => {
@@ -53,7 +55,7 @@ describe('Toast User Interactions E2E', () => {
             E2ELogger.info('toast-interactions', 'Testing dismiss button click');
 
             // GIVEN a persistent toast is displayed
-            const toastId = await toastPage.showInfo('Test toast for dismissal', {
+            await toastPage.showInfo('Test toast for dismissal', {
                 persistent: true,
             });
             await toastPage.waitForToastVisible();
@@ -61,7 +63,7 @@ describe('Toast User Interactions E2E', () => {
 
             // WHEN user clicks the dismiss button
             await toastPage.clickDismiss();
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="toast"]');
 
             // THEN the toast should be removed from DOM
             expect(await toastPage.isToastDisplayed()).toBe(false);
@@ -78,17 +80,23 @@ describe('Toast User Interactions E2E', () => {
 
             // GIVEN multiple persistent toasts are displayed
             const toast1Id = await toastPage.showInfo('First toast', { persistent: true });
-            await browser.pause(100);
+            await waitForUIState(async () => (await toastPage.getToastCount()) === 1, {
+                description: 'First toast visible',
+            });
             const toast2Id = await toastPage.showWarning('Second toast', { persistent: true });
-            await browser.pause(100);
+            await waitForUIState(async () => (await toastPage.getToastCount()) === 2, {
+                description: 'Second toast visible',
+            });
             await toastPage.showSuccess('Third toast', { persistent: true });
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(async () => (await toastPage.getToastCount()) === 3, {
+                description: 'All three toasts visible',
+            });
 
             expect(await toastPage.getToastCount()).toBe(3);
 
             // WHEN user clicks dismiss on the first toast
             await toastPage.clickDismiss();
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await waitForAnimationSettle('[data-testid="toast"]');
 
             // THEN only 2 toasts should remain
             expect(await toastPage.getToastCount()).toBe(2);
@@ -118,7 +126,13 @@ describe('Toast User Interactions E2E', () => {
             // WHEN user clicks the action button
             await actionBtn.waitForClickable({ timeout: 2000 });
             await actionBtn.click();
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(
+                async () => {
+                    const lastClick = await toastPage.getLastActionClicked();
+                    return lastClick !== null;
+                },
+                { description: 'Action callback fired' }
+            );
 
             // THEN the callback should have been invoked
             const lastClick = await toastPage.getLastActionClicked();
@@ -144,7 +158,13 @@ describe('Toast User Interactions E2E', () => {
             expect(await secondaryBtn.isDisplayed()).toBe(true);
             await secondaryBtn.waitForClickable({ timeout: 2000 });
             await secondaryBtn.click();
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(
+                async () => {
+                    const lastClick = await toastPage.getLastActionClicked();
+                    return lastClick !== null;
+                },
+                { description: 'Secondary action callback fired' }
+            );
 
             // THEN the callback for secondary action should have been invoked
             const lastClick = await toastPage.getLastActionClicked();
@@ -171,7 +191,8 @@ describe('Toast User Interactions E2E', () => {
 
             // WHEN we wait for the auto-dismiss duration (5s + buffer)
             E2ELogger.info('toast-interactions', 'Waiting for auto-dismiss (5s)...');
-            await browser.pause(5500);
+            // INTENTIONAL: Testing 5s auto-dismiss timer
+            await waitForDuration(5500, 'Toast auto-dismiss timer');
 
             // THEN the toast should be automatically removed
             expect(await toastPage.isToastDisplayed()).toBe(false);
@@ -187,7 +208,8 @@ describe('Toast User Interactions E2E', () => {
             await toastPage.waitForToastVisible();
 
             // WHEN we wait for auto-dismiss
-            await browser.pause(5500);
+            // INTENTIONAL: Testing 5s auto-dismiss timer
+            await waitForDuration(5500, 'Toast auto-dismiss timer');
 
             // THEN the toast should be removed
             expect(await toastPage.isToastDisplayed()).toBe(false);
@@ -203,11 +225,13 @@ describe('Toast User Interactions E2E', () => {
             await toastPage.waitForToastVisible();
 
             // Verify still visible after 5s (warning has 7s duration)
-            await browser.pause(5000);
+            // INTENTIONAL: Testing warning toast duration (7s)
+            await waitForDuration(5000, 'Partial warning duration wait');
             expect(await toastPage.isToastDisplayed()).toBe(true);
 
             // WHEN we wait for the full duration
-            await browser.pause(2500); // 5000 + 2500 = 7500ms > 7000ms
+            // INTENTIONAL: Testing warning toast full duration (7s total)
+            await waitForDuration(2500, 'Remaining warning duration'); // 5000 + 2500 = 7500ms > 7000ms
 
             // THEN the toast should be removed
             expect(await toastPage.isToastDisplayed()).toBe(false);
@@ -223,7 +247,8 @@ describe('Toast User Interactions E2E', () => {
             await toastPage.waitForToastVisible();
 
             // WHEN we wait longer than any auto-dismiss duration
-            await browser.pause(6000);
+            // INTENTIONAL: Testing persistent toast does NOT auto-dismiss
+            await waitForDuration(6000, 'Persistent toast verification wait');
 
             // THEN the toast should still be visible
             expect(await toastPage.isToastDisplayed()).toBe(true);
@@ -250,7 +275,10 @@ describe('Toast User Interactions E2E', () => {
             // Hover over the toast
             const toast = await browser.$('[data-testid="toast"]');
             await toast.moveTo();
-            await browser.pause(500);
+            await waitForUIState(async () => await toast.isDisplayed(), {
+                description: 'Toast still visible after hover',
+                timeout: 1000,
+            });
 
             // Toast should still be visible (this would be the base expectation)
             expect(await toastPage.isToastDisplayed()).toBe(true);
@@ -275,11 +303,27 @@ describe('Toast User Interactions E2E', () => {
             // First click on toast to bring focus into the toast area
             const toast = await browser.$('[data-testid="toast"]');
             await toast.click();
-            await browser.pause(200);
+            await waitForUIState(
+                async () => {
+                    const activeElement = await browser.execute(() => {
+                        return document.activeElement?.tagName;
+                    });
+                    return activeElement !== null;
+                },
+                { description: 'Focus established', timeout: 1000 }
+            );
 
             // Tab to navigate (dismiss button should be focusable)
             await browser.keys('Tab');
-            await browser.pause(200);
+            await waitForUIState(
+                async () => {
+                    const activeElement = await browser.execute(() => {
+                        return document.activeElement?.getAttribute('data-testid');
+                    });
+                    return activeElement !== null;
+                },
+                { description: 'Tab navigation complete', timeout: 1000 }
+            );
 
             // THEN the dismiss button should be focused
             const activeElement = await browser.execute(() => {
@@ -308,12 +352,26 @@ describe('Toast User Interactions E2E', () => {
             // WHEN user focuses and activates the action button with Enter
             const actionBtn = await browser.$('[data-testid="toast-action-0"]');
             await actionBtn.click(); // Focus
-            await browser.pause(100);
+            await waitForUIState(
+                async () => {
+                    const activeElement = await browser.execute(() => {
+                        return document.activeElement?.getAttribute('data-testid');
+                    });
+                    return activeElement === 'toast-action-0';
+                },
+                { description: 'Action button focused', timeout: 1000 }
+            );
 
             // Clear tracking and use keyboard to activate
             await toastPage.clearActionClickTracking();
             await browser.keys('Enter');
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(
+                async () => {
+                    const lastClick = await toastPage.getLastActionClicked();
+                    return lastClick !== null;
+                },
+                { description: 'Enter key callback fired' }
+            );
 
             // THEN the action callback should have been triggered
             const lastClick = await toastPage.getLastActionClicked();

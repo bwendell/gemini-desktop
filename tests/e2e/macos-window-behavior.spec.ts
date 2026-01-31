@@ -14,9 +14,11 @@ import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 import { closeCurrentWindow } from './helpers/windowActions';
+import { waitForWindowTransition, waitForUIState } from './helpers/waitUtilities';
+import { isMacOSSync } from './helpers/platform';
 
 // Only run on macOS
-const isMacOS = process.platform === 'darwin';
+const isMacOS = isMacOSSync();
 const describeMac = isMacOS ? describe : describe.skip;
 
 describeMac('macOS Window Behavior', () => {
@@ -37,7 +39,9 @@ describeMac('macOS Window Behavior', () => {
 
             // 2. Close the main window using macOS behavior (Cmd+W or close button)
             await closeCurrentWindow();
-            await browser.pause(1000);
+            await waitForWindowTransition(async () => (await browser.getWindowHandles()).length === 0, {
+                description: 'Window closed',
+            });
 
             // 3. On macOS, closing the last window hides it to tray (or just hides it)
             // The app should remain running
@@ -63,7 +67,9 @@ describeMac('macOS Window Behavior', () => {
             await browser.execute(() => {
                 window.electronAPI?.showWindow();
             });
-            await browser.pause(500);
+            await waitForWindowTransition(async () => (await browser.getWindowHandles()).length >= 1, {
+                description: 'Window restored',
+            });
 
             // Verify window is restored
             const handlesAfterRestore = await browser.getWindowHandles();
@@ -73,7 +79,9 @@ describeMac('macOS Window Behavior', () => {
         it('should recreate window when dock icon is clicked (simulated)', async () => {
             // 1. Close the window first
             await closeCurrentWindow();
-            await browser.pause(1000);
+            await waitForWindowTransition(async () => (await browser.getWindowHandles()).length === 0, {
+                description: 'Window closed',
+            });
 
             // 2. Simulate dock icon click via Electron's app.on('activate') event
             // We can't actually click the dock icon in E2E, but we can trigger the behavior
@@ -82,7 +90,10 @@ describeMac('macOS Window Behavior', () => {
                 electron.app.emit('activate');
             });
 
-            await browser.pause(1000);
+            await waitForWindowTransition(async () => (await browser.getWindowHandles()).length >= 1 || true, {
+                timeout: 2000,
+                description: 'Dock activation',
+            });
 
             // 3. Window should be recreated or restored
             const handles = await browser.getWindowHandles();
@@ -93,7 +104,9 @@ describeMac('macOS Window Behavior', () => {
                 await browser.execute(() => {
                     window.electronAPI?.showWindow();
                 });
-                await browser.pause(500);
+                await waitForWindowTransition(async () => (await browser.getWindowHandles()).length >= 1, {
+                    description: 'Window restored',
+                });
             }
 
             const finalHandles = await browser.getWindowHandles();
@@ -110,7 +123,7 @@ describeMac('macOS Window Behavior', () => {
 
             // 1. Close window
             await closeCurrentWindow();
-            await browser.pause(500);
+            await waitForUIState(async () => true, { timeout: 500, description: 'Brief settle after close' });
 
             // 2. Check app is still running (app menu would be accessible)
             const appReady = await browser.electron.execute((electron: typeof import('electron')) => {
@@ -131,7 +144,9 @@ describeMac('macOS Window Behavior', () => {
             await browser.execute(() => {
                 window.electronAPI?.showWindow();
             });
-            await browser.pause(500);
+            await waitForWindowTransition(async () => (await browser.getWindowHandles()).length >= 1, {
+                description: 'Window restored',
+            });
         });
     });
 });

@@ -10,6 +10,7 @@
 import { browser, $, expect } from '@wdio/globals';
 import { MainWindowPage, AuthWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForDuration } from './helpers/waitUtilities';
 import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 
@@ -202,7 +203,7 @@ describe('Authentication Flow', () => {
         await authWindow.openViaMenu();
 
         // Brief wait to allow any additional windows to open
-        await browser.pause(2000);
+        await waitForDuration(2000, 'Duplicate window prevention check');
 
         // 3. Check that we still have exactly one auth window (plus the main window)
         const secondHandles = await browser.getWindowHandles();

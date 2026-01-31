@@ -17,6 +17,7 @@ import { OptionsPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow, waitForIpcSettle } from './helpers/workflows';
+import { waitForAnimationSettle, waitForDuration, waitForUIState } from './helpers/waitUtilities';
 
 describe('Text Prediction Options E2E', () => {
     const optionsPage = new OptionsPage();
@@ -66,7 +67,10 @@ describe('Text Prediction Options E2E', () => {
 
                     // Click the simulate button to start the fake download
                     await simulateButton.click();
-                    await browser.pause(300); // Wait for simulation to start
+                    // Wait for simulation to start (progress element appears and animates)
+                    await waitForAnimationSettle('[data-testid="text-prediction-progress"]', {
+                        timeout: 1000,
+                    });
 
                     // Verify progress bar is now visible
                     const isProgressDisplayed = await optionsPage.isTextPredictionProgressDisplayed();
@@ -134,8 +138,8 @@ describe('Text Prediction Options E2E', () => {
                         // Not downloaded yet - trigger download and observe
                         E2ELogger.info('text-prediction', `Current status: "${statusText}" - download should start`);
 
-                        // Wait briefly for download to potentially start
-                        await browser.pause(1000);
+                        // Wait for download to potentially start
+                        await waitForDuration(1000, 'Waiting for download initiation');
 
                         // Check if progress bar appeared
                         const isProgressDisplayed = await optionsPage.isTextPredictionProgressDisplayed();
@@ -503,12 +507,17 @@ describe('Text Prediction Options E2E', () => {
 
                     // Verify that clicking retry initiated a re-attempt
                     // The status should change from error to something else (downloading, initializing, or ready)
-                    // Give it a moment to change
-                    await browser.pause(500);
+                    // Wait for status to change after retry attempt
+                    const statusChanged = await waitForUIState(
+                        async () => {
+                            const statusAfterRetry = await optionsPage.getTextPredictionStatusText();
+                            return !statusAfterRetry.includes('Simulated error for testing');
+                        },
+                        { timeout: 2000, description: 'Status change after retry' }
+                    );
 
                     const statusAfterRetry = await optionsPage.getTextPredictionStatusText();
-                    const retryInitiated = !statusAfterRetry.includes('Simulated error for testing');
-                    expect(retryInitiated).toBe(true);
+                    expect(statusChanged).toBe(true);
                     E2ELogger.info(
                         'text-prediction',
                         `✓ Retry button clicked, status changed to: "${statusAfterRetry}"`
