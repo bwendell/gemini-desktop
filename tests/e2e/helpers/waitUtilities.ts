@@ -74,6 +74,8 @@ export interface WaitForFullscreenTransitionOptions {
     timeout?: number;
     /** Polling interval in milliseconds (default: 100) */
     interval?: number;
+    /** Duration state must be stable before considering transition complete (default: 300) */
+    stableDuration?: number;
 }
 
 /**
@@ -363,24 +365,47 @@ export async function waitForFullscreenTransition(
     getFullscreenState: () => Promise<boolean>,
     options: WaitForFullscreenTransitionOptions = {}
 ): Promise<boolean> {
-    const { timeout = E2E_TIMING.TIMEOUTS?.FULLSCREEN_TRANSITION ?? 10000, interval = 100 } = options;
+    const {
+        timeout = E2E_TIMING.TIMEOUTS?.FULLSCREEN_TRANSITION ?? 10000,
+        interval = 100,
+        stableDuration = 300,
+    } = options;
 
     const stateName = targetState ? 'fullscreen' : 'windowed';
-    E2ELogger.info('waitUtilities', `Waiting for fullscreen transition to ${stateName} (timeout: ${timeout}ms)`);
+    E2ELogger.info(
+        'waitUtilities',
+        `Waiting for fullscreen transition to ${stateName} (timeout: ${timeout}ms, stableDuration: ${stableDuration}ms)`
+    );
 
     const startTime = Date.now();
+    let stableStartTime: number | null = null;
 
     while (Date.now() - startTime < timeout) {
         try {
             const currentState = await getFullscreenState();
 
             if (currentState === targetState) {
-                const elapsed = Date.now() - startTime;
-                E2ELogger.info('waitUtilities', `✓ Fullscreen transition to ${stateName} complete after ${elapsed}ms`);
-                return true;
+                const now = Date.now();
+
+                if (stableStartTime === null) {
+                    stableStartTime = now;
+                    E2ELogger.info('waitUtilities', `[${stateName}] State matched, checking stability...`);
+                } else if (now - stableStartTime >= stableDuration) {
+                    const elapsed = now - startTime;
+                    E2ELogger.info(
+                        'waitUtilities',
+                        `✓ Fullscreen transition to ${stateName} complete and stable after ${elapsed}ms`
+                    );
+                    return true;
+                }
+            } else {
+                if (stableStartTime !== null) {
+                    E2ELogger.info('waitUtilities', `[${stateName}] State unstable, resetting stability check`);
+                    stableStartTime = null;
+                }
             }
         } catch {
-            // Error checking state, continue polling
+            stableStartTime = null;
         }
 
         await browser.pause(interval);
