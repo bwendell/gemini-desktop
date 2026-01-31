@@ -22,11 +22,14 @@ import {
     isWindowMinimized,
     isWindowVisible,
     isWindowDestroyed,
+    isWindowFullScreen,
     getWindowState,
     maximizeWindow,
     restoreWindow,
     closeWindow,
     showWindow,
+    toggleFullscreen,
+    setFullScreen,
 } from './helpers/windowStateActions';
 
 describe('Window Controls Functionality', () => {
@@ -220,6 +223,40 @@ describe('Window Controls Functionality', () => {
             await expect(isWindowVisible()).resolves.toBe(true);
 
             E2ELogger.info('window-controls', 'macOS close-to-tray verified');
+        });
+    });
+
+    // =========================================================================
+    // Fullscreen Toggle via IPC
+    // =========================================================================
+
+    describe('Fullscreen Toggle via IPC (All Platforms)', () => {
+        afterEach(async () => {
+            // Always exit fullscreen after each test
+            const isFS = await isWindowFullScreen();
+            if (isFS) {
+                await setFullScreen(false);
+            }
+        });
+
+        it('should toggle fullscreen via electronAPI.toggleFullscreen()', async () => {
+            // 1. Verify not in fullscreen initially
+            const initialFS = await isWindowFullScreen();
+            expect(initialFS).toBe(false);
+
+            // 2. Toggle fullscreen ON via IPC
+            await toggleFullscreen();
+            const afterToggleOn = await isWindowFullScreen();
+            expect(afterToggleOn).toBe(true);
+
+            E2ELogger.info('window-controls', 'Fullscreen entered via toggleFullscreen()');
+
+            // 3. Toggle fullscreen OFF via IPC
+            await toggleFullscreen();
+            const afterToggleOff = await isWindowFullScreen();
+            expect(afterToggleOff).toBe(false);
+
+            E2ELogger.info('window-controls', 'Fullscreen exited via toggleFullscreen()');
         });
     });
 

@@ -168,13 +168,19 @@ describe('useMenuDefinitions', () => {
             });
         });
 
-        it('Toggle Fullscreen is disabled', () => {
+        it('Toggle Fullscreen action calls electronAPI.toggleFullscreen()', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
             const toggleItem = viewMenu.items[7]; // After Zoom In, Zoom Out, Always On Top and separators
 
             expect(toggleItem).toHaveProperty('label', 'Toggle Fullscreen');
-            expect(toggleItem).toHaveProperty('disabled', true);
+            expect(toggleItem).not.toHaveProperty('disabled', true);
+            expect(toggleItem).toHaveProperty('action');
+
+            if ('action' in toggleItem && toggleItem.action) {
+                toggleItem.action();
+                expect(mockElectronAPI.toggleFullscreen).toHaveBeenCalledTimes(1);
+            }
         });
 
         it('has Always On Top item with correct properties', () => {

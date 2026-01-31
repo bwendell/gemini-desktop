@@ -96,5 +96,20 @@ export class WindowIpcHandler extends BaseIpcHandler {
                 return false;
             }
         });
+
+        // Toggle fullscreen
+        ipcMain.on(IPC_CHANNELS.FULLSCREEN_TOGGLE, (event) => {
+            const win = this.getWindowFromEvent(event);
+            if (win && !win.isDestroyed()) {
+                try {
+                    win.setFullScreen(!win.isFullScreen());
+                } catch (error) {
+                    this.logger.error('Error toggling fullscreen:', {
+                        error: error instanceof Error ? error.message : String(error),
+                        windowId: win.id,
+                    });
+                }
+            }
+        });
     }
 }
