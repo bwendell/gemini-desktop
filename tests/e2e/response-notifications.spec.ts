@@ -26,7 +26,7 @@ import { waitForWindowCount } from './helpers/windowActions';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 
 // ============================================================================
 // Test Suite
@@ -243,8 +243,17 @@ describe('Response Notifications', () => {
                 }
             });
 
-            // 3. Give a brief moment for async processing
-            await browser.pause(500);
+            // 3. Wait for notification/badge to be triggered via async processing
+            await waitForUIState(
+                async () => {
+                    const result = await browser.electron.execute(() => {
+                        const badgeManager = (global as any).badgeManager;
+                        return badgeManager?.hasNotificationBadge ?? false;
+                    });
+                    return result;
+                },
+                { timeout: 2000, description: 'Notification badge triggered' }
+            );
 
             // 4. Verify badge was shown via production code path
             const badgeShown = await browser.electron.execute(() => {
@@ -261,7 +270,16 @@ describe('Response Notifications', () => {
                 notificationManager?.onWindowFocus();
             });
 
-            await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+            await waitForUIState(
+                async () => {
+                    const cleared = await browser.electron.execute(() => {
+                        const badgeManager = (global as any).badgeManager;
+                        return !(badgeManager?.hasNotificationBadge ?? false);
+                    });
+                    return cleared;
+                },
+                { timeout: 2000, description: 'Badge cleared on focus' }
+            );
 
             // 6. Verify badge was cleared
             const badgeCleared = await browser.electron.execute(() => {
@@ -315,9 +333,22 @@ describe('Response Notifications', () => {
                 }
             });
 
-            // 3. Wait and Verify
-            await browser.pause(500);
+            // 3. Wait for notification to be triggered
+            await waitForUIState(
+                async () => {
+                    const result = await browser.electron.execute(() => {
+                        const notificationManager = (global as any).notificationManager;
+                        const badgeManager = (global as any).badgeManager;
+                        const shown = notificationManager?.['_lastNotificationShown'] ?? false;
+                        const hasBadge = badgeManager?.hasNotificationBadge ?? false;
+                        return shown || hasBadge;
+                    });
+                    return result;
+                },
+                { timeout: 2000, description: 'Notification triggered' }
+            );
 
+            // 4. Verify notification and badge state
             const result = await browser.electron.execute(() => {
                 const notificationManager = (global as any).notificationManager;
                 const badgeManager = (global as any).badgeManager;
@@ -523,8 +554,8 @@ describe('Response Notifications', () => {
             // 2. Trigger via Network
             await mainWindow.triggerNetworkRequest('https://gemini.google.com/u/0/_/BardChatUi/data/StreamGenerate');
 
-            // 3. Verify NO notification and NO badge
-            await browser.pause(500);
+            // 3. Wait briefly to verify NO notification occurs (negative test)
+            await waitForDuration(500, 'Verify no spurious notification when focused');
 
             const check = await browser.electron.execute(() => {
                 const notificationManager = (global as any).notificationManager;
@@ -581,8 +612,8 @@ describe('Response Notifications', () => {
             // 3. Trigger via Network
             await mainWindow.triggerNetworkRequest('https://gemini.google.com/u/0/_/BardChatUi/data/StreamGenerate');
 
-            // 4. Verify NO notification and NO badge
-            await browser.pause(500);
+            // 4. Wait briefly to verify NO notification occurs (negative test)
+            await waitForDuration(500, 'Verify no spurious notification when disabled');
 
             const check = await browser.electron.execute(() => {
                 const notificationManager = (global as any).notificationManager;
@@ -614,8 +645,8 @@ describe('Response Notifications', () => {
                 'https://gemini.google.com/u/0/_/BardChatUi/data/log?bl=boq_assistant'
             );
 
-            // 3. Verify NO notification and NO badge
-            await browser.pause(500);
+            // 3. Wait briefly to verify NO notification occurs for non-matching URL (negative test)
+            await waitForDuration(500, 'Verify no spurious notification for log endpoint');
 
             const check = await browser.electron.execute(() => {
                 const notificationManager = (global as any).notificationManager;

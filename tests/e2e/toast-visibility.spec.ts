@@ -16,6 +16,7 @@
 
 import { expect, browser } from '@wdio/globals';
 import { ToastPage } from './pages';
+import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Toast Visibility E2E', () => {
     let toast: ToastPage;
@@ -24,7 +25,14 @@ describe('Toast Visibility E2E', () => {
         toast = new ToastPage();
 
         // Wait for app to be ready
-        await browser.pause(2000);
+        await waitForUIState(
+            async () => {
+                // Check if toast container is present in DOM
+                const container = await browser.$('[data-testid="toast-container"]');
+                return await container.isExisting();
+            },
+            { description: 'App initialization', timeout: 5000 }
+        );
     });
 
     beforeEach(async () => {

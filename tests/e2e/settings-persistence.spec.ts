@@ -21,6 +21,7 @@ import { E2ELogger } from './helpers/logger';
 import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForSettingValue } from './helpers/persistenceActions';
+import { isWindowsSync, isMacOSSync } from './helpers/platform';
 
 describe('Settings Persistence', () => {
     const mainWindow = new MainWindowPage();
@@ -251,13 +252,13 @@ describe('Settings Persistence', () => {
             expect(settingsPath).toContain('user-preferences.json');
 
             // Path should be platform-appropriate
-            if (process.platform === 'win32') {
+            if (isWindowsSync()) {
                 // Windows uses AppData in production, but E2E tests use temporary scoped
                 // directories like C:\Windows\SystemTemp\scoped_dir... for test isolation
                 const isProductionPath = settingsPath.includes('AppData');
                 const isTestIsolationPath = settingsPath.includes('scoped_dir');
                 expect(isProductionPath || isTestIsolationPath).toBe(true);
-            } else if (process.platform === 'darwin') {
+            } else if (isMacOSSync()) {
                 // macOS uses Application Support in production, but E2E tests use
                 // temporary scoped directories like /private/var/folders/.../T/.org.chromium.Chromium.scoped_dir.XXX/
                 // for test isolation

@@ -22,6 +22,7 @@ import { E2ELogger } from './helpers/logger';
 import { isMacOS } from './helpers/platform';
 import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForWindowTransition, waitForUIState } from './helpers/waitUtilities';
 
 describe('macOS Native Menu Shortcuts', () => {
     const mainWindow = new MainWindowPage();
@@ -84,11 +85,24 @@ describe('macOS Native Menu Shortcuts', () => {
 
             // Switch back to main window
             await browser.switchToWindow(firstHandles[0]);
-            await browser.pause(300);
+            await waitForWindowTransition(
+                async () => {
+                    // Verify we're back on the main window (simple check)
+                    const currentHandles = await browser.getWindowHandles();
+                    return currentHandles.length === 2;
+                },
+                { description: 'Window switch back to main' }
+            );
 
             // Try to open options again via menu
             await mainWindow.openOptionsViaMenu();
-            await browser.pause(500);
+            await waitForUIState(
+                async () => {
+                    const handles = await browser.getWindowHandles();
+                    return handles.length === 2;
+                },
+                { description: 'Options menu action stability check', timeout: 1500 }
+            );
 
             // Should still have only 2 windows (no duplicate)
             const secondHandles = await browser.getWindowHandles();

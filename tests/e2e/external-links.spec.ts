@@ -22,6 +22,7 @@ import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { expectWindowCount } from './helpers/assertions';
 import { E2ELogger } from './helpers/logger';
+import { waitForDuration } from './helpers/waitUtilities';
 
 describe('External Link Sanitization', () => {
     const mainWindow = new MainWindowPage();
@@ -63,7 +64,7 @@ describe('External Link Sanitization', () => {
         await link.click();
 
         // 4. Allow time for any window creation
-        await browser.pause(500);
+        await waitForDuration(500, 'External link window creation check');
 
         // 5. Verify no new Electron window was opened
         // (External links should open in system browser, not Electron)
@@ -90,7 +91,7 @@ describe('External Link Sanitization', () => {
         });
 
         // 3. Wait for navigation attempt to be processed
-        await browser.pause(1000);
+        await waitForDuration(1000, 'Navigation attempt processing');
 
         // 4. Verify the URL did not change to the external site
         const currentUrl = await browser.getUrl();

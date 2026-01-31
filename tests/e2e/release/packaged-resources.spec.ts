@@ -13,6 +13,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from '../helpers/logger';
+import { isLinuxSync } from '../helpers/platform';
 
 describe('Release Build: Packaged Resources', () => {
     it('should start the application successfully', async () => {
@@ -29,7 +30,7 @@ describe('Release Build: Packaged Resources', () => {
             return electron.app.getName();
         });
 
-        if (process.platform === 'linux') {
+        if (isLinuxSync()) {
             expect(appName).toMatch(/^(Gemini Desktop|gemini-desktop)$/);
         } else {
             expect(appName).toBe('Gemini Desktop');

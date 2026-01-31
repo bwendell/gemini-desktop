@@ -22,6 +22,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from '../helpers/logger';
+import { isWindowsSync, isLinuxSync } from '../helpers/platform';
 
 describe('Release Build: Code Signing', () => {
     it('should identify the current platform', async () => {
@@ -82,7 +83,7 @@ describe('Release Build: Code Signing', () => {
         expect(execInfo.isFile).toBe(true);
 
         // Verify expected executable name based on platform
-        if (process.platform === 'win32') {
+        if (isWindowsSync()) {
             expect(execInfo.basename.toLowerCase()).toContain('.exe');
         }
     });
@@ -256,7 +257,7 @@ describe('Release Build: Code Signing', () => {
 
         E2ELogger.info('code-signing', 'App metadata', metadata);
 
-        if (process.platform === 'linux') {
+        if (isLinuxSync()) {
             expect(metadata.name).toMatch(/^(Gemini Desktop|gemini-desktop)$/);
         } else {
             expect(metadata.name).toBe('Gemini Desktop');

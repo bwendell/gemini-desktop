@@ -14,6 +14,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
+import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 import {
     GEMINI_MICROPHONE_BUTTON_SELECTORS,
     GEMINI_ERROR_TOAST_SELECTORS,
@@ -24,7 +25,17 @@ import {
 describe('Microphone Permission', () => {
     beforeEach(async () => {
         // Wait for Gemini iframe to load
-        await browser.pause(5000);
+        await waitForUIState(
+            async () => {
+                try {
+                    const iframe = await browser.$('iframe[data-testid="gemini-iframe"]');
+                    return await iframe.isDisplayed();
+                } catch {
+                    return false;
+                }
+            },
+            { description: 'Gemini iframe to load and display' }
+        );
     });
 
     describe('Iframe Configuration', () => {
@@ -122,8 +133,8 @@ describe('Microphone Permission', () => {
             expect(clickResult.executed).toBe(true);
             E2ELogger.info('microphone', 'Clicked microphone button');
 
-            // Wait for any error toast to appear
-            await browser.pause(2000);
+            // Wait for any error toast to appear (intentional delay for negative test)
+            await waitForDuration(2000, 'Error toast appearance window');
 
             // Check for error toast
             const hasErrorToast = await browser.electron.execute(

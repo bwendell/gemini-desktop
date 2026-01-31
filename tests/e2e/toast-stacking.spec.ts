@@ -12,7 +12,7 @@
 
 import { browser } from '@wdio/globals';
 import { ToastPage } from './pages/ToastPage';
-import { E2E_TIMING } from './helpers/e2eConstants';
+import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Toast Stacking E2E', () => {
     let toastPage: ToastPage;
@@ -21,7 +21,7 @@ describe('Toast Stacking E2E', () => {
         toastPage = new ToastPage();
         // Clear any existing toasts before each test
         await toastPage.clearAll();
-        await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+        await toastPage.waitForAnimationComplete();
     });
 
     afterEach(async () => {
@@ -291,7 +291,7 @@ describe('Toast Stacking E2E', () => {
             const ids = await toastPage.showMultipleToasts(10, 50);
 
             // Wait for all to settle
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await toastPage.waitForAnimationComplete();
 
             // Verify all toasts were tracked
             const allToasts = await toastPage.getToasts();
@@ -315,7 +315,7 @@ describe('Toast Stacking E2E', () => {
             const ids = await toastPage.showMultipleToasts(10, 0);
 
             // Wait for rendering
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await toastPage.waitForAnimationComplete();
 
             // All toasts should be tracked
             const allToasts = await toastPage.getToasts();
@@ -334,12 +334,16 @@ describe('Toast Stacking E2E', () => {
             // Create 8 toasts rapidly
             // Initially: toasts 1-3 hidden, toasts 4-8 visible
             const ids = await toastPage.showMultipleToasts(8, 25);
-            await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await toastPage.waitForAnimationComplete();
 
             // Dismiss 3 toasts from the top (newest)
             for (let i = 0; i < 3; i++) {
+                const previousCount = await toastPage.getToastCount();
                 await toastPage.dismissToastByIndex(0);
-                await browser.pause(100); // Short pause between dismissals
+                await waitForUIState(async () => (await toastPage.getToastCount()) < previousCount, {
+                    timeout: 1000,
+                    description: 'Toast dismissed',
+                });
             }
 
             await toastPage.waitForAnimationComplete();
@@ -370,8 +374,12 @@ describe('Toast Stacking E2E', () => {
 
             // Dismiss all 5 from top
             for (let i = 0; i < 5; i++) {
+                const previousCount = await toastPage.getToastCount();
                 await toastPage.dismissToastByIndex(0);
-                await browser.pause(50);
+                await waitForUIState(async () => (await toastPage.getToastCount()) < previousCount, {
+                    timeout: 1000,
+                    description: 'Toast dismissed',
+                });
             }
 
             await toastPage.waitForAnimationComplete();
@@ -410,13 +418,13 @@ describe('Toast Stacking E2E', () => {
         it('should maintain stack order when types are mixed', async () => {
             // Create toasts of different types
             await toastPage.showSuccess('Success toast', { persistent: true });
-            await browser.pause(50);
+            await toastPage.waitForAnimationComplete();
             await toastPage.showError('Error toast', { persistent: true });
-            await browser.pause(50);
+            await toastPage.waitForAnimationComplete();
             await toastPage.showWarning('Warning toast', { persistent: true });
-            await browser.pause(50);
+            await toastPage.waitForAnimationComplete();
             await toastPage.showInfo('Info toast', { persistent: true });
-            await browser.pause(50);
+            await toastPage.waitForAnimationComplete();
 
             await toastPage.waitForAnimationComplete();
 
