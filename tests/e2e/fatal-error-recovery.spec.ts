@@ -1,6 +1,7 @@
 import { browser, expect, $ } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, pressShortcut } from './helpers/workflows';
+import { waitForDuration } from './helpers/waitUtilities';
 import {
     expectElementDisplayed,
     expectElementNotDisplayed,
@@ -111,8 +112,8 @@ describe('Fatal Error Recovery E2E', () => {
             // Press platform-appropriate reload shortcut (Ctrl+R / Cmd+R)
             await pressShortcut('primary', 'r');
 
-            // Wait for potential reload
-            await browser.pause(1000);
+            // Wait for page reload to complete
+            await waitForDuration(1000, 'Page reload');
 
             // 2. VERIFY ACTUAL OUTCOME
             await expectElementDisplayed('body');

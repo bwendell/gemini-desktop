@@ -16,6 +16,7 @@
 import { browser, expect, $ } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { expectElementDisplayed, expectElementNotDisplayed } from './helpers/assertions';
+import { waitForDuration } from './helpers/waitUtilities';
 
 // ============================================================================
 // CDP Network Interception Helpers
@@ -51,8 +52,7 @@ async function blockGeminiRequests(): Promise<void> {
         }
     });
 
-    // Give CDP time to set up interception
-    await browser.pause(500);
+    await waitForDuration(500, 'CDP Fetch.enable setup');
 }
 
 /**
@@ -71,7 +71,7 @@ async function restoreNetwork(): Promise<void> {
         }
     });
 
-    await browser.pause(500);
+    await waitForDuration(500, 'CDP Fetch.disable cleanup');
 }
 
 /**
@@ -81,7 +81,7 @@ async function reloadPage(): Promise<void> {
     await browser.execute(() => {
         window.location.reload();
     });
-    await browser.pause(2000);
+    await waitForDuration(2000, 'Page reload');
 }
 
 /**
@@ -147,7 +147,7 @@ describe('Offline Behavior', () => {
 
         // 3. Refresh and verify app loads
         await reloadPage();
-        await browser.pause(1000); // Extra settle time
+        await waitForDuration(1000, 'Extra settle time after network restore');
 
         const title = await browser.getTitle();
         expect(title).not.toBe('');

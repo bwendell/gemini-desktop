@@ -12,6 +12,7 @@ import { waitForWindowCount } from './helpers/windowActions';
 import { switchToOptionsWindow } from './helpers/optionsWindowActions';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 
 describe('Options Window Features', () => {
     const mainWindow = new MainWindowPage();
@@ -82,11 +83,17 @@ describe('Options Window Features', () => {
 
         // 2. Switch back to main window
         await browser.switchToWindow(handlesAfterFirst[0]);
-        await browser.pause(500);
+        await waitForUIState(
+            async () => {
+                const handles = await browser.getWindowHandles();
+                return handles[0] === handlesAfterFirst[0];
+            },
+            { description: 'Main window ready after switch' }
+        );
 
         // 3. Try to open Options again
         await mainWindow.openOptionsViaMenu();
-        await browser.pause(1000);
+        await waitForDuration(1000, 'Allow time to verify no duplicate window creation');
 
         // 4. Should still be only 2 windows (no duplicate)
         const handlesAfterSecond = await browser.getWindowHandles();

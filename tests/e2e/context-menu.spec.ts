@@ -24,6 +24,7 @@
 import { browser, expect } from '@wdio/globals';
 import { ContextMenuPage } from './pages';
 import { E2ELogger } from './helpers/logger';
+import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Context Menu', () => {
     const contextMenu = new ContextMenuPage();
@@ -135,7 +136,7 @@ describe('Context Menu', () => {
 
         // Click in the middle to deselect
         await testInput.click();
-        await browser.pause(200);
+        await waitForDuration(200, 'Input deselection settle');
 
         // Right-click to open context menu
         await contextMenu.openContextMenu(testInput);

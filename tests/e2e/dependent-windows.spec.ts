@@ -14,6 +14,7 @@ import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAllWindowsHidden, closeWindow } from './helpers/windowStateActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2ELogger } from './helpers/logger';
+import { waitForUIState, waitForWindowTransition } from './helpers/waitUtilities';
 
 describe('Dependent Windows', () => {
     const mainWindow = new MainWindowPage();
@@ -50,7 +51,13 @@ describe('Dependent Windows', () => {
 
         // 5. Wait for both windows to close/hide
         // When main window hides to tray, options window should also close
-        await browser.pause(1000); // Allow time for window operations
+        await waitForWindowTransition(
+            async () => {
+                const handles = await browser.getWindowHandles();
+                return handles.length === 0;
+            },
+            { description: 'All windows hidden after main window close' }
+        );
 
         // 6. Verify no windows remain visible (both hidden/closed)
         // Note: The main window is hidden (not closed), so window count drops to 0
@@ -72,7 +79,13 @@ describe('Dependent Windows', () => {
 
         // Close to tray via IPC API (works on all platforms including macOS with native controls)
         await closeWindow();
-        await browser.pause(1000);
+        await waitForWindowTransition(
+            async () => {
+                const handles = await browser.getWindowHandles();
+                return handles.length === 0;
+            },
+            { description: 'Windows hidden during close-to-tray' }
+        );
 
         // 2. Wait for windows to close
         await waitForAllWindowsHidden(5000);
@@ -115,7 +128,13 @@ describe('Dependent Windows', () => {
         await authWindow.openViaMenu();
 
         // Wait for auth window to appear (might already be open from Options)
-        await browser.pause(1000);
+        await waitForUIState(
+            async () => {
+                const allHandles = await browser.getWindowHandles();
+                return allHandles.length >= 2;
+            },
+            { description: 'Auth window appears' }
+        );
         const allHandles = await browser.getWindowHandles();
         E2ELogger.info('dependent-windows', `Windows after opening auth: ${allHandles.length}`);
 
@@ -128,7 +147,13 @@ describe('Dependent Windows', () => {
         E2ELogger.info('dependent-windows', 'Closed main window');
 
         // 4. Wait for all windows to close/hide
-        await browser.pause(1500);
+        await waitForWindowTransition(
+            async () => {
+                const handles = await browser.getWindowHandles();
+                return handles.length === 0;
+            },
+            { description: 'All windows closed with main window', timeout: 7000 }
+        );
         await waitForAllWindowsHidden(5000);
         E2ELogger.info('dependent-windows', 'All dependent windows closed with main window');
 

@@ -12,6 +12,7 @@ import { Selectors } from './helpers/selectors';
 import { E2ELogger } from './helpers/logger';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Custom Menu Bar', () => {
     const mainWindow = new MainWindowPage();
@@ -150,8 +151,18 @@ describe('Custom Menu Bar', () => {
         // 2. Hover over View menu
         await viewButton.moveTo();
 
-        // 3. Wait for react state update
-        await browser.pause(200);
+        // 3. Wait for React state update - check that Reload item (from View menu) appears
+        await waitForUIState(
+            async () => {
+                try {
+                    const reloadItem = await $(Selectors.menuItem('Reload'));
+                    return await reloadItem.isDisplayed();
+                } catch {
+                    return false;
+                }
+            },
+            { description: 'Menu switch to View on hover' }
+        );
 
         // Check for an item that is in View menu (Reload)
         const reloadItem = await $(Selectors.menuItem('Reload'));

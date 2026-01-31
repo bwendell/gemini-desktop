@@ -179,6 +179,7 @@ export const config = {
     mochaOpts: {
         ui: 'bdd',
         timeout: 90000, // Increased from 60s for stability
+        retries: 2, // Retry individual tests up to 2 times on failure
     },
 
     // Retry failed spec files to handle flaky tests

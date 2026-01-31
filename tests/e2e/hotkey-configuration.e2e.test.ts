@@ -18,6 +18,7 @@ import {
     closeOptionsWindow,
     switchToOptionsWindow,
 } from './helpers/optionsWindowActions';
+import { waitForUIState, waitForAnimationSettle, waitForWindowCount } from './helpers/waitUtilities';
 import { OptionsPage } from './pages/OptionsPage';
 
 // Create page object instance for use in tests
@@ -128,8 +129,16 @@ describe('Hotkey Configuration E2E', () => {
             // Send key combination (Ctrl+Shift+F)
             await browser.keys(['Control', 'Shift', 'f']);
 
-            // Wait for recording to complete
-            await browser.pause(300);
+            // Wait for recording to complete - recording prompt should disappear
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Recording to complete' }
+            );
 
             // Should no longer be in recording mode
             const recordingPrompt = await browser.$('.recording-prompt');
@@ -165,7 +174,17 @@ describe('Hotkey Configuration E2E', () => {
 
             // Press Escape
             await browser.keys('Escape');
-            await browser.pause(200);
+
+            // Wait for recording mode to exit
+            await waitForUIState(
+                async () => {
+                    const prompt = await browser.$('.recording-prompt');
+                    const exists = await prompt.isExisting();
+                    if (!exists) return true;
+                    return !(await prompt.isDisplayed());
+                },
+                { description: 'Recording mode to exit after Escape' }
+            );
 
             // Should exit recording mode
             const recordingPrompt = await browser.$('.recording-prompt');
@@ -182,7 +201,14 @@ describe('Hotkey Configuration E2E', () => {
 
             // Try to press just a letter key
             await browser.keys('a');
-            await browser.pause(200);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    return await recordingPrompt.isDisplayed();
+                },
+                { description: 'Recording prompt still visible after invalid key', timeout: 1000 }
+            );
 
             // Should still be in recording mode
             const recordingPrompt = await browser.$('.recording-prompt');
@@ -195,7 +221,16 @@ describe('Hotkey Configuration E2E', () => {
 
             // Send Ctrl+Alt+Shift+P
             await browser.keys(['Control', 'Alt', 'Shift', 'p']);
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Complex key combination recorded' }
+            );
 
             // Should have 4 keycaps
             const keycaps = await acceleratorDisplay.$$('kbd.keycap');
@@ -212,7 +247,16 @@ describe('Hotkey Configuration E2E', () => {
             // Change the accelerator first using Page Object
             await optionsPage.clickAcceleratorInput('alwaysOnTop');
             await browser.keys(['Control', 'Shift', 'q']);
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Recording to complete for reset button test' }
+            );
 
             // Reset button should appear - verify with Page Object method
             const isVisible = await optionsPage.isResetButtonVisible('alwaysOnTop');
@@ -232,7 +276,16 @@ describe('Hotkey Configuration E2E', () => {
             // Change the accelerator using Page Object
             await optionsPage.clickAcceleratorInput('alwaysOnTop');
             await browser.keys(['Control', 'Shift', 'z']);
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Recording to complete for restore test' }
+            );
 
             // Verify accelerator changed
             const changedAccelerator = await optionsPage.getCurrentAccelerator('alwaysOnTop');
@@ -260,7 +313,15 @@ describe('Hotkey Configuration E2E', () => {
             // Find the toggle switch
             const toggle = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
             await toggle.click();
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+                    const className = await hotkeyInput.getAttribute('class');
+                    return className?.includes('disabled') ?? false;
+                },
+                { description: 'Accelerator input to be disabled' }
+            );
 
             // Accelerator input should be disabled
             const hotkeyInput = await browser.$('.hotkey-accelerator-input');
@@ -272,12 +333,29 @@ describe('Hotkey Configuration E2E', () => {
             // Disable the hotkey
             const toggle = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
             await toggle.click();
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+                    const className = await hotkeyInput.getAttribute('class');
+                    return className?.includes('disabled') ?? false;
+                },
+                { description: 'Hotkey to be disabled' }
+            );
 
             // Try to click accelerator display
             const acceleratorDisplay = await browser.$('.keycap-container');
             await acceleratorDisplay.click();
-            await browser.pause(200);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Recording mode not activated when disabled', timeout: 1000 }
+            );
 
             // Should not enter recording mode
             const recordingPrompt = await browser.$('.recording-prompt');
@@ -293,16 +371,41 @@ describe('Hotkey Configuration E2E', () => {
             const acceleratorDisplay = await browser.$('.keycap-container');
             await acceleratorDisplay.click();
             await browser.keys(['Control', 'Alt', 'w']);
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Custom accelerator recorded' }
+            );
 
             // Disable hotkey
             const toggle = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
             await toggle.click();
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+                    const className = await hotkeyInput.getAttribute('class');
+                    return className?.includes('disabled') ?? false;
+                },
+                { description: 'Hotkey disabled' }
+            );
 
             // Re-enable hotkey
             await toggle.click();
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+                    const className = await hotkeyInput.getAttribute('class');
+                    return !className?.includes('disabled');
+                },
+                { description: 'Hotkey re-enabled' }
+            );
 
             // Should still have custom accelerator
             const currentAccelerator = await browser.electron.execute((_electron) => {
@@ -324,11 +427,20 @@ describe('Hotkey Configuration E2E', () => {
             const acceleratorDisplay = await browser.$('.keycap-container');
             await acceleratorDisplay.click();
             await browser.keys(['Control', 'Alt', 'r']);
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Accelerator change recorded' }
+            );
 
             // Close options window
             await closeOptionsWindow();
-            await browser.pause(500);
+            await waitForWindowCount(1);
 
             // Reopen options using shortcut
             // Ensure we are focused on the main window
@@ -349,7 +461,16 @@ describe('Hotkey Configuration E2E', () => {
             const acceleratorDisplay = await browser.$('.keycap-container');
             await acceleratorDisplay.click();
             await browser.keys(['Control', 'Shift', 'n']);
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Accelerator synced to main process' }
+            );
 
             // Verify in main process
             const mainProcessAccelerator = await browser.electron.execute((_electron) => {
@@ -382,12 +503,10 @@ describe('Hotkey Configuration E2E', () => {
         it('should show hover effects on non-recording state', async () => {
             const acceleratorDisplay = await browser.$('.keycap-container');
 
-            // Get initial border color
-            const initialBorder = await acceleratorDisplay.getCSSProperty('border-color');
-
             // Hover over element
             await acceleratorDisplay.moveTo();
-            await browser.pause(100);
+
+            await waitForAnimationSettle('.keycap-container', { property: 'border-color' });
 
             // Border color should change (indicated by transition)
             const transition = await acceleratorDisplay.getCSSProperty('transition');
@@ -441,7 +560,15 @@ describe('Hotkey Configuration E2E', () => {
             // Disable hotkey
             const toggle = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
             await toggle.click();
-            await browser.pause(300);
+
+            await waitForUIState(
+                async () => {
+                    const acceleratorDisplay = await browser.$('.keycap-container');
+                    const tabindex = await acceleratorDisplay.getAttribute('tabindex');
+                    return tabindex === '-1';
+                },
+                { description: 'Tabindex to become -1 when disabled' }
+            );
 
             const acceleratorDisplay = await browser.$('.keycap-container');
             const tabindex = await acceleratorDisplay.getAttribute('tabindex');
@@ -460,7 +587,14 @@ describe('Hotkey Configuration E2E', () => {
 
             // Try modifier-only (should stay in recording)
             await browser.keys('Control');
-            await browser.pause(200);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    return await recordingPrompt.isDisplayed();
+                },
+                { description: 'Recording prompt still visible after modifier-only key', timeout: 1000 }
+            );
 
             const recordingPrompt = await browser.$('.recording-prompt');
             await expect(recordingPrompt).toBeDisplayed();
@@ -475,7 +609,16 @@ describe('Hotkey Configuration E2E', () => {
             const acceleratorDisplay = await browser.$('.keycap-container');
             await acceleratorDisplay.click();
             await browser.keys('Escape');
-            await browser.pause(200);
+
+            await waitForUIState(
+                async () => {
+                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const exists = await recordingPrompt.isExisting();
+                    if (!exists) return true;
+                    return !(await recordingPrompt.isDisplayed());
+                },
+                { description: 'Recording cancelled on Escape' }
+            );
 
             const currentText = await browser.$('.keycap-container').getText();
             expect(currentText).toBe(initialText);
@@ -497,7 +640,16 @@ describe('Hotkey Configuration E2E', () => {
                 const acceleratorDisplay = await hotkeyRows[i].$('.keycap-container');
                 await acceleratorDisplay.click();
                 await browser.keys(['Control', 'Alt', `${i + 1}`]);
-                await browser.pause(300);
+
+                await waitForUIState(
+                    async () => {
+                        const recordingPrompt = await browser.$('.recording-prompt');
+                        const exists = await recordingPrompt.isExisting();
+                        if (!exists) return true;
+                        return !(await recordingPrompt.isDisplayed());
+                    },
+                    { description: `Hotkey ${i + 1} recorded` }
+                );
             }
 
             // Verify all three have different accelerators
@@ -621,14 +773,14 @@ describe('Hotkey Configuration E2E', () => {
 
             // Close and reopen options window
             await closeOptionsWindow();
-            await browser.pause(300);
+            await waitForWindowCount(1);
 
             await browser.execute(async () => {
                 const api = (window as any).electronAPI;
                 await api.openOptionsWindow();
             });
 
-            await browser.pause(500);
+            await waitForWindowCount(2);
             // Switch to options window
             await switchToOptionsWindow();
 
