@@ -47,6 +47,7 @@ jobs:
     unit-tests:
         name: Unit Tests
         runs-on: ubuntu-latest
+        timeout-minutes: 10
         permissions:
             contents: read
 
@@ -105,6 +106,7 @@ jobs:
         name: Coordinated & Integration Tests (${{ matrix.os }})
         needs: unit-tests
         runs-on: ${{ matrix.os }}
+        timeout-minutes: 15
         permissions:
             contents: read
 
@@ -166,8 +168,9 @@ jobs:
     # ===========================================================================
     e2e-tests-windows:
         name: E2E / 🪟 Windows / ${{ matrix.group }}
-        needs: integration-tests
+        needs: unit-tests
         runs-on: windows-latest
+        timeout-minutes: 20
         permissions:
             contents: read
 
@@ -224,8 +227,9 @@ jobs:
     # ===========================================================================
     e2e-tests-macos:
         name: E2E / 🍎 macOS / ${{ matrix.group }}
-        needs: integration-tests
+        needs: unit-tests
         runs-on: macos-latest
+        timeout-minutes: 20
         permissions:
             contents: read
 
@@ -282,8 +286,9 @@ jobs:
     # ===========================================================================
     e2e-tests-ubuntu:
         name: E2E / 🐧 Ubuntu / ${{ matrix.group }}
-        needs: integration-tests
+        needs: unit-tests
         runs-on: ubuntu-latest
+        timeout-minutes: 20
         permissions:
             contents: read
 
@@ -351,9 +356,10 @@ jobs:
     # ===========================================================================
     release-e2e-tests:
         name: Release E2E / ${{ matrix.emoji }} ${{ matrix.platform }}
-        # Run in parallel with regular E2E tests - only need integration tests to pass
-        needs: integration-tests
+        # Run in parallel with integration tests - only need unit tests to pass
+        needs: unit-tests
         runs-on: ${{ matrix.os }}
+        timeout-minutes: 30
         permissions:
             contents: read
 
