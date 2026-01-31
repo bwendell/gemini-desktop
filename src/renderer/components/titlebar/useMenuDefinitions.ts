@@ -202,7 +202,9 @@ export function useMenuDefinitions(): MenuDefinition[] {
                     id: 'menu-view-fullscreen',
                     label: 'Toggle Fullscreen',
                     shortcut: 'F11',
-                    disabled: true, // Will need IPC for fullscreen toggle
+                    action: () => {
+                        window.electronAPI?.toggleFullscreen();
+                    },
                 },
             ],
         },

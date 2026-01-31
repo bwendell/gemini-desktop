@@ -216,6 +216,38 @@ export async function showWindow(): Promise<void> {
 }
 
 /**
+ * Toggles fullscreen mode via Electron API.
+ */
+export async function toggleFullscreen(): Promise<void> {
+    E2ELogger.info('windowStateActions', 'Toggling fullscreen via API');
+
+    await browser.execute(() => {
+        (window as any).electronAPI?.toggleFullscreen?.();
+    });
+
+    await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+}
+
+/**
+ * Sets fullscreen mode to specific state.
+ */
+export async function setFullScreen(fullscreen: boolean): Promise<void> {
+    E2ELogger.info('windowStateActions', `Setting fullscreen to: ${fullscreen}`);
+
+    await browser.electron.execute(
+        (electron, fs) => {
+            const win = electron.BrowserWindow.getAllWindows()[0];
+            if (win) {
+                win.setFullScreen(fs);
+            }
+        },
+        fullscreen
+    );
+
+    await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+}
+
+/**
  * Forces focus on the current window.
  *
  * In automated E2E environments, the Electron window may not have OS-level focus.

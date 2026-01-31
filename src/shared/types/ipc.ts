@@ -37,6 +37,9 @@ export interface ElectronAPI {
     /** Check if the window is currently maximized */
     isMaximized: () => Promise<boolean>;
 
+    /** Toggle fullscreen mode for the current window */
+    toggleFullscreen: () => void;
+
     /** Open the options/settings window */
     openOptions: (tab?: 'settings' | 'about') => void;
 
