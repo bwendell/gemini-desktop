@@ -614,6 +614,8 @@ describe('Zoom Control Integration', () => {
             await browser.electron.execute(() => {
                 // @ts-expect-error
                 global.windowManager.initializeZoomLevel(undefined);
+                // @ts-expect-error - Must also apply the zoom level to the webContents
+                global.windowManager.applyZoomLevel();
             });
 
             await waitForZoomLevel(100);

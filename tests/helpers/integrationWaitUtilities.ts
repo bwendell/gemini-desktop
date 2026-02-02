@@ -565,9 +565,11 @@ export async function waitForNotificationState(
     await browser.waitUntil(
         async () => {
             const isEnabled = await browser.electron.execute(() => {
-                // @ts-expect-error - global.ipcManager is available in main process
-                if (global.ipcManager && global.ipcManager.store) {
-                    return global.ipcManager.store.get('responseNotificationsEnabled');
+                // @ts-expect-error - global.notificationManager is available in main process
+                // Note: NotificationManager uses its own store (notification-settings.json),
+                // not ipcManager.store (user-preferences.json), so we must check via the manager
+                if (global.notificationManager) {
+                    return global.notificationManager.isEnabled();
                 }
                 return null;
             });
