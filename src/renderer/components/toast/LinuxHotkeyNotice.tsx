@@ -1,121 +1,69 @@
 /**
  * Linux Hotkey Notice Toast Component
  *
- * Displays an informational notice on Linux about global hotkeys being disabled.
- * This is shown once on app startup when running on Linux.
+ * Displays a warning toast on Linux about global hotkeys being disabled.
+ * Shows on each app startup when running on Linux.
+ *
+ * Uses the ToastContext system for theme consistency and duplicate prevention.
  *
  * @module LinuxHotkeyNotice
  */
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { useToast } from '../../context/ToastContext';
 import { isLinux } from '../../utils/platform';
-import './LinuxHotkeyNotice.css';
 
 /**
- * Animation variants for the toast
+ * Toast ID for duplicate prevention
  */
-const toastVariants = {
-    hidden: {
-        opacity: 0,
-        x: -100,
-        transition: { duration: 0.2 },
-    },
-    visible: {
-        opacity: 1,
-        x: 0,
-        transition: {
-            type: 'spring' as const,
-            stiffness: 400,
-            damping: 30,
-        },
-    },
-    exit: {
-        opacity: 0,
-        x: -100,
-        transition: { duration: 0.2 },
-    },
-};
+const TOAST_ID = 'linux-hotkey-notice';
 
 /**
- * Local storage key for tracking if notice has been dismissed
+ * Delay before showing the toast (ms)
  */
-const STORAGE_KEY = 'linux-hotkey-notice-dismissed';
+const SHOW_DELAY_MS = 500;
+
+/**
+ * Toast duration (ms)
+ */
+const TOAST_DURATION_MS = 5000;
 
 /**
  * Linux Hotkey Notice component
  *
- * Shows an informational toast on Linux explaining that global hotkeys
- * are disabled due to Wayland limitations.
+ * Shows a warning toast on Linux explaining that global hotkeys
+ * are disabled due to Wayland limitations. Uses the existing toast
+ * system for consistent theming.
  */
 export function LinuxHotkeyNotice() {
-    const [visible, setVisible] = useState(false);
+    const { showWarning } = useToast();
+    const hasShownRef = useRef(false);
 
     useEffect(() => {
         // Only show on Linux
         if (!isLinux()) return;
 
-        // Check if user has already dismissed this notice
-        const dismissed = localStorage.getItem(STORAGE_KEY);
-        if (dismissed) return;
+        // Prevent duplicate toasts from strict mode double-mount
+        if (hasShownRef.current) return;
+        hasShownRef.current = true;
 
-        // Show after a short delay to let the app load
+        // Show after a short delay to let the app initialize
         const timer = setTimeout(() => {
-            setVisible(true);
-        }, 2000);
-
-        // Auto-hide after 10 seconds
-        const autoHideTimer = setTimeout(() => {
-            setVisible(false);
-        }, 12000);
+            showWarning('Global keyboard shortcuts are currently unavailable on Linux due to Wayland limitations.', {
+                id: TOAST_ID,
+                title: 'Global Hotkeys Disabled',
+                duration: TOAST_DURATION_MS,
+            });
+        }, SHOW_DELAY_MS);
 
         return () => {
             clearTimeout(timer);
-            clearTimeout(autoHideTimer);
         };
-    }, []);
+    }, [showWarning]);
 
-    const handleDismiss = () => {
-        setVisible(false);
-        localStorage.setItem(STORAGE_KEY, 'true');
-    };
-
-    return (
-        <AnimatePresence>
-            {visible && (
-                <motion.div
-                    className="linux-hotkey-notice"
-                    variants={toastVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    role="alert"
-                    aria-live="polite"
-                    data-testid="linux-hotkey-notice"
-                >
-                    <div className="linux-hotkey-notice__icon" aria-hidden="true">
-                        ℹ️
-                    </div>
-
-                    <div className="linux-hotkey-notice__content">
-                        <div className="linux-hotkey-notice__title">Global Hotkeys Disabled</div>
-                        <div className="linux-hotkey-notice__message">
-                            Global keyboard shortcuts are currently unavailable on Linux due to Wayland limitations.
-                        </div>
-                    </div>
-
-                    <button
-                        className="linux-hotkey-notice__dismiss"
-                        onClick={handleDismiss}
-                        aria-label="Dismiss notification"
-                        data-testid="linux-hotkey-notice-dismiss"
-                    >
-                        ✕
-                    </button>
-                </motion.div>
-            )}
-        </AnimatePresence>
-    );
+    // This component doesn't render anything directly
+    // The toast is rendered by ToastContainer
+    return null;
 }
 
 export default LinuxHotkeyNotice;
