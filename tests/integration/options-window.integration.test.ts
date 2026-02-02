@@ -296,12 +296,16 @@ describe('Options Window Integration', () => {
                 await browser.switchToWindow(optionsHandle);
             }
 
-            // Close via window close
-            await browser.execute(() => {
-                const api = (window as any).electronAPI;
-                if (api?.closeWindow) {
-                    api.closeWindow();
-                }
+            // Close via main process (renderer-based close loses WebDriver context)
+            await browser.electron.execute(() => {
+                // @ts-expect-error - Close options window from main process
+                const { BrowserWindow } = require('electron');
+                const mainWin = global.windowManager.getMainWindow();
+                BrowserWindow.getAllWindows().forEach((win: any) => {
+                    if (win !== mainWin && !win.isDestroyed()) {
+                        win.close();
+                    }
+                });
             });
 
             // Wait for window to close
