@@ -84,7 +84,7 @@ jobs:
 
             # Optionally upload coverage (CI workflow only)
             - name: Upload Frontend Coverage Report
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: inputs.upload-coverage
               with:
                   name: coverage-frontend
@@ -92,7 +92,7 @@ jobs:
                   retention-days: 7
 
             - name: Upload Electron Coverage Report
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: inputs.upload-coverage
               with:
                   name: coverage-electron
@@ -212,7 +212,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-windows-latest
@@ -271,7 +271,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-macos-latest
@@ -341,7 +341,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-ubuntu-latest
@@ -432,7 +432,7 @@ jobs:
 
             # Upload artifacts on failure for debugging
             - name: Upload Release E2E Screenshots (on failure)
-              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: failure()
               with:
                   name: release-e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.os }}
