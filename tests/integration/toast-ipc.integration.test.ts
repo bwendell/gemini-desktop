@@ -11,11 +11,7 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import {
-    waitForIPCSettle,
-    waitForSecondaryWindowsClose,
-    waitForContentReady,
-} from '../helpers/integrationWaitUtilities';
+import { waitForIPCSettle, waitForSecondaryWindowsClose } from '../helpers/integrationWaitUtilities';
 
 describe('Toast IPC Integration', () => {
     let mainWindowHandle: string;
@@ -125,8 +121,14 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            // Wait for IPC to process
-            await waitForIPCSettle();
+            // Wait for toast to be received
+            await browser.waitUntil(
+                async () => {
+                    const received = await browser.execute(() => (window as any)._toastReceived);
+                    return received !== null;
+                },
+                { timeout: 5000, timeoutMsg: 'Toast not received within 5000ms' }
+            );
 
             // Verify toast was received
             const received = await browser.execute(() => {
@@ -162,8 +164,14 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            // Wait for IPC to process
-            await waitForIPCSettle();
+            // Wait for toast to be received
+            await browser.waitUntil(
+                async () => {
+                    const received = await browser.execute(() => (window as any)._toastReceived);
+                    return received !== null;
+                },
+                { timeout: 5000, timeoutMsg: 'Toast not received within 5000ms' }
+            );
 
             // Verify all properties received
             const received = await browser.execute(() => {
@@ -266,7 +274,14 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            await waitForIPCSettle();
+            // Wait for toast to be received before cleanup
+            await browser.waitUntil(
+                async () => {
+                    const received = await browser.execute(() => (window as any)._toastReceived);
+                    return received !== null;
+                },
+                { timeout: 5000, timeoutMsg: 'Toast not received before cleanup within 5000ms' }
+            );
 
             const beforeCleanup = await browser.execute(() => {
                 return (window as any)._toastReceived;
@@ -293,7 +308,8 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            await waitForIPCSettle();
+            // Give IPC time to process (short pause, then verify no toast arrived)
+            await browser.pause(500);
 
             // Should NOT have received the second toast
             const afterCleanup = await browser.execute(() => {
@@ -397,7 +413,16 @@ describe('Toast IPC Integration', () => {
                 await browser.switchToWindow(optionsWindowHandle);
             }
 
-            await waitForContentReady();
+            // Wait for electronAPI to be available in Options window
+            await browser.waitUntil(
+                async () => {
+                    const hasApi = await browser.execute(() => {
+                        return typeof (window as any).electronAPI !== 'undefined';
+                    });
+                    return hasApi === true;
+                },
+                { timeout: 10000, timeoutMsg: 'electronAPI not available in Options window within 10000ms' }
+            );
 
             const hasApi = await browser.execute(() => {
                 return typeof (window as any).electronAPI?.onToastShow === 'function';
@@ -420,7 +445,16 @@ describe('Toast IPC Integration', () => {
             // Options window
             if (optionsWindowHandle) {
                 await browser.switchToWindow(optionsWindowHandle);
-                await waitForIPCSettle();
+                // Wait for electronAPI to be available in Options window
+                await browser.waitUntil(
+                    async () => {
+                        const hasApi = await browser.execute(() => {
+                            return typeof (window as any).electronAPI !== 'undefined';
+                        });
+                        return hasApi === true;
+                    },
+                    { timeout: 5000, timeoutMsg: 'electronAPI not available in Options window' }
+                );
                 await browser.execute(() => {
                     (window as any)._optionsWindowToast = null;
                     (window as any)._optionsCleanup = (window as any).electronAPI.onToastShow((payload: any) => {
@@ -441,10 +475,17 @@ describe('Toast IPC Integration', () => {
                 }
             });
 
-            await waitForIPCSettle();
+            // Wait for main window to receive the toast
+            await browser.switchToWindow(mainWindowHandle);
+            await browser.waitUntil(
+                async () => {
+                    const received = await browser.execute(() => (window as any)._mainWindowToast);
+                    return received !== null;
+                },
+                { timeout: 5000, timeoutMsg: 'Toast not received in main window within 5000ms' }
+            );
 
             // Check main window received it
-            await browser.switchToWindow(mainWindowHandle);
             const mainReceived = await browser.execute(() => {
                 return (window as any)._mainWindowToast;
             });
