@@ -75,11 +75,15 @@ describe('Theme Selector Visual Verification', () => {
         // Verify checkmark appears on light card
         await expectElementDisplayed('[data-testid="theme-checkmark-light"]');
 
-        // Verify no checkmark on other cards
-        const systemCheckmark = await $('[data-testid="theme-checkmark-system"]');
-        const darkCheckmark = await $('[data-testid="theme-checkmark-dark"]');
-        await expect(systemCheckmark).not.toExist();
-        await expect(darkCheckmark).not.toExist();
+        // Verify no checkmark on other cards (wait for exit animation to complete)
+        await browser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-system"]').isExisting()), {
+            timeout: 500,
+            timeoutMsg: 'System checkmark did not disappear after animation',
+        });
+        await browser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-dark"]').isExisting()), {
+            timeout: 500,
+            timeoutMsg: 'Dark checkmark did not disappear after animation',
+        });
 
         // Now click dark theme
         await optionsPage.selectTheme('dark');
@@ -87,9 +91,11 @@ describe('Theme Selector Visual Verification', () => {
         // Verify checkmark moved to dark card
         await expectElementDisplayed('[data-testid="theme-checkmark-dark"]');
 
-        // Light checkmark should be gone
-        const newLightCheckmark = await $('[data-testid="theme-checkmark-light"]');
-        await expect(newLightCheckmark).not.toExist();
+        // Light checkmark should be gone (wait for exit animation to complete)
+        await browser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-light"]').isExisting()), {
+            timeout: 500,
+            timeoutMsg: 'Light checkmark did not disappear after animation',
+        });
 
         await optionsPage.close();
     });
