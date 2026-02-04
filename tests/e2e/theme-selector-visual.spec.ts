@@ -12,7 +12,6 @@ import { MainWindowPage, OptionsPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { expectElementDisplayed, expectThemeApplied } from './helpers/assertions';
 import { waitForWindowCount } from './helpers/windowActions';
-import { E2E_TIMING } from './helpers/e2eConstants';
 
 describe('Theme Selector Visual Verification', () => {
     const mainWindow = new MainWindowPage();
@@ -78,11 +77,11 @@ describe('Theme Selector Visual Verification', () => {
 
         // Verify no checkmark on other cards (wait for exit animation to complete)
         await browser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-system"]').isExisting()), {
-            timeout: E2E_TIMING.ANIMATION_SETTLE,
+            timeout: 500,
             timeoutMsg: 'System checkmark did not disappear after animation',
         });
         await browser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-dark"]').isExisting()), {
-            timeout: E2E_TIMING.ANIMATION_SETTLE,
+            timeout: 500,
             timeoutMsg: 'Dark checkmark did not disappear after animation',
         });
 
@@ -94,7 +93,7 @@ describe('Theme Selector Visual Verification', () => {
 
         // Light checkmark should be gone (wait for exit animation to complete)
         await browser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-light"]').isExisting()), {
-            timeout: E2E_TIMING.ANIMATION_SETTLE,
+            timeout: 500,
             timeoutMsg: 'Light checkmark did not disappear after animation',
         });
 
