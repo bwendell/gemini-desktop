@@ -40,10 +40,10 @@ jobs:
             npm_config_arch: x64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -105,10 +105,10 @@ jobs:
             npm_config_arch: arm64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -168,10 +168,10 @@ jobs:
             contents: write # Required for release upload
         steps:
             - name: Checkout Code
-              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -245,10 +245,10 @@ jobs:
             contents: write # Required for release upload
         steps:
             - name: Checkout Code
-              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
             - name: Setup Node.js
-              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
