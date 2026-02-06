@@ -4,6 +4,8 @@
  */
 
 import type { BrowserWindowConstructorOptions } from 'electron';
+import { getWaylandStatus } from './waylandDetector';
+import type { WaylandStatus } from '../../shared/types/hotkeys';
 
 // =========================================================================
 // Domain Configuration
@@ -292,6 +294,16 @@ export const isMacOS = process.platform === 'darwin';
 export const isWindows = process.platform === 'win32';
 export const isLinux = process.platform === 'linux';
 export const isDev = process.env.NODE_ENV === 'development';
+export const isWayland = process.env.XDG_SESSION_TYPE === 'wayland';
+
+// Lazy-initialized Wayland status (computed once on first access)
+let _waylandStatus: WaylandStatus | null = null;
+export function getWaylandPlatformStatus(): WaylandStatus {
+    if (!_waylandStatus) {
+        _waylandStatus = getWaylandStatus();
+    }
+    return _waylandStatus;
+}
 
 /**
  * Application ID used for Windows notifications, taskbar grouping, and app identification.
