@@ -55,9 +55,19 @@ describe('Minimize-to-Tray Workflow', () => {
 
     afterEach(async () => {
         // Restore window after each test
-        const visible = await tray.isWindowVisible();
-        if (!visible) {
-            await tray.clickAndWaitForWindow();
+        // Wrapped in try-catch to handle "Promise was collected" errors that can occur
+        // when the WebSocket connection closes during cleanup after the final test
+        try {
+            const visible = await tray.isWindowVisible();
+            if (!visible) {
+                await tray.restoreWindowViaTrayClick();
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (!errorMessage.includes('Promise was collected')) {
+                throw error;
+            }
+            E2ELogger.info('minimize-to-tray', 'Cleanup interrupted by test teardown (safe to ignore)');
         }
     });
 
@@ -182,7 +192,7 @@ describe('Minimize-to-Tray Workflow', () => {
             let hidden = await tray.isHiddenToTray();
             expect(hidden).toBe(true);
 
-            await tray.clickAndWaitForWindow();
+            await tray.restoreWindowViaTrayClick();
             let visible = await tray.isWindowVisible();
             expect(visible).toBe(true);
 
@@ -191,7 +201,7 @@ describe('Minimize-to-Tray Workflow', () => {
             hidden = await tray.isHiddenToTray();
             expect(hidden).toBe(true);
 
-            await tray.clickAndWaitForWindow();
+            await tray.restoreWindowViaTrayClick();
             visible = await tray.isWindowVisible();
             expect(visible).toBe(true);
 
