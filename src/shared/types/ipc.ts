@@ -6,7 +6,13 @@
  */
 
 import type { ThemeData, ThemePreference } from './theme';
-import type { HotkeyId, IndividualHotkeySettings, HotkeyAccelerators, HotkeySettings } from './hotkeys';
+import type {
+    HotkeyId,
+    IndividualHotkeySettings,
+    HotkeyAccelerators,
+    HotkeySettings,
+    PlatformHotkeyStatus,
+} from './hotkeys';
 import type { UpdateInfo, DownloadProgress } from './updates';
 import type { ToastPayload } from './toast';
 import type { TextPredictionSettings } from './text-prediction';
@@ -335,4 +341,14 @@ export interface ElectronAPI {
      * Export the current chat to a Markdown file.
      */
     exportChatToMarkdown: () => void;
+
+    // =========================================================================
+    // Platform Hotkey Status API
+    // =========================================================================
+
+    /** Get current platform hotkey status (Wayland/Portal info) */
+    getPlatformHotkeyStatus: () => Promise<PlatformHotkeyStatus>;
+
+    /** Listen for platform hotkey status changes. Returns unsubscribe function. */
+    onPlatformHotkeyStatusChanged: (callback: (status: PlatformHotkeyStatus) => void) => () => void;
 }

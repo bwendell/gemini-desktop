@@ -194,6 +194,29 @@ const electronAPI: ElectronAPI = {
     platform: process.platform,
 
     /**
+     * Get the current platform hotkey status, including Wayland and D-Bus info.
+     * Accurate platform hotkey status for the renderer.
+     *
+     * @returns Promise resolving to PlatformHotkeyStatus
+     */
+    getPlatformHotkeyStatus: () => ipcRenderer.invoke(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET),
+
+    /**
+     * Subscribe to platform hotkey status change events.
+     *
+     * @param callback - Function called with PlatformHotkeyStatus when any status changes
+     * @returns Cleanup function to unsubscribe
+     */
+    onPlatformHotkeyStatusChanged: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, status: any) => callback(status);
+        ipcRenderer.on(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_CHANGED, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_CHANGED, subscription);
+        };
+    },
+
+    /**
      * Flag indicating we're running in Electron.
      * Use for feature detection in components.
      */

@@ -5,6 +5,8 @@
  * Centralizes platform-specific logic for easier testing and maintenance.
  */
 
+import type { PlatformHotkeyStatus } from '../../shared/types/hotkeys';
+
 /**
  * Supported operating systems.
  */
@@ -126,3 +128,40 @@ export function isDevMode(env?: { DEV?: boolean; MODE?: string }): boolean {
  * @deprecated Use isDevMode() instead
  */
 export const getIsDev = isDevMode;
+
+/**
+ * Get the current platform hotkey status from the main process.
+ *
+ * This provides detailed information about Wayland session status,
+ * portal availability, and individual hotkey registration results.
+ *
+ * @returns Promise resolving to the platform hotkey status, or null if unavailable
+ */
+export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | null> {
+    if (window.electronAPI?.getPlatformHotkeyStatus) {
+        return window.electronAPI.getPlatformHotkeyStatus();
+    }
+    return null;
+}
+
+/**
+ * Checks if the current environment is Wayland with portal support.
+ *
+ * This is the criteria for enabling global hotkeys on Wayland.
+ *
+ * @param status - The platform hotkey status
+ * @returns true if global hotkeys are supported on this Wayland session
+ */
+export function isWaylandWithPortal(status: PlatformHotkeyStatus | null): boolean {
+    return status?.waylandStatus.isWayland === true && status?.waylandStatus.portalAvailable === true;
+}
+
+/**
+ * Checks if global hotkeys are currently reported as enabled by the system.
+ *
+ * @param status - The platform hotkey status
+ * @returns true if global hotkeys are enabled
+ */
+export function areGlobalHotkeysEnabled(status: PlatformHotkeyStatus | null): boolean {
+    return status?.globalHotkeysEnabled === true;
+}

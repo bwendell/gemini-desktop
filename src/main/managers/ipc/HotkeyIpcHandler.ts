@@ -21,6 +21,7 @@ import {
     type IndividualHotkeySettings,
     type HotkeyAccelerators,
     type HotkeySettings,
+    type PlatformHotkeyStatus,
 } from '../../../shared/types/hotkeys';
 
 /**
@@ -57,6 +58,11 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         // Get full hotkey settings (enabled + accelerators)
         ipcMain.handle(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET, (): HotkeySettings => {
             return this._handleGetFullSettings();
+        });
+
+        // Get current platform hotkey status (Wayland/Portal info)
+        ipcMain.handle(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET, (): PlatformHotkeyStatus => {
+            return this._handleGetPlatformHotkeyStatus();
         });
     }
 
@@ -304,5 +310,26 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
     private _broadcastAcceleratorChange(): void {
         const accelerators = this._getAccelerators();
         this.broadcastToAllWindows(IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED, accelerators);
+    }
+
+    /**
+     * Handle platform:hotkey-status:get request.
+     * @returns Current platform hotkey status
+     */
+    private _handleGetPlatformHotkeyStatus(): PlatformHotkeyStatus {
+        if (!this.deps.hotkeyManager) {
+            return {
+                waylandStatus: {
+                    isWayland: false,
+                    desktopEnvironment: 'unknown' as const,
+                    deVersion: null,
+                    portalAvailable: false,
+                    portalMethod: 'none' as const,
+                },
+                registrationResults: [],
+                globalHotkeysEnabled: false,
+            };
+        }
+        return this.deps.hotkeyManager.getPlatformHotkeyStatus();
     }
 }

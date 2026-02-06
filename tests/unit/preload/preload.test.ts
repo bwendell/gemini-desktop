@@ -215,4 +215,44 @@ describe('Preload Script', () => {
             );
         });
     });
+
+    describe('Platform Hotkey Status API', () => {
+        it('getPlatformHotkeyStatus should invoke IPC handler', async () => {
+            const mockStatus = {
+                waylandStatus: { isWayland: true, portalAvailable: true },
+                registrationResults: [],
+                globalHotkeysEnabled: true,
+            };
+            (ipcRendererMock.invoke as any).mockResolvedValue(mockStatus);
+
+            const result = await exposedAPI.getPlatformHotkeyStatus();
+
+            expect(ipcRendererMock.invoke).toHaveBeenCalledWith('platform:hotkey-status:get');
+            expect(result).toEqual(mockStatus);
+        });
+
+        it('onPlatformHotkeyStatusChanged should register listener and return unsubscribe', () => {
+            const callback = vi.fn();
+            const unsubscribe = exposedAPI.onPlatformHotkeyStatusChanged(callback);
+
+            expect(ipcRendererMock.on).toHaveBeenCalledWith('platform:hotkey-status:changed', expect.any(Function));
+
+            // simulate event
+            const handler = (ipcRendererMock.on as any).mock.calls.find(
+                (call: any[]) => call[0] === 'platform:hotkey-status:changed'
+            )?.[1];
+            if (handler) {
+                const mockStatus = { globalHotkeysEnabled: false };
+                handler({}, mockStatus);
+                expect(callback).toHaveBeenCalledWith(mockStatus);
+            }
+
+            // test unsubscribe
+            unsubscribe();
+            expect(ipcRendererMock.removeListener).toHaveBeenCalledWith(
+                'platform:hotkey-status:changed',
+                expect.any(Function)
+            );
+        });
+    });
 });
