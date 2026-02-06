@@ -1,8 +1,9 @@
 /**
  * Linux Hotkey Notice Toast Component
  *
- * Displays a warning toast on Linux about global hotkeys being disabled.
- * Shows on each app startup when running on Linux.
+ * Displays a conditional warning toast on Linux about global hotkeys.
+ * Only shows toast when global hotkeys fail or are unsupported.
+ * Silent success when Wayland + portal is working correctly.
  *
  * Uses the ToastContext system for theme consistency and duplicate prevention.
  *
@@ -12,6 +13,7 @@
 import { useEffect, useRef } from 'react';
 import { useToast } from '../../context/ToastContext';
 import { isLinux } from '../../utils/platform';
+import type { PlatformHotkeyStatus } from '../../../shared/types/hotkeys';
 
 /**
  * Toast ID for duplicate prevention
@@ -20,8 +22,9 @@ const TOAST_ID = 'linux-hotkey-notice';
 
 /**
  * Delay before showing the toast (ms)
+ * Increased to 1000ms to allow time for IPC response
  */
-const SHOW_DELAY_MS = 500;
+const SHOW_DELAY_MS = 1000;
 
 /**
  * Toast duration (ms)
@@ -31,9 +34,8 @@ const TOAST_DURATION_MS = 5000;
 /**
  * Linux Hotkey Notice component
  *
- * Shows a warning toast on Linux explaining that global hotkeys
- * are disabled due to Wayland limitations. Uses the existing toast
- * system for consistent theming.
+ * Shows a warning toast on Linux only when global hotkeys fail or are unsupported.
+ * Implements silent success - no toast when everything works correctly.
  */
 export function LinuxHotkeyNotice() {
     const { showWarning } = useToast();
@@ -45,10 +47,35 @@ export function LinuxHotkeyNotice() {
 
         // Prevent duplicate toasts from strict mode double-mount
         if (hasShownRef.current) return;
-        hasShownRef.current = true;
 
-        // Show after a short delay to let the app initialize
-        const timer = setTimeout(() => {
+        // Show after a delay to let the app initialize and await IPC response
+        const timer = setTimeout(async () => {
+            // Query platform status from main process
+            let status: PlatformHotkeyStatus | null = null;
+            try {
+                status = (await window.electronAPI?.getPlatformHotkeyStatus?.()) ?? null;
+            } catch {
+                // If IPC fails, fall back to showing warning (defensive)
+            }
+
+            hasShownRef.current = true;
+
+            // If global hotkeys are enabled and working, stay silent
+            if (status?.globalHotkeysEnabled) {
+                // Check for partial failures
+                const failures = status.registrationResults.filter((r) => !r.success);
+                if (failures.length === 0) return; // All good, no toast
+
+                // Partial failure — warn about specific shortcuts
+                const failedNames = failures.map((f) => f.hotkeyId).join(', ');
+                showWarning(
+                    `Some global shortcuts could not be registered: ${failedNames}. These may conflict with other applications.`,
+                    { id: TOAST_ID, title: 'Hotkey Registration Partial', duration: TOAST_DURATION_MS }
+                );
+                return;
+            }
+
+            // Hotkeys not enabled — show appropriate message
             showWarning('Global keyboard shortcuts are currently unavailable on Linux due to Wayland limitations.', {
                 id: TOAST_ID,
                 title: 'Global Hotkeys Disabled',
