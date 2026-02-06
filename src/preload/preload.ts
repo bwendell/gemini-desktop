@@ -93,6 +93,10 @@ export const IPC_CHANNELS = {
     // Tray
     TRAY_GET_TOOLTIP: 'tray:get-tooltip',
 
+    // Platform Status
+    PLATFORM_HOTKEY_STATUS_GET: 'platform:hotkey-status:get',
+    PLATFORM_HOTKEY_STATUS_CHANGED: 'platform:hotkey-status:changed',
+
     // Dev Testing (only used in development for manual testing)
     DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
     DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',
