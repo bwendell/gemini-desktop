@@ -18,6 +18,9 @@ import {
     getHotkeyScope,
     isGlobalHotkey,
     isApplicationHotkey,
+    type WaylandStatus,
+    type HotkeyRegistrationResult,
+    type PlatformHotkeyStatus,
 } from '../../../src/shared/types/hotkeys';
 
 // ============================================================================
@@ -49,13 +52,37 @@ vi.mock('../../../src/main/utils/logger');
  * Mock for constants module.
  * Ensures isLinux returns false during tests so hotkey registration tests work on all platforms.
  */
+const constantsMocks = vi.hoisted(() => ({
+    isLinux: false,
+    getWaylandPlatformStatus: vi.fn().mockReturnValue({
+        isWayland: false,
+        desktopEnvironment: 'unknown',
+        deVersion: null,
+        portalAvailable: false,
+        portalMethod: 'none',
+    }),
+}));
+
 vi.mock('../../../src/main/utils/constants', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../../src/main/utils/constants')>();
     return {
         ...actual,
-        isLinux: false,
+        get isLinux() {
+            return constantsMocks.isLinux;
+        },
+        getWaylandPlatformStatus: constantsMocks.getWaylandPlatformStatus,
     };
 });
+
+const mockDbusFallback = vi.hoisted(() => ({
+    registerViaDBus: vi.fn().mockResolvedValue([]),
+    destroySession: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../../src/main/utils/dbusFallback', () => ({
+    registerViaDBus: mockDbusFallback.registerViaDBus,
+    destroySession: mockDbusFallback.destroySession,
+}));
 
 // Import after mocks are set up
 import HotkeyManager from '../../../src/main/managers/hotkeyManager';
@@ -812,6 +839,139 @@ describe('HotkeyManager', () => {
 
             expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
             expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
+        });
+    });
+
+    // ========================================================================
+    // Linux / Wayland Scenarios (Task 7)
+    // ========================================================================
+
+    describe('Linux / Wayland scenarios', () => {
+        beforeEach(() => {
+            constantsMocks.isLinux = true;
+            mockGlobalShortcut.register.mockReturnValue(true);
+            mockGlobalShortcut.isRegistered.mockReturnValue(true);
+        });
+
+        afterEach(() => {
+            constantsMocks.isLinux = false;
+            vi.clearAllMocks();
+        });
+
+        it('should NOT register shortcuts on X11 Linux', () => {
+            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
+                isWayland: false,
+                desktopEnvironment: 'kde',
+                deVersion: '5.27',
+                portalAvailable: false,
+                portalMethod: 'none',
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+            expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
+        });
+
+        it('should NOT register shortcuts on Wayland with unsupported DE', () => {
+            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
+                isWayland: true,
+                desktopEnvironment: 'unknown',
+                deVersion: null,
+                portalAvailable: false,
+                portalMethod: 'none',
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+            expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
+        });
+
+        it('should register shortcuts on Wayland with supported KDE', () => {
+            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
+                isWayland: true,
+                desktopEnvironment: 'kde',
+                deVersion: '5.27',
+                portalAvailable: true,
+                portalMethod: 'none',
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(true);
+        });
+
+        it('should attempt D-Bus fallback if Chromium registration fails', async () => {
+            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
+                isWayland: true,
+                desktopEnvironment: 'kde',
+                deVersion: '5.27',
+                portalAvailable: true,
+                portalMethod: 'none',
+            });
+
+            // Simulate Chromium registration failure
+            mockGlobalShortcut.register.mockReturnValue(false);
+            mockGlobalShortcut.isRegistered.mockReturnValue(false);
+
+            mockDbusFallback.registerViaDBus.mockResolvedValue([
+                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'quickChat', success: true },
+            ]);
+
+            hotkeyManager.registerShortcuts();
+
+            // wait for async fallback
+            await vi.waitFor(() => {
+                expect(mockDbusFallback.registerViaDBus).toHaveBeenCalled();
+            });
+
+            const status = hotkeyManager.getPlatformHotkeyStatus();
+            expect(status.waylandStatus.portalMethod).toBe('dbus-fallback');
+            expect(status.registrationResults).toContainEqual(
+                expect.objectContaining({ hotkeyId: 'bossKey', success: true })
+            );
+        });
+
+        it('should update registration results on each registration', () => {
+            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
+                isWayland: true,
+                desktopEnvironment: 'kde',
+                deVersion: '5.27',
+                portalAvailable: true,
+                portalMethod: 'none',
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            const status = hotkeyManager.getPlatformHotkeyStatus();
+            expect(status.registrationResults).toHaveLength(2);
+            expect(status.registrationResults.every((r) => r.success)).toBe(true);
+        });
+
+        it('should skip individual registration on Linux if platform global hotkeys are disabled', () => {
+            constantsMocks.isLinux = true;
+            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
+                isWayland: false, // X11
+                portalAvailable: false,
+                desktopEnvironment: 'unknown',
+                deVersion: null,
+                portalMethod: 'none',
+            });
+
+            // Initial registration should fail to set _globalHotkeysEnabled
+            hotkeyManager.registerShortcuts();
+            expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
+
+            vi.clearAllMocks();
+
+            // Try to enable a hotkey individually
+            hotkeyManager.setIndividualEnabled('quickChat', true);
+
+            // Should not attempt registration
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
         });
     });
 });

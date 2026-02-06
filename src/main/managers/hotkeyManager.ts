@@ -58,26 +58,15 @@ import {
     GLOBAL_HOTKEY_IDS,
     isGlobalHotkey,
 } from '../types';
+import { isWayland, getWaylandPlatformStatus } from '../utils/constants';
+import { registerViaDBus } from '../utils/dbusFallback';
+import type { WaylandStatus, HotkeyRegistrationResult, PlatformHotkeyStatus } from '../../shared/types/hotkeys';
 
 const logger = createLogger('[HotkeyManager]');
 
 // ============================================================================
 // Feature Flags
 // ============================================================================
-
-/**
- * Global hotkeys are disabled on Linux due to Wayland limitations.
- *
- * Wayland's security model prevents applications from registering global
- * shortcuts without explicit desktop portal integration. The current
- * GlobalShortcutsPortal implementation in Chromium/Electron is unreliable
- * on GNOME 46+ and other compositors.
- *
- * When Wayland support improves, set this to `true` to re-enable.
- *
- * @see https://github.com/nicolomaioli/gemini-desktop/issues/XXX
- */
-const ENABLE_GLOBAL_HOTKEYS_ON_LINUX = false;
 
 // ============================================================================
 // Types
@@ -158,6 +147,18 @@ export default class HotkeyManager {
      * Prevents duplicate registration calls and enables proper unregistration.
      */
     private _registeredShortcuts: Map<HotkeyId, string> = new Map();
+
+    /**
+     * Results of individual hotkey registration attempts.
+     * Used for portal status reporting and D-Bus fallback triggering.
+     */
+    private _registrationResults: Map<HotkeyId, HotkeyRegistrationResult> = new Map();
+
+    /**
+     * Whether global hotkeys are enabled for the current platform.
+     * On Linux, this depends on Wayland session and portal availability.
+     */
+    private _globalHotkeysEnabled: boolean = false;
 
     /**
      * Creates a new HotkeyManager instance.
@@ -398,9 +399,11 @@ export default class HotkeyManager {
             return;
         }
 
-        // Skip global shortcut registration on Linux (Wayland limitations)
-        if (isLinux && !ENABLE_GLOBAL_HOTKEYS_ON_LINUX) {
-            logger.log(`Global hotkey setting updated: ${id} = ${enabled} (registration skipped on Linux)`);
+        // Skip global shortcut registration on unsupported Linux
+        if (isLinux && !this._globalHotkeysEnabled) {
+            logger.log(
+                `Global hotkey setting updated: ${id} = ${enabled} (registration skipped - unsupported platform)`
+            );
             return;
         }
 
@@ -451,18 +454,77 @@ export default class HotkeyManager {
      * @see setIndividualEnabled - For enabling/disabling individual hotkeys
      */
     registerShortcuts(): void {
-        // Skip registration on Linux when disabled (Wayland limitations)
-        if (isLinux && !ENABLE_GLOBAL_HOTKEYS_ON_LINUX) {
-            logger.warn('Global hotkeys are disabled on Linux due to Wayland limitations.');
+        // Non-Linux: register normally (existing behavior)
+        if (!isLinux) {
+            this._globalHotkeysEnabled = true;
+            for (const id of GLOBAL_HOTKEY_IDS) {
+                if (this._individualSettings[id]) {
+                    this._registerShortcutById(id);
+                }
+            }
             return;
         }
 
-        // Only register global hotkeys via globalShortcut API
-        // Application hotkeys are handled by MenuManager via menu accelerators
+        // Linux: check Wayland status
+        const waylandStatus = getWaylandPlatformStatus();
+
+        if (!waylandStatus.isWayland || !waylandStatus.portalAvailable) {
+            // X11 or unsupported Wayland DE — keep disabled
+            logger.warn(
+                `Global hotkeys disabled on Linux. Wayland: ${waylandStatus.isWayland}, Portal: ${waylandStatus.portalAvailable}, DE: ${waylandStatus.desktopEnvironment}`
+            );
+            this._globalHotkeysEnabled = false;
+            return;
+        }
+
+        // Wayland + supported DE — attempt registration via Chromium flag path
+        logger.log('Attempting global hotkey registration on Wayland via portal...');
+        this._globalHotkeysEnabled = true;
+
         for (const id of GLOBAL_HOTKEY_IDS) {
             if (this._individualSettings[id]) {
                 this._registerShortcutById(id);
             }
+        }
+
+        // Check if any registrations failed — if so, try D-Bus fallback
+        this._attemptDBusFallbackIfNeeded(waylandStatus);
+    }
+
+    /**
+     * Attempt D-Bus fallback registration if Chromium flag registration failed.
+     *
+     * @param waylandStatus - Current Wayland status to update with selected method
+     * @private
+     */
+    private async _attemptDBusFallbackIfNeeded(waylandStatus: WaylandStatus): Promise<void> {
+        const failedShortcuts = GLOBAL_HOTKEY_IDS.filter((id) => {
+            const result = this._registrationResults.get(id);
+            return this._individualSettings[id] && (!result || !result.success);
+        });
+
+        if (failedShortcuts.length === 0) {
+            // All registered successfully via Chromium flag
+            waylandStatus.portalMethod = 'chromium-flag';
+            return;
+        }
+
+        logger.log(`${failedShortcuts.length} shortcuts failed Chromium registration. Attempting D-Bus fallback...`);
+
+        try {
+            const shortcuts = failedShortcuts.map((id) => ({
+                id,
+                accelerator: this._accelerators[id],
+                description: `Gemini Desktop: ${id}`,
+            }));
+            const results = await registerViaDBus(shortcuts);
+            for (const result of results) {
+                this._registrationResults.set(result.hotkeyId, result);
+            }
+            waylandStatus.portalMethod = 'dbus-fallback';
+        } catch (error) {
+            logger.error('D-Bus fallback failed:', error);
+            waylandStatus.portalMethod = 'none';
         }
     }
 
@@ -522,6 +584,12 @@ export default class HotkeyManager {
                 `FAILED to register hotkey: ${id} (${accelerator}). Success: false. isRegistered post-check: ${isRegisteredAfter}`
             );
 
+            this._registrationResults.set(id, {
+                hotkeyId: id,
+                success: false,
+                error: `Registration failed for ${accelerator}`,
+            });
+
             if (isRegisteredAfter) {
                 logger.warn(
                     `Hotkey ${id} reflects as registered despite failure return. This may indicate a portal conflict or unexpected Electron behavior on Wayland.`
@@ -532,6 +600,7 @@ export default class HotkeyManager {
             logger.log(
                 `Successfully registered hotkey: ${id} (${accelerator}). isRegistered post-check: ${isRegisteredAfter}`
             );
+            this._registrationResults.set(id, { hotkeyId: id, success: true });
         }
     }
 
@@ -634,5 +703,26 @@ export default class HotkeyManager {
         for (const id of Object.keys(this._individualSettings) as HotkeyId[]) {
             this.setIndividualEnabled(id, enabled);
         }
+    }
+
+    /**
+     * Get the current platform hotkey status, including Wayland and D-Bus info.
+     *
+     * @returns Accurate platform hotkey status for the renderer
+     */
+    getPlatformHotkeyStatus(): PlatformHotkeyStatus {
+        return {
+            waylandStatus: isLinux
+                ? getWaylandPlatformStatus()
+                : {
+                      isWayland: false,
+                      desktopEnvironment: 'unknown' as const,
+                      deVersion: null,
+                      portalAvailable: false,
+                      portalMethod: 'none' as const,
+                  },
+            registrationResults: Array.from(this._registrationResults.values()),
+            globalHotkeysEnabled: this._globalHotkeysEnabled,
+        };
     }
 }
