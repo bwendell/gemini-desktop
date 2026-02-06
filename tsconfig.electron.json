@@ -16,6 +16,6 @@
             "@shared/*": ["src/shared/*"]
         }
     },
-    "include": ["src/main/**/*", "src/preload/**/*", "src/shared/**/*"],
+    "include": ["src/main/**/*", "src/preload/**/*", "src/shared/**/*", "src/types/**/*"],
     "exclude": ["src/main/**/*.test.ts", "src/main/test/**"]
 }
