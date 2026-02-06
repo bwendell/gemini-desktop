@@ -175,17 +175,16 @@ export async function registerViaDBus(shortcuts: DBusShortcutConfig[]): Promise<
 
         // Set up signal handlers
         if (portalInterface.on) {
-            portalInterface.on('Activated', (session: string, shortcutId: string, options: Record<string, unknown>) => {
+            portalInterface.on('Activated', (...args: unknown[]) => {
+                const [session, shortcutId, options] = args as [string, string, Record<string, unknown>];
                 logger.log(`Shortcut activated: ${shortcutId}`, { session, options });
                 // TODO: Emit event for hotkeyManager to handle
             });
 
-            portalInterface.on(
-                'Deactivated',
-                (session: string, shortcutId: string, options: Record<string, unknown>) => {
-                    logger.log(`Shortcut deactivated: ${shortcutId}`, { session, options });
-                }
-            );
+            portalInterface.on('Deactivated', (...args: unknown[]) => {
+                const [session, shortcutId, options] = args as [string, string, Record<string, unknown>];
+                logger.log(`Shortcut deactivated: ${shortcutId}`, { session, options });
+            });
         }
 
         // Prepare shortcuts for BindShortcuts call
