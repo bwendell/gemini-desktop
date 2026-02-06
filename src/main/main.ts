@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
-import { isLinux, isWindows, APP_ID } from './utils/constants';
+import { isLinux, isWindows, APP_ID, getWaylandPlatformStatus } from './utils/constants';
 
 import { createLogger } from './utils/logger';
 
@@ -41,22 +41,19 @@ if (isLinux) {
         logger.error('Error calling setDesktopName:', e);
     }
 
-    // Wayland Global Shortcuts:
-    // Global shortcuts on Wayland are challenging due to its security model.
-    // - Electron's globalShortcut API relies on X11 grab mechanisms
-    // - On pure Wayland, shortcuts require xdg-desktop-portal integration
-    // - XWayland compatibility mode often works but is unreliable on GNOME 46+
-    //
-    // Current approach: Let Electron/Chromium use default behavior.
-    // If running on Wayland, hotkeys may not work and users should be informed.
-    //
-    // See: https://github.com/nicolomaioli/gemini-desktop/issues/XXX
+    // Wayland Global Shortcuts Detection
+    const waylandStatus = getWaylandPlatformStatus();
+    logger.log('Wayland detection:', JSON.stringify(waylandStatus));
 
-    const isWayland = process.env.XDG_SESSION_TYPE === 'wayland';
-    logger.log(`XDG_SESSION_TYPE: ${process.env.XDG_SESSION_TYPE}`);
-
-    if (isWayland) {
-        logger.warn('Wayland session detected. Global hotkeys are disabled due to Wayland limitations.');
+    if (waylandStatus.isWayland && waylandStatus.portalAvailable) {
+        // Enable Chromium's GlobalShortcutsPortal feature flag
+        // MUST be set BEFORE app.whenReady()
+        app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
+        logger.log('Enabled GlobalShortcutsPortal Chromium feature flag for Wayland');
+    } else if (waylandStatus.isWayland) {
+        logger.warn(
+            `Wayland detected but portal unavailable. DE: ${waylandStatus.desktopEnvironment}, Version: ${waylandStatus.deVersion}`
+        );
     }
 } else {
     // Set application name for Windows/macOS
