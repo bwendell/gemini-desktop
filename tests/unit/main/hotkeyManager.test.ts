@@ -18,9 +18,6 @@ import {
     getHotkeyScope,
     isGlobalHotkey,
     isApplicationHotkey,
-    type WaylandStatus,
-    type HotkeyRegistrationResult,
-    type PlatformHotkeyStatus,
 } from '../../../src/shared/types/hotkeys';
 
 // ============================================================================

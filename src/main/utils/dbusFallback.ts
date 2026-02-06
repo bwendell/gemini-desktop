@@ -78,7 +78,6 @@ const PORTAL_BUS_NAME = 'org.freedesktop.portal.Desktop';
 const PORTAL_OBJECT_PATH = '/org/freedesktop/portal/desktop';
 const GLOBAL_SHORTCUTS_INTERFACE = 'org.freedesktop.portal.GlobalShortcuts';
 const PROPERTIES_INTERFACE = 'org.freedesktop.DBus.Properties';
-const APP_ID = 'io.github.nicolomaioli.gemini-desktop';
 
 // ============================================================================
 // Public Functions

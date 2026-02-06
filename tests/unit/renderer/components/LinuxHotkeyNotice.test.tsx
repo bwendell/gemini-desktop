@@ -23,9 +23,6 @@ vi.mock('../../../../src/renderer/context/ToastContext', () => ({
 import { isLinux } from '../../../../src/renderer/utils/platform';
 import { useToast } from '../../../../src/renderer/context/ToastContext';
 
-// Helper to flush promises
-const flushPromises = () => new Promise(setImmediate);
-
 describe('LinuxHotkeyNotice', () => {
     const mockShowWarning = vi.fn();
     let originalElectronAPI: any;

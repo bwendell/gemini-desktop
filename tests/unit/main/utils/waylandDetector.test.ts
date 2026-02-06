@@ -14,7 +14,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Mocks
 // ============================================================================
 
-// Import after mocks are set up
 import {
     detectWaylandSession,
     detectDesktopEnvironment,
@@ -22,8 +21,6 @@ import {
     isSupportedDE,
     getWaylandStatus,
 } from '../../../../src/main/utils/waylandDetector';
-
-import type { DesktopEnvironment } from '../../../../src/shared/types/hotkeys';
 
 // ============================================================================
 // Test Suite

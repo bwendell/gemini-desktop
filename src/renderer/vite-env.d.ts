@@ -188,6 +188,40 @@ interface Window {
         exportChatToPdf: () => void;
         exportChatToMarkdown: () => void;
 
+        // Platform Hotkey Status API
+        getPlatformHotkeyStatus: () => Promise<{
+            waylandStatus: {
+                isWayland: boolean;
+                desktopEnvironment: 'kde' | 'unknown';
+                deVersion: string | null;
+                portalAvailable: boolean;
+                portalMethod: 'chromium-flag' | 'dbus-fallback' | 'none';
+            };
+            registrationResults: Array<{
+                hotkeyId: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf';
+                success: boolean;
+                error?: string;
+            }>;
+            globalHotkeysEnabled: boolean;
+        }>;
+        onPlatformHotkeyStatusChanged: (
+            callback: (status: {
+                waylandStatus: {
+                    isWayland: boolean;
+                    desktopEnvironment: 'kde' | 'unknown';
+                    deVersion: string | null;
+                    portalAvailable: boolean;
+                    portalMethod: 'chromium-flag' | 'dbus-fallback' | 'none';
+                };
+                registrationResults: Array<{
+                    hotkeyId: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf';
+                    success: boolean;
+                    error?: string;
+                }>;
+                globalHotkeysEnabled: boolean;
+            }) => void
+        ) => () => void;
+
         platform: string;
         isElectron: boolean;
     };

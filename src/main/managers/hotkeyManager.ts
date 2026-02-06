@@ -58,7 +58,7 @@ import {
     GLOBAL_HOTKEY_IDS,
     isGlobalHotkey,
 } from '../types';
-import { isWayland, getWaylandPlatformStatus } from '../utils/constants';
+import { getWaylandPlatformStatus } from '../utils/constants';
 import { registerViaDBus } from '../utils/dbusFallback';
 import type { WaylandStatus, HotkeyRegistrationResult, PlatformHotkeyStatus } from '../../shared/types/hotkeys';
 
