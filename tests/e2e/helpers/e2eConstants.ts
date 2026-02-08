@@ -166,6 +166,19 @@ export const E2E_ERROR_MESSAGES = {
 } as const;
 
 // =============================================================================
+// Toast IDs
+// =============================================================================
+
+/**
+ * Toast IDs used by toast components.
+ * Must match the TOAST_ID constants in src/renderer/components/toast/*.tsx
+ */
+export const TOAST_IDS = {
+    /** LinuxHotkeyNotice toast - shown when global hotkeys unavailable on Linux */
+    LINUX_HOTKEY_NOTICE: 'linux-hotkey-notice',
+} as const;
+
+// =============================================================================
 // Selector Utilities
 // =============================================================================
 

@@ -253,3 +253,91 @@ export async function getHotkeyActionState(hotkeyId: string): Promise<HotkeyActi
     }
     return handler.getState();
 }
+
+// =============================================================================
+// Wayland Platform Status Helpers
+// Provides utilities for testing Wayland/Linux hotkey registration status
+// =============================================================================
+
+/**
+ * Wayland platform status returned from main process IPC.
+ */
+export interface WaylandStatus {
+    isWayland: boolean;
+    desktopEnvironment: string;
+    deVersion: string | null;
+    portalAvailable: boolean;
+    portalMethod: string;
+}
+
+/**
+ * Hotkey registration result for individual hotkeys.
+ */
+export interface HotkeyRegistrationResult {
+    hotkeyId: string;
+    success: boolean;
+    error?: string;
+}
+
+/**
+ * Full platform hotkey status returned from main process.
+ */
+export interface PlatformHotkeyStatus {
+    waylandStatus: WaylandStatus;
+    registrationResults: HotkeyRegistrationResult[];
+    globalHotkeysEnabled: boolean;
+}
+
+/**
+ * Result of checking globalShortcut registration.
+ */
+export interface GlobalShortcutRegistrationStatus {
+    quickChat: boolean;
+    bossKey: boolean;
+    status: string;
+    error?: string;
+}
+
+/**
+ * Query platform hotkey status from main process via IPC.
+ * Uses the production getPlatformHotkeyStatus() API exposed via preload.
+ *
+ * @returns Promise with platform status or null if IPC not available
+ */
+export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | null> {
+    return browser.execute(() => {
+        // Access the preload API from renderer context
+        const api = (window as any).electronAPI;
+        if (!api?.getPlatformHotkeyStatus) {
+            console.log('[E2E] getPlatformHotkeyStatus not available on electronAPI');
+            return null;
+        }
+        return api.getPlatformHotkeyStatus();
+    });
+}
+
+/**
+ * Check if hotkeys are registered via globalShortcut API.
+ * Executes in the main process to check registration status.
+ *
+ * @returns Promise with registration status or null if execution fails
+ */
+export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutRegistrationStatus | null> {
+    return browser.electron.execute((_electron: typeof import('electron')) => {
+        const { globalShortcut } = _electron;
+        try {
+            return {
+                quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
+                bossKey: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
+                status: 'success',
+            };
+        } catch (error) {
+            return {
+                quickChat: false,
+                bossKey: false,
+                status: 'error',
+                error: (error as Error).message,
+            };
+        }
+    });
+}
