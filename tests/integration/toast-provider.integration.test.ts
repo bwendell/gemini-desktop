@@ -50,6 +50,10 @@ describe('Toast Provider Integration', () => {
 
     describe('Context Access', () => {
         beforeEach(async () => {
+            // Wait for potential LinuxHotkeyNotice toast to appear
+            // (appears after 1000ms on Linux when hotkeys unavailable)
+            await browser.pause(1500);
+
             // Ensure no toasts are present before each test
             await browser.execute(() => {
                 const win = window as any;
