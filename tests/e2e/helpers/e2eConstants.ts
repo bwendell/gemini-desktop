@@ -11,7 +11,8 @@
 // Gemini DOM Selectors (Re-exported from main constants)
 // =============================================================================
 
-// Import from the single source of truth
+// Import from geminiSelectors.ts directly to avoid pulling in Electron-dependent code.
+// constants.ts imports waylandDetector -> logger -> electron.app which fails in E2E test runner.
 export {
     GEMINI_DOMAIN,
     GEMINI_EDITOR_SELECTORS,
@@ -21,10 +22,10 @@ export {
     GEMINI_MICROPHONE_BUTTON_SELECTORS,
     GEMINI_ERROR_TOAST_SELECTORS,
     GEMINI_MICROPHONE_ERROR_TEXT,
-} from '../../../src/main/utils/constants';
+} from '../../../src/main/utils/geminiSelectors';
 
 // Import locally for use in other constants
-import { GEMINI_DOMAIN as _GEMINI_DOMAIN } from '../../../src/main/utils/constants';
+import { GEMINI_DOMAIN as _GEMINI_DOMAIN } from '../../../src/main/utils/geminiSelectors';
 
 /**
  * Alternative domain patterns that might appear in Gemini URLs.
