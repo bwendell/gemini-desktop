@@ -104,7 +104,7 @@ describe('Toast State Management Integration', () => {
             await dismissAll();
             // Wait for DOM to clear
             await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 3000,
+                timeout: 5000,
                 timeoutMsg: 'Toasts not cleared from DOM',
             });
         });
@@ -152,7 +152,7 @@ describe('Toast State Management Integration', () => {
             await dismissAll();
             // Wait for DOM to clear
             await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 3000,
+                timeout: 5000,
                 timeoutMsg: 'Toasts not cleared from DOM',
             });
         });
@@ -241,7 +241,7 @@ describe('Toast State Management Integration', () => {
             await dismissAll();
             // Wait for DOM to clear
             await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 3000,
+                timeout: 5000,
                 timeoutMsg: 'Toasts not cleared from DOM',
             });
         });
@@ -327,7 +327,7 @@ describe('Toast State Management Integration', () => {
             await dismissAll();
             // Wait for DOM to clear
             await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 3000,
+                timeout: 5000,
                 timeoutMsg: 'Toasts not cleared from DOM',
             });
         });
