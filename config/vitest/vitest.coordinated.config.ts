@@ -28,6 +28,7 @@ export default defineConfig({
         alias: {
             '@': path.resolve(projectRoot, 'src/renderer'),
             electron: path.resolve(projectRoot, 'tests/unit/main/test/electron-mock.ts'),
+            'dbus-next': path.resolve(projectRoot, 'tests/unit/main/test/dbus-next-mock.ts'),
         },
         testTimeout: 30000, // Integration tests may need longer timeouts
     },
