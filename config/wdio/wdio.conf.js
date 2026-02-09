@@ -12,6 +12,7 @@
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { getAppArgs, linuxServiceConfig } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -137,31 +138,8 @@ export const config = {
             'electron',
             {
                 appEntryPoint: electronMainPath,
-                // Linux always needs sandbox flags due to Ubuntu 24.04+ AppArmor restrictions
-                // CI environments get additional flags for headless/containerized execution
-                appArgs: [
-                    // Linux sandbox flags - required for all Linux environments
-                    ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-setuid-sandbox'] : []),
-                    // CI-specific flags for headless/containerized execution
-                    ...(process.env.CI ? ['--disable-dev-shm-usage', '--disable-gpu', '--enable-logging'] : []),
-                    // Always include these test flags
-                    '--test-auto-update',
-                    '--e2e-disable-auto-submit',
-                ],
-                // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
-                // See: https://github.com/electron/electron/issues/41066
-                apparmorAutoInstall: process.env.CI && process.platform === 'linux' ? 'sudo' : false,
-                // Enable wdio-electron-service's built-in Xvfb management for Linux CI
-                // This is required for parallel test execution - do NOT use xvfb-run wrapper
-                // as it sets DISPLAY which prevents autoXvfb from working properly with workers
-                ...(process.platform === 'linux' && process.env.CI
-                    ? {
-                          autoXvfb: true,
-                          xvfbAutoInstall: true,
-                          xvfbAutoInstallMode: 'sudo',
-                          xvfbMaxRetries: 5, // More retries for CI stability
-                      }
-                    : {}),
+                appArgs: getAppArgs('--test-auto-update', '--e2e-disable-auto-submit'),
+                ...linuxServiceConfig,
             },
         ],
     ],
@@ -230,8 +208,6 @@ export const config = {
     // Connection retry settings
     connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
-
-    // Xvfb is handled by xvfb-run in CI workflow for Linux
 
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
