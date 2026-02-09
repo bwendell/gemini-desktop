@@ -4,12 +4,19 @@ const path = require('path');
 function killOrphanElectronProcesses() {
     try {
         if (process.platform === 'win32') {
-            execSync('taskkill /F /IM electron.exe /T', { stdio: 'ignore' });
+            // Scope to gemini-desktop electron processes only
+            execSync(
+                "wmic process where \"name='electron.exe' and commandline like '%gemini-desktop%'\" call terminate",
+                {
+                    stdio: 'ignore',
+                }
+            );
         } else {
-            execSync('pkill -f electron', { stdio: 'ignore' });
+            // Scope to electron processes running gemini-desktop only
+            execSync('pkill -f "electron.*gemini-desktop"', { stdio: 'ignore' });
         }
     } catch (_) {
-        // Process might already be gone
+        // Process might already be gone, or no matching processes found (exit code 1)
     }
 }
 
