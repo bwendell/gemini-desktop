@@ -22,6 +22,9 @@ import { IPC_CHANNELS } from '../../utils/constants';
  * state changes to all windows.
  */
 export class AlwaysOnTopIpcHandler extends BaseIpcHandler {
+    /** Bound listener for windowManager always-on-top-changed events (stored for cleanup). */
+    private _boundAlwaysOnTopChanged: ((enabled: boolean) => void) | null = null;
+
     /**
      * Register always-on-top IPC handlers with ipcMain.
      */
@@ -37,9 +40,10 @@ export class AlwaysOnTopIpcHandler extends BaseIpcHandler {
         });
 
         // Subscribe to windowManager always-on-top changes
-        this.deps.windowManager.on('always-on-top-changed', (enabled: boolean) => {
+        this._boundAlwaysOnTopChanged = (enabled: boolean) => {
             this._handleAlwaysOnTopChanged(enabled);
-        });
+        };
+        this.deps.windowManager.on('always-on-top-changed', this._boundAlwaysOnTopChanged);
     }
 
     /**
@@ -121,6 +125,10 @@ export class AlwaysOnTopIpcHandler extends BaseIpcHandler {
 
     /** Unregister all IPC handlers. */
     unregister(): void {
+        if (this._boundAlwaysOnTopChanged) {
+            this.deps.windowManager.removeListener('always-on-top-changed', this._boundAlwaysOnTopChanged);
+            this._boundAlwaysOnTopChanged = null;
+        }
         ipcMain.removeHandler(IPC_CHANNELS.ALWAYS_ON_TOP_GET);
         ipcMain.removeAllListeners(IPC_CHANNELS.ALWAYS_ON_TOP_SET);
     }

@@ -23,6 +23,9 @@ import { IPC_CHANNELS } from '../../utils/constants';
  * zoom level changes to all windows.
  */
 export class ZoomIpcHandler extends BaseIpcHandler {
+    /** Bound listener for windowManager zoom-level-changed events (stored for cleanup). */
+    private _boundZoomLevelChanged: ((level: number) => void) | null = null;
+
     /**
      * Register zoom IPC handlers with ipcMain.
      */
@@ -43,9 +46,10 @@ export class ZoomIpcHandler extends BaseIpcHandler {
         });
 
         // Subscribe to windowManager zoom level changes
-        this.deps.windowManager.on('zoom-level-changed', (level: number) => {
+        this._boundZoomLevelChanged = (level: number) => {
             this._handleZoomLevelChanged(level);
-        });
+        };
+        this.deps.windowManager.on('zoom-level-changed', this._boundZoomLevelChanged);
     }
 
     /**
@@ -131,6 +135,10 @@ export class ZoomIpcHandler extends BaseIpcHandler {
 
     /** Unregister all IPC handlers. */
     unregister(): void {
+        if (this._boundZoomLevelChanged) {
+            this.deps.windowManager.removeListener('zoom-level-changed', this._boundZoomLevelChanged);
+            this._boundZoomLevelChanged = null;
+        }
         ipcMain.removeHandler(IPC_CHANNELS.ZOOM_GET_LEVEL);
         ipcMain.removeHandler(IPC_CHANNELS.ZOOM_IN);
         ipcMain.removeHandler(IPC_CHANNELS.ZOOM_OUT);
