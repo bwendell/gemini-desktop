@@ -431,6 +431,18 @@ app.on('will-quit', () => {
     if (notificationManager) {
         notificationManager.dispose();
     }
+
+    // Null out global manager references to allow garbage collection
+    const g = global as Record<string, unknown>;
+    g.windowManager = undefined;
+    g.ipcManager = undefined;
+    g.trayManager = undefined;
+    g.updateManager = undefined;
+    g.badgeManager = undefined;
+    g.hotkeyManager = undefined;
+    g.llmManager = undefined;
+    g.menuManager = undefined;
+    g.notificationManager = undefined;
 });
 
 // App-level crash handlers to prevent OS crash dialogs
