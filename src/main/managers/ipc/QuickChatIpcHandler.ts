@@ -177,4 +177,12 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
             this.logger.error('Failed to inject text into Gemini:', error);
         }
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeAllListeners(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+        ipcMain.removeAllListeners(IPC_CHANNELS.GEMINI_READY);
+        ipcMain.removeAllListeners(IPC_CHANNELS.QUICK_CHAT_HIDE);
+        ipcMain.removeAllListeners(IPC_CHANNELS.QUICK_CHAT_CANCEL);
+    }
 }

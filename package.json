@@ -66,11 +66,13 @@
         "electron-updater": "^6.6.2",
         "framer-motion": "^12.31.0",
         "marked": "^17.0.1",
-        "node-llama-cpp": "^3.14.5",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
         "turndown": "^7.2.2",
         "turndown-plugin-gfm": "^1.0.2"
+    },
+    "optionalDependencies": {
+        "node-llama-cpp": "^3.14.5"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.2",

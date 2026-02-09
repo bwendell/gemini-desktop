@@ -112,4 +112,14 @@ export class WindowIpcHandler extends BaseIpcHandler {
             }
         });
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeAllListeners(IPC_CHANNELS.WINDOW_MINIMIZE);
+        ipcMain.removeAllListeners(IPC_CHANNELS.WINDOW_MAXIMIZE);
+        ipcMain.removeAllListeners(IPC_CHANNELS.WINDOW_CLOSE);
+        ipcMain.removeAllListeners(IPC_CHANNELS.WINDOW_SHOW);
+        ipcMain.removeHandler(IPC_CHANNELS.WINDOW_IS_MAXIMIZED);
+        ipcMain.removeAllListeners(IPC_CHANNELS.FULLSCREEN_TOGGLE);
+    }
 }

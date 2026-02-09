@@ -32,6 +32,8 @@ import type { ModelStatus } from '../llmManager';
  * - Status broadcasting to all windows
  */
 export class TextPredictionIpcHandler extends BaseIpcHandler {
+    private statusUnsubscribe: (() => void) | null = null;
+
     /**
      * Register text prediction IPC handlers with ipcMain.
      * Also subscribes to LlmManager status changes.
@@ -299,8 +301,7 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
      */
     private _subscribeToStatusChanges(): void {
         if (this.deps.llmManager) {
-            this.deps.llmManager.onStatusChange(() => {
-                // Update stored status and broadcast change
+            this.statusUnsubscribe = this.deps.llmManager.onStatusChange(() => {
                 const status = this.deps.llmManager?.getStatus() ?? 'not-downloaded';
                 this.deps.store.set('textPredictionModelStatus', status);
                 this._broadcastStatusChange();
@@ -366,5 +367,19 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
                 });
             }
         });
+    }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        if (this.statusUnsubscribe) {
+            this.statusUnsubscribe();
+            this.statusUnsubscribe = null;
+        }
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_GET_ENABLED);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_GET_GPU_ENABLED);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_SET_GPU_ENABLED);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_PREDICT);
     }
 }
