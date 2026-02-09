@@ -222,6 +222,66 @@ function initializeManagers(): void {
 }
 
 /**
+ * Clean up all application managers and global references.
+ * Shared between gracefulShutdown() and will-quit to ensure consistent cleanup.
+ */
+function cleanupAllManagers(): void {
+    // Unregister hotkeys first to prevent new interactions
+    if (hotkeyManager) {
+        hotkeyManager.unregisterAll();
+    }
+
+    // Destroy tray
+    if (trayManager) {
+        trayManager.destroyTray();
+    }
+
+    // Destroy update manager (stops periodic checks)
+    if (updateManager) {
+        updateManager.destroy();
+    }
+
+    // Dispose LLM manager to free model resources
+    if (llmManager) {
+        llmManager.dispose();
+    }
+
+    // Dispose IPC handlers to remove all listeners
+    if (ipcManager) {
+        ipcManager.dispose();
+    }
+
+    // Clean up response-complete listener
+    const mainWindowInstance = windowManager?.getMainWindowInstance();
+    if (mainWindowInstance && responseCompleteHandler) {
+        mainWindowInstance.off('response-complete', responseCompleteHandler);
+        responseCompleteHandler = null;
+    }
+
+    // Clean up NotificationManager event listeners
+    if (notificationManager) {
+        notificationManager.dispose();
+    }
+
+    // Set quitting flag so windows don't try to prevent close
+    if (windowManager) {
+        windowManager.setQuitting(true);
+    }
+
+    // Null out global manager references to allow garbage collection
+    const g = global as Record<string, unknown>;
+    g.windowManager = undefined;
+    g.ipcManager = undefined;
+    g.trayManager = undefined;
+    g.updateManager = undefined;
+    g.badgeManager = undefined;
+    g.hotkeyManager = undefined;
+    g.llmManager = undefined;
+    g.menuManager = undefined;
+    g.notificationManager = undefined;
+}
+
+/**
  * Gracefully shut down the application.
  * Cleans up all managers before exiting.
  * @param exitCode - The exit code to use when exiting
@@ -230,26 +290,7 @@ function gracefulShutdown(exitCode: number = 0): void {
     logger.log(`Initiating graceful shutdown with exit code ${exitCode}...`);
 
     try {
-        // Unregister hotkeys first to prevent new interactions
-        if (hotkeyManager) {
-            hotkeyManager.unregisterAll();
-        }
-
-        // Dispose LLM manager to free model resources
-        if (llmManager) {
-            llmManager.dispose();
-        }
-
-        // Destroy tray
-        if (trayManager) {
-            trayManager.destroyTray();
-        }
-
-        // Set quitting flag so windows don't try to prevent close
-        if (windowManager) {
-            windowManager.setQuitting(true);
-        }
-
+        cleanupAllManagers();
         logger.log('Graceful shutdown completed');
     } catch (cleanupError) {
         // Log cleanup errors but don't throw - we still need to exit
@@ -416,33 +457,7 @@ app.on('before-quit', () => {
 });
 
 app.on('will-quit', () => {
-    hotkeyManager.unregisterAll();
-    trayManager.destroyTray();
-    updateManager.destroy();
-    llmManager.dispose();
-    ipcManager.dispose();
-    // Clean up response-complete listener
-    const mainWindowInstance = windowManager?.getMainWindowInstance();
-    if (mainWindowInstance && responseCompleteHandler) {
-        mainWindowInstance.off('response-complete', responseCompleteHandler);
-        responseCompleteHandler = null;
-    }
-    // Clean up NotificationManager event listeners (task 11.5)
-    if (notificationManager) {
-        notificationManager.dispose();
-    }
-
-    // Null out global manager references to allow garbage collection
-    const g = global as Record<string, unknown>;
-    g.windowManager = undefined;
-    g.ipcManager = undefined;
-    g.trayManager = undefined;
-    g.updateManager = undefined;
-    g.badgeManager = undefined;
-    g.hotkeyManager = undefined;
-    g.llmManager = undefined;
-    g.menuManager = undefined;
-    g.notificationManager = undefined;
+    cleanupAllManagers();
 });
 
 // App-level crash handlers to prevent OS crash dialogs
