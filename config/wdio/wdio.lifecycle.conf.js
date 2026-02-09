@@ -10,26 +10,23 @@
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { getAppArgs, linuxServiceConfig } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-// Path to the Electron main entry (compiled from TypeScript)
 const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
 
 export const config = {
-    // Lifecycle tests only - these close the app intentionally
     specs: ['../../tests/e2e/lifecycle.spec.ts'],
     maxInstances: 1,
 
-    // Use Electron service with appEntryPoint
     services: [
         [
             'electron',
             {
                 appEntryPoint: electronMainPath,
-                appArgs: process.env.CI
-                    ? ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--enable-logging']
-                    : [],
+                appArgs: getAppArgs(),
+                ...linuxServiceConfig,
             },
         ],
     ],
