@@ -1,6 +1,7 @@
 import { config as dotenvConfig } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { getAppArgs, linuxServiceConfig } from './electron-args.js';
 
 dotenvConfig();
 
@@ -33,20 +34,9 @@ export const config = {
         [
             'electron',
             {
-                // Use appEntryPoint at service level (modern approach)
-                // This properly sets up the CDP bridge for browser.electron.execute() to work
                 appEntryPoint: electronMainPath,
-                appArgs: ['--disable-web-security', '--no-sandbox', '--disable-gpu'], // flags for CI/Linux stability
-                // Enable wdio-electron-service's built-in Xvfb management for Linux CI
-                // This is required for proper display handling - do NOT use xvfb-run wrapper
-                ...(process.platform === 'linux' && process.env.CI
-                    ? {
-                          autoXvfb: true,
-                          xvfbAutoInstall: true,
-                          xvfbAutoInstallMode: 'sudo',
-                          xvfbMaxRetries: 5,
-                      }
-                    : {}),
+                appArgs: getAppArgs('--disable-web-security'),
+                ...linuxServiceConfig,
             },
         ],
     ],

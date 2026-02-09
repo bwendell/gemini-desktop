@@ -15,6 +15,7 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { getAppArgs, linuxServiceConfig } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -110,34 +111,8 @@ export const config = {
             'electron',
             {
                 appBinaryPath: getReleaseBinaryPath(),
-                appArgs: process.env.CI
-                    ? [
-                          ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-setuid-sandbox'] : []),
-                          '--disable-dev-shm-usage',
-                          '--disable-gpu',
-                          '--enable-logging',
-                          '--test-auto-update',
-                      ]
-                    : [
-                          '--test-auto-update',
-                          // Wayland support for KDE/GNOME on Linux
-                          ...(process.platform === 'linux' && process.env.XDG_SESSION_TYPE === 'wayland'
-                              ? ['--ozone-platform=wayland', '--no-sandbox']
-                              : []),
-                      ],
-                // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
-                apparmorAutoInstall: process.env.CI && process.platform === 'linux' ? 'sudo' : false,
-                // Enable wdio-electron-service's built-in Xvfb management for Linux CI
-                // This is required for parallel test execution - do NOT use xvfb-run wrapper
-                // as it sets DISPLAY which prevents autoXvfb from working properly with workers
-                ...(process.platform === 'linux' && process.env.CI
-                    ? {
-                          autoXvfb: true,
-                          xvfbAutoInstall: true,
-                          xvfbAutoInstallMode: 'sudo',
-                          xvfbMaxRetries: 5, // More retries for CI stability
-                      }
-                    : {}),
+                appArgs: getAppArgs('--test-auto-update'),
+                ...linuxServiceConfig,
             },
         ],
     ],
