@@ -3,11 +3,10 @@ const { spawnSync, execSync } = require('child_process');
 function killOrphanElectronProcesses() {
     try {
         if (process.platform === 'win32') {
-            // Use taskkill instead of deprecated wmic
-            // /F forces termination, /FI filters to electron.exe processes
-            // PowerShell filter ensures we only kill gemini-desktop electron processes
+            // Use taskkill with CIM/WMI query instead of deprecated wmic
+            // Get-CimInstance can access CommandLine property to filter gemini-desktop processes
             execSync(
-                'powershell -Command "Get-Process | Where-Object { $_.ProcessName -eq \'electron\' -and $_.CommandLine -like \'*gemini-desktop*\' } | ForEach-Object { taskkill /F /PID $_.Id }"',
+                "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and $_.CommandLine -like '*gemini-desktop*' } | ForEach-Object { taskkill /F /PID $_.ProcessId }\"",
                 {
                     stdio: 'ignore',
                 }
