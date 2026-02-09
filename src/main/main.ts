@@ -221,11 +221,17 @@ function initializeManagers(): void {
     logger.debug('initializeManagers() - All managers initialized successfully');
 }
 
+/** Guard to prevent double cleanup (gracefulShutdown → process.exit → will-quit). */
+let cleanupDone = false;
+
 /**
  * Clean up all application managers and global references.
  * Shared between gracefulShutdown() and will-quit to ensure consistent cleanup.
  */
 function cleanupAllManagers(): void {
+    if (cleanupDone) return;
+    cleanupDone = true;
+
     // Unregister hotkeys first to prevent new interactions
     if (hotkeyManager) {
         hotkeyManager.unregisterAll();
