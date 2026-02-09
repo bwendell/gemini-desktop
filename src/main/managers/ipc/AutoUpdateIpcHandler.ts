@@ -240,4 +240,19 @@ export class AutoUpdateIpcHandler extends BaseIpcHandler {
             return '';
         }
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeHandler(IPC_CHANNELS.AUTO_UPDATE_GET_ENABLED);
+        ipcMain.removeAllListeners(IPC_CHANNELS.AUTO_UPDATE_SET_ENABLED);
+        ipcMain.removeAllListeners(IPC_CHANNELS.AUTO_UPDATE_CHECK);
+        ipcMain.removeHandler(IPC_CHANNELS.AUTO_UPDATE_GET_LAST_CHECK);
+        ipcMain.removeAllListeners(IPC_CHANNELS.AUTO_UPDATE_INSTALL);
+        ipcMain.removeAllListeners(IPC_CHANNELS.DEV_TEST_SHOW_BADGE);
+        ipcMain.removeAllListeners(IPC_CHANNELS.DEV_TEST_CLEAR_BADGE);
+        ipcMain.removeAllListeners(IPC_CHANNELS.DEV_TEST_SET_UPDATE_ENABLED);
+        ipcMain.removeAllListeners(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT);
+        ipcMain.removeAllListeners(IPC_CHANNELS.DEV_TEST_MOCK_PLATFORM);
+        ipcMain.removeHandler(IPC_CHANNELS.TRAY_GET_TOOLTIP);
+    }
 }

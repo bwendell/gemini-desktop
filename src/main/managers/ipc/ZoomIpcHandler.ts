@@ -128,4 +128,11 @@ export class ZoomIpcHandler extends BaseIpcHandler {
             });
         }
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeHandler(IPC_CHANNELS.ZOOM_GET_LEVEL);
+        ipcMain.removeHandler(IPC_CHANNELS.ZOOM_IN);
+        ipcMain.removeHandler(IPC_CHANNELS.ZOOM_OUT);
+    }
 }

@@ -118,4 +118,10 @@ export class AlwaysOnTopIpcHandler extends BaseIpcHandler {
             });
         }
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeHandler(IPC_CHANNELS.ALWAYS_ON_TOP_GET);
+        ipcMain.removeAllListeners(IPC_CHANNELS.ALWAYS_ON_TOP_SET);
+    }
 }

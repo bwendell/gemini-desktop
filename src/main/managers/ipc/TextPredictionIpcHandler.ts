@@ -367,4 +367,14 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
             }
         });
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_GET_ENABLED);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_GET_GPU_ENABLED);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_SET_GPU_ENABLED);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS);
+        ipcMain.removeHandler(IPC_CHANNELS.TEXT_PREDICTION_PREDICT);
+    }
 }

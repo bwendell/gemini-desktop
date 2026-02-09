@@ -305,4 +305,13 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         const accelerators = this._getAccelerators();
         this.broadcastToAllWindows(IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED, accelerators);
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_GET);
+        ipcMain.removeAllListeners(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET);
+        ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
+        ipcMain.removeAllListeners(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET);
+        ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET);
+    }
 }

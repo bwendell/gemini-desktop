@@ -47,4 +47,10 @@ export class AppIpcHandler extends BaseIpcHandler {
             }
         });
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeAllListeners(IPC_CHANNELS.OPEN_OPTIONS);
+        ipcMain.removeHandler(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN);
+    }
 }

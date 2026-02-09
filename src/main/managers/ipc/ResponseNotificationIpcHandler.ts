@@ -127,4 +127,11 @@ export class ResponseNotificationIpcHandler extends BaseIpcHandler {
             this.logger.error('Error triggering dev response notification:', error);
         }
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeHandler(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_GET_ENABLED);
+        ipcMain.removeAllListeners(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_SET_ENABLED);
+        ipcMain.removeAllListeners(IPC_CHANNELS.DEV_TEST_TRIGGER_RESPONSE_NOTIFICATION);
+    }
 }

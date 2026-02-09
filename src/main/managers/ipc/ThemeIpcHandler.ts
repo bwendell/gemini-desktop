@@ -111,4 +111,10 @@ export class ThemeIpcHandler extends BaseIpcHandler {
             effectiveTheme,
         });
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeHandler(IPC_CHANNELS.THEME_GET);
+        ipcMain.removeAllListeners(IPC_CHANNELS.THEME_SET);
+    }
 }

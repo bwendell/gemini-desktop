@@ -40,4 +40,9 @@ export class ShellIpcHandler extends BaseIpcHandler {
             }
         });
     }
+
+    /** Unregister all IPC handlers. */
+    unregister(): void {
+        ipcMain.removeAllListeners(IPC_CHANNELS.SHELL_SHOW_ITEM_IN_FOLDER);
+    }
 }
