@@ -7,6 +7,14 @@ import type { BrowserWindowConstructorOptions } from 'electron';
 import { getWaylandStatus } from './waylandDetector';
 import type { WaylandStatus } from '../../shared/types/hotkeys';
 
+// Import app separately — some test mocks may not define it.
+let app: Electron.App | undefined;
+try {
+    app = require('electron').app;
+} catch {
+    // In test environments with incomplete mocks, app may not be available.
+}
+
 // =========================================================================
 // Domain Configuration
 // =========================================================================
@@ -27,18 +35,26 @@ export const OAUTH_DOMAINS = ['accounts.google.com', 'accounts.youtube.com'] as 
 // Window Configuration
 // =========================================================================
 
+function isSandboxEnabled(): boolean {
+    return !process.argv.includes('--no-sandbox') && !app?.commandLine?.hasSwitch?.('no-sandbox');
+}
+
+function isWebSecurityEnabled(): boolean {
+    return !process.argv.includes('--disable-web-security');
+}
+
 /**
- * Base webPreferences for all windows.
- * Enforces security best practices across the application.
+ * Create base webPreferences for a window.
+ * Evaluated lazily so sandboxInit.ts can set 'no-sandbox' before this is read.
  */
-export const BASE_WEB_PREFERENCES: BrowserWindowConstructorOptions['webPreferences'] = {
-    contextIsolation: true,
-    nodeIntegration: false,
-    // Allow disabling sandbox via command line (for testing)
-    sandbox: !process.argv.includes('--no-sandbox'),
-    // Allow disabling webSecurity via command line (for testing)
-    webSecurity: !process.argv.includes('--disable-web-security'),
-} as const;
+export function getBaseWebPreferences(): BrowserWindowConstructorOptions['webPreferences'] {
+    return {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: isSandboxEnabled(),
+        webSecurity: isWebSecurityEnabled(),
+    };
+}
 
 /**
  * Default URL for Google sign-in.
@@ -153,7 +169,7 @@ export const AUTH_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
     title: 'Sign in to Google',
     autoHideMenuBar: true,
     webPreferences: {
-        ...BASE_WEB_PREFERENCES,
+        ...getBaseWebPreferences(),
     },
 };
 
@@ -187,11 +203,6 @@ export function isOAuthDomain(hostname: string): boolean {
 // =============================================================================
 
 /**
- * Base webPreferences for all windows.
- * Enforces security best practices across the application.
- */
-
-/**
  * Get titleBarStyle based on platform.
  * macOS uses 'hidden' for custom titlebar, others use default frame.
  *
@@ -208,7 +219,7 @@ export function getTitleBarStyle(): 'hidden' | undefined {
 export const BASE_WINDOW_CONFIG: Partial<BrowserWindowConstructorOptions> = {
     backgroundColor: '#1a1a1a',
     show: false, // Prevent flash, show on ready-to-show event
-    webPreferences: BASE_WEB_PREFERENCES,
+    webPreferences: getBaseWebPreferences(),
 } as const;
 
 /**

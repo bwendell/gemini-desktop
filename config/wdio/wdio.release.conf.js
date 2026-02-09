@@ -118,7 +118,13 @@ export const config = {
                           '--enable-logging',
                           '--test-auto-update',
                       ]
-                    : ['--test-auto-update'],
+                    : [
+                          '--test-auto-update',
+                          // Wayland support for KDE/GNOME on Linux
+                          ...(process.platform === 'linux' && process.env.XDG_SESSION_TYPE === 'wayland'
+                              ? ['--ozone-platform=wayland', '--no-sandbox']
+                              : []),
+                      ],
                 // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
                 apparmorAutoInstall: process.env.CI && process.platform === 'linux' ? 'sudo' : false,
                 // Enable wdio-electron-service's built-in Xvfb management for Linux CI

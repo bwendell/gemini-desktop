@@ -6,6 +6,15 @@
  * strips X-Frame-Options headers to allow embedding Gemini in an iframe.
  */
 
+// ==========================================================================
+// CRITICAL: Sandbox detection MUST run before any other imports that read
+// BASE_WEB_PREFERENCES from constants.ts. ES `import` statements are hoisted
+// above inline code, so we use a side-effect import that performs detection
+// and calls app.commandLine.appendSwitch('no-sandbox') at module load time.
+// This ensures the switch is set BEFORE constants.ts evaluates sandbox state.
+// ==========================================================================
+import './utils/sandboxInit';
+
 import { app, BrowserWindow, crashReporter, session } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';

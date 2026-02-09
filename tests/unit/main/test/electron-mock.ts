@@ -15,6 +15,10 @@ export const app = {
     getVersion: vi.fn().mockReturnValue('1.0.0'),
     setName: vi.fn(),
     getName: vi.fn().mockReturnValue('Gemini Desktop'),
+    commandLine: {
+        appendSwitch: vi.fn(),
+        hasSwitch: vi.fn().mockReturnValue(false),
+    },
     dock: {
         setBadge: vi.fn(),
         getBadge: vi.fn().mockReturnValue(''),

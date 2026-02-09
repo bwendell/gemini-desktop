@@ -5,6 +5,7 @@
 module.exports = {
     appId: 'com.benwendell.gemini-desktop',
     productName: 'Gemini Desktop',
+
     directories: {
         output: 'release',
         buildResources: 'build',
