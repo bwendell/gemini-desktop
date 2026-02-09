@@ -230,61 +230,69 @@ let cleanupDone = false;
  */
 function cleanupAllManagers(): void {
     if (cleanupDone) return;
-    cleanupDone = true;
 
-    // Unregister hotkeys first to prevent new interactions
-    if (hotkeyManager) {
-        hotkeyManager.unregisterAll();
+    try {
+        // Unregister hotkeys first to prevent new interactions
+        if (hotkeyManager) {
+            hotkeyManager.unregisterAll();
+        }
+
+        // Destroy tray
+        if (trayManager) {
+            trayManager.destroyTray();
+        }
+
+        // Destroy update manager (stops periodic checks)
+        if (updateManager) {
+            updateManager.destroy();
+        }
+
+        // Dispose LLM manager to free model resources
+        if (llmManager) {
+            llmManager.dispose();
+        }
+
+        // Dispose IPC handlers to remove all listeners
+        if (ipcManager) {
+            ipcManager.dispose();
+        }
+
+        // Clean up response-complete listener
+        const mainWindowInstance = windowManager?.getMainWindowInstance();
+        if (mainWindowInstance && responseCompleteHandler) {
+            mainWindowInstance.off('response-complete', responseCompleteHandler);
+            responseCompleteHandler = null;
+        }
+
+        // Clean up NotificationManager event listeners
+        if (notificationManager) {
+            notificationManager.dispose();
+        }
+
+        // Set quitting flag so windows don't try to prevent close
+        if (windowManager) {
+            windowManager.setQuitting(true);
+        }
+
+        // Null out global manager references to allow garbage collection
+        const g = global as Record<string, unknown>;
+        g.windowManager = undefined;
+        g.ipcManager = undefined;
+        g.trayManager = undefined;
+        g.updateManager = undefined;
+        g.badgeManager = undefined;
+        g.hotkeyManager = undefined;
+        g.llmManager = undefined;
+        g.menuManager = undefined;
+        g.notificationManager = undefined;
+
+        // Mark cleanup as done only after all cleanup steps complete successfully
+        cleanupDone = true;
+    } catch (error) {
+        logger.error('Error during cleanup:', error);
+        // Still mark as done to prevent infinite retry loops
+        cleanupDone = true;
     }
-
-    // Destroy tray
-    if (trayManager) {
-        trayManager.destroyTray();
-    }
-
-    // Destroy update manager (stops periodic checks)
-    if (updateManager) {
-        updateManager.destroy();
-    }
-
-    // Dispose LLM manager to free model resources
-    if (llmManager) {
-        llmManager.dispose();
-    }
-
-    // Dispose IPC handlers to remove all listeners
-    if (ipcManager) {
-        ipcManager.dispose();
-    }
-
-    // Clean up response-complete listener
-    const mainWindowInstance = windowManager?.getMainWindowInstance();
-    if (mainWindowInstance && responseCompleteHandler) {
-        mainWindowInstance.off('response-complete', responseCompleteHandler);
-        responseCompleteHandler = null;
-    }
-
-    // Clean up NotificationManager event listeners
-    if (notificationManager) {
-        notificationManager.dispose();
-    }
-
-    // Set quitting flag so windows don't try to prevent close
-    if (windowManager) {
-        windowManager.setQuitting(true);
-    }
-
-    // Null out global manager references to allow garbage collection
-    const g = global as Record<string, unknown>;
-    g.windowManager = undefined;
-    g.ipcManager = undefined;
-    g.trayManager = undefined;
-    g.updateManager = undefined;
-    g.badgeManager = undefined;
-    g.hotkeyManager = undefined;
-    g.llmManager = undefined;
-    g.menuManager = undefined;
-    g.notificationManager = undefined;
 }
 
 /**
