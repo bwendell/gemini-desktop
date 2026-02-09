@@ -9,7 +9,21 @@ module.exports = {
         output: 'release',
         buildResources: 'build',
     },
-    files: ['dist-electron/**/*', 'dist/**/*', 'package.json'],
+    files: [
+        'dist-electron/**/*',
+        'dist/**/*',
+        'package.json',
+        // Exclude non-current-platform node-llama-cpp native binaries to prevent
+        // bundling ~677MB of unused platform-specific .node files.
+        // electron-builder resolves the correct platform binary automatically.
+        '!node_modules/@node-llama-cpp/linux-x64-cuda',
+        '!node_modules/@node-llama-cpp/linux-x64-cuda-ext',
+        '!node_modules/@node-llama-cpp/linux-x64-vulkan',
+        '!node_modules/@node-llama-cpp/linux-armv7l',
+        '!node_modules/@node-llama-cpp/linux-arm64',
+    ],
+    // Native .node binaries must be unpacked from asar for node-llama-cpp to load them
+    asarUnpack: ['node_modules/@node-llama-cpp/**/*.node', 'node_modules/node-llama-cpp/**/*'],
     extraFiles: [
         {
             from: 'build',
