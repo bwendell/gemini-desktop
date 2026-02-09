@@ -1,5 +1,17 @@
-const { spawnSync } = require('child_process');
+const { spawnSync, execSync } = require('child_process');
 const path = require('path');
+
+function killOrphanElectronProcesses() {
+    try {
+        if (process.platform === 'win32') {
+            execSync('taskkill /F /IM electron.exe /T', { stdio: 'ignore' });
+        } else {
+            execSync('pkill -f electron', { stdio: 'ignore' });
+        }
+    } catch (_) {
+        // Process might already be gone
+    }
+}
 
 const specs = [
     'tests/e2e/app-startup.spec.ts',
@@ -54,8 +66,11 @@ for (const spec of specs) {
     if (result.status !== 0) {
         console.error(`\n❌ Spec failed: ${spec}`);
         failed = true;
+        killOrphanElectronProcesses();
         break; // Stop on first failure
     }
+
+    killOrphanElectronProcesses();
 }
 
 if (failed) {
