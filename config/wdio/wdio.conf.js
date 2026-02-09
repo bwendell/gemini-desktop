@@ -137,16 +137,17 @@ export const config = {
             'electron',
             {
                 appEntryPoint: electronMainPath,
-                appArgs: process.env.CI
-                    ? [
-                          ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-setuid-sandbox'] : []),
-                          '--disable-dev-shm-usage',
-                          '--disable-gpu',
-                          '--enable-logging',
-                          '--test-auto-update',
-                          '--e2e-disable-auto-submit',
-                      ]
-                    : ['--test-auto-update', '--e2e-disable-auto-submit'],
+                // Linux always needs sandbox flags due to Ubuntu 24.04+ AppArmor restrictions
+                // CI environments get additional flags for headless/containerized execution
+                appArgs: [
+                    // Linux sandbox flags - required for all Linux environments
+                    ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-setuid-sandbox'] : []),
+                    // CI-specific flags for headless/containerized execution
+                    ...(process.env.CI ? ['--disable-dev-shm-usage', '--disable-gpu', '--enable-logging'] : []),
+                    // Always include these test flags
+                    '--test-auto-update',
+                    '--e2e-disable-auto-submit',
+                ],
                 // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
                 // See: https://github.com/electron/electron/issues/41066
                 apparmorAutoInstall: process.env.CI && process.platform === 'linux' ? 'sudo' : false,
