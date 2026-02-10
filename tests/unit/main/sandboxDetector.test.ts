@@ -1,7 +1,13 @@
 /**
  * Unit tests for sandboxDetector utility.
  *
- * Tests the detection of Linux AppImage sandbox restrictions.
+ * Tests detection of Linux sandbox restrictions including:
+ *   - AppImage detection
+ *   - AppArmor user namespace restrictions
+ *   - Kernel user namespace restrictions
+ *   - User namespace support (composite check)
+ *   - SUID sandbox binary permission checks
+ *   - shouldDisableSandbox decision logic
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
@@ -12,6 +18,7 @@ vi.mock('fs');
 describe('sandboxDetector', () => {
     const originalPlatform = process.platform;
     const originalEnv = { ...process.env };
+    const originalExecPath = process.execPath;
 
     beforeEach(() => {
         vi.resetModules();
@@ -29,6 +36,12 @@ describe('sandboxDetector', () => {
         });
         // Restore env
         process.env = originalEnv;
+        // Restore execPath
+        Object.defineProperty(process, 'execPath', {
+            value: originalExecPath,
+            configurable: true,
+            writable: true,
+        });
     });
 
     describe('isAppImage', () => {
@@ -106,6 +119,126 @@ describe('sandboxDetector', () => {
         });
     });
 
+    describe('hasUserNamespaceSupport', () => {
+        it('returns true when neither restriction is active', async () => {
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+                    return '0\n'; // Not restricted
+                }
+                if (filePath === '/proc/sys/kernel/unprivileged_userns_clone') {
+                    return '1\n'; // Enabled
+                }
+                throw new Error('ENOENT');
+            });
+            const { hasUserNamespaceSupport } = await import('../../../src/main/utils/sandboxDetector');
+            expect(hasUserNamespaceSupport()).toBe(true);
+        });
+
+        it('returns false when AppArmor restricts namespaces', async () => {
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+                    return '1\n'; // Restricted
+                }
+                if (filePath === '/proc/sys/kernel/unprivileged_userns_clone') {
+                    return '1\n'; // Enabled
+                }
+                throw new Error('ENOENT');
+            });
+            const { hasUserNamespaceSupport } = await import('../../../src/main/utils/sandboxDetector');
+            expect(hasUserNamespaceSupport()).toBe(false);
+        });
+
+        it('returns false when kernel disables user namespaces', async () => {
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+                    throw new Error('ENOENT'); // No AppArmor
+                }
+                if (filePath === '/proc/sys/kernel/unprivileged_userns_clone') {
+                    return '0\n'; // Disabled
+                }
+                throw new Error('ENOENT');
+            });
+            const { hasUserNamespaceSupport } = await import('../../../src/main/utils/sandboxDetector');
+            expect(hasUserNamespaceSupport()).toBe(false);
+        });
+    });
+
+    describe('hasSuidSandboxPermissions', () => {
+        it('returns true when chrome-sandbox has correct owner and mode', async () => {
+            Object.defineProperty(process, 'execPath', {
+                value: '/usr/lib/electron/electron',
+                configurable: true,
+                writable: true,
+            });
+            vi.mocked(fs.statSync).mockReturnValue({
+                uid: 0, // owned by root
+                mode: 0o104755, // regular file + SUID + 755
+            } as any);
+
+            const { hasSuidSandboxPermissions } = await import('../../../src/main/utils/sandboxDetector');
+            expect(hasSuidSandboxPermissions()).toBe(true);
+            expect(fs.statSync).toHaveBeenCalledWith('/usr/lib/electron/chrome-sandbox');
+        });
+
+        it('returns false when chrome-sandbox is not owned by root', async () => {
+            Object.defineProperty(process, 'execPath', {
+                value: '/home/user/repos/project/node_modules/electron/dist/electron',
+                configurable: true,
+                writable: true,
+            });
+            vi.mocked(fs.statSync).mockReturnValue({
+                uid: 1000, // owned by regular user
+                mode: 0o100755,
+            } as any);
+
+            const { hasSuidSandboxPermissions } = await import('../../../src/main/utils/sandboxDetector');
+            expect(hasSuidSandboxPermissions()).toBe(false);
+        });
+
+        it('returns false when chrome-sandbox lacks SUID bit', async () => {
+            Object.defineProperty(process, 'execPath', {
+                value: '/usr/lib/electron/electron',
+                configurable: true,
+                writable: true,
+            });
+            vi.mocked(fs.statSync).mockReturnValue({
+                uid: 0, // owned by root
+                mode: 0o100755, // no SUID bit
+            } as any);
+
+            const { hasSuidSandboxPermissions } = await import('../../../src/main/utils/sandboxDetector');
+            expect(hasSuidSandboxPermissions()).toBe(false);
+        });
+
+        it('returns false when chrome-sandbox does not exist', async () => {
+            Object.defineProperty(process, 'execPath', {
+                value: '/usr/lib/electron/electron',
+                configurable: true,
+                writable: true,
+            });
+            vi.mocked(fs.statSync).mockImplementation(() => {
+                throw new Error('ENOENT');
+            });
+
+            const { hasSuidSandboxPermissions } = await import('../../../src/main/utils/sandboxDetector');
+            expect(hasSuidSandboxPermissions()).toBe(false);
+        });
+
+        it('uses CHROME_DEVEL_SANDBOX env var path when set', async () => {
+            process.env.CHROME_DEVEL_SANDBOX = '/usr/local/sbin/chrome-devel-sandbox';
+            vi.mocked(fs.statSync).mockReturnValue({
+                uid: 0,
+                mode: 0o104755,
+            } as any);
+
+            const { hasSuidSandboxPermissions } = await import('../../../src/main/utils/sandboxDetector');
+            expect(hasSuidSandboxPermissions()).toBe(true);
+            expect(fs.statSync).toHaveBeenCalledWith('/usr/local/sbin/chrome-devel-sandbox');
+
+            delete process.env.CHROME_DEVEL_SANDBOX;
+        });
+    });
+
     describe('shouldDisableSandbox', () => {
         it('returns false on non-Linux platforms', async () => {
             Object.defineProperty(process, 'platform', {
@@ -113,7 +246,6 @@ describe('sandboxDetector', () => {
                 configurable: true,
                 writable: true,
             });
-            process.env.APPIMAGE = '/path/to/app.AppImage';
             vi.mocked(fs.readFileSync).mockReturnValue('1\n');
 
             const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
@@ -126,26 +258,89 @@ describe('sandboxDetector', () => {
                 configurable: true,
                 writable: true,
             });
-            process.env.APPIMAGE = '/path/to/app.AppImage';
 
             const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
             expect(shouldDisableSandbox()).toBe(false);
         });
 
-        it('returns false on Linux when not running as AppImage', async () => {
+        it('returns false on Linux when user namespaces are available', async () => {
             Object.defineProperty(process, 'platform', {
                 value: 'linux',
                 configurable: true,
                 writable: true,
             });
-            delete process.env.APPIMAGE;
-            vi.mocked(fs.readFileSync).mockReturnValue('1\n');
+            // No restrictions on user namespaces
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+                    return '0\n';
+                }
+                if (filePath === '/proc/sys/kernel/unprivileged_userns_clone') {
+                    return '1\n';
+                }
+                throw new Error('ENOENT');
+            });
 
             const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
             expect(shouldDisableSandbox()).toBe(false);
         });
 
-        it('returns true on Linux AppImage with AppArmor restriction', async () => {
+        it('returns false when user namespaces restricted but SUID sandbox is available', async () => {
+            Object.defineProperty(process, 'platform', {
+                value: 'linux',
+                configurable: true,
+                writable: true,
+            });
+            Object.defineProperty(process, 'execPath', {
+                value: '/usr/lib/electron/electron',
+                configurable: true,
+                writable: true,
+            });
+            // AppArmor restricts namespaces
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+                    return '1\n';
+                }
+                throw new Error('ENOENT');
+            });
+            // But SUID sandbox binary is properly set up
+            vi.mocked(fs.statSync).mockReturnValue({
+                uid: 0,
+                mode: 0o104755,
+            } as any);
+
+            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
+            expect(shouldDisableSandbox()).toBe(false);
+        });
+
+        it('returns true in local dev (namespaces restricted, no SUID sandbox)', async () => {
+            Object.defineProperty(process, 'platform', {
+                value: 'linux',
+                configurable: true,
+                writable: true,
+            });
+            Object.defineProperty(process, 'execPath', {
+                value: '/home/user/repos/project/node_modules/electron/dist/electron',
+                configurable: true,
+                writable: true,
+            });
+            // AppArmor restricts namespaces
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+                    return '1\n';
+                }
+                throw new Error('ENOENT');
+            });
+            // chrome-sandbox is owned by regular user (typical node_modules)
+            vi.mocked(fs.statSync).mockReturnValue({
+                uid: 1000,
+                mode: 0o100755,
+            } as any);
+
+            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
+            expect(shouldDisableSandbox()).toBe(true);
+        });
+
+        it('returns true in AppImage with AppArmor restriction (original use case)', async () => {
             Object.defineProperty(process, 'platform', {
                 value: 'linux',
                 configurable: true,
@@ -153,10 +348,14 @@ describe('sandboxDetector', () => {
             });
             process.env.APPIMAGE = '/path/to/app.AppImage';
             // AppArmor restriction active
-            vi.mocked(fs.readFileSync).mockImplementation((path: any) => {
-                if (path === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
                     return '1\n';
                 }
+                throw new Error('ENOENT');
+            });
+            // No SUID sandbox available
+            vi.mocked(fs.statSync).mockImplementation(() => {
                 throw new Error('ENOENT');
             });
 
@@ -164,21 +363,24 @@ describe('sandboxDetector', () => {
             expect(shouldDisableSandbox()).toBe(true);
         });
 
-        it('returns true on Linux AppImage with user namespace restriction', async () => {
+        it('returns true when kernel disables user namespaces and no SUID fallback', async () => {
             Object.defineProperty(process, 'platform', {
                 value: 'linux',
                 configurable: true,
                 writable: true,
             });
-            process.env.APPIMAGE = '/path/to/app.AppImage';
-            // No AppArmor, but user namespace disabled
-            vi.mocked(fs.readFileSync).mockImplementation((path: any) => {
-                if (path === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+            // No AppArmor, but kernel disables user namespaces
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
                     throw new Error('ENOENT');
                 }
-                if (path === '/proc/sys/kernel/unprivileged_userns_clone') {
+                if (filePath === '/proc/sys/kernel/unprivileged_userns_clone') {
                     return '0\n';
                 }
+                throw new Error('ENOENT');
+            });
+            // No SUID sandbox
+            vi.mocked(fs.statSync).mockImplementation(() => {
                 throw new Error('ENOENT');
             });
 
@@ -186,43 +388,24 @@ describe('sandboxDetector', () => {
             expect(shouldDisableSandbox()).toBe(true);
         });
 
-        it('returns false on Linux AppImage with no restrictions', async () => {
+        it('returns true when both restrictions active and no SUID fallback', async () => {
             Object.defineProperty(process, 'platform', {
                 value: 'linux',
                 configurable: true,
                 writable: true,
             });
-            process.env.APPIMAGE = '/path/to/app.AppImage';
-            // No restrictions
-            vi.mocked(fs.readFileSync).mockImplementation((path: any) => {
-                if (path === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
-                    return '0\n'; // Not restricted
+            // Both restrictions active
+            vi.mocked(fs.readFileSync).mockImplementation((filePath: any) => {
+                if (filePath === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
+                    return '1\n';
                 }
-                if (path === '/proc/sys/kernel/unprivileged_userns_clone') {
-                    return '1\n'; // Enabled
+                if (filePath === '/proc/sys/kernel/unprivileged_userns_clone') {
+                    return '0\n';
                 }
                 throw new Error('ENOENT');
             });
-
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            expect(shouldDisableSandbox()).toBe(false);
-        });
-
-        it('returns true when both restrictions are active', async () => {
-            Object.defineProperty(process, 'platform', {
-                value: 'linux',
-                configurable: true,
-                writable: true,
-            });
-            process.env.APPIMAGE = '/path/to/app.AppImage';
-            // Both restrictions active
-            vi.mocked(fs.readFileSync).mockImplementation((path: any) => {
-                if (path === '/proc/sys/kernel/apparmor_restrict_unprivileged_userns') {
-                    return '1\n';
-                }
-                if (path === '/proc/sys/kernel/unprivileged_userns_clone') {
-                    return '0\n';
-                }
+            // No SUID sandbox
+            vi.mocked(fs.statSync).mockImplementation(() => {
                 throw new Error('ENOENT');
             });
 

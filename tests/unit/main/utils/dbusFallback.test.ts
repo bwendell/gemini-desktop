@@ -21,7 +21,6 @@ const mockDisconnect = vi.fn();
 const mockCreateSession = vi.fn();
 const mockBindShortcuts = vi.fn();
 const mockGet = vi.fn();
-const mockOn = vi.fn();
 
 // Create mock interface getter
 const mockGetInterface = vi.fn();
@@ -32,10 +31,52 @@ const mockGetProxyObject = vi.fn();
 // Track if sessionBus was called
 const mockSessionBusCalls: unknown[] = [];
 
+// Track bus-level message listeners for simulating Response signals
+type BusMessageHandler = (msg: {
+    type: number;
+    path?: string;
+    interface?: string;
+    member?: string;
+    body?: unknown[];
+}) => void;
+let busMessageHandlers: BusMessageHandler[] = [];
+const mockBusOn = vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+    if (event === 'message') {
+        busMessageHandlers.push(handler as BusMessageHandler);
+    }
+});
+const mockBusRemoveListener = vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+    if (event === 'message') {
+        busMessageHandlers = busMessageHandlers.filter((h) => h !== handler);
+    }
+});
+
+/**
+ * Simulate a portal Response signal on all registered bus message handlers.
+ */
+function simulatePortalResponse(requestPath: string, code: number, results: Record<string, unknown>) {
+    const msg = {
+        type: 4, // SIGNAL
+        path: requestPath,
+        interface: 'org.freedesktop.portal.Request',
+        member: 'Response',
+        body: [code, results],
+    };
+    // Use process.nextTick so it fires after the promise sets up its listener
+    process.nextTick(() => {
+        for (const handler of [...busMessageHandlers]) {
+            handler(msg);
+        }
+    });
+}
+
 // Factory function for creating the bus mock
 const createBusMock = () => ({
+    name: ':1.42',
     getProxyObject: mockGetProxyObject,
     disconnect: mockDisconnect,
+    on: mockBusOn,
+    removeListener: mockBusRemoveListener,
 });
 
 // Mock dbus-next at the top level
@@ -66,6 +107,7 @@ describe('DBusFallback', () => {
         // Clear all mock call history
         vi.clearAllMocks();
         mockSessionBusCalls.length = 0;
+        busMessageHandlers = [];
 
         // Set up default mock implementations
         mockGetInterface.mockImplementation((iface: string) => {
@@ -75,7 +117,6 @@ describe('DBusFallback', () => {
             return {
                 CreateSession: mockCreateSession,
                 BindShortcuts: mockBindShortcuts,
-                on: mockOn,
             };
         });
 
@@ -83,13 +124,41 @@ describe('DBusFallback', () => {
             getInterface: mockGetInterface,
         });
 
-        // Default: CreateSession returns a session path
-        mockCreateSession.mockResolvedValue({
-            session_handle: '/org/freedesktop/portal/desktop/session/test123',
+        // Default: CreateSession succeeds (returns request path)
+        mockCreateSession.mockImplementation(async (options: Record<string, { value?: string }>) => {
+            const handleToken = options?.handle_token?.value || 'token';
+            const sessionToken = options?.session_handle_token?.value || 'session';
+            const requestPath = `/org/freedesktop/portal/desktop/request/1_42/${handleToken}`;
+
+            // Simulate the Response signal arriving asynchronously
+            simulatePortalResponse(requestPath, 0, {
+                session_handle: {
+                    value: `/org/freedesktop/portal/desktop/session/1_42/${sessionToken}`,
+                },
+            });
+
+            return requestPath;
         });
 
-        // Default: BindShortcuts succeeds
-        mockBindShortcuts.mockResolvedValue({});
+        // Default: BindShortcuts succeeds (returns request path)
+        mockBindShortcuts.mockImplementation(
+            async (
+                _sessionPath: string,
+                _shortcuts: unknown[],
+                _parent: string,
+                options: Record<string, { value?: string }>
+            ) => {
+                const handleToken = options?.handle_token?.value || 'bind_token';
+                const requestPath = `/org/freedesktop/portal/desktop/request/1_42/${handleToken}`;
+
+                // Simulate Response signal for BindShortcuts
+                simulatePortalResponse(requestPath, 0, {
+                    shortcuts: { value: [] },
+                });
+
+                return requestPath;
+            }
+        );
 
         // Default: Properties interface returns GlobalShortcuts
         mockGet.mockResolvedValue(['org.freedesktop.portal.GlobalShortcuts']);
@@ -111,24 +180,57 @@ describe('DBusFallback', () => {
     });
 
     // ========================================================================
-    // Dynamic Import Verification
+    // electronAcceleratorToXdg
     // ========================================================================
 
-    describe('Dynamic Import', () => {
-        it('does NOT import dbus-next at module level', async () => {
-            const fs = await import('fs');
-            const path = await import('path');
-            const sourceFile = path.resolve(process.cwd(), 'src/main/utils/dbusFallback.ts');
+    describe('electronAcceleratorToXdg', () => {
+        it('converts CommandOrControl to CTRL', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+Space')).toBe('CTRL+SHIFT+space');
+        });
 
-            const content = fs.readFileSync(sourceFile, 'utf-8');
+        it('converts CmdOrCtrl to CTRL', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('CmdOrCtrl+Alt+H')).toBe('CTRL+ALT+h');
+        });
 
-            // Check that there's no top-level import of dbus-next
-            const topLevelImportRegex = /^import\s+.*from\s+['"]dbus-next['"]/m;
-            expect(content).not.toMatch(topLevelImportRegex);
+        it('converts Ctrl to CTRL', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+Shift+P')).toBe('CTRL+SHIFT+p');
+        });
 
-            // Verify there IS a dynamic import
-            const dynamicImportRegex = /import\(['"]dbus-next['"]\)/;
-            expect(content).toMatch(dynamicImportRegex);
+        it('converts Alt to ALT', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Alt+F4')).toBe('ALT+F4');
+        });
+
+        it('converts Super/Meta to LOGO', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Super+L')).toBe('LOGO+l');
+            expect(dbusFallback.electronAcceleratorToXdg('Meta+L')).toBe('LOGO+l');
+        });
+
+        it('preserves function keys in uppercase', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+F12')).toBe('CTRL+F12');
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+F1')).toBe('CTRL+F1');
+        });
+
+        it('converts Space key to lowercase xkb name', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+Space')).toBe('CTRL+space');
+        });
+
+        it('converts special keys to xkb names', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+Enter')).toBe('CTRL+Return');
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+Escape')).toBe('CTRL+Escape');
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+Tab')).toBe('CTRL+Tab');
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+Delete')).toBe('CTRL+Delete');
+        });
+
+        it('converts single characters to lowercase', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+H')).toBe('CTRL+h');
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+A')).toBe('CTRL+a');
+        });
+
+        it('handles the default app accelerators correctly', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+Space')).toBe('CTRL+SHIFT+space');
+            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Alt+H')).toBe('CTRL+ALT+h');
+            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Alt+P')).toBe('CTRL+ALT+p');
+            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+P')).toBe('CTRL+SHIFT+p');
         });
     });
 
@@ -184,8 +286,8 @@ describe('DBusFallback', () => {
 
     describe('registerViaDBus', () => {
         const testShortcuts = [
-            { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat toggle' },
-            { id: 'bossKey' as const, accelerator: 'Ctrl+Alt+H', description: 'Hide window' },
+            { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat toggle' },
+            { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Hide window' },
         ];
 
         it('returns success results when all shortcuts bind successfully', async () => {
@@ -200,8 +302,9 @@ describe('DBusFallback', () => {
             await dbusFallback.registerViaDBus(testShortcuts);
 
             expect(mockCreateSession).toHaveBeenCalledTimes(1);
-            const callArgs = mockCreateSession.mock.calls[0];
-            expect(callArgs).toBeDefined();
+            const options = mockCreateSession.mock.calls[0][0];
+            expect(options.handle_token.value).toBeDefined();
+            expect(options.session_handle_token.value).toBeDefined();
         });
 
         it('calls BindShortcuts with all shortcuts in a single batch', async () => {
@@ -209,6 +312,20 @@ describe('DBusFallback', () => {
 
             // BindShortcuts should be called exactly once (batch operation)
             expect(mockBindShortcuts).toHaveBeenCalledTimes(1);
+        });
+
+        it('converts accelerators to XDG format when registering', async () => {
+            await dbusFallback.registerViaDBus(testShortcuts);
+
+            const bindCall = mockBindShortcuts.mock.calls[0];
+            const shortcutSpecs = bindCall[1]; // second arg = shortcut specs
+
+            // Check that accelerators were converted
+            const quickChatTrigger = shortcutSpecs[0][1].preferred_trigger;
+            expect(quickChatTrigger.value).toBe('CTRL+SHIFT+space');
+
+            const bossKeyTrigger = shortcutSpecs[1][1].preferred_trigger;
+            expect(bossKeyTrigger.value).toBe('CTRL+ALT+h');
         });
 
         it('returns failure results when CreateSession fails', async () => {
@@ -268,11 +385,79 @@ describe('DBusFallback', () => {
             await expect(dbusFallback.registerViaDBus(testShortcuts)).resolves.toBeDefined();
         });
 
-        it('sets up signal handlers for Activated/Deactivated', async () => {
+        it('sets up bus-level Activated signal handler', async () => {
             await dbusFallback.registerViaDBus(testShortcuts);
 
-            expect(mockOn).toHaveBeenCalledWith('Activated', expect.any(Function));
-            expect(mockOn).toHaveBeenCalledWith('Deactivated', expect.any(Function));
+            // Bus-level on('message', ...) should be called for signal handling
+            expect(mockBusOn).toHaveBeenCalledWith('message', expect.any(Function));
+        });
+
+        it('invokes action callbacks when Activated signal fires', async () => {
+            const mockCallback = vi.fn();
+            const callbacks = new Map<string, () => void>([['quickChat', mockCallback]]);
+
+            await dbusFallback.registerViaDBus(
+                testShortcuts,
+                callbacks as Map<import('../../../../src/shared/types/hotkeys').HotkeyId, () => void>
+            );
+
+            // Simulate an Activated signal via bus-level message
+            for (const handler of busMessageHandlers) {
+                handler({
+                    type: 4, // SIGNAL
+                    interface: 'org.freedesktop.portal.GlobalShortcuts',
+                    member: 'Activated',
+                    body: ['/session/path', 'quickChat', {}],
+                });
+            }
+
+            expect(mockCallback).toHaveBeenCalledTimes(1);
+        });
+
+        it('handles Activated signal for unknown shortcut ID gracefully', async () => {
+            const mockCallback = vi.fn();
+            const callbacks = new Map<string, () => void>([['quickChat', mockCallback]]);
+
+            await dbusFallback.registerViaDBus(
+                testShortcuts,
+                callbacks as Map<import('../../../../src/shared/types/hotkeys').HotkeyId, () => void>
+            );
+
+            // Simulate an Activated signal for an unknown ID — should not throw
+            for (const handler of busMessageHandlers) {
+                handler({
+                    type: 4,
+                    interface: 'org.freedesktop.portal.GlobalShortcuts',
+                    member: 'Activated',
+                    body: ['/session/path', 'unknownHotkey', {}],
+                });
+            }
+
+            expect(mockCallback).not.toHaveBeenCalled();
+        });
+
+        it('handles callback error in Activated signal gracefully', async () => {
+            const mockCallback = vi.fn(() => {
+                throw new Error('Callback crash');
+            });
+            const callbacks = new Map<string, () => void>([['quickChat', mockCallback]]);
+
+            await dbusFallback.registerViaDBus(
+                testShortcuts,
+                callbacks as Map<import('../../../../src/shared/types/hotkeys').HotkeyId, () => void>
+            );
+
+            // Should not throw even when callback crashes
+            for (const handler of busMessageHandlers) {
+                handler({
+                    type: 4,
+                    interface: 'org.freedesktop.portal.GlobalShortcuts',
+                    member: 'Activated',
+                    body: ['/session/path', 'quickChat', {}],
+                });
+            }
+
+            expect(mockCallback).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -283,12 +468,22 @@ describe('DBusFallback', () => {
     describe('destroySession', () => {
         it('disconnects D-Bus connection when session exists', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat' },
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
 
             await dbusFallback.destroySession();
 
             expect(mockDisconnect).toHaveBeenCalled();
+        });
+
+        it('removes bus-level message handler on destroy', async () => {
+            await dbusFallback.registerViaDBus([
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+            ]);
+
+            await dbusFallback.destroySession();
+
+            expect(mockBusRemoveListener).toHaveBeenCalledWith('message', expect.any(Function));
         });
 
         it('does not throw when called without active session', async () => {
@@ -297,13 +492,13 @@ describe('DBusFallback', () => {
 
         it('cleans up session state (allows new registration)', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat' },
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
             await dbusFallback.destroySession();
 
             // Should be able to register again
             const results = await dbusFallback.registerViaDBus([
-                { id: 'bossKey' as const, accelerator: 'Ctrl+Alt+H', description: 'Boss Key' },
+                { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Boss Key' },
             ]);
 
             expect(results).toHaveLength(1);
@@ -312,7 +507,7 @@ describe('DBusFallback', () => {
 
         it('handles disconnect errors gracefully', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat' },
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
 
             mockDisconnect.mockImplementation(() => {
@@ -341,7 +536,7 @@ describe('DBusFallback', () => {
             mockGetProxyObject.mockRejectedValue(new Error('org.freedesktop.DBus.Error.NameHasNoOwner'));
 
             const results = await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat' },
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
 
             expect(results[0].success).toBe(false);
@@ -352,11 +547,27 @@ describe('DBusFallback', () => {
             mockCreateSession.mockRejectedValue(new Error('org.freedesktop.DBus.Error.Timeout'));
 
             const results = await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat' },
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
 
             expect(results[0].success).toBe(false);
             expect(results[0].error).toContain('Timeout');
+        });
+
+        it('handles CreateSession Response with non-zero code', async () => {
+            mockCreateSession.mockImplementation(async (options: Record<string, { value?: string }>) => {
+                const handleToken = options?.handle_token?.value || 'token';
+                const requestPath = `/org/freedesktop/portal/desktop/request/1_42/${handleToken}`;
+                simulatePortalResponse(requestPath, 2, {}); // code=2 means error
+                return requestPath;
+            });
+
+            const results = await dbusFallback.registerViaDBus([
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+            ]);
+
+            expect(results[0].success).toBe(false);
+            expect(results[0].error).toContain('response code 2');
         });
 
         it('never throws uncaught exceptions to caller from registerViaDBus', async () => {
@@ -364,7 +575,11 @@ describe('DBusFallback', () => {
 
             await expect(
                 dbusFallback.registerViaDBus([
-                    { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat' },
+                    {
+                        id: 'quickChat' as const,
+                        accelerator: 'CommandOrControl+Shift+Space',
+                        description: 'Quick Chat',
+                    },
                 ])
             ).resolves.toBeDefined();
         });
@@ -377,7 +592,7 @@ describe('DBusFallback', () => {
 
         it('never throws uncaught exceptions to caller from destroySession', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat' },
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
             mockDisconnect.mockImplementation(() => {
                 throw new Error('Crash during disconnect');
@@ -394,10 +609,10 @@ describe('DBusFallback', () => {
     describe('Session Lifecycle', () => {
         it('creates new session on repeated registerViaDBus calls (destroying previous)', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'Ctrl+Shift+Space', description: 'Quick Chat' },
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
             await dbusFallback.registerViaDBus([
-                { id: 'bossKey' as const, accelerator: 'Ctrl+Alt+H', description: 'Boss Key' },
+                { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Boss Key' },
             ]);
 
             // CreateSession should be called for each registration

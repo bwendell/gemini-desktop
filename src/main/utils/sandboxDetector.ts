@@ -2,12 +2,23 @@
  * Sandbox Detection Utility
  *
  * Detects if the Electron chromium sandbox will fail to initialize on Linux.
- * This is common with AppImages on Ubuntu 24.04+ due to AppArmor restrictions.
+ * Chromium uses two sandbox mechanisms on Linux:
+ *   1. User namespace sandbox (preferred, requires unprivileged user namespaces)
+ *   2. SUID sandbox (fallback, requires chrome-sandbox owned by root with mode 4755)
+ *
+ * If BOTH mechanisms are unavailable, Electron will crash on startup.
+ * This module detects that condition and allows graceful fallback to --no-sandbox.
+ *
+ * Common scenarios where this applies:
+ *   - AppImages on Ubuntu 24.04+ (AppArmor restricts user namespaces)
+ *   - Local development (chrome-sandbox in node_modules lacks SUID permissions)
+ *   - CI environments with restricted namespaces and no SUID binary setup
  *
  * @module sandboxDetector
  */
 
 import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Check if running as an AppImage.
@@ -49,25 +60,74 @@ export function hasUserNamespaceRestriction(): boolean {
 }
 
 /**
+ * Check if unprivileged user namespaces are available.
+ * This is the preferred sandbox mechanism on modern Linux.
+ *
+ * User namespaces are available when:
+ *   - AppArmor does NOT restrict them, AND
+ *   - The kernel allows unprivileged user namespace creation
+ *
+ * @returns true if user namespace sandbox can be used
+ */
+export function hasUserNamespaceSupport(): boolean {
+    return !hasAppArmorRestriction() && !hasUserNamespaceRestriction();
+}
+
+/**
+ * Check if the SUID sandbox helper binary has correct permissions.
+ * Electron requires chrome-sandbox to be owned by root (uid 0) with the
+ * SUID bit set (mode 4755). Without this, the SUID sandbox fallback fails.
+ *
+ * Also checks the CHROME_DEVEL_SANDBOX environment variable, which Chromium
+ * supports for overriding the sandbox binary path.
+ *
+ * @returns true if the SUID sandbox binary exists with correct permissions
+ */
+export function hasSuidSandboxPermissions(): boolean {
+    // Chromium respects CHROME_DEVEL_SANDBOX as an override path
+    const overridePath = process.env.CHROME_DEVEL_SANDBOX;
+    const chromeSandboxPath = overridePath || path.join(path.dirname(process.execPath), 'chrome-sandbox');
+
+    try {
+        const stat = fs.statSync(chromeSandboxPath);
+        // Must be owned by root (uid 0) and have SUID bit + 0755 permissions
+        return stat.uid === 0 && (stat.mode & 0o4755) === 0o4755;
+    } catch {
+        // Binary doesn't exist or can't be stat'd
+        return false;
+    }
+}
+
+/**
  * Detect if the sandbox will fail and should be disabled.
  *
- * Returns true if:
- * 1. Running as an AppImage on Linux, AND
- * 2. Either AppArmor restricts user namespaces OR user namespaces are disabled
+ * Returns true when BOTH sandbox mechanisms are unavailable:
+ *   1. User namespace sandbox is blocked (AppArmor or kernel restriction), AND
+ *   2. SUID sandbox fallback is not viable (chrome-sandbox lacks permissions)
+ *
+ * This covers:
+ *   - AppImages on restrictive systems (original use case)
+ *   - Local development (chrome-sandbox in node_modules is never SUID)
+ *   - CI environments with restricted namespaces
  *
  * @returns true if sandbox should be disabled for compatibility
  */
 export function shouldDisableSandbox(): boolean {
-    // Only applies to Linux
+    // Only applies to Linux — macOS and Windows use different sandbox mechanisms
     if (process.platform !== 'linux') {
         return false;
     }
 
-    // Only needed for AppImages (packaged app running from APPIMAGE)
-    if (!isAppImage()) {
+    // If user namespaces are available, the preferred sandbox works fine
+    if (hasUserNamespaceSupport()) {
         return false;
     }
 
-    // Check for restrictions that would cause sandbox failure
-    return hasAppArmorRestriction() || hasUserNamespaceRestriction();
+    // User namespaces are restricted — check if SUID sandbox is a viable fallback
+    if (hasSuidSandboxPermissions()) {
+        return false;
+    }
+
+    // Neither sandbox mechanism is available — disable to prevent crash
+    return true;
 }

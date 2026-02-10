@@ -41,6 +41,10 @@ if (isLinux) {
     // On Linux, the internal app name should match the executable/id for better WM_CLASS matching
     app.setName('gemini-desktop');
 
+    // Set the Wayland app_id / X11 WM_CLASS so KDE and other DEs identify the app
+    // correctly in portal dialogs and task managers (instead of "org.chromium.Chromium")
+    app.commandLine.appendSwitch('class', 'gemini-desktop');
+
     // Set desktop name for portal integration
     try {
         if (typeof (app as any).setDesktopName === 'function') {
@@ -55,10 +59,11 @@ if (isLinux) {
     logger.log('Wayland detection:', JSON.stringify(waylandStatus));
 
     if (waylandStatus.isWayland && waylandStatus.portalAvailable) {
-        // Enable Chromium's GlobalShortcutsPortal feature flag
-        // MUST be set BEFORE app.whenReady()
-        app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
-        logger.log('Enabled GlobalShortcutsPortal Chromium feature flag for Wayland');
+        // NOTE: We intentionally do NOT enable Chromium's GlobalShortcutsPortal feature flag.
+        // Chromium's globalShortcut.register() reports false positive success on KDE Plasma 6
+        // and interferes with our direct D-Bus portal session. We handle global shortcuts
+        // entirely via dbus-next in hotkeyManager._registerViaDBusDirect().
+        logger.log('Wayland detected with portal — will use D-Bus portal for global shortcuts');
     } else if (waylandStatus.isWayland) {
         logger.warn(
             `Wayland detected but portal unavailable. DE: ${waylandStatus.desktopEnvironment}, Version: ${waylandStatus.deVersion}`
