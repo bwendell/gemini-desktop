@@ -60,6 +60,13 @@ export const Selectors = {
     // Options Window
     optionsTitlebar: '.options-titlebar',
     optionsCloseButton: testId(OPTIONS_TEST_IDS.OPTIONS_CLOSE_BUTTON),
+    optionsContent: testId(OPTIONS_TEST_IDS.OPTIONS_CONTENT),
+    optionsTitlebarTitle: testId(OPTIONS_TEST_IDS.OPTIONS_TITLEBAR_TITLE),
+    /**
+     * Generates a selector for an options tab.
+     * @param tabName The tab name (e.g., 'settings', 'about')
+     */
+    optionsTab: (tabName: string) => testId(OPTIONS_TEST_IDS.optionsTab(tabName)),
     /**
      * Generates a selector for a theme selection card.
      * @param theme The theme ID (e.g., 'light', 'dark', 'system')

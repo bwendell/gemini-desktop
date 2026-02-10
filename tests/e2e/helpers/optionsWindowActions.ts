@@ -12,6 +12,7 @@ import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
 import { isMacOS } from './platform';
 import { E2E_TIMING } from './e2eConstants';
+import { Selectors } from './selectors';
 
 /**
  * Opens the options window using the keyboard shortcut (Cmd+, or Ctrl+,).
@@ -47,7 +48,7 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
 
     await browser.waitUntil(
         async () => {
-            const content = await browser.$('[data-testid="options-content"]');
+            const content = await browser.$(Selectors.optionsContent);
             return await content.isExisting();
         },
         {
@@ -99,7 +100,7 @@ export async function switchToOptionsWindow(): Promise<void> {
  */
 export async function navigateToOptionsTab(tabName: string): Promise<void> {
     E2ELogger.info('optionsWindowActions', `Navigating to options tab: ${tabName}`);
-    const tabSelector = `[data-testid="options-tab-${tabName}"]`;
+    const tabSelector = Selectors.optionsTab(tabName);
     const tab = await browser.$(tabSelector);
 
     await tab.waitForDisplayed({

@@ -25,7 +25,8 @@ import { getPlatform, E2EPlatform } from './helpers/platform';
 import { getHotkeyDisplayString, isHotkeyRegistered } from './helpers/hotkeyHelpers';
 import { E2ELogger } from './helpers/logger';
 import { QuickChatPage } from './pages';
-import { waitForAppReady, waitForWindowTransition, ensureSingleWindow } from './helpers/workflows';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForWindowTransition } from './helpers/waitUtilities';
 
 describe('Quick Chat Feature', () => {
     let platform: E2EPlatform;

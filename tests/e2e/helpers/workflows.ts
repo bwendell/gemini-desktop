@@ -15,6 +15,7 @@ import { E2E_TIMING } from './e2eConstants';
 import { Selectors } from './selectors';
 import { clickMenuItemById } from './menuActions';
 import { waitForWindowCount, closeCurrentWindow } from './windowActions';
+import { waitForUIState } from './waitUtilities';
 import {
     waitForOptionsWindow,
     closeOptionsWindow,
@@ -47,7 +48,15 @@ export async function withOptionsWindowViaMenu<T>(action: () => Promise<T>): Pro
     await clickMenuItemById('menu-file-options');
     await waitForWindowCount(2);
     await switchToOptionsWindow();
-    await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+
+    // Wait for the options window content to be ready
+    await waitForUIState(
+        async () => {
+            const title = await browser.$(Selectors.optionsTitlebarTitle);
+            return await title.isDisplayed().catch(() => false);
+        },
+        { description: 'Options window content ready' }
+    );
 
     try {
         return await action();
@@ -100,7 +109,14 @@ export async function withOptionsWindowViaHotkey<T>(action: () => Promise<T>): P
 export async function withOptionsTab<T>(tabName: 'settings' | 'about', action: () => Promise<T>): Promise<T> {
     return withOptionsWindowViaMenu(async () => {
         await navigateToOptionsTab(tabName);
-        await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+        // Wait for the tab content to settle
+        await waitForUIState(
+            async () => {
+                const tabContent = await browser.$(Selectors.optionsTab(tabName));
+                return await tabContent.isDisplayed().catch(() => false);
+            },
+            { description: `Tab navigation to ${tabName}` }
+        );
         return await action();
     });
 }
@@ -126,7 +142,16 @@ export async function changeTheme(theme: 'light' | 'dark' | 'system'): Promise<v
         const themeCard = await browser.$(Selectors.themeCard(theme));
         await themeCard.waitForDisplayed({ timeout: 5000 });
         await themeCard.click();
-        await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+
+        // Wait for the theme to be applied to the document
+        await waitForUIState(
+            async () => {
+                const currentTheme = await browser.execute(() => document.documentElement.getAttribute('data-theme'));
+                // For 'system', theme resolves to either 'light' or 'dark'
+                return theme === 'system' ? currentTheme !== null : currentTheme === theme;
+            },
+            { description: `Theme change to ${theme}` }
+        );
     });
 
     E2ELogger.info('workflows', `✓ Theme changed to: ${theme}`);
@@ -187,7 +212,15 @@ export async function recordHotkey(hotkeyId: string, keys: string[]): Promise<vo
 
     // Press the new key combination
     await browser.keys(keys);
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+
+    // Wait for recording mode to deactivate (prompt disappears)
+    await waitForUIState(
+        async () => {
+            const prompt = await browser.$('.recording-prompt');
+            return !(await prompt.isDisplayed().catch(() => false));
+        },
+        { description: 'Hotkey recording complete' }
+    );
 
     E2ELogger.info('workflows', `✓ Recorded hotkey: ${keys.join('+')}`);
 }
@@ -223,7 +256,11 @@ export async function resetHotkeyToDefault(hotkeyId: string): Promise<void> {
     if (await resetButton.isExisting()) {
         if (await resetButton.isDisplayed()) {
             await resetButton.click();
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+
+            // Wait for UI to reflect the reset
+            await waitForUIState(async () => !(await resetButton.isDisplayed().catch(() => false)), {
+                description: `Hotkey reset: ${hotkeyId}`,
+            });
             E2ELogger.info('workflows', `✓ Reset hotkey: ${hotkeyId}`);
         } else {
             E2ELogger.info('workflows', `Hotkey ${hotkeyId} already at default`);
@@ -251,9 +288,14 @@ export async function toggleSwitch(toggleSelector: string): Promise<void> {
 
     const wasChecked = (await toggle.getAttribute('aria-checked')) === 'true';
     await toggle.click();
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
-    E2ELogger.info('workflows', `Toggled ${toggleSelector}: ${wasChecked} → ${!wasChecked}`);
+    // Wait for the toggle state to actually change
+    const targetState = !wasChecked;
+    await waitForUIState(async () => (await toggle.getAttribute('aria-checked')) === String(targetState), {
+        description: `Toggle ${toggleSelector}: ${wasChecked} → ${targetState}`,
+    });
+
+    E2ELogger.info('workflows', `Toggled ${toggleSelector}: ${wasChecked} → ${targetState}`);
 }
 
 /**
@@ -270,7 +312,11 @@ export async function setToggleState(toggleSelector: string, enabled: boolean): 
 
     if (isCurrentlyEnabled !== enabled) {
         await toggle.click();
-        await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+
+        // Wait for the toggle state to match the target
+        await waitForUIState(async () => (await toggle.getAttribute('aria-checked')) === String(enabled), {
+            description: `Set toggle ${toggleSelector} to ${enabled}`,
+        });
         E2ELogger.info('workflows', `Set toggle ${toggleSelector} to: ${enabled}`);
     } else {
         E2ELogger.info('workflows', `Toggle ${toggleSelector} already in state: ${enabled}`);
@@ -385,7 +431,8 @@ export async function pressShortcut(modifierType: 'primary' | 'alt', ...keys: st
     }
 
     await browser.keys([modifier, ...keys]);
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    // Brief settle after keyboard shortcut - no verifiable side-effect at this level
+    await waitForUIState(async () => true, { description: `Shortcut: ${modifier}+${keys.join('+')}`, timeout: 200 });
 
     E2ELogger.info('workflows', `Pressed shortcut: ${modifier}+${keys.join('+')}`);
 }
@@ -416,7 +463,8 @@ export async function pressComplexShortcut(modifiers: Array<'primary' | 'shift' 
     });
 
     await browser.keys([...modifierKeys, key]);
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    // Brief settle after keyboard shortcut - no verifiable side-effect at this level
+    await waitForUIState(async () => true, { description: `Shortcut: ${modifierKeys.join('+')}+${key}`, timeout: 200 });
 
     E2ELogger.info('workflows', `Pressed shortcut: ${modifierKeys.join('+')}+${key}`);
 }
@@ -442,47 +490,4 @@ export async function waitForAppReady(timeout = 15000): Promise<void> {
  */
 export async function waitForIpcSettle(): Promise<void> {
     await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
-}
-
-/**
- * Waits for window animation/transition to complete.
- * Use after maximize, minimize, restore, show/hide, etc.
- *
- * When called with a condition function, uses condition-based polling
- * instead of static timeouts to handle timing variability on slower CI runners.
- *
- * @param condition - Optional async function that returns true when transition is complete
- * @param timeout - Max wait time in ms (default: 3000)
- * @returns true if condition was met within timeout, false otherwise (or void if no condition)
- *
- * @example
- * // Static pause (backwards compatible)
- * await waitForWindowTransition();
- *
- * // Condition-based polling (recommended for CI reliability)
- * await waitForWindowTransition(async () => !(await quickChatPage.isVisible()));
- */
-export async function waitForWindowTransition(
-    condition?: () => Promise<boolean>,
-    timeout = 3000
-): Promise<boolean | void> {
-    if (!condition) {
-        // Backwards-compatible: static pause when no condition provided
-        await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
-        return;
-    }
-
-    // Condition-based polling for CI reliability
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < timeout) {
-        if (await condition()) {
-            E2ELogger.info('workflows', `Window transition condition met after ${Date.now() - startTime}ms`);
-            return true;
-        }
-        await browser.pause(100); // Poll every 100ms
-    }
-
-    E2ELogger.info('workflows', `Timeout waiting for window transition condition after ${timeout}ms`);
-    return false;
 }

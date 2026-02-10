@@ -21,7 +21,8 @@
 
 import { browser, expect } from '@wdio/globals';
 import { QuickChatPage, MainWindowPage } from './pages';
-import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForWindowTransition } from './helpers/workflows';
+import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
+import { waitForWindowTransition } from './helpers/waitUtilities';
 import { verifyGeminiEditorState, waitForTextInGeminiEditor } from './helpers/quickChatActions';
 import { E2ELogger } from './helpers/logger';
 import { waitForUIState } from './helpers/waitUtilities';

@@ -16,6 +16,7 @@
 import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
 import { E2E_TIMING } from './e2eConstants';
+import { waitForFullscreenTransition, waitForWindowTransition } from './waitUtilities';
 
 // ============================================================================
 // Types
@@ -121,6 +122,7 @@ export async function isWindowDestroyed(): Promise<boolean> {
 
 /**
  * Maximizes the current window via Electron API.
+ * Waits for the window to reach maximized state using condition-based polling.
  */
 export async function maximizeWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Maximizing window via API');
@@ -129,12 +131,14 @@ export async function maximizeWindow(): Promise<void> {
         (window as any).electronAPI?.maximizeWindow?.();
     });
 
-    // Give the window time to transition
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(async () => await isWindowMaximized(), {
+        description: 'Window maximize',
+    });
 }
 
 /**
  * Minimizes the current window via Electron API.
+ * Waits for the window to reach minimized state using condition-based polling.
  */
 export async function minimizeWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Minimizing window via API');
@@ -143,11 +147,14 @@ export async function minimizeWindow(): Promise<void> {
         (window as any).electronAPI?.minimizeWindow?.();
     });
 
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(async () => await isWindowMinimized(), {
+        description: 'Window minimize',
+    });
 }
 
 /**
  * Restores the window from maximized/minimized state.
+ * Waits for the window to be visible, not minimized, and not maximized.
  */
 export async function restoreWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Restoring window via API');
@@ -168,7 +175,13 @@ export async function restoreWindow(): Promise<void> {
         }
     });
 
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(
+        async () => {
+            const state = await getWindowState();
+            return state.isVisible && !state.isMinimized && !state.isMaximized;
+        },
+        { description: 'Window restore' }
+    );
 }
 
 /**
@@ -184,6 +197,7 @@ export async function closeWindow(): Promise<void> {
 
 /**
  * Hides the current window (e.g., minimize to tray).
+ * Waits for the window to become not visible using condition-based polling.
  */
 export async function hideWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Hiding window via API');
@@ -195,11 +209,14 @@ export async function hideWindow(): Promise<void> {
         }
     });
 
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(async () => !(await isWindowVisible()), {
+        description: 'Window hide',
+    });
 }
 
 /**
  * Shows the current window (e.g., restore from tray).
+ * Waits for the window to become visible using condition-based polling.
  */
 export async function showWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Showing window via API');
@@ -212,39 +229,43 @@ export async function showWindow(): Promise<void> {
         }
     });
 
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(async () => await isWindowVisible(), {
+        description: 'Window show',
+    });
 }
 
 /**
  * Toggles fullscreen mode via Electron API.
+ * Waits for the fullscreen transition to complete using condition-based polling.
  */
 export async function toggleFullscreen(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Toggling fullscreen via API');
+
+    // Query current state before toggling so we know the target state
+    const wasFullScreen = await isWindowFullScreen();
 
     await browser.execute(() => {
         (window as any).electronAPI?.toggleFullscreen?.();
     });
 
-    await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+    await waitForFullscreenTransition(!wasFullScreen, isWindowFullScreen);
 }
 
 /**
  * Sets fullscreen mode to specific state.
+ * Waits for the fullscreen transition to complete using condition-based polling.
  */
 export async function setFullScreen(fullscreen: boolean): Promise<void> {
     E2ELogger.info('windowStateActions', `Setting fullscreen to: ${fullscreen}`);
 
-    await browser.electron.execute(
-        (electron, fs) => {
-            const win = electron.BrowserWindow.getAllWindows()[0];
-            if (win) {
-                win.setFullScreen(fs);
-            }
-        },
-        fullscreen
-    );
+    await browser.electron.execute((electron, fs) => {
+        const win = electron.BrowserWindow.getAllWindows()[0];
+        if (win) {
+            win.setFullScreen(fs);
+        }
+    }, fullscreen);
 
-    await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+    await waitForFullscreenTransition(fullscreen, isWindowFullScreen);
 }
 
 /**

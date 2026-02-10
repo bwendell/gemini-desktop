@@ -16,7 +16,7 @@ import { MainWindowPage } from './pages';
 import { usesCustomControls, isMacOS, isLinuxCI } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
-import { waitForWindowTransition } from './helpers/waitUtilities';
+import { waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
 import {
     isWindowMaximized,
     isWindowMinimized,
@@ -244,6 +244,7 @@ describe('Window Controls Functionality', () => {
             const isFS = await isWindowFullScreen();
             if (isFS) {
                 await setFullScreen(false);
+                await waitForFullscreenTransition(false, isWindowFullScreen);
             }
         });
 
@@ -252,17 +253,17 @@ describe('Window Controls Functionality', () => {
             const initialFS = await isWindowFullScreen();
             expect(initialFS).toBe(false);
 
-            // 2. Toggle fullscreen ON via IPC
+            // 2. Toggle fullscreen ON via IPC (toggleFullscreen waits internally)
             await toggleFullscreen();
-            const afterToggleOn = await isWindowFullScreen();
-            expect(afterToggleOn).toBe(true);
+            await waitForFullscreenTransition(true, isWindowFullScreen);
+            expect(await isWindowFullScreen()).toBe(true);
 
             E2ELogger.info('window-controls', 'Fullscreen entered via toggleFullscreen()');
 
             // 3. Toggle fullscreen OFF via IPC
             await toggleFullscreen();
-            const afterToggleOff = await isWindowFullScreen();
-            expect(afterToggleOff).toBe(false);
+            await waitForFullscreenTransition(false, isWindowFullScreen);
+            expect(await isWindowFullScreen()).toBe(false);
 
             E2ELogger.info('window-controls', 'Fullscreen exited via toggleFullscreen()');
         });
