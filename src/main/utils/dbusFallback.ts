@@ -87,12 +87,18 @@ interface DBusMessage {
 // Constants
 // ============================================================================
 
+/** Whether to enable verbose D-Bus debug logging (heartbeat, message body dumps) */
+const DEBUG_DBUS = process.env.DEBUG_DBUS === '1' || process.env.DEBUG_DBUS === 'true';
+
 const PORTAL_BUS_NAME = 'org.freedesktop.portal.Desktop';
 const PORTAL_OBJECT_PATH = '/org/freedesktop/portal/desktop';
 const GLOBAL_SHORTCUTS_INTERFACE = 'org.freedesktop.portal.GlobalShortcuts';
 
 /** D-Bus signal message type constant */
 const DBUS_MESSAGE_TYPE_SIGNAL = 4;
+
+/** Heartbeat interval (ms) for D-Bus connection logging */
+const HEARTBEAT_INTERVAL_MS = 5000;
 
 /**
  * Timeout (ms) for portal Response signals.
@@ -266,6 +272,11 @@ let sessionPath: string | null = null;
  */
 let activatedMessageHandler: ((msg: DBusMessage) => void) | null = null;
 
+/**
+ * Periodic heartbeat timer for D-Bus connection.
+ */
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
 // ============================================================================
 // Internal Helpers
 // ============================================================================
@@ -369,6 +380,12 @@ export async function registerViaDBus(
     shortcuts: DBusShortcutConfig[],
     actionCallbacks?: Map<HotkeyId, () => void>
 ): Promise<HotkeyRegistrationResult[]> {
+    const callbackIds = actionCallbacks ? Array.from(actionCallbacks.keys()) : [];
+    logger.log(
+        `registerViaDBus called. shortcuts=${shortcuts.length}, actionCallbacks=${
+            actionCallbacks ? 'provided' : 'missing'
+        }${actionCallbacks ? ` (${callbackIds.join(', ') || 'none'})` : ''}`
+    );
     // Early exit for empty array
     if (shortcuts.length === 0) {
         return [];
@@ -384,6 +401,16 @@ export async function registerViaDBus(
         // Connect to session bus
         connection = dbusNext.sessionBus() as DBusConnection;
         logger.log('Connected to D-Bus session bus');
+
+        if (DEBUG_DBUS && !heartbeatTimer) {
+            heartbeatTimer = setInterval(() => {
+                logger.log('D-Bus heartbeat: session bus connection alive', {
+                    name: connection?.name || '(unknown)',
+                    sessionPath: sessionPath || '(unset)',
+                });
+            }, HEARTBEAT_INTERVAL_MS);
+            heartbeatTimer.unref?.();
+        }
 
         // Get portal proxy — this implicitly waits for the bus name assignment
         const proxyObj = await connection.getProxyObject(PORTAL_BUS_NAME, PORTAL_OBJECT_PATH);
@@ -438,6 +465,14 @@ export async function registerViaDBus(
         // signal delivery can be unreliable in some Electron/dbus-next
         // configurations.
         activatedMessageHandler = (msg: DBusMessage) => {
+            if (DEBUG_DBUS && msg.interface === GLOBAL_SHORTCUTS_INTERFACE) {
+                logger.log('D-Bus GlobalShortcuts message received:', {
+                    type: msg.type,
+                    member: msg.member,
+                    path: msg.path,
+                    body: msg.body,
+                });
+            }
             if (
                 msg.type === DBUS_MESSAGE_TYPE_SIGNAL &&
                 msg.interface === GLOBAL_SHORTCUTS_INTERFACE &&
@@ -582,6 +617,11 @@ export async function destroySession(): Promise<void> {
         // Remove bus-level signal handler
         if (connection && activatedMessageHandler) {
             connection.removeListener?.('message', activatedMessageHandler);
+        }
+
+        if (heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
         }
 
         if (connection) {

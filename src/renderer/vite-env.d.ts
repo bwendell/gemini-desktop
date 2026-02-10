@@ -195,7 +195,7 @@ interface Window {
                 desktopEnvironment: 'kde' | 'unknown';
                 deVersion: string | null;
                 portalAvailable: boolean;
-                portalMethod: 'chromium-flag' | 'dbus-fallback' | 'none';
+                portalMethod: 'chromium-flag' | 'dbus-direct' | 'dbus-fallback' | 'none';
             };
             registrationResults: Array<{
                 hotkeyId: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf';
@@ -211,7 +211,7 @@ interface Window {
                     desktopEnvironment: 'kde' | 'unknown';
                     deVersion: string | null;
                     portalAvailable: boolean;
-                    portalMethod: 'chromium-flag' | 'dbus-fallback' | 'none';
+                    portalMethod: 'chromium-flag' | 'dbus-direct' | 'dbus-fallback' | 'none';
                 };
                 registrationResults: Array<{
                     hotkeyId: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf';

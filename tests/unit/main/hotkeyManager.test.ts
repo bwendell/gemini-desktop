@@ -18,6 +18,7 @@ import {
     getHotkeyScope,
     isGlobalHotkey,
     isApplicationHotkey,
+    type WaylandStatus,
 } from '../../../src/shared/types/hotkeys';
 
 // ============================================================================
@@ -885,7 +886,7 @@ describe('HotkeyManager', () => {
             expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
         });
 
-        it('should register shortcuts on Wayland with supported KDE', () => {
+        it('should register shortcuts on Wayland with supported KDE', async () => {
             constantsMocks.getWaylandPlatformStatus.mockReturnValue({
                 isWayland: true,
                 desktopEnvironment: 'kde',
@@ -896,7 +897,11 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            await vi.waitFor(() => {
+                expect(mockDbusFallback.registerViaDBus).toHaveBeenCalled();
+            });
+
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
             expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(true);
         });
 
@@ -926,13 +931,14 @@ describe('HotkeyManager', () => {
             });
 
             const status = hotkeyManager.getPlatformHotkeyStatus();
-            expect(status.waylandStatus.portalMethod).toBe('dbus-fallback');
+            // On Wayland with portal available, registration goes via direct D-Bus path
+            expect(status.waylandStatus.portalMethod).toBe('dbus-direct');
             expect(status.registrationResults).toContainEqual(
                 expect.objectContaining({ hotkeyId: 'bossKey', success: true })
             );
         });
 
-        it('should update registration results on each registration', () => {
+        it('should update registration results on each registration', async () => {
             constantsMocks.getWaylandPlatformStatus.mockReturnValue({
                 isWayland: true,
                 desktopEnvironment: 'kde',
@@ -941,11 +947,159 @@ describe('HotkeyManager', () => {
                 portalMethod: 'none',
             });
 
+            mockDbusFallback.registerViaDBus.mockResolvedValue([
+                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'quickChat', success: true },
+            ]);
+
             hotkeyManager.registerShortcuts();
 
-            const status = hotkeyManager.getPlatformHotkeyStatus();
-            expect(status.registrationResults).toHaveLength(2);
-            expect(status.registrationResults.every((r) => r.success)).toBe(true);
+            await vi.waitFor(() => {
+                const status = hotkeyManager.getPlatformHotkeyStatus();
+                expect(status.registrationResults).toHaveLength(2);
+                expect(status.registrationResults.every((r) => r.success)).toBe(true);
+            });
+        });
+
+        describe('Wayland direct D-Bus registration', () => {
+            const createWaylandKdeStatus = (): WaylandStatus => {
+                const status: WaylandStatus = {
+                    isWayland: true,
+                    desktopEnvironment: 'kde',
+                    deVersion: '5.27',
+                    portalAvailable: true,
+                    portalMethod: 'none',
+                };
+
+                constantsMocks.getWaylandPlatformStatus.mockReturnValue(status);
+
+                return status;
+            };
+
+            it('should NOT call globalShortcut.register on Wayland with portal available (direct D-Bus path)', async () => {
+                createWaylandKdeStatus();
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalled();
+                });
+
+                expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
+            });
+
+            it('should pass action callbacks to registerViaDBus on direct D-Bus path', async () => {
+                createWaylandKdeStatus();
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
+                });
+
+                const actionCallbacks = mockDbusFallback.registerViaDBus.mock.calls[0][1] as Map<string, () => void>;
+                expect(actionCallbacks.has('quickChat')).toBe(true);
+                expect(actionCallbacks.has('bossKey')).toBe(true);
+            });
+
+            it('should only register enabled hotkeys via D-Bus direct path', async () => {
+                hotkeyManager.setIndividualEnabled('quickChat', false);
+                createWaylandKdeStatus();
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalled();
+                });
+
+                const [shortcuts] = mockDbusFallback.registerViaDBus.mock.calls[0];
+                expect(shortcuts).toHaveLength(1);
+                expect(shortcuts[0]).toEqual(expect.objectContaining({ id: 'bossKey' }));
+            });
+
+            it('should set portalMethod to dbus-direct on successful D-Bus direct registration', async () => {
+                createWaylandKdeStatus();
+                mockDbusFallback.registerViaDBus.mockResolvedValue([
+                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'quickChat', success: true },
+                ]);
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('dbus-direct');
+                });
+            });
+
+            it('should set portalMethod to none on failed D-Bus direct registration', async () => {
+                createWaylandKdeStatus();
+                mockDbusFallback.registerViaDBus.mockRejectedValue(new Error('D-Bus failure'));
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('none');
+                });
+            });
+
+            it('should clear stale registrationResults and set portalMethod to none when all hotkeys disabled', async () => {
+                createWaylandKdeStatus();
+                mockDbusFallback.registerViaDBus.mockResolvedValue([
+                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'quickChat', success: true },
+                ]);
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(hotkeyManager.getPlatformHotkeyStatus().registrationResults).toHaveLength(2);
+                });
+                expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('dbus-direct');
+
+                vi.clearAllMocks();
+
+                hotkeyManager.setIndividualEnabled('quickChat', false);
+                hotkeyManager.setIndividualEnabled('bossKey', false);
+                createWaylandKdeStatus();
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(hotkeyManager.getPlatformHotkeyStatus().registrationResults).toHaveLength(0);
+                });
+                expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('none');
+                expect(mockDbusFallback.registerViaDBus).not.toHaveBeenCalled();
+            });
+
+            it('should pass action callbacks to registerViaDBus in fallback path', async () => {
+                constantsMocks.isLinux = false;
+                mockGlobalShortcut.register.mockReturnValue(false);
+
+                hotkeyManager = new HotkeyManager(mockWindowManager);
+
+                hotkeyManager.registerShortcuts();
+
+                const waylandStatus: WaylandStatus = {
+                    isWayland: true,
+                    desktopEnvironment: 'kde',
+                    deVersion: '5.27',
+                    portalAvailable: true,
+                    portalMethod: 'none',
+                };
+
+                constantsMocks.isLinux = true;
+
+                const fallbackInvoker = hotkeyManager as unknown as {
+                    _attemptDBusFallbackIfNeeded: (status: WaylandStatus) => Promise<void>;
+                };
+
+                await fallbackInvoker._attemptDBusFallbackIfNeeded(waylandStatus);
+
+                expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
+                const actionCallbacks = mockDbusFallback.registerViaDBus.mock.calls[0][1] as Map<string, () => void>;
+                expect(actionCallbacks.has('quickChat')).toBe(true);
+                expect(actionCallbacks.has('bossKey')).toBe(true);
+            });
         });
 
         it('should skip individual registration on Linux if platform global hotkeys are disabled', () => {

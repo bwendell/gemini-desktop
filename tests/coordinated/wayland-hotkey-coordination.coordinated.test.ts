@@ -10,6 +10,12 @@
  * and environment variables.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// Mock electron module FIRST (before importing from 'electron')
+vi.mock('electron', async () => {
+    const mockModule = await import('../unit/main/test/electron-mock');
+    return mockModule.default;
+});
+
 import { globalShortcut } from 'electron';
 import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
 
@@ -20,9 +26,9 @@ import type { WaylandStatus, PlatformHotkeyStatus } from '../../src/shared/types
 vi.mock('../../src/main/utils/logger');
 
 // Mock the waylandDetector module to control detection results
-const mockGetWaylandStatus = vi.fn<[], WaylandStatus>();
+const mockGetWaylandStatus = vi.fn();
 vi.mock('../../src/main/utils/waylandDetector', () => ({
-    getWaylandStatus: () => mockGetWaylandStatus(),
+    getWaylandStatus: mockGetWaylandStatus,
     detectWaylandSession: vi.fn(),
     detectDesktopEnvironment: vi.fn(),
     detectDEVersion: vi.fn(),
@@ -30,7 +36,7 @@ vi.mock('../../src/main/utils/waylandDetector', () => ({
 }));
 
 // Mock getWaylandPlatformStatus from constants and make isLinux dynamic
-const mockGetWaylandPlatformStatus = vi.fn<[], WaylandStatus>();
+const mockGetWaylandPlatformStatus = vi.fn();
 let mockIsLinux = false;
 vi.mock('../../src/main/utils/constants', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../src/main/utils/constants')>();
@@ -39,7 +45,7 @@ vi.mock('../../src/main/utils/constants', async (importOriginal) => {
         get isLinux() {
             return mockIsLinux;
         },
-        getWaylandPlatformStatus: () => mockGetWaylandPlatformStatus(),
+        getWaylandPlatformStatus: mockGetWaylandPlatformStatus,
     };
 });
 
@@ -96,9 +102,9 @@ describe('Wayland Hotkey Coordination', () => {
     beforeEach(async () => {
         vi.clearAllMocks();
         const { ipcMain, BrowserWindow: BW, globalShortcut: gs } = require('electron');
-        if ((ipcMain as any)._reset) (ipcMain as any)._reset();
-        if ((BW as any)._reset) (BW as any)._reset();
-        if ((gs as any)._reset) (gs as any)._reset();
+        if (ipcMain && (ipcMain as any)._reset) (ipcMain as any)._reset();
+        if (BW && (BW as any)._reset) (BW as any)._reset();
+        if (gs && (gs as any)._reset) (gs as any)._reset();
 
         // Default mocks
         mockGetWaylandStatus.mockReturnValue(defaultWaylandStatus);
@@ -129,7 +135,7 @@ describe('Wayland Hotkey Coordination', () => {
             mockIsLinux = true;
         });
 
-        it('when detector reports Wayland+KDE, manager attempts registration via portal', () => {
+        it('when detector reports Wayland+KDE, manager attempts registration via portal', async () => {
             // Arrange: Mock Wayland with KDE Plasma 5.27+ (supported)
             mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
 
@@ -146,10 +152,11 @@ describe('Wayland Hotkey Coordination', () => {
             vi.clearAllMocks();
             hotkeyManager.registerShortcuts();
 
-            // Assert: globalShortcut.register should be called for global hotkeys
-            // On Wayland+KDE with portal available, registration is attempted
-            expect(globalShortcut.register).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.quickChat, expect.any(Function));
-            expect(globalShortcut.register).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.bossKey, expect.any(Function));
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            expect(globalShortcut.register).not.toHaveBeenCalled();
         });
 
         it('when detector reports X11, manager skips Wayland-specific registration', () => {
@@ -201,15 +208,10 @@ describe('Wayland Hotkey Coordination', () => {
             mockIsLinux = true;
         });
 
-        it('when Chromium flag registration fails, D-Bus fallback is triggered', async () => {
+        it('on Wayland+KDE, D-Bus is called directly without globalShortcut.register', async () => {
             // Arrange: Mock Wayland+KDE with portal available
             mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
 
-            // Mock globalShortcut.register to return false (failure)
-            (globalShortcut.register as ReturnType<typeof vi.fn>).mockReturnValue(false);
-
-            // Setup D-Bus fallback mock to return success
-            mockIsDBusFallbackAvailable.mockResolvedValue(true);
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: true },
@@ -226,26 +228,16 @@ describe('Wayland Hotkey Coordination', () => {
 
             hotkeyManager.registerShortcuts();
 
-            // Give async D-Bus fallback time to execute
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
 
-            // Assert: D-Bus fallback should be called with failed shortcuts
-            expect(mockRegisterViaDBus).toHaveBeenCalled();
-            const callArgs = mockRegisterViaDBus.mock.calls[0][0];
-            expect(callArgs).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ id: 'quickChat' }),
-                    expect.objectContaining({ id: 'bossKey' }),
-                ])
-            );
+            expect(globalShortcut.register).not.toHaveBeenCalled();
         });
 
-        it('when Chromium flag registration succeeds, D-Bus fallback is NOT triggered', async () => {
+        it('D-Bus direct path passes action callbacks map', async () => {
             // Arrange: Mock Wayland+KDE with portal available
             mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
-
-            // Mock globalShortcut.register to return true (success)
-            (globalShortcut.register as ReturnType<typeof vi.fn>).mockReturnValue(true);
 
             // Act
             windowManager = new WindowManager(false);
@@ -258,11 +250,34 @@ describe('Wayland Hotkey Coordination', () => {
 
             hotkeyManager.registerShortcuts();
 
-            // Give async fallback time to NOT execute
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
+            });
+        });
 
-            // Assert: D-Bus fallback should NOT be called
-            expect(mockRegisterViaDBus).not.toHaveBeenCalled();
+        it('D-Bus fallback path also passes action callbacks when triggered', async () => {
+            // Arrange: Mock Wayland+KDE with portal available
+            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+
+            mockRegisterViaDBus.mockResolvedValue([
+                { hotkeyId: 'quickChat', success: false, error: 'Denied' },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            // Act
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
+            });
         });
     });
 

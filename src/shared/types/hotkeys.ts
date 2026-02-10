@@ -142,10 +142,11 @@ export type DesktopEnvironment = 'kde' | 'unknown';
 /**
  * Method used to register global shortcuts on Wayland.
  * - 'chromium-flag': Uses Chromium's built-in ozone-platform-hint=auto flag
- * - 'dbus-fallback': Uses D-Bus XDG Desktop Portal GlobalShortcuts interface
+ * - 'dbus-direct': Uses D-Bus XDG Desktop Portal GlobalShortcuts interface (direct path, no Chromium fallback)
+ * - 'dbus-fallback': Uses D-Bus XDG Desktop Portal GlobalShortcuts interface (fallback after Chromium registration failure)
  * - 'none': No portal method available; global shortcuts are unsupported
  */
-export type PortalMethod = 'chromium-flag' | 'dbus-fallback' | 'none';
+export type PortalMethod = 'chromium-flag' | 'dbus-direct' | 'dbus-fallback' | 'none';
 
 /**
  * Wayland session detection and portal availability status.

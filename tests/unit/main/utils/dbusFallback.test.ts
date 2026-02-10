@@ -414,6 +414,44 @@ describe('DBusFallback', () => {
             expect(mockCallback).toHaveBeenCalledTimes(1);
         });
 
+        it('should NOT invoke callbacks when actionCallbacks is not provided', async () => {
+            await dbusFallback.registerViaDBus(testShortcuts);
+
+            expect(() => {
+                for (const handler of busMessageHandlers) {
+                    handler({
+                        type: 4,
+                        interface: 'org.freedesktop.portal.GlobalShortcuts',
+                        member: 'Activated',
+                        body: ['/session/path', 'quickChat', {}],
+                    });
+                }
+            }).not.toThrow();
+        });
+
+        it('should invoke the correct callback for each shortcut ID', async () => {
+            const quickChatCallback = vi.fn();
+            const bossKeyCallback = vi.fn();
+            const callbacks = new Map<import('../../../../src/shared/types/hotkeys').HotkeyId, () => void>([
+                ['quickChat', quickChatCallback],
+                ['bossKey', bossKeyCallback],
+            ]);
+
+            await dbusFallback.registerViaDBus(testShortcuts, callbacks);
+
+            for (const handler of busMessageHandlers) {
+                handler({
+                    type: 4,
+                    interface: 'org.freedesktop.portal.GlobalShortcuts',
+                    member: 'Activated',
+                    body: ['/session/path', 'bossKey', {}],
+                });
+            }
+
+            expect(bossKeyCallback).toHaveBeenCalledTimes(1);
+            expect(quickChatCallback).not.toHaveBeenCalled();
+        });
+
         it('handles Activated signal for unknown shortcut ID gracefully', async () => {
             const mockCallback = vi.fn();
             const callbacks = new Map<string, () => void>([['quickChat', mockCallback]]);

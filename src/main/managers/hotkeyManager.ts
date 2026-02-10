@@ -454,8 +454,10 @@ export default class HotkeyManager {
      * @see setIndividualEnabled - For enabling/disabling individual hotkeys
      */
     registerShortcuts(): void {
+        logger.log(`registerShortcuts() invoked. isLinux=${isLinux}`);
         // Non-Linux: register normally (existing behavior)
         if (!isLinux) {
+            logger.log('registerShortcuts() path: non-Linux globalShortcut registration');
             this._globalHotkeysEnabled = true;
             for (const id of GLOBAL_HOTKEY_IDS) {
                 if (this._individualSettings[id]) {
@@ -467,9 +469,11 @@ export default class HotkeyManager {
 
         // Linux: check Wayland status
         const waylandStatus = getWaylandPlatformStatus();
+        logger.log(`registerShortcuts() Wayland status: ${JSON.stringify(waylandStatus)}`);
 
         if (!waylandStatus.isWayland || !waylandStatus.portalAvailable) {
             // X11 or unsupported Wayland DE — keep disabled
+            logger.log('registerShortcuts() path: disabled (Wayland or portal unavailable)');
             logger.warn(
                 `Global hotkeys disabled on Linux. Wayland: ${waylandStatus.isWayland}, Portal: ${waylandStatus.portalAvailable}, DE: ${waylandStatus.desktopEnvironment}`
             );
@@ -477,18 +481,12 @@ export default class HotkeyManager {
             return;
         }
 
-        // Wayland + supported DE — attempt registration via Chromium flag path
-        logger.log('Attempting global hotkey registration on Wayland via portal...');
+        // Skip globalShortcut.register() on Wayland — Chromium returns false-positive
+        // success without the GlobalShortcutsPortal flag, so callbacks never fire.
+        logger.log('registerShortcuts() path: Wayland portal registration via D-Bus (direct)');
         this._globalHotkeysEnabled = true;
 
-        for (const id of GLOBAL_HOTKEY_IDS) {
-            if (this._individualSettings[id]) {
-                this._registerShortcutById(id);
-            }
-        }
-
-        // Check if any registrations failed — if so, try D-Bus fallback
-        this._attemptDBusFallbackIfNeeded(waylandStatus);
+        this._registerViaDBusDirect(waylandStatus);
     }
 
     /**
@@ -503,8 +501,15 @@ export default class HotkeyManager {
             return this._individualSettings[id] && (!result || !result.success);
         });
 
+        logger.log(
+            `D-Bus fallback check: failedShortcuts=${
+                failedShortcuts.length > 0 ? failedShortcuts.join(', ') : '(none)'
+            }`
+        );
+
         if (failedShortcuts.length === 0) {
             // All registered successfully via Chromium flag
+            logger.log('D-Bus fallback not needed; all shortcuts reported success via Chromium');
             waylandStatus.portalMethod = 'chromium-flag';
             return;
         }
@@ -517,7 +522,8 @@ export default class HotkeyManager {
                 accelerator: this._accelerators[id],
                 description: `Gemini Desktop: ${id}`,
             }));
-            const results = await registerViaDBus(shortcuts);
+            const actionCallbacks = this._buildActionCallbacksMap(failedShortcuts);
+            const results = await registerViaDBus(shortcuts, actionCallbacks);
             for (const result of results) {
                 this._registrationResults.set(result.hotkeyId, result);
             }
@@ -526,6 +532,64 @@ export default class HotkeyManager {
             logger.error('D-Bus fallback failed:', error);
             waylandStatus.portalMethod = 'none';
         }
+    }
+
+    /**
+     * Register global shortcuts directly via D-Bus on Wayland.
+     *
+     * Builds the action callbacks map from shortcutActions and passes it
+     * to registerViaDBus so that Activated signals trigger the correct actions.
+     *
+     * @param waylandStatus - Current Wayland status to update with selected method
+     * @private
+     */
+    private async _registerViaDBusDirect(waylandStatus: WaylandStatus): Promise<void> {
+        const enabledGlobalHotkeys = GLOBAL_HOTKEY_IDS.filter((id) => this._individualSettings[id]);
+
+        if (enabledGlobalHotkeys.length === 0) {
+            logger.log('No enabled global hotkeys to register via D-Bus');
+            this._registrationResults.clear();
+            waylandStatus.portalMethod = 'none';
+            return;
+        }
+
+        const shortcuts = enabledGlobalHotkeys.map((id) => ({
+            id,
+            accelerator: this._accelerators[id],
+            description: `Gemini Desktop: ${id}`,
+        }));
+
+        const actionCallbacks = this._buildActionCallbacksMap(enabledGlobalHotkeys);
+
+        try {
+            const results = await registerViaDBus(shortcuts, actionCallbacks);
+            for (const result of results) {
+                this._registrationResults.set(result.hotkeyId, result);
+            }
+            const anySuccess = results.some((r) => r.success);
+            waylandStatus.portalMethod = anySuccess ? 'dbus-direct' : 'none';
+        } catch (error) {
+            logger.error('D-Bus direct registration failed:', error);
+            waylandStatus.portalMethod = 'none';
+        }
+    }
+
+    /**
+     * Build action callbacks map for D-Bus registration.
+     *
+     * @param hotkeyIds - IDs to include in the map
+     * @returns Map of HotkeyId to action callback
+     * @private
+     */
+    private _buildActionCallbacksMap(hotkeyIds: readonly HotkeyId[]): Map<HotkeyId, () => void> {
+        const callbacks = new Map<HotkeyId, () => void>();
+        for (const id of hotkeyIds) {
+            const shortcutAction = this.shortcutActions.find((s) => s.id === id);
+            if (shortcutAction) {
+                callbacks.set(id, shortcutAction.action);
+            }
+        }
+        return callbacks;
     }
 
     /**
@@ -561,6 +625,7 @@ export default class HotkeyManager {
         // Debugging: Check if already registered according to Electron
         const isAlreadyRegistered = globalShortcut.isRegistered(accelerator);
         logger.log(`Registering ${id} (${accelerator}). isRegistered pre-check: ${isAlreadyRegistered}`);
+        logger.log(`Calling globalShortcut.register for ${id} (${accelerator})`);
 
         let success = false;
         try {
@@ -575,6 +640,8 @@ export default class HotkeyManager {
             logger.error(`EXCEPTION during globalShortcut.register for ${id} (${accelerator}):`, error);
             return;
         }
+
+        logger.log(`globalShortcut.register returned ${success} for ${id} (${accelerator})`);
 
         const isRegisteredAfter = globalShortcut.isRegistered(accelerator);
         if (!success) {

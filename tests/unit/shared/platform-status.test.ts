@@ -33,6 +33,11 @@ describe('Platform Status Types', () => {
             expect(method).toBe('chromium-flag');
         });
 
+        it('should accept "dbus-direct" as a valid value', () => {
+            const method: PortalMethod = 'dbus-direct';
+            expect(method).toBe('dbus-direct');
+        });
+
         it('should accept "dbus-fallback" as a valid value', () => {
             const method: PortalMethod = 'dbus-fallback';
             expect(method).toBe('dbus-fallback');

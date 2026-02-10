@@ -155,7 +155,7 @@ describe('Platform Hotkey Status IPC', () => {
             });
 
             // Valid portal method values per type definition
-            const validMethods = ['chromium-flag', 'dbus-fallback', 'none'];
+            const validMethods = ['chromium-flag', 'dbus-direct', 'dbus-fallback', 'none'];
             expect(validMethods).toContain(status.waylandStatus.portalMethod);
         });
     });
