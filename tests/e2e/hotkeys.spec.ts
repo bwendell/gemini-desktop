@@ -14,14 +14,8 @@
 
 import { browser, expect } from '@wdio/globals';
 import { QuickChatPage } from './pages';
-import {
-    waitForAppReady,
-    ensureSingleWindow,
-    pressComplexShortcut,
-    switchToMainWindow,
-    waitForWindowTransition,
-} from './helpers/workflows';
-import { waitForUIState } from './helpers/waitUtilities';
+import { waitForAppReady, ensureSingleWindow, pressComplexShortcut, switchToMainWindow } from './helpers/workflows';
+import { waitForWindowTransition, waitForUIState } from './helpers/waitUtilities';
 
 describe('Global Hotkeys', () => {
     const quickChat = new QuickChatPage();
