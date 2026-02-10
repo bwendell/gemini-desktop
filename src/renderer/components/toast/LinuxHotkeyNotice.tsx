@@ -60,17 +60,22 @@ export function LinuxHotkeyNotice() {
 
             hasShownRef.current = true;
 
-            // If global hotkeys are enabled and working, stay silent
+            // If global hotkeys are enabled, check for partial failures
             if (status?.globalHotkeysEnabled) {
-                // Check for partial failures
                 const failures = status.registrationResults.filter((r) => !r.success);
-                if (failures.length === 0) return; // All good, no toast
+                if (failures.length === 0) {
+                    return; // All good, no toast needed
+                }
 
                 // Partial failure — warn about specific shortcuts
                 const failedNames = failures.map((f) => f.hotkeyId).join(', ');
                 showWarning(
                     `Some global shortcuts could not be registered: ${failedNames}. These may conflict with other applications.`,
-                    { id: TOAST_ID, title: 'Hotkey Registration Partial', duration: TOAST_DURATION_MS }
+                    {
+                        id: TOAST_ID,
+                        title: 'Hotkey Registration Partial',
+                        duration: TOAST_DURATION_MS,
+                    }
                 );
                 return;
             }

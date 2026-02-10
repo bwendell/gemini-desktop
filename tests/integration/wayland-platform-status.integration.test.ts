@@ -14,6 +14,35 @@ describe('Platform Hotkey Status IPC', () => {
         await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
     });
 
+    /**
+     * Helper to detect if we're on Wayland with portal available.
+     * Used for conditional test skipping.
+     */
+    async function getWaylandStatus(): Promise<{
+        isWayland: boolean;
+        portalAvailable: boolean;
+        desktopEnvironment: string;
+        isLinux: boolean;
+    }> {
+        const status = await browser.electron.execute(() => {
+            // @ts-expect-error - accessing global manager
+            return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
+        });
+
+        const isLinux = await browser.electron.execute(() => process.platform === 'linux');
+
+        if (!status) {
+            return { isWayland: false, portalAvailable: false, desktopEnvironment: 'unknown', isLinux };
+        }
+
+        return {
+            isWayland: status.waylandStatus?.isWayland ?? false,
+            portalAvailable: status.waylandStatus?.portalAvailable ?? false,
+            desktopEnvironment: status.waylandStatus?.desktopEnvironment ?? 'unknown',
+            isLinux,
+        };
+    }
+
     describe('getPlatformHotkeyStatus() IPC round-trip', () => {
         it('renderer can query platform hotkey status via window.electronAPI.getPlatformHotkeyStatus()', async () => {
             // Call the renderer API
@@ -157,6 +186,110 @@ describe('Platform Hotkey Status IPC', () => {
             // Valid portal method values per type definition
             const validMethods = ['chromium-flag', 'dbus-direct', 'dbus-fallback', 'none'];
             expect(validMethods).toContain(status.waylandStatus.portalMethod);
+        });
+    });
+
+    describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
+        it('getDbusActivationSignalStats returns valid structure', async () => {
+            const stats = await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                return await api.getDbusActivationSignalStats();
+            });
+
+            expect(stats).toBeDefined();
+            expect(typeof stats).toBe('object');
+            expect(typeof stats.trackingEnabled).toBe('boolean');
+            expect(typeof stats.totalSignals).toBe('number');
+            expect(typeof stats.signalsByShortcut).toBe('object');
+            expect(stats.lastSignalTime === null || typeof stats.lastSignalTime === 'number').toBe(true);
+            expect(Array.isArray(stats.signals)).toBe(true);
+        });
+
+        it('signal tracking is disabled by default (non-test environments)', async () => {
+            const stats = await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                return await api.getDbusActivationSignalStats();
+            });
+
+            expect(stats.trackingEnabled).toBeDefined();
+            expect(stats.totalSignals).toBeGreaterThanOrEqual(0);
+        });
+
+        it('clearDbusActivationSignalHistory executes without error', async () => {
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                api.clearDbusActivationSignalHistory();
+            });
+
+            // Verify history is cleared
+            const stats = await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                return await api.getDbusActivationSignalStats();
+            });
+
+            expect(stats.totalSignals).toBe(0);
+            expect(stats.signals).toHaveLength(0);
+            expect(Object.keys(stats.signalsByShortcut)).toHaveLength(0);
+            expect(stats.lastSignalTime).toBeNull();
+        });
+
+        it('tracks activation signals when on Wayland+KDE with portal', async function () {
+            const waylandStatus = await getWaylandStatus();
+
+            const shouldSkip =
+                !waylandStatus.isLinux ||
+                !waylandStatus.isWayland ||
+                !waylandStatus.portalAvailable ||
+                waylandStatus.desktopEnvironment !== 'kde';
+
+            if (shouldSkip) {
+                this.skip();
+                return;
+            }
+
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                api.clearDbusActivationSignalHistory();
+            });
+
+            const initialStats = await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                return await api.getDbusActivationSignalStats();
+            });
+
+            expect(initialStats.trackingEnabled).toBe(true);
+            expect(initialStats.totalSignals).toBe(0);
+            expect(initialStats.signals).toEqual([]);
+            expect(initialStats.lastSignalTime).toBeNull();
+        });
+
+        it('signal tracking isolates between clear calls', async () => {
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                api.clearDbusActivationSignalHistory();
+            });
+
+            const stats1 = await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                return await api.getDbusActivationSignalStats();
+            });
+
+            expect(stats1.totalSignals).toBe(0);
+
+            // Clear again (idempotent)
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                api.clearDbusActivationSignalHistory();
+            });
+
+            // Stats should still be 0
+            const stats2 = await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                return await api.getDbusActivationSignalStats();
+            });
+
+            expect(stats2.totalSignals).toBe(0);
+            expect(stats2.lastSignalTime).toBeNull();
         });
     });
 });

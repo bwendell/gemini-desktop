@@ -23,6 +23,7 @@ import {
     type HotkeySettings,
     type PlatformHotkeyStatus,
 } from '../../../shared/types/hotkeys';
+import { getActivationSignalStats, clearActivationSignalHistory } from '../../utils/dbusFallback';
 
 /**
  * Handler for hotkey-related IPC channels.
@@ -63,6 +64,16 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         // Get current platform hotkey status (Wayland/Portal info)
         ipcMain.handle(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET, (): PlatformHotkeyStatus => {
             return this._handleGetPlatformHotkeyStatus();
+        });
+
+        // Test-only: Get D-Bus activation signal stats for integration tests
+        ipcMain.handle(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET, () => {
+            return getActivationSignalStats();
+        });
+
+        // Test-only: Clear D-Bus activation signal history for test isolation
+        ipcMain.on(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR, () => {
+            clearActivationSignalHistory();
         });
     }
 
@@ -319,6 +330,8 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
         ipcMain.removeAllListeners(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET);
         ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET);
+        ipcMain.removeHandler(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET);
+        ipcMain.removeAllListeners(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR);
     }
 
     /**

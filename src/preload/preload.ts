@@ -97,6 +97,10 @@ export const IPC_CHANNELS = {
     PLATFORM_HOTKEY_STATUS_GET: 'platform:hotkey-status:get',
     PLATFORM_HOTKEY_STATUS_CHANGED: 'platform:hotkey-status:changed',
 
+    // Test-only: D-Bus activation signal tracking (Wayland integration tests)
+    DBUS_ACTIVATION_SIGNAL_STATS_GET: 'test:dbus:activation-signal-stats:get',
+    DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR: 'test:dbus:activation-signal-history:clear',
+
     // Dev Testing (only used in development for manual testing)
     DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
     DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',
@@ -600,7 +604,7 @@ const electronAPI: ElectronAPI = {
     devEmitUpdateEvent: (event, data) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, event, data),
 
     /**
-     * Mock platform/env for testing logic.
+     * Mock platform/env for testing.
      */
     devMockPlatform: (platform, env) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_MOCK_PLATFORM, platform, env),
 
@@ -609,6 +613,18 @@ const electronAPI: ElectronAPI = {
      * Call this from the Options window to trigger a notification while main window is unfocused.
      */
     devTriggerResponseNotification: () => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_TRIGGER_RESPONSE_NOTIFICATION),
+
+    /**
+     * Test-only: Get D-Bus activation signal statistics.
+     * Returns tracking data for verified Activated signals on Wayland.
+     */
+    getDbusActivationSignalStats: () => ipcRenderer.invoke(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET),
+
+    /**
+     * Test-only: Clear D-Bus activation signal history.
+     * Useful for test isolation between test cases.
+     */
+    clearDbusActivationSignalHistory: () => ipcRenderer.send(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR),
 
     // =========================================================================
     // E2E Testing Helpers

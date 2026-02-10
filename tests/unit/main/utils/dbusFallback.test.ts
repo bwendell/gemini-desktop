@@ -658,4 +658,143 @@ describe('DBusFallback', () => {
             expect(mockCreateSession.mock.calls.length).toBeGreaterThanOrEqual(1);
         });
     });
+
+    // ========================================================================
+    // P0/P1: Wayland Hotkey Registration
+    // ========================================================================
+
+    describe('P0/P1: Wayland Hotkey Registration', () => {
+        it('P0-1: should report failure for all shortcuts when BindShortcuts Response returns error code', async () => {
+            // Override BindShortcuts to return a non-zero response code
+            mockBindShortcuts.mockImplementation(
+                async (
+                    _sessionPath: string,
+                    _shortcuts: unknown[],
+                    _parent: string,
+                    options: Record<string, { value?: string }>
+                ) => {
+                    const handleToken = options?.handle_token?.value || 'bind_token';
+                    const requestPath = `/org/freedesktop/portal/desktop/request/1_42/${handleToken}`;
+                    // Response code 2 = system error (all shortcuts fail)
+                    simulatePortalResponse(requestPath, 2, {});
+                    return requestPath;
+                }
+            );
+
+            const testShortcuts = [
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Boss Key' },
+            ];
+
+            const results = await dbusFallback.registerViaDBus(testShortcuts);
+
+            // All shortcuts should fail (batch model — all-or-nothing)
+            expect(results).toHaveLength(2);
+            expect(results[0]).toEqual({
+                hotkeyId: 'quickChat',
+                success: false,
+                error: expect.any(String),
+            });
+            expect(results[1]).toEqual({
+                hotkeyId: 'bossKey',
+                success: false,
+                error: expect.any(String),
+            });
+            // Cleanup should have occurred
+            expect(mockDisconnect).toHaveBeenCalled();
+        });
+
+        it('P0-2: should handle D-Bus connection drop during BindShortcuts gracefully', async () => {
+            // BindShortcuts throws a connection error
+            mockBindShortcuts.mockRejectedValue(new Error('org.freedesktop.DBus.Error.NotConnected'));
+
+            const testShortcuts = [
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Boss Key' },
+            ];
+
+            const results = await dbusFallback.registerViaDBus(testShortcuts);
+
+            // All shortcuts should fail
+            expect(results).toHaveLength(2);
+            results.forEach((result) => {
+                expect(result.success).toBe(false);
+                expect(result.error).toContain('NotConnected');
+            });
+            // Should not throw uncaught exception
+        });
+
+        describe('P1-1: User Dismissal vs System Error', () => {
+            const testShortcuts = [
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+            ];
+
+            it('P1-1a: should handle user dismissal (code=1) as non-success', async () => {
+                mockBindShortcuts.mockImplementation(
+                    async (
+                        _sessionPath: string,
+                        _shortcuts: unknown[],
+                        _parent: string,
+                        options: Record<string, { value?: string }>
+                    ) => {
+                        const handleToken = options?.handle_token?.value || 'bind_token';
+                        const requestPath = `/org/freedesktop/portal/desktop/request/1_42/${handleToken}`;
+                        // User dismissed the portal approval dialog
+                        simulatePortalResponse(requestPath, 1, {});
+                        return requestPath;
+                    }
+                );
+
+                const results = await dbusFallback.registerViaDBus(testShortcuts);
+
+                expect(results).toHaveLength(1);
+                expect(results[0].success).toBe(false);
+                expect(results[0].error).toBeDefined();
+            });
+
+            it('P1-1b: should handle system error (code=2) as non-success', async () => {
+                mockBindShortcuts.mockImplementation(
+                    async (
+                        _sessionPath: string,
+                        _shortcuts: unknown[],
+                        _parent: string,
+                        options: Record<string, { value?: string }>
+                    ) => {
+                        const handleToken = options?.handle_token?.value || 'bind_token';
+                        const requestPath = `/org/freedesktop/portal/desktop/request/1_42/${handleToken}`;
+                        // System error
+                        simulatePortalResponse(requestPath, 2, {});
+                        return requestPath;
+                    }
+                );
+
+                const results = await dbusFallback.registerViaDBus(testShortcuts);
+
+                expect(results).toHaveLength(1);
+                expect(results[0].success).toBe(false);
+                expect(results[0].error).toBeDefined();
+            });
+
+            it('P1-1c: both dismissal and error should clean up D-Bus session', async () => {
+                mockBindShortcuts.mockImplementation(
+                    async (
+                        _sessionPath: string,
+                        _shortcuts: unknown[],
+                        _parent: string,
+                        options: Record<string, { value?: string }>
+                    ) => {
+                        const handleToken = options?.handle_token?.value || 'bind_token';
+                        const requestPath = `/org/freedesktop/portal/desktop/request/1_42/${handleToken}`;
+                        simulatePortalResponse(requestPath, 1, {});
+                        return requestPath;
+                    }
+                );
+
+                await dbusFallback.registerViaDBus(testShortcuts);
+
+                // Cleanup should have occurred (destroySession is called when bindSucceeded is false)
+                expect(mockDisconnect).toHaveBeenCalled();
+            });
+        });
+    });
 });

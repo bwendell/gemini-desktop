@@ -273,9 +273,81 @@ let sessionPath: string | null = null;
 let activatedMessageHandler: ((msg: DBusMessage) => void) | null = null;
 
 /**
- * Periodic heartbeat timer for D-Bus connection.
+ * Periodic heartbeat timer for D-Bus connection logging.
  */
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+// ============================================================================
+// Test-Only Signal Tracking
+// ============================================================================
+// These are ONLY for integration tests to verify D-Bus signal reception.
+// Guarded by NODE_ENV to avoid any production behavior change.
+
+interface ActivationSignalRecord {
+    shortcutId: string;
+    timestamp: number;
+    sessionPath: string;
+}
+
+const testOnlyActivationSignals: ActivationSignalRecord[] = [];
+const TEST_ONLY_SIGNAL_TRACKING_ENABLED = process.env.NODE_ENV === 'test' || process.env.DEBUG_DBUS === '1';
+
+const MAX_TEST_SIGNALS = 100; // Prevent unbounded growth in long-running tests
+
+/**
+ * Record an activation signal for test verification.
+ * This is a no-op in production (guarded by NODE_ENV check).
+ */
+function recordTestOnlyActivationSignal(shortcutId: string, sessionPath: string): void {
+    if (!TEST_ONLY_SIGNAL_TRACKING_ENABLED) return;
+
+    testOnlyActivationSignals.push({
+        shortcutId,
+        timestamp: Date.now(),
+        sessionPath,
+    });
+
+    // Prevent unbounded growth
+    if (testOnlyActivationSignals.length > MAX_TEST_SIGNALS) {
+        testOnlyActivationSignals.shift();
+    }
+}
+
+/**
+ * Get statistics about observed activation signals.
+ * @returns Test-only signal tracking data
+ */
+export function getActivationSignalStats(): {
+    trackingEnabled: boolean;
+    totalSignals: number;
+    signalsByShortcut: Record<string, number>;
+    lastSignalTime: number | null;
+    signals: ReadonlyArray<ActivationSignalRecord>;
+} {
+    const signals = [...testOnlyActivationSignals];
+    const signalsByShortcut: Record<string, number> = {};
+
+    for (const signal of signals) {
+        signalsByShortcut[signal.shortcutId] = (signalsByShortcut[signal.shortcutId] || 0) + 1;
+    }
+
+    return {
+        trackingEnabled: TEST_ONLY_SIGNAL_TRACKING_ENABLED,
+        totalSignals: signals.length,
+        signalsByShortcut,
+        lastSignalTime: signals.length > 0 ? signals[signals.length - 1].timestamp : null,
+        signals: Object.freeze(signals),
+    };
+}
+
+/**
+ * Clear test-only activation signal history.
+ * Useful for test isolation between test cases.
+ */
+export function clearActivationSignalHistory(): void {
+    if (!TEST_ONLY_SIGNAL_TRACKING_ENABLED) return;
+    testOnlyActivationSignals.length = 0;
+}
 
 // ============================================================================
 // Internal Helpers
@@ -402,7 +474,7 @@ export async function registerViaDBus(
         connection = dbusNext.sessionBus() as DBusConnection;
         logger.log('Connected to D-Bus session bus');
 
-        if (DEBUG_DBUS && !heartbeatTimer) {
+        if (process.env.NODE_ENV === 'test' && DEBUG_DBUS && !heartbeatTimer) {
             heartbeatTimer = setInterval(() => {
                 logger.log('D-Bus heartbeat: session bus connection alive', {
                     name: connection?.name || '(unknown)',
@@ -480,6 +552,9 @@ export async function registerViaDBus(
             ) {
                 const [, shortcutId] = (msg.body || []) as [string, string, Record<string, unknown>];
                 logger.log(`Shortcut activated via D-Bus: ${shortcutId}`);
+
+                // Test-only: Record activation signal for integration test verification
+                recordTestOnlyActivationSignal(shortcutId, sessionPath || 'unknown');
 
                 const callback = actionCallbacks?.get(shortcutId as HotkeyId);
                 if (callback) {

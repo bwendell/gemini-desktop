@@ -341,3 +341,94 @@ export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutR
         }
     });
 }
+
+// =============================================================================
+// D-Bus Activation Signal Tracking Helpers (Test-Only)
+// Provides utilities for testing D-Bus signal tracking on Wayland+KDE
+// =============================================================================
+
+/**
+ * D-Bus activation signal statistics returned from test-only IPC API.
+ */
+export interface DbusActivationSignalStats {
+    /** Whether signal tracking is enabled (NODE_ENV=test or DEBUG_DBUS=1) */
+    trackingEnabled: boolean;
+    /** Total number of signals recorded */
+    totalSignals: number;
+    /** Signal counts aggregated by shortcut ID */
+    signalsByShortcut: Record<string, number>;
+    /** Timestamp of the most recent signal (null if no signals) */
+    lastSignalTime: number | null;
+    /** Array of recorded signal records */
+    signals: ReadonlyArray<{
+        shortcutId: string;
+        timestamp: number;
+        sessionPath: string;
+    }>;
+}
+
+/**
+ * Get D-Bus activation signal statistics via test-only IPC API.
+ * Only populated when NODE_ENV=test or DEBUG_DBUS=1.
+ *
+ * @returns Promise with signal stats or null if IPC not available
+ */
+export async function getDbusActivationSignalStats(): Promise<DbusActivationSignalStats | null> {
+    return browser.execute(() => {
+        const api = (window as any).electronAPI;
+        if (!api?.getDbusActivationSignalStats) {
+            console.log('[E2E] getDbusActivationSignalStats not available on electronAPI');
+            return null;
+        }
+        return api.getDbusActivationSignalStats();
+    });
+}
+
+/**
+ * Clear D-Bus activation signal history via test-only IPC API.
+ * Useful for test isolation between test cases.
+ */
+export async function clearDbusActivationSignalHistory(): Promise<void> {
+    await browser.execute(() => {
+        const api = (window as any).electronAPI;
+        if (api?.clearDbusActivationSignalHistory) {
+            api.clearDbusActivationSignalHistory();
+        }
+    });
+}
+
+/**
+ * Get Wayland platform status for conditional test skipping.
+ * Used to determine if D-Bus signal tracking tests should run.
+ *
+ * @returns Promise with wayland status information
+ */
+export async function getWaylandStatusForSkipping(): Promise<{
+    isLinux: boolean;
+    isWayland: boolean;
+    portalAvailable: boolean;
+    desktopEnvironment: string;
+}> {
+    const status = await browser.electron.execute(() => {
+        // @ts-expect-error - accessing global manager
+        return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
+    });
+
+    const isLinux = await browser.electron.execute(() => process.platform === 'linux');
+
+    if (!status) {
+        return {
+            isLinux,
+            isWayland: false,
+            portalAvailable: false,
+            desktopEnvironment: 'unknown',
+        };
+    }
+
+    return {
+        isLinux,
+        isWayland: status.waylandStatus?.isWayland ?? false,
+        portalAvailable: status.waylandStatus?.portalAvailable ?? false,
+        desktopEnvironment: status.waylandStatus?.desktopEnvironment ?? 'unknown',
+    };
+}

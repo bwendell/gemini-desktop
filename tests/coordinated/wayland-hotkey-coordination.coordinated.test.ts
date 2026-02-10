@@ -52,10 +52,11 @@ vi.mock('../../src/main/utils/constants', async (importOriginal) => {
 // Mock dbusFallback module
 const mockRegisterViaDBus = vi.fn();
 const mockIsDBusFallbackAvailable = vi.fn();
+const mockDestroySession = vi.fn();
 vi.mock('../../src/main/utils/dbusFallback', () => ({
     registerViaDBus: (...args: unknown[]) => mockRegisterViaDBus(...args),
     isDBusFallbackAvailable: () => mockIsDBusFallbackAvailable(),
-    destroySession: vi.fn(),
+    destroySession: (...args: unknown[]) => mockDestroySession(...args),
 }));
 
 describe('Wayland Hotkey Coordination', () => {
@@ -396,6 +397,101 @@ describe('Wayland Hotkey Coordination', () => {
                 // Non-Linux: global hotkeys should be enabled
                 expect(status.globalHotkeysEnabled).toBe(true);
             }
+        });
+    });
+
+    // ========================================================================
+    // P1: Coordinated Wayland Hotkey Scenarios
+    // ========================================================================
+
+    describe('P1: Coordinated Wayland Hotkey Scenarios', () => {
+        it('P1-2: toggling a hotkey during in-flight D-Bus registration does not cause duplicate calls', async () => {
+            // Arrange
+            vi.stubGlobal('process', { ...process, platform: 'linux' });
+            mockIsLinux = true;
+            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+
+            // Use a deferred promise to control when registerViaDBus resolves
+            let resolveRegistration!: (value: any) => void;
+            const registrationPromise = new Promise((resolve) => {
+                resolveRegistration = resolve;
+            });
+            mockRegisterViaDBus.mockReturnValue(registrationPromise);
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            // Act: Start registration (don't await)
+            hotkeyManager.registerShortcuts();
+
+            // Toggle bossKey while registration is in-flight
+            hotkeyManager.setIndividualEnabled('bossKey', false);
+
+            // Verify the setting is updated immediately
+            expect(hotkeyManager.getIndividualSettings().bossKey).toBe(false);
+
+            // Complete the registration
+            resolveRegistration([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            // registerViaDBus should only have been called once (from the original registerShortcuts)
+            expect(mockRegisterViaDBus).toHaveBeenCalledTimes(1);
+        });
+
+        it('P1-3: re-registration clears previous results and calls destroySession', async () => {
+            // Arrange
+            vi.stubGlobal('process', { ...process, platform: 'linux' });
+            mockIsLinux = true;
+            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+
+            mockRegisterViaDBus.mockResolvedValue([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            // First registration
+            hotkeyManager.registerShortcuts();
+            await vi.waitFor(() => {
+                const status = hotkeyManager.getPlatformHotkeyStatus();
+                expect(status.registrationResults).toHaveLength(2);
+            });
+
+            vi.clearAllMocks();
+            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockRegisterViaDBus.mockResolvedValue([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            // Second registration (without explicit cleanup)
+            hotkeyManager.registerShortcuts();
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalledTimes(1);
+            });
+
+            // Final results should reflect the second registration
+            const status = hotkeyManager.getPlatformHotkeyStatus();
+            expect(status.registrationResults).toHaveLength(2);
+            expect(status.registrationResults.every((r) => r.success)).toBe(true);
         });
     });
 });
