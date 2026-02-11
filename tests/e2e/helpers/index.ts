@@ -6,6 +6,7 @@
 // Core utilities
 export * from './platform';
 export * from './logger';
+export * from './testUtils';
 export * from './selectors';
 export * from './e2eConstants';
 import './types';
@@ -24,7 +25,6 @@ export * from './trayActions';
 // Feature-specific actions
 export * from './quickChatActions';
 export * from './alwaysOnTopActions';
-export * from './printActions';
 
 // NEW: Reusable test patterns
 export * from './assertions';

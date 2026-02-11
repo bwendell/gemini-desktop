@@ -493,5 +493,198 @@ describe('Wayland Hotkey Coordination', () => {
             expect(status.registrationResults).toHaveLength(2);
             expect(status.registrationResults.every((r) => r.success)).toBe(true);
         });
+
+        // ====================================================================
+        // CT-001: Rapid Enable/Disable Toggles (RC-2)
+        // ====================================================================
+        it('CT-001: rapid enable/disable toggles do not cause duplicate registrations', async () => {
+            // Arrange: Mock Wayland+KDE with portal available
+            vi.stubGlobal('process', { ...process, platform: 'linux' });
+            mockIsLinux = true;
+            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+
+            // Use a deferred promise to control registration timing
+            let resolveRegistration!: (value: any) => void;
+            const registrationPromise = new Promise((resolve) => {
+                resolveRegistration = resolve;
+            });
+            mockRegisterViaDBus.mockReturnValue(registrationPromise);
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            // Act: Start registration
+            hotkeyManager.registerShortcuts();
+
+            // Rapid toggles: disable/enable/disable
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+            hotkeyManager.setIndividualEnabled('quickChat', true);
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+
+            // Verify state reflects final toggle
+            expect(hotkeyManager.getIndividualSettings().quickChat).toBe(false);
+
+            // Complete the deferred registration
+            resolveRegistration([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            // registerViaDBus should only be called once (toggles don't trigger re-registration)
+            expect(mockRegisterViaDBus).toHaveBeenCalledTimes(1);
+        });
+
+        // ====================================================================
+        // CT-002: App Quit During Registration (RC-3)
+        // ====================================================================
+        it('CT-002: app quit during registration triggers cleanup without errors', async () => {
+            // Arrange: Mock Wayland+KDE
+            vi.stubGlobal('process', { ...process, platform: 'linux' });
+            mockIsLinux = true;
+            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+
+            // Deferred promise for registration
+            let resolveRegistration!: (value: any) => void;
+            const registrationPromise = new Promise((resolve) => {
+                resolveRegistration = resolve;
+            });
+            mockRegisterViaDBus.mockReturnValue(registrationPromise);
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            // Act: Start registration (don't await)
+            hotkeyManager.registerShortcuts();
+
+            // Simulate app quit: unregister all hotkeys
+            hotkeyManager.unregisterAll();
+
+            // Now complete the registration (should not crash)
+            resolveRegistration([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            // Wait briefly to ensure no unhandled rejections
+            await vi.waitFor(
+                () => {
+                    // Verify unregisterAll was called and state is clean
+                    const status = hotkeyManager.getPlatformHotkeyStatus();
+                    expect(status).toBeDefined();
+                },
+                { timeout: 100 }
+            );
+
+            // No assertion needed beyond not crashing; success is no exception
+        });
+
+        // ====================================================================
+        // CT-003: State Propagation Timing
+        // ====================================================================
+        it('CT-003: state propagation timing - settings update before registration completes', async () => {
+            // Arrange: Mock Wayland+KDE
+            vi.stubGlobal('process', { ...process, platform: 'linux' });
+            mockIsLinux = true;
+            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+
+            let resolveRegistration!: (value: any) => void;
+            const registrationPromise = new Promise((resolve) => {
+                resolveRegistration = resolve;
+            });
+            mockRegisterViaDBus.mockReturnValue(registrationPromise);
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            // Act: Start registration
+            hotkeyManager.registerShortcuts();
+
+            // Immediately check initial state
+            const stateBeforeToggle = hotkeyManager.getIndividualSettings();
+            expect(stateBeforeToggle.bossKey).toBe(true);
+
+            // Toggle while registration is in-flight
+            hotkeyManager.setIndividualEnabled('bossKey', false);
+
+            // State should update immediately (not wait for registration)
+            const stateAfterToggle = hotkeyManager.getIndividualSettings();
+            expect(stateAfterToggle.bossKey).toBe(false);
+
+            // Complete registration
+            resolveRegistration([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            // State should remain updated after registration
+            const finalState = hotkeyManager.getIndividualSettings();
+            expect(finalState.bossKey).toBe(false);
+        });
+
+        // ====================================================================
+        // CT-004: Error State Coordination
+        // ====================================================================
+        it('CT-004: partial registration failure propagates error state correctly', async () => {
+            // Arrange: Mock Wayland+KDE
+            vi.stubGlobal('process', { ...process, platform: 'linux' });
+            mockIsLinux = true;
+            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+
+            // Simulate partial failure
+            mockRegisterViaDBus.mockResolvedValue([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: false, error: 'AccessDenied' },
+            ]);
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            // Act: Register with partial failure
+            hotkeyManager.registerShortcuts();
+
+            // Wait for registration to complete
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            // Assert: Error state is recorded
+            const status = hotkeyManager.getPlatformHotkeyStatus();
+            expect(status.registrationResults).toHaveLength(2);
+
+            // One success, one failure
+            const successResults = status.registrationResults.filter((r) => r.success);
+            const failureResults = status.registrationResults.filter((r) => !r.success);
+            expect(successResults).toHaveLength(1);
+            expect(failureResults).toHaveLength(1);
+            expect(failureResults[0].error).toBeDefined();
+        });
     });
 });

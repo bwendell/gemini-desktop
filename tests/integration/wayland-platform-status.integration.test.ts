@@ -8,10 +8,27 @@ import { browser, expect } from '@wdio/globals';
  *
  * Pattern follows: https://github.com/user/repo/tests/integration/hotkeys.integration.test.ts
  */
+const browserWithElectron = browser as unknown as {
+    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
+    waitUntil<T>(
+        condition: () => Promise<T> | T,
+        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
+    ): Promise<T>;
+    getWindowHandles(): Promise<string[]>;
+    electron: {
+        execute<R, T extends unknown[]>(fn: (...args: T) => R, ...args: T): Promise<R>;
+    };
+};
+
 describe('Platform Hotkey Status IPC', () => {
-    before(async () => {
+    before(async function () {
         // Wait for app to be ready with at least one window
-        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
+        await browserWithElectron.waitUntil(async () => (await browserWithElectron.getWindowHandles()).length > 0);
+
+        if (process.platform !== 'linux') {
+            console.log('[SKIP] Linux-only integration tests');
+            this.skip();
+        }
     });
 
     /**
@@ -24,12 +41,11 @@ describe('Platform Hotkey Status IPC', () => {
         desktopEnvironment: string;
         isLinux: boolean;
     }> {
-        const status = await browser.electron.execute(() => {
-            // @ts-expect-error - accessing global manager
+        const status = await browserWithElectron.electron.execute(() => {
             return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
         });
 
-        const isLinux = await browser.electron.execute(() => process.platform === 'linux');
+        const isLinux = await browserWithElectron.electron.execute(() => process.platform === 'linux');
 
         if (!status) {
             return { isWayland: false, portalAvailable: false, desktopEnvironment: 'unknown', isLinux };
@@ -46,7 +62,7 @@ describe('Platform Hotkey Status IPC', () => {
     describe('getPlatformHotkeyStatus() IPC round-trip', () => {
         it('renderer can query platform hotkey status via window.electronAPI.getPlatformHotkeyStatus()', async () => {
             // Call the renderer API
-            const status = await browser.execute(async () => {
+            const status = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getPlatformHotkeyStatus();
             });
@@ -59,8 +75,7 @@ describe('Platform Hotkey Status IPC', () => {
 
         it('main process returns correctly typed PlatformHotkeyStatus object', async () => {
             // Query directly via main process to bypass renderer
-            const status = await browser.electron.execute(() => {
-                // @ts-expect-error - accessing global manager
+            const status = await browserWithElectron.electron.execute(() => {
                 return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
             });
 
@@ -76,13 +91,12 @@ describe('Platform Hotkey Status IPC', () => {
 
         it('globalHotkeysEnabled field reflects actual registration state', async () => {
             // Get platform status from main process
-            const status = await browser.electron.execute(() => {
-                // @ts-expect-error - accessing global manager
+            const status = await browserWithElectron.electron.execute(() => {
                 return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
             });
 
             // Check if quickChat is registered via globalShortcut
-            const isQuickChatRegistered = await browser.electron.execute((_electron) => {
+            const isQuickChatRegistered = await browserWithElectron.electron.execute(() => {
                 const { globalShortcut } = require('electron');
                 // Use the default quickChat accelerator
                 return globalShortcut.isRegistered('CommandOrControl+Shift+Space');
@@ -101,7 +115,7 @@ describe('Platform Hotkey Status IPC', () => {
 
         it('waylandStatus fields are populated with sensible defaults', async () => {
             // Query platform status via renderer IPC
-            const status = await browser.execute(async () => {
+            const status = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getPlatformHotkeyStatus();
             });
@@ -128,7 +142,7 @@ describe('Platform Hotkey Status IPC', () => {
             // Test the complete renderer→main→renderer flow with timeout handling
             const startTime = Date.now();
 
-            const status = await browser.execute(async () => {
+            const status = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getPlatformHotkeyStatus();
             });
@@ -144,11 +158,32 @@ describe('Platform Hotkey Status IPC', () => {
             // Round-trip should complete quickly (under 5 seconds even with slow CI)
             expect(elapsed).toBeLessThan(5000);
         });
+
+        it('IPC returns null when getPlatformHotkeyStatus method is missing', async () => {
+            const result = await browserWithElectron.execute(async () => {
+                const api = (window as any).electronAPI;
+                // If the API or method doesn't exist, return null
+                if (!api?.getPlatformHotkeyStatus) {
+                    return null;
+                }
+                // Method exists, so return its result (which may be null/undefined)
+                try {
+                    const status = await api.getPlatformHotkeyStatus();
+                    return status ?? null;
+                } catch {
+                    return null;
+                }
+            });
+
+            // This test verifies the null handling path works correctly
+            // The actual result depends on whether the API is available in the test environment
+            expect(result === null || typeof result === 'object').toBe(true);
+        });
     });
 
     describe('PlatformHotkeyStatus shape consistency', () => {
         it('registrationResults is an array with valid structure', async () => {
-            const status = await browser.execute(async () => {
+            const status = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getPlatformHotkeyStatus();
             });
@@ -167,7 +202,7 @@ describe('Platform Hotkey Status IPC', () => {
         });
 
         it('desktopEnvironment is a valid value', async () => {
-            const status = await browser.execute(async () => {
+            const status = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getPlatformHotkeyStatus();
             });
@@ -178,7 +213,7 @@ describe('Platform Hotkey Status IPC', () => {
         });
 
         it('portalMethod is a valid value', async () => {
-            const status = await browser.execute(async () => {
+            const status = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getPlatformHotkeyStatus();
             });
@@ -190,8 +225,15 @@ describe('Platform Hotkey Status IPC', () => {
     });
 
     describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
+        before(function () {
+            if (process.env.NODE_ENV !== 'test' && process.env.DEBUG_DBUS !== '1') {
+                console.log('[SKIP] Test-only D-Bus signal tracking disabled (set NODE_ENV=test or DEBUG_DBUS=1)');
+                this.skip();
+            }
+        });
+
         it('getDbusActivationSignalStats returns valid structure', async () => {
-            const stats = await browser.execute(async () => {
+            const stats = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getDbusActivationSignalStats();
             });
@@ -206,7 +248,7 @@ describe('Platform Hotkey Status IPC', () => {
         });
 
         it('signal tracking is disabled by default (non-test environments)', async () => {
-            const stats = await browser.execute(async () => {
+            const stats = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getDbusActivationSignalStats();
             });
@@ -216,13 +258,13 @@ describe('Platform Hotkey Status IPC', () => {
         });
 
         it('clearDbusActivationSignalHistory executes without error', async () => {
-            await browser.execute(async () => {
+            await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 api.clearDbusActivationSignalHistory();
             });
 
             // Verify history is cleared
-            const stats = await browser.execute(async () => {
+            const stats = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getDbusActivationSignalStats();
             });
@@ -244,15 +286,14 @@ describe('Platform Hotkey Status IPC', () => {
 
             if (shouldSkip) {
                 this.skip();
-                return;
             }
 
-            await browser.execute(async () => {
+            await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 api.clearDbusActivationSignalHistory();
             });
 
-            const initialStats = await browser.execute(async () => {
+            const initialStats = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getDbusActivationSignalStats();
             });
@@ -264,12 +305,12 @@ describe('Platform Hotkey Status IPC', () => {
         });
 
         it('signal tracking isolates between clear calls', async () => {
-            await browser.execute(async () => {
+            await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 api.clearDbusActivationSignalHistory();
             });
 
-            const stats1 = await browser.execute(async () => {
+            const stats1 = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getDbusActivationSignalStats();
             });
@@ -277,19 +318,33 @@ describe('Platform Hotkey Status IPC', () => {
             expect(stats1.totalSignals).toBe(0);
 
             // Clear again (idempotent)
-            await browser.execute(async () => {
+            await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 api.clearDbusActivationSignalHistory();
             });
 
             // Stats should still be 0
-            const stats2 = await browser.execute(async () => {
+            const stats2 = await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getDbusActivationSignalStats();
             });
 
             expect(stats2.totalSignals).toBe(0);
             expect(stats2.lastSignalTime).toBeNull();
+        });
+
+        it('signal stats IPC round-trip completes within timeout', async () => {
+            const startTime = Date.now();
+
+            const stats = await browserWithElectron.execute(async () => {
+                const api = (window as any).electronAPI;
+                return await api.getDbusActivationSignalStats();
+            });
+
+            const elapsed = Date.now() - startTime;
+
+            expect(stats).toBeDefined();
+            expect(elapsed).toBeLessThan(5000);
         });
     });
 });

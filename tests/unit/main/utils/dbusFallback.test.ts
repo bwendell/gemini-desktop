@@ -232,6 +232,53 @@ describe('DBusFallback', () => {
             expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Alt+P')).toBe('CTRL+ALT+p');
             expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+P')).toBe('CTRL+SHIFT+p');
         });
+
+        it('handles modifier-only accelerators', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl')).toBe('CTRL');
+            expect(dbusFallback.electronAcceleratorToXdg('Shift')).toBe('SHIFT');
+        });
+
+        it('converts punctuation keys to xkb names', () => {
+            const cases: Array<[string, string]> = [
+                ['Ctrl+.', 'CTRL+period'],
+                ['Ctrl+,', 'CTRL+comma'],
+                ['Ctrl+/', 'CTRL+slash'],
+                ['Ctrl+\\', 'CTRL+backslash'],
+                ['Ctrl+[', 'CTRL+bracketleft'],
+                ['Ctrl+]', 'CTRL+bracketright'],
+            ];
+
+            for (const [input, expected] of cases) {
+                expect(dbusFallback.electronAcceleratorToXdg(input)).toBe(expected);
+            }
+        });
+
+        it('converts media keys to XF86 keysyms', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('VolumeUp')).toBe('XF86AudioRaiseVolume');
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+VolumeMute')).toBe('CTRL+XF86AudioMute');
+        });
+
+        it('preserves numeric keys', () => {
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+1')).toBe('CTRL+1');
+        });
+
+        it('passes through unknown multi-character keys', () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+            expect(dbusFallback.electronAcceleratorToXdg('Ctrl+Hyper')).toBe('CTRL+Hyper');
+            expect(warnSpy).toHaveBeenCalled();
+
+            warnSpy.mockRestore();
+        });
+
+        it('handles empty accelerator input gracefully', () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+            expect(dbusFallback.electronAcceleratorToXdg('')).toBe('');
+            expect(warnSpy).toHaveBeenCalled();
+
+            warnSpy.mockRestore();
+        });
     });
 
     // ========================================================================
@@ -590,6 +637,39 @@ describe('DBusFallback', () => {
 
             expect(results[0].success).toBe(false);
             expect(results[0].error).toContain('Timeout');
+        });
+
+        it('handles AccessDenied error during CreateSession', async () => {
+            mockCreateSession.mockRejectedValue(new Error('org.freedesktop.DBus.Error.AccessDenied'));
+
+            const results = await dbusFallback.registerViaDBus([
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+            ]);
+
+            expect(results[0].success).toBe(false);
+            expect(results[0].error).toContain('AccessDenied');
+        });
+
+        it('handles NoReply error during BindShortcuts', async () => {
+            mockBindShortcuts.mockRejectedValue(new Error('org.freedesktop.DBus.Error.NoReply'));
+
+            const results = await dbusFallback.registerViaDBus([
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+            ]);
+
+            expect(results[0].success).toBe(false);
+            expect(results[0].error).toContain('NoReply');
+        });
+
+        it('handles ServiceUnknown error during registerViaDBus', async () => {
+            mockGetProxyObject.mockRejectedValue(new Error('org.freedesktop.DBus.Error.ServiceUnknown'));
+
+            const results = await dbusFallback.registerViaDBus([
+                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+            ]);
+
+            expect(results[0].success).toBe(false);
+            expect(results[0].error).toContain('ServiceUnknown');
         });
 
         it('handles CreateSession Response with non-zero code', async () => {

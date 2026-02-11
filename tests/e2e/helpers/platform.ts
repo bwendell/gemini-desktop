@@ -2,12 +2,14 @@
  * E2E Platform Detection Utilities.
  * Runs browser.execute() to determine platform from rendered context.
  */
-/// <reference path="./wdio-electron.d.ts" />
-
 import { browser } from '@wdio/globals';
 import { readFileSync } from 'fs';
 
 export type E2EPlatform = 'windows' | 'linux' | 'macos';
+
+const browserWithElectron = browser as unknown as {
+    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
+};
 
 /**
  * Detect WSL at module load time (before browser is available).
@@ -35,7 +37,11 @@ const IS_CI_ENVIRONMENT = !!(process.env.CI || process.env.GITHUB_ACTIONS);
  * @returns {Promise<E2EPlatform>} 'windows', 'linux', or 'macos'
  */
 export async function getPlatform(): Promise<E2EPlatform> {
-    const navPlatform = await browser.execute(() => navigator.platform);
+    const navPlatform = await browserWithElectron.execute(() => {
+        const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+        if (uaData?.platform) return uaData.platform;
+        return navigator.userAgent;
+    });
     const lower = navPlatform.toLowerCase();
     if (lower.includes('mac') || lower.includes('darwin')) return 'macos';
     if (lower.includes('win')) return 'windows';
@@ -145,4 +151,22 @@ export function isWindowsSync(): boolean {
  */
 export function isLinuxSync(): boolean {
     return process.platform === 'linux';
+}
+
+export function isWayland(): boolean {
+    if (!isLinuxSync()) return false;
+    return (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'wayland';
+}
+
+export function isKDE(): boolean {
+    if (!isLinuxSync()) return false;
+    return (process.env.XDG_CURRENT_DESKTOP || '').toLowerCase().includes('kde');
+}
+
+export function isCI(): boolean {
+    return IS_CI_ENVIRONMENT;
+}
+
+export function canRunWaylandTests(): boolean {
+    return isLinuxSync() && isWayland() && isKDE() && !isCI();
 }
