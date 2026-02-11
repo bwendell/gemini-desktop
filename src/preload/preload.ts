@@ -17,6 +17,9 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ElectronAPI } from '../shared/types';
+
+/** Whether to expose test-only D-Bus activation signal APIs */
+const TEST_ONLY_DBUS_SIGNALS_ENABLED = process.env.NODE_ENV === 'test' || process.env.DEBUG_DBUS === '1';
 /**
  * IPC channel names used for main process <-> renderer communication.
  *
@@ -614,17 +617,21 @@ const electronAPI: ElectronAPI = {
      */
     devTriggerResponseNotification: () => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_TRIGGER_RESPONSE_NOTIFICATION),
 
-    /**
-     * Test-only: Get D-Bus activation signal statistics.
-     * Returns tracking data for verified Activated signals on Wayland.
-     */
-    getDbusActivationSignalStats: () => ipcRenderer.invoke(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET),
-
-    /**
-     * Test-only: Clear D-Bus activation signal history.
-     * Useful for test isolation between test cases.
-     */
-    clearDbusActivationSignalHistory: () => ipcRenderer.send(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR),
+    // Test-only D-Bus activation signal APIs (only available in test/debug mode)
+    // In production, these are no-ops that still satisfy the type system
+    getDbusActivationSignalStats: TEST_ONLY_DBUS_SIGNALS_ENABLED
+        ? () => ipcRenderer.invoke(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET)
+        : () =>
+              Promise.resolve({
+                  trackingEnabled: false,
+                  totalSignals: 0,
+                  signalsByShortcut: {},
+                  lastSignalTime: null,
+                  signals: Object.freeze([]),
+              }),
+    clearDbusActivationSignalHistory: TEST_ONLY_DBUS_SIGNALS_ENABLED
+        ? () => ipcRenderer.send(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR)
+        : () => {}, // No-op in production
 
     // =========================================================================
     // E2E Testing Helpers

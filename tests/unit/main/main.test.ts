@@ -1,85 +1,243 @@
-/**
- * Tests for main.ts Wayland GlobalShortcutsPortal feature flag injection.
- *
- * @see Task 6 in wayland-global-hotkeys.md
- *
- * Note: Testing module-level initialization in main.ts is challenging because
- * the code runs immediately on import. We test the behavior by verifying:
- * 1. That old isWayland code is removed (grep verification in acceptance criteria)
- * 2. That getWaylandPlatformStatus is imported and used (static analysis)
- * 3. That app.commandLine.appendSwitch is called correctly based on WaylandStatus
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// We need to mock all dependencies BEFORE importing main.ts
-// Since main.ts has side effects on import, we'll test the transformation functions indirectly
+const { mockApp, mockSession, mockBrowserWindow } = vi.hoisted(() => {
+    const mockApp = {
+        commandLine: {
+            appendSwitch: vi.fn(),
+            hasSwitch: vi.fn().mockReturnValue(false),
+        },
+        isPackaged: false,
+        isReady: vi.fn().mockReturnValue(true),
+        on: vi.fn(),
+        whenReady: vi.fn().mockResolvedValue(undefined),
+        requestSingleInstanceLock: vi.fn().mockReturnValue(true),
+        exit: vi.fn(),
+        quit: vi.fn(),
+        setName: vi.fn(),
+        setAppUserModelId: vi.fn(),
+        setPath: vi.fn(),
+        getPath: vi.fn().mockReturnValue('/mock/userData'),
+        getVersion: vi.fn().mockReturnValue('1.0.0'),
+    };
 
-describe('main.ts Wayland GlobalShortcutsPortal integration', () => {
-    describe('GlobalShortcutsPortal flag logic', () => {
-        it('should set flag when Wayland is detected with portal available', () => {
-            // This test verifies the logic that will be implemented:
-            // When waylandStatus.isWayland && waylandStatus.portalAvailable,
-            // app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal') should be called
+    const mockSession = {
+        defaultSession: {
+            webRequest: {
+                onHeadersReceived: vi.fn(),
+                onBeforeSendHeaders: vi.fn(),
+                onCompleted: vi.fn(),
+            },
+        },
+    };
 
-            const mockWaylandStatus = {
-                isWayland: true,
-                desktopEnvironment: 'kde' as const,
-                deVersion: '6',
-                portalAvailable: true,
-                portalMethod: 'chromium-flag' as const,
-            };
+    const mockBrowserWindow = {
+        getAllWindows: vi.fn().mockReturnValue([]),
+    };
 
-            // The logic being tested:
-            if (mockWaylandStatus.isWayland && mockWaylandStatus.portalAvailable) {
-                const shouldSetFlag = true;
-                expect(shouldSetFlag).toBe(true);
+    return { mockApp, mockSession, mockBrowserWindow };
+});
+
+vi.mock('electron', () => ({
+    app: mockApp,
+    session: mockSession,
+    BrowserWindow: mockBrowserWindow,
+    crashReporter: {
+        start: vi.fn(),
+    },
+}));
+
+vi.mock('../../../src/main/utils/logger');
+
+const mockWaylandStatus = {
+    isWayland: true,
+    desktopEnvironment: 'kde' as const,
+    deVersion: '6',
+    portalAvailable: true,
+    portalMethod: 'none' as const,
+};
+
+vi.mock('../../../src/main/utils/constants', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../../src/main/utils/constants')>();
+    return {
+        ...actual,
+        isLinux: true,
+        isWindows: false,
+        getWaylandPlatformStatus: vi.fn().mockReturnValue(mockWaylandStatus),
+    };
+});
+
+vi.mock('../../../src/main/utils/paths', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../../src/main/utils/paths')>();
+    return {
+        ...actual,
+        getDistHtmlPath: vi.fn().mockReturnValue('/mock/dist/index.html'),
+        getIconPath: vi.fn().mockReturnValue('/mock/icon.png'),
+    };
+});
+
+vi.mock('fs', () => ({
+    existsSync: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock('../../../src/main/utils/security', () => ({
+    setupHeaderStripping: vi.fn(),
+    setupWebviewSecurity: vi.fn(),
+    setupMediaPermissions: vi.fn(),
+}));
+
+vi.mock('../../../src/main/utils/sandboxInit', () => ({}));
+
+vi.mock('../../../src/main/store', () => ({
+    default: vi.fn(),
+}));
+
+vi.mock('../../../src/main/managers/windowManager', () => {
+    return {
+        default: class WindowManager {
+            setQuitting = vi.fn();
+            getMainWindow = vi.fn().mockReturnValue(null);
+            getMainWindowInstance = vi.fn().mockReturnValue(null);
+            createMainWindow = vi.fn();
+            restoreFromTray = vi.fn();
+            setAlwaysOnTop = vi.fn();
+            isAlwaysOnTop = vi.fn().mockReturnValue(false);
+            constructor() {
+                return;
             }
-        });
+        },
+    };
+});
 
-        it('should NOT set flag when not on Wayland', () => {
-            const mockWaylandStatus = {
-                isWayland: false,
-                desktopEnvironment: 'unknown' as const,
-                deVersion: null,
-                portalAvailable: false,
-                portalMethod: 'none' as const,
-            };
+vi.mock('../../../src/main/managers/ipcManager', () => {
+    return {
+        default: class IpcManager {
+            setupIpcHandlers = vi.fn();
+            setNotificationManager = vi.fn();
+            initializeTextPrediction = vi.fn().mockResolvedValue(undefined);
+            dispose = vi.fn();
+            constructor() {
+                return;
+            }
+        },
+    };
+});
 
-            // The logic being tested:
-            const shouldSetFlag = mockWaylandStatus.isWayland && mockWaylandStatus.portalAvailable;
-            expect(shouldSetFlag).toBe(false);
-        });
+vi.mock('../../../src/main/managers/hotkeyManager', () => {
+    return {
+        default: class HotkeyManager {
+            registerShortcuts = vi.fn();
+            unregisterAll = vi.fn();
+            constructor() {
+                return;
+            }
+        },
+    };
+});
 
-        it('should NOT set flag when on Wayland but portal unavailable', () => {
-            const mockWaylandStatus = {
-                isWayland: true,
-                desktopEnvironment: 'unknown' as const,
-                deVersion: null,
-                portalAvailable: false,
-                portalMethod: 'none' as const,
-            };
+vi.mock('../../../src/main/managers/trayManager', () => {
+    return {
+        default: class TrayManager {
+            createTray = vi.fn();
+            destroyTray = vi.fn();
+            constructor() {
+                return;
+            }
+        },
+    };
+});
 
-            // The logic being tested:
-            const shouldSetFlag = mockWaylandStatus.isWayland && mockWaylandStatus.portalAvailable;
-            expect(shouldSetFlag).toBe(false);
-        });
+vi.mock('../../../src/main/managers/badgeManager', () => {
+    return {
+        default: class BadgeManager {
+            setMainWindow = vi.fn();
+            constructor() {
+                return;
+            }
+        },
+    };
+});
+
+vi.mock('../../../src/main/managers/updateManager', () => {
+    return {
+        default: class UpdateManager {
+            startPeriodicChecks = vi.fn();
+            destroy = vi.fn();
+            constructor() {
+                return;
+            }
+        },
+    };
+});
+
+vi.mock('../../../src/main/managers/exportManager', () => {
+    return {
+        default: class ExportManager {
+            constructor() {
+                return;
+            }
+        },
+    };
+});
+
+vi.mock('../../../src/main/managers/llmManager', () => {
+    return {
+        default: class LlmManager {
+            dispose = vi.fn();
+            constructor() {
+                return;
+            }
+        },
+    };
+});
+
+vi.mock('../../../src/main/managers/notificationManager', () => {
+    return {
+        default: class NotificationManager {
+            dispose = vi.fn();
+            onResponseComplete = vi.fn();
+            constructor() {
+                return;
+            }
+        },
+    };
+});
+
+vi.mock('../../../src/main/managers/menuManager', () => {
+    return {
+        default: class MenuManager {
+            buildMenu = vi.fn();
+            setupContextMenu = vi.fn();
+            constructor() {
+                return;
+            }
+        },
+    };
+});
+
+describe('main.ts', () => {
+    beforeEach(() => {
+        vi.resetModules();
+        vi.clearAllMocks();
     });
 
-    describe('import verification', () => {
-        it('should import getWaylandPlatformStatus from constants', async () => {
-            // Verify the import exists in constants.ts
-            const constants = await import('../../../../src/main/utils/constants');
-            expect(typeof constants.getWaylandPlatformStatus).toBe('function');
-        });
+    afterEach(() => {
+        vi.resetModules();
+    });
 
-        it('getWaylandPlatformStatus should return WaylandStatus structure', async () => {
-            const { getWaylandPlatformStatus } = await import('../../../../src/main/utils/constants');
-            const status = getWaylandPlatformStatus();
+    it('queries Wayland platform status on startup', async () => {
+        await import('../../../src/main/main');
 
-            expect(status).toHaveProperty('isWayland');
-            expect(status).toHaveProperty('desktopEnvironment');
-            expect(status).toHaveProperty('portalAvailable');
-            expect(status).toHaveProperty('portalMethod');
-        });
+        const constants = await import('../../../src/main/utils/constants');
+        expect(vi.mocked(constants.getWaylandPlatformStatus)).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not enable GlobalShortcutsPortal chromium flag', async () => {
+        await import('../../../src/main/main');
+
+        const appendCalls = vi.mocked(mockApp.commandLine.appendSwitch).mock.calls;
+        const hasGlobalShortcutsPortal = appendCalls.some(
+            ([flag, value]) => flag === 'enable-features' && value === 'GlobalShortcutsPortal'
+        );
+        expect(hasGlobalShortcutsPortal).toBe(false);
     });
 });

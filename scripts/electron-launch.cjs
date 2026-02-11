@@ -11,7 +11,7 @@
  * Usage: node scripts/electron-launch.cjs [electron args...]
  */
 
-const { execSync, spawn } = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 

@@ -31,6 +31,24 @@ describe('constants.ts Wayland exports', () => {
             expect(isWayland).toBe(true);
         });
 
+        it('should be true when XDG_SESSION_TYPE is "WAYLAND" (case insensitive)', async () => {
+            process.env.XDG_SESSION_TYPE = 'WAYLAND';
+            vi.resetModules();
+
+            const { isWayland } = await import('../../../../src/main/utils/constants');
+
+            expect(isWayland).toBe(true);
+        });
+
+        it('should be true when XDG_SESSION_TYPE is "Wayland" (mixed case)', async () => {
+            process.env.XDG_SESSION_TYPE = 'Wayland';
+            vi.resetModules();
+
+            const { isWayland } = await import('../../../../src/main/utils/constants');
+
+            expect(isWayland).toBe(true);
+        });
+
         it('should be false when XDG_SESSION_TYPE is "x11"', async () => {
             process.env.XDG_SESSION_TYPE = 'x11';
             vi.resetModules();

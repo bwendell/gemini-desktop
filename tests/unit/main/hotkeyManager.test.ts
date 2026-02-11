@@ -895,6 +895,12 @@ describe('HotkeyManager', () => {
                 portalMethod: 'none',
             });
 
+            // Mock successful registration
+            mockDbusFallback.registerViaDBus.mockResolvedValue([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
             hotkeyManager.registerShortcuts();
 
             await vi.waitFor(() => {
@@ -1191,9 +1197,8 @@ describe('HotkeyManager', () => {
                 // portalMethod should be 'none' (error path sets this)
                 expect(status.waylandStatus.portalMethod).toBe('none');
 
-                // globalHotkeysEnabled was set to true before the async call
-                // (registerShortcuts sets it to true synchronously at line 487)
-                expect(status.globalHotkeysEnabled).toBe(true);
+                // globalHotkeysEnabled should be false on D-Bus error
+                expect(status.globalHotkeysEnabled).toBe(false);
             });
 
             it('P1-2: should handle hotkey toggle during in-flight D-Bus registration without race condition', async () => {
@@ -1237,10 +1242,10 @@ describe('HotkeyManager', () => {
                 expect(hotkeyManager.getIndividualSettings().bossKey).toBe(false);
             });
 
-            it('P1-3: should clear previous registration results on re-registration', async () => {
+            it('P1-3: should clear previous registration results at start of each registration attempt', async () => {
                 createWaylandKdeStatus();
 
-                // First registration
+                // First registration - one success, one failure
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
                     { hotkeyId: 'quickChat', success: true },
                     { hotkeyId: 'bossKey', success: false, error: 'First attempt failed' },
@@ -1258,15 +1263,15 @@ describe('HotkeyManager', () => {
                 expect(status.registrationResults).toContainEqual(
                     expect.objectContaining({ hotkeyId: 'bossKey', success: false })
                 );
+                expect(status.globalHotkeysEnabled).toBe(true);
 
                 // Clear mocks for second registration
                 vi.clearAllMocks();
-                createWaylandKdeStatus(); // re-mock since clearAllMocks resets getWaylandPlatformStatus
+                createWaylandKdeStatus();
 
-                // Second registration with all success
+                // Second registration - only one hotkey, different result
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
-                    { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'quickChat', success: false, error: 'Shortcut conflict' },
                 ]);
 
                 hotkeyManager.registerShortcuts();
@@ -1275,16 +1280,94 @@ describe('HotkeyManager', () => {
                     expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledTimes(1);
                 });
 
-                // Wait for results to be populated
+                // Wait for stale results to be cleared and new results populated
                 await vi.waitFor(() => {
                     status = hotkeyManager.getPlatformHotkeyStatus();
+                    // Should only have 1 result (stale bossKey result cleared)
+                    expect(status.registrationResults).toHaveLength(1);
+                    // Should contain only the new quickChat failure
+                    expect(status.registrationResults[0]).toEqual(
+                        expect.objectContaining({ hotkeyId: 'quickChat', success: false })
+                    );
+                });
+            });
+
+            it('should set globalHotkeysEnabled to false when all D-Bus registrations fail', async () => {
+                createWaylandKdeStatus();
+
+                // All registrations fail
+                mockDbusFallback.registerViaDBus.mockResolvedValue([
+                    { hotkeyId: 'quickChat', success: false, error: 'Shortcut conflict' },
+                    { hotkeyId: 'bossKey', success: false, error: 'Permission denied' },
+                ]);
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    const status = hotkeyManager.getPlatformHotkeyStatus();
                     expect(status.registrationResults).toHaveLength(2);
-                    // Second registration results should overwrite first
-                    expect(status.registrationResults.every((r) => r.success)).toBe(true);
                 });
 
-                // destroySession is called by registerViaDBus internally (not by HotkeyManager directly)
-                // But HotkeyManager calls _registerViaDBusDirect which overwrites _registrationResults
+                const status = hotkeyManager.getPlatformHotkeyStatus();
+                // All failed, so globalHotkeysEnabled should be false
+                expect(status.globalHotkeysEnabled).toBe(false);
+                expect(status.waylandStatus.portalMethod).toBe('none');
+            });
+
+            it('should set globalHotkeysEnabled to true when any D-Bus registration succeeds', async () => {
+                createWaylandKdeStatus();
+
+                // Partial success - one succeeds, one fails
+                mockDbusFallback.registerViaDBus.mockResolvedValue([
+                    { hotkeyId: 'quickChat', success: true },
+                    { hotkeyId: 'bossKey', success: false, error: 'Shortcut conflict' },
+                ]);
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    const status = hotkeyManager.getPlatformHotkeyStatus();
+                    expect(status.registrationResults).toHaveLength(2);
+                });
+
+                const status = hotkeyManager.getPlatformHotkeyStatus();
+                // Any success means globalHotkeysEnabled should be true
+                expect(status.globalHotkeysEnabled).toBe(true);
+                expect(status.waylandStatus.portalMethod).toBe('dbus-direct');
+            });
+
+            it('should clear registration results and set globalHotkeysEnabled false when no hotkeys enabled', async () => {
+                createWaylandKdeStatus();
+
+                // First, register with some results
+                mockDbusFallback.registerViaDBus.mockResolvedValue([
+                    { hotkeyId: 'quickChat', success: true },
+                    { hotkeyId: 'bossKey', success: true },
+                ]);
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    const status = hotkeyManager.getPlatformHotkeyStatus();
+                    expect(status.registrationResults).toHaveLength(2);
+                });
+
+                // Now disable all hotkeys
+                hotkeyManager.setIndividualEnabled('quickChat', false);
+                hotkeyManager.setIndividualEnabled('bossKey', false);
+
+                vi.clearAllMocks();
+                createWaylandKdeStatus();
+
+                // Try to register again with no enabled hotkeys
+                hotkeyManager.registerShortcuts();
+
+                // Results should be cleared immediately
+                const status = hotkeyManager.getPlatformHotkeyStatus();
+                expect(status.registrationResults).toHaveLength(0);
+                expect(status.globalHotkeysEnabled).toBe(false);
+                expect(status.waylandStatus.portalMethod).toBe('none');
+                expect(mockDbusFallback.registerViaDBus).not.toHaveBeenCalled();
             });
         });
     });

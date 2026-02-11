@@ -276,6 +276,7 @@ describe('WaylandDetector', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'KDE';
             process.env.KDE_SESSION_VERSION = '6';
+            process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
             const status = getWaylandStatus();
 
@@ -292,6 +293,7 @@ describe('WaylandDetector', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'GNOME';
             delete process.env.KDE_SESSION_VERSION;
+            process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
             const status = getWaylandStatus();
 
@@ -305,6 +307,7 @@ describe('WaylandDetector', () => {
             process.env.XDG_SESSION_TYPE = 'x11';
             process.env.XDG_CURRENT_DESKTOP = 'KDE';
             process.env.KDE_SESSION_VERSION = '6';
+            process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
             const status = getWaylandStatus();
 
@@ -316,6 +319,7 @@ describe('WaylandDetector', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'KDE';
             process.env.KDE_SESSION_VERSION = '4';
+            process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
             const status = getWaylandStatus();
 
@@ -329,6 +333,7 @@ describe('WaylandDetector', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'KDE';
             delete process.env.KDE_SESSION_VERSION;
+            process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
             const status = getWaylandStatus();
 
@@ -338,10 +343,26 @@ describe('WaylandDetector', () => {
             expect(status.portalAvailable).toBe(false);
         });
 
+        it('returns portalAvailable false when session bus is unavailable', () => {
+            process.env.XDG_SESSION_TYPE = 'wayland';
+            process.env.XDG_CURRENT_DESKTOP = 'KDE';
+            process.env.KDE_SESSION_VERSION = '6';
+            delete process.env.DBUS_SESSION_BUS_ADDRESS;
+            delete process.env.XDG_RUNTIME_DIR;
+
+            const status = getWaylandStatus();
+
+            expect(status.isWayland).toBe(true);
+            expect(status.desktopEnvironment).toBe('kde');
+            expect(status.deVersion).toBe('6');
+            expect(status.portalAvailable).toBe(false);
+        });
+
         it('sets portalMethod to "none" always', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'KDE';
             process.env.KDE_SESSION_VERSION = '6';
+            process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
             const status = getWaylandStatus();
 
@@ -352,6 +373,8 @@ describe('WaylandDetector', () => {
             delete process.env.XDG_SESSION_TYPE;
             delete process.env.XDG_CURRENT_DESKTOP;
             delete process.env.KDE_SESSION_VERSION;
+            delete process.env.DBUS_SESSION_BUS_ADDRESS;
+            delete process.env.XDG_RUNTIME_DIR;
 
             const status = getWaylandStatus();
 
@@ -368,6 +391,7 @@ describe('WaylandDetector', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'ubuntu:KDE';
             process.env.KDE_SESSION_VERSION = '5';
+            process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
             expect(() => getWaylandStatus()).not.toThrow();
         });

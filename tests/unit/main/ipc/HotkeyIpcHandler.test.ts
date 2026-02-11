@@ -4,12 +4,16 @@
  * Tests the hotkey IPC handlers for individual settings,
  * accelerators, and full settings.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HotkeyIpcHandler } from '../../../../src/main/managers/ipc/HotkeyIpcHandler';
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';
 import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
 import { DEFAULT_ACCELERATORS } from '../../../../src/shared/types/hotkeys';
+
+// Store original env
+const originalNodeEnv = process.env.NODE_ENV;
+const originalDebugDbus = process.env.DEBUG_DBUS;
 
 // Mock Electron
 const { mockIpcMain, mockBrowserWindow } = vi.hoisted(() => {
@@ -19,6 +23,12 @@ const { mockIpcMain, mockBrowserWindow } = vi.hoisted(() => {
         }),
         handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
             mockIpcMain._handlers.set(channel, handler);
+        }),
+        removeHandler: vi.fn((channel: string) => {
+            mockIpcMain._handlers.delete(channel);
+        }),
+        removeAllListeners: vi.fn((channel: string) => {
+            mockIpcMain._listeners.delete(channel);
         }),
         _listeners: new Map<string, (...args: unknown[]) => void>(),
         _handlers: new Map<string, (...args: unknown[]) => unknown>(),
@@ -89,10 +99,20 @@ describe('HotkeyIpcHandler', () => {
             store: mockStore,
             logger: mockLogger,
             windowManager: createMockWindowManager(),
-            hotkeyManager: mockHotkeyManager as any,
-        };
+            hotkeyManager: mockHotkeyManager,
+        } as unknown as IpcHandlerDependencies;
 
         handler = new HotkeyIpcHandler(mockDeps);
+    });
+
+    afterEach(() => {
+        // Restore original environment
+        process.env.NODE_ENV = originalNodeEnv;
+        if (originalDebugDbus === undefined) {
+            delete process.env.DEBUG_DBUS;
+        } else {
+            process.env.DEBUG_DBUS = originalDebugDbus;
+        }
     });
 
     describe('register', () => {
@@ -542,6 +562,103 @@ describe('HotkeyIpcHandler', () => {
 
             expect(mockStore.set).toHaveBeenCalledWith('acceleratorAlwaysOnTop', 'Alt+Shift+T');
             expect(mockHotkeyManager.setAccelerator).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('D-Bus activation signal IPC gating', () => {
+        it('registers D-Bus handlers when NODE_ENV=test', async () => {
+            process.env.NODE_ENV = 'test';
+
+            // Re-import to pick up new env
+            vi.resetModules();
+            mockIpcMain._reset();
+            const { HotkeyIpcHandler: HotkeyIpcHandlerTest } =
+                await import('../../../../src/main/managers/ipc/HotkeyIpcHandler');
+
+            const handlerTest = new HotkeyIpcHandlerTest(mockDeps);
+            handlerTest.register();
+
+            expect(mockIpcMain.handle).toHaveBeenCalledWith(
+                IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET,
+                expect.any(Function)
+            );
+            expect(mockIpcMain.on).toHaveBeenCalledWith(
+                IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR,
+                expect.any(Function)
+            );
+        });
+
+        it('registers D-Bus handlers when DEBUG_DBUS=1', async () => {
+            process.env.NODE_ENV = 'production';
+            process.env.DEBUG_DBUS = '1';
+
+            vi.resetModules();
+            mockIpcMain._reset();
+            const { HotkeyIpcHandler: HotkeyIpcHandlerDebug } =
+                await import('../../../../src/main/managers/ipc/HotkeyIpcHandler');
+
+            const handlerDebug = new HotkeyIpcHandlerDebug(mockDeps);
+            handlerDebug.register();
+
+            expect(mockIpcMain.handle).toHaveBeenCalledWith(
+                IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET,
+                expect.any(Function)
+            );
+            expect(mockIpcMain.on).toHaveBeenCalledWith(
+                IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR,
+                expect.any(Function)
+            );
+        });
+
+        it('does NOT register D-Bus handlers in production (no DEBUG_DBUS)', async () => {
+            process.env.NODE_ENV = 'production';
+            delete process.env.DEBUG_DBUS;
+
+            vi.resetModules();
+            mockIpcMain._reset();
+            const { HotkeyIpcHandler: HotkeyIpcHandlerProd } =
+                await import('../../../../src/main/managers/ipc/HotkeyIpcHandler');
+
+            const handlerProd = new HotkeyIpcHandlerProd(mockDeps);
+            handlerProd.register();
+
+            const dbusStatsCalls = (mockIpcMain.handle as any).mock.calls.filter(
+                (call: any[]) => call[0] === IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET
+            );
+            const dbusClearCalls = (mockIpcMain.on as any).mock.calls.filter(
+                (call: any[]) => call[0] === IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR
+            );
+
+            expect(dbusStatsCalls.length).toBe(0);
+            expect(dbusClearCalls.length).toBe(0);
+        });
+
+        it('unregisters D-Bus handlers only when test/debug enabled', async () => {
+            process.env.NODE_ENV = 'test';
+
+            vi.resetModules();
+            mockIpcMain._reset();
+            const { HotkeyIpcHandler: HotkeyIpcHandlerTest } =
+                await import('../../../../src/main/managers/ipc/HotkeyIpcHandler');
+
+            const handlerTest = new HotkeyIpcHandlerTest(mockDeps);
+            handlerTest.register();
+            handlerTest.unregister();
+
+            expect(mockIpcMain.removeHandler).toHaveBeenCalledWith(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET);
+            expect(mockIpcMain.removeAllListeners).toHaveBeenCalledWith(
+                IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR
+            );
+        });
+    });
+
+    describe('unregister cleanup', () => {
+        it('removes PLATFORM_HOTKEY_STATUS_GET handler', () => {
+            handler.register();
+
+            handler.unregister();
+
+            expect(mockIpcMain.removeHandler).toHaveBeenCalledWith(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET);
         });
     });
 });

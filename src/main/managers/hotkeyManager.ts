@@ -544,11 +544,14 @@ export default class HotkeyManager {
      * @private
      */
     private async _registerViaDBusDirect(waylandStatus: WaylandStatus): Promise<void> {
+        // Clear stale registration results before new attempt
+        this._registrationResults.clear();
+
         const enabledGlobalHotkeys = GLOBAL_HOTKEY_IDS.filter((id) => this._individualSettings[id]);
 
         if (enabledGlobalHotkeys.length === 0) {
             logger.log('No enabled global hotkeys to register via D-Bus');
-            this._registrationResults.clear();
+            this._globalHotkeysEnabled = false;
             waylandStatus.portalMethod = 'none';
             return;
         }
@@ -567,9 +570,11 @@ export default class HotkeyManager {
                 this._registrationResults.set(result.hotkeyId, result);
             }
             const anySuccess = results.some((r) => r.success);
+            this._globalHotkeysEnabled = anySuccess;
             waylandStatus.portalMethod = anySuccess ? 'dbus-direct' : 'none';
         } catch (error) {
             logger.error('D-Bus direct registration failed:', error);
+            this._globalHotkeysEnabled = false;
             waylandStatus.portalMethod = 'none';
         }
     }

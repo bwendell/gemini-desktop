@@ -305,7 +305,7 @@ export const isMacOS = process.platform === 'darwin';
 export const isWindows = process.platform === 'win32';
 export const isLinux = process.platform === 'linux';
 export const isDev = process.env.NODE_ENV === 'development';
-export const isWayland = process.env.XDG_SESSION_TYPE === 'wayland';
+export const isWayland = (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'wayland';
 
 // Lazy-initialized Wayland status (computed once on first access)
 let _waylandStatus: WaylandStatus | null = null;
