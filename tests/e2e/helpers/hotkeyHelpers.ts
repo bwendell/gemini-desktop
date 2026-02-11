@@ -253,3 +253,182 @@ export async function getHotkeyActionState(hotkeyId: string): Promise<HotkeyActi
     }
     return handler.getState();
 }
+
+// =============================================================================
+// Wayland Platform Status Helpers
+// Provides utilities for testing Wayland/Linux hotkey registration status
+// =============================================================================
+
+/**
+ * Wayland platform status returned from main process IPC.
+ */
+export interface WaylandStatus {
+    isWayland: boolean;
+    desktopEnvironment: string;
+    deVersion: string | null;
+    portalAvailable: boolean;
+    portalMethod: string;
+}
+
+/**
+ * Hotkey registration result for individual hotkeys.
+ */
+export interface HotkeyRegistrationResult {
+    hotkeyId: string;
+    success: boolean;
+    error?: string;
+}
+
+/**
+ * Full platform hotkey status returned from main process.
+ */
+export interface PlatformHotkeyStatus {
+    waylandStatus: WaylandStatus;
+    registrationResults: HotkeyRegistrationResult[];
+    globalHotkeysEnabled: boolean;
+}
+
+/**
+ * Result of checking globalShortcut registration.
+ */
+export interface GlobalShortcutRegistrationStatus {
+    quickChat: boolean;
+    bossKey: boolean;
+    status: string;
+    error?: string;
+}
+
+/**
+ * Query platform hotkey status from main process via IPC.
+ * Uses the production getPlatformHotkeyStatus() API exposed via preload.
+ *
+ * @returns Promise with platform status or null if IPC not available
+ */
+export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | null> {
+    return browser.execute(() => {
+        // Access the preload API from renderer context
+        const api = (window as any).electronAPI;
+        if (!api?.getPlatformHotkeyStatus) {
+            console.log('[E2E] getPlatformHotkeyStatus not available on electronAPI');
+            return null;
+        }
+        return api.getPlatformHotkeyStatus();
+    });
+}
+
+/**
+ * Check if hotkeys are registered via globalShortcut API.
+ * Executes in the main process to check registration status.
+ *
+ * @returns Promise with registration status or null if execution fails
+ */
+export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutRegistrationStatus | null> {
+    return browser.electron.execute((_electron: typeof import('electron')) => {
+        const { globalShortcut } = _electron;
+        try {
+            return {
+                quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
+                bossKey: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
+                status: 'success',
+            };
+        } catch (error) {
+            return {
+                quickChat: false,
+                bossKey: false,
+                status: 'error',
+                error: (error as Error).message,
+            };
+        }
+    });
+}
+
+// =============================================================================
+// D-Bus Activation Signal Tracking Helpers (Test-Only)
+// Provides utilities for testing D-Bus signal tracking on Wayland+KDE
+// =============================================================================
+
+/**
+ * D-Bus activation signal statistics returned from test-only IPC API.
+ */
+export interface DbusActivationSignalStats {
+    /** Whether signal tracking is enabled (NODE_ENV=test or DEBUG_DBUS=1) */
+    trackingEnabled: boolean;
+    /** Total number of signals recorded */
+    totalSignals: number;
+    /** Signal counts aggregated by shortcut ID */
+    signalsByShortcut: Record<string, number>;
+    /** Timestamp of the most recent signal (null if no signals) */
+    lastSignalTime: number | null;
+    /** Array of recorded signal records */
+    signals: ReadonlyArray<{
+        shortcutId: string;
+        timestamp: number;
+        sessionPath: string;
+    }>;
+}
+
+/**
+ * Get D-Bus activation signal statistics via test-only IPC API.
+ * Only populated when NODE_ENV=test or DEBUG_DBUS=1.
+ *
+ * @returns Promise with signal stats or null if IPC not available
+ */
+export async function getDbusActivationSignalStats(): Promise<DbusActivationSignalStats | null> {
+    return browser.execute(() => {
+        const api = (window as any).electronAPI;
+        if (!api?.getDbusActivationSignalStats) {
+            console.log('[E2E] getDbusActivationSignalStats not available on electronAPI');
+            return null;
+        }
+        return api.getDbusActivationSignalStats();
+    });
+}
+
+/**
+ * Clear D-Bus activation signal history via test-only IPC API.
+ * Useful for test isolation between test cases.
+ */
+export async function clearDbusActivationSignalHistory(): Promise<void> {
+    await browser.execute(() => {
+        const api = (window as any).electronAPI;
+        if (api?.clearDbusActivationSignalHistory) {
+            api.clearDbusActivationSignalHistory();
+        }
+    });
+}
+
+/**
+ * Get Wayland platform status for conditional test skipping.
+ * Used to determine if D-Bus signal tracking tests should run.
+ *
+ * @returns Promise with wayland status information
+ */
+export async function getWaylandStatusForSkipping(): Promise<{
+    isLinux: boolean;
+    isWayland: boolean;
+    portalAvailable: boolean;
+    desktopEnvironment: string;
+}> {
+    const status = await browser.electron.execute(() => {
+        // @ts-expect-error - accessing global manager
+        return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
+    });
+
+    const isLinux = await browser.electron.execute(() => process.platform === 'linux');
+
+    if (!status) {
+        return {
+            isLinux,
+            isWayland: false,
+            portalAvailable: false,
+            desktopEnvironment: 'unknown',
+        };
+    }
+
+    return {
+        isLinux,
+        isWayland: status.waylandStatus?.isWayland ?? false,
+        portalAvailable: status.waylandStatus?.portalAvailable ?? false,
+        desktopEnvironment: status.waylandStatus?.desktopEnvironment ?? 'unknown',
+    };
+}

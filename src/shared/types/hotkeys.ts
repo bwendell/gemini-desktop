@@ -127,3 +127,63 @@ export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
     // Ctrl+Shift+P = Print to PDF
     printToPdf: 'CommandOrControl+Shift+P',
 };
+
+// ==========================================================================
+// Wayland Platform Status Types
+// ==========================================================================
+
+/**
+ * Supported Linux desktop environments for Wayland global hotkey detection.
+ * - 'kde': KDE Plasma (supports XDG Desktop Portal GlobalShortcuts)
+ * - 'unknown': Unrecognized or unsupported desktop environment
+ */
+export type DesktopEnvironment = 'kde' | 'unknown';
+
+/**
+ * Method used to register global shortcuts on Wayland.
+ * - 'chromium-flag': Uses Chromium's built-in ozone-platform-hint=auto flag
+ * - 'dbus-direct': Uses D-Bus XDG Desktop Portal GlobalShortcuts interface (direct path, no Chromium fallback)
+ * - 'dbus-fallback': Uses D-Bus XDG Desktop Portal GlobalShortcuts interface (fallback after Chromium registration failure)
+ * - 'none': No portal method available; global shortcuts are unsupported
+ */
+export type PortalMethod = 'chromium-flag' | 'dbus-direct' | 'dbus-fallback' | 'none';
+
+/**
+ * Wayland session detection and portal availability status.
+ */
+export interface WaylandStatus {
+    /** Whether the current session is running under Wayland */
+    isWayland: boolean;
+    /** Detected desktop environment */
+    desktopEnvironment: DesktopEnvironment;
+    /** Desktop environment version string, or null if not detected */
+    deVersion: string | null;
+    /** Whether XDG Desktop Portal GlobalShortcuts is available */
+    portalAvailable: boolean;
+    /** Method selected for global shortcut registration */
+    portalMethod: PortalMethod;
+}
+
+/**
+ * Result of attempting to register a single global hotkey.
+ */
+export interface HotkeyRegistrationResult {
+    /** The hotkey that was registered (or failed) */
+    hotkeyId: HotkeyId;
+    /** Whether registration succeeded */
+    success: boolean;
+    /** Error message if registration failed */
+    error?: string;
+}
+
+/**
+ * Aggregated platform hotkey status sent to the renderer for UI display.
+ */
+export interface PlatformHotkeyStatus {
+    /** Wayland session and portal detection results */
+    waylandStatus: WaylandStatus;
+    /** Per-hotkey registration outcomes */
+    registrationResults: HotkeyRegistrationResult[];
+    /** Whether global hotkeys are currently functional */
+    globalHotkeysEnabled: boolean;
+}

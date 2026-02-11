@@ -27,7 +27,7 @@
         "lint": "eslint .",
         "format": "prettier --write .",
         "preview": "vite preview",
-        "electron:dev": "npm run build:electron && concurrently --kill-others \"npm run dev\" \"wait-on http://localhost:1420 && electron .\"",
+        "electron:dev": "npm run build:electron && concurrently --kill-others \"npm run dev\" \"wait-on http://localhost:1420 && node scripts/electron-launch.cjs\"",
         "electron:build": "npm run build && npm run build:electron && electron-builder --config config/electron-builder.config.cjs",
         "dist:mac-x64": "electron-builder --mac --x64 --publish never --config config/electron-builder.config.cjs",
         "dist:mac-arm64": "electron-builder --mac --arm64 --publish never --config config/electron-builder.config.cjs",
@@ -62,6 +62,7 @@
         "docs": "typedoc --out docs src"
     },
     "dependencies": {
+        "dbus-next": "^0.10.2",
         "electron-log": "^5.4.3",
         "electron-updater": "^6.6.2",
         "framer-motion": "^12.34.0",

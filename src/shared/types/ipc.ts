@@ -6,7 +6,13 @@
  */
 
 import type { ThemeData, ThemePreference } from './theme';
-import type { HotkeyId, IndividualHotkeySettings, HotkeyAccelerators, HotkeySettings } from './hotkeys';
+import type {
+    HotkeyId,
+    IndividualHotkeySettings,
+    HotkeyAccelerators,
+    HotkeySettings,
+    PlatformHotkeyStatus,
+} from './hotkeys';
 import type { UpdateInfo, DownloadProgress } from './updates';
 import type { ToastPayload } from './toast';
 import type { TextPredictionSettings } from './text-prediction';
@@ -335,4 +341,41 @@ export interface ElectronAPI {
      * Export the current chat to a Markdown file.
      */
     exportChatToMarkdown: () => void;
+
+    // =========================================================================
+    // Platform Hotkey Status API
+    // =========================================================================
+
+    /** Get current platform hotkey status (Wayland/Portal info) */
+    getPlatformHotkeyStatus: () => Promise<PlatformHotkeyStatus>;
+
+    /** Listen for platform hotkey status changes. Returns unsubscribe function. */
+    onPlatformHotkeyStatusChanged: (callback: (status: PlatformHotkeyStatus) => void) => () => void;
+
+    // =========================================================================
+    // Test-Only: D-Bus Activation Signal Tracking (Wayland Integration Tests)
+    // =========================================================================
+
+    /**
+     * Get D-Bus activation signal statistics.
+     * Returns tracking data for verified Activated signals on Wayland.
+     * Only populated when NODE_ENV=test or DEBUG_DBUS=1.
+     */
+    getDbusActivationSignalStats: () => Promise<{
+        trackingEnabled: boolean;
+        totalSignals: number;
+        signalsByShortcut: Record<string, number>;
+        lastSignalTime: number | null;
+        signals: ReadonlyArray<{
+            shortcutId: string;
+            timestamp: number;
+            sessionPath: string;
+        }>;
+    }>;
+
+    /**
+     * Clear D-Bus activation signal history.
+     * Useful for test isolation between test cases.
+     */
+    clearDbusActivationSignalHistory: () => void;
 }

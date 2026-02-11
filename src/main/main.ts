@@ -6,12 +6,21 @@
  * strips X-Frame-Options headers to allow embedding Gemini in an iframe.
  */
 
+// ==========================================================================
+// CRITICAL: Sandbox detection MUST run before any other imports that read
+// BASE_WEB_PREFERENCES from constants.ts. ES `import` statements are hoisted
+// above inline code, so we use a side-effect import that performs detection
+// and calls app.commandLine.appendSwitch('no-sandbox') at module load time.
+// This ensures the switch is set BEFORE constants.ts evaluates sandbox state.
+// ==========================================================================
+import './utils/sandboxInit';
+
 import { app, BrowserWindow, crashReporter, session } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
-import { isLinux, isWindows, APP_ID } from './utils/constants';
+import { isLinux, isWindows, APP_ID, getWaylandPlatformStatus } from './utils/constants';
 
 import { createLogger } from './utils/logger';
 
@@ -32,6 +41,10 @@ if (isLinux) {
     // On Linux, the internal app name should match the executable/id for better WM_CLASS matching
     app.setName('gemini-desktop');
 
+    // Set the Wayland app_id / X11 WM_CLASS so KDE and other DEs identify the app
+    // correctly in portal dialogs and task managers (instead of "org.chromium.Chromium")
+    app.commandLine.appendSwitch('class', 'gemini-desktop');
+
     // Set desktop name for portal integration
     try {
         if (typeof (app as any).setDesktopName === 'function') {
@@ -41,22 +54,20 @@ if (isLinux) {
         logger.error('Error calling setDesktopName:', e);
     }
 
-    // Wayland Global Shortcuts:
-    // Global shortcuts on Wayland are challenging due to its security model.
-    // - Electron's globalShortcut API relies on X11 grab mechanisms
-    // - On pure Wayland, shortcuts require xdg-desktop-portal integration
-    // - XWayland compatibility mode often works but is unreliable on GNOME 46+
-    //
-    // Current approach: Let Electron/Chromium use default behavior.
-    // If running on Wayland, hotkeys may not work and users should be informed.
-    //
-    // See: https://github.com/nicolomaioli/gemini-desktop/issues/XXX
+    // Wayland Global Shortcuts Detection
+    const waylandStatus = getWaylandPlatformStatus();
+    logger.log('Wayland detection:', JSON.stringify(waylandStatus));
 
-    const isWayland = process.env.XDG_SESSION_TYPE === 'wayland';
-    logger.log(`XDG_SESSION_TYPE: ${process.env.XDG_SESSION_TYPE}`);
-
-    if (isWayland) {
-        logger.warn('Wayland session detected. Global hotkeys are disabled due to Wayland limitations.');
+    if (waylandStatus.isWayland && waylandStatus.portalAvailable) {
+        // NOTE: We intentionally do NOT enable Chromium's GlobalShortcutsPortal feature flag.
+        // Chromium's globalShortcut.register() reports false positive success on KDE Plasma 6
+        // and interferes with our direct D-Bus portal session. We handle global shortcuts
+        // entirely via dbus-next in hotkeyManager._registerViaDBusDirect().
+        logger.log('Wayland detected with portal — will use D-Bus portal for global shortcuts');
+    } else if (waylandStatus.isWayland) {
+        logger.warn(
+            `Wayland detected but portal unavailable. DE: ${waylandStatus.desktopEnvironment}, Version: ${waylandStatus.deVersion}`
+        );
     }
 } else {
     // Set application name for Windows/macOS

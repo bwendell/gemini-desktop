@@ -63,7 +63,7 @@ Gemini Desktop is a native desktop wrapper for Google Gemini that provides enhan
 
 - **Gemini Web App:** The app embeds `https://gemini.google.com/app` in an iframe after stripping `X-Frame-Options` headers
 - **Quick Chat:** Spotlight-style floating window activated by global hotkey (`Ctrl+Shift+Space`) for quick prompts
-- **Stealth Mode:** Instantly hide app to system tray via hotkey (`Ctrl+Alt+E`)
+- **Stealth Mode:** Instantly hide app to system tray via hotkey (`Ctrl+Alt+H`)
 - **Session Persistence:** Google auth sessions stored in Chromium's encrypted cookie storage via `persist:gemini` partition
 
 ## Important Constraints

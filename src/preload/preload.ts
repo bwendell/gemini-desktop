@@ -17,6 +17,9 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ElectronAPI } from '../shared/types';
+
+/** Whether to expose test-only D-Bus activation signal APIs */
+const TEST_ONLY_DBUS_SIGNALS_ENABLED = process.env.NODE_ENV === 'test' || process.env.DEBUG_DBUS === '1';
 /**
  * IPC channel names used for main process <-> renderer communication.
  *
@@ -92,6 +95,14 @@ export const IPC_CHANNELS = {
 
     // Tray
     TRAY_GET_TOOLTIP: 'tray:get-tooltip',
+
+    // Platform Status
+    PLATFORM_HOTKEY_STATUS_GET: 'platform:hotkey-status:get',
+    PLATFORM_HOTKEY_STATUS_CHANGED: 'platform:hotkey-status:changed',
+
+    // Test-only: D-Bus activation signal tracking (Wayland integration tests)
+    DBUS_ACTIVATION_SIGNAL_STATS_GET: 'test:dbus:activation-signal-stats:get',
+    DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR: 'test:dbus:activation-signal-history:clear',
 
     // Dev Testing (only used in development for manual testing)
     DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
@@ -188,6 +199,29 @@ const electronAPI: ElectronAPI = {
      * Values: 'win32' (Windows), 'darwin' (macOS), 'linux'
      */
     platform: process.platform,
+
+    /**
+     * Get the current platform hotkey status, including Wayland and D-Bus info.
+     * Accurate platform hotkey status for the renderer.
+     *
+     * @returns Promise resolving to PlatformHotkeyStatus
+     */
+    getPlatformHotkeyStatus: () => ipcRenderer.invoke(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET),
+
+    /**
+     * Subscribe to platform hotkey status change events.
+     *
+     * @param callback - Function called with PlatformHotkeyStatus when any status changes
+     * @returns Cleanup function to unsubscribe
+     */
+    onPlatformHotkeyStatusChanged: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, status: any) => callback(status);
+        ipcRenderer.on(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_CHANGED, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_CHANGED, subscription);
+        };
+    },
 
     /**
      * Flag indicating we're running in Electron.
@@ -573,7 +607,7 @@ const electronAPI: ElectronAPI = {
     devEmitUpdateEvent: (event, data) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, event, data),
 
     /**
-     * Mock platform/env for testing logic.
+     * Mock platform/env for testing.
      */
     devMockPlatform: (platform, env) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_MOCK_PLATFORM, platform, env),
 
@@ -582,6 +616,22 @@ const electronAPI: ElectronAPI = {
      * Call this from the Options window to trigger a notification while main window is unfocused.
      */
     devTriggerResponseNotification: () => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_TRIGGER_RESPONSE_NOTIFICATION),
+
+    // Test-only D-Bus activation signal APIs (only available in test/debug mode)
+    // In production, these are no-ops that still satisfy the type system
+    getDbusActivationSignalStats: TEST_ONLY_DBUS_SIGNALS_ENABLED
+        ? () => ipcRenderer.invoke(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_STATS_GET)
+        : () =>
+              Promise.resolve({
+                  trackingEnabled: false,
+                  totalSignals: 0,
+                  signalsByShortcut: {},
+                  lastSignalTime: null,
+                  signals: Object.freeze([]),
+              }),
+    clearDbusActivationSignalHistory: TEST_ONLY_DBUS_SIGNALS_ENABLED
+        ? () => ipcRenderer.send(IPC_CHANNELS.DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR)
+        : () => {}, // No-op in production
 
     // =========================================================================
     // E2E Testing Helpers

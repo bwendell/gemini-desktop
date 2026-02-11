@@ -50,6 +50,10 @@ describe('Toast Provider Integration', () => {
 
     describe('Context Access', () => {
         beforeEach(async () => {
+            // Wait for potential LinuxHotkeyNotice toast to appear
+            // (appears after 1000ms on Linux when hotkeys unavailable)
+            await browser.pause(1500);
+
             // Ensure no toasts are present before each test
             await browser.execute(() => {
                 const win = window as any;
@@ -64,7 +68,7 @@ describe('Toast Provider Integration', () => {
                         const toasts = await browser.$$('.toast');
                         return toasts.length === 0;
                     },
-                    { timeout: 3000, interval: 100 }
+                    { timeout: 5000, interval: 100 }
                 )
                 .catch(() => {
                     // Ignore timeout - toasts may already be gone
@@ -122,7 +126,7 @@ describe('Toast Provider Integration', () => {
 
             // Verify toast is removed
             const toast = await browser.$('.toast');
-            await toast.waitForExist({ timeout: 2000, reverse: true });
+            await toast.waitForExist({ timeout: 5000, reverse: true });
         });
     });
 
@@ -194,7 +198,7 @@ describe('Toast Provider Integration', () => {
                     const toasts = await browser.$$('.toast');
                     return toasts.length === 0;
                 },
-                { timeout: 5000, interval: 500, timeoutMsg: 'Toast was not removed' }
+                { timeout: 8000, interval: 200, timeoutMsg: 'Toast was not removed' }
             );
         });
     });

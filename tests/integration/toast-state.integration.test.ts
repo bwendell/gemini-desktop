@@ -101,10 +101,14 @@ describe('Toast State Management Integration', () => {
 
     describe('showToast → state update → re-render', () => {
         beforeEach(async () => {
+            // Wait for potential LinuxHotkeyNotice toast to appear
+            // (appears after 1000ms on Linux when hotkeys unavailable)
+            await browser.pause(1500);
+
             await dismissAll();
             // Wait for DOM to clear
             await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 3000,
+                timeout: 5000,
                 timeoutMsg: 'Toasts not cleared from DOM',
             });
         });
@@ -149,10 +153,14 @@ describe('Toast State Management Integration', () => {
 
     describe('rapid sequential showToast calls', () => {
         beforeEach(async () => {
+            // Wait for potential LinuxHotkeyNotice toast to appear
+            // (appears after 1000ms on Linux when hotkeys unavailable)
+            await browser.pause(1500);
+
             await dismissAll();
             // Wait for DOM to clear
             await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 3000,
+                timeout: 5000,
                 timeoutMsg: 'Toasts not cleared from DOM',
             });
         });
@@ -238,10 +246,14 @@ describe('Toast State Management Integration', () => {
 
     describe('concurrent showToast and dismissToast', () => {
         beforeEach(async () => {
+            // Wait for potential LinuxHotkeyNotice toast to appear
+            // (appears after 1000ms on Linux when hotkeys unavailable)
+            await browser.pause(1500);
+
             await dismissAll();
             // Wait for DOM to clear
             await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 3000,
+                timeout: 5000,
                 timeoutMsg: 'Toasts not cleared from DOM',
             });
         });
@@ -324,10 +336,14 @@ describe('Toast State Management Integration', () => {
 
     describe('state persistence across re-renders', () => {
         beforeEach(async () => {
+            // Wait for potential LinuxHotkeyNotice toast to appear
+            // (appears after 1000ms on Linux when hotkeys unavailable)
+            await browser.pause(1500);
+
             await dismissAll();
             // Wait for DOM to clear
             await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 3000,
+                timeout: 5000,
                 timeoutMsg: 'Toasts not cleared from DOM',
             });
         });

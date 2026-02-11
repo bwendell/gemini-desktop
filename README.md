@@ -71,7 +71,7 @@ Users have been asking for a desktop Gemini client with these features—**we de
 
 ### 🕵️ Stealth Mode
 
-Need to vanish? Press **`Ctrl+Alt+E`** (or **`Cmd+Alt+E`**) to instantly minimize the app to the system tray. Out of sight, out of mind, until you need it again.
+Need to vanish? Press **`Ctrl+Alt+H`** (or **`Cmd+Alt+H`**) to instantly minimize the app to the system tray. Out of sight, out of mind, until you need it again.
 
 ### 📌 Always On Top
 
@@ -147,7 +147,7 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 | Shortcut            | Action                              |
 | ------------------- | ----------------------------------- |
 | `Ctrl+Shift+Space`  | Toggle Quick Chat                   |
-| `Ctrl+Alt+E`        | **Stealth Mode** (Minimize to tray) |
+| `Ctrl+Alt+H`        | **Stealth Mode** (Minimize to tray) |
 | `Ctrl+P`            | Print to PDF                        |
 | `Ctrl+=` / `Ctrl+-` | Zoom In / Out                       |
 | `Ctrl+,`            | Open Settings                       |
@@ -270,6 +270,14 @@ npm run test:e2e
 ```
 
 We believe that a robust test suite is key to maintaining a high-quality experience.
+
+### 🧪 Wayland Support & Testing (Linux)
+
+Gemini Desktop supports native global hotkeys on **KDE Wayland** via XDG Desktop Portals.
+
+- **Manual Testing**: See [Wayland Manual Testing Checklist](docs/WAYLAND_MANUAL_TESTING.md).
+- **Automated Testing**: Most Wayland tests are skipped in CI due to environment constraints. For local runs, follow the [Wayland Testing Runbook](docs/WAYLAND_TESTING_RUNBOOK.md).
+- **Debug Mode**: Run with `DEBUG_DBUS=1` to enable D-Bus signal tracking (see `docs/TEST_ONLY_SIGNAL_TRACKING.md`).
 
 ---
 

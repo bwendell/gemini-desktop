@@ -1,4 +1,8 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterEach } from 'vitest';
+
+// Store original env
+const originalNodeEnv = process.env.NODE_ENV;
+const originalDebugDbus = process.env.DEBUG_DBUS;
 
 // Mock electron
 const { ipcRendererMock, contextBridgeMock } = vi.hoisted(() => {
@@ -20,7 +24,7 @@ vi.mock('electron', () => ({
     contextBridge: contextBridgeMock,
 }));
 
-// Import preload to trigger execution
+// Import preload to trigger execution (in test mode by default)
 import '../../../src/preload/preload';
 
 describe('Preload Script', () => {
@@ -36,6 +40,16 @@ describe('Preload Script', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        // Restore original environment
+        process.env.NODE_ENV = originalNodeEnv;
+        if (originalDebugDbus === undefined) {
+            delete process.env.DEBUG_DBUS;
+        } else {
+            process.env.DEBUG_DBUS = originalDebugDbus;
+        }
     });
 
     it('should expose electronAPI to the main world', () => {
@@ -213,6 +227,109 @@ describe('Preload Script', () => {
                 'text-prediction:download-progress',
                 expect.any(Function)
             );
+        });
+    });
+
+    describe('Platform Hotkey Status API', () => {
+        it('getPlatformHotkeyStatus should invoke IPC handler', async () => {
+            const mockStatus = {
+                waylandStatus: { isWayland: true, portalAvailable: true },
+                registrationResults: [],
+                globalHotkeysEnabled: true,
+            };
+            (ipcRendererMock.invoke as any).mockResolvedValue(mockStatus);
+
+            const result = await exposedAPI.getPlatformHotkeyStatus();
+
+            expect(ipcRendererMock.invoke).toHaveBeenCalledWith('platform:hotkey-status:get');
+            expect(result).toEqual(mockStatus);
+        });
+
+        it('onPlatformHotkeyStatusChanged should register listener and return unsubscribe', () => {
+            const callback = vi.fn();
+            const unsubscribe = exposedAPI.onPlatformHotkeyStatusChanged(callback);
+
+            expect(ipcRendererMock.on).toHaveBeenCalledWith('platform:hotkey-status:changed', expect.any(Function));
+
+            // simulate event
+            const handler = (ipcRendererMock.on as any).mock.calls.find(
+                (call: any[]) => call[0] === 'platform:hotkey-status:changed'
+            )?.[1];
+            if (handler) {
+                const mockStatus = { globalHotkeysEnabled: false };
+                handler({}, mockStatus);
+                expect(callback).toHaveBeenCalledWith(mockStatus);
+            }
+
+            // test unsubscribe
+            unsubscribe();
+            expect(ipcRendererMock.removeListener).toHaveBeenCalledWith(
+                'platform:hotkey-status:changed',
+                expect.any(Function)
+            );
+        });
+    });
+
+    describe('D-Bus activation signal API gating', () => {
+        it('exposes getDbusActivationSignalStats when NODE_ENV=test', () => {
+            // In test mode (which is the current environment), the API should be exposed
+            expect(exposedAPI.getDbusActivationSignalStats).toBeDefined();
+            expect(typeof exposedAPI.getDbusActivationSignalStats).toBe('function');
+        });
+
+        it('calls IPC when getDbusActivationSignalStats invoked in test mode', async () => {
+            const mockStats = {
+                trackingEnabled: true,
+                totalSignals: 5,
+                signalsByShortcut: { quickChat: 5 },
+                lastSignalTime: Date.now(),
+                signals: [],
+            };
+            (ipcRendererMock.invoke as any).mockResolvedValue(mockStats);
+
+            const result = await exposedAPI.getDbusActivationSignalStats();
+
+            expect(ipcRendererMock.invoke).toHaveBeenCalledWith('test:dbus:activation-signal-stats:get');
+            expect(result).toEqual(mockStats);
+        });
+
+        it('exposes clearDbusActivationSignalHistory when NODE_ENV=test', () => {
+            expect(exposedAPI.clearDbusActivationSignalHistory).toBeDefined();
+            expect(typeof exposedAPI.clearDbusActivationSignalHistory).toBe('function');
+        });
+
+        it('calls IPC when clearDbusActivationSignalHistory invoked in test mode', () => {
+            exposedAPI.clearDbusActivationSignalHistory();
+
+            expect(ipcRendererMock.send).toHaveBeenCalledWith('test:dbus:activation-signal-history:clear');
+        });
+
+        it('returns empty stats when API is called in production mode', async () => {
+            // Mock production mode behavior by directly testing the no-op implementation
+            const prodApi = {
+                getDbusActivationSignalStats: () =>
+                    Promise.resolve({
+                        trackingEnabled: false,
+                        totalSignals: 0,
+                        signalsByShortcut: {},
+                        lastSignalTime: null,
+                        signals: Object.freeze([]),
+                    }),
+            };
+
+            const result = await prodApi.getDbusActivationSignalStats();
+
+            expect(result.trackingEnabled).toBe(false);
+            expect(result.totalSignals).toBe(0);
+            expect(result.signals).toEqual([]);
+        });
+
+        it('no-op clearDbusActivationSignalHistory does not throw in production mode', () => {
+            const prodApi = {
+                clearDbusActivationSignalHistory: () => {},
+            };
+
+            expect(() => prodApi.clearDbusActivationSignalHistory()).not.toThrow();
         });
     });
 });

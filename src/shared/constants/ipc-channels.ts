@@ -100,6 +100,14 @@ export const IPC_CHANNELS = {
     TEXT_PREDICTION_DOWNLOAD_PROGRESS: 'text-prediction:download-progress',
     TEXT_PREDICTION_PREDICT: 'text-prediction:predict',
 
+    // Platform Status
+    PLATFORM_HOTKEY_STATUS_GET: 'platform:hotkey-status:get',
+    PLATFORM_HOTKEY_STATUS_CHANGED: 'platform:hotkey-status:changed',
+
+    // Test-only: D-Bus activation signal tracking (Wayland integration tests)
+    DBUS_ACTIVATION_SIGNAL_STATS_GET: 'test:dbus:activation-signal-stats:get',
+    DBUS_ACTIVATION_SIGNAL_HISTORY_CLEAR: 'test:dbus:activation-signal-history:clear',
+
     // Dev Testing (only used in development for manual testing)
     DEV_TEST_SHOW_BADGE: 'dev:test:show-badge',
     DEV_TEST_CLEAR_BADGE: 'dev:test:clear-badge',

@@ -18,7 +18,7 @@ import {
     QUICK_CHAT_WIDTH,
     QUICK_CHAT_HEIGHT,
     BASE_WINDOW_CONFIG,
-    BASE_WEB_PREFERENCES,
+    getBaseWebPreferences,
     GITHUB_REPO_URL,
     GITHUB_ISSUES_URL,
     GITHUB_LICENSE_URL,
@@ -129,10 +129,11 @@ describe('Constants', () => {
     });
 
     describe('Window Config Constants', () => {
-        it('BASE_WEB_PREFERENCES has security settings', () => {
-            expect(BASE_WEB_PREFERENCES!.contextIsolation).toBe(true);
-            expect(BASE_WEB_PREFERENCES!.nodeIntegration).toBe(false);
-            expect(BASE_WEB_PREFERENCES!.sandbox).toBe(true);
+        it('getBaseWebPreferences returns security settings', () => {
+            const prefs = getBaseWebPreferences();
+            expect(prefs!.contextIsolation).toBe(true);
+            expect(prefs!.nodeIntegration).toBe(false);
+            expect(prefs!.sandbox).toBe(true);
         });
 
         it('BASE_WINDOW_CONFIG has show:false to prevent flash', () => {

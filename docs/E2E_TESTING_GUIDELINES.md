@@ -447,6 +447,42 @@ npm run test:e2e:group:hotkeys   # Hotkey tests
 # See package.json for full list of groups
 ```
 
+### Debugging D-Bus Issues
+
+For Linux/Wayland systems using D-Bus global hotkeys, you can enable verbose D-Bus logging to debug connection issues, signal reception, and portal communication.
+
+The `DEBUG_DBUS` environment variable enables detailed logging including:
+
+- D-Bus connection heartbeat (every 5 seconds)
+- Message body dumps for GlobalShortcuts interface
+- Activation signal tracking statistics
+
+> **Note:** This requires both `NODE_ENV=test` (automatic in test runs) AND `DEBUG_DBUS=1` to be set.
+
+**Unit Tests:**
+
+```bash
+DEBUG_DBUS=1 npx vitest tests/unit/main/utils/dbusFallback.test.ts
+```
+
+**Integration Tests:**
+
+```bash
+DEBUG_DBUS=1 npm run test:integration -- --spec="tests/integration/hotkeys.integration.test.ts"
+```
+
+**E2E Tests:**
+
+```powershell
+DEBUG_DBUS=1 npm run test:e2e:spec -- --spec=tests/e2e/hotkeys.spec.ts
+```
+
+The verbose output will appear in the console/logs, showing:
+
+- D-Bus session bus connection status
+- Portal method calls and responses
+- Global shortcut activation signals
+
 ---
 
 ## Wait Strategies
