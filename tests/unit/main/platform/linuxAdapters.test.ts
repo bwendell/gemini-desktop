@@ -321,6 +321,58 @@ describe('LinuxWaylandAdapter', () => {
             expect(adapter.getDockMenuTemplate(callbacks)).toBeNull();
         });
     });
+
+    // --- New platform-specific methods ---
+
+    describe('getTitleBarStyle()', () => {
+        it('should return undefined (Linux does not use custom title bar)', () => {
+            expect(adapter.getTitleBarStyle()).toBeUndefined();
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return "icon.png" for Linux', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.png');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return true when APPIMAGE is set', () => {
+            const env = { APPIMAGE: '/path/to/app.AppImage' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
+        });
+
+        it('should return false when APPIMAGE is not set', () => {
+            const env = {};
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+
+        it('should return false when APPIMAGE is empty string', () => {
+            const env = { APPIMAGE: '' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+
+        it('should return false when PORTABLE_EXECUTABLE_DIR is set (Windows only)', () => {
+            const env = { PORTABLE_EXECUTABLE_DIR: '/path/to/portable' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should be a no-op on Linux (not throw)', async () => {
+            const logger = createMockLogger();
+            await expect(adapter.requestMediaPermissions(logger)).resolves.toBeUndefined();
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return a libnotify guidance string for Linux', () => {
+            const hint = adapter.getNotificationSupportHint();
+            expect(typeof hint).toBe('string');
+            expect(hint?.length).toBeGreaterThan(0);
+            expect(hint).toContain('libnotify');
+        });
+    });
 });
 
 // ===========================================================================
@@ -521,6 +573,58 @@ describe('LinuxX11Adapter', () => {
                 createOptionsWindow: vi.fn(),
             };
             expect(adapter.getDockMenuTemplate(callbacks)).toBeNull();
+        });
+    });
+
+    // --- New platform-specific methods ---
+
+    describe('getTitleBarStyle()', () => {
+        it('should return undefined (Linux does not use custom title bar)', () => {
+            expect(adapter.getTitleBarStyle()).toBeUndefined();
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return "icon.png" for Linux', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.png');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return true when APPIMAGE is set', () => {
+            const env = { APPIMAGE: '/path/to/app.AppImage' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
+        });
+
+        it('should return false when APPIMAGE is not set', () => {
+            const env = {};
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+
+        it('should return false when APPIMAGE is empty string', () => {
+            const env = { APPIMAGE: '' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+
+        it('should return false when PORTABLE_EXECUTABLE_DIR is set (Windows only)', () => {
+            const env = { PORTABLE_EXECUTABLE_DIR: '/path/to/portable' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should be a no-op on Linux (not throw)', async () => {
+            const logger = createMockLogger();
+            await expect(adapter.requestMediaPermissions(logger)).resolves.toBeUndefined();
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return a libnotify guidance string for Linux', () => {
+            const hint = adapter.getNotificationSupportHint();
+            expect(typeof hint).toBe('string');
+            expect(hint?.length).toBeGreaterThan(0);
+            expect(hint).toContain('libnotify');
         });
     });
 });

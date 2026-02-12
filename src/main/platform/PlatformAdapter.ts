@@ -19,6 +19,8 @@ import type {
     ClearBadgeParams,
     DockMenuCallbacks,
     MainWindowPlatformConfig,
+    TitleBarStyle,
+    AppIconFilename,
 } from './types';
 
 /**
@@ -133,4 +135,45 @@ export interface PlatformAdapter {
      * Returns null on non-macOS platforms.
      */
     getDockMenuTemplate(callbacks: DockMenuCallbacks): MenuItemConstructorOptions[] | null;
+
+    /**
+     * Get the title bar style for the main window.
+     * macOS returns 'hidden' for custom title bar; others return undefined.
+     */
+    getTitleBarStyle(): TitleBarStyle;
+
+    /**
+     * Get the app icon filename for this platform.
+     * Windows: 'icon.ico', others: 'icon.png'
+     */
+    getAppIconFilename(): AppIconFilename;
+
+    /**
+     * Check if automatic updates should be disabled based on environment.
+     * Windows: disabled when PORTABLE_EXECUTABLE_DIR is set
+     * Linux: disabled when APPIMAGE is set
+     * macOS: never disabled by these env vars
+     */
+    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean;
+
+    /**
+     * Request media permissions (microphone, camera) from the system.
+     * macOS: dynamically imports and calls systemPreferences.askForMediaAccess()
+     * Others: no-op
+     */
+    requestMediaPermissions(logger: Logger): Promise<void>;
+
+    // ----- Notification methods -----
+
+    /**
+     * Get a platform-specific hint message for when notifications are not supported.
+     * Used to provide helpful guidance when Notification.isSupported() returns false.
+     * Returns a non-empty string with actionable guidance, or undefined if no hint is available.
+     *
+     * Examples:
+     * - Linux: libnotify installation instructions
+     * - Windows: generic "not supported on this platform"
+     * - macOS: generic "not supported on this platform"
+     */
+    getNotificationSupportHint(): string | undefined;
 }

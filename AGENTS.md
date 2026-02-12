@@ -110,19 +110,6 @@ import './App.css';
     - `unit/`: Vitest unit tests for shared, renderer, and preload.
     - `coordinated/`: Vitest tests for multi-window coordination.
     - `e2e/`: WDIO End-to-End tests.
-- `openspec/`: Specification-driven development docs (see `openspec/AGENTS.md`).
-
----
-
-## 📜 OpenSpec Workflow
-
-This project uses **OpenSpec** for planning and tracking changes.
-**CRITICAL:** For any non-trivial change, you MUST follow the OpenSpec workflow:
-
-1. Read `openspec/AGENTS.md` for detailed instructions.
-2. Create a change proposal in `openspec/changes/`.
-3. Update `tasks.md` as you progress.
-4. Archive the change once complete.
 
 ---
 

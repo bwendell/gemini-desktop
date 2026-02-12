@@ -5,6 +5,7 @@
  */
 
 import type { Session, App } from 'electron';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 import { createLogger } from './logger';
 
 const logger = createLogger('[SecurityManager]');
@@ -116,16 +117,8 @@ export function setupMediaPermissions(session: Session): void {
     });
 
     // macOS: Proactively request microphone access
-    if (process.platform === 'darwin') {
-        // Dynamic import to avoid bundling issues on non-macOS
-        import('electron').then(({ systemPreferences }) => {
-            if (systemPreferences.askForMediaAccess) {
-                systemPreferences.askForMediaAccess('microphone').then((granted) => {
-                    logger.log(`macOS microphone access: ${granted ? 'granted' : 'denied'}`);
-                });
-            }
-        });
-    }
+    const adapter = getPlatformAdapter();
+    adapter.requestMediaPermissions(logger);
 
     logger.log('Media permission handler configured for Gemini domains');
 }

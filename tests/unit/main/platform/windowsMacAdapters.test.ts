@@ -28,6 +28,14 @@ vi.mock('../../../../src/main/utils/logger', () => ({
     }),
 }));
 
+const mockAskForMediaAccess = vi.hoisted(() => vi.fn().mockResolvedValue(true));
+
+vi.mock('electron', () => ({
+    systemPreferences: {
+        askForMediaAccess: mockAskForMediaAccess,
+    },
+}));
+
 import { WindowsAdapter } from '../../../../src/main/platform/adapters/WindowsAdapter';
 import { MacAdapter } from '../../../../src/main/platform/adapters/MacAdapter';
 
@@ -141,6 +149,42 @@ describe('WindowsAdapter', () => {
     describe('shouldQuitOnWindowAllClosed()', () => {
         it('should return true', () => {
             expect(adapter.shouldQuitOnWindowAllClosed()).toBe(true);
+        });
+    });
+
+    describe('getTitleBarStyle()', () => {
+        it('should return undefined', () => {
+            expect(adapter.getTitleBarStyle()).toBeUndefined();
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return icon.ico on Windows', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.ico');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return true when PORTABLE_EXECUTABLE_DIR is set', () => {
+            expect(adapter.shouldDisableUpdates({ PORTABLE_EXECUTABLE_DIR: 'C:\\Portable' })).toBe(true);
+        });
+
+        it('should return false when PORTABLE_EXECUTABLE_DIR is not set', () => {
+            expect(adapter.shouldDisableUpdates({})).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should be a no-op on Windows', async () => {
+            const logger = createMockLogger();
+            await expect(adapter.requestMediaPermissions(logger)).resolves.toBeUndefined();
+            expect(mockAskForMediaAccess).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return undefined on Windows', () => {
+            expect(adapter.getNotificationSupportHint()).toBeUndefined();
         });
     });
 
@@ -280,6 +324,50 @@ describe('WindowsAdapter', () => {
             expect(adapter.getDockMenuTemplate(callbacks)).toBeNull();
         });
     });
+
+    // --- New platform-specific methods ---
+
+    describe('getTitleBarStyle()', () => {
+        it('should return undefined (Windows does not use custom title bar)', () => {
+            expect(adapter.getTitleBarStyle()).toBeUndefined();
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return "icon.ico" for Windows', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.ico');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return true when PORTABLE_EXECUTABLE_DIR is set', () => {
+            const env = { PORTABLE_EXECUTABLE_DIR: '/path/to/portable' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
+        });
+
+        it('should return false when PORTABLE_EXECUTABLE_DIR is not set', () => {
+            const env = {};
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+
+        it('should return false when PORTABLE_EXECUTABLE_DIR is empty string', () => {
+            const env = { PORTABLE_EXECUTABLE_DIR: '' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should be a no-op on Windows (not throw)', async () => {
+            const logger = createMockLogger();
+            await expect(adapter.requestMediaPermissions(logger)).resolves.toBeUndefined();
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return undefined (Windows has native notifications)', () => {
+            expect(adapter.getNotificationSupportHint()).toBeUndefined();
+        });
+    });
 });
 
 // ===========================================================================
@@ -354,6 +442,41 @@ describe('MacAdapter', () => {
     describe('shouldQuitOnWindowAllClosed()', () => {
         it('should return false (macOS stays in dock)', () => {
             expect(adapter.shouldQuitOnWindowAllClosed()).toBe(false);
+        });
+    });
+
+    describe('getTitleBarStyle()', () => {
+        it('should return hidden on macOS', () => {
+            expect(adapter.getTitleBarStyle()).toBe('hidden');
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return icon.png on macOS', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.png');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return false regardless of env', () => {
+            expect(adapter.shouldDisableUpdates({ APPIMAGE: '1' })).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should call systemPreferences.askForMediaAccess', async () => {
+            const logger = createMockLogger();
+
+            await adapter.requestMediaPermissions(logger);
+
+            expect(mockAskForMediaAccess).toHaveBeenCalledWith('microphone');
+            expect(logger.log).toHaveBeenCalledWith('macOS microphone access: granted');
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return undefined on macOS', () => {
+            expect(adapter.getNotificationSupportHint()).toBeUndefined();
         });
     });
 
@@ -520,6 +643,45 @@ describe('MacAdapter', () => {
             settings?.click?.(null as any, null as any, null as any);
 
             expect(callbacks.createOptionsWindow).toHaveBeenCalled();
+        });
+    });
+
+    // --- New platform-specific methods ---
+
+    describe('getTitleBarStyle()', () => {
+        it('should return "hidden" on macOS', () => {
+            expect(adapter.getTitleBarStyle()).toBe('hidden');
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return "icon.png" for macOS', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.png');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return false (macOS updates not disabled by default)', () => {
+            const env = {};
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+
+        it('should return false even with env vars set', () => {
+            const env = { APPIMAGE: '/path/to/appimage', PORTABLE_EXECUTABLE_DIR: '/path/to/portable' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should be async and resolve without throwing', async () => {
+            const logger = createMockLogger();
+            await expect(adapter.requestMediaPermissions(logger)).resolves.toBeUndefined();
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return undefined (macOS has native notifications)', () => {
+            expect(adapter.getNotificationSupportHint()).toBeUndefined();
         });
     });
 });

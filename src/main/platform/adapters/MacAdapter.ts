@@ -18,6 +18,8 @@ import type {
     ClearBadgeParams,
     DockMenuCallbacks,
     MainWindowPlatformConfig,
+    TitleBarStyle,
+    AppIconFilename,
 } from '../types';
 
 /** Default WaylandStatus for non-Linux platforms */
@@ -132,5 +134,29 @@ export class MacAdapter implements PlatformAdapter {
                 click: () => callbacks.createOptionsWindow(),
             },
         ];
+    }
+
+    getTitleBarStyle(): TitleBarStyle {
+        return 'hidden';
+    }
+
+    getAppIconFilename(): AppIconFilename {
+        return 'icon.png';
+    }
+
+    shouldDisableUpdates(_env: NodeJS.ProcessEnv): boolean {
+        return false;
+    }
+
+    async requestMediaPermissions(logger: Logger): Promise<void> {
+        const { systemPreferences } = await import('electron');
+        if (systemPreferences.askForMediaAccess) {
+            const granted = await systemPreferences.askForMediaAccess('microphone');
+            logger.log(`macOS microphone access: ${granted ? 'granted' : 'denied'}`);
+        }
+    }
+
+    getNotificationSupportHint(): string | undefined {
+        return undefined;
     }
 }

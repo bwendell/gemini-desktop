@@ -18,6 +18,8 @@ import type {
     ClearBadgeParams,
     DockMenuCallbacks,
     MainWindowPlatformConfig,
+    TitleBarStyle,
+    AppIconFilename,
 } from '../types';
 import { APP_ID } from '../../utils/constants';
 
@@ -121,5 +123,25 @@ export class WindowsAdapter implements PlatformAdapter {
 
     getDockMenuTemplate(_callbacks: DockMenuCallbacks): MenuItemConstructorOptions[] | null {
         return null;
+    }
+
+    getTitleBarStyle(): TitleBarStyle {
+        return undefined;
+    }
+
+    getAppIconFilename(): AppIconFilename {
+        return 'icon.ico';
+    }
+
+    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean {
+        return Boolean(env.PORTABLE_EXECUTABLE_DIR);
+    }
+
+    async requestMediaPermissions(_logger: Logger): Promise<void> {
+        // No-op on Windows
+    }
+
+    getNotificationSupportHint(): string | undefined {
+        return undefined;
     }
 }
