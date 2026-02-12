@@ -17,13 +17,7 @@ import { E2ELogger } from './helpers/logger';
 import { isHotkeyRegistered, REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { isLinuxCI } from './helpers/platform';
-import {
-    isWindowMinimized,
-    isWindowVisible,
-    minimizeWindow,
-    restoreWindow,
-    showWindow,
-} from './helpers/windowStateActions';
+import { isWindowVisible, hideWindow, restoreWindow, showWindow } from './helpers/windowStateActions';
 
 describe('Boss Key (Hide All Windows)', () => {
     const mainWindow = new MainWindowPage();
@@ -70,7 +64,7 @@ describe('Boss Key (Hide All Windows)', () => {
     });
 
     describe('Boss Key Action', () => {
-        it('should minimize main window when boss key is triggered', async function () {
+        it('should hide main window when boss key is triggered', async function () {
             // Skip on Linux CI - window minimize detection doesn't work under Xvfb
             if (await isLinuxCI()) {
                 E2ELogger.info('boss-key', 'Skipping - Linux CI uses headless Xvfb without window manager');
@@ -82,16 +76,12 @@ describe('Boss Key (Hide All Windows)', () => {
             expect(initialVisibility).toBe(true);
             E2ELogger.info('boss-key', 'Main window is visible initially');
 
-            // 2. Minimize the window (simulating boss key action)
-            await minimizeWindow();
+            await hideWindow();
 
-            // 3. Verify window is minimized
-            const minimized = await isWindowMinimized();
             const visible = await isWindowVisible();
 
-            // Window should be minimized (or hidden on some systems)
-            expect(minimized || !visible).toBe(true);
-            E2ELogger.info('boss-key', `After boss key: minimized=${minimized}, visible=${visible}`);
+            expect(visible).toBe(false);
+            E2ELogger.info('boss-key', `After boss key: visible=${visible}`);
 
             // 4. Restore window for cleanup
             await restoreWindow();
@@ -110,16 +100,14 @@ describe('Boss Key (Hide All Windows)', () => {
                 this.skip();
             }
 
-            // 1. Minimize the window
-            await minimizeWindow();
+            await hideWindow();
 
             // 2. Wait a moment to ensure it stays hidden
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            // 3. Check it's still minimized
-            const stillMinimized = await isWindowMinimized();
-            expect(stillMinimized).toBe(true);
-            E2ELogger.info('boss-key', 'Window remained minimized as expected');
+            const stillVisible = await isWindowVisible();
+            expect(stillVisible).toBe(false);
+            E2ELogger.info('boss-key', 'Window remained hidden as expected');
 
             // 4. Cleanup - restore
             await restoreWindow();

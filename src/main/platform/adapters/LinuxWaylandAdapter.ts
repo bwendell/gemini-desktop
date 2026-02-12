@@ -1,17 +1,24 @@
 /**
  * LinuxWaylandAdapter — Linux under Wayland compositor.
  *
- * Encapsulates Linux Wayland-specific app configuration and hotkey
- * registration strategy. Delegates Wayland detection to the existing
- * `getWaylandPlatformStatus()` in constants.ts (which wraps waylandDetector).
+ * Encapsulates Linux Wayland-specific app configuration, hotkey registration
+ * strategy, badge/tray/menu behavior. Delegates Wayland detection to the
+ * existing `getWaylandPlatformStatus()` in constants.ts (which wraps waylandDetector).
  *
  * @module LinuxWaylandAdapter
  */
 
+import type { MenuItemConstructorOptions } from 'electron';
 import type { WaylandStatus } from '../../../shared/types/hotkeys';
 import type { Logger } from '../../types';
 import type { PlatformAdapter } from '../PlatformAdapter';
-import type { HotkeyRegistrationPlan } from '../types';
+import type {
+    HotkeyRegistrationPlan,
+    ShowBadgeParams,
+    ClearBadgeParams,
+    DockMenuCallbacks,
+    MainWindowPlatformConfig,
+} from '../types';
 import { getWaylandPlatformStatus } from '../../utils/constants';
 
 export class LinuxWaylandAdapter implements PlatformAdapter {
@@ -87,5 +94,54 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
 
     shouldQuitOnWindowAllClosed(): boolean {
         return true;
+    }
+
+    // ----- Badge methods -----
+
+    supportsBadges(): boolean {
+        return false;
+    }
+
+    showBadge(_params: ShowBadgeParams): void {
+        // No native badge support on Linux
+    }
+
+    clearBadge(_params: ClearBadgeParams): void {
+        // No native badge support on Linux
+    }
+
+    // ----- Window methods -----
+
+    getMainWindowPlatformConfig(): MainWindowPlatformConfig {
+        return { wmClass: 'gemini-desktop' };
+    }
+
+    hideToTray(window: Electron.BrowserWindow): void {
+        window.hide();
+        window.setSkipTaskbar(true);
+    }
+
+    restoreFromTray(window: Electron.BrowserWindow): void {
+        window.show();
+        window.focus();
+        window.setSkipTaskbar(false);
+    }
+
+    // ----- Menu methods -----
+
+    shouldIncludeAppMenu(): boolean {
+        return false;
+    }
+
+    getSettingsMenuLabel(): string {
+        return 'Options';
+    }
+
+    getWindowCloseRole(): 'close' | 'quit' {
+        return 'quit';
+    }
+
+    getDockMenuTemplate(_callbacks: DockMenuCallbacks): MenuItemConstructorOptions[] | null {
+        return null;
     }
 }

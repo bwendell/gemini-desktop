@@ -17,12 +17,13 @@ import {
     getTitleBarStyle,
     isInternalDomain,
     isOAuthDomain,
-    isMacOS,
     getDevUrl,
     READY_TO_SHOW_FALLBACK_MS,
     GEMINI_RESPONSE_API_PATTERN,
 } from '../utils/constants';
 import { getIconPath, getDistHtmlPath } from '../utils/paths';
+import type { PlatformAdapter } from '../platform/PlatformAdapter';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 
 /**
  * Main application window.
@@ -56,17 +57,23 @@ export default class MainWindow extends BaseWindow {
     /** Stored webRequest filter for cleanup */
     private responseDetectionFilter?: Electron.WebRequestFilter;
 
+    /** Platform adapter for platform-specific window behavior */
+    private readonly adapter: PlatformAdapter;
+
     /**
      * Creates a new MainWindow instance.
      * @param isDev - Whether running in development mode
+     * @param adapter - Optional platform adapter (defaults to getPlatformAdapter())
      */
-    constructor(isDev: boolean) {
+    constructor(isDev: boolean, adapter?: PlatformAdapter) {
         super(isDev, '[MainWindow]');
+        this.adapter = adapter ?? getPlatformAdapter();
+
+        const platformConfig = this.adapter.getMainWindowPlatformConfig();
         this.windowConfig = {
             ...MAIN_WINDOW_CONFIG,
             title: 'Gemini Desktop',
-            // On Linux, the WM_CLASS should match the executable/desktop ID
-            ...(process.platform === 'linux' ? { wmClass: 'gemini-desktop' } : {}),
+            ...(platformConfig.wmClass ? { wmClass: platformConfig.wmClass } : {}),
             titleBarStyle: getTitleBarStyle(),
             icon: getIconPath(),
         };
@@ -332,11 +339,7 @@ export default class MainWindow extends BaseWindow {
             this.closeOptionsWindowCallback?.();
             this.closeAuthWindowCallback?.();
 
-            this.window.hide();
-            // On Windows/Linux, also remove from taskbar
-            if (!isMacOS) {
-                this.window.setSkipTaskbar(true);
-            }
+            this.adapter.hideToTray(this.window);
             this.logger.log('Main window hidden to tray');
         } catch (error) {
             this.logger.error('Failed to hide window to tray:', error);
@@ -353,12 +356,7 @@ export default class MainWindow extends BaseWindow {
                 return;
             }
 
-            this.window.show();
-            this.window.focus();
-            // Restore taskbar visibility on Windows/Linux
-            if (!isMacOS) {
-                this.window.setSkipTaskbar(false);
-            }
+            this.adapter.restoreFromTray(this.window);
             this.logger.log('Main window restored from tray');
         } catch (error) {
             this.logger.error('Failed to restore window from tray:', error);

@@ -5,53 +5,61 @@
  * @module badgeManager.test
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserWindow } from 'electron';
 import BadgeManager from '../../../src/main/managers/badgeManager';
+import type { PlatformAdapter } from '../../../src/main/platform/PlatformAdapter';
+import { WindowsAdapter } from '../../../src/main/platform/adapters/WindowsAdapter';
+import { MacAdapter } from '../../../src/main/platform/adapters/MacAdapter';
+import { LinuxX11Adapter } from '../../../src/main/platform/adapters/LinuxX11Adapter';
 
-// Mock platform state
-const mockPlatform = vi.hoisted(() => ({
-    isMacOS: false,
-    isWindows: true,
-    isLinux: false,
-}));
-
-// Mock the constants module with dynamic platform detection
+// Mock the constants module (still needed for non-platform imports used internally)
 vi.mock('../../../src/main/utils/constants', () => ({
-    get isMacOS() {
-        return mockPlatform.isMacOS;
-    },
-    get isWindows() {
-        return mockPlatform.isWindows;
-    },
-    get isLinux() {
-        return mockPlatform.isLinux;
-    },
+    isMacOS: false,
+    isWindows: false,
+    isLinux: true,
+    isWayland: false,
+    getWaylandPlatformStatus: vi.fn().mockReturnValue({
+        isWayland: false,
+        desktopEnvironment: 'unknown',
+        deVersion: null,
+        portalAvailable: false,
+        portalMethod: 'none',
+    }),
 }));
+
+/** Create a spy-wrapped adapter for a given platform */
+function createSpyAdapter(platform: 'windows' | 'mac' | 'linux'): PlatformAdapter {
+    let adapter: PlatformAdapter;
+    if (platform === 'windows') {
+        adapter = new WindowsAdapter();
+    } else if (platform === 'mac') {
+        adapter = new MacAdapter();
+    } else {
+        adapter = new LinuxX11Adapter();
+    }
+
+    // Wrap key methods with spies
+    vi.spyOn(adapter, 'supportsBadges');
+    vi.spyOn(adapter, 'showBadge');
+    vi.spyOn(adapter, 'clearBadge');
+
+    return adapter;
+}
 
 describe.each([
-    { name: 'Windows', isMacOS: false, isWindows: true, isLinux: false },
-    { name: 'macOS', isMacOS: true, isWindows: false, isLinux: false },
-    { name: 'Linux', isMacOS: false, isWindows: false, isLinux: true },
-])('BadgeManager on $name', ({ name, isMacOS, isWindows, isLinux }) => {
+    { name: 'Windows', platform: 'windows' as const },
+    { name: 'macOS', platform: 'mac' as const },
+    { name: 'Linux', platform: 'linux' as const },
+])('BadgeManager on $name', ({ name, platform }) => {
     let badgeManager: BadgeManager;
+    let adapter: PlatformAdapter;
 
     beforeEach(() => {
         vi.clearAllMocks();
 
-        // Set platform for this test
-        mockPlatform.isMacOS = isMacOS;
-        mockPlatform.isWindows = isWindows;
-        mockPlatform.isLinux = isLinux;
-
-        badgeManager = new BadgeManager();
-    });
-
-    afterEach(() => {
-        // Reset to Windows default
-        mockPlatform.isMacOS = false;
-        mockPlatform.isWindows = true;
-        mockPlatform.isLinux = false;
+        adapter = createSpyAdapter(platform);
+        badgeManager = new BadgeManager(adapter);
     });
 
     describe('constructor', () => {
@@ -141,10 +149,12 @@ describe.each([
         }
 
         if (name === 'macOS') {
-            it('uses app.dock.setBadge on macOS', () => {
-                const { app } = require('electron');
+            it('uses app.dock.setBadge on macOS via adapter', () => {
                 badgeManager.showUpdateBadge('•');
-                expect(app.dock?.setBadge).toHaveBeenCalledWith('•');
+                expect(adapter.showBadge).toHaveBeenCalledWith(
+                    expect.objectContaining({ description: 'Update available', text: '•' }),
+                    expect.anything()
+                );
             });
         }
 
@@ -188,11 +198,10 @@ describe.each([
         }
 
         if (name === 'macOS') {
-            it('clears app.dock badge on macOS', () => {
-                const { app } = require('electron');
+            it('clears badge via adapter on macOS', () => {
                 badgeManager.showUpdateBadge();
                 badgeManager.clearUpdateBadge();
-                expect(app.dock?.setBadge).toHaveBeenCalledWith('');
+                expect(adapter.clearBadge).toHaveBeenCalled();
             });
         }
 
@@ -304,10 +313,12 @@ describe.each([
         }
 
         if (name === 'macOS') {
-            it('uses app.dock.setBadge on macOS', () => {
-                const { app } = require('electron');
+            it('uses adapter.showBadge on macOS', () => {
                 badgeManager.showNotificationBadge('•');
-                expect(app.dock?.setBadge).toHaveBeenCalledWith('•');
+                expect(adapter.showBadge).toHaveBeenCalledWith(
+                    expect.objectContaining({ description: 'Response ready', text: '•' }),
+                    expect.anything()
+                );
             });
         }
 
@@ -337,11 +348,10 @@ describe.each([
         }
 
         if (name === 'macOS') {
-            it('clears app.dock badge on macOS', () => {
-                const { app } = require('electron');
+            it('clears badge via adapter on macOS', () => {
                 badgeManager.showNotificationBadge();
                 badgeManager.clearNotificationBadge();
-                expect(app.dock?.setBadge).toHaveBeenCalledWith('');
+                expect(adapter.clearBadge).toHaveBeenCalled();
             });
         }
 

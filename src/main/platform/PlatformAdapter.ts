@@ -3,14 +3,23 @@
  *
  * Defines the contract that each platform-specific adapter must implement.
  * Adapters encapsulate higher-level platform behaviors (app configuration,
- * hotkey strategy) rather than simple boolean checks.
+ * hotkey strategy, badge rendering, window tray behavior, menu structure)
+ * rather than simple boolean checks.
  *
  * @module PlatformAdapter
  */
 
+import type { MenuItemConstructorOptions } from 'electron';
 import type { WaylandStatus } from '../../shared/types/hotkeys';
 import type { Logger } from '../types';
-import type { PlatformId, HotkeyRegistrationPlan } from './types';
+import type {
+    PlatformId,
+    HotkeyRegistrationPlan,
+    ShowBadgeParams,
+    ClearBadgeParams,
+    DockMenuCallbacks,
+    MainWindowPlatformConfig,
+} from './types';
 
 /**
  * Contract for platform-specific behavior in the Electron main process.
@@ -54,4 +63,74 @@ export interface PlatformAdapter {
      * macOS returns false (stay in dock); all others return true.
      */
     shouldQuitOnWindowAllClosed(): boolean;
+
+    // ----- Badge methods -----
+
+    /**
+     * Whether this platform supports dock/taskbar badges.
+     * macOS (dock badge) and Windows (overlay icon) return true; Linux returns false.
+     */
+    supportsBadges(): boolean;
+
+    /**
+     * Apply a badge on the dock/taskbar using platform-specific APIs.
+     * - macOS: `app.dock.setBadge(text)` — requires `app` parameter
+     * - Windows: `window.setOverlayIcon(overlayIcon, description)`
+     * - Linux: no-op
+     */
+    showBadge(params: ShowBadgeParams, app?: Electron.App): void;
+
+    /**
+     * Clear the badge from dock/taskbar.
+     * - macOS: `app.dock.setBadge('')` — requires `app` parameter
+     * - Windows: `window.setOverlayIcon(null, '')`
+     * - Linux: no-op
+     */
+    clearBadge(params: ClearBadgeParams, app?: Electron.App): void;
+
+    // ----- Window methods -----
+
+    /**
+     * Get additional platform-specific window configuration for the main window.
+     * Linux adapters return `{ wmClass: 'gemini-desktop' }`; others return `{}`.
+     */
+    getMainWindowPlatformConfig(): MainWindowPlatformConfig;
+
+    /**
+     * Hide the main window to tray with platform-specific behavior.
+     * Non-macOS platforms also call `setSkipTaskbar(true)`.
+     */
+    hideToTray(window: Electron.BrowserWindow): void;
+
+    /**
+     * Restore the main window from tray with platform-specific behavior.
+     * Non-macOS platforms also call `setSkipTaskbar(false)`.
+     */
+    restoreFromTray(window: Electron.BrowserWindow): void;
+
+    // ----- Menu methods -----
+
+    /**
+     * Whether to include a macOS-style app menu (prepended to menu template).
+     * Only macOS returns true.
+     */
+    shouldIncludeAppMenu(): boolean;
+
+    /**
+     * Get the label for the settings/options menu item.
+     * macOS: "Settings...", Windows/Linux: "Options"
+     */
+    getSettingsMenuLabel(): string;
+
+    /**
+     * Get the role for the File menu's close/quit item.
+     * macOS: 'close' (close window), Windows/Linux: 'quit' (quit app)
+     */
+    getWindowCloseRole(): 'close' | 'quit';
+
+    /**
+     * Get the dock menu template (macOS only).
+     * Returns null on non-macOS platforms.
+     */
+    getDockMenuTemplate(callbacks: DockMenuCallbacks): MenuItemConstructorOptions[] | null;
 }

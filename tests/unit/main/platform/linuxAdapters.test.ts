@@ -228,6 +228,99 @@ describe('LinuxWaylandAdapter', () => {
             expect(adapter.shouldQuitOnWindowAllClosed()).toBe(true);
         });
     });
+
+    // --- New badge/window/menu methods ---
+
+    describe('supportsBadges()', () => {
+        it('should return false (Linux has no native badge API)', () => {
+            expect(adapter.supportsBadges()).toBe(false);
+        });
+    });
+
+    describe('showBadge()', () => {
+        it('should be a no-op (not throw)', () => {
+            expect(() =>
+                adapter.showBadge({
+                    window: null,
+                    description: 'Update',
+                    text: '•',
+                    overlayIcon: null,
+                })
+            ).not.toThrow();
+        });
+    });
+
+    describe('clearBadge()', () => {
+        it('should be a no-op (not throw)', () => {
+            expect(() => adapter.clearBadge({ window: null })).not.toThrow();
+        });
+    });
+
+    describe('getMainWindowPlatformConfig()', () => {
+        it('should return wmClass for Linux WM integration', () => {
+            expect(adapter.getMainWindowPlatformConfig()).toEqual({ wmClass: 'gemini-desktop' });
+        });
+    });
+
+    describe('hideToTray()', () => {
+        it('should call hide() and setSkipTaskbar(true)', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                hide: vi.fn(),
+                setSkipTaskbar: vi.fn(),
+            } as unknown as Electron.BrowserWindow;
+
+            adapter.hideToTray(mockWindow);
+
+            expect(mockWindow.hide).toHaveBeenCalled();
+            expect(mockWindow.setSkipTaskbar).toHaveBeenCalledWith(true);
+        });
+    });
+
+    describe('restoreFromTray()', () => {
+        it('should call show(), focus(), and setSkipTaskbar(false)', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                show: vi.fn(),
+                focus: vi.fn(),
+                setSkipTaskbar: vi.fn(),
+            } as unknown as Electron.BrowserWindow;
+
+            adapter.restoreFromTray(mockWindow);
+
+            expect(mockWindow.show).toHaveBeenCalled();
+            expect(mockWindow.focus).toHaveBeenCalled();
+            expect(mockWindow.setSkipTaskbar).toHaveBeenCalledWith(false);
+        });
+    });
+
+    describe('shouldIncludeAppMenu()', () => {
+        it('should return false', () => {
+            expect(adapter.shouldIncludeAppMenu()).toBe(false);
+        });
+    });
+
+    describe('getSettingsMenuLabel()', () => {
+        it('should return "Options"', () => {
+            expect(adapter.getSettingsMenuLabel()).toBe('Options');
+        });
+    });
+
+    describe('getWindowCloseRole()', () => {
+        it('should return "quit"', () => {
+            expect(adapter.getWindowCloseRole()).toBe('quit');
+        });
+    });
+
+    describe('getDockMenuTemplate()', () => {
+        it('should return null (no dock menu on Linux)', () => {
+            const callbacks = {
+                restoreFromTray: vi.fn(),
+                createOptionsWindow: vi.fn(),
+            };
+            expect(adapter.getDockMenuTemplate(callbacks)).toBeNull();
+        });
+    });
 });
 
 // ===========================================================================
@@ -335,6 +428,99 @@ describe('LinuxX11Adapter', () => {
     describe('shouldQuitOnWindowAllClosed()', () => {
         it('should return true', () => {
             expect(adapter.shouldQuitOnWindowAllClosed()).toBe(true);
+        });
+    });
+
+    // --- New badge/window/menu methods ---
+
+    describe('supportsBadges()', () => {
+        it('should return false (Linux has no native badge API)', () => {
+            expect(adapter.supportsBadges()).toBe(false);
+        });
+    });
+
+    describe('showBadge()', () => {
+        it('should be a no-op (not throw)', () => {
+            expect(() =>
+                adapter.showBadge({
+                    window: null,
+                    description: 'Update',
+                    text: '•',
+                    overlayIcon: null,
+                })
+            ).not.toThrow();
+        });
+    });
+
+    describe('clearBadge()', () => {
+        it('should be a no-op (not throw)', () => {
+            expect(() => adapter.clearBadge({ window: null })).not.toThrow();
+        });
+    });
+
+    describe('getMainWindowPlatformConfig()', () => {
+        it('should return wmClass for Linux WM integration', () => {
+            expect(adapter.getMainWindowPlatformConfig()).toEqual({ wmClass: 'gemini-desktop' });
+        });
+    });
+
+    describe('hideToTray()', () => {
+        it('should call hide() and setSkipTaskbar(true)', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                hide: vi.fn(),
+                setSkipTaskbar: vi.fn(),
+            } as unknown as Electron.BrowserWindow;
+
+            adapter.hideToTray(mockWindow);
+
+            expect(mockWindow.hide).toHaveBeenCalled();
+            expect(mockWindow.setSkipTaskbar).toHaveBeenCalledWith(true);
+        });
+    });
+
+    describe('restoreFromTray()', () => {
+        it('should call show(), focus(), and setSkipTaskbar(false)', () => {
+            const mockWindow = {
+                isDestroyed: vi.fn().mockReturnValue(false),
+                show: vi.fn(),
+                focus: vi.fn(),
+                setSkipTaskbar: vi.fn(),
+            } as unknown as Electron.BrowserWindow;
+
+            adapter.restoreFromTray(mockWindow);
+
+            expect(mockWindow.show).toHaveBeenCalled();
+            expect(mockWindow.focus).toHaveBeenCalled();
+            expect(mockWindow.setSkipTaskbar).toHaveBeenCalledWith(false);
+        });
+    });
+
+    describe('shouldIncludeAppMenu()', () => {
+        it('should return false', () => {
+            expect(adapter.shouldIncludeAppMenu()).toBe(false);
+        });
+    });
+
+    describe('getSettingsMenuLabel()', () => {
+        it('should return "Options"', () => {
+            expect(adapter.getSettingsMenuLabel()).toBe('Options');
+        });
+    });
+
+    describe('getWindowCloseRole()', () => {
+        it('should return "quit"', () => {
+            expect(adapter.getWindowCloseRole()).toBe('quit');
+        });
+    });
+
+    describe('getDockMenuTemplate()', () => {
+        it('should return null (no dock menu on Linux)', () => {
+            const callbacks = {
+                restoreFromTray: vi.fn(),
+                createOptionsWindow: vi.fn(),
+            };
+            expect(adapter.getDockMenuTemplate(callbacks)).toBeNull();
         });
     });
 });

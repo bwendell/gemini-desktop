@@ -1,17 +1,24 @@
 /**
  * MacAdapter — macOS platform adapter.
  *
- * Encapsulates macOS-specific app configuration and native hotkey
- * registration strategy. macOS stays in the dock when all windows
- * are closed.
+ * Encapsulates macOS-specific app configuration, native hotkey registration
+ * strategy, dock badge, tray behavior, and menu configuration. macOS stays
+ * in the dock when all windows are closed.
  *
  * @module MacAdapter
  */
 
+import type { MenuItemConstructorOptions } from 'electron';
 import type { WaylandStatus } from '../../../shared/types/hotkeys';
 import type { Logger } from '../../types';
 import type { PlatformAdapter } from '../PlatformAdapter';
-import type { HotkeyRegistrationPlan } from '../types';
+import type {
+    HotkeyRegistrationPlan,
+    ShowBadgeParams,
+    ClearBadgeParams,
+    DockMenuCallbacks,
+    MainWindowPlatformConfig,
+} from '../types';
 
 /** Default WaylandStatus for non-Linux platforms */
 const DEFAULT_WAYLAND_STATUS: WaylandStatus = {
@@ -62,5 +69,68 @@ export class MacAdapter implements PlatformAdapter {
      */
     shouldQuitOnWindowAllClosed(): boolean {
         return false;
+    }
+
+    // ----- Badge methods -----
+
+    supportsBadges(): boolean {
+        return true;
+    }
+
+    showBadge(params: ShowBadgeParams, app?: Electron.App): void {
+        app?.dock?.setBadge(params.text);
+    }
+
+    clearBadge(_params: ClearBadgeParams, app?: Electron.App): void {
+        app?.dock?.setBadge('');
+    }
+
+    // ----- Window methods -----
+
+    getMainWindowPlatformConfig(): MainWindowPlatformConfig {
+        return {};
+    }
+
+    /**
+     * macOS: only hide, do NOT skip taskbar (Dock stays visible).
+     */
+    hideToTray(window: Electron.BrowserWindow): void {
+        window.hide();
+    }
+
+    /**
+     * macOS: show and focus, no taskbar restoration needed.
+     */
+    restoreFromTray(window: Electron.BrowserWindow): void {
+        window.show();
+        window.focus();
+    }
+
+    // ----- Menu methods -----
+
+    shouldIncludeAppMenu(): boolean {
+        return true;
+    }
+
+    getSettingsMenuLabel(): string {
+        return 'Settings...';
+    }
+
+    getWindowCloseRole(): 'close' | 'quit' {
+        return 'close';
+    }
+
+    getDockMenuTemplate(callbacks: DockMenuCallbacks): MenuItemConstructorOptions[] | null {
+        return [
+            {
+                label: 'Show Gemini',
+                click: () => callbacks.restoreFromTray(),
+            },
+            { type: 'separator' },
+            {
+                label: 'Settings',
+                click: () => callbacks.createOptionsWindow(),
+            },
+        ];
     }
 }

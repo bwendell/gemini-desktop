@@ -6,6 +6,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
 import BadgeManager from '../../src/main/managers/badgeManager';
 import WindowManager from '../../src/main/managers/windowManager';
+import { WindowsAdapter } from '../../src/main/platform/adapters/WindowsAdapter';
+import { MacAdapter } from '../../src/main/platform/adapters/MacAdapter';
+import { LinuxX11Adapter } from '../../src/main/platform/adapters/LinuxX11Adapter';
+import type { PlatformAdapter } from '../../src/main/platform/PlatformAdapter';
 
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
@@ -32,39 +36,24 @@ describe('BadgeManager Coordinated Tests', () => {
         vi.restoreAllMocks();
     });
 
-    // Mock platform state
-    const platformState = vi.hoisted(() => ({
-        platform: 'darwin' as NodeJS.Platform,
-    }));
-
-    // Mock constants
-    vi.mock('../../src/main/utils/constants', async (importOriginal) => {
-        const actual = await importOriginal<any>();
-        return {
-            ...actual,
-            get isMacOS() {
-                return platformState.platform === 'darwin';
-            },
-            get isWindows() {
-                return platformState.platform === 'win32';
-            },
-            get isLinux() {
-                return platformState.platform === 'linux';
-            },
-        };
-    });
+    // Map platform to adapter
+    const adapterForPlatform: Record<string, () => PlatformAdapter> = {
+        darwin: () => new MacAdapter(),
+        win32: () => new WindowsAdapter(),
+        linux: () => new LinuxX11Adapter(),
+    };
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
-        beforeEach(() => {
-            // Update platform state
-            platformState.platform = platform;
+        let adapter: PlatformAdapter;
 
+        beforeEach(() => {
             // Mock global process platform as well for consistency
             vi.stubGlobal('process', { ...process, platform });
 
-            // Create managers (static imports are fine with live bindings)
+            // Create adapter + managers
+            adapter = adapterForPlatform[platform]();
             windowManager = new WindowManager(false);
-            badgeManager = new BadgeManager();
+            badgeManager = new BadgeManager(adapter);
         });
 
         afterEach(() => {

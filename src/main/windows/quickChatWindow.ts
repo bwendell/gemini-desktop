@@ -33,6 +33,7 @@ export default class QuickChatWindow extends BaseWindow {
     }
 
     private _isReady = false;
+    private _suppressBlurUntil = 0;
 
     /**
      * Create the Quick Chat window.
@@ -65,12 +66,21 @@ export default class QuickChatWindow extends BaseWindow {
         this.loadContent();
 
         this.window.once('ready-to-show', () => {
-            this.window?.show();
-            this.window?.focus();
+            this.showWindow();
         });
+
+        setTimeout(() => {
+            if (this.window && !this.window.isVisible()) {
+                this.logger.warn('ready-to-show timeout - showing Quick Chat window via fallback');
+                this.showWindow();
+            }
+        }, 1000);
 
         // Auto-hide when window loses focus (Spotlight behavior)
         this.window.on('blur', () => {
+            if (Date.now() < this._suppressBlurUntil) {
+                return;
+            }
             this.hide();
         });
 
@@ -97,10 +107,18 @@ export default class QuickChatWindow extends BaseWindow {
 
             if (this.window && !this.window.isDestroyed()) {
                 this.window.setPosition(x, y);
-                this.window.show();
-                this.window.focus();
+                this.showWindow();
             }
         }
+    }
+
+    private showWindow(): void {
+        if (!this.window || this.window.isDestroyed()) {
+            return;
+        }
+        this._suppressBlurUntil = Date.now() + 500;
+        this.window.show();
+        this.window.focus();
     }
 
     /**

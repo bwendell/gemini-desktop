@@ -33,3 +33,47 @@ export interface HotkeyRegistrationPlan {
     /** Wayland session status; non-Linux adapters use a default (all-false) value */
     waylandStatus: WaylandStatus;
 }
+
+/**
+ * Parameters for showing a platform badge on dock/taskbar.
+ */
+export interface ShowBadgeParams {
+    /** Reference to the main BrowserWindow (needed for Windows overlay) */
+    window: Electron.BrowserWindow | null;
+    /** Accessible description of the badge */
+    description: string;
+    /** Badge text (macOS dock badge text) */
+    text: string;
+    /** Pre-created overlay icon (Windows taskbar overlay) */
+    overlayIcon: Electron.NativeImage | null;
+}
+
+/**
+ * Parameters for clearing a platform badge.
+ */
+export interface ClearBadgeParams {
+    /** Reference to the main BrowserWindow (needed for Windows overlay clear) */
+    window: Electron.BrowserWindow | null;
+}
+
+/**
+ * Callbacks passed to getDockMenuTemplate to avoid adapter→manager circular dependency.
+ */
+export interface DockMenuCallbacks {
+    /** Restore the main window from tray */
+    restoreFromTray: () => void;
+    /** Open the settings/options window */
+    createOptionsWindow: () => void;
+}
+
+/**
+ * Platform-specific BrowserWindow configuration.
+ *
+ * Electron's `wmClass` property exists at runtime but is not in the
+ * official type definitions.  This interface provides type safety for
+ * the `getMainWindowPlatformConfig()` return value.
+ */
+export interface MainWindowPlatformConfig {
+    /** Linux WM_CLASS / Wayland app_id — omitted on Windows/macOS */
+    wmClass?: string;
+}

@@ -41,6 +41,23 @@ vi.mock('../../src/main/platform/platformAdapterFactory', () => ({
             portalMethod: 'none',
         }),
         shouldQuitOnWindowAllClosed: () => true,
+        getMainWindowPlatformConfig: () => ({}),
+        hideToTray: vi.fn((win: any) => {
+            win.hide();
+            win.setSkipTaskbar(true);
+        }),
+        restoreFromTray: vi.fn((win: any) => {
+            win.show();
+            win.focus();
+            win.setSkipTaskbar(false);
+        }),
+        supportsBadges: () => true,
+        showBadge: vi.fn(),
+        clearBadge: vi.fn(),
+        shouldIncludeAppMenu: () => false,
+        getDockMenuTemplate: () => null,
+        getSettingsMenuLabel: () => 'Options',
+        getWindowCloseRole: () => 'quit',
     }),
 }));
 

@@ -1,17 +1,24 @@
 /**
  * LinuxX11Adapter — Linux under X11 display server.
  *
- * Encapsulates Linux X11-specific app configuration and hotkey
- * registration strategy. X11 does not support global hotkeys through
- * Electron's globalShortcut API, so hotkeys are always disabled.
+ * Encapsulates Linux X11-specific app configuration, hotkey registration
+ * strategy, badge/tray/menu behavior. X11 does not support global hotkeys
+ * through Electron's globalShortcut API, so hotkeys are always disabled.
  *
  * @module LinuxX11Adapter
  */
 
+import type { MenuItemConstructorOptions } from 'electron';
 import type { WaylandStatus } from '../../../shared/types/hotkeys';
 import type { Logger } from '../../types';
 import type { PlatformAdapter } from '../PlatformAdapter';
-import type { HotkeyRegistrationPlan } from '../types';
+import type {
+    HotkeyRegistrationPlan,
+    ShowBadgeParams,
+    ClearBadgeParams,
+    DockMenuCallbacks,
+    MainWindowPlatformConfig,
+} from '../types';
 
 /** Default WaylandStatus for non-Wayland contexts */
 const DEFAULT_WAYLAND_STATUS: WaylandStatus = {
@@ -74,5 +81,54 @@ export class LinuxX11Adapter implements PlatformAdapter {
 
     shouldQuitOnWindowAllClosed(): boolean {
         return true;
+    }
+
+    // ----- Badge methods -----
+
+    supportsBadges(): boolean {
+        return false;
+    }
+
+    showBadge(_params: ShowBadgeParams): void {
+        // No native badge support on Linux
+    }
+
+    clearBadge(_params: ClearBadgeParams): void {
+        // No native badge support on Linux
+    }
+
+    // ----- Window methods -----
+
+    getMainWindowPlatformConfig(): MainWindowPlatformConfig {
+        return { wmClass: 'gemini-desktop' };
+    }
+
+    hideToTray(window: Electron.BrowserWindow): void {
+        window.hide();
+        window.setSkipTaskbar(true);
+    }
+
+    restoreFromTray(window: Electron.BrowserWindow): void {
+        window.show();
+        window.focus();
+        window.setSkipTaskbar(false);
+    }
+
+    // ----- Menu methods -----
+
+    shouldIncludeAppMenu(): boolean {
+        return false;
+    }
+
+    getSettingsMenuLabel(): string {
+        return 'Options';
+    }
+
+    getWindowCloseRole(): 'close' | 'quit' {
+        return 'quit';
+    }
+
+    getDockMenuTemplate(_callbacks: DockMenuCallbacks): MenuItemConstructorOptions[] | null {
+        return null;
     }
 }

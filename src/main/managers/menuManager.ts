@@ -3,9 +3,8 @@ import WindowManager from './windowManager';
 import type HotkeyManager from './hotkeyManager';
 import { GOOGLE_SIGNIN_URL, GITHUB_ISSUES_URL } from '../utils/constants';
 import { isApplicationHotkey, type HotkeyId } from '../types';
-
-// Runtime platform check (evaluated on each call for testability)
-const isMac = () => process.platform === 'darwin';
+import type { PlatformAdapter } from '../platform/PlatformAdapter';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 
 /**
  * Manages the application native menu and context menus.
@@ -25,11 +24,15 @@ export default class MenuManager {
     private cachedContextMenu: Menu | null = null;
     private contextMenuItems: { id: string; item: MenuItem }[] = [];
     private hotkeyManager: HotkeyManager | null = null;
+    private readonly adapter: PlatformAdapter;
 
     constructor(
         private windowManager: WindowManager,
-        hotkeyManager?: HotkeyManager
+        hotkeyManager?: HotkeyManager,
+        adapter?: PlatformAdapter
     ) {
+        this.adapter = adapter ?? getPlatformAdapter();
+
         if (hotkeyManager) {
             this.hotkeyManager = hotkeyManager;
 
@@ -180,39 +183,31 @@ export default class MenuManager {
             template.push(this.buildDebugMenu());
         }
 
-        if (isMac()) {
+        if (this.adapter.shouldIncludeAppMenu()) {
             template.unshift(this.buildAppMenu());
         }
 
         const menu = Menu.buildFromTemplate(template);
         Menu.setApplicationMenu(menu);
 
-        if (isMac()) {
-            this.buildDockMenu();
+        // Build dock menu if the adapter provides a template
+        const dockTemplate = this.adapter.getDockMenuTemplate({
+            restoreFromTray: () => this.windowManager.restoreFromTray(),
+            createOptionsWindow: () => this.windowManager.createOptionsWindow(),
+        });
+        if (dockTemplate) {
+            const dockMenu = Menu.buildFromTemplate(dockTemplate);
+            if (app.dock) {
+                app.dock.setMenu(dockMenu);
+            }
         }
     }
 
     /**
-     * Builds and sets the Dock menu (macOS only).
+     * NOTE: Dock menu construction is now handled inline in buildMenu()
+     * via adapter.getDockMenuTemplate(). The old buildDockMenu() method
+     * has been removed.
      */
-    private buildDockMenu(): void {
-        const dockTemplate: MenuItemConstructorOptions[] = [
-            {
-                label: 'Show Gemini',
-                click: () => this.windowManager.restoreFromTray(),
-            },
-            { type: 'separator' },
-            {
-                label: 'Settings',
-                click: () => this.windowManager.createOptionsWindow(),
-            },
-        ];
-
-        const dockMenu = Menu.buildFromTemplate(dockTemplate);
-        if (app.dock) {
-            app.dock.setMenu(dockMenu);
-        }
-    }
 
     private buildDebugMenu(): MenuItemConstructorOptions {
         return {
@@ -317,13 +312,13 @@ export default class MenuManager {
                     },
                 },
                 {
-                    label: isMac() ? 'Settings...' : 'Options',
+                    label: this.adapter.getSettingsMenuLabel(),
                     id: 'menu-file-options',
                     accelerator: 'CmdOrCtrl+,',
                     click: () => this.windowManager.createOptionsWindow(),
                 },
                 { type: 'separator' },
-                { role: isMac() ? 'close' : 'quit' },
+                { role: this.adapter.getWindowCloseRole() },
             ],
         };
 

@@ -9,7 +9,8 @@ import { app, nativeImage, BrowserWindow } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { createLogger } from '../utils/logger';
-import { isMacOS, isWindows, isLinux } from '../utils/constants';
+import type { PlatformAdapter } from '../platform/PlatformAdapter';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 
 const logger = createLogger('[BadgeManager]');
 
@@ -36,7 +37,11 @@ export default class BadgeManager {
     /** Current notification badge state */
     private hasNotificationBadge = false;
 
-    constructor() {
+    /** Platform adapter for badge rendering */
+    private readonly adapter: PlatformAdapter;
+
+    constructor(adapter?: PlatformAdapter) {
+        this.adapter = adapter ?? getPlatformAdapter();
         logger.log('BadgeManager initialized');
         this.loadBadgeIcon();
     }
@@ -55,7 +60,7 @@ export default class BadgeManager {
      * @private
      */
     private loadBadgeIcon(): void {
-        if (!isWindows) return;
+        if (!this.adapter.supportsBadges() || this.adapter.id === 'mac') return;
 
         try {
             // Look for badge icon in build directory
@@ -133,22 +138,21 @@ export default class BadgeManager {
      */
     private showBadge(description: string, text = '•'): void {
         try {
-            if (isMacOS) {
-                // macOS: Set dock badge
-                app.dock?.setBadge(text);
-                logger.log('macOS dock badge set:', text);
-            } else if (isWindows) {
-                // Windows: Set taskbar overlay icon
-                if (this.mainWindow && !this.mainWindow.isDestroyed() && this.badgeIcon) {
-                    this.mainWindow.setOverlayIcon(this.badgeIcon, description);
-                    logger.log('Windows taskbar overlay set');
-                } else {
-                    logger.warn('Cannot set Windows overlay: window or icon not available');
-                }
-            } else if (isLinux) {
-                // Linux: No native badge support
+            if (!this.adapter.supportsBadges()) {
                 logger.log('Linux: Native badge not supported, skipping');
+                return;
             }
+
+            if (this.adapter.id === 'windows') {
+                // Windows: need to check window/icon availability before delegating
+                if (!this.mainWindow || this.mainWindow.isDestroyed() || !this.badgeIcon) {
+                    logger.warn('Cannot set Windows overlay: window or icon not available');
+                    return;
+                }
+            }
+
+            this.adapter.showBadge({ window: this.mainWindow, description, text, overlayIcon: this.badgeIcon }, app);
+            logger.log(this.adapter.id === 'mac' ? `macOS dock badge set: ${text}` : 'Windows taskbar overlay set');
         } catch (error) {
             /* v8 ignore next 2 -- defensive error handling */
             logger.error('Failed to show badge:', error);
@@ -166,18 +170,12 @@ export default class BadgeManager {
         }
 
         try {
-            if (isMacOS) {
-                // macOS: Clear dock badge
-                app.dock?.setBadge('');
-                logger.log('macOS dock badge cleared');
-            } else if (isWindows) {
-                // Windows: Clear taskbar overlay
-                if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                    this.mainWindow.setOverlayIcon(null, '');
-                    logger.log('Windows taskbar overlay cleared');
-                }
+            if (!this.adapter.supportsBadges()) {
+                return; // Linux: Nothing to clear
             }
-            // Linux: Nothing to clear
+
+            this.adapter.clearBadge({ window: this.mainWindow }, app);
+            logger.log(this.adapter.id === 'mac' ? 'macOS dock badge cleared' : 'Windows taskbar overlay cleared');
         } catch (error) {
             /* v8 ignore next 2 -- defensive error handling */
             logger.error('Failed to clear badge:', error);

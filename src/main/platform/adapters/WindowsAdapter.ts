@@ -2,15 +2,23 @@
  * WindowsAdapter — Windows platform adapter.
  *
  * Encapsulates Windows-specific app configuration, AppUserModelId setup,
- * and native hotkey registration strategy.
+ * native hotkey registration strategy, badge overlay, tray behavior,
+ * and menu configuration.
  *
  * @module WindowsAdapter
  */
 
+import type { MenuItemConstructorOptions } from 'electron';
 import type { WaylandStatus } from '../../../shared/types/hotkeys';
 import type { Logger } from '../../types';
 import type { PlatformAdapter } from '../PlatformAdapter';
-import type { HotkeyRegistrationPlan } from '../types';
+import type {
+    HotkeyRegistrationPlan,
+    ShowBadgeParams,
+    ClearBadgeParams,
+    DockMenuCallbacks,
+    MainWindowPlatformConfig,
+} from '../types';
 import { APP_ID } from '../../utils/constants';
 
 /** Default WaylandStatus for non-Linux platforms */
@@ -60,5 +68,58 @@ export class WindowsAdapter implements PlatformAdapter {
 
     shouldQuitOnWindowAllClosed(): boolean {
         return true;
+    }
+
+    // ----- Badge methods -----
+
+    supportsBadges(): boolean {
+        return true;
+    }
+
+    showBadge(params: ShowBadgeParams): void {
+        if (params.window && !params.window.isDestroyed() && params.overlayIcon) {
+            params.window.setOverlayIcon(params.overlayIcon, params.description);
+        }
+    }
+
+    clearBadge(params: ClearBadgeParams): void {
+        if (params.window && !params.window.isDestroyed()) {
+            params.window.setOverlayIcon(null, '');
+        }
+    }
+
+    // ----- Window methods -----
+
+    getMainWindowPlatformConfig(): MainWindowPlatformConfig {
+        return {};
+    }
+
+    hideToTray(window: Electron.BrowserWindow): void {
+        window.hide();
+        window.setSkipTaskbar(true);
+    }
+
+    restoreFromTray(window: Electron.BrowserWindow): void {
+        window.show();
+        window.focus();
+        window.setSkipTaskbar(false);
+    }
+
+    // ----- Menu methods -----
+
+    shouldIncludeAppMenu(): boolean {
+        return false;
+    }
+
+    getSettingsMenuLabel(): string {
+        return 'Options';
+    }
+
+    getWindowCloseRole(): 'close' | 'quit' {
+        return 'quit';
+    }
+
+    getDockMenuTemplate(_callbacks: DockMenuCallbacks): MenuItemConstructorOptions[] | null {
+        return null;
     }
 }

@@ -531,7 +531,7 @@ describe('HotkeyManager', () => {
             expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
         });
 
-        it('should call minimizeMainWindow when boss key is triggered', () => {
+        it('should call hideToTray when boss key is triggered', () => {
             mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
                 if (accelerator === DEFAULT_ACCELERATORS.bossKey) {
                     callback();
@@ -541,7 +541,7 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            expect(mockWindowManager.minimizeMainWindow).toHaveBeenCalledTimes(1);
+            expect(mockWindowManager.hideToTray).toHaveBeenCalledTimes(1);
         });
 
         it('should call toggleQuickChat when quick chat hotkey is triggered', () => {
@@ -713,7 +713,7 @@ describe('HotkeyManager', () => {
 
         it('should execute bossKey action', () => {
             hotkeyManager.executeHotkeyAction('bossKey');
-            expect(mockWindowManager.minimizeMainWindow).toHaveBeenCalled();
+            expect(mockWindowManager.hideToTray).toHaveBeenCalled();
         });
 
         it('should execute quickChat action', () => {
@@ -764,7 +764,7 @@ describe('HotkeyManager', () => {
         });
 
         it('should handle action execution error in registered shortcut', () => {
-            mockWindowManager.minimizeMainWindow = vi.fn(() => {
+            mockWindowManager.hideToTray = vi.fn(() => {
                 throw new Error('Action failed');
             });
 

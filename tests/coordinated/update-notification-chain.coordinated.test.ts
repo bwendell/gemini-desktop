@@ -88,6 +88,20 @@ vi.mock('../../src/main/utils/constants', async (importOriginal) => {
     };
 });
 
+// Mock platform adapter factory to return correct adapter per platform
+vi.mock('../../src/main/platform/platformAdapterFactory', async () => {
+    const { MacAdapter } = await import('../../src/main/platform/adapters/MacAdapter');
+    const { WindowsAdapter } = await import('../../src/main/platform/adapters/WindowsAdapter');
+    const { LinuxX11Adapter } = await import('../../src/main/platform/adapters/LinuxX11Adapter');
+    return {
+        getPlatformAdapter: () => {
+            if (process.platform === 'darwin') return new MacAdapter();
+            if (process.platform === 'win32') return new WindowsAdapter();
+            return new LinuxX11Adapter();
+        },
+    };
+});
+
 // Helper to get registered IPC listeners
 // const getListener = (channel: string) =>
 //   (require('electron').ipcMain as any)._listeners.get(channel);

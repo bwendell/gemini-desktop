@@ -71,6 +71,12 @@ export const config = {
         console.log('Integration tests completed');
     },
 
+    after: async function () {
+        try {
+            await browser.electron.execute((electron) => electron.app.quit());
+        } catch (error) {}
+    },
+
     /**
      * Gets executed right after terminating the webdriver session.
      */
@@ -78,6 +84,7 @@ export const config = {
         // Ensure we don't leave lingering Electron processes
         const { execSync } = await import('child_process');
         const platform = process.platform;
+        const appMatch = electronMainPath.replace(/["\\$`]/g, '\\$&');
 
         try {
             if (platform === 'win32') {
@@ -85,7 +92,7 @@ export const config = {
             } else {
                 // On macOS/Linux, be a bit more specific if possible,
                 // but pkill -f is common in CI for this app.
-                execSync('pkill -f electron', { stdio: 'ignore' });
+                execSync(`pkill -f "${appMatch}"`, { stdio: 'ignore' });
             }
         } catch (e) {
             // Process might already be gone

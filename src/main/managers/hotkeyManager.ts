@@ -216,7 +216,7 @@ export default class HotkeyManager {
                 action: () => {
                     const accelerator = this._accelerators.bossKey;
                     logger.log(`Hotkey pressed: ${accelerator} (Boss Key)`);
-                    this.windowManager.minimizeMainWindow();
+                    this.windowManager.hideToTray();
                 },
             },
             // GLOBAL: Quick Chat needs to be accessible from anywhere to open the prompt overlay

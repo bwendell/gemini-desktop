@@ -355,30 +355,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
             // Get platform for conditional behavior
             const platform = await browser.electron.execute(() => process.platform);
 
-            // First minimize
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.minimizeMainWindow();
-            });
-
-            await browser.pause(300);
-
-            const isMinimized = await browser.electron.execute(() => {
-                // @ts-expect-error
-                const win = global.windowManager.getMainWindow();
-                return win && win.isMinimized();
-            });
-
-            // Restore from minimize
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                const win = global.windowManager.getMainWindow();
-                if (win) win.restore();
-            });
-
-            await browser.pause(300);
-
-            // Now hide to tray
+            // First hide to tray
             await browser.electron.execute(() => {
                 // @ts-expect-error
                 global.windowManager.hideToTray();
@@ -412,14 +389,21 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 expect(isHidden).toBe(true);
             }
 
-            // Verify minimize operation works
-            const isLinuxCI = await browser.electron.execute(() => {
-                return process.platform === 'linux' && !!(process.env.CI || process.env.GITHUB_ACTIONS);
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.windowManager.restoreFromTray();
             });
 
-            if (!isLinuxCI) {
-                expect(isMinimized).toBe(true);
-            }
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        const win = global.windowManager.getMainWindow();
+                        return win && win.isVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Main window did not restore from tray' }
+            );
         });
     });
 });
