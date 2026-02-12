@@ -35,19 +35,28 @@ vi.mock('../../src/main/utils/waylandDetector', () => ({
     isSupportedDE: vi.fn(),
 }));
 
-// Mock getWaylandPlatformStatus from constants and make isLinux dynamic
-const mockGetWaylandPlatformStatus = vi.fn();
-let mockIsLinux = false;
-vi.mock('../../src/main/utils/constants', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../src/main/utils/constants')>();
-    return {
-        ...actual,
-        get isLinux() {
-            return mockIsLinux;
-        },
-        getWaylandPlatformStatus: mockGetWaylandPlatformStatus,
-    };
-});
+// Mock adapter state — controls what getPlatformAdapter() returns
+const mockAdapterPlan = {
+    mode: 'native' as 'native' | 'disabled' | 'wayland-dbus',
+    waylandStatus: {
+        isWayland: false,
+        desktopEnvironment: 'unknown',
+        deVersion: null,
+        portalAvailable: false,
+        portalMethod: 'none',
+    } as import('../../src/shared/types/hotkeys').WaylandStatus,
+};
+
+vi.mock('../../src/main/platform/platformAdapterFactory', () => ({
+    getPlatformAdapter: () => ({
+        id: mockAdapterPlan.mode === 'native' ? 'windows' : 'linux-wayland',
+        applyAppConfiguration: vi.fn(),
+        applyAppUserModelId: vi.fn(),
+        getHotkeyRegistrationPlan: () => mockAdapterPlan,
+        getWaylandStatus: () => mockAdapterPlan.waylandStatus,
+        shouldQuitOnWindowAllClosed: () => mockAdapterPlan.mode === 'native',
+    }),
+}));
 
 // Mock dbusFallback module
 const mockRegisterViaDBus = vi.fn();
@@ -109,10 +118,10 @@ describe('Wayland Hotkey Coordination', () => {
 
         // Default mocks
         mockGetWaylandStatus.mockReturnValue(defaultWaylandStatus);
-        mockGetWaylandPlatformStatus.mockReturnValue(defaultWaylandStatus);
         mockRegisterViaDBus.mockResolvedValue([]);
         mockIsDBusFallbackAvailable.mockResolvedValue(false);
-        mockIsLinux = false;
+        mockAdapterPlan.mode = 'native';
+        mockAdapterPlan.waylandStatus = { ...defaultWaylandStatus };
 
         // Dynamic imports to pick up mocks
         const hotkeyManagerModule = await import('../../src/main/managers/hotkeyManager');
@@ -133,12 +142,14 @@ describe('Wayland Hotkey Coordination', () => {
         beforeEach(() => {
             // Linux platform for Wayland tests
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
         });
 
         it('when detector reports Wayland+KDE, manager attempts registration via portal', async () => {
             // Arrange: Mock Wayland with KDE Plasma 5.27+ (supported)
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             // Act: Create manager and register shortcuts
             windowManager = new WindowManager(false);
@@ -162,7 +173,8 @@ describe('Wayland Hotkey Coordination', () => {
 
         it('when detector reports X11, manager skips Wayland-specific registration', () => {
             // Arrange: Mock X11 session (not Wayland)
-            mockGetWaylandPlatformStatus.mockReturnValue(x11Status);
+            mockAdapterPlan.mode = 'disabled';
+            mockAdapterPlan.waylandStatus = { ...x11Status };
 
             // Act
             windowManager = new WindowManager(false);
@@ -184,7 +196,8 @@ describe('Wayland Hotkey Coordination', () => {
 
         it('when detector reports unsupported Wayland DE, hotkeys are disabled', () => {
             // Arrange: Mock Wayland with unsupported DE
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandUnsupportedStatus);
+            mockAdapterPlan.mode = 'disabled';
+            mockAdapterPlan.waylandStatus = { ...waylandUnsupportedStatus };
 
             // Act
             windowManager = new WindowManager(false);
@@ -206,12 +219,14 @@ describe('Wayland Hotkey Coordination', () => {
     describe('HotkeyManager → D-Bus fallback coordination', () => {
         beforeEach(() => {
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
         });
 
         it('on Wayland+KDE, D-Bus is called directly without globalShortcut.register', async () => {
             // Arrange: Mock Wayland+KDE with portal available
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
@@ -238,7 +253,8 @@ describe('Wayland Hotkey Coordination', () => {
 
         it('D-Bus direct path passes action callbacks map', async () => {
             // Arrange: Mock Wayland+KDE with portal available
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             // Act
             windowManager = new WindowManager(false);
@@ -258,7 +274,8 @@ describe('Wayland Hotkey Coordination', () => {
 
         it('D-Bus fallback path also passes action callbacks when triggered', async () => {
             // Arrange: Mock Wayland+KDE with portal available
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: false, error: 'Denied' },
@@ -286,8 +303,8 @@ describe('Wayland Hotkey Coordination', () => {
         it('platform status flows correctly through getPlatformHotkeyStatus on Linux', () => {
             // Arrange: Setup on Linux with Wayland
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             // Act
             windowManager = new WindowManager(false);
@@ -313,7 +330,8 @@ describe('Wayland Hotkey Coordination', () => {
         it('platform status returns correct defaults on non-Linux platforms', () => {
             // Arrange: Setup on macOS
             vi.stubGlobal('process', { ...process, platform: 'darwin' });
-            mockIsLinux = false;
+            mockAdapterPlan.mode = 'native';
+            mockAdapterPlan.waylandStatus = { ...defaultWaylandStatus };
 
             // Act
             windowManager = new WindowManager(false);
@@ -335,13 +353,12 @@ describe('Wayland Hotkey Coordination', () => {
     describe.each(['darwin', 'win32', 'linux'] as const)('cross-platform behavior on %s', (platform) => {
         beforeEach(() => {
             vi.stubGlobal('process', { ...process, platform });
-            mockIsLinux = platform === 'linux';
-
-            // Reset platform-specific mocks
             if (platform === 'linux') {
-                mockGetWaylandPlatformStatus.mockReturnValue(x11Status);
+                mockAdapterPlan.mode = 'disabled';
+                mockAdapterPlan.waylandStatus = { ...x11Status };
             } else {
-                mockGetWaylandPlatformStatus.mockReturnValue(defaultWaylandStatus);
+                mockAdapterPlan.mode = 'native';
+                mockAdapterPlan.waylandStatus = { ...defaultWaylandStatus };
             }
         });
 
@@ -408,8 +425,8 @@ describe('Wayland Hotkey Coordination', () => {
         it('P1-2: toggling a hotkey during in-flight D-Bus registration does not cause duplicate calls', async () => {
             // Arrange
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             // Use a deferred promise to control when registerViaDBus resolves
             let resolveRegistration!: (value: any) => void;
@@ -452,8 +469,8 @@ describe('Wayland Hotkey Coordination', () => {
         it('P1-3: re-registration clears previous results and calls destroySession', async () => {
             // Arrange
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
@@ -476,7 +493,8 @@ describe('Wayland Hotkey Coordination', () => {
             });
 
             vi.clearAllMocks();
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: true },
@@ -500,8 +518,8 @@ describe('Wayland Hotkey Coordination', () => {
         it('CT-001: rapid enable/disable toggles do not cause duplicate registrations', async () => {
             // Arrange: Mock Wayland+KDE with portal available
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             // Use a deferred promise to control registration timing
             let resolveRegistration!: (value: any) => void;
@@ -549,8 +567,8 @@ describe('Wayland Hotkey Coordination', () => {
         it('CT-002: app quit during registration triggers cleanup without errors', async () => {
             // Arrange: Mock Wayland+KDE
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             // Deferred promise for registration
             let resolveRegistration!: (value: any) => void;
@@ -598,8 +616,8 @@ describe('Wayland Hotkey Coordination', () => {
         it('CT-003: state propagation timing - settings update before registration completes', async () => {
             // Arrange: Mock Wayland+KDE
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             let resolveRegistration!: (value: any) => void;
             const registrationPromise = new Promise((resolve) => {
@@ -650,8 +668,8 @@ describe('Wayland Hotkey Coordination', () => {
         it('CT-004: partial registration failure propagates error state correctly', async () => {
             // Arrange: Mock Wayland+KDE
             vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockIsLinux = true;
-            mockGetWaylandPlatformStatus.mockReturnValue(waylandKDEStatus);
+            mockAdapterPlan.mode = 'wayland-dbus';
+            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
 
             // Simulate partial failure
             mockRegisterViaDBus.mockResolvedValue([

@@ -47,7 +47,7 @@
 import { globalShortcut } from 'electron';
 import type WindowManager from './windowManager';
 import { createLogger } from '../utils/logger';
-import { isLinux } from '../utils/constants';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 import {
     type HotkeyId,
     type IndividualHotkeySettings,
@@ -58,7 +58,7 @@ import {
     GLOBAL_HOTKEY_IDS,
     isGlobalHotkey,
 } from '../types';
-import { getWaylandPlatformStatus } from '../utils/constants';
+
 import { registerViaDBus } from '../utils/dbusFallback';
 import type { WaylandStatus, HotkeyRegistrationResult, PlatformHotkeyStatus } from '../../shared/types/hotkeys';
 
@@ -399,8 +399,9 @@ export default class HotkeyManager {
             return;
         }
 
-        // Skip global shortcut registration on unsupported Linux
-        if (isLinux && !this._globalHotkeysEnabled) {
+        // Skip global shortcut registration on unsupported platforms
+        const plan = getPlatformAdapter().getHotkeyRegistrationPlan();
+        if (plan.mode !== 'native' && !this._globalHotkeysEnabled) {
             logger.log(
                 `Global hotkey setting updated: ${id} = ${enabled} (registration skipped - unsupported platform)`
             );
@@ -454,10 +455,12 @@ export default class HotkeyManager {
      * @see setIndividualEnabled - For enabling/disabling individual hotkeys
      */
     registerShortcuts(): void {
-        logger.log(`registerShortcuts() invoked. isLinux=${isLinux}`);
-        // Non-Linux: register normally (existing behavior)
-        if (!isLinux) {
-            logger.log('registerShortcuts() path: non-Linux globalShortcut registration');
+        const plan = getPlatformAdapter().getHotkeyRegistrationPlan();
+        logger.log(`registerShortcuts() invoked. mode=${plan.mode}`);
+
+        if (plan.mode === 'native') {
+            // Native globalShortcut registration (Windows / macOS)
+            logger.log('registerShortcuts() path: native globalShortcut registration');
             this._globalHotkeysEnabled = true;
             for (const id of GLOBAL_HOTKEY_IDS) {
                 if (this._individualSettings[id]) {
@@ -467,26 +470,21 @@ export default class HotkeyManager {
             return;
         }
 
-        // Linux: check Wayland status
-        const waylandStatus = getWaylandPlatformStatus();
-        logger.log(`registerShortcuts() Wayland status: ${JSON.stringify(waylandStatus)}`);
-
-        if (!waylandStatus.isWayland || !waylandStatus.portalAvailable) {
+        if (plan.mode === 'disabled') {
             // X11 or unsupported Wayland DE — keep disabled
-            logger.log('registerShortcuts() path: disabled (Wayland or portal unavailable)');
+            logger.log('registerShortcuts() path: disabled');
             logger.warn(
-                `Global hotkeys disabled on Linux. Wayland: ${waylandStatus.isWayland}, Portal: ${waylandStatus.portalAvailable}, DE: ${waylandStatus.desktopEnvironment}`
+                `Global hotkeys disabled. Wayland: ${plan.waylandStatus.isWayland}, Portal: ${plan.waylandStatus.portalAvailable}, DE: ${plan.waylandStatus.desktopEnvironment}`
             );
             this._globalHotkeysEnabled = false;
             return;
         }
 
-        // Skip globalShortcut.register() on Wayland — Chromium returns false-positive
-        // success without the GlobalShortcutsPortal flag, so callbacks never fire.
+        // mode === 'wayland-dbus': Wayland portal registration via D-Bus
         logger.log('registerShortcuts() path: Wayland portal registration via D-Bus (direct)');
         this._globalHotkeysEnabled = true;
 
-        this._registerViaDBusDirect(waylandStatus);
+        this._registerViaDBusDirect(plan.waylandStatus);
     }
 
     /**
@@ -784,15 +782,7 @@ export default class HotkeyManager {
      */
     getPlatformHotkeyStatus(): PlatformHotkeyStatus {
         return {
-            waylandStatus: isLinux
-                ? getWaylandPlatformStatus()
-                : {
-                      isWayland: false,
-                      desktopEnvironment: 'unknown' as const,
-                      deVersion: null,
-                      portalAvailable: false,
-                      portalMethod: 'none' as const,
-                  },
+            waylandStatus: getPlatformAdapter().getWaylandStatus(),
             registrationResults: Array.from(this._registrationResults.values()),
             globalHotkeysEnabled: this._globalHotkeysEnabled,
         };

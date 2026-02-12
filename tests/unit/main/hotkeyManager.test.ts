@@ -47,30 +47,32 @@ vi.mock('electron', () => ({
 vi.mock('../../../src/main/utils/logger');
 
 /**
- * Mock for constants module.
- * Ensures isLinux returns false during tests so hotkey registration tests work on all platforms.
+ * Mock adapter state — controls what getPlatformAdapter() returns.
+ * By default returns a 'native' plan (non-Linux behavior).
  */
-const constantsMocks = vi.hoisted(() => ({
-    isLinux: false,
-    getWaylandPlatformStatus: vi.fn().mockReturnValue({
-        isWayland: false,
-        desktopEnvironment: 'unknown',
-        deVersion: null,
-        portalAvailable: false,
-        portalMethod: 'none',
-    }),
+const mockAdapterState = vi.hoisted(() => ({
+    plan: {
+        mode: 'native' as 'native' | 'disabled' | 'wayland-dbus',
+        waylandStatus: {
+            isWayland: false,
+            desktopEnvironment: 'unknown',
+            deVersion: null,
+            portalAvailable: false,
+            portalMethod: 'none',
+        } as WaylandStatus,
+    },
 }));
 
-vi.mock('../../../src/main/utils/constants', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../../src/main/utils/constants')>();
-    return {
-        ...actual,
-        get isLinux() {
-            return constantsMocks.isLinux;
-        },
-        getWaylandPlatformStatus: constantsMocks.getWaylandPlatformStatus,
-    };
-});
+vi.mock('../../../src/main/platform/platformAdapterFactory', () => ({
+    getPlatformAdapter: () => ({
+        id: mockAdapterState.plan.mode === 'native' ? 'windows' : 'linux-wayland',
+        applyAppConfiguration: vi.fn(),
+        applyAppUserModelId: vi.fn(),
+        getHotkeyRegistrationPlan: () => mockAdapterState.plan,
+        getWaylandStatus: () => mockAdapterState.plan.waylandStatus,
+        shouldQuitOnWindowAllClosed: () => mockAdapterState.plan.mode === 'native',
+    }),
+}));
 
 const mockDbusFallback = vi.hoisted(() => ({
     registerViaDBus: vi.fn().mockResolvedValue([]),
@@ -846,24 +848,45 @@ describe('HotkeyManager', () => {
 
     describe('Linux / Wayland scenarios', () => {
         beforeEach(() => {
-            constantsMocks.isLinux = true;
+            mockAdapterState.plan = {
+                mode: 'disabled',
+                waylandStatus: {
+                    isWayland: false,
+                    desktopEnvironment: 'unknown',
+                    deVersion: null,
+                    portalAvailable: false,
+                    portalMethod: 'none',
+                },
+            };
             mockGlobalShortcut.register.mockReturnValue(true);
             mockGlobalShortcut.isRegistered.mockReturnValue(true);
         });
 
         afterEach(() => {
-            constantsMocks.isLinux = false;
+            mockAdapterState.plan = {
+                mode: 'native',
+                waylandStatus: {
+                    isWayland: false,
+                    desktopEnvironment: 'unknown',
+                    deVersion: null,
+                    portalAvailable: false,
+                    portalMethod: 'none',
+                },
+            };
             vi.clearAllMocks();
         });
 
         it('should NOT register shortcuts on X11 Linux', () => {
-            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
-                isWayland: false,
-                desktopEnvironment: 'kde',
-                deVersion: '5.27',
-                portalAvailable: false,
-                portalMethod: 'none',
-            });
+            mockAdapterState.plan = {
+                mode: 'disabled',
+                waylandStatus: {
+                    isWayland: false,
+                    desktopEnvironment: 'kde',
+                    deVersion: '5.27',
+                    portalAvailable: false,
+                    portalMethod: 'none',
+                },
+            };
 
             hotkeyManager.registerShortcuts();
 
@@ -872,13 +895,16 @@ describe('HotkeyManager', () => {
         });
 
         it('should NOT register shortcuts on Wayland with unsupported DE', () => {
-            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
-                isWayland: true,
-                desktopEnvironment: 'unknown',
-                deVersion: null,
-                portalAvailable: false,
-                portalMethod: 'none',
-            });
+            mockAdapterState.plan = {
+                mode: 'disabled',
+                waylandStatus: {
+                    isWayland: true,
+                    desktopEnvironment: 'unknown',
+                    deVersion: null,
+                    portalAvailable: false,
+                    portalMethod: 'none',
+                },
+            };
 
             hotkeyManager.registerShortcuts();
 
@@ -887,13 +913,16 @@ describe('HotkeyManager', () => {
         });
 
         it('should register shortcuts on Wayland with supported KDE', async () => {
-            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
-                isWayland: true,
-                desktopEnvironment: 'kde',
-                deVersion: '5.27',
-                portalAvailable: true,
-                portalMethod: 'none',
-            });
+            mockAdapterState.plan = {
+                mode: 'wayland-dbus',
+                waylandStatus: {
+                    isWayland: true,
+                    desktopEnvironment: 'kde',
+                    deVersion: '5.27',
+                    portalAvailable: true,
+                    portalMethod: 'none',
+                },
+            };
 
             // Mock successful registration
             mockDbusFallback.registerViaDBus.mockResolvedValue([
@@ -912,13 +941,16 @@ describe('HotkeyManager', () => {
         });
 
         it('should attempt D-Bus fallback if Chromium registration fails', async () => {
-            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
-                isWayland: true,
-                desktopEnvironment: 'kde',
-                deVersion: '5.27',
-                portalAvailable: true,
-                portalMethod: 'none',
-            });
+            mockAdapterState.plan = {
+                mode: 'wayland-dbus',
+                waylandStatus: {
+                    isWayland: true,
+                    desktopEnvironment: 'kde',
+                    deVersion: '5.27',
+                    portalAvailable: true,
+                    portalMethod: 'none',
+                },
+            };
 
             // Simulate Chromium registration failure
             mockGlobalShortcut.register.mockReturnValue(false);
@@ -945,13 +977,16 @@ describe('HotkeyManager', () => {
         });
 
         it('should update registration results on each registration', async () => {
-            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
-                isWayland: true,
-                desktopEnvironment: 'kde',
-                deVersion: '5.27',
-                portalAvailable: true,
-                portalMethod: 'none',
-            });
+            mockAdapterState.plan = {
+                mode: 'wayland-dbus',
+                waylandStatus: {
+                    isWayland: true,
+                    desktopEnvironment: 'kde',
+                    deVersion: '5.27',
+                    portalAvailable: true,
+                    portalMethod: 'none',
+                },
+            };
 
             mockDbusFallback.registerViaDBus.mockResolvedValue([
                 { hotkeyId: 'bossKey', success: true },
@@ -977,7 +1012,10 @@ describe('HotkeyManager', () => {
                     portalMethod: 'none',
                 };
 
-                constantsMocks.getWaylandPlatformStatus.mockReturnValue(status);
+                mockAdapterState.plan = {
+                    mode: 'wayland-dbus',
+                    waylandStatus: status,
+                };
 
                 return status;
             };
@@ -1078,7 +1116,16 @@ describe('HotkeyManager', () => {
             });
 
             it('should pass action callbacks to registerViaDBus in fallback path', async () => {
-                constantsMocks.isLinux = false;
+                mockAdapterState.plan = {
+                    mode: 'native',
+                    waylandStatus: {
+                        isWayland: false,
+                        desktopEnvironment: 'unknown',
+                        deVersion: null,
+                        portalAvailable: false,
+                        portalMethod: 'none',
+                    },
+                };
                 mockGlobalShortcut.register.mockReturnValue(false);
 
                 hotkeyManager = new HotkeyManager(mockWindowManager);
@@ -1093,7 +1140,10 @@ describe('HotkeyManager', () => {
                     portalMethod: 'none',
                 };
 
-                constantsMocks.isLinux = true;
+                mockAdapterState.plan = {
+                    mode: 'wayland-dbus',
+                    waylandStatus: waylandStatus,
+                };
 
                 const fallbackInvoker = hotkeyManager as unknown as {
                     _attemptDBusFallbackIfNeeded: (status: WaylandStatus) => Promise<void>;
@@ -1108,15 +1158,17 @@ describe('HotkeyManager', () => {
             });
         });
 
-        it('should skip individual registration on Linux if platform global hotkeys are disabled', () => {
-            constantsMocks.isLinux = true;
-            constantsMocks.getWaylandPlatformStatus.mockReturnValue({
-                isWayland: false, // X11
-                portalAvailable: false,
-                desktopEnvironment: 'unknown',
-                deVersion: null,
-                portalMethod: 'none',
-            });
+        it('should skip individual registration when platform global hotkeys are disabled', () => {
+            mockAdapterState.plan = {
+                mode: 'disabled',
+                waylandStatus: {
+                    isWayland: false, // X11
+                    portalAvailable: false,
+                    desktopEnvironment: 'unknown',
+                    deVersion: null,
+                    portalMethod: 'none',
+                },
+            };
 
             // Initial registration should fail to set _globalHotkeysEnabled
             hotkeyManager.registerShortcuts();
@@ -1140,7 +1192,10 @@ describe('HotkeyManager', () => {
                     portalAvailable: true,
                     portalMethod: 'none',
                 };
-                constantsMocks.getWaylandPlatformStatus.mockReturnValue(status);
+                mockAdapterState.plan = {
+                    mode: 'wayland-dbus',
+                    waylandStatus: status,
+                };
                 return status;
             };
 

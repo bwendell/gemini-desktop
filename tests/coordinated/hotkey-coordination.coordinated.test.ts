@@ -17,14 +17,32 @@ import type { IndividualHotkeySettings } from '../../src/main/types';
 vi.mock('../../src/main/utils/logger');
 import { mockLogger } from '../../src/main/utils/logger';
 
-// Mock constants to ensure isLinux is false (so hotkey registration tests work on all platforms)
-vi.mock('../../src/main/utils/constants', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../src/main/utils/constants')>();
-    return {
-        ...actual,
-        isLinux: false,
-    };
-});
+// Mock the platform adapter factory to return a native-mode adapter
+vi.mock('../../src/main/platform/platformAdapterFactory', () => ({
+    getPlatformAdapter: () => ({
+        id: 'windows',
+        applyAppConfiguration: vi.fn(),
+        applyAppUserModelId: vi.fn(),
+        getHotkeyRegistrationPlan: () => ({
+            mode: 'native',
+            waylandStatus: {
+                isWayland: false,
+                desktopEnvironment: 'unknown',
+                deVersion: null,
+                portalAvailable: false,
+                portalMethod: 'none',
+            },
+        }),
+        getWaylandStatus: () => ({
+            isWayland: false,
+            desktopEnvironment: 'unknown',
+            deVersion: null,
+            portalAvailable: false,
+            portalMethod: 'none',
+        }),
+        shouldQuitOnWindowAllClosed: () => true,
+    }),
+}));
 
 // Helper to get registered IPC listeners
 const getListener = (channel: string) => (require('electron').ipcMain as any)._listeners.get(channel);
