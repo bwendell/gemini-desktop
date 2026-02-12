@@ -43,18 +43,29 @@ vi.mock('electron', () => ({
     },
 }));
 
-// Mock logger
+const mockLogger = vi.hoisted(() => ({
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+}));
+
 vi.mock('../../../../src/main/utils/logger', () => ({
-    createLogger: () => ({
-        log: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-    }),
+    createLogger: () => mockLogger,
+}));
+
+const mockGetPlatformAdapter = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../../src/main/platform/platformAdapterFactory', () => ({
+    getPlatformAdapter: mockGetPlatformAdapter,
 }));
 
 describe('NotificationManager', () => {
     let notificationManager: NotificationManager;
+    let notificationSpy: typeof mockNotification & {
+        _instances: any[];
+        isSupported: { mockReturnValue: (value: boolean) => void };
+    };
     let mockMainWindow: BrowserWindow;
     let mockBadgeManager: any;
     let mockStore: ReturnType<typeof createMockStore>;
@@ -64,9 +75,10 @@ describe('NotificationManager', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockNotification._reset();
+        (mockNotification as any)._reset();
         focusHandler = undefined;
         blurHandler = undefined;
+        notificationSpy = mockNotification as any;
 
         mockMainWindow = {
             isFocused: vi.fn().mockReturnValue(true),
@@ -112,34 +124,19 @@ describe('NotificationManager', () => {
     describe('isWindowFocused (Task 6.1)', () => {
         it('initializes with current window focus state (focused)', () => {
             mockMainWindow.isFocused = vi.fn().mockReturnValue(true);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
             expect(manager.isWindowFocused).toBe(true);
         });
 
         it('initializes with current window focus state (unfocused)', () => {
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
             expect(manager.isWindowFocused).toBe(false);
         });
 
         it('updates to true on window focus event', () => {
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
 
             expect(manager.isWindowFocused).toBe(false);
 
@@ -151,12 +148,7 @@ describe('NotificationManager', () => {
 
         it('updates to false on window blur event', () => {
             mockMainWindow.isFocused = vi.fn().mockReturnValue(true);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
 
             expect(manager.isWindowFocused).toBe(true);
 
@@ -174,12 +166,7 @@ describe('NotificationManager', () => {
         it('clears notification badge when window regains focus', () => {
             // Start unfocused
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
 
             // Simulate focus
             focusHandler?.();
@@ -194,27 +181,17 @@ describe('NotificationManager', () => {
     describe('onResponseComplete (Task 6.2)', () => {
         it('shows notification when window is unfocused and setting enabled', () => {
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
 
             manager.onResponseComplete();
 
-            expect(mockNotification._instances.length).toBe(1);
-            expect(mockNotification._instances[0].show).toHaveBeenCalled();
+            expect(notificationSpy._instances.length).toBe(1);
+            expect(notificationSpy._instances[0].show).toHaveBeenCalled();
         });
 
         it('shows badge when window is unfocused and setting enabled', () => {
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
 
             manager.onResponseComplete();
 
@@ -223,32 +200,22 @@ describe('NotificationManager', () => {
 
         it('does not show notification when window is focused', () => {
             mockMainWindow.isFocused = vi.fn().mockReturnValue(true);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
 
             manager.onResponseComplete();
 
-            expect(mockNotification._instances.length).toBe(0);
+            expect(notificationSpy._instances.length).toBe(0);
             expect(mockBadgeManager.showNotificationBadge).not.toHaveBeenCalled();
         });
 
         it('does not show notification when setting is disabled', () => {
             mockStore = createMockStore({ responseNotificationsEnabled: false });
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
 
             manager.onResponseComplete();
 
-            expect(mockNotification._instances.length).toBe(0);
+            expect(notificationSpy._instances.length).toBe(0);
             expect(mockBadgeManager.showNotificationBadge).not.toHaveBeenCalled();
         });
 
@@ -268,7 +235,7 @@ describe('NotificationManager', () => {
             // Now trigger response
             manager.onResponseComplete();
 
-            expect(mockNotification._instances.length).toBe(1);
+            expect(notificationSpy._instances.length).toBe(1);
             expect(mockBadgeManager.showNotificationBadge).toHaveBeenCalled();
         });
     });
@@ -289,7 +256,7 @@ describe('NotificationManager', () => {
             manager.onResponseComplete();
 
             // Get the notification instance and trigger click
-            const notification = mockNotification._instances[0];
+            const notification = notificationSpy._instances[0];
             expect(notification._listeners.has('click')).toBe(true);
 
             const clickHandler = notification._listeners.get('click');
@@ -311,7 +278,7 @@ describe('NotificationManager', () => {
 
             manager.onResponseComplete();
 
-            const notification = mockNotification._instances[0];
+            const notification = notificationSpy._instances[0];
             const clickHandler = notification._listeners.get('click');
             clickHandler?.();
 
@@ -334,7 +301,7 @@ describe('NotificationManager', () => {
             // Mark window as destroyed before click
             mockMainWindow.isDestroyed = vi.fn().mockReturnValue(true);
 
-            const notification = mockNotification._instances[0];
+            const notification = notificationSpy._instances[0];
             const clickHandler = notification._listeners.get('click');
 
             // Should not throw
@@ -351,7 +318,7 @@ describe('NotificationManager', () => {
     // =========================================================================
     describe('Notification.isSupported() behavior (Task 6.8)', () => {
         it('does not show notification when Notification.isSupported() returns false', () => {
-            mockNotification.isSupported.mockReturnValue(false);
+            notificationSpy.isSupported.mockReturnValue(false);
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
             const manager = new NotificationManager(
                 mockMainWindow,
@@ -362,11 +329,11 @@ describe('NotificationManager', () => {
 
             manager.showNotification();
 
-            expect(mockNotification._instances.length).toBe(0);
+            expect(notificationSpy._instances.length).toBe(0);
         });
 
         it('does not throw error when notifications are not supported', () => {
-            mockNotification.isSupported.mockReturnValue(false);
+            notificationSpy.isSupported.mockReturnValue(false);
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
             const manager = new NotificationManager(
                 mockMainWindow,
@@ -379,7 +346,7 @@ describe('NotificationManager', () => {
         });
 
         it('shows notification when Notification.isSupported() returns true', () => {
-            mockNotification.isSupported.mockReturnValue(true);
+            notificationSpy.isSupported.mockReturnValue(true);
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
             const manager = new NotificationManager(
                 mockMainWindow,
@@ -390,11 +357,11 @@ describe('NotificationManager', () => {
 
             manager.showNotification();
 
-            expect(mockNotification._instances.length).toBe(1);
+            expect(notificationSpy._instances.length).toBe(1);
         });
 
         it('logs adapter hint when Notification.isSupported() is false and hint is provided', () => {
-            mockNotification.isSupported.mockReturnValue(false);
+            notificationSpy.isSupported.mockReturnValue(false);
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
             const hint = 'On Linux, install libnotify';
             mockPlatformAdapter.getNotificationSupportHint.mockReturnValue(hint);
@@ -411,7 +378,7 @@ describe('NotificationManager', () => {
         });
 
         it('logs generic not supported message when Notification.isSupported() is false and no hint available', () => {
-            mockNotification.isSupported.mockReturnValue(false);
+            notificationSpy.isSupported.mockReturnValue(false);
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
             mockPlatformAdapter.getNotificationSupportHint.mockReturnValue(undefined);
             const manager = new NotificationManager(
@@ -514,7 +481,7 @@ describe('NotificationManager', () => {
 
             manager.showNotification();
 
-            expect(mockNotification._instances[0].show).toHaveBeenCalled();
+            expect(notificationSpy._instances[0].show).toHaveBeenCalled();
         });
     });
 
@@ -594,7 +561,7 @@ describe('NotificationManager', () => {
                 this.show = vi.fn().mockImplementation(() => {
                     throw new Error('Show failed');
                 });
-                mockNotification._instances.push(this);
+                notificationSpy._instances.push(this);
                 return this;
             });
 
@@ -892,7 +859,12 @@ describe('NotificationManager', () => {
                 }),
             };
 
-            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, throwingStore as any);
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                throwingStore as any,
+                mockPlatformAdapter
+            );
 
             // Should not throw - error is caught and logged
             expect(() => manager.setEnabled(false)).not.toThrow();
@@ -911,7 +883,12 @@ describe('NotificationManager', () => {
                 }),
             };
 
-            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, failOnceStore as any);
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                failOnceStore as any,
+                mockPlatformAdapter
+            );
 
             // First call fails but doesn't crash
             expect(() => manager.setEnabled(false)).not.toThrow();

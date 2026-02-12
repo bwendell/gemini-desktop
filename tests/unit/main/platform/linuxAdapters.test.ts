@@ -337,24 +337,24 @@ describe('LinuxWaylandAdapter', () => {
     });
 
     describe('shouldDisableUpdates()', () => {
-        it('should return true when APPIMAGE is set', () => {
+        it('should return false when APPIMAGE is set', () => {
             const env = { APPIMAGE: '/path/to/app.AppImage' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+
+        it('should return true when APPIMAGE is not set', () => {
+            const env = {};
             expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
 
-        it('should return false when APPIMAGE is not set', () => {
-            const env = {};
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
-        });
-
-        it('should return false when APPIMAGE is empty string', () => {
+        it('should return true when APPIMAGE is empty string', () => {
             const env = { APPIMAGE: '' };
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
 
-        it('should return false when PORTABLE_EXECUTABLE_DIR is set (Windows only)', () => {
+        it('should return true when PORTABLE_EXECUTABLE_DIR is set (Windows only)', () => {
             const env = { PORTABLE_EXECUTABLE_DIR: '/path/to/portable' };
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
     });
 
@@ -591,24 +591,24 @@ describe('LinuxX11Adapter', () => {
     });
 
     describe('shouldDisableUpdates()', () => {
-        it('should return true when APPIMAGE is set', () => {
+        it('should return false when APPIMAGE is set', () => {
             const env = { APPIMAGE: '/path/to/app.AppImage' };
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+
+        it('should return true when APPIMAGE is not set', () => {
+            const env = {};
             expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
 
-        it('should return false when APPIMAGE is not set', () => {
-            const env = {};
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
-        });
-
-        it('should return false when APPIMAGE is empty string', () => {
+        it('should return true when APPIMAGE is empty string', () => {
             const env = { APPIMAGE: '' };
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
 
-        it('should return false when PORTABLE_EXECUTABLE_DIR is set (Windows only)', () => {
+        it('should return true when PORTABLE_EXECUTABLE_DIR is set (Windows only)', () => {
             const env = { PORTABLE_EXECUTABLE_DIR: '/path/to/portable' };
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
     });
 

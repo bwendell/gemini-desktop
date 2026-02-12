@@ -13,6 +13,7 @@ import { getNotificationIconPath } from '../utils/paths';
 import type SettingsStore from '../store';
 import type BadgeManager from './badgeManager';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 
 const logger = createLogger('[NotificationManager]');
 
@@ -70,12 +71,12 @@ export default class NotificationManager {
         mainWindow: BrowserWindow,
         badgeManager: BadgeManager,
         store: SettingsStore<NotificationSettings>,
-        platformAdapter: PlatformAdapter
+        platformAdapter?: PlatformAdapter
     ) {
         this.mainWindow = mainWindow;
         this.badgeManager = badgeManager;
         this.store = store;
-        this.platformAdapter = platformAdapter;
+        this.platformAdapter = platformAdapter ?? getPlatformAdapter();
 
         // Initialize focus state - check if window is currently focused
         this._isWindowFocused = mainWindow.isFocused();

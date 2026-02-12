@@ -370,7 +370,12 @@ if (!gotTheLock) {
                     responseNotificationsEnabled: true,
                 },
             });
-            notificationManager = new NotificationManager(mainWindow, badgeManager, notificationSettings);
+            notificationManager = new NotificationManager(
+                mainWindow,
+                badgeManager,
+                notificationSettings,
+                platformAdapter
+            );
 
             // Subscribe to response-complete events from MainWindow
             const mainWindowInstance = windowManager.getMainWindowInstance();
