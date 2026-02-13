@@ -19,6 +19,7 @@ import type { UpdateInfo, AppUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createLogger } from '../utils/logger';
 import type SettingsStore from '../store';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 import type BadgeManager from './badgeManager';
 import type TrayManager from './trayManager';
 
@@ -166,18 +167,16 @@ export default class UpdateManager {
             return false;
         }
 
-        // Linux: Disable updates in non-AppImage environments FIRST
-        // This MUST come before any other checks to prevent electron-updater
-        // from being accessed on headless Linux (CI), where it hangs on D-Bus
-        if (currentPlatform === 'linux' && !currentEnv.APPIMAGE) {
-            logger.log('Linux non-AppImage detected (or simulated) - updates disabled');
-            return true;
-        }
+        if (getPlatformAdapter().shouldDisableUpdates(currentEnv)) {
+            if (currentPlatform === 'linux') {
+                logger.log('Linux non-AppImage detected (or simulated) - updates disabled');
+                return true;
+            }
 
-        // Windows: Disable updates if running as Portable
-        if (currentPlatform === 'win32' && currentEnv.PORTABLE_EXECUTABLE_DIR) {
-            logger.log('Windows Portable detected - updates disabled');
-            return true;
+            if (currentPlatform === 'win32') {
+                logger.log('Windows Portable detected - updates disabled');
+                return true;
+            }
         }
 
         // Development mode - skip updates (unless testing)

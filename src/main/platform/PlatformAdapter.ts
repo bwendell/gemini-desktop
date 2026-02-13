@@ -66,6 +66,16 @@ export interface PlatformAdapter {
      */
     shouldQuitOnWindowAllClosed(): boolean;
 
+    getTitleBarStyle(): TitleBarStyle;
+
+    getAppIconFilename(): AppIconFilename;
+
+    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean;
+
+    requestMediaPermissions(logger: Logger): Promise<void>;
+
+    getNotificationSupportHint(): string | undefined;
+
     // ----- Badge methods -----
 
     /**

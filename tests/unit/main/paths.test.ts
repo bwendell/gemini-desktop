@@ -15,6 +15,18 @@ vi.mock('path', async () => {
     };
 });
 
+vi.mock('electron', () => ({
+    app: {
+        isPackaged: false,
+    },
+}));
+
+const mockGetPlatformAdapter = vi.fn();
+
+vi.mock('../../../src/main/platform/platformAdapterFactory', () => ({
+    getPlatformAdapter: mockGetPlatformAdapter,
+}));
+
 describe('paths utilities', () => {
     // Helper to mock platform
     const mockPlatform = (platform: string) => {
@@ -72,6 +84,9 @@ describe('paths utilities', () => {
         it('should return .ico path on Windows', async () => {
             mockPlatform('win32');
             vi.resetModules();
+            mockGetPlatformAdapter.mockReturnValue({
+                getAppIconFilename: vi.fn().mockReturnValue('icon.ico'),
+            });
             const { getIconPath } = await import('../../../src/main/utils/paths');
             const result = getIconPath();
 
@@ -82,6 +97,9 @@ describe('paths utilities', () => {
         it('should return .png path on macOS', async () => {
             mockPlatform('darwin');
             vi.resetModules();
+            mockGetPlatformAdapter.mockReturnValue({
+                getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            });
             const { getIconPath } = await import('../../../src/main/utils/paths');
             const result = getIconPath();
 
@@ -92,6 +110,9 @@ describe('paths utilities', () => {
         it('should return .png path on Linux', async () => {
             mockPlatform('linux');
             vi.resetModules();
+            mockGetPlatformAdapter.mockReturnValue({
+                getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            });
             const { getIconPath } = await import('../../../src/main/utils/paths');
             const result = getIconPath();
 

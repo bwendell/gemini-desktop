@@ -153,7 +153,7 @@ describe('WindowsAdapter', () => {
     });
 
     describe('getTitleBarStyle()', () => {
-        it('should return undefined', () => {
+        it('should return undefined on Windows', () => {
             expect(adapter.getTitleBarStyle()).toBeUndefined();
         });
     });
@@ -166,18 +166,25 @@ describe('WindowsAdapter', () => {
 
     describe('shouldDisableUpdates()', () => {
         it('should return true when PORTABLE_EXECUTABLE_DIR is set', () => {
-            expect(adapter.shouldDisableUpdates({ PORTABLE_EXECUTABLE_DIR: 'C:\\Portable' })).toBe(true);
+            const env = { PORTABLE_EXECUTABLE_DIR: 'C:\\Portable' } as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
 
         it('should return false when PORTABLE_EXECUTABLE_DIR is not set', () => {
-            expect(adapter.shouldDisableUpdates({})).toBe(false);
+            const env = {} as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
         });
     });
 
     describe('requestMediaPermissions()', () => {
-        it('should be a no-op on Windows', async () => {
+        it('should resolve without logging', async () => {
             const logger = createMockLogger();
-            await expect(adapter.requestMediaPermissions(logger)).resolves.toBeUndefined();
+
+            await adapter.requestMediaPermissions(logger);
+
+            expect(logger.log).not.toHaveBeenCalled();
             expect(mockAskForMediaAccess).not.toHaveBeenCalled();
         });
     });
@@ -458,13 +465,15 @@ describe('MacAdapter', () => {
     });
 
     describe('shouldDisableUpdates()', () => {
-        it('should return false regardless of env', () => {
-            expect(adapter.shouldDisableUpdates({ APPIMAGE: '1' })).toBe(false);
+        it('should return false on macOS', () => {
+            const env = { APPIMAGE: '', PORTABLE_EXECUTABLE_DIR: 'C:\\Portable' } as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
         });
     });
 
     describe('requestMediaPermissions()', () => {
-        it('should call systemPreferences.askForMediaAccess', async () => {
+        it('should call systemPreferences.askForMediaAccess for microphone', async () => {
             const logger = createMockLogger();
 
             await adapter.requestMediaPermissions(logger);

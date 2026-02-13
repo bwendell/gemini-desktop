@@ -73,6 +73,30 @@ export class MacAdapter implements PlatformAdapter {
         return false;
     }
 
+    getTitleBarStyle(): TitleBarStyle {
+        return 'hidden';
+    }
+
+    getAppIconFilename(): AppIconFilename {
+        return 'icon.png';
+    }
+
+    shouldDisableUpdates(_env: NodeJS.ProcessEnv): boolean {
+        return false;
+    }
+
+    async requestMediaPermissions(logger: Logger): Promise<void> {
+        const { systemPreferences } = await import('electron');
+        if (systemPreferences.askForMediaAccess) {
+            const granted = await systemPreferences.askForMediaAccess('microphone');
+            logger.log(`macOS microphone access: ${granted ? 'granted' : 'denied'}`);
+        }
+    }
+
+    getNotificationSupportHint(): string | undefined {
+        return undefined;
+    }
+
     // ----- Badge methods -----
 
     supportsBadges(): boolean {

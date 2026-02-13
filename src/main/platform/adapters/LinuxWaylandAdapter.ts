@@ -98,6 +98,32 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
         return true;
     }
 
+    getTitleBarStyle(): TitleBarStyle {
+        return undefined;
+    }
+
+    getAppIconFilename(): AppIconFilename {
+        return 'icon.png';
+    }
+
+    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean {
+        return !env.APPIMAGE;
+    }
+
+    async requestMediaPermissions(_logger: Logger): Promise<void> {
+        return;
+    }
+
+    getNotificationSupportHint(): string | undefined {
+        return (
+            'Notifications not supported on this platform. ' +
+            'On Linux, ensure libnotify is installed: ' +
+            'Ubuntu/Debian: apt install libnotify-bin | ' +
+            'Fedora: dnf install libnotify | ' +
+            'Arch: pacman -S libnotify'
+        );
+    }
+
     // ----- Badge methods -----
 
     supportsBadges(): boolean {

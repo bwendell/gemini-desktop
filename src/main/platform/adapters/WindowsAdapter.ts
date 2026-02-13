@@ -72,6 +72,26 @@ export class WindowsAdapter implements PlatformAdapter {
         return true;
     }
 
+    getTitleBarStyle(): TitleBarStyle {
+        return undefined;
+    }
+
+    getAppIconFilename(): AppIconFilename {
+        return 'icon.ico';
+    }
+
+    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean {
+        return !!env.PORTABLE_EXECUTABLE_DIR;
+    }
+
+    async requestMediaPermissions(_logger: Logger): Promise<void> {
+        return;
+    }
+
+    getNotificationSupportHint(): string | undefined {
+        return undefined;
+    }
+
     // ----- Badge methods -----
 
     supportsBadges(): boolean {
