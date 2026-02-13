@@ -18,6 +18,8 @@ import type {
     ClearBadgeParams,
     DockMenuCallbacks,
     MainWindowPlatformConfig,
+    TitleBarStyle,
+    AppIconFilename,
 } from '../types';
 import { APP_ID } from '../../utils/constants';
 
@@ -68,6 +70,26 @@ export class WindowsAdapter implements PlatformAdapter {
 
     shouldQuitOnWindowAllClosed(): boolean {
         return true;
+    }
+
+    getTitleBarStyle(): TitleBarStyle {
+        return undefined;
+    }
+
+    getAppIconFilename(): AppIconFilename {
+        return 'icon.ico';
+    }
+
+    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean {
+        return !!env.PORTABLE_EXECUTABLE_DIR;
+    }
+
+    async requestMediaPermissions(_logger: Logger): Promise<void> {
+        return;
+    }
+
+    getNotificationSupportHint(): string | undefined {
+        return undefined;
     }
 
     // ----- Badge methods -----

@@ -28,6 +28,14 @@ vi.mock('../../../../src/main/utils/logger', () => ({
     }),
 }));
 
+const mockAskForMediaAccess = vi.fn().mockResolvedValue(true);
+
+vi.mock('electron', () => ({
+    systemPreferences: {
+        askForMediaAccess: mockAskForMediaAccess,
+    },
+}));
+
 import { WindowsAdapter } from '../../../../src/main/platform/adapters/WindowsAdapter';
 import { MacAdapter } from '../../../../src/main/platform/adapters/MacAdapter';
 
@@ -141,6 +149,49 @@ describe('WindowsAdapter', () => {
     describe('shouldQuitOnWindowAllClosed()', () => {
         it('should return true', () => {
             expect(adapter.shouldQuitOnWindowAllClosed()).toBe(true);
+        });
+    });
+
+    describe('getTitleBarStyle()', () => {
+        it('should return undefined on Windows', () => {
+            expect(adapter.getTitleBarStyle()).toBeUndefined();
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return icon.ico on Windows', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.ico');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return true when PORTABLE_EXECUTABLE_DIR is set', () => {
+            const env = { PORTABLE_EXECUTABLE_DIR: 'C:\\Portable' } as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
+        });
+
+        it('should return false when PORTABLE_EXECUTABLE_DIR is not set', () => {
+            const env = {} as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should resolve without logging', async () => {
+            const logger = createMockLogger();
+
+            await adapter.requestMediaPermissions(logger);
+
+            expect(logger.log).not.toHaveBeenCalled();
+            expect(mockAskForMediaAccess).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return undefined on Windows', () => {
+            expect(adapter.getNotificationSupportHint()).toBeUndefined();
         });
     });
 
@@ -354,6 +405,43 @@ describe('MacAdapter', () => {
     describe('shouldQuitOnWindowAllClosed()', () => {
         it('should return false (macOS stays in dock)', () => {
             expect(adapter.shouldQuitOnWindowAllClosed()).toBe(false);
+        });
+    });
+
+    describe('getTitleBarStyle()', () => {
+        it('should return hidden on macOS', () => {
+            expect(adapter.getTitleBarStyle()).toBe('hidden');
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return icon.png on macOS', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.png');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return false on macOS', () => {
+            const env = { APPIMAGE: '', PORTABLE_EXECUTABLE_DIR: 'C:\\Portable' } as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should call systemPreferences.askForMediaAccess for microphone', async () => {
+            const logger = createMockLogger();
+
+            await adapter.requestMediaPermissions(logger);
+
+            expect(mockAskForMediaAccess).toHaveBeenCalledWith('microphone');
+            expect(logger.log).toHaveBeenCalledWith('macOS microphone access: granted');
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return undefined on macOS', () => {
+            expect(adapter.getNotificationSupportHint()).toBeUndefined();
         });
     });
 
