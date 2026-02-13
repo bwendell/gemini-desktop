@@ -126,6 +126,11 @@ describe('platformAdapterFactory', () => {
             expect(typeof adapter.getHotkeyRegistrationPlan).toBe('function');
             expect(typeof adapter.getWaylandStatus).toBe('function');
             expect(typeof adapter.shouldQuitOnWindowAllClosed).toBe('function');
+            expect(typeof adapter.getTitleBarStyle).toBe('function');
+            expect(typeof adapter.getAppIconFilename).toBe('function');
+            expect(typeof adapter.shouldDisableUpdates).toBe('function');
+            expect(typeof adapter.requestMediaPermissions).toBe('function');
+            expect(typeof adapter.getNotificationSupportHint).toBe('function');
         });
 
         it('MacAdapter should not quit on window all closed', () => {

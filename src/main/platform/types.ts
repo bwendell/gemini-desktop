@@ -14,6 +14,10 @@ import type { WaylandStatus } from '../../shared/types/hotkeys';
  */
 export type PlatformId = 'linux-wayland' | 'linux-x11' | 'windows' | 'mac';
 
+export type TitleBarStyle = 'hidden' | undefined;
+
+export type AppIconFilename = 'icon.ico' | 'icon.png';
+
 /**
  * How global hotkeys should be registered on this platform.
  *

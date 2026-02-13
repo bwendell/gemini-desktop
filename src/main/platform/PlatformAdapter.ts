@@ -19,6 +19,8 @@ import type {
     ClearBadgeParams,
     DockMenuCallbacks,
     MainWindowPlatformConfig,
+    TitleBarStyle,
+    AppIconFilename,
 } from './types';
 
 /**
@@ -63,6 +65,16 @@ export interface PlatformAdapter {
      * macOS returns false (stay in dock); all others return true.
      */
     shouldQuitOnWindowAllClosed(): boolean;
+
+    getTitleBarStyle(): TitleBarStyle;
+
+    getAppIconFilename(): AppIconFilename;
+
+    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean;
+
+    requestMediaPermissions(logger: Logger): Promise<void>;
+
+    getNotificationSupportHint(): string | undefined;
 
     // ----- Badge methods -----
 
