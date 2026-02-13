@@ -32,6 +32,14 @@ vi.mock('../../../../src/main/utils/logger', () => ({
     }),
 }));
 
+const mockAskForMediaAccess = vi.fn().mockResolvedValue(true);
+
+vi.mock('electron', () => ({
+    systemPreferences: {
+        askForMediaAccess: mockAskForMediaAccess,
+    },
+}));
+
 import { LinuxWaylandAdapter } from '../../../../src/main/platform/adapters/LinuxWaylandAdapter';
 import { LinuxX11Adapter } from '../../../../src/main/platform/adapters/LinuxX11Adapter';
 
@@ -226,6 +234,55 @@ describe('LinuxWaylandAdapter', () => {
     describe('shouldQuitOnWindowAllClosed()', () => {
         it('should return true', () => {
             expect(adapter.shouldQuitOnWindowAllClosed()).toBe(true);
+        });
+    });
+
+    describe('getTitleBarStyle()', () => {
+        it('should return undefined on Linux', () => {
+            expect(adapter.getTitleBarStyle()).toBeUndefined();
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return icon.png on Linux', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.png');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return true when APPIMAGE is not set', () => {
+            const env = {} as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
+        });
+
+        it('should return false when APPIMAGE is set', () => {
+            const env = { APPIMAGE: '/path/to/app.AppImage' } as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should resolve without logging', async () => {
+            const logger = createMockLogger();
+
+            await adapter.requestMediaPermissions(logger);
+
+            expect(logger.log).not.toHaveBeenCalled();
+            expect(mockAskForMediaAccess).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return Linux libnotify guidance', () => {
+            expect(adapter.getNotificationSupportHint()).toBe(
+                'Notifications not supported on this platform. ' +
+                    'On Linux, ensure libnotify is installed: ' +
+                    'Ubuntu/Debian: apt install libnotify-bin | ' +
+                    'Fedora: dnf install libnotify | ' +
+                    'Arch: pacman -S libnotify'
+            );
         });
     });
 
@@ -428,6 +485,55 @@ describe('LinuxX11Adapter', () => {
     describe('shouldQuitOnWindowAllClosed()', () => {
         it('should return true', () => {
             expect(adapter.shouldQuitOnWindowAllClosed()).toBe(true);
+        });
+    });
+
+    describe('getTitleBarStyle()', () => {
+        it('should return undefined on Linux', () => {
+            expect(adapter.getTitleBarStyle()).toBeUndefined();
+        });
+    });
+
+    describe('getAppIconFilename()', () => {
+        it('should return icon.png on Linux', () => {
+            expect(adapter.getAppIconFilename()).toBe('icon.png');
+        });
+    });
+
+    describe('shouldDisableUpdates()', () => {
+        it('should return true when APPIMAGE is not set', () => {
+            const env = {} as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
+        });
+
+        it('should return false when APPIMAGE is set', () => {
+            const env = { APPIMAGE: '/path/to/app.AppImage' } as NodeJS.ProcessEnv;
+
+            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+        });
+    });
+
+    describe('requestMediaPermissions()', () => {
+        it('should resolve without logging', async () => {
+            const logger = createMockLogger();
+
+            await adapter.requestMediaPermissions(logger);
+
+            expect(logger.log).not.toHaveBeenCalled();
+            expect(mockAskForMediaAccess).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('getNotificationSupportHint()', () => {
+        it('should return Linux libnotify guidance', () => {
+            expect(adapter.getNotificationSupportHint()).toBe(
+                'Notifications not supported on this platform. ' +
+                    'On Linux, ensure libnotify is installed: ' +
+                    'Ubuntu/Debian: apt install libnotify-bin | ' +
+                    'Fedora: dnf install libnotify | ' +
+                    'Arch: pacman -S libnotify'
+            );
         });
     });
 
