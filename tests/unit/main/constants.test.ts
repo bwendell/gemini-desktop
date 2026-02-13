@@ -1,7 +1,7 @@
 /**
  * Unit tests for constants utility.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
     INTERNAL_DOMAINS,
     OAUTH_DOMAINS,
@@ -233,7 +233,6 @@ describe('getTitleBarStyle', () => {
     const originalPlatform = process.platform;
 
     afterEach(() => {
-        // Restore original platform
         Object.defineProperty(process, 'platform', {
             value: originalPlatform,
             configurable: true,
@@ -248,7 +247,6 @@ describe('getTitleBarStyle', () => {
             writable: true,
         });
 
-        // Need to reimport to pick up the mocked platform
         vi.resetModules();
         const { getTitleBarStyle: getTitleBarStyleMocked } = await import('../../../src/main/utils/constants');
         expect(getTitleBarStyleMocked()).toBe('hidden');
