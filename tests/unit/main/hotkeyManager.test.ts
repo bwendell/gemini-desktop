@@ -1112,7 +1112,8 @@ describe('HotkeyManager', () => {
                     expect(hotkeyManager.getPlatformHotkeyStatus().registrationResults).toHaveLength(0);
                 });
                 expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('none');
-                expect(mockDbusFallback.registerViaDBus).not.toHaveBeenCalled();
+                expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
+                expect(mockDbusFallback.destroySession).toHaveBeenCalled();
             });
 
             it('should pass action callbacks to registerViaDBus in fallback path', async () => {
@@ -1286,15 +1287,37 @@ describe('HotkeyManager', () => {
                 ]);
 
                 await vi.waitFor(() => {
-                    const status = hotkeyManager.getPlatformHotkeyStatus();
-                    expect(status.registrationResults).toHaveLength(2);
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledTimes(2);
                 });
 
-                // registerViaDBus should only have been called once
-                expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledTimes(1);
+                const secondCallShortcuts = mockDbusFallback.registerViaDBus.mock.calls[1][0];
+                expect(secondCallShortcuts).toHaveLength(1);
+                expect(secondCallShortcuts[0]).toEqual(expect.objectContaining({ id: 'quickChat' }));
 
                 // State is consistent
                 expect(hotkeyManager.getIndividualSettings().bossKey).toBe(false);
+            });
+
+            it('should destroy D-Bus session when unregisterAll is called on Wayland', async () => {
+                createWaylandKdeStatus();
+                mockDbusFallback.registerViaDBus.mockResolvedValue([
+                    { hotkeyId: 'quickChat', success: true },
+                    { hotkeyId: 'bossKey', success: true },
+                ]);
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalled();
+                });
+
+                hotkeyManager.unregisterAll();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.destroySession).toHaveBeenCalled();
+                });
+                expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
+                expect(hotkeyManager.getPlatformHotkeyStatus().registrationResults).toHaveLength(0);
             });
 
             it('P1-3: should clear previous registration results at start of each registration attempt', async () => {

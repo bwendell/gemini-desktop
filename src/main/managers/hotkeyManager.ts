@@ -59,7 +59,7 @@ import {
     isGlobalHotkey,
 } from '../types';
 
-import { registerViaDBus } from '../utils/dbusFallback';
+import { destroySession, registerViaDBus } from '../utils/dbusFallback';
 import type { WaylandStatus, HotkeyRegistrationResult, PlatformHotkeyStatus } from '../../shared/types/hotkeys';
 
 const logger = createLogger('[HotkeyManager]');
@@ -160,6 +160,8 @@ export default class HotkeyManager {
      */
     private _globalHotkeysEnabled: boolean = false;
     private _isWaylandRegistrationInFlight: boolean = false;
+    private _hasPendingWaylandReregistration: boolean = false;
+    private _waylandRegistrationEpoch: number = 0;
 
     /**
      * Creates a new HotkeyManager instance.
@@ -409,20 +411,8 @@ export default class HotkeyManager {
         }
 
         if (plan.mode === 'wayland-dbus') {
-            if (!enabled) {
-                logger.log(`Global hotkey disabled: ${id} (Wayland D-Bus state updated, no immediate re-registration)`);
-                return;
-            }
-
-            if (this._isWaylandRegistrationInFlight) {
-                logger.log(
-                    `Global hotkey setting updated: ${id} = ${enabled} (registration already in flight, skipping duplicate)`
-                );
-                return;
-            }
-
             logger.log(`Global hotkey ${enabled ? 'enabled' : 'disabled'}: ${id} (re-registering via D-Bus)`);
-            void this._registerViaDBusDirect(plan.waylandStatus);
+            this._requestWaylandRegistration(plan.waylandStatus);
             return;
         }
 
@@ -500,9 +490,18 @@ export default class HotkeyManager {
 
         // mode === 'wayland-dbus': Wayland portal registration via D-Bus
         logger.log('registerShortcuts() path: Wayland portal registration via D-Bus (direct)');
-        this._globalHotkeysEnabled = true;
+        this._globalHotkeysEnabled = false;
+        this._requestWaylandRegistration(plan.waylandStatus);
+    }
 
-        this._registerViaDBusDirect(plan.waylandStatus);
+    private _requestWaylandRegistration(waylandStatus: WaylandStatus): void {
+        if (this._isWaylandRegistrationInFlight) {
+            this._hasPendingWaylandReregistration = true;
+            logger.log('Wayland registration already in flight; queued re-registration');
+            return;
+        }
+
+        void this._registerViaDBusDirect(waylandStatus);
     }
 
     /**
@@ -561,11 +560,14 @@ export default class HotkeyManager {
      */
     private async _registerViaDBusDirect(waylandStatus: WaylandStatus): Promise<void> {
         if (this._isWaylandRegistrationInFlight) {
-            logger.log('Skipping duplicate Wayland D-Bus registration attempt (already in flight)');
+            this._hasPendingWaylandReregistration = true;
+            logger.log('Wayland D-Bus registration already in flight; marked pending re-registration');
             return;
         }
 
+        const epoch = this._waylandRegistrationEpoch;
         this._isWaylandRegistrationInFlight = true;
+        this._hasPendingWaylandReregistration = false;
 
         // Clear stale registration results before new attempt
         this._registrationResults.clear();
@@ -576,7 +578,22 @@ export default class HotkeyManager {
             logger.log('No enabled global hotkeys to register via D-Bus');
             this._globalHotkeysEnabled = false;
             waylandStatus.portalMethod = 'none';
-            this._isWaylandRegistrationInFlight = false;
+            try {
+                await destroySession();
+            } catch (error) {
+                logger.warn('Failed to destroy D-Bus session when no hotkeys are enabled:', error);
+            } finally {
+                this._isWaylandRegistrationInFlight = false;
+            }
+
+            if (epoch !== this._waylandRegistrationEpoch) {
+                this._hasPendingWaylandReregistration = false;
+            } else if (this._hasPendingWaylandReregistration) {
+                const latestStatus = getPlatformAdapter().getWaylandStatus();
+                this._hasPendingWaylandReregistration = false;
+                this._requestWaylandRegistration(latestStatus);
+            }
+
             return;
         }
 
@@ -590,6 +607,12 @@ export default class HotkeyManager {
 
         try {
             const results = await registerViaDBus(shortcuts, actionCallbacks);
+
+            if (epoch !== this._waylandRegistrationEpoch) {
+                logger.log('Ignoring stale Wayland registration results after teardown');
+                return;
+            }
+
             for (const result of results) {
                 this._registrationResults.set(result.hotkeyId, result);
             }
@@ -597,11 +620,24 @@ export default class HotkeyManager {
             this._globalHotkeysEnabled = anySuccess;
             waylandStatus.portalMethod = anySuccess ? 'dbus-direct' : 'none';
         } catch (error) {
+            if (epoch !== this._waylandRegistrationEpoch) {
+                logger.log('Ignoring stale Wayland registration error after teardown');
+                return;
+            }
+
             logger.error('D-Bus direct registration failed:', error);
             this._globalHotkeysEnabled = false;
             waylandStatus.portalMethod = 'none';
         } finally {
             this._isWaylandRegistrationInFlight = false;
+
+            if (epoch !== this._waylandRegistrationEpoch) {
+                this._hasPendingWaylandReregistration = false;
+            } else if (this._hasPendingWaylandReregistration) {
+                const latestStatus = getPlatformAdapter().getWaylandStatus();
+                this._hasPendingWaylandReregistration = false;
+                this._requestWaylandRegistration(latestStatus);
+            }
         }
     }
 
@@ -754,8 +790,15 @@ export default class HotkeyManager {
      * - When the application is shutting down
      */
     unregisterAll(): void {
+        this._waylandRegistrationEpoch += 1;
         globalShortcut.unregisterAll();
         this._registeredShortcuts.clear();
+        this._registrationResults.clear();
+        this._globalHotkeysEnabled = false;
+        this._hasPendingWaylandReregistration = false;
+        void destroySession().catch((error) => {
+            logger.warn('Failed to destroy D-Bus session during unregisterAll:', error);
+        });
         logger.log('All global hotkeys unregistered');
     }
 

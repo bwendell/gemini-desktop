@@ -544,6 +544,105 @@ describe('DBusFallback', () => {
 
             expect(mockCallback).toHaveBeenCalledTimes(1);
         });
+
+        it('handles Activated signal with null body gracefully', async () => {
+            const mockCallback = vi.fn();
+            const callbacks = new Map<string, () => void>([['quickChat', mockCallback]]);
+
+            await dbusFallback.registerViaDBus(
+                testShortcuts,
+                callbacks as Map<import('../../../../src/shared/types/hotkeys').HotkeyId, () => void>
+            );
+
+            expect(() => {
+                for (const handler of busMessageHandlers) {
+                    handler({
+                        type: 4,
+                        interface: 'org.freedesktop.portal.GlobalShortcuts',
+                        member: 'Activated',
+                        body: null as unknown as unknown[],
+                    });
+                }
+            }).not.toThrow();
+
+            expect(mockCallback).not.toHaveBeenCalled();
+        });
+
+        it('handles Activated signal with non-array body gracefully', async () => {
+            const mockCallback = vi.fn();
+            const callbacks = new Map<string, () => void>([['quickChat', mockCallback]]);
+
+            await dbusFallback.registerViaDBus(
+                testShortcuts,
+                callbacks as Map<import('../../../../src/shared/types/hotkeys').HotkeyId, () => void>
+            );
+
+            expect(() => {
+                for (const handler of busMessageHandlers) {
+                    handler({
+                        type: 4,
+                        interface: 'org.freedesktop.portal.GlobalShortcuts',
+                        member: 'Activated',
+                        body: 'invalid-body' as unknown as unknown[],
+                    });
+                }
+            }).not.toThrow();
+
+            expect(mockCallback).not.toHaveBeenCalled();
+        });
+
+        it('handles Activated signal with empty shortcutId gracefully', async () => {
+            const mockCallback = vi.fn();
+            const callbacks = new Map<string, () => void>([['quickChat', mockCallback]]);
+
+            await dbusFallback.registerViaDBus(
+                testShortcuts,
+                callbacks as Map<import('../../../../src/shared/types/hotkeys').HotkeyId, () => void>
+            );
+
+            expect(() => {
+                for (const handler of busMessageHandlers) {
+                    handler({
+                        type: 4,
+                        interface: 'org.freedesktop.portal.GlobalShortcuts',
+                        member: 'Activated',
+                        body: ['/session/path', '', {}],
+                    });
+                }
+            }).not.toThrow();
+
+            expect(mockCallback).not.toHaveBeenCalled();
+        });
+
+        it('handles Deactivated signal with null body gracefully', async () => {
+            await dbusFallback.registerViaDBus(testShortcuts);
+
+            expect(() => {
+                for (const handler of busMessageHandlers) {
+                    handler({
+                        type: 4,
+                        interface: 'org.freedesktop.portal.GlobalShortcuts',
+                        member: 'Deactivated',
+                        body: null as unknown as unknown[],
+                    });
+                }
+            }).not.toThrow();
+        });
+
+        it('handles Deactivated signal with non-string shortcutId gracefully', async () => {
+            await dbusFallback.registerViaDBus(testShortcuts);
+
+            expect(() => {
+                for (const handler of busMessageHandlers) {
+                    handler({
+                        type: 4,
+                        interface: 'org.freedesktop.portal.GlobalShortcuts',
+                        member: 'Deactivated',
+                        body: ['/session/path', 42, {}] as unknown as unknown[],
+                    });
+                }
+            }).not.toThrow();
+        });
     });
 
     // ========================================================================

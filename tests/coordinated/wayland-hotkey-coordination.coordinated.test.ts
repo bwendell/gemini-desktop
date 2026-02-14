@@ -49,7 +49,7 @@ vi.mock('../../src/main/platform/platformAdapterFactory', () => ({
 
 const mockRegisterViaDBus = vi.fn();
 const mockIsDBusFallbackAvailable = vi.fn();
-const mockDestroySession = vi.fn();
+const mockDestroySession = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../src/main/utils/dbusFallback', () => ({
     registerViaDBus: (...args: unknown[]) => mockRegisterViaDBus(...args),
     isDBusFallbackAvailable: () => mockIsDBusFallbackAvailable(),
@@ -498,7 +498,7 @@ describe('Wayland Hotkey Coordination', () => {
     });
 
     describe('P1: Coordinated Wayland Hotkey Scenarios', () => {
-        it('P1-2: toggling a hotkey during in-flight D-Bus registration does not cause duplicate calls', async () => {
+        it('P1-2: toggling a hotkey during in-flight D-Bus registration queues one reconciliation call', async () => {
             adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
             setAdapterForCurrentPlatform();
 
@@ -528,10 +528,12 @@ describe('Wayland Hotkey Coordination', () => {
             ]);
 
             await vi.waitFor(() => {
-                expect(mockRegisterViaDBus).toHaveBeenCalled();
+                expect(mockRegisterViaDBus).toHaveBeenCalledTimes(2);
             });
 
-            expect(mockRegisterViaDBus).toHaveBeenCalledTimes(1);
+            const secondCallShortcuts = mockRegisterViaDBus.mock.calls[1][0] as Array<{ id: string }>;
+            expect(secondCallShortcuts).toHaveLength(1);
+            expect(secondCallShortcuts[0]?.id).toBe('quickChat');
         });
 
         it('P1-3: re-registration clears previous results and calls destroySession', async () => {
@@ -607,7 +609,7 @@ describe('Wayland Hotkey Coordination', () => {
                 expect(mockRegisterViaDBus).toHaveBeenCalled();
             });
 
-            expect(mockRegisterViaDBus).toHaveBeenCalledTimes(1);
+            expect(mockRegisterViaDBus).toHaveBeenCalledTimes(2);
         });
 
         it('CT-002: app quit during registration triggers cleanup without errors', async () => {
@@ -635,13 +637,15 @@ describe('Wayland Hotkey Coordination', () => {
                 { hotkeyId: 'bossKey', success: true },
             ]);
 
-            await vi.waitFor(
-                () => {
-                    const status = hotkeyManager.getPlatformHotkeyStatus();
-                    expect(status).toBeDefined();
-                },
-                { timeout: 100 }
-            );
+            await vi.waitFor(() => {
+                expect(mockDestroySession).toHaveBeenCalled();
+            });
+
+            await vi.waitFor(() => {
+                const status = hotkeyManager.getPlatformHotkeyStatus();
+                expect(status.globalHotkeysEnabled).toBe(false);
+                expect(status.registrationResults).toHaveLength(0);
+            });
         });
 
         it('CT-003: state propagation timing - settings update before registration completes', async () => {
