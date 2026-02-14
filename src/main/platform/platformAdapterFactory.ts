@@ -40,9 +40,10 @@ export function getPlatformAdapter(): PlatformAdapter {
         _cachedAdapter = isWayland ? new LinuxWaylandAdapter() : new LinuxX11Adapter();
     } else if (process.platform === 'win32') {
         _cachedAdapter = new WindowsAdapter();
-    } else {
-        // darwin and any unknown platform
+    } else if (process.platform === 'darwin') {
         _cachedAdapter = new MacAdapter();
+    } else {
+        throw new Error(`Unsupported platform: ${process.platform}`);
     }
 
     return _cachedAdapter;

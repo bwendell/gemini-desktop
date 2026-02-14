@@ -295,6 +295,23 @@ describe('UpdateManager', () => {
         delete process.env.TEST_AUTO_UPDATE;
     });
 
+    it('uses mocked platform rules when devMockPlatform differs from host platform', () => {
+        const originalVitest = process.env.VITEST;
+        delete process.env.VITEST;
+        delete process.env.APPIMAGE;
+        (app as any).isPackaged = true;
+
+        try {
+            updateManager = new UpdateManager(mockSettingsStore);
+            expect(updateManager.isEnabled()).toBe(true);
+
+            updateManager.devMockPlatform('linux');
+            expect(updateManager.isEnabled()).toBe(false);
+        } finally {
+            process.env.VITEST = originalVitest;
+        }
+    });
+
     describe('setEnabled', () => {
         it('enables and disables correctly', () => {
             updateManager = new UpdateManager(mockSettingsStore);

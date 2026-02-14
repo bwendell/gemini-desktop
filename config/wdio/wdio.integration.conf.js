@@ -84,7 +84,8 @@ export const config = {
         // Ensure we don't leave lingering Electron processes
         const { execSync } = await import('child_process');
         const platform = process.platform;
-        const appMatch = electronMainPath.replace(/["\\$`]/g, '\\$&');
+        const appRegex = electronMainPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const appMatch = appRegex.replace(/["\\$`]/g, '\\$&');
 
         try {
             if (platform === 'win32') {

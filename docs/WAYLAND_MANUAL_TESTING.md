@@ -35,7 +35,7 @@ echo "KDE Version: $KDE_SESSION_VERSION"
 - [ ] **Quick Chat** — Press `Ctrl+Shift+Space`.
     - Expected: Quick Chat window appears centered on screen.
 - [ ] **Stealth Mode (Boss Key)** — Press `Ctrl+Alt+H`.
-    - Expected: Main window minimizes to tray.
+    - Expected: Main window hides to tray.
 
 ### 4) Failure/Conflict Signals
 

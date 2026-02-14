@@ -159,6 +159,7 @@ export default class HotkeyManager {
      * On Linux, this depends on Wayland session and portal availability.
      */
     private _globalHotkeysEnabled: boolean = false;
+    private _isWaylandRegistrationInFlight: boolean = false;
 
     /**
      * Creates a new HotkeyManager instance.
@@ -399,12 +400,24 @@ export default class HotkeyManager {
             return;
         }
 
-        // Skip global shortcut registration on unsupported platforms
         const plan = getPlatformAdapter().getHotkeyRegistrationPlan();
-        if (plan.mode !== 'native' && !this._globalHotkeysEnabled) {
+        if (plan.mode === 'disabled') {
             logger.log(
                 `Global hotkey setting updated: ${id} = ${enabled} (registration skipped - unsupported platform)`
             );
+            return;
+        }
+
+        if (plan.mode === 'wayland-dbus') {
+            if (this._isWaylandRegistrationInFlight) {
+                logger.log(
+                    `Global hotkey setting updated: ${id} = ${enabled} (registration already in flight, skipping duplicate)`
+                );
+                return;
+            }
+
+            logger.log(`Global hotkey ${enabled ? 'enabled' : 'disabled'}: ${id} (re-registering via D-Bus)`);
+            void this._registerViaDBusDirect(plan.waylandStatus);
             return;
         }
 
@@ -542,6 +555,13 @@ export default class HotkeyManager {
      * @private
      */
     private async _registerViaDBusDirect(waylandStatus: WaylandStatus): Promise<void> {
+        if (this._isWaylandRegistrationInFlight) {
+            logger.log('Skipping duplicate Wayland D-Bus registration attempt (already in flight)');
+            return;
+        }
+
+        this._isWaylandRegistrationInFlight = true;
+
         // Clear stale registration results before new attempt
         this._registrationResults.clear();
 
@@ -551,6 +571,7 @@ export default class HotkeyManager {
             logger.log('No enabled global hotkeys to register via D-Bus');
             this._globalHotkeysEnabled = false;
             waylandStatus.portalMethod = 'none';
+            this._isWaylandRegistrationInFlight = false;
             return;
         }
 
@@ -574,6 +595,8 @@ export default class HotkeyManager {
             logger.error('D-Bus direct registration failed:', error);
             this._globalHotkeysEnabled = false;
             waylandStatus.portalMethod = 'none';
+        } finally {
+            this._isWaylandRegistrationInFlight = false;
         }
     }
 

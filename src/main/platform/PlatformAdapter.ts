@@ -66,16 +66,6 @@ export interface PlatformAdapter {
      */
     shouldQuitOnWindowAllClosed(): boolean;
 
-    getTitleBarStyle(): TitleBarStyle;
-
-    getAppIconFilename(): AppIconFilename;
-
-    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean;
-
-    requestMediaPermissions(logger: Logger): Promise<void>;
-
-    getNotificationSupportHint(): string | undefined;
-
     // ----- Badge methods -----
 
     /**
@@ -161,7 +151,7 @@ export interface PlatformAdapter {
     /**
      * Check if automatic updates should be disabled based on environment.
      * Windows: disabled when PORTABLE_EXECUTABLE_DIR is set
-     * Linux: disabled when APPIMAGE is set
+     * Linux: disabled when APPIMAGE is not set
      * macOS: never disabled by these env vars
      */
     shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean;

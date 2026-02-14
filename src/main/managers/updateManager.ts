@@ -20,6 +20,10 @@ import log from 'electron-log';
 import { createLogger } from '../utils/logger';
 import type SettingsStore from '../store';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
+import type { PlatformAdapter } from '../platform/PlatformAdapter';
+import { LinuxX11Adapter } from '../platform/adapters/LinuxX11Adapter';
+import { MacAdapter } from '../platform/adapters/MacAdapter';
+import { WindowsAdapter } from '../platform/adapters/WindowsAdapter';
 import type BadgeManager from './badgeManager';
 import type TrayManager from './trayManager';
 
@@ -167,7 +171,9 @@ export default class UpdateManager {
             return false;
         }
 
-        if (getPlatformAdapter().shouldDisableUpdates(currentEnv)) {
+        const platformAdapter = this.getAdapterForUpdateChecks(currentPlatform);
+
+        if (platformAdapter.shouldDisableUpdates(currentEnv)) {
             if (currentPlatform === 'linux') {
                 logger.log('Linux non-AppImage detected (or simulated) - updates disabled');
                 return true;
@@ -186,6 +192,24 @@ export default class UpdateManager {
         }
 
         return false;
+    }
+
+    private getAdapterForUpdateChecks(currentPlatform: NodeJS.Platform): PlatformAdapter {
+        if (!this.mockPlatform || currentPlatform === process.platform) {
+            return getPlatformAdapter();
+        }
+
+        switch (currentPlatform) {
+            case 'linux':
+                return new LinuxX11Adapter();
+            case 'win32':
+                return new WindowsAdapter();
+            case 'darwin':
+                return new MacAdapter();
+            default:
+                logger.warn(`Unsupported mocked platform '${currentPlatform}'. Falling back to host adapter.`);
+                return getPlatformAdapter();
+        }
     }
 
     /**

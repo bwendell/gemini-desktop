@@ -66,6 +66,14 @@ describe('platformAdapterFactory', () => {
 
             vi.unstubAllGlobals();
         });
+
+        it('should throw on unsupported platforms', () => {
+            vi.stubGlobal('process', { ...process, platform: 'freebsd' });
+
+            expect(() => getPlatformAdapter()).toThrow('Unsupported platform: freebsd');
+
+            vi.unstubAllGlobals();
+        });
     });
 
     describe('caching', () => {

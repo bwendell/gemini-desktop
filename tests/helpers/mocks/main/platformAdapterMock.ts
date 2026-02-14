@@ -200,7 +200,11 @@ export function resetMockPlatformAdapter(): void {
     _mockAdapter = null;
 }
 
-export function resetPlatformAdapterForTests(): void {
+interface ResetPlatformAdapterOptions {
+    resetModules?: boolean;
+}
+
+export function resetPlatformAdapterForTests(options: ResetPlatformAdapterOptions = {}): void {
     // Handle case where platformAdapterFactory is mocked and may not have this function
     try {
         const factory = platformAdapterFactory as unknown as {
@@ -216,5 +220,9 @@ export function resetPlatformAdapterForTests(): void {
     if (_platformAdapterSpy) {
         _platformAdapterSpy.mockRestore();
         _platformAdapterSpy = null;
+    }
+
+    if (options.resetModules) {
+        vi.resetModules();
     }
 }
