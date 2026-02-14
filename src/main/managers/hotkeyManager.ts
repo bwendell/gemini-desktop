@@ -586,7 +586,9 @@ export default class HotkeyManager {
                 this._isWaylandRegistrationInFlight = false;
             }
 
-            if (this._hasPendingWaylandReregistration) {
+            if (epoch !== this._waylandRegistrationEpoch) {
+                this._hasPendingWaylandReregistration = false;
+            } else if (this._hasPendingWaylandReregistration) {
                 const latestStatus = getPlatformAdapter().getWaylandStatus();
                 this._hasPendingWaylandReregistration = false;
                 this._requestWaylandRegistration(latestStatus);

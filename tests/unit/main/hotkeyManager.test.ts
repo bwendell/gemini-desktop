@@ -1113,6 +1113,7 @@ describe('HotkeyManager', () => {
                 });
                 expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('none');
                 expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
+                expect(mockDbusFallback.destroySession).toHaveBeenCalled();
             });
 
             it('should pass action callbacks to registerViaDBus in fallback path', async () => {
