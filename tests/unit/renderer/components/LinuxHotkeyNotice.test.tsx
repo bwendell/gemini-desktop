@@ -222,7 +222,7 @@ describe('LinuxHotkeyNotice', () => {
             );
         });
 
-        it('should show GNOME-specific warning when portal registration fails', async () => {
+        it('should show GNOME-specific warning when hotkeys are disabled', async () => {
             const noPortalStatus = buildStatusFromPreset('linuxWaylandGnome', false);
 
             const win = globalThis.window as any;
@@ -233,7 +233,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        'Global shortcuts are not available on GNOME. Your desktop environment does not support the required portal.',
+                        'Global shortcuts are currently disabled on GNOME. Enable them in Settings to register shortcuts.',
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Global Hotkeys Disabled',
@@ -245,7 +245,7 @@ describe('LinuxHotkeyNotice', () => {
             );
         });
 
-        it('should show Hyprland-specific warning when portal registration fails', async () => {
+        it('should show Hyprland-specific warning when hotkeys are disabled', async () => {
             const noPortalStatus = buildStatusFromPreset('linuxWaylandHyprland', false);
 
             const win = globalThis.window as any;
@@ -256,7 +256,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        'Global shortcuts are not available on Hyprland. Your desktop environment does not support the required portal.',
+                        'Global shortcuts are currently disabled on Hyprland. Enable them in Settings to register shortcuts.',
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Global Hotkeys Disabled',
@@ -279,7 +279,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        'Global shortcuts are not available. Your desktop environment does not support the required portal.',
+                        'Global shortcuts are currently disabled. Enable them in Settings to register shortcuts.',
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Global Hotkeys Disabled',
@@ -289,6 +289,32 @@ describe('LinuxHotkeyNotice', () => {
                 },
                 { timeout: 3000 }
             );
+        });
+
+        it('should avoid portal remediation when no registration was attempted', async () => {
+            const status = buildStatusFromPreset('linuxWaylandGnome', false, []);
+
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(status);
+
+            render(<LinuxHotkeyNotice />);
+
+            await waitFor(
+                () => {
+                    expect(mockShowWarning).toHaveBeenCalledWith(
+                        'Global shortcuts are currently disabled on GNOME. Enable them in Settings to register shortcuts.',
+                        expect.objectContaining({
+                            id: 'linux-hotkey-notice',
+                            title: 'Global Hotkeys Disabled',
+                            duration: 20000,
+                        })
+                    );
+                },
+                { timeout: 3000 }
+            );
+
+            const [message] = mockShowWarning.mock.calls[0] as [string, unknown];
+            expect(message).not.toContain('portal');
         });
 
         it('should show registration failure details when attempts were made', async () => {
@@ -360,7 +386,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        `Global shortcuts are not available on ${displayName}. Your desktop environment does not support the required portal.`,
+                        `Global shortcuts are currently disabled on ${displayName}. Enable them in Settings to register shortcuts.`,
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Global Hotkeys Disabled',

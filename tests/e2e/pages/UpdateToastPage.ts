@@ -172,7 +172,7 @@ export class UpdateToastPage extends BasePage {
      * Wait for the toast to be hidden.
      * @param timeout - Timeout in milliseconds (default: 3000)
      */
-    async waitForHidden(timeout = 3000): Promise<void> {
+    async waitForHidden(timeout = 5000): Promise<void> {
         this.log('Waiting for toast to be hidden');
         await this.waitForElementToDisappear(this.toastSelector, timeout);
     }

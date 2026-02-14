@@ -119,8 +119,8 @@ export function LinuxHotkeyNotice() {
                         : 'Global shortcuts are not available. No Wayland session bus was detected, so portal registration could not be attempted.';
                 } else {
                     message = deName
-                        ? `Global shortcuts are not available on ${deName}. Your desktop environment does not support the required portal.`
-                        : 'Global shortcuts are not available. Your desktop environment does not support the required portal.';
+                        ? `Global shortcuts are currently disabled on ${deName}. Enable them in Settings to register shortcuts.`
+                        : 'Global shortcuts are currently disabled. Enable them in Settings to register shortcuts.';
                 }
             } else {
                 message = deName

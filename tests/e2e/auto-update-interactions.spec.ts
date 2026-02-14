@@ -99,7 +99,7 @@ describe('Auto-Update User Interactions', () => {
 
             // WHEN the user clicks "Later"
             await updateToast.clickLater();
-            await updateToast.waitForAnimationComplete();
+            await updateToast.waitForHidden();
 
             // THEN the toast should dismiss
             expect(await updateToast.isDisplayed()).toBe(false);
@@ -119,7 +119,7 @@ describe('Auto-Update User Interactions', () => {
 
             // WHEN user clicks Later
             await updateToast.clickLater();
-            await updateToast.waitForAnimationComplete();
+            await updateToast.waitForHidden();
 
             // THEN toast is dismissed
             expect(await updateToast.isDisplayed()).toBe(false);
