@@ -284,19 +284,26 @@ describe('Options Window Integration', () => {
                 { timeout: 5000 }
             );
 
-            // Switch to options window
+            // Get options window handle before switching
             const handles = await browser.getWindowHandles();
             const optionsHandle = handles.find((h) => h !== mainWindowHandle);
-            if (optionsHandle) {
-                await browser.switchToWindow(optionsHandle);
-            }
 
-            // Close via window close
-            await browser.execute(() => {
-                const api = (window as any).electronAPI;
-                if (api?.closeWindow) {
-                    api.closeWindow();
-                }
+            // IMPORTANT: Switch back to main window BEFORE closing options window
+            // to prevent ECONNREFUSED errors on macOS when WebDriver tries to
+            // communicate with a window that's being destroyed
+            await browser.switchToWindow(mainWindowHandle);
+
+            // Close options window via main process (not from options window context)
+            // This avoids WebDriver connection issues when the window closes
+            await browser.electron.execute((electron) => {
+                const { BrowserWindow } = electron;
+                // @ts-expect-error
+                const mainWin = global.windowManager.getMainWindow();
+                BrowserWindow.getAllWindows().forEach((win: any) => {
+                    if (win !== mainWin && !win.isDestroyed()) {
+                        win.close();
+                    }
+                });
             });
 
             // Wait for window to close
