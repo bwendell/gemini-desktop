@@ -119,6 +119,25 @@ describe('NotificationSettings (Task 6.5)', () => {
                 expect(mockSetResponseNotificationsEnabled).toHaveBeenCalledWith(false);
             });
         });
+
+        it('reverts toggle state when setter fails', async () => {
+            mockSetResponseNotificationsEnabled.mockRejectedValue(new Error('Setter failed'));
+
+            render(<NotificationSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('notification-settings')).toBeInTheDocument();
+            });
+
+            const toggleSwitch = screen.getByTestId('response-notifications-toggle-switch');
+            expect(toggleSwitch).toHaveAttribute('aria-checked', 'true');
+
+            fireEvent.click(toggleSwitch);
+
+            await waitFor(() => {
+                expect(toggleSwitch).toHaveAttribute('aria-checked', 'true');
+            });
+        });
     });
 
     describe('API Interactions', () => {
@@ -159,9 +178,30 @@ describe('NotificationSettings (Task 6.5)', () => {
 
             render(<NotificationSettings />);
 
-            // Should render loading state without crashing
-            // (will stay in loading since getResponseNotificationsEnabled won't resolve)
-            expect(screen.getByTestId('notification-settings-loading')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByTestId('notification-settings')).toBeInTheDocument();
+            });
+        });
+
+        it('handles electronAPI object without notification methods', async () => {
+            setupMockElectronAPI();
+            delete window.electronAPI?.getResponseNotificationsEnabled;
+            delete window.electronAPI?.setResponseNotificationsEnabled;
+
+            render(<NotificationSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('notification-settings')).toBeInTheDocument();
+            });
+
+            const toggleSwitch = screen.getByTestId('response-notifications-toggle-switch');
+            fireEvent.click(toggleSwitch);
+
+            // Should update local state without throwing when setter isn't available
+            await waitFor(() => {
+                expect(toggleSwitch).toHaveAttribute('aria-checked', 'false');
+            });
+            expect(mockSetResponseNotificationsEnabled).not.toHaveBeenCalled();
         });
     });
 });

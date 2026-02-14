@@ -22,36 +22,53 @@ export const NotificationSettings = memo(function NotificationSettings() {
 
     // Load initial state from main process
     useEffect(() => {
+        let isMounted = true;
+
         const loadState = async () => {
             try {
-                const isEnabled = await window.electronAPI?.getResponseNotificationsEnabled();
-                setEnabled(isEnabled ?? true);
+                const getResponseNotificationsEnabled = window.electronAPI?.getResponseNotificationsEnabled;
+
+                if (typeof getResponseNotificationsEnabled !== 'function') {
+                    return;
+                }
+
+                const isEnabled = await getResponseNotificationsEnabled();
+
+                if (isMounted) {
+                    setEnabled(isEnabled ?? true);
+                }
             } catch (error) {
                 console.error('Failed to load response notifications state:', error);
             } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
 
         loadState();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     // Handle toggle change
-    const handleChange = useCallback(
-        async (newEnabled: boolean) => {
-            const previousEnabled = enabled;
-            setEnabled(newEnabled);
+    const handleChange = useCallback(async (newEnabled: boolean) => {
+        setEnabled(newEnabled);
 
-            try {
-                await window.electronAPI?.setResponseNotificationsEnabled(newEnabled);
-            } catch (error) {
-                // Revert state on failure
-                console.error('Failed to set response notifications state:', error);
-                setEnabled(previousEnabled);
+        try {
+            const setResponseNotificationsEnabled = window.electronAPI?.setResponseNotificationsEnabled;
+
+            if (typeof setResponseNotificationsEnabled === 'function') {
+                await setResponseNotificationsEnabled(newEnabled);
             }
-        },
-        [enabled]
-    );
+        } catch (error) {
+            // Revert state on failure
+            console.error('Failed to set response notifications state:', error);
+            setEnabled((currentEnabled) => !currentEnabled);
+        }
+    }, []);
 
     if (loading) {
         return (
