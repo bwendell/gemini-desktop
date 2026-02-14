@@ -92,15 +92,41 @@ export function LinuxHotkeyNotice() {
 
             // Hotkeys not enabled — show appropriate message
             const waylandStatus = status?.waylandStatus;
+            const failures = status?.registrationResults.filter((result) => !result.success) ?? [];
             const deName = waylandStatus ? getDisplayName(waylandStatus.desktopEnvironment) : null;
-            const message =
-                waylandStatus?.isWayland && !waylandStatus.portalAvailable
-                    ? deName
+
+            let message: string;
+
+            if (failures.length > 0) {
+                const failedNames = failures.map((failure) => failure.hotkeyId).join(', ');
+                const failureDetails = Array.from(
+                    new Set(
+                        failures
+                            .map((failure) => failure.error)
+                            .filter((error): error is string => Boolean(error?.trim()))
+                    )
+                );
+
+                if (failureDetails.length > 0) {
+                    message = `Global shortcuts could not be registered: ${failedNames}. ${failureDetails.join('; ')}.`;
+                } else {
+                    message = `Global shortcuts could not be registered: ${failedNames}.`;
+                }
+            } else if (waylandStatus?.isWayland) {
+                if (!waylandStatus.portalAvailable) {
+                    message = deName
                         ? `Global shortcuts are not available on ${deName}. No Wayland session bus was detected, so portal registration could not be attempted.`
-                        : 'Global shortcuts are not available. No Wayland session bus was detected, so portal registration could not be attempted.'
-                    : deName
-                      ? `Global shortcuts are not available on ${deName}. Your desktop environment does not support the required portal.`
-                      : 'Global shortcuts are not available. Your desktop environment does not support the required portal.';
+                        : 'Global shortcuts are not available. No Wayland session bus was detected, so portal registration could not be attempted.';
+                } else {
+                    message = deName
+                        ? `Global shortcuts are not available on ${deName}. Your desktop environment does not support the required portal.`
+                        : 'Global shortcuts are not available. Your desktop environment does not support the required portal.';
+                }
+            } else {
+                message = deName
+                    ? `Global shortcuts are not available on ${deName}.`
+                    : 'Global shortcuts are not available.';
+            }
 
             showWarning(message, {
                 id: TOAST_ID,
