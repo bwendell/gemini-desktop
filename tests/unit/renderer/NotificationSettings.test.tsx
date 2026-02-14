@@ -159,9 +159,28 @@ describe('NotificationSettings (Task 6.5)', () => {
 
             render(<NotificationSettings />);
 
-            // Should render loading state without crashing
-            // (will stay in loading since getResponseNotificationsEnabled won't resolve)
-            expect(screen.getByTestId('notification-settings-loading')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByTestId('notification-settings')).toBeInTheDocument();
+            });
+        });
+
+        it('handles electronAPI object without notification methods', async () => {
+            clearMockElectronAPI();
+            window.electronAPI = {} as typeof window.electronAPI;
+
+            render(<NotificationSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('notification-settings')).toBeInTheDocument();
+            });
+
+            const toggleSwitch = screen.getByTestId('response-notifications-toggle-switch');
+            fireEvent.click(toggleSwitch);
+
+            // Should update local state without throwing when setter isn't available
+            await waitFor(() => {
+                expect(toggleSwitch).toHaveAttribute('aria-checked', 'false');
+            });
         });
     });
 });

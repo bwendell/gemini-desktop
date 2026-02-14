@@ -24,7 +24,14 @@ export const NotificationSettings = memo(function NotificationSettings() {
     useEffect(() => {
         const loadState = async () => {
             try {
-                const isEnabled = await window.electronAPI?.getResponseNotificationsEnabled();
+                const getResponseNotificationsEnabled = window.electronAPI?.getResponseNotificationsEnabled;
+
+                if (typeof getResponseNotificationsEnabled !== 'function') {
+                    setEnabled(true);
+                    return;
+                }
+
+                const isEnabled = await getResponseNotificationsEnabled();
                 setEnabled(isEnabled ?? true);
             } catch (error) {
                 console.error('Failed to load response notifications state:', error);
@@ -43,7 +50,11 @@ export const NotificationSettings = memo(function NotificationSettings() {
             setEnabled(newEnabled);
 
             try {
-                await window.electronAPI?.setResponseNotificationsEnabled(newEnabled);
+                const setResponseNotificationsEnabled = window.electronAPI?.setResponseNotificationsEnabled;
+
+                if (typeof setResponseNotificationsEnabled === 'function') {
+                    await setResponseNotificationsEnabled(newEnabled);
+                }
             } catch (error) {
                 // Revert state on failure
                 console.error('Failed to set response notifications state:', error);
