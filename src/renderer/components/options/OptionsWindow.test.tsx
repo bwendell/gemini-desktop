@@ -3,7 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
+import React from 'react';
 import { OptionsWindow } from './OptionsWindow';
 import { ThemeProvider } from '../../context/ThemeContext';
 
@@ -51,40 +52,49 @@ const renderWithTheme = (ui: React.ReactElement) => {
     return render(<ThemeProvider>{ui}</ThemeProvider>);
 };
 
+// Helper to render with act to suppress async state warnings
+const renderWithAct = async (ui: React.ReactElement) => {
+    let result: ReturnType<typeof render>;
+    await act(async () => {
+        result = renderWithTheme(ui);
+    });
+    return result!;
+};
+
 describe('OptionsWindow', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
     describe('rendering', () => {
-        it('should render the options window container', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should render the options window container', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             expect(screen.getByTestId('options-window')).toBeInTheDocument();
         });
 
-        it('should render the titlebar with correct title', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should render the titlebar with correct title', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             expect(screen.getByTestId('mock-options-titlebar')).toBeInTheDocument();
             expect(screen.getByTestId('mock-options-titlebar')).toHaveTextContent('Options');
         });
 
-        it('should render the content area', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should render the content area', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             expect(screen.getByTestId('options-content')).toBeInTheDocument();
         });
 
-        it('should display Appearance section', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should display Appearance section', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             expect(screen.getByText('Appearance')).toBeInTheDocument();
             expect(screen.getByTestId('options-appearance')).toBeInTheDocument();
         });
 
-        it('should render the ThemeSelector component', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should render the ThemeSelector component', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             expect(screen.getByTestId('mock-theme-selector')).toBeInTheDocument();
         });
@@ -94,8 +104,8 @@ describe('OptionsWindow', () => {
          * This section was added to group hotkey-related settings separately
          * from appearance settings for better organization.
          */
-        it('should display Hotkey Shortcuts section', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should display Hotkey Shortcuts section', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             // Verify the Hotkey Shortcuts section title is rendered
             expect(screen.getByText('Hotkey Shortcuts')).toBeInTheDocument();
@@ -107,15 +117,15 @@ describe('OptionsWindow', () => {
          * Verifies that the IndividualHotkeyToggles component is rendered within the
          * Hotkey Shortcuts section. The component is mocked to isolate testing.
          */
-        it('should render the IndividualHotkeyToggles component in Hotkey Shortcuts section', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should render the IndividualHotkeyToggles component in Hotkey Shortcuts section', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             // Verify the mocked IndividualHotkeyToggles is rendered
             expect(screen.getByTestId('mock-individual-hotkey-toggles')).toBeInTheDocument();
         });
 
-        it('should display Updates section', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should display Updates section', async () => {
+            await renderWithAct(<OptionsWindow />);
             expect(screen.getByText('Updates')).toBeInTheDocument();
             expect(screen.getByTestId('options-updates')).toBeInTheDocument();
             expect(screen.getByTestId('mock-auto-update-toggle')).toBeInTheDocument();
@@ -125,8 +135,8 @@ describe('OptionsWindow', () => {
          * Ensures the Hotkey Shortcuts section follows the same structural pattern
          * as other options sections (h2 title + content container).
          */
-        it('should have proper structure in Hotkey Shortcuts section', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should have proper structure in Hotkey Shortcuts section', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             const section = screen.getByTestId('options-hotkeys');
             // Verify the section has the correct CSS class
@@ -139,15 +149,15 @@ describe('OptionsWindow', () => {
     });
 
     describe('layout structure', () => {
-        it('should have correct class names for styling', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should have correct class names for styling', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             expect(screen.getByTestId('options-window')).toHaveClass('options-window');
             expect(screen.getByTestId('options-content')).toHaveClass('options-content');
         });
 
-        it('should wrap content in options-section with proper structure', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should wrap content in options-section with proper structure', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             const section = screen.getByTestId('options-appearance');
             expect(section).toHaveClass('options-section');
@@ -157,8 +167,8 @@ describe('OptionsWindow', () => {
     });
 
     describe('theme selection', () => {
-        it('should render theme cards for all three options', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should render theme cards for all three options', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             expect(screen.getByTestId('theme-card-system')).toBeInTheDocument();
             expect(screen.getByTestId('theme-card-light')).toBeInTheDocument();
@@ -167,8 +177,8 @@ describe('OptionsWindow', () => {
     });
 
     describe('accessibility', () => {
-        it('should have proper ARIA roles on theme selector', () => {
-            renderWithTheme(<OptionsWindow />);
+        it('should have proper ARIA roles on theme selector', async () => {
+            await renderWithAct(<OptionsWindow />);
 
             // Cards should have radio role
             expect(screen.getByTestId('theme-card-system')).toHaveAttribute('role', 'radio');

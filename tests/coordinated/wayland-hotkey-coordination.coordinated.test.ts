@@ -1,16 +1,7 @@
-/**
- * Coordinated tests for Wayland hotkey functionality.
- *
- * Tests the coordination between:
- * - WaylandDetector → HotkeyManager (detection influences registration)
- * - HotkeyManager → D-Bus fallback (failed Chromium registration triggers fallback)
- * - HotkeyManager → IpcManager (platform status flows through IPC)
- *
- * These tests use REAL manager instances (not mocked) while mocking Electron APIs
- * and environment variables.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-// Mock electron module FIRST (before importing from 'electron')
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
+import { stubPlatform, restorePlatform } from '../helpers/harness';
+
 vi.mock('electron', async () => {
     const mockModule = await import('../unit/main/test/electron-mock');
     return mockModule.default;
@@ -22,10 +13,8 @@ import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
 import type { IndividualHotkeySettings } from '../../src/main/types';
 import type { WaylandStatus, PlatformHotkeyStatus } from '../../src/shared/types/hotkeys';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
 
-// Mock the waylandDetector module to control detection results
 const mockGetWaylandStatus = vi.fn();
 vi.mock('../../src/main/utils/waylandDetector', () => ({
     getWaylandStatus: mockGetWaylandStatus,
@@ -35,47 +24,25 @@ vi.mock('../../src/main/utils/waylandDetector', () => ({
     isSupportedDE: vi.fn(),
 }));
 
-// Mock adapter state — controls what getPlatformAdapter() returns
-const mockAdapterPlan = {
-    mode: 'native' as 'native' | 'disabled' | 'wayland-dbus',
-    waylandStatus: {
-        isWayland: false,
-        desktopEnvironment: 'unknown',
-        deVersion: null,
-        portalAvailable: false,
-        portalMethod: 'none',
-    } as import('../../src/shared/types/hotkeys').WaylandStatus,
+const adapterForPlatform: Record<
+    string,
+    ReturnType<(typeof platformAdapterPresets)[keyof typeof platformAdapterPresets]>
+> = {
+    darwin: platformAdapterPresets.mac(),
+    win32: platformAdapterPresets.windows(),
+    linux: platformAdapterPresets.linuxX11(),
+};
+
+const setAdapterForCurrentPlatform = () => {
+    const adapter = adapterForPlatform[process.platform] || platformAdapterPresets.linuxX11();
+    useMockPlatformAdapter(adapter);
 };
 
 vi.mock('../../src/main/platform/platformAdapterFactory', () => ({
-    getPlatformAdapter: () => ({
-        id: mockAdapterPlan.mode === 'native' ? 'windows' : 'linux-wayland',
-        applyAppConfiguration: vi.fn(),
-        applyAppUserModelId: vi.fn(),
-        getHotkeyRegistrationPlan: () => mockAdapterPlan,
-        getWaylandStatus: () => mockAdapterPlan.waylandStatus,
-        shouldQuitOnWindowAllClosed: () => mockAdapterPlan.mode === 'native',
-        getMainWindowPlatformConfig: () => ({}),
-        hideToTray: vi.fn((win: any) => {
-            win.hide();
-            win.setSkipTaskbar(true);
-        }),
-        restoreFromTray: vi.fn((win: any) => {
-            win.show();
-            win.focus();
-            win.setSkipTaskbar(false);
-        }),
-        supportsBadges: () => true,
-        showBadge: vi.fn(),
-        clearBadge: vi.fn(),
-        shouldIncludeAppMenu: () => false,
-        getDockMenuTemplate: () => null,
-        getSettingsMenuLabel: () => 'Options',
-        getWindowCloseRole: () => 'quit',
-    }),
+    getPlatformAdapter: () => adapterForPlatform[process.platform] || platformAdapterPresets.linuxX11(),
+    resetPlatformAdapterForTests: () => {},
 }));
 
-// Mock dbusFallback module
 const mockRegisterViaDBus = vi.fn();
 const mockIsDBusFallbackAvailable = vi.fn();
 const mockDestroySession = vi.fn();
@@ -86,14 +53,12 @@ vi.mock('../../src/main/utils/dbusFallback', () => ({
 }));
 
 describe('Wayland Hotkey Coordination', () => {
-    // Import managers dynamically to pick up mocks
     let HotkeyManager: typeof import('../../src/main/managers/hotkeyManager').default;
     let WindowManager: typeof import('../../src/main/managers/windowManager').default;
 
     let hotkeyManager: InstanceType<typeof HotkeyManager>;
     let windowManager: InstanceType<typeof WindowManager>;
 
-    // Default Wayland status for mocking
     const defaultWaylandStatus: WaylandStatus = {
         isWayland: false,
         desktopEnvironment: 'unknown',
@@ -102,45 +67,20 @@ describe('Wayland Hotkey Coordination', () => {
         portalMethod: 'none',
     };
 
-    const waylandKDEStatus: WaylandStatus = {
-        isWayland: true,
-        desktopEnvironment: 'kde',
-        deVersion: '5.27',
-        portalAvailable: true,
-        portalMethod: 'chromium-flag',
-    };
-
-    const waylandUnsupportedStatus: WaylandStatus = {
-        isWayland: true,
-        desktopEnvironment: 'unknown',
-        deVersion: null,
-        portalAvailable: false,
-        portalMethod: 'none',
-    };
-
-    const x11Status: WaylandStatus = {
-        isWayland: false,
-        desktopEnvironment: 'kde',
-        deVersion: '5.27',
-        portalAvailable: false,
-        portalMethod: 'none',
-    };
-
     beforeEach(async () => {
         vi.clearAllMocks();
+        stubPlatform('linux');
         const { ipcMain, BrowserWindow: BW, globalShortcut: gs } = require('electron');
         if (ipcMain && (ipcMain as any)._reset) (ipcMain as any)._reset();
         if (BW && (BW as any)._reset) (BW as any)._reset();
         if (gs && (gs as any)._reset) (gs as any)._reset();
 
-        // Default mocks
         mockGetWaylandStatus.mockReturnValue(defaultWaylandStatus);
         mockRegisterViaDBus.mockResolvedValue([]);
         mockIsDBusFallbackAvailable.mockResolvedValue(false);
-        mockAdapterPlan.mode = 'native';
-        mockAdapterPlan.waylandStatus = { ...defaultWaylandStatus };
 
-        // Dynamic imports to pick up mocks
+        setAdapterForCurrentPlatform();
+
         const hotkeyManagerModule = await import('../../src/main/managers/hotkeyManager');
         const windowManagerModule = await import('../../src/main/managers/windowManager');
         HotkeyManager = hotkeyManagerModule.default;
@@ -149,7 +89,8 @@ describe('Wayland Hotkey Coordination', () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
-        vi.unstubAllGlobals();
+        restorePlatform();
+        resetPlatformAdapterForTests();
         if (hotkeyManager) {
             hotkeyManager.unregisterAll();
         }
@@ -157,18 +98,14 @@ describe('Wayland Hotkey Coordination', () => {
 
     describe('WaylandDetector → HotkeyManager coordination', () => {
         beforeEach(() => {
-            // Linux platform for Wayland tests
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
+            setAdapterForCurrentPlatform();
         });
 
         it('when detector reports Wayland+KDE, manager attempts registration via portal', async () => {
-            // Arrange: Mock Wayland with KDE Plasma 5.27+ (supported)
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
+            setAdapterForCurrentPlatform();
 
-            // Act: Create manager and register shortcuts
             windowManager = new WindowManager(false);
             const initialSettings: IndividualHotkeySettings = {
                 alwaysOnTop: true,
@@ -189,11 +126,9 @@ describe('Wayland Hotkey Coordination', () => {
         });
 
         it('when detector reports X11, manager skips Wayland-specific registration', () => {
-            // Arrange: Mock X11 session (not Wayland)
-            mockAdapterPlan.mode = 'disabled';
-            mockAdapterPlan.waylandStatus = { ...x11Status };
+            adapterForPlatform.linux = platformAdapterPresets.linuxX11();
+            setAdapterForCurrentPlatform();
 
-            // Act
             windowManager = new WindowManager(false);
             const initialSettings: IndividualHotkeySettings = {
                 alwaysOnTop: true,
@@ -206,17 +141,13 @@ describe('Wayland Hotkey Coordination', () => {
             vi.clearAllMocks();
             hotkeyManager.registerShortcuts();
 
-            // Assert: On X11 (not Wayland), hotkeys remain disabled on Linux
-            // The implementation disables global hotkeys when portalAvailable is false
             expect(globalShortcut.register).not.toHaveBeenCalled();
         });
 
         it('when detector reports unsupported Wayland DE, hotkeys are disabled', () => {
-            // Arrange: Mock Wayland with unsupported DE
-            mockAdapterPlan.mode = 'disabled';
-            mockAdapterPlan.waylandStatus = { ...waylandUnsupportedStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxX11();
+            setAdapterForCurrentPlatform();
 
-            // Act
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
@@ -228,29 +159,25 @@ describe('Wayland Hotkey Coordination', () => {
             vi.clearAllMocks();
             hotkeyManager.registerShortcuts();
 
-            // Assert: No registration on unsupported Wayland DE
             expect(globalShortcut.register).not.toHaveBeenCalled();
         });
     });
 
     describe('HotkeyManager → D-Bus fallback coordination', () => {
         beforeEach(() => {
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
+            setAdapterForCurrentPlatform();
         });
 
         it('on Wayland+KDE, D-Bus is called directly without globalShortcut.register', async () => {
-            // Arrange: Mock Wayland+KDE with portal available
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
+            setAdapterForCurrentPlatform();
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: true },
             ]);
 
-            // Act
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
@@ -269,11 +196,9 @@ describe('Wayland Hotkey Coordination', () => {
         });
 
         it('D-Bus direct path passes action callbacks map', async () => {
-            // Arrange: Mock Wayland+KDE with portal available
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
+            setAdapterForCurrentPlatform();
 
-            // Act
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
@@ -290,16 +215,14 @@ describe('Wayland Hotkey Coordination', () => {
         });
 
         it('D-Bus fallback path also passes action callbacks when triggered', async () => {
-            // Arrange: Mock Wayland+KDE with portal available
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
+            setAdapterForCurrentPlatform();
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: false, error: 'Denied' },
                 { hotkeyId: 'bossKey', success: true },
             ]);
 
-            // Act
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
@@ -318,12 +241,9 @@ describe('Wayland Hotkey Coordination', () => {
 
     describe('HotkeyManager → IpcManager coordination', () => {
         it('platform status flows correctly through getPlatformHotkeyStatus on Linux', () => {
-            // Arrange: Setup on Linux with Wayland
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
+            setAdapterForCurrentPlatform();
 
-            // Act
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
@@ -332,11 +252,9 @@ describe('Wayland Hotkey Coordination', () => {
                 printToPdf: true,
             });
 
-            // Get platform status after registration attempt
             hotkeyManager.registerShortcuts();
             const status: PlatformHotkeyStatus = hotkeyManager.getPlatformHotkeyStatus();
 
-            // Assert: Status should reflect Wayland detection
             expect(status).toHaveProperty('waylandStatus');
             expect(status).toHaveProperty('registrationResults');
             expect(status).toHaveProperty('globalHotkeysEnabled');
@@ -345,12 +263,10 @@ describe('Wayland Hotkey Coordination', () => {
         });
 
         it('platform status returns correct defaults on non-Linux platforms', () => {
-            // Arrange: Setup on macOS
-            vi.stubGlobal('process', { ...process, platform: 'darwin' });
-            mockAdapterPlan.mode = 'native';
-            mockAdapterPlan.waylandStatus = { ...defaultWaylandStatus };
+            adapterForPlatform.darwin = platformAdapterPresets.mac();
+            stubPlatform('darwin');
+            setAdapterForCurrentPlatform();
 
-            // Act
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
@@ -361,7 +277,6 @@ describe('Wayland Hotkey Coordination', () => {
 
             const status: PlatformHotkeyStatus = hotkeyManager.getPlatformHotkeyStatus();
 
-            // Assert: Non-Linux should not detect Wayland
             expect(status.waylandStatus.isWayland).toBe(false);
             expect(status.waylandStatus.portalAvailable).toBe(false);
         });
@@ -369,18 +284,18 @@ describe('Wayland Hotkey Coordination', () => {
 
     describe.each(['darwin', 'win32', 'linux'] as const)('cross-platform behavior on %s', (platform) => {
         beforeEach(() => {
-            vi.stubGlobal('process', { ...process, platform });
+            stubPlatform(platform);
             if (platform === 'linux') {
-                mockAdapterPlan.mode = 'disabled';
-                mockAdapterPlan.waylandStatus = { ...x11Status };
+                adapterForPlatform.linux = platformAdapterPresets.linuxX11();
+            } else if (platform === 'darwin') {
+                adapterForPlatform.darwin = platformAdapterPresets.mac();
             } else {
-                mockAdapterPlan.mode = 'native';
-                mockAdapterPlan.waylandStatus = { ...defaultWaylandStatus };
+                adapterForPlatform.win32 = platformAdapterPresets.windows();
             }
+            setAdapterForCurrentPlatform();
         });
 
         it('non-Linux platforms register hotkeys normally without Wayland checks', () => {
-            // Act
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
@@ -393,7 +308,6 @@ describe('Wayland Hotkey Coordination', () => {
             hotkeyManager.registerShortcuts();
 
             if (platform !== 'linux') {
-                // Darwin/Win32: Global hotkeys should be registered
                 expect(globalShortcut.register).toHaveBeenCalledWith(
                     DEFAULT_ACCELERATORS.quickChat,
                     expect.any(Function)
@@ -403,10 +317,8 @@ describe('Wayland Hotkey Coordination', () => {
                     expect.any(Function)
                 );
 
-                // D-Bus fallback should never be triggered
                 expect(mockRegisterViaDBus).not.toHaveBeenCalled();
             } else {
-                // Linux with X11: hotkeys disabled
                 expect(globalShortcut.register).not.toHaveBeenCalled();
             }
         });
@@ -428,24 +340,16 @@ describe('Wayland Hotkey Coordination', () => {
             expect(status).toHaveProperty('globalHotkeysEnabled');
 
             if (platform !== 'linux') {
-                // Non-Linux: global hotkeys should be enabled
                 expect(status.globalHotkeysEnabled).toBe(true);
             }
         });
     });
 
-    // ========================================================================
-    // P1: Coordinated Wayland Hotkey Scenarios
-    // ========================================================================
-
     describe('P1: Coordinated Wayland Hotkey Scenarios', () => {
         it('P1-2: toggling a hotkey during in-flight D-Bus registration does not cause duplicate calls', async () => {
-            // Arrange
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
+            setAdapterForCurrentPlatform();
 
-            // Use a deferred promise to control when registerViaDBus resolves
             let resolveRegistration!: (value: any) => void;
             const registrationPromise = new Promise((resolve) => {
                 resolveRegistration = resolve;
@@ -460,16 +364,12 @@ describe('Wayland Hotkey Coordination', () => {
                 printToPdf: true,
             });
 
-            // Act: Start registration (don't await)
             hotkeyManager.registerShortcuts();
 
-            // Toggle bossKey while registration is in-flight
             hotkeyManager.setIndividualEnabled('bossKey', false);
 
-            // Verify the setting is updated immediately
             expect(hotkeyManager.getIndividualSettings().bossKey).toBe(false);
 
-            // Complete the registration
             resolveRegistration([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: true },
@@ -479,15 +379,11 @@ describe('Wayland Hotkey Coordination', () => {
                 expect(mockRegisterViaDBus).toHaveBeenCalled();
             });
 
-            // registerViaDBus should only have been called once (from the original registerShortcuts)
             expect(mockRegisterViaDBus).toHaveBeenCalledTimes(1);
         });
 
         it('P1-3: re-registration clears previous results and calls destroySession', async () => {
-            // Arrange
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
@@ -502,7 +398,6 @@ describe('Wayland Hotkey Coordination', () => {
                 printToPdf: true,
             });
 
-            // First registration
             hotkeyManager.registerShortcuts();
             await vi.waitFor(() => {
                 const status = hotkeyManager.getPlatformHotkeyStatus();
@@ -510,35 +405,25 @@ describe('Wayland Hotkey Coordination', () => {
             });
 
             vi.clearAllMocks();
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: true },
             ]);
 
-            // Second registration (without explicit cleanup)
             hotkeyManager.registerShortcuts();
             await vi.waitFor(() => {
                 expect(mockRegisterViaDBus).toHaveBeenCalledTimes(1);
             });
 
-            // Final results should reflect the second registration
             const status = hotkeyManager.getPlatformHotkeyStatus();
             expect(status.registrationResults).toHaveLength(2);
             expect(status.registrationResults.every((r) => r.success)).toBe(true);
         });
 
-        // ====================================================================
-        // CT-001: Rapid Enable/Disable Toggles (RC-2)
-        // ====================================================================
         it('CT-001: rapid enable/disable toggles do not cause duplicate registrations', async () => {
-            // Arrange: Mock Wayland+KDE with portal available
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
 
-            // Use a deferred promise to control registration timing
             let resolveRegistration!: (value: any) => void;
             const registrationPromise = new Promise((resolve) => {
                 resolveRegistration = resolve;
@@ -553,18 +438,14 @@ describe('Wayland Hotkey Coordination', () => {
                 printToPdf: true,
             });
 
-            // Act: Start registration
             hotkeyManager.registerShortcuts();
 
-            // Rapid toggles: disable/enable/disable
             hotkeyManager.setIndividualEnabled('quickChat', false);
             hotkeyManager.setIndividualEnabled('quickChat', true);
             hotkeyManager.setIndividualEnabled('quickChat', false);
 
-            // Verify state reflects final toggle
             expect(hotkeyManager.getIndividualSettings().quickChat).toBe(false);
 
-            // Complete the deferred registration
             resolveRegistration([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: true },
@@ -574,20 +455,12 @@ describe('Wayland Hotkey Coordination', () => {
                 expect(mockRegisterViaDBus).toHaveBeenCalled();
             });
 
-            // registerViaDBus should only be called once (toggles don't trigger re-registration)
             expect(mockRegisterViaDBus).toHaveBeenCalledTimes(1);
         });
 
-        // ====================================================================
-        // CT-002: App Quit During Registration (RC-3)
-        // ====================================================================
         it('CT-002: app quit during registration triggers cleanup without errors', async () => {
-            // Arrange: Mock Wayland+KDE
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
 
-            // Deferred promise for registration
             let resolveRegistration!: (value: any) => void;
             const registrationPromise = new Promise((resolve) => {
                 resolveRegistration = resolve;
@@ -602,39 +475,25 @@ describe('Wayland Hotkey Coordination', () => {
                 printToPdf: true,
             });
 
-            // Act: Start registration (don't await)
             hotkeyManager.registerShortcuts();
-
-            // Simulate app quit: unregister all hotkeys
             hotkeyManager.unregisterAll();
 
-            // Now complete the registration (should not crash)
             resolveRegistration([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: true },
             ]);
 
-            // Wait briefly to ensure no unhandled rejections
             await vi.waitFor(
                 () => {
-                    // Verify unregisterAll was called and state is clean
                     const status = hotkeyManager.getPlatformHotkeyStatus();
                     expect(status).toBeDefined();
                 },
                 { timeout: 100 }
             );
-
-            // No assertion needed beyond not crashing; success is no exception
         });
 
-        // ====================================================================
-        // CT-003: State Propagation Timing
-        // ====================================================================
         it('CT-003: state propagation timing - settings update before registration completes', async () => {
-            // Arrange: Mock Wayland+KDE
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
 
             let resolveRegistration!: (value: any) => void;
             const registrationPromise = new Promise((resolve) => {
@@ -650,21 +509,16 @@ describe('Wayland Hotkey Coordination', () => {
                 printToPdf: true,
             });
 
-            // Act: Start registration
             hotkeyManager.registerShortcuts();
 
-            // Immediately check initial state
             const stateBeforeToggle = hotkeyManager.getIndividualSettings();
             expect(stateBeforeToggle.bossKey).toBe(true);
 
-            // Toggle while registration is in-flight
             hotkeyManager.setIndividualEnabled('bossKey', false);
 
-            // State should update immediately (not wait for registration)
             const stateAfterToggle = hotkeyManager.getIndividualSettings();
             expect(stateAfterToggle.bossKey).toBe(false);
 
-            // Complete registration
             resolveRegistration([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: true },
@@ -674,21 +528,13 @@ describe('Wayland Hotkey Coordination', () => {
                 expect(mockRegisterViaDBus).toHaveBeenCalled();
             });
 
-            // State should remain updated after registration
             const finalState = hotkeyManager.getIndividualSettings();
             expect(finalState.bossKey).toBe(false);
         });
 
-        // ====================================================================
-        // CT-004: Error State Coordination
-        // ====================================================================
         it('CT-004: partial registration failure propagates error state correctly', async () => {
-            // Arrange: Mock Wayland+KDE
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
-            mockAdapterPlan.mode = 'wayland-dbus';
-            mockAdapterPlan.waylandStatus = { ...waylandKDEStatus };
+            adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
 
-            // Simulate partial failure
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
                 { hotkeyId: 'bossKey', success: false, error: 'AccessDenied' },
@@ -702,19 +548,15 @@ describe('Wayland Hotkey Coordination', () => {
                 printToPdf: true,
             });
 
-            // Act: Register with partial failure
             hotkeyManager.registerShortcuts();
 
-            // Wait for registration to complete
             await vi.waitFor(() => {
                 expect(mockRegisterViaDBus).toHaveBeenCalled();
             });
 
-            // Assert: Error state is recorded
             const status = hotkeyManager.getPlatformHotkeyStatus();
             expect(status.registrationResults).toHaveLength(2);
 
-            // One success, one failure
             const successResults = status.registrationResults.filter((r) => r.success);
             const failureResults = status.registrationResults.filter((r) => !r.success);
             expect(successResults).toHaveLength(1);

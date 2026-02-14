@@ -1,32 +1,16 @@
-/**
- * Integration tests for Window Visibility Fallback.
- * Verifies that the main window becomes visible even if 'ready-to-show' event fails to fire.
- * This is critical for reliability on headless Linux environments.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import MainWindow from '../../src/main/windows/mainWindow';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
-import { useFakeTimers, useRealTimers, stubPlatform, restorePlatform } from '../helpers/harness';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
+import { useFakeTimers, useRealTimers } from '../helpers/harness';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
-// Mock constants to be dynamic for platform testing
-vi.mock('../../src/main/utils/constants', async (importOriginal) => {
-    const actual = (await importOriginal()) as any;
-    return {
-        ...actual,
-        get isMacOS() {
-            return process.platform === 'darwin';
-        },
-        get isWindows() {
-            return process.platform === 'win32';
-        },
-        get isLinux() {
-            return process.platform === 'linux';
-        },
-    };
-});
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('Window Visibility Fallback Integration', () => {
     let mockBrowserWindow: any;
@@ -36,7 +20,7 @@ describe('Window Visibility Fallback Integration', () => {
         beforeEach(() => {
             vi.clearAllMocks();
             useFakeTimers();
-            stubPlatform(platform);
+            useMockPlatformAdapter(adapterForPlatform[platform]());
             registeredListeners = {};
 
             mockBrowserWindow = {
@@ -62,7 +46,6 @@ describe('Window Visibility Fallback Integration', () => {
                 },
             };
 
-            // Mock the base window internal property set
             vi.spyOn(MainWindow.prototype as any, 'createWindow').mockImplementation(function (this: any) {
                 this.window = mockBrowserWindow;
                 return mockBrowserWindow;
@@ -71,7 +54,7 @@ describe('Window Visibility Fallback Integration', () => {
 
         afterEach(() => {
             useRealTimers();
-            restorePlatform();
+            resetPlatformAdapterForTests({ resetModules: true });
         });
 
         it('should show window immediately when ready-to-show fires (Happy Path)', () => {
@@ -116,7 +99,6 @@ describe('Window Visibility Fallback Integration', () => {
             mainWindow.restoreFromTray();
             expect(mockBrowserWindow.show).toHaveBeenCalled();
 
-            // Shared behavior: no errors should have occurred
             expect(mockLogger.error).not.toHaveBeenCalled();
         });
     });

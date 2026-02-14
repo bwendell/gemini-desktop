@@ -7,39 +7,33 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Tray, Menu, app } from 'electron';
 import TrayManager from '../../../src/main/managers/trayManager';
 import type WindowManager from '../../../src/main/managers/windowManager';
-import { createMockWindowManager } from '../../helpers/mocks';
+import {
+    createMockWindowManager,
+    resetPlatformAdapterForTests,
+    useMockPlatformAdapter,
+    platformAdapterPresets,
+    createMockPlatformAdapter,
+} from '../../helpers/mocks';
 
 describe('TrayManager', () => {
     let trayManager: TrayManager;
-    let mockWindowManager: Partial<WindowManager>;
-    let originalPlatform: string;
-
-    // Helper to mock platform
-    const mockPlatform = (platform: string) => {
-        Object.defineProperty(process, 'platform', {
-            value: platform,
-            configurable: true,
-            writable: true,
-        });
-    };
+    let mockWindowManager: WindowManager;
 
     beforeEach(() => {
         vi.clearAllMocks();
         (Tray as any)._reset();
         (Menu as any)._reset?.();
 
-        originalPlatform = process.platform;
-
         // Mock WindowManager using shared factory
         mockWindowManager = createMockWindowManager({
             getMainWindow: vi.fn().mockReturnValue({}),
-        });
+        }) as unknown as WindowManager;
 
-        trayManager = new TrayManager(mockWindowManager as WindowManager);
+        trayManager = new TrayManager(mockWindowManager);
     });
 
     afterEach(() => {
-        mockPlatform(originalPlatform);
+        resetPlatformAdapterForTests();
     });
 
     describe('constructor', () => {
@@ -51,12 +45,11 @@ describe('TrayManager', () => {
 
     describe('createTray', () => {
         it('creates Tray with .ico icon on Windows', async () => {
-            mockPlatform('win32');
-            vi.resetModules();
+            useMockPlatformAdapter(platformAdapterPresets.windows());
 
             // Reimport TrayManager after platform mock
             const { default: TrayManager } = await import('../../../src/main/managers/trayManager');
-            const manager = new TrayManager(mockWindowManager as WindowManager);
+            const manager = new TrayManager(mockWindowManager);
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
@@ -64,12 +57,11 @@ describe('TrayManager', () => {
         });
 
         it('creates Tray with .png icon on macOS', async () => {
-            mockPlatform('darwin');
-            vi.resetModules();
+            useMockPlatformAdapter(platformAdapterPresets.mac());
 
             // Reimport TrayManager after platform mock
             const { default: TrayManager } = await import('../../../src/main/managers/trayManager');
-            const manager = new TrayManager(mockWindowManager as WindowManager);
+            const manager = new TrayManager(mockWindowManager);
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
@@ -77,12 +69,11 @@ describe('TrayManager', () => {
         });
 
         it('creates Tray with .png icon on Linux', async () => {
-            mockPlatform('linux');
-            vi.resetModules();
+            useMockPlatformAdapter(platformAdapterPresets.linuxWayland());
 
             // Reimport TrayManager after platform mock
             const { default: TrayManager } = await import('../../../src/main/managers/trayManager');
-            const manager = new TrayManager(mockWindowManager as WindowManager);
+            const manager = new TrayManager(mockWindowManager);
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
@@ -129,21 +120,13 @@ describe('TrayManager', () => {
         });
 
         it('throws error when icon file is not found', async () => {
-            // Need to mock fs.existsSync to return false
-            vi.resetModules();
+            useMockPlatformAdapter(
+                createMockPlatformAdapter({
+                    getAppIconFilename: vi.fn().mockReturnValue('nonexistent-icon.png'),
+                })
+            );
 
-            // Create a mock for fs that returns false for existsSync
-            vi.doMock('fs', () => ({
-                existsSync: vi.fn().mockReturnValue(false),
-            }));
-
-            // Reimport TrayManager after mocking fs
-            const { default: TrayManagerMocked } = await import('../../../src/main/managers/trayManager');
-            const manager = new TrayManagerMocked(mockWindowManager as WindowManager);
-
-            expect(() => manager.createTray()).toThrow('Tray icon not found');
-
-            vi.doUnmock('fs');
+            expect(() => trayManager.createTray()).toThrow('Tray icon not found');
         });
     });
 

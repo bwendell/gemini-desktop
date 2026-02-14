@@ -118,7 +118,7 @@ export function setupMediaPermissions(session: Session): void {
 
     // macOS: Proactively request microphone access
     const adapter = getPlatformAdapter();
-    adapter.requestMediaPermissions(logger);
+    adapter.requestMediaPermissions?.(logger);
 
     logger.log('Media permission handler configured for Gemini domains');
 }

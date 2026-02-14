@@ -1,32 +1,16 @@
-/**
- * Integration tests for MainWindow navigation security.
- * Verifies that the window manager correctly blocks/allows URLs based on security policies.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { shell } from 'electron';
-
 import MainWindow from '../../src/main/windows/mainWindow';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
-// Mock constants to be dynamic for platform testing
-vi.mock('../../src/main/utils/constants', async (importOriginal) => {
-    const actual = (await importOriginal()) as any;
-    return {
-        ...actual,
-        get isMacOS() {
-            return process.platform === 'darwin';
-        },
-        get isWindows() {
-            return process.platform === 'win32';
-        },
-        get isLinux() {
-            return process.platform === 'linux';
-        },
-    };
-});
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('Navigation Security Integration', () => {
     let mockMainWindow: any;
@@ -36,11 +20,10 @@ describe('Navigation Security Integration', () => {
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
         beforeEach(() => {
             vi.clearAllMocks();
-            vi.stubGlobal('process', { ...process, platform });
+            useMockPlatformAdapter(adapterForPlatform[platform]());
             webContentsHandlers = {};
             windowOpenHandler = null;
 
-            // Mock BrowserWindow implementation for this test
             const mockWebContents = {
                 on: vi.fn((event, handler) => {
                     webContentsHandlers[event] = handler;
@@ -68,7 +51,7 @@ describe('Navigation Security Integration', () => {
         });
 
         afterEach(() => {
-            vi.unstubAllGlobals();
+            resetPlatformAdapterForTests({ resetModules: true });
         });
 
         it('should allow navigation to internal files (file protocol)', () => {
@@ -111,7 +94,6 @@ describe('Navigation Security Integration', () => {
             const handler = webContentsHandlers['will-navigate'];
             const mockEvent = { preventDefault: vi.fn() };
 
-            // Test: accounts.google.com
             handler(mockEvent, 'https://accounts.google.com/signin');
 
             expect(mockEvent.preventDefault).not.toHaveBeenCalled();
@@ -174,7 +156,6 @@ describe('Navigation Security Integration', () => {
 
             const handler = windowOpenHandler;
 
-            // Test: window.open to internal domain (e.g. creating a child window for app features)
             const result = (handler as any)({ url: 'https://gemini.google.com/some-feature' });
 
             expect(result).toEqual({ action: 'allow' });

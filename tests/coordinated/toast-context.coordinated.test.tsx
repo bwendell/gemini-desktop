@@ -11,7 +11,12 @@ import { useFakeTimers, useRealTimers } from '../helpers/harness';
 // Mock framer-motion to avoid animation timing issues in tests
 vi.mock('framer-motion', () => ({
     motion: {
-        div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+        div: ({ children, ...props }: any) => {
+            // Filter out framer-motion specific props to avoid warnings
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { variants, initial, whileHover, whileTap, animate, exit, transition, layout, ...domProps } = props;
+            return <div {...domProps}>{children}</div>;
+        },
     },
     AnimatePresence: ({ children }: any) => <>{children}</>,
 }));

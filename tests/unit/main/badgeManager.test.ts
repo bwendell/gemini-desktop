@@ -5,39 +5,20 @@
  * @module badgeManager.test
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow } from 'electron';
 import BadgeManager from '../../../src/main/managers/badgeManager';
 import type { PlatformAdapter } from '../../../src/main/platform/PlatformAdapter';
-import { WindowsAdapter } from '../../../src/main/platform/adapters/WindowsAdapter';
-import { MacAdapter } from '../../../src/main/platform/adapters/MacAdapter';
-import { LinuxX11Adapter } from '../../../src/main/platform/adapters/LinuxX11Adapter';
-
-// Mock the constants module (still needed for non-platform imports used internally)
-vi.mock('../../../src/main/utils/constants', () => ({
-    isMacOS: false,
-    isWindows: false,
-    isLinux: true,
-    isWayland: false,
-    getWaylandPlatformStatus: vi.fn().mockReturnValue({
-        isWayland: false,
-        desktopEnvironment: 'unknown',
-        deVersion: null,
-        portalAvailable: false,
-        portalMethod: 'none',
-    }),
-}));
+import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../../helpers/mocks';
 
 /** Create a spy-wrapped adapter for a given platform */
 function createSpyAdapter(platform: 'windows' | 'mac' | 'linux'): PlatformAdapter {
-    let adapter: PlatformAdapter;
-    if (platform === 'windows') {
-        adapter = new WindowsAdapter();
-    } else if (platform === 'mac') {
-        adapter = new MacAdapter();
-    } else {
-        adapter = new LinuxX11Adapter();
-    }
+    const adapter =
+        platform === 'windows'
+            ? platformAdapterPresets.windows()
+            : platform === 'mac'
+              ? platformAdapterPresets.mac()
+              : platformAdapterPresets['linux-x11']();
 
     // Wrap key methods with spies
     vi.spyOn(adapter, 'supportsBadges');
@@ -57,9 +38,15 @@ describe.each([
 
     beforeEach(() => {
         vi.clearAllMocks();
+        resetPlatformAdapterForTests({ resetModules: true });
 
         adapter = createSpyAdapter(platform);
+        useMockPlatformAdapter(adapter);
         badgeManager = new BadgeManager(adapter);
+    });
+
+    afterEach(() => {
+        resetPlatformAdapterForTests({ resetModules: true });
     });
 
     describe('constructor', () => {

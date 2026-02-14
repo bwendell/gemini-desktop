@@ -1,17 +1,12 @@
-/**
- * Coordinated tests for zoom control persistence.
- * Tests IpcManager-WindowManager integration for zoom level feature.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, BrowserWindow } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
-// Mock electron-updater
 vi.mock('electron-updater', () => ({
     autoUpdater: {
         on: vi.fn(),
@@ -21,6 +16,12 @@ vi.mock('electron-updater', () => ({
         autoInstallOnAppQuit: true,
     },
 }));
+
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('Zoom Control Coordinated Tests', () => {
     let sharedStoreData: Record<string, any>;
@@ -32,7 +33,6 @@ describe('Zoom Control Coordinated Tests', () => {
         if ((ipcMain as any)._reset) (ipcMain as any)._reset();
         if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
 
-        // SHARED store data to simulate persistence
         sharedStoreData = {
             zoomLevel: 100,
             alwaysOnTop: false,
@@ -53,7 +53,6 @@ describe('Zoom Control Coordinated Tests', () => {
 
     describe('5.1 - IpcManager initializes zoom from store on setup', () => {
         it('should call windowManager.initializeZoomLevel() with stored value during setupIpcHandlers()', () => {
-            // Pre-set zoom level in store
             sharedStoreData.zoomLevel = 125;
 
             const windowManager = new WindowManager(false);
@@ -62,13 +61,11 @@ describe('Zoom Control Coordinated Tests', () => {
             const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            // Verify initializeZoomLevel was called with stored value
             expect(mockStore.get).toHaveBeenCalledWith('zoomLevel');
             expect(initSpy).toHaveBeenCalledWith(125);
         });
 
         it('should call initializeZoomLevel with undefined if zoomLevel not in store', () => {
-            // Remove zoomLevel from store
             delete sharedStoreData.zoomLevel;
 
             const windowManager = new WindowManager(false);
@@ -77,7 +74,6 @@ describe('Zoom Control Coordinated Tests', () => {
             const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            // Verify initializeZoomLevel was called (with undefined)
             expect(initSpy).toHaveBeenCalledWith(undefined);
         });
 
@@ -90,7 +86,6 @@ describe('Zoom Control Coordinated Tests', () => {
             const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            // applyZoomLevel is called with setTimeout, so advance timers
             vi.advanceTimersByTime(200);
 
             expect(applySpy).toHaveBeenCalled();
@@ -103,14 +98,11 @@ describe('Zoom Control Coordinated Tests', () => {
             const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            // Clear previous mock calls from setup
             mockStore.set.mockClear();
 
-            // Create a main window and change zoom level
             windowManager.createMainWindow();
             windowManager.setZoomLevel(150);
 
-            // Verify store.set was called with new zoom level
             expect(mockStore.set).toHaveBeenCalledWith('zoomLevel', 150);
         });
 
@@ -121,7 +113,7 @@ describe('Zoom Control Coordinated Tests', () => {
             mockStore.set.mockClear();
 
             windowManager.createMainWindow();
-            windowManager.zoomIn(); // 100% -> 110%
+            windowManager.zoomIn();
 
             expect(mockStore.set).toHaveBeenCalledWith('zoomLevel', 110);
         });
@@ -133,7 +125,7 @@ describe('Zoom Control Coordinated Tests', () => {
             mockStore.set.mockClear();
 
             windowManager.createMainWindow();
-            windowManager.zoomOut(); // 100% -> 90%
+            windowManager.zoomOut();
 
             expect(mockStore.set).toHaveBeenCalledWith('zoomLevel', 90);
         });
@@ -146,21 +138,18 @@ describe('Zoom Control Coordinated Tests', () => {
             windowManager.createMainWindow();
             windowManager.setZoomLevel(175);
 
-            // Verify sharedStoreData was updated (simulates persistence)
             expect(sharedStoreData.zoomLevel).toBe(175);
         });
     });
 
     describe('5.3 - Invalid stored zoom values are sanitized on initialization', () => {
         it('should sanitize NaN stored value to 100%', () => {
-            // Store has invalid NaN value
             sharedStoreData.zoomLevel = NaN;
 
             const windowManager = new WindowManager(false);
             const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            // WindowManager should sanitize to 100%
             expect(windowManager.getZoomLevel()).toBe(100);
         });
 
@@ -207,11 +196,11 @@ describe('Zoom Control Coordinated Tests', () => {
 
     describe.each(['darwin', 'win32', 'linux'] as const)('5.4 - Cross-platform behavior on %s', (platform) => {
         beforeEach(() => {
-            vi.stubGlobal('process', { ...process, platform });
+            useMockPlatformAdapter(adapterForPlatform[platform]());
         });
 
         afterEach(() => {
-            vi.unstubAllGlobals();
+            resetPlatformAdapterForTests();
         });
 
         it('should initialize zoom from store on setup', () => {
@@ -257,10 +246,9 @@ describe('Zoom Control Coordinated Tests', () => {
             windowManager.createMainWindow();
             const initialZoom = windowManager.getZoomLevel();
 
-            // Simulate what menu click does - calls windowManager.zoomIn()
             windowManager.zoomIn();
 
-            expect(windowManager.getZoomLevel()).toBe(110); // 100% -> 110%
+            expect(windowManager.getZoomLevel()).toBe(110);
             expect(windowManager.getZoomLevel()).toBeGreaterThan(initialZoom);
         });
 
@@ -272,10 +260,9 @@ describe('Zoom Control Coordinated Tests', () => {
             windowManager.createMainWindow();
             const initialZoom = windowManager.getZoomLevel();
 
-            // Simulate what menu click does - calls windowManager.zoomOut()
             windowManager.zoomOut();
 
-            expect(windowManager.getZoomLevel()).toBe(90); // 100% -> 90%
+            expect(windowManager.getZoomLevel()).toBe(90);
             expect(windowManager.getZoomLevel()).toBeLessThan(initialZoom);
         });
     });
@@ -292,7 +279,6 @@ describe('Zoom Control Coordinated Tests', () => {
             windowManager.createMainWindow();
             windowManager.setZoomLevel(150);
 
-            // Menu subscribes to this event and rebuilds
             expect(zoomChangedListener).toHaveBeenCalledWith(150);
         });
 
@@ -304,7 +290,6 @@ describe('Zoom Control Coordinated Tests', () => {
             windowManager.createMainWindow();
             windowManager.setZoomLevel(175);
 
-            // Menu uses getZoomLevel() to display current percentage
             expect(windowManager.getZoomLevel()).toBe(175);
         });
     });
@@ -319,7 +304,6 @@ describe('Zoom Control Coordinated Tests', () => {
             const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            // applyZoomLevel is called with setTimeout, so advance timers
             vi.advanceTimersByTime(200);
 
             expect(applySpy).toHaveBeenCalled();
@@ -332,13 +316,10 @@ describe('Zoom Control Coordinated Tests', () => {
             const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            // Zoom should be initialized even before window creation
             expect(windowManager.getZoomLevel()).toBe(125);
 
-            // Now create window
             windowManager.createMainWindow();
 
-            // Zoom level should persist
             expect(windowManager.getZoomLevel()).toBe(125);
         });
     });
@@ -351,12 +332,10 @@ describe('Zoom Control Coordinated Tests', () => {
 
             windowManager.createMainWindow();
 
-            // This should not throw even if store.set has issues
             expect(() => windowManager.setZoomLevel(150)).not.toThrow();
         });
 
         it('should continue operation when store.set returns undefined', () => {
-            // Mock store.set to return undefined (simulating edge case)
             mockStore.set.mockReturnValue(undefined);
 
             const windowManager = new WindowManager(false);
@@ -365,13 +344,11 @@ describe('Zoom Control Coordinated Tests', () => {
 
             windowManager.createMainWindow();
 
-            // Should not throw and zoom should still be set
             expect(() => windowManager.setZoomLevel(175)).not.toThrow();
             expect(windowManager.getZoomLevel()).toBe(175);
         });
 
         it('should handle store.set throwing an error gracefully', () => {
-            // Mock store.set to throw an error
             mockStore.set.mockImplementation(() => {
                 throw new Error('Store write failed');
             });
@@ -382,8 +359,6 @@ describe('Zoom Control Coordinated Tests', () => {
 
             windowManager.createMainWindow();
 
-            // The zoom operation itself should still work
-            // (the event handler in IpcManager may catch errors)
             windowManager.setZoomLevel(150);
             expect(windowManager.getZoomLevel()).toBe(150);
         });

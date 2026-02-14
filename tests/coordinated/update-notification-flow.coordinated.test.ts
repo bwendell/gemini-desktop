@@ -1,36 +1,23 @@
-/**
- * Integration tests for update notification flow.
- * Tests BadgeManager → TrayManager coordination.
- *
- * Platform-specific behavior:
- * - macOS: Badge via app.dock.setBadge() + tray tooltip
- * - Windows: Badge via window.setOverlayIcon() + tray tooltip
- * - Linux: No badge (graceful skip) + tray tooltip only
- *
- * Note: Platform detection in BadgeManager uses constants (isMacOS, isWindows, isLinux)
- * which are evaluated at module load time. To test platform-specific behavior,
- * we test on the actual running platform and verify the expected behavior.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
 import BadgeManager from '../../src/main/managers/badgeManager';
 import TrayManager from '../../src/main/managers/trayManager';
 import WindowManager from '../../src/main/managers/windowManager';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
-// Mock fs for tray icon
 vi.mock('fs', () => ({
     existsSync: vi.fn().mockReturnValue(true),
     readFileSync: vi.fn().mockReturnValue(Buffer.from('mock')),
 }));
 
-// Platform detection - same as constants.ts but for test use
-const isMacOS = process.platform === 'darwin';
-const isWindows = process.platform === 'win32';
-const isLinux = process.platform === 'linux';
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('Update Notification Flow Integration', () => {
     beforeEach(() => {
@@ -40,6 +27,7 @@ describe('Update Notification Flow Integration', () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
+        resetPlatformAdapterForTests();
     });
 
     describe('BadgeManager', () => {
@@ -59,45 +47,58 @@ describe('Update Notification Flow Integration', () => {
             const badgeManager = new BadgeManager();
 
             badgeManager.showUpdateBadge();
-            badgeManager.showUpdateBadge(); // Second call should be no-op
+            badgeManager.showUpdateBadge();
 
             expect(badgeManager.hasBadgeShown()).toBe(true);
-            // Log should indicate badge already shown
             expect(mockLogger.log).toHaveBeenCalledWith(expect.stringContaining('already'));
         });
 
         it('should handle clear when no badge shown', () => {
             const badgeManager = new BadgeManager();
 
-            // Clear when no badge - should not error
             badgeManager.clearUpdateBadge();
 
             expect(badgeManager.hasBadgeShown()).toBe(false);
             expect(mockLogger.error).not.toHaveBeenCalled();
         });
 
-        if (isMacOS) {
-            it('should call app.dock.setBadge on macOS', () => {
+        describe('on macOS', () => {
+            beforeEach(() => {
+                useMockPlatformAdapter(adapterForPlatform.darwin());
+            });
+
+            afterEach(() => {
+                resetPlatformAdapterForTests();
+            });
+
+            it('should call app.dock.setBadge', () => {
                 const badgeManager = new BadgeManager();
                 badgeManager.showUpdateBadge();
 
                 expect(app.dock?.setBadge).toHaveBeenCalledWith('•');
             });
 
-            it('should clear dock badge on macOS', () => {
+            it('should clear dock badge', () => {
                 const badgeManager = new BadgeManager();
                 badgeManager.showUpdateBadge();
                 badgeManager.clearUpdateBadge();
 
                 expect(app.dock?.setBadge).toHaveBeenCalledWith('');
             });
-        }
+        });
 
-        if (isWindows) {
-            it('should call setOverlayIcon on Windows when main window set', () => {
+        describe('on Windows', () => {
+            beforeEach(() => {
+                useMockPlatformAdapter(adapterForPlatform.win32());
+            });
+
+            afterEach(() => {
+                resetPlatformAdapterForTests();
+            });
+
+            it('should call setOverlayIcon when main window set', () => {
                 const badgeManager = new BadgeManager();
 
-                // Create and set mock main window
                 const mockWindow = new BrowserWindow();
                 (mockWindow as any).setOverlayIcon = vi.fn();
                 badgeManager.setMainWindow(mockWindow as any);
@@ -106,26 +107,32 @@ describe('Update Notification Flow Integration', () => {
 
                 expect((mockWindow as any).setOverlayIcon).toHaveBeenCalled();
             });
-        }
+        });
 
-        if (isLinux) {
-            it('should gracefully skip badge on Linux', () => {
+        describe('on Linux', () => {
+            beforeEach(() => {
+                useMockPlatformAdapter(adapterForPlatform.linux());
+            });
+
+            afterEach(() => {
+                resetPlatformAdapterForTests();
+            });
+
+            it('should gracefully skip badge', () => {
                 const badgeManager = new BadgeManager();
                 badgeManager.showUpdateBadge();
 
-                // Badge state tracks as shown even on Linux
                 expect(badgeManager.hasBadgeShown()).toBe(true);
-                // No errors
                 expect(mockLogger.error).not.toHaveBeenCalled();
             });
-        }
+        });
     });
 
     describe('TrayManager', () => {
         it('should update tooltip when setUpdateTooltip is called', () => {
             const windowManager = new WindowManager(false);
             const trayManager = new TrayManager(windowManager);
-            trayManager.createTray(); // Must create tray first
+            trayManager.createTray();
 
             trayManager.setUpdateTooltip('2.0.0');
 
@@ -135,7 +142,7 @@ describe('Update Notification Flow Integration', () => {
         it('should clear tooltip when clearUpdateTooltip is called', () => {
             const windowManager = new WindowManager(false);
             const trayManager = new TrayManager(windowManager);
-            trayManager.createTray(); // Must create tray first
+            trayManager.createTray();
 
             trayManager.setUpdateTooltip('2.0.0');
             expect(trayManager.getToolTip()).toContain('2.0.0');
@@ -150,16 +157,14 @@ describe('Update Notification Flow Integration', () => {
             const windowManager = new WindowManager(false);
             const badgeManager = new BadgeManager();
             const trayManager = new TrayManager(windowManager);
-            trayManager.createTray(); // Must create tray first
+            trayManager.createTray();
 
-            // Simulate update available notification flow
             badgeManager.showUpdateBadge();
             trayManager.setUpdateTooltip('2.0.0');
 
             expect(badgeManager.hasBadgeShown()).toBe(true);
             expect(trayManager.getToolTip()).toContain('2.0.0');
 
-            // Simulate update applied - clear notification
             badgeManager.clearUpdateBadge();
             trayManager.clearUpdateTooltip();
 

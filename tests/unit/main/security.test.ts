@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import type { Session } from 'electron';
 import electron from 'electron';
 import { getPlatformAdapter } from '../../../src/main/platform/platformAdapterFactory';
+import { resetPlatformAdapterForTests } from '../../helpers/mocks';
 
 vi.mock('../../../src/main/platform/platformAdapterFactory', () => ({
     getPlatformAdapter: vi.fn(),
@@ -23,7 +23,7 @@ describe('setupHeaderStripping', () => {
         // mockSession is the global session mock from electron-mock.ts
         // We need to implement the onHeadersReceived mock to capture the callback
         (mockSession.defaultSession.webRequest.onHeadersReceived as any).mockImplementation(
-            (filter: any, callback: any) => {
+            (_filter: any, callback: any) => {
                 headerCallback = callback;
             }
         );
@@ -163,11 +163,9 @@ describe('setupMediaPermissions', () => {
     ) => void;
 
     beforeEach(() => {
-        // Reset mocks
         mockSession.defaultSession.setPermissionRequestHandler.mockClear();
         vi.mocked(getPlatformAdapter).mockReset();
 
-        // Capture the permission handler when it's set
         mockSession.defaultSession.setPermissionRequestHandler.mockImplementation((handler: any) => {
             permissionHandler = handler;
         });
@@ -308,26 +306,17 @@ describe('setupMediaPermissions', () => {
     });
 
     describe('macOS microphone access (askForMediaAccess)', () => {
-        it('calls systemPreferences.askForMediaAccess on macOS', async () => {
-            const requestMediaPermissions = vi.fn().mockResolvedValue(undefined);
-            vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions } as any);
-
-            const { setupMediaPermissions: setupMediaPermissionsMocked } =
-                await import('../../../src/main/utils/security');
-
-            // Create a fresh mock session
-            const freshMockSession = {
-                setPermissionRequestHandler: vi.fn(),
-            };
-
-            setupMediaPermissionsMocked(freshMockSession as any);
-
-            expect(requestMediaPermissions).toHaveBeenCalled();
+        afterEach(() => {
+            resetPlatformAdapterForTests();
         });
 
-        it('does NOT call askForMediaAccess on Windows', async () => {
-            const requestMediaPermissions = vi.fn().mockResolvedValue(undefined);
-            vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions } as any);
+        it('calls requestMediaPermissions on macOS', async () => {
+            const mockRequestMediaPermissions = vi.fn().mockResolvedValue(undefined);
+
+            vi.mocked(getPlatformAdapter).mockReturnValue({
+                requestMediaPermissions: mockRequestMediaPermissions,
+            } as any);
+
             const { setupMediaPermissions: setupMediaPermissionsMocked } =
                 await import('../../../src/main/utils/security');
 
@@ -337,12 +326,15 @@ describe('setupMediaPermissions', () => {
 
             setupMediaPermissionsMocked(freshMockSession as any);
 
-            expect(requestMediaPermissions).toHaveBeenCalled();
+            await new Promise((resolve) => setTimeout(resolve, 50));
+
+            expect(mockRequestMediaPermissions).toHaveBeenCalled();
         });
 
-        it('does NOT call askForMediaAccess on Linux', async () => {
-            const requestMediaPermissions = vi.fn().mockResolvedValue(undefined);
-            vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions } as any);
+        it('does NOT call requestMediaPermissions if adapter method is undefined', async () => {
+            vi.mocked(getPlatformAdapter).mockReturnValue({
+                requestMediaPermissions: undefined,
+            } as any);
 
             const { setupMediaPermissions: setupMediaPermissionsMocked } =
                 await import('../../../src/main/utils/security');
@@ -351,9 +343,7 @@ describe('setupMediaPermissions', () => {
                 setPermissionRequestHandler: vi.fn(),
             };
 
-            setupMediaPermissionsMocked(freshMockSession as any);
-
-            expect(requestMediaPermissions).toHaveBeenCalled();
+            expect(() => setupMediaPermissionsMocked(freshMockSession as any)).not.toThrow();
         });
     });
 });

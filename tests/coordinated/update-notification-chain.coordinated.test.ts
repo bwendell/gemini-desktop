@@ -1,12 +1,5 @@
-/**
- * Integration tests for UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager notification chain.
- * Tests the complete update notification flow through multiple managers.
- *
- * These tests use REAL manager instances (not mocked) while mocking Electron APIs and electron-updater.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock electron module FIRST (before importing from 'electron')
 vi.mock('electron', async () => {
     const mockModule = await import('../unit/main/test/electron-mock');
     return mockModule.default;
@@ -19,12 +12,11 @@ import TrayManager from '../../src/main/managers/trayManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import IpcManager from '../../src/main/managers/ipcManager';
 import type { UpdateInfo } from 'electron-updater';
+import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
-// Mock fs for tray icon
 vi.mock('fs', () => ({
     default: {
         existsSync: vi.fn().mockReturnValue(true),
@@ -36,11 +28,10 @@ vi.mock('fs', () => ({
     writeFileSync: vi.fn(),
 }));
 
-// Mock electron-updater
 const { mockAutoUpdater, emitAutoUpdaterEvent } = vi.hoisted(() => {
     const mock = {
         checkForUpdates: vi.fn(),
-        checkForUpdatesAndNotify: vi.fn().mockResolvedValue(undefined), // Used by UpdateManager
+        checkForUpdatesAndNotify: vi.fn().mockResolvedValue(undefined),
         downloadUpdate: vi.fn(),
         quitAndInstall: vi.fn(),
         on: vi.fn(),
@@ -72,39 +63,11 @@ vi.mock('electron-updater', () => ({
     },
 }));
 
-// Mock constants to support changing platform dynamically
-vi.mock('../../src/main/utils/constants', async (importOriginal) => {
-    return {
-        ...(await importOriginal<any>()),
-        get isMacOS() {
-            return process.platform === 'darwin';
-        },
-        get isWindows() {
-            return process.platform === 'win32';
-        },
-        get isLinux() {
-            return process.platform === 'linux';
-        },
-    };
-});
-
-// Mock platform adapter factory to return correct adapter per platform
-vi.mock('../../src/main/platform/platformAdapterFactory', async () => {
-    const { MacAdapter } = await import('../../src/main/platform/adapters/MacAdapter');
-    const { WindowsAdapter } = await import('../../src/main/platform/adapters/WindowsAdapter');
-    const { LinuxX11Adapter } = await import('../../src/main/platform/adapters/LinuxX11Adapter');
-    return {
-        getPlatformAdapter: () => {
-            if (process.platform === 'darwin') return new MacAdapter();
-            if (process.platform === 'win32') return new WindowsAdapter();
-            return new LinuxX11Adapter();
-        },
-    };
-});
-
-// Helper to get registered IPC listeners
-// const getListener = (channel: string) =>
-//   (require('electron').ipcMain as any)._listeners.get(channel);
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notification Chain', () => {
     let updateManager: UpdateManager;
@@ -126,7 +89,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
         mockAutoUpdater.checkForUpdates.mockClear();
         mockAutoUpdater.on.mockClear();
 
-        // Create mock store
         const storeData: Record<string, any> = {
             autoUpdateEnabled: true,
         };
@@ -138,7 +100,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
             _data: storeData,
         };
 
-        // Create mock HotkeyManager
         mockHotkeyManager = {
             setIndividualEnabled: vi.fn(),
             registerAll: vi.fn(),
@@ -162,6 +123,7 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
 
     afterEach(() => {
         vi.restoreAllMocks();
+        resetPlatformAdapterForTests({ resetModules: true });
         if (updateManager) {
             updateManager.destroy();
         }
@@ -169,29 +131,22 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
         beforeEach(async () => {
-            // Mock platform
-            vi.stubGlobal('process', { ...process, platform });
+            useMockPlatformAdapter(adapterForPlatform[platform]());
 
-            // Create REAL managers after platform stub (with app.isPackaged=false for icon path resolution)
             windowManager = new WindowManager(false);
             badgeManager = new BadgeManager();
             trayManager = new TrayManager(windowManager);
 
-            // Create UpdateManager with dependencies
             updateManager = new UpdateManager(mockStore, {
                 badgeManager,
                 trayManager,
             });
 
-            // IMPORTANT: Trigger lazy loading of autoUpdater to register event handlers
-            // This is necessary because autoUpdater is now lazily loaded to prevent D-Bus hang on Linux CI
-            // Temporarily set app.isPackaged=true otherwise checkForUpdates skips in dev mode
             const originalIsPackaged = app.isPackaged;
             (app as any).isPackaged = true;
             await updateManager.checkForUpdates(false);
-            (app as any).isPackaged = originalIsPackaged; // Restore for other tests
+            (app as any).isPackaged = originalIsPackaged;
 
-            // Create IpcManager
             ipcManager = new IpcManager(
                 windowManager,
                 mockHotkeyManager,
@@ -205,25 +160,17 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
             ipcManager.setupIpcHandlers();
         });
 
-        afterEach(() => {
-            vi.unstubAllGlobals();
-        });
-
         describe('UpdateManager detects update → Notification chain', () => {
             it('should show badge, update tray tooltip, and broadcast to all renderers', () => {
-                // Create main window for Windows badge
                 const mainWindow = windowManager.createMainWindow();
                 badgeManager.setMainWindow(mainWindow);
 
-                // Create tray
                 trayManager.createTray();
 
-                // Create mock renderer windows
                 const mockWin1 = { isDestroyed: () => false, webContents: { send: vi.fn() } };
                 const mockWin2 = { isDestroyed: () => false, webContents: { send: vi.fn() } };
                 (BrowserWindow.getAllWindows as any).mockReturnValue([mockWin1, mockWin2]);
 
-                // Simulate update detection
                 const updateInfo: UpdateInfo = {
                     version: '2.0.0',
                     releaseDate: '2024-01-01',
@@ -236,7 +183,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
 
                 emitAutoUpdaterEvent('update-downloaded', updateInfo);
 
-                // Verify BadgeManager shows badge
                 expect(badgeManager.hasBadgeShown()).toBe(true);
 
                 if (platform === 'darwin') {
@@ -245,10 +191,8 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     expect(mainWindow.setOverlayIcon).toHaveBeenCalled();
                 }
 
-                // Verify TrayManager updates tooltip
                 expect(trayManager.getToolTip()).toContain('2.0.0');
 
-                // Verify IpcManager broadcasts to all windows
                 expect(mockWin1.webContents.send).toHaveBeenCalledWith(
                     'auto-update:downloaded',
                     expect.objectContaining({
@@ -281,13 +225,10 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     sha512: 'test-sha',
                 };
 
-                // First, update available
                 emitAutoUpdaterEvent('update-available', updateInfo);
 
-                // Then, update downloaded
                 emitAutoUpdaterEvent('update-downloaded', updateInfo);
 
-                // Verify broadcast
                 expect(mockWin.webContents.send).toHaveBeenCalledWith(
                     'auto-update:available',
                     expect.objectContaining({
@@ -301,7 +242,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     })
                 );
 
-                // Badge should still be shown
                 expect(badgeManager.hasBadgeShown()).toBe(true);
             });
         });
@@ -315,7 +255,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                 const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
                 (BrowserWindow.getAllWindows as any).mockReturnValue([mockWin]);
 
-                // Show update notification first
                 const updateInfo: UpdateInfo = {
                     version: '2.0.0',
                     releaseDate: '2024-01-01',
@@ -330,10 +269,8 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                 expect(badgeManager.hasBadgeShown()).toBe(true);
                 expect(trayManager.getToolTip()).toContain('2.0.0');
 
-                // Clear via dev method (simulating dismissal)
                 updateManager.devClearBadge();
 
-                // Verify cleanup
                 expect(badgeManager.hasBadgeShown()).toBe(false);
                 expect(trayManager.getToolTip()).not.toContain('2.0.0');
 
@@ -349,7 +286,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                 badgeManager.setMainWindow(mainWindow);
                 trayManager.createTray();
 
-                // Show and clear multiple times
                 for (let i = 0; i < 3; i++) {
                     updateManager.devShowBadge(`${i}.0.0`);
                     expect(badgeManager.hasBadgeShown()).toBe(true);
@@ -358,7 +294,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     expect(badgeManager.hasBadgeShown()).toBe(false);
                 }
 
-                // No errors should occur
                 expect(mockLogger.error).not.toHaveBeenCalled();
             });
         });
@@ -379,14 +314,11 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     sha512: 'test-sha',
                 };
 
-                // Trigger update-downloaded twice with same version
                 emitAutoUpdaterEvent('update-downloaded', updateInfo);
                 emitAutoUpdaterEvent('update-downloaded', updateInfo);
 
-                // Badge should be shown, but BadgeManager logs "already shown"
                 expect(badgeManager.hasBadgeShown()).toBe(true);
 
-                // Check that "already shown" was logged
                 const alreadyShownLogs = mockLogger.log.mock.calls.filter((call: any) => call[0]?.includes('already'));
                 expect(alreadyShownLogs.length).toBeGreaterThan(0);
             });
@@ -399,7 +331,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                 const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
                 (BrowserWindow.getAllWindows as any).mockReturnValue([mockWin]);
 
-                // First update
                 const updateInfo1: UpdateInfo = {
                     version: '2.0.0',
                     releaseDate: '2024-01-01',
@@ -414,10 +345,8 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                 expect(badgeManager.hasBadgeShown()).toBe(true);
                 expect(trayManager.getToolTip()).toContain('2.0.0');
 
-                // Clear
                 updateManager.devClearBadge();
 
-                // Second update with different version
                 const updateInfo2: UpdateInfo = {
                     version: '3.0.0',
                     releaseDate: '2024-02-01',
@@ -452,28 +381,22 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     sha512: 'test-sha',
                 };
 
-                // Clear any previous calls
                 mockWin.webContents.send.mockClear();
 
-                // Trigger once
                 emitAutoUpdaterEvent('update-downloaded', updateInfo);
 
-                // Should have been called once
                 const updateAvailableCalls = mockWin.webContents.send.mock.calls.filter(
                     (call: any) => call[0] === 'auto-update:downloaded'
                 );
                 expect(updateAvailableCalls.length).toBe(1);
 
-                // Trigger again with same version
                 emitAutoUpdaterEvent('update-downloaded', updateInfo);
 
-                // Should still only have one call (second one doesn't re-broadcast)
                 const updateAvailableCallsAfter = mockWin.webContents.send.mock.calls.filter(
                     (call: any) => call[0] === 'auto-update:downloaded'
                 );
-                expect(updateAvailableCallsAfter.length).toBe(2); // Actually, events will fire, let's check badge instead
+                expect(updateAvailableCallsAfter.length).toBe(2);
 
-                // Badge shown only once (second call is no-op)
                 expect(badgeManager.hasBadgeShown()).toBe(true);
             });
         });
@@ -487,33 +410,26 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                 const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
                 (BrowserWindow.getAllWindows as any).mockReturnValue([mockWin]);
 
-                // Clear any previous log calls
                 mockLogger.log.mockClear();
 
-                // Trigger download-progress events
                 emitAutoUpdaterEvent('download-progress', { percent: 0 });
                 emitAutoUpdaterEvent('download-progress', { percent: 25.5 });
                 emitAutoUpdaterEvent('download-progress', { percent: 50 });
                 emitAutoUpdaterEvent('download-progress', { percent: 75.3 });
                 emitAutoUpdaterEvent('download-progress', { percent: 100 });
 
-                // Verify logging occurred
                 const progressLogs = mockLogger.log.mock.calls.filter((call: any) =>
                     call[0]?.includes('Download progress')
                 );
                 expect(progressLogs.length).toBeGreaterThan(0);
 
-                // Badge and tray should NOT update during progress
-                // (they only show on update-downloaded)
                 expect(badgeManager.hasBadgeShown()).toBe(false);
 
-                // Progress events ARE broadcasted to renderers (feature added in #100)
                 const progressBroadcasts = mockWin.webContents.send.mock.calls.filter(
                     (call: any) => call[0] === 'auto-update:download-progress'
                 );
                 expect(progressBroadcasts.length).toBe(5);
 
-                // Verify content of one broadcast
                 expect(progressBroadcasts[2][1]).toEqual({ percent: 50 });
             });
 
@@ -526,7 +442,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     }).not.toThrow();
                 });
 
-                // All progress events should be logged
                 const progressLogs = mockLogger.log.mock.calls.filter((call: any) =>
                     call[0]?.includes('Download progress')
                 );
@@ -551,17 +466,14 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     sha512: 'test-sha',
                 };
 
-                // Typical update flow with progress
                 emitAutoUpdaterEvent('update-available', updateInfo);
                 emitAutoUpdaterEvent('download-progress', { percent: 25 });
                 emitAutoUpdaterEvent('download-progress', { percent: 50 });
                 emitAutoUpdaterEvent('download-progress', { percent: 75 });
                 emitAutoUpdaterEvent('update-downloaded', updateInfo);
 
-                // Badge should only show on downloaded, not during progress
                 expect(badgeManager.hasBadgeShown()).toBe(true);
 
-                // Verify only update events were broadcasted (not progress)
                 const availableCalls = mockWin.webContents.send.mock.calls.filter(
                     (call: any) => call[0] === 'auto-update:available'
                 );
@@ -581,18 +493,15 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                 const error = new Error('Update check failed');
                 emitAutoUpdaterEvent('error', error);
 
-                // Should broadcast error (masked for security)
                 expect(mockWin.webContents.send).toHaveBeenCalledWith(
                     'auto-update:error',
                     'The auto-update service encountered an error. Please try again later.'
                 );
 
-                // Badge should not be shown on error
                 expect(badgeManager.hasBadgeShown()).toBe(false);
             });
 
             it('should handle missing dependencies gracefully', () => {
-                // Create UpdateManager without badge/tray managers
                 const standAloneUpdateManager = new UpdateManager(mockStore);
 
                 const updateInfo: UpdateInfo = {
@@ -605,7 +514,6 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
                     sha512: 'test-sha',
                 };
 
-                // Should not crash
                 expect(() => {
                     emitAutoUpdaterEvent('update-available', updateInfo);
                 }).not.toThrow();

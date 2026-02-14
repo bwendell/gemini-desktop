@@ -11,8 +11,8 @@
  * @module QuickChatApp.test
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import QuickChatApp from './QuickChatApp';
 
 describe('QuickChatApp', () => {
@@ -23,6 +23,12 @@ describe('QuickChatApp', () => {
     const mockGetTextPredictionStatus = vi.fn();
     const mockPredictText = vi.fn();
     const mockOnTextPredictionStatusChanged = vi.fn();
+
+    const waitForInitialization = async () => {
+        await waitFor(() => {
+            expect(mockGetTextPredictionStatus).toHaveBeenCalled();
+        });
+    };
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -64,176 +70,240 @@ describe('QuickChatApp', () => {
     });
 
     describe('Rendering', () => {
-        it('renders the container', () => {
+        it('renders the container', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
             expect(screen.getByTestId('quick-chat-container')).toBeInTheDocument();
         });
 
-        it('renders the input field', () => {
+        it('renders the input field', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
             const input = screen.getByTestId('quick-chat-input');
             expect(input).toBeInTheDocument();
             expect(input).toHaveAttribute('placeholder', 'Ask Gemini...');
         });
 
-        it('renders the submit button', () => {
+        it('renders the submit button', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
             expect(screen.getByTestId('quick-chat-submit')).toBeInTheDocument();
         });
 
-        it('auto-focuses the input on mount', () => {
+        it('auto-focuses the input on mount', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
             const input = screen.getByTestId('quick-chat-input');
             expect(document.activeElement).toBe(input);
         });
     });
 
     describe('Input Handling', () => {
-        it('updates value when typing', () => {
+        it('updates value when typing', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello Gemini' } });
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello Gemini' } });
+            });
 
             expect(input).toHaveValue('Hello Gemini');
         });
 
-        it('enables submit button when input has text', () => {
+        it('enables submit button when input has text', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const submit = screen.getByTestId('quick-chat-submit');
             expect(submit).toBeDisabled();
 
-            fireEvent.change(screen.getByTestId('quick-chat-input'), { target: { value: 'test' } });
+            await act(async () => {
+                fireEvent.change(screen.getByTestId('quick-chat-input'), { target: { value: 'test' } });
+            });
             expect(submit).not.toBeDisabled();
         });
 
-        it('disables submit button when input is empty', () => {
+        it('disables submit button when input is empty', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
+
             const submit = screen.getByTestId('quick-chat-submit');
             expect(submit).toBeDisabled();
         });
 
-        it('disables submit button when input is only whitespace', () => {
+        it('disables submit button when input is only whitespace', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
-            fireEvent.change(screen.getByTestId('quick-chat-input'), { target: { value: '   ' } });
+            await act(async () => {
+                fireEvent.change(screen.getByTestId('quick-chat-input'), { target: { value: '   ' } });
+            });
             expect(screen.getByTestId('quick-chat-submit')).toBeDisabled();
         });
     });
 
     describe('Submit Functionality', () => {
-        it('calls submitQuickChat when clicking submit button', () => {
+        it('calls submitQuickChat when clicking submit button', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
-            fireEvent.change(screen.getByTestId('quick-chat-input'), {
-                target: { value: 'Test prompt' },
+            await act(async () => {
+                fireEvent.change(screen.getByTestId('quick-chat-input'), {
+                    target: { value: 'Test prompt' },
+                });
             });
-            fireEvent.click(screen.getByTestId('quick-chat-submit'));
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('quick-chat-submit'));
+            });
 
             expect(mockSubmitQuickChat).toHaveBeenCalledWith('Test prompt');
         });
 
-        it('clears input after submit', () => {
+        it('clears input after submit', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Test prompt' } });
-            fireEvent.click(screen.getByTestId('quick-chat-submit'));
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Test prompt' } });
+            });
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('quick-chat-submit'));
+            });
 
             expect(input).toHaveValue('');
         });
 
-        it('does not call submitQuickChat when input is empty', () => {
+        it('does not call submitQuickChat when input is empty', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
-            fireEvent.click(screen.getByTestId('quick-chat-submit'));
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('quick-chat-submit'));
+            });
 
             expect(mockSubmitQuickChat).not.toHaveBeenCalled();
         });
 
-        it('trims whitespace from input before submit', () => {
+        it('trims whitespace from input before submit', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
-            fireEvent.change(screen.getByTestId('quick-chat-input'), {
-                target: { value: '  Test prompt  ' },
+            await act(async () => {
+                fireEvent.change(screen.getByTestId('quick-chat-input'), {
+                    target: { value: '  Test prompt  ' },
+                });
             });
-            fireEvent.click(screen.getByTestId('quick-chat-submit'));
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('quick-chat-submit'));
+            });
 
             expect(mockSubmitQuickChat).toHaveBeenCalledWith('Test prompt');
         });
     });
 
     describe('Edge Cases', () => {
-        it('does not submit on Enter when input is empty', () => {
+        it('does not submit on Enter when input is empty', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
+
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.keyDown(input, { key: 'Enter' });
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Enter' });
+            });
             expect(mockSubmitQuickChat).not.toHaveBeenCalled();
         });
 
-        it('ignores other keys', () => {
+        it('ignores other keys', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
+
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.keyDown(input, { key: 'a' });
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'a' });
+            });
             expect(mockSubmitQuickChat).not.toHaveBeenCalled();
             expect(mockCancelQuickChat).not.toHaveBeenCalled();
         });
     });
 
     describe('Keyboard Shortcuts', () => {
-        it('submits on Enter key', () => {
+        it('submits on Enter key', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Enter test' } });
-            fireEvent.keyDown(input, { key: 'Enter' });
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Enter test' } });
+            });
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Enter' });
+            });
 
             expect(mockSubmitQuickChat).toHaveBeenCalledWith('Enter test');
         });
 
-        it('calls cancelQuickChat on Escape key when no prediction is showing', () => {
+        it('calls cancelQuickChat on Escape key when no prediction is showing', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.keyDown(input, { key: 'Escape' });
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Escape' });
+            });
 
             expect(mockCancelQuickChat).toHaveBeenCalled();
         });
 
-        it('does not submit on Shift+Enter', () => {
+        it('does not submit on Shift+Enter', async () => {
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Test' } });
-            fireEvent.keyDown(input, { key: 'Enter', shiftKey: true });
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Test' } });
+            });
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Enter', shiftKey: true });
+            });
 
             expect(mockSubmitQuickChat).not.toHaveBeenCalled();
         });
     });
 
     describe('Without ElectronAPI', () => {
-        it('handles missing electronAPI gracefully', () => {
+        it('handles missing electronAPI gracefully', async () => {
             window.electronAPI = undefined;
 
             render(<QuickChatApp />);
 
-            // Should render without crashing
+            await act(async () => {
+                await Promise.resolve();
+            });
+
             expect(screen.getByTestId('quick-chat-container')).toBeInTheDocument();
         });
 
-        it('does not throw when submitting without electronAPI', () => {
+        it('does not throw when submitting without electronAPI', async () => {
             window.electronAPI = undefined;
 
             render(<QuickChatApp />);
 
-            const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Test' } });
+            await act(async () => {
+                await Promise.resolve();
+            });
 
-            // Should not throw
-            expect(() => {
-                fireEvent.click(screen.getByTestId('quick-chat-submit'));
-            }).not.toThrow();
+            const input = screen.getByTestId('quick-chat-input');
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Test' } });
+            });
+
+            await act(async () => {
+                expect(() => {
+                    fireEvent.click(screen.getByTestId('quick-chat-submit'));
+                }).not.toThrow();
+            });
         });
     });
 
@@ -256,9 +326,12 @@ describe('QuickChatApp', () => {
             });
 
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+            });
 
             // Wait for debounce
             await vi.advanceTimersByTimeAsync(350);
@@ -276,9 +349,12 @@ describe('QuickChatApp', () => {
             });
 
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+            });
 
             // Wait for debounce
             await vi.advanceTimersByTimeAsync(350);
@@ -292,58 +368,52 @@ describe('QuickChatApp', () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            // Wait for status to load
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
 
-            // Wait for debounce (300ms)
-            await vi.advanceTimersByTimeAsync(350);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
             });
+
+            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
         });
 
         it('ghost text contains the prediction', async () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
 
-            await vi.advanceTimersByTimeAsync(350);
-
-            await waitFor(() => {
-                const ghostText = screen.getByTestId('quick-chat-ghost-text');
-                expect(ghostText).toHaveTextContent('world!');
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
             });
+
+            const ghostText = screen.getByTestId('quick-chat-ghost-text');
+            expect(ghostText).toHaveTextContent('world!');
         });
 
         it('clears ghost text when typing continues', async () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
-
-            await vi.advanceTimersByTimeAsync(350);
-
-            // Ghost text should appear
-            await waitFor(() => {
-                expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
             });
 
-            // Continue typing - should clear ghost text
-            fireEvent.change(input, { target: { value: 'Hello world' } });
+            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello world' } });
+            });
 
             expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
         });
@@ -352,20 +422,19 @@ describe('QuickChatApp', () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
-
-            await vi.advanceTimersByTimeAsync(350);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
             });
 
-            // Blur the input
-            fireEvent.blur(input);
+            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+
+            await act(async () => {
+                fireEvent.blur(input);
+            });
 
             expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
         });
@@ -374,17 +443,15 @@ describe('QuickChatApp', () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
 
-            // Should not have called predictText yet
-            expect(mockPredictText).not.toHaveBeenCalled();
-
-            // Wait for debounce
-            await vi.advanceTimersByTimeAsync(350);
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                expect(mockPredictText).not.toHaveBeenCalled();
+                await vi.advanceTimersByTimeAsync(350);
+            });
 
             expect(mockPredictText).toHaveBeenCalledWith('Hello ');
         });
@@ -404,22 +471,20 @@ describe('QuickChatApp', () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
-
-            await vi.advanceTimersByTimeAsync(350);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
             });
 
-            // Press Tab to accept prediction
-            fireEvent.keyDown(input, { key: 'Tab' });
+            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
 
-            // Input should now contain the original text + prediction
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Tab' });
+            });
+
             expect(input).toHaveValue('Hello world!');
         });
 
@@ -427,28 +492,22 @@ describe('QuickChatApp', () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
-
-            await vi.advanceTimersByTimeAsync(350);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
             });
 
-            // Press Escape to dismiss prediction (not cancel Quick Chat)
-            fireEvent.keyDown(input, { key: 'Escape' });
+            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
 
-            // Ghost text should be dismissed
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Escape' });
+            });
+
             expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
-
-            // cancelQuickChat should NOT have been called (prediction was showing)
             expect(mockCancelQuickChat).not.toHaveBeenCalled();
-
-            // Input should remain unchanged
             expect(input).toHaveValue('Hello ');
         });
 
@@ -456,21 +515,20 @@ describe('QuickChatApp', () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
-
-            await vi.advanceTimersByTimeAsync(350);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
             });
 
-            fireEvent.keyDown(input, { key: 'Tab' });
+            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
 
-            // Ghost text should be cleared after acceptance
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Tab' });
+            });
+
             expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
         });
 
@@ -478,15 +536,19 @@ describe('QuickChatApp', () => {
             mockPredictText.mockResolvedValue(null);
 
             render(<QuickChatApp />);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
+            });
 
-            // Without prediction, Tab should not modify input
             const originalValue = 'Hello ';
-            fireEvent.keyDown(input, { key: 'Tab' });
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Tab' });
+            });
 
-            // Value should remain unchanged
             expect(input).toHaveValue(originalValue);
         });
 
@@ -494,22 +556,20 @@ describe('QuickChatApp', () => {
             mockPredictText.mockResolvedValue('world!');
 
             render(<QuickChatApp />);
-
-            await vi.advanceTimersByTimeAsync(100);
+            await waitForInitialization();
 
             const input = screen.getByTestId('quick-chat-input');
-            fireEvent.change(input, { target: { value: 'Hello ' } });
-
-            await vi.advanceTimersByTimeAsync(350);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello ' } });
+                await vi.advanceTimersByTimeAsync(350);
             });
 
-            // Submit without accepting prediction
-            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
 
-            // Should submit original text, not prediction
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Enter' });
+            });
+
             expect(mockSubmitQuickChat).toHaveBeenCalledWith('Hello');
             expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
         });

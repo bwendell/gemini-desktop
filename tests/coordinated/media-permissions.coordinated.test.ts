@@ -1,15 +1,15 @@
-/**
- * Integration tests for media permissions across platforms.
- * Tests the setupMediaPermissions function with platform-specific behavior.
- *
- * @module media-permissions.integration.test
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import electron from 'electron';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
+
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('Media Permissions Integration', () => {
     const mockSession = electron.session as any;
-    let originalPlatform: string;
     let permissionHandler: (
         webContents: any,
         permission: string,
@@ -18,32 +18,26 @@ describe('Media Permissions Integration', () => {
     ) => void;
 
     beforeEach(() => {
-        originalPlatform = process.platform;
         vi.clearAllMocks();
 
-        // Capture the permission handler when it's set
         mockSession.defaultSession.setPermissionRequestHandler.mockImplementation((handler: any) => {
             permissionHandler = handler;
         });
     });
 
     afterEach(() => {
-        Object.defineProperty(process, 'platform', {
-            value: originalPlatform,
-            configurable: true,
-            writable: true,
-        });
+        resetPlatformAdapterForTests();
         vi.resetModules();
     });
 
     describe('Permission Handler Registration', () => {
         describe.each(['darwin', 'win32', 'linux'])('on %s', (platform) => {
             beforeEach(() => {
-                Object.defineProperty(process, 'platform', {
-                    value: platform,
-                    configurable: true,
-                    writable: true,
-                });
+                useMockPlatformAdapter(adapterForPlatform[platform]());
+            });
+
+            afterEach(() => {
+                resetPlatformAdapterForTests();
             });
 
             it('registers permission handler on all platforms', async () => {
@@ -94,8 +88,6 @@ describe('Media Permissions Integration', () => {
             });
         });
     });
-    // NOTE: macOS-specific microphone access (askForMediaAccess) tests are
-    // covered in tests/unit/main/security.test.ts with proper mocking.
 
     describe('Cross-platform permission consistency', () => {
         const testCases = [
@@ -110,15 +102,15 @@ describe('Media Permissions Integration', () => {
 
         describe.each(['darwin', 'win32', 'linux'])('on %s', (platform) => {
             beforeEach(async () => {
-                Object.defineProperty(process, 'platform', {
-                    value: platform,
-                    configurable: true,
-                    writable: true,
-                });
+                useMockPlatformAdapter(adapterForPlatform[platform]());
 
                 vi.resetModules();
                 const { setupMediaPermissions } = await import('../../src/main/utils/security');
                 setupMediaPermissions(mockSession.defaultSession);
+            });
+
+            afterEach(() => {
+                resetPlatformAdapterForTests();
             });
 
             it.each(testCases)(

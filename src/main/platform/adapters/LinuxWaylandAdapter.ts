@@ -172,30 +172,4 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
     getDockMenuTemplate(_callbacks: DockMenuCallbacks): MenuItemConstructorOptions[] | null {
         return null;
     }
-
-    getTitleBarStyle(): TitleBarStyle {
-        return undefined;
-    }
-
-    getAppIconFilename(): AppIconFilename {
-        return 'icon.png';
-    }
-
-    shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean {
-        return !env.APPIMAGE;
-    }
-
-    async requestMediaPermissions(_logger: Logger): Promise<void> {
-        // No-op on Linux
-    }
-
-    getNotificationSupportHint(): string | undefined {
-        return (
-            'Notifications not supported on this platform. ' +
-            'On Linux, ensure libnotify is installed: ' +
-            'Ubuntu/Debian: apt install libnotify-bin | ' +
-            'Fedora: dnf install libnotify | ' +
-            'Arch: pacman -S libnotify'
-        );
-    }
 }

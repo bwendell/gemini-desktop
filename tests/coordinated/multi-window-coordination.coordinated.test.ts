@@ -1,27 +1,22 @@
-/**
- * Integration tests for multi-window coordination.
- * Tests how WindowManager coordinates between different window types (Main, Options, Auth).
- *
- * Scenarios:
- * - Closing Main window closes dependent windows (Options, Auth)
- * - Hiding Main window to tray closes dependent windows
- * - Re-opening Options window focuses existing instance
- * - WindowManager handles "quitting" state to prevent infinite loops or unwanted behavior
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow, ipcMain } from 'electron';
 import WindowManager from '../../src/main/managers/windowManager';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
 
-// Mock fs
 vi.mock('fs', () => ({
     existsSync: vi.fn().mockReturnValue(false),
     readFileSync: vi.fn().mockReturnValue('{}'),
     writeFileSync: vi.fn(),
     mkdirSync: vi.fn(),
 }));
+
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('Multi-Window Coordination Integration', () => {
     let windowManager: WindowManager;
@@ -34,19 +29,13 @@ describe('Multi-Window Coordination Integration', () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
+        resetPlatformAdapterForTests();
     });
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
         beforeEach(() => {
-            // Mock platform
-            vi.stubGlobal('process', { ...process, platform });
-
-            // Create REAL WindowManager after platform stub
+            useMockPlatformAdapter(adapterForPlatform[platform]());
             windowManager = new WindowManager(false);
-        });
-
-        afterEach(() => {
-            vi.unstubAllGlobals();
         });
 
         describe('Dependent Window Auto-Close', () => {
@@ -55,18 +44,14 @@ describe('Multi-Window Coordination Integration', () => {
                 const optionsWindow = windowManager.createOptionsWindow();
                 const authWindow = windowManager.createAuthWindow('https://auth.google.com');
 
-                // Find the "closed" listener on Main window
                 const closedHandler = (mainWindow as any)._listeners.get('closed');
                 expect(closedHandler).toBeDefined();
 
-                // Simulate Main window closing
                 closedHandler();
 
-                // Verify dependent windows handles close calls
                 expect(optionsWindow.close).toHaveBeenCalled();
                 expect(authWindow.close).toHaveBeenCalled();
 
-                // Verify main window reference is cleared internally
                 expect(windowManager.getMainWindow()).toBeNull();
             });
 
@@ -75,10 +60,8 @@ describe('Multi-Window Coordination Integration', () => {
                 const optionsWindow = windowManager.createOptionsWindow();
                 const authWindow = windowManager.createAuthWindow('https://auth.google.com');
 
-                // Hide to tray
                 windowManager.hideToTray();
 
-                // Options and Auth windows should be closed (not just hidden)
                 expect(optionsWindow.close).toHaveBeenCalled();
                 expect(authWindow.close).toHaveBeenCalled();
             });
@@ -88,17 +71,12 @@ describe('Multi-Window Coordination Integration', () => {
             it('should focus existing Options window instead of creating a new one', () => {
                 const optionsWin1 = windowManager.createOptionsWindow('settings');
 
-                // Re-call createOptionsWindow
                 const optionsWin2 = windowManager.createOptionsWindow('about');
 
-                // Should be the same instance
                 expect(optionsWin2).toBe(optionsWin1);
 
-                // Should have called focus
                 expect(optionsWin1.focus).toHaveBeenCalled();
 
-                // Should have navigated to the new tab (via loadURL or loadFile)
-                // Note: OptionsWindow.create handles this internally
                 expect(optionsWin1.loadURL).toHaveBeenCalledWith(expect.stringContaining('#about'));
             });
         });
@@ -109,14 +87,11 @@ describe('Multi-Window Coordination Integration', () => {
 
                 windowManager.setQuitting(true);
 
-                // Internal state of MainWindow should be updated
-                // (We can't check private field easily, but we can check if it prevents default on 'close')
                 const closeHandler = (mainWindow as any)._listeners.get('close');
                 const mockEvent = { preventDefault: vi.fn() };
 
                 closeHandler(mockEvent);
 
-                // If quitting is true, it should NOT call preventDefault
                 expect(mockEvent.preventDefault).not.toHaveBeenCalled();
             });
 
@@ -130,7 +105,6 @@ describe('Multi-Window Coordination Integration', () => {
 
                 closeHandler(mockEvent);
 
-                // If NOT quitting, it SHOULD call preventDefault to hide to tray
                 expect(mockEvent.preventDefault).toHaveBeenCalled();
                 expect(mainWindow.hide).toHaveBeenCalled();
             });

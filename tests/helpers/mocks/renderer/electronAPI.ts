@@ -197,6 +197,12 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         onTextPredictionDownloadProgress: vi.fn().mockReturnValue(defaultUnsubscribe),
         predictText: vi.fn().mockResolvedValue(null),
 
+        // =========================================================================
+        // Response Notifications API
+        // =========================================================================
+        getResponseNotificationsEnabled: vi.fn().mockResolvedValue(true),
+        setResponseNotificationsEnabled: vi.fn(),
+
         // Apply overrides last to allow customization
         ...overrides,
     };

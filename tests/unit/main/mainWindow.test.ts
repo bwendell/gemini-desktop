@@ -1,11 +1,12 @@
 /**
  * Unit tests for MainWindow.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow, shell } from 'electron';
 import MainWindow from '../../../src/main/windows/mainWindow';
-import { LinuxX11Adapter } from '../../../src/main/platform/adapters/LinuxX11Adapter';
 import type { PlatformAdapter } from '../../../src/main/platform/PlatformAdapter';
+
+import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../../helpers/mocks';
 
 vi.mock('../../../src/main/utils/paths', async (importOriginal) => {
     type PathsModule = typeof import('../../../src/main/utils/paths');
@@ -23,8 +24,14 @@ describe('MainWindow', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         (BrowserWindow as any)._reset();
-        adapter = new LinuxX11Adapter();
+        resetPlatformAdapterForTests({ resetModules: true });
+        adapter = platformAdapterPresets['linux-x11']();
+        useMockPlatformAdapter(adapter);
         mainWindow = new MainWindow(false, adapter);
+    });
+
+    afterEach(() => {
+        resetPlatformAdapterForTests({ resetModules: true });
     });
 
     describe('create', () => {
@@ -181,8 +188,9 @@ describe('MainWindow', () => {
             expect(win.setSkipTaskbar).toHaveBeenCalledWith(true);
         });
 
-        it('only hides window on macOS (no skipTaskbar call)', async () => {
-            const macAdapter = new (await import('../../../src/main/platform/adapters/MacAdapter')).MacAdapter();
+        it('only hides window on macOS (no skipTaskbar call)', () => {
+            const macAdapter = platformAdapterPresets.mac();
+            useMockPlatformAdapter(macAdapter);
             const macWindow = new MainWindow(false, macAdapter);
             const win = macWindow.create();
 
@@ -219,8 +227,9 @@ describe('MainWindow', () => {
             expect(win.setSkipTaskbar).toHaveBeenCalledWith(false);
         });
 
-        it('only shows and focuses window on macOS', async () => {
-            const macAdapter = new (await import('../../../src/main/platform/adapters/MacAdapter')).MacAdapter();
+        it('only shows and focuses window on macOS', () => {
+            const macAdapter = platformAdapterPresets.mac();
+            useMockPlatformAdapter(macAdapter);
             const macWindow = new MainWindow(false, macAdapter);
             const win = macWindow.create();
 

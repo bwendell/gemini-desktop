@@ -1,17 +1,12 @@
-/**
- * Integration tests for settings persistence across managers.
- * Tests that settings persist correctly when read/written by different managers.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, nativeTheme, BrowserWindow } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
-// Mock electron-updater
 vi.mock('electron-updater', () => ({
     autoUpdater: {
         on: vi.fn(),
@@ -21,6 +16,12 @@ vi.mock('electron-updater', () => ({
         autoInstallOnAppQuit: true,
     },
 }));
+
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('Settings Persistence Across Managers', () => {
     let sharedStoreData: Record<string, any>;
@@ -32,7 +33,6 @@ describe('Settings Persistence Across Managers', () => {
         if ((nativeTheme as any)._reset) (nativeTheme as any)._reset();
         if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
 
-        // SHARED store data to simulate persistence
         sharedStoreData = {
             theme: 'system',
             alwaysOnTop: false,
@@ -56,35 +56,29 @@ describe('Settings Persistence Across Managers', () => {
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
         beforeEach(() => {
-            vi.stubGlobal('process', { ...process, platform });
+            useMockPlatformAdapter(adapterForPlatform[platform]());
         });
 
         afterEach(() => {
-            vi.unstubAllGlobals();
+            resetPlatformAdapterForTests();
         });
 
         describe('Theme Persistence', () => {
             it('should persist theme preference on IpcManager set and read on construction', () => {
-                // Create first IpcManager and set theme
                 const windowManager1 = new WindowManager(false);
                 const ipcManager1 = new IpcManager(windowManager1, null, null, null, null, null, mockStore, mockLogger);
                 ipcManager1.setupIpcHandlers();
 
-                // Set theme via IPC
                 const handler = (ipcMain as any)._listeners.get('theme:set');
                 handler({}, 'dark');
 
-                // Verify persistence
                 expect(sharedStoreData.theme).toBe('dark');
 
-                // Simulate app restart - create NEW IpcManager with same store
                 if ((ipcMain as any)._reset) (ipcMain as any)._reset();
                 const windowManager2 = new WindowManager(false);
 
-                // On construction, IpcManager should read persisted theme
                 new IpcManager(windowManager2, null, null, null, null, null, mockStore, mockLogger);
 
-                // Verify nativeTheme was initialized from persisted value
                 expect(nativeTheme.themeSource).toBe('dark');
             });
         });
@@ -93,7 +87,6 @@ describe('Settings Persistence Across Managers', () => {
             it('should persist autoUpdateEnabled when set via IpcManager IPC', () => {
                 const windowManager = new WindowManager(false);
 
-                // Create mock UpdateManager since real one disables in dev mode
                 const mockUpdateManager = {
                     isEnabled: vi.fn().mockReturnValue(true),
                     setEnabled: vi.fn((enabled: boolean) => {
@@ -104,7 +97,6 @@ describe('Settings Persistence Across Managers', () => {
                     destroy: vi.fn(),
                 };
 
-                // Disable via IpcManager IPC
                 const ipcManager = new IpcManager(
                     windowManager,
                     null,
@@ -120,7 +112,6 @@ describe('Settings Persistence Across Managers', () => {
                 const handler = (ipcMain as any)._listeners.get('auto-update:set-enabled');
                 handler({}, false);
 
-                // UpdateManager.setEnabled should have been called
                 expect(mockUpdateManager.setEnabled).toHaveBeenCalledWith(false);
                 expect(sharedStoreData.autoUpdateEnabled).toBe(false);
             });
@@ -128,16 +119,12 @@ describe('Settings Persistence Across Managers', () => {
 
         describe('Always-On-Top Persistence', () => {
             it('should persist always-on-top and initialize on IpcManager setup', () => {
-                // Pre-set always-on-top in store
                 sharedStoreData.alwaysOnTop = true;
 
                 const windowManager = new WindowManager(false);
                 const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
                 ipcManager.setupIpcHandlers();
 
-                // IpcManager should have initialized always-on-top from store
-                // This calls windowManager.setAlwaysOnTop(true)
-                // We can verify by checking the store was read
                 expect(mockStore.get).toHaveBeenCalledWith('alwaysOnTop');
             });
         });
