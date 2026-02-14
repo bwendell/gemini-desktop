@@ -8,10 +8,12 @@
 import { Notification, type BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import { createLogger } from '../utils/logger';
-import { APP_NAME, isLinux } from '../utils/constants';
+import { APP_NAME } from '../utils/constants';
 import { getNotificationIconPath } from '../utils/paths';
 import type SettingsStore from '../store';
 import type BadgeManager from './badgeManager';
+import type { PlatformAdapter } from '../platform/PlatformAdapter';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 
 const logger = createLogger('[NotificationManager]');
 
@@ -43,6 +45,9 @@ export default class NotificationManager {
     /** Settings store for persisting preferences */
     private readonly store: SettingsStore<NotificationSettings>;
 
+    /** PlatformAdapter for platform-specific notification hints */
+    private readonly platformAdapter: PlatformAdapter;
+
     /** Current focus state of the main window */
     private _isWindowFocused: boolean;
 
@@ -60,11 +65,18 @@ export default class NotificationManager {
      * @param mainWindow - The main BrowserWindow instance
      * @param badgeManager - BadgeManager for taskbar badges
      * @param store - Settings store for persisting notification preferences
+     * @param platformAdapter - PlatformAdapter for platform-specific behavior
      */
-    constructor(mainWindow: BrowserWindow, badgeManager: BadgeManager, store: SettingsStore<NotificationSettings>) {
+    constructor(
+        mainWindow: BrowserWindow,
+        badgeManager: BadgeManager,
+        store: SettingsStore<NotificationSettings>,
+        platformAdapter?: PlatformAdapter
+    ) {
         this.mainWindow = mainWindow;
         this.badgeManager = badgeManager;
         this.store = store;
+        this.platformAdapter = platformAdapter ?? getPlatformAdapter();
 
         // Initialize focus state - check if window is currently focused
         this._isWindowFocused = mainWindow.isFocused();
@@ -205,20 +217,14 @@ export default class NotificationManager {
     /**
      * Show a native OS notification for a completed response.
      * Returns early if notifications are not supported on the platform.
-     * On Linux, provides helpful guidance if libnotify is missing.
+     * Logs platform-specific guidance when notifications are not supported.
      */
     showNotification(): void {
         // Check if notifications are supported on this platform
         if (!Notification.isSupported()) {
-            if (isLinux) {
-                // Linux requires libnotify for notifications
-                logger.warn(
-                    'Notifications not supported on this platform. ' +
-                        'On Linux, ensure libnotify is installed: ' +
-                        'Ubuntu/Debian: apt install libnotify-bin | ' +
-                        'Fedora: dnf install libnotify | ' +
-                        'Arch: pacman -S libnotify'
-                );
+            const hint = this.platformAdapter.getNotificationSupportHint();
+            if (hint) {
+                logger.warn(hint);
             } else {
                 logger.log('Notifications not supported on this platform');
             }

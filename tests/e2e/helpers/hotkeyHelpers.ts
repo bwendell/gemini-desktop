@@ -49,7 +49,7 @@ function acceleratorToDisplayFormat(accelerator: string): HotkeyDefinition['disp
 export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
     MINIMIZE_WINDOW: {
         accelerator: DEFAULT_ACCELERATORS.bossKey,
-        description: 'Minimize the main window (Boss Key) [Global]',
+        description: 'Hide the main window to tray (Boss Key) [Global]',
         displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.bossKey),
     },
     QUICK_CHAT: {

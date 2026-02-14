@@ -20,7 +20,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
-import { isLinux, isWindows, APP_ID, getWaylandPlatformStatus } from './utils/constants';
+import { getPlatformAdapter } from './platform/platformAdapterFactory';
 
 import { createLogger } from './utils/logger';
 
@@ -37,48 +37,10 @@ logger.debug('ELECTRON_USE_DIST:', process.env.ELECTRON_USE_DIST || 'NOT SET');
 logger.debug('app.isReady():', app.isReady());
 logger.debug('===================================');
 
-if (isLinux) {
-    // On Linux, the internal app name should match the executable/id for better WM_CLASS matching
-    app.setName('gemini-desktop');
-
-    // Set the Wayland app_id / X11 WM_CLASS so KDE and other DEs identify the app
-    // correctly in portal dialogs and task managers (instead of "org.chromium.Chromium")
-    app.commandLine.appendSwitch('class', 'gemini-desktop');
-
-    // Set desktop name for portal integration
-    try {
-        if (typeof (app as any).setDesktopName === 'function') {
-            (app as any).setDesktopName('gemini-desktop');
-        }
-    } catch (e) {
-        logger.error('Error calling setDesktopName:', e);
-    }
-
-    // Wayland Global Shortcuts Detection
-    const waylandStatus = getWaylandPlatformStatus();
-    logger.log('Wayland detection:', JSON.stringify(waylandStatus));
-
-    if (waylandStatus.isWayland && waylandStatus.portalAvailable) {
-        // NOTE: We intentionally do NOT enable Chromium's GlobalShortcutsPortal feature flag.
-        // Chromium's globalShortcut.register() reports false positive success on KDE Plasma 6
-        // and interferes with our direct D-Bus portal session. We handle global shortcuts
-        // entirely via dbus-next in hotkeyManager._registerViaDBusDirect().
-        logger.log('Wayland detected with portal — will use D-Bus portal for global shortcuts');
-    } else if (waylandStatus.isWayland) {
-        logger.warn(
-            `Wayland detected but portal unavailable. DE: ${waylandStatus.desktopEnvironment}, Version: ${waylandStatus.deVersion}`
-        );
-    }
-} else {
-    // Set application name for Windows/macOS
-    app.setName('Gemini Desktop');
-}
-
-// Set Windows Application User Model ID (required for proper notification branding)
-// This controls app name in notifications and taskbar grouping
-if (isWindows) {
-    app.setAppUserModelId(APP_ID);
-}
+// Apply platform-specific configuration via adapter
+const platformAdapter = getPlatformAdapter();
+platformAdapter.applyAppConfiguration(app, logger);
+platformAdapter.applyAppUserModelId(app);
 
 /**
  * Initialize crash reporter EARLY (before app ready).
@@ -408,7 +370,12 @@ if (!gotTheLock) {
                     responseNotificationsEnabled: true,
                 },
             });
-            notificationManager = new NotificationManager(mainWindow, badgeManager, notificationSettings);
+            notificationManager = new NotificationManager(
+                mainWindow,
+                badgeManager,
+                notificationSettings,
+                platformAdapter
+            );
 
             // Subscribe to response-complete events from MainWindow
             const mainWindowInstance = windowManager.getMainWindowInstance();
@@ -472,7 +439,7 @@ if (!gotTheLock) {
 
 // Quit when all windows are closed (except on macOS)
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
+    if (getPlatformAdapter().shouldQuitOnWindowAllClosed()) {
         app.quit();
     }
 });

@@ -48,23 +48,34 @@ vi.mock('electron', () => ({
 
 vi.mock('../../../src/main/utils/logger');
 
-const mockWaylandStatus = {
-    isWayland: true,
-    desktopEnvironment: 'kde' as const,
-    deVersion: '6',
-    portalAvailable: true,
-    portalMethod: 'none' as const,
-};
+// Mock the platform adapter factory instead of constants
+const mockAdapter = vi.hoisted(() => ({
+    id: 'linux-wayland' as const,
+    applyAppConfiguration: vi.fn(),
+    applyAppUserModelId: vi.fn(),
+    getHotkeyRegistrationPlan: vi.fn().mockReturnValue({
+        mode: 'wayland-dbus',
+        waylandStatus: {
+            isWayland: true,
+            desktopEnvironment: 'kde',
+            deVersion: '6',
+            portalAvailable: true,
+            portalMethod: 'none',
+        },
+    }),
+    getWaylandStatus: vi.fn().mockReturnValue({
+        isWayland: true,
+        desktopEnvironment: 'kde',
+        deVersion: '6',
+        portalAvailable: true,
+        portalMethod: 'none',
+    }),
+    shouldQuitOnWindowAllClosed: vi.fn().mockReturnValue(true),
+}));
 
-vi.mock('../../../src/main/utils/constants', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../../src/main/utils/constants')>();
-    return {
-        ...actual,
-        isLinux: true,
-        isWindows: false,
-        getWaylandPlatformStatus: vi.fn().mockReturnValue(mockWaylandStatus),
-    };
-});
+vi.mock('../../../src/main/platform/platformAdapterFactory', () => ({
+    getPlatformAdapter: vi.fn().mockReturnValue(mockAdapter),
+}));
 
 vi.mock('../../../src/main/utils/paths', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../../src/main/utils/paths')>();
@@ -224,11 +235,16 @@ describe('main.ts', () => {
         vi.resetModules();
     });
 
-    it('queries Wayland platform status on startup', async () => {
+    it('calls adapter.applyAppConfiguration() on startup', async () => {
         await import('../../../src/main/main');
 
-        const constants = await import('../../../src/main/utils/constants');
-        expect(vi.mocked(constants.getWaylandPlatformStatus)).toHaveBeenCalledTimes(1);
+        expect(mockAdapter.applyAppConfiguration).toHaveBeenCalledWith(mockApp, expect.anything());
+    });
+
+    it('calls adapter.applyAppUserModelId() on startup', async () => {
+        await import('../../../src/main/main');
+
+        expect(mockAdapter.applyAppUserModelId).toHaveBeenCalledWith(mockApp);
     });
 
     it('does not enable GlobalShortcutsPortal chromium flag', async () => {

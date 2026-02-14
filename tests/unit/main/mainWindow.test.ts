@@ -1,24 +1,12 @@
 /**
  * Unit tests for MainWindow.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow, shell } from 'electron';
 import MainWindow from '../../../src/main/windows/mainWindow';
+import type { PlatformAdapter } from '../../../src/main/platform/PlatformAdapter';
 
-const mocks = vi.hoisted(() => ({
-    isMacOS: false,
-}));
-
-vi.mock('../../../src/main/utils/constants', async (importOriginal) => {
-    type ConstantsModule = typeof import('../../../src/main/utils/constants');
-    const actual = await importOriginal<ConstantsModule>();
-    return {
-        ...actual,
-        get isMacOS() {
-            return mocks.isMacOS;
-        },
-    };
-});
+import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../../helpers/mocks';
 
 vi.mock('../../../src/main/utils/paths', async (importOriginal) => {
     type PathsModule = typeof import('../../../src/main/utils/paths');
@@ -31,11 +19,19 @@ vi.mock('../../../src/main/utils/paths', async (importOriginal) => {
 
 describe('MainWindow', () => {
     let mainWindow: MainWindow;
+    let adapter: PlatformAdapter;
 
     beforeEach(() => {
         vi.clearAllMocks();
         (BrowserWindow as any)._reset();
-        mainWindow = new MainWindow(false);
+        resetPlatformAdapterForTests({ resetModules: true });
+        adapter = platformAdapterPresets['linux-x11']();
+        useMockPlatformAdapter(adapter);
+        mainWindow = new MainWindow(false, adapter);
+    });
+
+    afterEach(() => {
+        resetPlatformAdapterForTests({ resetModules: true });
     });
 
     describe('create', () => {
@@ -183,12 +179,7 @@ describe('MainWindow', () => {
     });
 
     describe('hideToTray', () => {
-        beforeEach(() => {
-            mocks.isMacOS = false;
-        });
-
-        it('hides window and sets skipTaskbar on Windows', () => {
-            mocks.isMacOS = false;
+        it('hides window and sets skipTaskbar on Windows/Linux', () => {
             const win = mainWindow.create();
 
             mainWindow.hideToTray();
@@ -198,10 +189,12 @@ describe('MainWindow', () => {
         });
 
         it('only hides window on macOS (no skipTaskbar call)', () => {
-            mocks.isMacOS = true;
-            const win = mainWindow.create();
+            const macAdapter = platformAdapterPresets.mac();
+            useMockPlatformAdapter(macAdapter);
+            const macWindow = new MainWindow(false, macAdapter);
+            const win = macWindow.create();
 
-            mainWindow.hideToTray();
+            macWindow.hideToTray();
 
             expect(win.hide).toHaveBeenCalled();
             expect(win.setSkipTaskbar).not.toHaveBeenCalled();
@@ -224,12 +217,7 @@ describe('MainWindow', () => {
     });
 
     describe('restoreFromTray', () => {
-        beforeEach(() => {
-            mocks.isMacOS = false;
-        });
-
-        it('shows, focuses window and clears skipTaskbar on Windows', () => {
-            mocks.isMacOS = false;
+        it('shows, focuses window and clears skipTaskbar on Windows/Linux', () => {
             const win = mainWindow.create();
 
             mainWindow.restoreFromTray();
@@ -240,10 +228,12 @@ describe('MainWindow', () => {
         });
 
         it('only shows and focuses window on macOS', () => {
-            mocks.isMacOS = true;
-            const win = mainWindow.create();
+            const macAdapter = platformAdapterPresets.mac();
+            useMockPlatformAdapter(macAdapter);
+            const macWindow = new MainWindow(false, macAdapter);
+            const win = macWindow.create();
 
-            mainWindow.restoreFromTray();
+            macWindow.restoreFromTray();
 
             expect(win.show).toHaveBeenCalled();
             expect(win.focus).toHaveBeenCalled();

@@ -1,17 +1,12 @@
-/**
- * Integration tests for manager initialization and graceful degradation.
- * Tests that managers handle null optional dependencies gracefully.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, BrowserWindow, nativeTheme } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
-// Mock electron-updater
 vi.mock('electron-updater', () => ({
     autoUpdater: {
         on: vi.fn(),
@@ -22,7 +17,6 @@ vi.mock('electron-updater', () => ({
     },
 }));
 
-// Mock fs
 vi.mock('fs', () => ({
     existsSync: vi.fn().mockReturnValue(false),
     readFileSync: vi.fn().mockReturnValue('{}'),
@@ -30,7 +24,12 @@ vi.mock('fs', () => ({
     mkdirSync: vi.fn(),
 }));
 
-// Helper to get registered IPC handlers
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
+
 const getHandler = (channel: string) => (ipcMain as any)._handlers.get(channel);
 const getListener = (channel: string) => (ipcMain as any)._listeners.get(channel);
 
@@ -62,39 +61,26 @@ describe('Manager Initialization Integration', () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
-        vi.unstubAllGlobals();
+        resetPlatformAdapterForTests();
     });
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
         beforeEach(() => {
-            vi.stubGlobal('process', { ...process, platform });
+            useMockPlatformAdapter(adapterForPlatform[platform]());
         });
 
         describe('IpcManager with null HotkeyManager', () => {
             it('should handle hotkey IPC calls gracefully without HotkeyManager', () => {
                 const windowManager = new WindowManager(false);
 
-                // Create IpcManager WITHOUT hotkeyManager
-                const ipcManager = new IpcManager(
-                    windowManager,
-                    null, // No HotkeyManager
-                    null,
-                    null,
-                    null,
-                    null,
-                    mockStore,
-                    mockLogger
-                );
+                const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
                 ipcManager.setupIpcHandlers();
 
-                // Trigger hotkey setting change - should not crash
                 const handler = getListener('hotkeys:individual:set');
                 expect(handler).toBeDefined();
 
-                // This should not throw even without HotkeyManager
                 expect(() => handler({}, 'alwaysOnTop', false)).not.toThrow();
 
-                // Store should still be updated
                 expect(mockStore.set).toHaveBeenCalledWith('hotkeyAlwaysOnTop', false);
             });
 
@@ -119,46 +105,24 @@ describe('Manager Initialization Integration', () => {
             it('should handle auto-update IPC calls gracefully without UpdateManager', () => {
                 const windowManager = new WindowManager(false);
 
-                const ipcManager = new IpcManager(
-                    windowManager,
-                    null,
-                    null, // No UpdateManager
-                    null,
-                    null,
-                    null,
-                    mockStore,
-                    mockLogger
-                );
+                const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
                 ipcManager.setupIpcHandlers();
 
-                // Trigger auto-update set - should not crash
                 const setHandler = getListener('auto-update:set-enabled');
                 expect(() => setHandler({}, false)).not.toThrow();
 
-                // Should fall back to store
                 expect(mockStore.set).toHaveBeenCalledWith('autoUpdateEnabled', false);
             });
 
             it('should handle auto-update check gracefully without UpdateManager', () => {
                 const windowManager = new WindowManager(false);
 
-                const ipcManager = new IpcManager(
-                    windowManager,
-                    null,
-                    null, // No UpdateManager
-                    null,
-                    null,
-                    null,
-                    mockStore,
-                    mockLogger
-                );
+                const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
                 ipcManager.setupIpcHandlers();
 
-                // Trigger check - should not crash
                 const checkHandler = getListener('auto-update:check');
                 expect(() => checkHandler({})).not.toThrow();
 
-                // No error should be logged
                 expect(mockLogger.error).not.toHaveBeenCalled();
             });
         });
@@ -167,7 +131,6 @@ describe('Manager Initialization Integration', () => {
             it('should track IPC handler registration without errors', () => {
                 const windowManager = new WindowManager(false);
 
-                // Mock UpdateManager since real one disables in dev mode
                 const mockUpdateManager = {
                     isEnabled: vi.fn().mockReturnValue(true),
                     setEnabled: vi.fn(),
@@ -187,7 +150,6 @@ describe('Manager Initialization Integration', () => {
                 );
                 ipcManager.setupIpcHandlers();
 
-                // Verify handlers were registered
                 expect((ipcMain as any)._handlers.size).toBeGreaterThan(0);
                 expect((ipcMain as any)._listeners.size).toBeGreaterThan(0);
                 expect(mockLogger.error).not.toHaveBeenCalled();
@@ -196,11 +158,9 @@ describe('Manager Initialization Integration', () => {
 
         describe('Manager Creation Order', () => {
             it('should create managers in correct dependency order without errors', () => {
-                // Step 1: WindowManager (no dependencies)
                 const windowManager = new WindowManager(false);
                 expect(windowManager).toBeDefined();
 
-                // Step 2: Mock UpdateManager (real one disables in dev mode)
                 const mockUpdateManager = {
                     isEnabled: vi.fn().mockReturnValue(true),
                     setEnabled: vi.fn(),
@@ -209,7 +169,6 @@ describe('Manager Initialization Integration', () => {
                 };
                 expect(mockUpdateManager).toBeDefined();
 
-                // Step 3: IpcManager (depends on WindowManager, optional HotkeyManager/UpdateManager)
                 const ipcManager = new IpcManager(
                     windowManager,
                     null,
@@ -222,10 +181,8 @@ describe('Manager Initialization Integration', () => {
                 );
                 expect(ipcManager).toBeDefined();
 
-                // Setup handlers
                 ipcManager.setupIpcHandlers();
 
-                // All should work without errors
                 expect(mockLogger.error).not.toHaveBeenCalled();
             });
         });

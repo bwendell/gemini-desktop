@@ -3,6 +3,10 @@ import { Menu, shell } from 'electron';
 import MenuManager from '../../../src/main/managers/menuManager';
 import WindowManager from '../../../src/main/managers/windowManager';
 import { createMockWindowManager } from '../../helpers/mocks';
+import { WindowsAdapter } from '../../../src/main/platform/adapters/WindowsAdapter';
+import { MacAdapter } from '../../../src/main/platform/adapters/MacAdapter';
+import { LinuxX11Adapter } from '../../../src/main/platform/adapters/LinuxX11Adapter';
+import type { PlatformAdapter } from '../../../src/main/platform/PlatformAdapter';
 
 // Mock electron
 vi.mock('electron', () => ({
@@ -33,7 +37,6 @@ describe('MenuManager', () => {
     let menuManager: MenuManager;
     let mockWindowManager: any;
     let mockHotkeyManager: any;
-    let originalPlatform: string;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -59,24 +62,24 @@ describe('MenuManager', () => {
             isIndividualEnabled: vi.fn().mockReturnValue(true),
         };
 
-        menuManager = new MenuManager(mockWindowManager as unknown as WindowManager, mockHotkeyManager);
-        originalPlatform = process.platform;
+        menuManager = new MenuManager(
+            mockWindowManager as unknown as WindowManager,
+            mockHotkeyManager,
+            new LinuxX11Adapter() // default non-macOS adapter
+        );
     });
 
-    afterEach(() => {
-        Object.defineProperty(process, 'platform', {
-            value: originalPlatform,
-            configurable: true,
-            writable: true,
-        });
-    });
+    // Map platform string to adapter
+    const adapterForPlatform: Record<string, () => PlatformAdapter> = {
+        darwin: () => new MacAdapter(),
+        win32: () => new WindowsAdapter(),
+        linux: () => new LinuxX11Adapter(),
+    };
 
+    // Replace setPlatform: creates a new MenuManager with the correct adapter
     const setPlatform = (platform: string) => {
-        Object.defineProperty(process, 'platform', {
-            value: platform,
-            configurable: true,
-            writable: true,
-        });
+        const adapter = adapterForPlatform[platform]();
+        menuManager = new MenuManager(mockWindowManager as unknown as WindowManager, mockHotkeyManager, adapter);
     };
 
     const findMenuItem = (template: any[], label: string) => {
@@ -572,9 +575,12 @@ describe('MenuManager', () => {
 
     describe('Constructor without hotkeyManager', () => {
         it('works without hotkeyManager', () => {
-            const managerNoHotkey = new MenuManager(mockWindowManager as unknown as WindowManager);
+            const managerNoHotkey = new MenuManager(
+                mockWindowManager as unknown as WindowManager,
+                undefined,
+                new WindowsAdapter()
+            );
 
-            setPlatform('win32');
             managerNoHotkey.buildMenu();
 
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];

@@ -146,10 +146,19 @@ describe('Quick Chat Injection Integration', () => {
                 global.windowManager.hideQuickChat();
             });
 
-            // Wait for window state to update
-            await browser.pause(500);
+            // Wait for Quick Chat to be hidden using waitUntil for reliability on macOS CI
+            // Fixed pause (500ms) was flaky; waitUntil polls until condition is met
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        const win = global.windowManager.getQuickChatWindow();
+                        return !win || !win.isVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Quick Chat window did not hide after submit' }
+            );
 
-            // Verify Quick Chat is hidden (focus may not work in all environments)
             const quickChatHidden = await browser.electron.execute(() => {
                 // @ts-expect-error
                 const win = global.windowManager.getQuickChatWindow();

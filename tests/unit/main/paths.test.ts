@@ -6,6 +6,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
 
+import { resetPlatformAdapterForTests, useMockPlatformAdapter, platformAdapterPresets } from '../../helpers/mocks';
+
 // Mock path module
 vi.mock('path', async () => {
     const actual = await vi.importActual('path');
@@ -16,24 +18,14 @@ vi.mock('path', async () => {
 });
 
 describe('paths utilities', () => {
-    // Helper to mock platform
-    const mockPlatform = (platform: string) => {
-        Object.defineProperty(process, 'platform', {
-            value: platform,
-            configurable: true,
-        });
-    };
-
-    const originalPlatform = process.platform;
-
     beforeEach(() => {
         vi.clearAllMocks();
+        resetPlatformAdapterForTests();
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
-        vi.resetModules();
-        mockPlatform(originalPlatform);
+        resetPlatformAdapterForTests();
     });
 
     describe('getPreloadPath', () => {
@@ -70,8 +62,7 @@ describe('paths utilities', () => {
 
     describe('getIconPath', () => {
         it('should return .ico path on Windows', async () => {
-            mockPlatform('win32');
-            vi.resetModules();
+            useMockPlatformAdapter(platformAdapterPresets.windows());
             const { getIconPath } = await import('../../../src/main/utils/paths');
             const result = getIconPath();
 
@@ -80,8 +71,7 @@ describe('paths utilities', () => {
         });
 
         it('should return .png path on macOS', async () => {
-            mockPlatform('darwin');
-            vi.resetModules();
+            useMockPlatformAdapter(platformAdapterPresets.mac());
             const { getIconPath } = await import('../../../src/main/utils/paths');
             const result = getIconPath();
 
@@ -90,8 +80,7 @@ describe('paths utilities', () => {
         });
 
         it('should return .png path on Linux', async () => {
-            mockPlatform('linux');
-            vi.resetModules();
+            useMockPlatformAdapter(platformAdapterPresets.linuxWayland());
             const { getIconPath } = await import('../../../src/main/utils/paths');
             const result = getIconPath();
 

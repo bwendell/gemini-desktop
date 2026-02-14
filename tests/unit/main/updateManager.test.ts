@@ -47,6 +47,12 @@ vi.mock('../../../src/main/utils/logger', () => ({
     }),
 }));
 
+const mockGetPlatformAdapter = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../src/main/platform/platformAdapterFactory', () => ({
+    getPlatformAdapter: mockGetPlatformAdapter,
+}));
+
 /**
  * Helper to trigger lazy loading of autoUpdater.
  * Since autoUpdater is now lazily loaded, tests that depend on autoUpdater.on
@@ -69,6 +75,11 @@ describe('UpdateManager', () => {
         // Mock platform to win32 to avoid Linux-specific update disabling in CI
         originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
         Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+        mockGetPlatformAdapter.mockReset();
+        mockGetPlatformAdapter.mockReturnValue({
+            shouldDisableUpdates: vi.fn().mockReturnValue(false),
+        });
 
         // Setup mock settings
         mockSettingsStore = {
@@ -193,6 +204,10 @@ describe('UpdateManager', () => {
             process.env.APPIMAGE = ''; // Not an AppImage
             (app as any).isPackaged = true;
 
+            mockGetPlatformAdapter.mockReturnValue({
+                shouldDisableUpdates: vi.fn().mockReturnValue(true),
+            });
+
             updateManager = new UpdateManager(mockSettingsStore);
             expect(updateManager.isEnabled()).toBe(false);
 
@@ -208,6 +223,10 @@ describe('UpdateManager', () => {
         process.env.APPIMAGE = '/path/to/app.AppImage';
         (app as any).isPackaged = true;
 
+        mockGetPlatformAdapter.mockReturnValue({
+            shouldDisableUpdates: vi.fn().mockReturnValue(false),
+        });
+
         updateManager = new UpdateManager(mockSettingsStore);
         expect(updateManager.isEnabled()).toBe(true);
 
@@ -220,6 +239,10 @@ describe('UpdateManager', () => {
         Object.defineProperty(process, 'platform', { value: 'linux' });
         process.env.APPIMAGE = '/path/to/app.AppImage';
         (app as any).isPackaged = true;
+
+        mockGetPlatformAdapter.mockReturnValue({
+            shouldDisableUpdates: vi.fn().mockReturnValue(false),
+        });
 
         updateManager = new UpdateManager(mockSettingsStore);
         expect(updateManager.isEnabled()).toBe(true);
@@ -239,6 +262,10 @@ describe('UpdateManager', () => {
         process.env.VITEST = 'true'; // But in test environment
         (app as any).isPackaged = true;
 
+        mockGetPlatformAdapter.mockReturnValue({
+            shouldDisableUpdates: vi.fn().mockReturnValue(true),
+        });
+
         updateManager = new UpdateManager(mockSettingsStore);
         // VITEST environment should bypass the Linux non-AppImage check
         expect(updateManager.isEnabled()).toBe(true);
@@ -255,6 +282,10 @@ describe('UpdateManager', () => {
         process.env.TEST_AUTO_UPDATE = 'true'; // But test flag is set
         (app as any).isPackaged = false; // Not packaged
 
+        mockGetPlatformAdapter.mockReturnValue({
+            shouldDisableUpdates: vi.fn().mockReturnValue(true),
+        });
+
         updateManager = new UpdateManager(mockSettingsStore);
         // TEST_AUTO_UPDATE should allow updates in development mode
         expect(updateManager.isEnabled()).toBe(true);
@@ -262,6 +293,23 @@ describe('UpdateManager', () => {
         // Restore
         Object.defineProperty(process, 'platform', { value: 'win32' });
         delete process.env.TEST_AUTO_UPDATE;
+    });
+
+    it('uses mocked platform rules when devMockPlatform differs from host platform', () => {
+        const originalVitest = process.env.VITEST;
+        delete process.env.VITEST;
+        delete process.env.APPIMAGE;
+        (app as any).isPackaged = true;
+
+        try {
+            updateManager = new UpdateManager(mockSettingsStore);
+            expect(updateManager.isEnabled()).toBe(true);
+
+            updateManager.devMockPlatform('linux');
+            expect(updateManager.isEnabled()).toBe(false);
+        } finally {
+            process.env.VITEST = originalVitest;
+        }
     });
 
     describe('setEnabled', () => {
@@ -770,6 +818,10 @@ describe('UpdateManager', () => {
                 Object.defineProperty(process, 'platform', { value: 'linux' });
                 delete process.env.APPIMAGE;
                 (app as any).isPackaged = true;
+
+                mockGetPlatformAdapter.mockReturnValue({
+                    shouldDisableUpdates: vi.fn().mockReturnValue(true),
+                });
 
                 updateManager = new UpdateManager(mockSettingsStore);
                 expect(updateManager.isEnabled()).toBe(false);

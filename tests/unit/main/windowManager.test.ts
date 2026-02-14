@@ -4,23 +4,12 @@
  * WindowManager now acts as a facade delegating to individual window classes.
  * These tests verify the facade pattern works correctly.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow } from 'electron';
+
+import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../../helpers/mocks';
+
 import WindowManager from '../../../src/main/managers/windowManager';
-
-const mocks = vi.hoisted(() => ({
-    isMacOS: false,
-}));
-
-vi.mock('../../../src/main/utils/constants', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../../src/main/utils/constants')>();
-    return {
-        ...actual,
-        get isMacOS() {
-            return mocks.isMacOS;
-        },
-    };
-});
 
 vi.mock('../../../src/main/utils/paths', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../../src/main/utils/paths')>();
@@ -36,7 +25,13 @@ describe('WindowManager', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         (BrowserWindow as any)._reset();
+        resetPlatformAdapterForTests({ resetModules: true });
+        useMockPlatformAdapter(platformAdapterPresets.windows());
         windowManager = new WindowManager(false);
+    });
+
+    afterEach(() => {
+        resetPlatformAdapterForTests({ resetModules: true });
     });
 
     describe('constructor', () => {
@@ -116,10 +111,6 @@ describe('WindowManager', () => {
     });
 
     describe('hideToTray', () => {
-        beforeEach(() => {
-            mocks.isMacOS = false;
-        });
-
         it('hides main window', () => {
             const win = windowManager.createMainWindow();
             windowManager.hideToTray();
@@ -128,10 +119,6 @@ describe('WindowManager', () => {
     });
 
     describe('restoreFromTray', () => {
-        beforeEach(() => {
-            mocks.isMacOS = false;
-        });
-
         it('shows and focuses main window', () => {
             const win = windowManager.createMainWindow();
             windowManager.restoreFromTray();

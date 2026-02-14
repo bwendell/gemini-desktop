@@ -10,7 +10,6 @@
  * @module tests/helpers/mocks
  */
 
-// Main process mocks - Logger
 export {
     createMockLogger,
     hoistedMockLogger,
@@ -19,7 +18,6 @@ export {
     type MockLogger,
 } from './main/logger';
 
-// Main process mocks - Managers
 export {
     createMockWindowManager,
     createMockStore,
@@ -35,10 +33,16 @@ export {
     type MockLlmManager,
 } from './main/managers';
 
-// Main process mocks - WebContents
 export { createMockWebContents, type MockWebContents, type MockWebContentsOptions } from './main/webContents';
 
-// Renderer process mocks - ElectronAPI
+export {
+    createMockPlatformAdapter,
+    platformAdapterPresets,
+    useMockPlatformAdapter,
+    resetPlatformAdapterForTests,
+    type MockPlatformAdapter,
+} from './main/platformAdapterMock';
+
 export {
     createMockElectronAPI,
     setupMockElectronAPI,

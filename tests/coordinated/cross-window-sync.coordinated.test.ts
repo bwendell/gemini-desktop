@@ -1,24 +1,25 @@
-/**
- * Integration tests for Cross-Window State Synchronization.
- * Verifies that state changes (Theme, Always-On-Top, Hotkeys) are broadcasted to all open windows.
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, BrowserWindow } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
+import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
-// Mock electron-updater behavior
 vi.mock('electron-updater', () => ({
     autoUpdater: {
         on: vi.fn(),
         checkForUpdates: vi.fn().mockResolvedValue(undefined),
     },
 }));
+
+const adapterForPlatform = {
+    darwin: platformAdapterPresets.mac,
+    win32: platformAdapterPresets.windows,
+    linux: platformAdapterPresets.linuxX11,
+} as const;
 
 describe('Cross-Window Sync Integration', () => {
     let ipcManager: IpcManager;
@@ -32,9 +33,8 @@ describe('Cross-Window Sync Integration', () => {
             vi.clearAllMocks();
             if ((ipcMain as any)._reset) (ipcMain as any)._reset();
             if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
-            vi.stubGlobal('process', { ...process, platform });
+            useMockPlatformAdapter(adapterForPlatform[platform]());
 
-            // Setup mock store
             storeData = {
                 theme: 'system',
                 alwaysOnTop: false,
@@ -50,40 +50,26 @@ describe('Cross-Window Sync Integration', () => {
                 }),
             };
 
-            // Create managers
             windowManager = new WindowManager(false);
-            // Create main window so it exists for event handling
             windowManager.createMainWindow();
 
             hotkeyManager = new HotkeyManager(windowManager);
-            ipcManager = new IpcManager(
-                windowManager,
-                hotkeyManager,
-                null, // updateManager not crucial for these tests
-                null,
-                null,
-                null,
-                mockStore,
-                mockLogger
-            );
+            ipcManager = new IpcManager(windowManager, hotkeyManager, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
         });
 
         afterEach(() => {
-            vi.unstubAllGlobals();
+            resetPlatformAdapterForTests();
         });
 
         it('should broadcast theme changes to all windows', () => {
-            // Mock multiple windows
             const win1 = { id: 1, isDestroyed: () => false, webContents: { send: vi.fn() } };
             const win2 = { id: 2, isDestroyed: () => false, webContents: { send: vi.fn() } };
             (BrowserWindow.getAllWindows as any).mockReturnValue([win1, win2]);
 
-            // Trigger 'theme:set' IPC from one window (e.g., Options)
             const listener = (ipcMain as any)._listeners.get('theme:set');
             listener({}, 'light');
 
-            // Verify broadcast
             expect(win1.webContents.send).toHaveBeenCalledWith(
                 'theme:changed',
                 expect.objectContaining({ preference: 'light' })
@@ -93,7 +79,6 @@ describe('Cross-Window Sync Integration', () => {
                 expect.objectContaining({ preference: 'light' })
             );
 
-            // Verify persistence
             expect(storeData.theme).toBe('light');
         });
 
@@ -101,19 +86,13 @@ describe('Cross-Window Sync Integration', () => {
             const win1 = { id: 1, isDestroyed: () => false, webContents: { send: vi.fn() } };
             (BrowserWindow.getAllWindows as any).mockReturnValue([win1]);
 
-            // Trigger 'always-on-top:set' IPC
             const listener = (ipcMain as any)._listeners.get('always-on-top:set');
             listener({}, true);
 
-            // Verify broadcast
             expect(win1.webContents.send).toHaveBeenCalledWith('always-on-top:changed', {
                 enabled: true,
             });
 
-            // Verify persistence (via WindowManager event handling)
-            // Note: IpcManager listens to 'always-on-top-changed' from WindowManager
-            // In this integration test with Real WindowManager (mocked electron),
-            // windowManager.setAlwaysOnTop emits the event, which IpcManager handles.
             expect(mockStore.set).toHaveBeenCalledWith('alwaysOnTop', true);
         });
 
@@ -122,11 +101,9 @@ describe('Cross-Window Sync Integration', () => {
             const win2 = { id: 2, isDestroyed: () => false, webContents: { send: vi.fn() } };
             (BrowserWindow.getAllWindows as any).mockReturnValue([win1, win2]);
 
-            // Trigger 'hotkeys:individual:set' IPC
             const listener = (ipcMain as any)._listeners.get('hotkeys:individual:set');
             listener({}, 'bossKey', false);
 
-            // Verify broadcast
             const expectedSettings = expect.objectContaining({
                 bossKey: false,
                 quickChat: true,
@@ -136,7 +113,6 @@ describe('Cross-Window Sync Integration', () => {
             expect(win1.webContents.send).toHaveBeenCalledWith('hotkeys:individual:changed', expectedSettings);
             expect(win2.webContents.send).toHaveBeenCalledWith('hotkeys:individual:changed', expectedSettings);
 
-            // Verify HotkeyManager updated
             expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(false);
         });
     });

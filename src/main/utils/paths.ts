@@ -7,7 +7,7 @@
 
 import * as path from 'path';
 import { app } from 'electron';
-import { isWindows } from './constants';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 
 /**
  * Get the preload script path.
@@ -37,7 +37,7 @@ export function getDistHtmlPath(filename: string): string {
  * @returns Absolute path to app icon
  */
 export function getIconPath(): string {
-    const iconFilename = isWindows ? 'icon.ico' : 'icon.png';
+    const iconFilename = getPlatformAdapter().getAppIconFilename();
 
     // In packaged app, icons are in resources/ directory (via electron-builder extraFiles)
     if (app.isPackaged) {

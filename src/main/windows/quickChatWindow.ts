@@ -33,6 +33,8 @@ export default class QuickChatWindow extends BaseWindow {
     }
 
     private _isReady = false;
+    private _suppressBlurUntil = 0;
+    private _readyToShowFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
     /**
      * Create the Quick Chat window.
@@ -65,16 +67,28 @@ export default class QuickChatWindow extends BaseWindow {
         this.loadContent();
 
         this.window.once('ready-to-show', () => {
-            this.window?.show();
-            this.window?.focus();
+            this.showWindow();
         });
+
+        this._readyToShowFallbackTimeout = setTimeout(() => {
+            this._readyToShowFallbackTimeout = null;
+
+            if (this.window && !this.window.isDestroyed() && !this.window.isVisible()) {
+                this.logger.warn('ready-to-show timeout - showing Quick Chat window via fallback');
+                this.showWindow();
+            }
+        }, 1000);
 
         // Auto-hide when window loses focus (Spotlight behavior)
         this.window.on('blur', () => {
+            if (Date.now() < this._suppressBlurUntil) {
+                return;
+            }
             this.hide();
         });
 
         this.window.on('closed', () => {
+            this.clearReadyToShowFallbackTimeout();
             this.window = null;
             this._isReady = false;
             this.emit('closed');
@@ -97,10 +111,18 @@ export default class QuickChatWindow extends BaseWindow {
 
             if (this.window && !this.window.isDestroyed()) {
                 this.window.setPosition(x, y);
-                this.window.show();
-                this.window.focus();
+                this.showWindow();
             }
         }
+    }
+
+    private showWindow(): void {
+        if (!this.window || this.window.isDestroyed()) {
+            return;
+        }
+        this._suppressBlurUntil = Date.now() + 500;
+        this.window.show();
+        this.window.focus();
     }
 
     /**
@@ -118,9 +140,18 @@ export default class QuickChatWindow extends BaseWindow {
      * Hide the Quick Chat window with logging.
      */
     override hide(): void {
+        this.clearReadyToShowFallbackTimeout();
+
         if (this.window && !this.window.isDestroyed()) {
             this.window.hide();
             this.logger.log('Quick Chat window hidden');
+        }
+    }
+
+    private clearReadyToShowFallbackTimeout(): void {
+        if (this._readyToShowFallbackTimeout) {
+            clearTimeout(this._readyToShowFallbackTimeout);
+            this._readyToShowFallbackTimeout = null;
         }
     }
 

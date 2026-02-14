@@ -81,6 +81,23 @@ export async function showQuickChatWindow(): Promise<void> {
             }
         }
     });
+
+    // Wait for window creation to start - gives Electron time to create the window
+    // before tests start polling for visibility. The window is created asynchronously
+    // and shown on 'ready-to-show' event, so we need a brief delay here.
+    await browser.pause(300);
+
+    // Force-show the window if it was created but not shown (happens in headless CI
+    // where ready-to-show event may not fire reliably). This ensures tests can
+    // proceed even when Electron's visibility events are delayed.
+    await browser.electron.execute(() => {
+        const windowManager = (global as any).windowManager;
+        const quickChatWindow = windowManager?.getQuickChatWindow?.();
+        if (quickChatWindow && !quickChatWindow.isVisible() && !quickChatWindow.isDestroyed()) {
+            quickChatWindow.show();
+            quickChatWindow.focus();
+        }
+    });
 }
 
 /**

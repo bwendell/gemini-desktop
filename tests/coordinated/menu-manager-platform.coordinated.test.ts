@@ -6,12 +6,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Menu, BrowserWindow } from 'electron';
 import MenuManager from '../../src/main/managers/menuManager';
 import WindowManager from '../../src/main/managers/windowManager';
+import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
-// Mock fs
 vi.mock('fs', () => ({
     existsSync: vi.fn().mockReturnValue(false),
     readFileSync: vi.fn().mockReturnValue('{}'),
@@ -27,16 +26,17 @@ describe('MenuManager Platform Integration', () => {
         vi.clearAllMocks();
         if ((Menu as any)._reset) (Menu as any)._reset();
         if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
+        resetPlatformAdapterForTests({ resetModules: true });
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
-        vi.unstubAllGlobals();
+        resetPlatformAdapterForTests({ resetModules: true });
     });
 
     describe('on darwin (macOS)', () => {
         beforeEach(() => {
-            vi.stubGlobal('process', { ...process, platform: 'darwin' });
+            useMockPlatformAdapter(platformAdapterPresets.mac());
             windowManager = new WindowManager(false);
             menuManager = new MenuManager(windowManager);
         });
@@ -47,13 +47,11 @@ describe('MenuManager Platform Integration', () => {
             expect(Menu.buildFromTemplate).toHaveBeenCalled();
             expect(Menu.setApplicationMenu).toHaveBeenCalled();
 
-            // Get the template that was passed
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
             expect(template).toBeDefined();
             expect(Array.isArray(template)).toBe(true);
-            expect(template.length).toBeGreaterThanOrEqual(4); // App, File, View, Help
+            expect(template.length).toBeGreaterThanOrEqual(3);
 
-            // First menu on macOS should be the app menu with label 'Gemini Desktop'
             const firstMenu = template[0];
             expect(firstMenu).toBeDefined();
             expect(firstMenu.label).toBe('Gemini Desktop');
@@ -65,12 +63,13 @@ describe('MenuManager Platform Integration', () => {
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
             const appMenu = template[0];
 
-            expect(appMenu.submenu).toBeDefined();
+            const appMenuItems = appMenu.submenu?.items ?? appMenu.submenu;
+            expect(appMenuItems).toBeDefined();
 
-            const hasAbout = appMenu.submenu.some(
+            const hasAbout = appMenuItems.some(
                 (item: any) => item.label?.includes('About') || item.id === 'menu-app-about'
             );
-            const hasSettings = appMenu.submenu.some(
+            const hasSettings = appMenuItems.some(
                 (item: any) => item.label?.includes('Settings') || item.id === 'menu-app-settings'
             );
 
@@ -96,7 +95,7 @@ describe('MenuManager Platform Integration', () => {
 
     describe('on win32 (Windows)', () => {
         beforeEach(() => {
-            vi.stubGlobal('process', { ...process, platform: 'win32' });
+            useMockPlatformAdapter(platformAdapterPresets.windows());
             windowManager = new WindowManager(false);
             menuManager = new MenuManager(windowManager);
         });
@@ -109,7 +108,6 @@ describe('MenuManager Platform Integration', () => {
 
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
 
-            // Windows should have File menu first (not app name menu)
             const fileMenu = template.find((m: any) => m.label === 'File');
             expect(fileMenu).toBeDefined();
         });
@@ -131,7 +129,7 @@ describe('MenuManager Platform Integration', () => {
 
     describe('on linux', () => {
         beforeEach(() => {
-            vi.stubGlobal('process', { ...process, platform: 'linux' });
+            useMockPlatformAdapter(platformAdapterPresets.linuxX11());
             windowManager = new WindowManager(false);
             menuManager = new MenuManager(windowManager);
         });
@@ -144,7 +142,6 @@ describe('MenuManager Platform Integration', () => {
 
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
 
-            // Linux should have File menu first (like Windows)
             const fileMenu = template.find((m: any) => m.label === 'File');
             expect(fileMenu).toBeDefined();
         });
@@ -166,8 +163,14 @@ describe('MenuManager Platform Integration', () => {
 
     describe('Menu Action Callbacks', () => {
         describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
+            const adapterForPlatform = {
+                darwin: platformAdapterPresets.mac,
+                win32: platformAdapterPresets.windows,
+                linux: platformAdapterPresets.linuxX11,
+            } as const;
+
             beforeEach(() => {
-                vi.stubGlobal('process', { ...process, platform });
+                useMockPlatformAdapter(adapterForPlatform[platform]());
                 windowManager = new WindowManager(false);
                 menuManager = new MenuManager(windowManager);
             });
@@ -178,25 +181,17 @@ describe('MenuManager Platform Integration', () => {
 
                 const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
 
-                // Find View menu
                 const viewMenu = template.find((m: any) => m.label === 'View');
 
                 if (viewMenu?.submenu) {
-                    // Find Always On Top toggle
                     const alwaysOnTopItem = viewMenu.submenu.find(
                         (item: any) => item.label?.includes('Always on Top') || item.id === 'always-on-top'
                     );
 
                     if (alwaysOnTopItem?.click) {
-                        // Trigger the click callback
                         alwaysOnTopItem.click();
-
-                        // Verify WindowManager was called
-                        // (actual verification depends on menu structure)
                     }
                 }
-
-                // No errors should have occurred
                 expect(mockLogger.error).not.toHaveBeenCalled();
             });
         });

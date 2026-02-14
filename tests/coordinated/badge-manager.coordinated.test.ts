@@ -6,12 +6,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
 import BadgeManager from '../../src/main/managers/badgeManager';
 import WindowManager from '../../src/main/managers/windowManager';
+import type { PlatformAdapter } from '../../src/main/platform/PlatformAdapter';
+import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../helpers/mocks';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
-// Mock fs for BadgeManager icon loading
 vi.mock('fs', () => ({
     existsSync: vi.fn().mockReturnValue(false),
     readFileSync: vi.fn(),
@@ -26,71 +26,45 @@ describe('BadgeManager Coordinated Tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
+        resetPlatformAdapterForTests({ resetModules: true });
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
+        resetPlatformAdapterForTests({ resetModules: true });
     });
 
-    // Mock platform state
-    const platformState = vi.hoisted(() => ({
-        platform: 'darwin' as NodeJS.Platform,
-    }));
-
-    // Mock constants
-    vi.mock('../../src/main/utils/constants', async (importOriginal) => {
-        const actual = await importOriginal<any>();
-        return {
-            ...actual,
-            get isMacOS() {
-                return platformState.platform === 'darwin';
-            },
-            get isWindows() {
-                return platformState.platform === 'win32';
-            },
-            get isLinux() {
-                return platformState.platform === 'linux';
-            },
-        };
-    });
+    const adapterForPlatform: Record<string, () => PlatformAdapter> = {
+        darwin: () => platformAdapterPresets.mac(),
+        win32: () => platformAdapterPresets.windows(),
+        linux: () => platformAdapterPresets.linuxX11(),
+    };
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
+        let adapter: PlatformAdapter;
+
         beforeEach(() => {
-            // Update platform state
-            platformState.platform = platform;
-
-            // Mock global process platform as well for consistency
-            vi.stubGlobal('process', { ...process, platform });
-
-            // Create managers (static imports are fine with live bindings)
+            adapter = adapterForPlatform[platform]();
+            useMockPlatformAdapter(adapter);
             windowManager = new WindowManager(false);
-            badgeManager = new BadgeManager();
-        });
-
-        afterEach(() => {
-            vi.unstubAllGlobals();
+            badgeManager = new BadgeManager(adapter);
         });
 
         describe('Window Coordination', () => {
             it('should coordinate badge with main window lifecycle', () => {
                 const mainWindow = windowManager.createMainWindow();
 
-                // Set main window reference
                 badgeManager.setMainWindow(mainWindow);
 
-                // Show badge
                 badgeManager.showUpdateBadge();
                 expect(badgeManager.hasBadgeShown()).toBe(true);
 
                 if (platform === 'win32') {
-                    // Windows: verify overlay icon was set
                     expect(mainWindow.setOverlayIcon).toHaveBeenCalled();
                 } else if (platform === 'darwin') {
-                    // macOS: verify dock badge was set
                     expect(app.dock?.setBadge).toHaveBeenCalled();
                 }
 
-                // Clear badge
                 badgeManager.clearUpdateBadge();
                 expect(badgeManager.hasBadgeShown()).toBe(false);
 
@@ -105,15 +79,12 @@ describe('BadgeManager Coordinated Tests', () => {
                 const mainWindow = windowManager.createMainWindow();
                 badgeManager.setMainWindow(mainWindow);
 
-                // Simulate window destruction
                 (mainWindow.isDestroyed as any).mockReturnValue(true);
 
-                // Should not crash when trying to show badge
                 expect(() => {
                     badgeManager.showUpdateBadge();
                 }).not.toThrow();
 
-                // Should log warning on Windows
                 if (platform === 'win32') {
                     expect(mockLogger.warn).toHaveBeenCalledWith(
                         expect.stringContaining('window or icon not available')
@@ -124,12 +95,10 @@ describe('BadgeManager Coordinated Tests', () => {
             it('should handle null main window reference', () => {
                 badgeManager.setMainWindow(null);
 
-                // Should not crash
                 expect(() => {
                     badgeManager.showUpdateBadge();
                 }).not.toThrow();
 
-                // On platforms that need a window, should log warning
                 if (platform === 'win32') {
                     expect(mockLogger.warn).toHaveBeenCalled();
                 }
@@ -141,19 +110,15 @@ describe('BadgeManager Coordinated Tests', () => {
                 const mainWindow = windowManager.createMainWindow();
                 badgeManager.setMainWindow(mainWindow);
 
-                // Show badge first time
                 badgeManager.showUpdateBadge();
                 expect(badgeManager.hasBadgeShown()).toBe(true);
 
                 vi.clearAllMocks();
 
-                // Try to show again
                 badgeManager.showUpdateBadge();
 
-                // Should early return and log
                 expect(mockLogger.log).toHaveBeenCalledWith('Update badge already shown');
 
-                // Should not call platform APIs again
                 if (platform === 'win32') {
                     expect(mainWindow.setOverlayIcon).not.toHaveBeenCalled();
                 } else if (platform === 'darwin') {
@@ -165,10 +130,8 @@ describe('BadgeManager Coordinated Tests', () => {
                 const mainWindow = windowManager.createMainWindow();
                 badgeManager.setMainWindow(mainWindow);
 
-                // Clear without showing first
                 badgeManager.clearUpdateBadge();
 
-                // Should early return, no platform API calls
                 if (platform === 'win32') {
                     expect(mainWindow.setOverlayIcon).not.toHaveBeenCalled();
                 } else if (platform === 'darwin') {
@@ -185,13 +148,10 @@ describe('BadgeManager Coordinated Tests', () => {
                 badgeManager.showUpdateBadge('1');
 
                 if (platform === 'darwin') {
-                    // macOS uses dock badge with text
                     expect(app.dock?.setBadge).toHaveBeenCalledWith('1');
                 } else if (platform === 'win32') {
-                    // Windows uses overlay icon
                     expect(mainWindow.setOverlayIcon).toHaveBeenCalledWith(expect.anything(), 'Update available');
                 } else if (platform === 'linux') {
-                    // Linux logs that it's not supported
                     expect(mockLogger.log).toHaveBeenCalledWith(
                         expect.stringContaining('Linux: Native badge not supported')
                     );
@@ -208,13 +168,11 @@ describe('BadgeManager Coordinated Tests', () => {
 
         describe('Error Handling', () => {
             it('should handle badge display errors gracefully', () => {
-                // Linux has no badge APIs to fail, skip this test
                 if (platform === 'linux') return;
 
                 const mainWindow = windowManager.createMainWindow();
                 badgeManager.setMainWindow(mainWindow);
 
-                // Mock error
                 if (platform === 'win32') {
                     (mainWindow.setOverlayIcon as any).mockImplementation(() => {
                         throw new Error('Overlay failed');
@@ -225,12 +183,10 @@ describe('BadgeManager Coordinated Tests', () => {
                     });
                 }
 
-                // Should not crash
                 expect(() => {
                     badgeManager.showUpdateBadge();
                 }).not.toThrow();
 
-                // Should log error
                 expect(mockLogger.error).toHaveBeenCalledWith(
                     expect.stringContaining('Failed to show badge'),
                     expect.any(Error)
@@ -238,35 +194,29 @@ describe('BadgeManager Coordinated Tests', () => {
             });
 
             it('should handle badge clear errors gracefully', () => {
-                // Linux has no badge APIs to fail; Darwin dock error handling is defensive (v8 ignore)
                 if (platform === 'linux' || platform === 'darwin') return;
 
                 const mainWindow = windowManager.createMainWindow();
                 badgeManager.setMainWindow(mainWindow);
 
-                // Show first
                 badgeManager.showUpdateBadge();
                 vi.clearAllMocks();
 
-                // Mock error on clear
                 if (platform === 'win32') {
                     (mainWindow.setOverlayIcon as any).mockImplementation(() => {
                         throw new Error('Clear failed');
                     });
                 } else if (platform === 'darwin') {
-                    // Ensure dock exists and mock it
                     if (!app.dock) throw new Error('app.dock should be mocked');
                     (app.dock.setBadge as any).mockImplementation(() => {
                         throw new Error('Clear failed');
                     });
                 }
 
-                // Should not crash
                 expect(() => {
                     badgeManager.clearUpdateBadge();
                 }).not.toThrow();
 
-                // Should log error
                 expect(mockLogger.error).toHaveBeenCalledWith(
                     expect.stringContaining('Failed to clear badge'),
                     expect.any(Error)

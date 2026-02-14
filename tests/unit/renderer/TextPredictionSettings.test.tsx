@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { TextPredictionSettings } from '../../../src/renderer/components/options/TextPredictionSettings';
 import { setupMockElectronAPI, clearMockElectronAPI } from '../../helpers/mocks';
 
@@ -159,7 +159,9 @@ describe('TextPredictionSettings', () => {
 
             // Click the toggle switch button (not an input - CapsuleToggle uses a button)
             const toggleSwitch = screen.getByTestId('text-prediction-enable-toggle-switch');
-            fireEvent.click(toggleSwitch);
+            await act(async () => {
+                fireEvent.click(toggleSwitch);
+            });
 
             await waitFor(() => {
                 expect(mockSetTextPredictionEnabled).toHaveBeenCalledWith(true);

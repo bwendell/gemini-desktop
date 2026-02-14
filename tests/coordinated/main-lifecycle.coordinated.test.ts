@@ -7,11 +7,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
 import WindowManager from '../../src/main/managers/windowManager';
+import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../helpers/mocks';
+import { stubPlatform, restorePlatform } from '../helpers/harness';
 
-// Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
 
-// Mock fs
 vi.mock('fs', () => ({
     existsSync: vi.fn().mockReturnValue(false),
     readFileSync: vi.fn().mockReturnValue('{}'),
@@ -20,48 +20,36 @@ vi.mock('fs', () => ({
 }));
 
 describe('Main Process Lifecycle Platform Behavior', () => {
-    let originalPlatform: string;
-
     beforeEach(() => {
         vi.clearAllMocks();
-        originalPlatform = process.platform;
+        resetPlatformAdapterForTests();
     });
 
     afterEach(() => {
-        Object.defineProperty(process, 'platform', {
-            value: originalPlatform,
-            configurable: true,
-            writable: true,
-        });
+        resetPlatformAdapterForTests();
     });
 
     describe('window-all-closed event', () => {
         describe.each([
-            { platform: 'darwin', shouldQuit: false },
-            { platform: 'win32', shouldQuit: true },
-            { platform: 'linux', shouldQuit: true },
-        ])('on $platform', ({ platform, shouldQuit }) => {
+            { platform: 'darwin', shouldQuit: false, adapter: platformAdapterPresets.mac },
+            { platform: 'win32', shouldQuit: true, adapter: platformAdapterPresets.windows },
+            { platform: 'linux', shouldQuit: true, adapter: platformAdapterPresets.linuxX11 },
+        ])('on $platform', ({ platform, shouldQuit, adapter }) => {
+            let platformAdapter: ReturnType<typeof adapter>;
+
             beforeEach(() => {
-                Object.defineProperty(process, 'platform', {
-                    value: platform,
-                    configurable: true,
-                    writable: true,
-                });
+                stubPlatform(platform as 'darwin' | 'win32' | 'linux');
+                platformAdapter = adapter();
+                useMockPlatformAdapter(platformAdapter);
+            });
+
+            afterEach(() => {
+                restorePlatform();
             });
 
             it(`should ${shouldQuit ? 'call' : 'NOT call'} app.quit() when all windows are closed`, () => {
-                // Simulate the window-all-closed handler logic from main.ts:
-                // app.on('window-all-closed', () => {
-                //   if (process.platform !== 'darwin') {
-                //     app.quit();
-                //   }
-                // });
-
-                // Reset mock
                 (app.quit as any).mockClear();
-
-                // Execute the handler logic
-                if (process.platform !== 'darwin') {
+                if (platformAdapter.shouldQuitOnWindowAllClosed()) {
                     app.quit();
                 }
 
@@ -80,26 +68,14 @@ describe('Main Process Lifecycle Platform Behavior', () => {
 
     describe('activate event (macOS dock click)', () => {
         beforeEach(() => {
-            Object.defineProperty(process, 'platform', {
-                value: 'darwin',
-                configurable: true,
-                writable: true,
-            });
+            useMockPlatformAdapter(platformAdapterPresets.mac());
         });
 
         it('should recreate window if no windows exist on activate', () => {
-            // Mock BrowserWindow.getAllWindows to return empty array
             (BrowserWindow.getAllWindows as any).mockReturnValue([]);
 
             const windowManager = new WindowManager(false);
             const createMainWindowSpy = vi.spyOn(windowManager, 'createMainWindow');
-
-            // Simulate activate event handler logic from main.ts:
-            // app.on('activate', () => {
-            //   if (BrowserWindow.getAllWindows().length === 0) {
-            //     windowManager.createMainWindow();
-            //   }
-            // });
 
             if (BrowserWindow.getAllWindows().length === 0) {
                 windowManager.createMainWindow();
@@ -109,13 +85,11 @@ describe('Main Process Lifecycle Platform Behavior', () => {
         });
 
         it('should NOT recreate window if windows already exist on activate', () => {
-            // Mock BrowserWindow.getAllWindows to return existing window
             (BrowserWindow.getAllWindows as any).mockReturnValue([{ id: 1 }]);
 
             const windowManager = new WindowManager(false);
             const createMainWindowSpy = vi.spyOn(windowManager, 'createMainWindow');
 
-            // Simulate activate event handler logic
             if (BrowserWindow.getAllWindows().length === 0) {
                 windowManager.createMainWindow();
             }
@@ -125,23 +99,20 @@ describe('Main Process Lifecycle Platform Behavior', () => {
     });
 
     describe('before-quit event', () => {
-        describe.each(['darwin', 'win32', 'linux'])('on %s', (platform) => {
+        const adapterForPlatform = {
+            darwin: platformAdapterPresets.mac,
+            win32: platformAdapterPresets.windows,
+            linux: platformAdapterPresets.linuxX11,
+        } as const;
+
+        describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
             beforeEach(() => {
-                Object.defineProperty(process, 'platform', {
-                    value: platform,
-                    configurable: true,
-                    writable: true,
-                });
+                useMockPlatformAdapter(adapterForPlatform[platform]());
             });
 
             it('should set quitting state on WindowManager', () => {
                 const windowManager = new WindowManager(false);
                 const setQuittingSpy = vi.spyOn(windowManager, 'setQuitting');
-
-                // Simulate before-quit handler from main.ts:
-                // app.on('before-quit', () => {
-                //   windowManager.setQuitting(true);
-                // });
 
                 windowManager.setQuitting(true);
 

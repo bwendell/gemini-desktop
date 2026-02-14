@@ -3,7 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import React from 'react';
 import { Titlebar } from './Titlebar';
 import { setMockPlatform, mockElectronAPI } from '../../../../tests/unit/renderer/test/setup';
 
@@ -29,15 +30,24 @@ describe('Titlebar', () => {
         });
     });
 
+    // Helper to render with act to suppress async state warnings
+    const renderWithAct = async (ui: React.ReactElement) => {
+        let result: ReturnType<typeof render>;
+        await act(async () => {
+            result = render(ui);
+        });
+        return result!;
+    };
+
     describe('default rendering', () => {
-        it('renders with default title', () => {
-            render(<Titlebar />);
+        it('renders with default title', async () => {
+            await renderWithAct(<Titlebar />);
 
             expect(screen.getByText('Gemini Desktop')).toBeInTheDocument();
         });
 
-        it('renders app icon by default', () => {
-            render(<Titlebar />);
+        it('renders app icon by default', async () => {
+            await renderWithAct(<Titlebar />);
 
             // Check for icon in titlebar-icon div
             const titlebar = document.querySelector('.titlebar');
@@ -46,15 +56,15 @@ describe('Titlebar', () => {
             expect(iconDiv?.querySelector('img')).toBeInTheDocument();
         });
 
-        it('renders header element with titlebar class', () => {
-            render(<Titlebar />);
+        it('renders header element with titlebar class', async () => {
+            await renderWithAct(<Titlebar />);
 
             const header = document.querySelector('header.titlebar');
             expect(header).toBeInTheDocument();
         });
 
-        it('renders drag region', () => {
-            render(<Titlebar />);
+        it('renders drag region', async () => {
+            await renderWithAct(<Titlebar />);
 
             const dragRegion = document.querySelector('.titlebar-drag-region');
             expect(dragRegion).toBeInTheDocument();
@@ -62,28 +72,28 @@ describe('Titlebar', () => {
     });
 
     describe('custom configuration', () => {
-        it('renders with custom title', () => {
-            render(<Titlebar config={{ title: 'Custom Title' }} />);
+        it('renders with custom title', async () => {
+            await renderWithAct(<Titlebar config={{ title: 'Custom Title' }} />);
 
             expect(screen.getByText('Custom Title')).toBeInTheDocument();
         });
 
-        it('hides icon when showIcon is false', () => {
-            render(<Titlebar config={{ showIcon: false }} />);
+        it('hides icon when showIcon is false', async () => {
+            await renderWithAct(<Titlebar config={{ showIcon: false }} />);
 
             const iconDiv = document.querySelector('.titlebar-icon');
             expect(iconDiv).not.toBeInTheDocument();
         });
 
-        it('shows icon when showIcon is true', () => {
-            render(<Titlebar config={{ showIcon: true }} />);
+        it('shows icon when showIcon is true', async () => {
+            await renderWithAct(<Titlebar config={{ showIcon: true }} />);
 
             const iconDiv = document.querySelector('.titlebar-icon');
             expect(iconDiv).toBeInTheDocument();
         });
 
-        it('merges partial config with defaults', () => {
-            render(<Titlebar config={{ title: 'Only Title' }} />);
+        it('merges partial config with defaults', async () => {
+            await renderWithAct(<Titlebar config={{ title: 'Only Title' }} />);
 
             // Title should be custom
             expect(screen.getByText('Only Title')).toBeInTheDocument();
@@ -94,33 +104,33 @@ describe('Titlebar', () => {
     });
 
     describe('child components', () => {
-        it('renders TitlebarMenu on Windows', () => {
+        it('renders TitlebarMenu on Windows', async () => {
             setMockPlatform('win32');
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const menuBar = document.querySelector('.titlebar-menu-bar');
             expect(menuBar).toBeInTheDocument();
         });
 
-        it('renders WindowControls on Windows', () => {
+        it('renders WindowControls on Windows', async () => {
             setMockPlatform('win32');
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const controls = document.querySelector('.window-controls');
             expect(controls).toBeInTheDocument();
         });
 
-        it('hides TitlebarMenu on macOS', () => {
+        it('hides TitlebarMenu on macOS', async () => {
             setMockPlatform('darwin');
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const menuBar = document.querySelector('.titlebar-menu-bar');
             expect(menuBar).not.toBeInTheDocument();
         });
 
-        it('hides WindowControls on macOS', () => {
+        it('hides WindowControls on macOS', async () => {
             setMockPlatform('darwin');
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const controls = document.querySelector('.window-controls');
             expect(controls).not.toBeInTheDocument();
@@ -128,25 +138,25 @@ describe('Titlebar', () => {
     });
 
     describe('macOS-specific styling', () => {
-        it('applies macos class on macOS platform', () => {
+        it('applies macos class on macOS platform', async () => {
             setMockPlatform('darwin');
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const header = document.querySelector('header.titlebar');
             expect(header).toHaveClass('macos');
         });
 
-        it('does not apply macos class on Windows', () => {
+        it('does not apply macos class on Windows', async () => {
             setMockPlatform('win32');
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const header = document.querySelector('header.titlebar');
             expect(header).not.toHaveClass('macos');
         });
 
-        it('does not apply macos class on Linux', () => {
+        it('does not apply macos class on Linux', async () => {
             setMockPlatform('linux');
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const header = document.querySelector('header.titlebar');
             expect(header).not.toHaveClass('macos');
@@ -154,15 +164,15 @@ describe('Titlebar', () => {
     });
 
     describe('layout structure', () => {
-        it('has titlebar-left section', () => {
-            render(<Titlebar />);
+        it('has titlebar-left section', async () => {
+            await renderWithAct(<Titlebar />);
 
             const leftSection = document.querySelector('.titlebar-left');
             expect(leftSection).toBeInTheDocument();
         });
 
-        it('title is inside drag region', () => {
-            render(<Titlebar />);
+        it('title is inside drag region', async () => {
+            await renderWithAct(<Titlebar />);
 
             const dragRegion = document.querySelector('.titlebar-drag-region');
             const title = dragRegion?.querySelector('.titlebar-title');
@@ -172,9 +182,9 @@ describe('Titlebar', () => {
     });
 
     describe('menu definitions', () => {
-        it('passes menu definitions to TitlebarMenu', () => {
+        it('passes menu definitions to TitlebarMenu', async () => {
             setMockPlatform('win32');
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             // Check that default menus are rendered (Edit menu was removed)
             expect(screen.getByText('File')).toBeInTheDocument();
@@ -186,45 +196,45 @@ describe('Titlebar', () => {
     });
 
     describe('update badge', () => {
-        it('does not render update badge when no pending update', () => {
-            render(<Titlebar />);
+        it('does not render update badge when no pending update', async () => {
+            await renderWithAct(<Titlebar />);
 
             expect(screen.queryByTestId('update-badge')).not.toBeInTheDocument();
         });
 
-        it('does not crash when UpdateToastContext is not available', () => {
+        it('does not crash when UpdateToastContext is not available', async () => {
             // Mock throws to simulate context not available
             (useUpdateToast as Mock).mockImplementation(() => {
                 throw new Error('Context not available');
             });
 
             // The try-catch in Titlebar should handle missing context gracefully
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             // Component should render without errors
             expect(screen.getByTestId('titlebar')).toBeInTheDocument();
         });
 
-        it('renders update badge when hasPendingUpdate is true', () => {
+        it('renders update badge when hasPendingUpdate is true', async () => {
             const mockInstallUpdate = vi.fn();
             (useUpdateToast as Mock).mockReturnValue({
                 hasPendingUpdate: true,
                 installUpdate: mockInstallUpdate,
             });
 
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             expect(screen.getByTestId('update-badge')).toBeInTheDocument();
         });
 
-        it('calls openOptions with about tab when badge is clicked', () => {
+        it('calls openOptions with about tab when badge is clicked', async () => {
             const mockInstallUpdate = vi.fn();
             (useUpdateToast as Mock).mockReturnValue({
                 hasPendingUpdate: true,
                 installUpdate: mockInstallUpdate,
             });
 
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const badge = screen.getByTestId('update-badge');
             fireEvent.click(badge);
@@ -232,14 +242,14 @@ describe('Titlebar', () => {
             expect(mockElectronAPI.openOptions).toHaveBeenCalledWith('about');
         });
 
-        it('does not call openOptions when installUpdate is not available', () => {
+        it('does not call openOptions when installUpdate is not available', async () => {
             // This tests the if (installUpdate) check in handleBadgeClick
             (useUpdateToast as Mock).mockReturnValue({
                 hasPendingUpdate: true,
                 installUpdate: undefined,
             });
 
-            render(<Titlebar />);
+            await renderWithAct(<Titlebar />);
 
             const badge = screen.getByTestId('update-badge');
             fireEvent.click(badge);

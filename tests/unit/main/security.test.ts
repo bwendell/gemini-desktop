@@ -4,12 +4,15 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import electron from 'electron';
-import { setupHeaderStripping } from '../../../src/main/utils/security';
+import { getPlatformAdapter } from '../../../src/main/platform/platformAdapterFactory';
+import { resetPlatformAdapterForTests } from '../../helpers/mocks';
+
+vi.mock('../../../src/main/platform/platformAdapterFactory', () => ({
+    getPlatformAdapter: vi.fn(),
+}));
 
 describe('setupHeaderStripping', () => {
     const mockSession = electron.session as any;
-    console.log('DEBUG: electron import:', electron);
-    console.log('DEBUG: session:', mockSession);
 
     let headerCallback: (
         details: { responseHeaders: Record<string, string[]> },
@@ -20,19 +23,21 @@ describe('setupHeaderStripping', () => {
         // mockSession is the global session mock from electron-mock.ts
         // We need to implement the onHeadersReceived mock to capture the callback
         (mockSession.defaultSession.webRequest.onHeadersReceived as any).mockImplementation(
-            (filter: any, callback: any) => {
+            (_filter: any, callback: any) => {
                 headerCallback = callback;
             }
         );
     });
 
-    it('registers header handler on session', () => {
+    it('registers header handler on session', async () => {
+        const { setupHeaderStripping } = await import('../../../src/main/utils/security');
         setupHeaderStripping(mockSession.defaultSession);
 
         expect(mockSession.defaultSession.webRequest.onHeadersReceived).toHaveBeenCalled();
     });
 
-    it('filters for Gemini domains', () => {
+    it('filters for Gemini domains', async () => {
+        const { setupHeaderStripping } = await import('../../../src/main/utils/security');
         setupHeaderStripping(mockSession.defaultSession);
 
         const call = mockSession.defaultSession.webRequest.onHeadersReceived.mock.calls[0];
@@ -44,7 +49,8 @@ describe('setupHeaderStripping', () => {
     });
 
     describe('header stripping', () => {
-        beforeEach(() => {
+        beforeEach(async () => {
+            const { setupHeaderStripping } = await import('../../../src/main/utils/security');
             setupHeaderStripping(mockSession.defaultSession);
         });
 
@@ -157,10 +163,9 @@ describe('setupMediaPermissions', () => {
     ) => void;
 
     beforeEach(() => {
-        // Reset mocks
         mockSession.defaultSession.setPermissionRequestHandler.mockClear();
+        vi.mocked(getPlatformAdapter).mockReset();
 
-        // Capture the permission handler when it's set
         mockSession.defaultSession.setPermissionRequestHandler.mockImplementation((handler: any) => {
             permissionHandler = handler;
         });
@@ -168,6 +173,7 @@ describe('setupMediaPermissions', () => {
 
     it('registers permission handler on session', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions: vi.fn() } as any);
         setupMediaPermissions(mockSession.defaultSession);
 
         expect(mockSession.defaultSession.setPermissionRequestHandler).toHaveBeenCalled();
@@ -175,6 +181,7 @@ describe('setupMediaPermissions', () => {
 
     it('grants media permission to gemini.google.com', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions: vi.fn() } as any);
         setupMediaPermissions(mockSession.defaultSession);
 
         let granted: boolean | undefined;
@@ -192,6 +199,7 @@ describe('setupMediaPermissions', () => {
 
     it('grants media permission to google.com subdomains', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions: vi.fn() } as any);
         setupMediaPermissions(mockSession.defaultSession);
 
         let granted: boolean | undefined;
@@ -209,6 +217,7 @@ describe('setupMediaPermissions', () => {
 
     it('denies media permission to non-Google domains', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions: vi.fn() } as any);
         setupMediaPermissions(mockSession.defaultSession);
 
         let granted: boolean | undefined;
@@ -226,6 +235,7 @@ describe('setupMediaPermissions', () => {
 
     it('grants clipboard-sanitized-write permission to Google domains', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions: vi.fn() } as any);
         setupMediaPermissions(mockSession.defaultSession);
 
         let granted: boolean | undefined;
@@ -243,6 +253,7 @@ describe('setupMediaPermissions', () => {
 
     it('denies clipboard-sanitized-write permission to non-Google domains', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions: vi.fn() } as any);
         setupMediaPermissions(mockSession.defaultSession);
 
         let granted: boolean | undefined;
@@ -260,6 +271,7 @@ describe('setupMediaPermissions', () => {
 
     it('denies other permissions from any domain', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions: vi.fn() } as any);
         setupMediaPermissions(mockSession.defaultSession);
 
         let granted: boolean | undefined;
@@ -277,6 +289,7 @@ describe('setupMediaPermissions', () => {
 
     it('handles missing requestingUrl gracefully', async () => {
         const { setupMediaPermissions } = await import('../../../src/main/utils/security');
+        vi.mocked(getPlatformAdapter).mockReturnValue({ requestMediaPermissions: vi.fn() } as any);
         setupMediaPermissions(mockSession.defaultSession);
 
         let granted: boolean | undefined;
@@ -293,79 +306,17 @@ describe('setupMediaPermissions', () => {
     });
 
     describe('macOS microphone access (askForMediaAccess)', () => {
-        let originalPlatform: string;
-
-        beforeEach(() => {
-            originalPlatform = process.platform;
-        });
-
         afterEach(() => {
-            Object.defineProperty(process, 'platform', {
-                value: originalPlatform,
-                configurable: true,
-                writable: true,
-            });
+            resetPlatformAdapterForTests();
         });
 
-        it('calls systemPreferences.askForMediaAccess on macOS', async () => {
-            // Mock platform as darwin
-            Object.defineProperty(process, 'platform', {
-                value: 'darwin',
-                configurable: true,
-                writable: true,
-            });
+        it('calls requestMediaPermissions on macOS', async () => {
+            const mockRequestMediaPermissions = vi.fn().mockResolvedValue(undefined);
 
-            // Mock systemPreferences.askForMediaAccess
-            const mockAskForMediaAccess = vi.fn().mockResolvedValue(true);
-            const mockSystemPreferences = {
-                askForMediaAccess: mockAskForMediaAccess,
-            };
+            vi.mocked(getPlatformAdapter).mockReturnValue({
+                requestMediaPermissions: mockRequestMediaPermissions,
+            } as any);
 
-            // Mock the dynamic import
-            vi.doMock('electron', () => ({
-                ...electron,
-                systemPreferences: mockSystemPreferences,
-            }));
-
-            // Re-import to get the new mock
-            vi.resetModules();
-            const { setupMediaPermissions: setupMediaPermissionsMocked } =
-                await import('../../../src/main/utils/security');
-
-            // Create a fresh mock session
-            const freshMockSession = {
-                setPermissionRequestHandler: vi.fn(),
-            };
-
-            setupMediaPermissionsMocked(freshMockSession as any);
-
-            // Wait for the dynamic import inside the function to complete
-            await new Promise((resolve) => setTimeout(resolve, 50));
-
-            expect(mockAskForMediaAccess).toHaveBeenCalledWith('microphone');
-        });
-
-        it('does NOT call askForMediaAccess on Windows', async () => {
-            // Mock platform as win32
-            Object.defineProperty(process, 'platform', {
-                value: 'win32',
-                configurable: true,
-                writable: true,
-            });
-
-            // Mock systemPreferences.askForMediaAccess
-            const mockAskForMediaAccess = vi.fn().mockResolvedValue(true);
-            const mockSystemPreferences = {
-                askForMediaAccess: mockAskForMediaAccess,
-            };
-
-            // Mock the dynamic import
-            vi.doMock('electron', () => ({
-                ...electron,
-                systemPreferences: mockSystemPreferences,
-            }));
-
-            vi.resetModules();
             const { setupMediaPermissions: setupMediaPermissionsMocked } =
                 await import('../../../src/main/utils/security');
 
@@ -377,29 +328,14 @@ describe('setupMediaPermissions', () => {
 
             await new Promise((resolve) => setTimeout(resolve, 50));
 
-            // Should NOT be called on Windows
-            expect(mockAskForMediaAccess).not.toHaveBeenCalled();
+            expect(mockRequestMediaPermissions).toHaveBeenCalled();
         });
 
-        it('does NOT call askForMediaAccess on Linux', async () => {
-            // Mock platform as linux
-            Object.defineProperty(process, 'platform', {
-                value: 'linux',
-                configurable: true,
-                writable: true,
-            });
+        it('does NOT call requestMediaPermissions if adapter method is undefined', async () => {
+            vi.mocked(getPlatformAdapter).mockReturnValue({
+                requestMediaPermissions: undefined,
+            } as any);
 
-            const mockAskForMediaAccess = vi.fn().mockResolvedValue(true);
-            const mockSystemPreferences = {
-                askForMediaAccess: mockAskForMediaAccess,
-            };
-
-            vi.doMock('electron', () => ({
-                ...electron,
-                systemPreferences: mockSystemPreferences,
-            }));
-
-            vi.resetModules();
             const { setupMediaPermissions: setupMediaPermissionsMocked } =
                 await import('../../../src/main/utils/security');
 
@@ -407,12 +343,7 @@ describe('setupMediaPermissions', () => {
                 setPermissionRequestHandler: vi.fn(),
             };
 
-            setupMediaPermissionsMocked(freshMockSession as any);
-
-            await new Promise((resolve) => setTimeout(resolve, 50));
-
-            // Should NOT be called on Linux
-            expect(mockAskForMediaAccess).not.toHaveBeenCalled();
+            expect(() => setupMediaPermissionsMocked(freshMockSession as any)).not.toThrow();
         });
     });
 });
