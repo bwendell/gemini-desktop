@@ -74,7 +74,7 @@ export function getWaylandStatus(): WaylandStatus {
     const desktopEnvironment = detectDesktopEnvironment();
     const deVersion = detectDEVersion(desktopEnvironment);
     const hasSessionBus = Boolean(process.env.DBUS_SESSION_BUS_ADDRESS || process.env.XDG_RUNTIME_DIR);
-    const portalAvailable = isWayland && hasSessionBus;
+    const portalAvailable = isWayland && isSupportedDE(desktopEnvironment, deVersion) && hasSessionBus;
     const portalMethod: PortalMethod = 'none';
 
     const status: WaylandStatus = {

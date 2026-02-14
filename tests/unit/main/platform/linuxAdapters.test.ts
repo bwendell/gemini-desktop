@@ -175,7 +175,9 @@ describe('LinuxWaylandAdapter', () => {
 
             adapter.applyAppConfiguration(app, logger);
 
-            expect(logger.warn).toHaveBeenCalledWith('Portal registration not available on unknown — no session bus');
+            expect(logger.warn).toHaveBeenCalledWith(
+                'Portal registration not available on unknown — unsupported desktop environment or no session bus'
+            );
         });
 
         it('should not throw if setDesktopName is not a function', () => {

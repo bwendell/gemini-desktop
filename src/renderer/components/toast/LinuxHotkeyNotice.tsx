@@ -115,8 +115,8 @@ export function LinuxHotkeyNotice() {
             } else if (waylandStatus?.isWayland) {
                 if (!waylandStatus.portalAvailable) {
                     message = deName
-                        ? `Global shortcuts are not available on ${deName}. No Wayland session bus was detected, so portal registration could not be attempted.`
-                        : 'Global shortcuts are not available. No Wayland session bus was detected, so portal registration could not be attempted.';
+                        ? `Global shortcuts are not available on ${deName}. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.`
+                        : 'Global shortcuts are not available. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.';
                 } else {
                     message = deName
                         ? `Global shortcuts are currently disabled on ${deName}. Enable them in Settings to register shortcuts.`

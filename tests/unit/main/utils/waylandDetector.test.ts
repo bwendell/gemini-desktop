@@ -390,7 +390,7 @@ describe('WaylandDetector', () => {
             expect(status.portalAvailable).toBe(true);
         });
 
-        it('returns portalAvailable true for unknown DE on Wayland with session bus', () => {
+        it('returns portalAvailable false for unknown DE on Wayland with session bus', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'FutureDE';
             process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
@@ -400,7 +400,7 @@ describe('WaylandDetector', () => {
             expect(status.isWayland).toBe(true);
             expect(status.desktopEnvironment).toBe('unknown');
             expect(status.deVersion).toBeNull();
-            expect(status.portalAvailable).toBe(true);
+            expect(status.portalAvailable).toBe(false);
         });
 
         it('returns portalAvailable false when session bus is unavailable', () => {

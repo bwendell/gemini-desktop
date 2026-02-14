@@ -62,7 +62,9 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
                 `Wayland detected on ${waylandStatus.desktopEnvironment}, attempting portal registration for global shortcuts`
             );
         } else if (waylandStatus.isWayland) {
-            logger.warn(`Portal registration not available on ${waylandStatus.desktopEnvironment} — no session bus`);
+            logger.warn(
+                `Portal registration not available on ${waylandStatus.desktopEnvironment} — unsupported desktop environment or no session bus`
+            );
         }
     }
 

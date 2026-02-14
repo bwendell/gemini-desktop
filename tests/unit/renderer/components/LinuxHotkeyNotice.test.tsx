@@ -210,7 +210,40 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        'Global shortcuts are not available on KDE Plasma. No Wayland session bus was detected, so portal registration could not be attempted.',
+                        'Global shortcuts are not available on KDE Plasma. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.',
+                        expect.objectContaining({
+                            id: 'linux-hotkey-notice',
+                            title: 'Global Hotkeys Disabled',
+                            duration: 20000,
+                        })
+                    );
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should show combined-cause warning for unknown DE when portal is unavailable', async () => {
+            const status: PlatformHotkeyStatus = {
+                waylandStatus: {
+                    isWayland: true,
+                    desktopEnvironment: 'unknown',
+                    deVersion: null,
+                    portalAvailable: false,
+                    portalMethod: 'none',
+                },
+                registrationResults: [],
+                globalHotkeysEnabled: false,
+            };
+
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(status);
+
+            render(<LinuxHotkeyNotice />);
+
+            await waitFor(
+                () => {
+                    expect(mockShowWarning).toHaveBeenCalledWith(
+                        'Global shortcuts are not available. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.',
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Global Hotkeys Disabled',
