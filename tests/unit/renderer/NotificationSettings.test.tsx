@@ -119,6 +119,25 @@ describe('NotificationSettings (Task 6.5)', () => {
                 expect(mockSetResponseNotificationsEnabled).toHaveBeenCalledWith(false);
             });
         });
+
+        it('reverts toggle state when setter fails', async () => {
+            mockSetResponseNotificationsEnabled.mockRejectedValue(new Error('Setter failed'));
+
+            render(<NotificationSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('notification-settings')).toBeInTheDocument();
+            });
+
+            const toggleSwitch = screen.getByTestId('response-notifications-toggle-switch');
+            expect(toggleSwitch).toHaveAttribute('aria-checked', 'true');
+
+            fireEvent.click(toggleSwitch);
+
+            await waitFor(() => {
+                expect(toggleSwitch).toHaveAttribute('aria-checked', 'true');
+            });
+        });
     });
 
     describe('API Interactions', () => {
@@ -165,8 +184,9 @@ describe('NotificationSettings (Task 6.5)', () => {
         });
 
         it('handles electronAPI object without notification methods', async () => {
-            clearMockElectronAPI();
-            window.electronAPI = {} as typeof window.electronAPI;
+            setupMockElectronAPI();
+            delete window.electronAPI?.getResponseNotificationsEnabled;
+            delete window.electronAPI?.setResponseNotificationsEnabled;
 
             render(<NotificationSettings />);
 
@@ -181,6 +201,7 @@ describe('NotificationSettings (Task 6.5)', () => {
             await waitFor(() => {
                 expect(toggleSwitch).toHaveAttribute('aria-checked', 'false');
             });
+            expect(mockSetResponseNotificationsEnabled).not.toHaveBeenCalled();
         });
     });
 });
