@@ -108,6 +108,102 @@ export const platformAdapterPresets = {
         });
     },
     'linux-wayland': (): MockPlatformAdapter => platformAdapterPresets.linuxWayland(),
+    linuxWaylandGnome: (): MockPlatformAdapter => {
+        const waylandStatus: WaylandStatus = {
+            isWayland: true,
+            desktopEnvironment: 'gnome',
+            deVersion: null,
+            portalAvailable: true,
+            portalMethod: 'dbus-direct',
+        };
+
+        return createMockPlatformAdapter({
+            id: 'linux-wayland',
+            getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
+                createDefaultPlan({
+                    mode: 'wayland-dbus',
+                    waylandStatus,
+                })
+            ),
+            getWaylandStatus: vi.fn().mockReturnValue(waylandStatus),
+            supportsBadges: vi.fn().mockReturnValue(false),
+            getSettingsMenuLabel: vi.fn().mockReturnValue('Options'),
+            getWindowCloseRole: vi.fn().mockReturnValue('quit'),
+        });
+    },
+    linuxWaylandHyprland: (): MockPlatformAdapter => {
+        const waylandStatus: WaylandStatus = {
+            isWayland: true,
+            desktopEnvironment: 'hyprland',
+            deVersion: null,
+            portalAvailable: true,
+            portalMethod: 'dbus-direct',
+        };
+
+        return createMockPlatformAdapter({
+            id: 'linux-wayland',
+            getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
+                createDefaultPlan({
+                    mode: 'wayland-dbus',
+                    waylandStatus,
+                })
+            ),
+            getWaylandStatus: vi.fn().mockReturnValue(waylandStatus),
+            supportsBadges: vi.fn().mockReturnValue(false),
+            getSettingsMenuLabel: vi.fn().mockReturnValue('Options'),
+            getWindowCloseRole: vi.fn().mockReturnValue('quit'),
+        });
+    },
+    linuxWaylandUnknown: (): MockPlatformAdapter => {
+        const waylandStatus: WaylandStatus = {
+            isWayland: true,
+            desktopEnvironment: 'unknown',
+            deVersion: null,
+            portalAvailable: true,
+            portalMethod: 'dbus-direct',
+        };
+
+        return createMockPlatformAdapter({
+            id: 'linux-wayland',
+            getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
+                createDefaultPlan({
+                    mode: 'wayland-dbus',
+                    waylandStatus,
+                })
+            ),
+            getWaylandStatus: vi.fn().mockReturnValue(waylandStatus),
+            supportsBadges: vi.fn().mockReturnValue(false),
+            getSettingsMenuLabel: vi.fn().mockReturnValue('Options'),
+            getWindowCloseRole: vi.fn().mockReturnValue('quit'),
+        });
+    },
+    linuxWaylandNoPortal: (): MockPlatformAdapter => {
+        const waylandStatus: WaylandStatus = {
+            isWayland: true,
+            desktopEnvironment: 'kde',
+            deVersion: '5.27',
+            portalAvailable: false,
+            portalMethod: 'none',
+        };
+
+        return createMockPlatformAdapter({
+            id: 'linux-wayland',
+            getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
+                createDefaultPlan({
+                    mode: 'disabled',
+                    waylandStatus,
+                })
+            ),
+            getWaylandStatus: vi.fn().mockReturnValue(waylandStatus),
+            supportsBadges: vi.fn().mockReturnValue(false),
+            getSettingsMenuLabel: vi.fn().mockReturnValue('Options'),
+            getWindowCloseRole: vi.fn().mockReturnValue('quit'),
+        });
+    },
     linuxX11: (): MockPlatformAdapter => {
         const waylandStatus: WaylandStatus = {
             ...DEFAULT_WAYLAND_STATUS,

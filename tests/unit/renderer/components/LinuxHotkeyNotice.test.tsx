@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, waitFor, act } from '@testing-library/react';
 import { LinuxHotkeyNotice } from '../../../../src/renderer/components/toast/LinuxHotkeyNotice';
 import type { PlatformHotkeyStatus } from '../../../../src/shared/types/hotkeys';
+import { platformAdapterPresets } from '../../../helpers/mocks/main/platformAdapterMock';
 
 // Mock dependencies
 vi.mock('../../../../src/renderer/utils/platform', () => ({
@@ -26,6 +27,19 @@ import { useToast } from '../../../../src/renderer/context/ToastContext';
 describe('LinuxHotkeyNotice', () => {
     const mockShowWarning = vi.fn();
     let originalElectronAPI: any;
+
+    const buildStatusFromPreset = (
+        preset: keyof typeof platformAdapterPresets,
+        globalHotkeysEnabled: boolean,
+        registrationResults: PlatformHotkeyStatus['registrationResults'] = []
+    ): PlatformHotkeyStatus => {
+        const adapter = platformAdapterPresets[preset]();
+        return {
+            waylandStatus: adapter.getWaylandStatus(),
+            registrationResults,
+            globalHotkeysEnabled,
+        };
+    };
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -139,7 +153,7 @@ describe('LinuxHotkeyNotice', () => {
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Hotkey Registration Partial',
-                            duration: 5000,
+                            duration: 20000,
                         })
                     );
                 },
@@ -186,17 +200,7 @@ describe('LinuxHotkeyNotice', () => {
         });
 
         it('should show toast when portal is unavailable', async () => {
-            const noPortalStatus: PlatformHotkeyStatus = {
-                waylandStatus: {
-                    isWayland: true,
-                    desktopEnvironment: 'unknown',
-                    deVersion: null,
-                    portalAvailable: false,
-                    portalMethod: 'none',
-                },
-                registrationResults: [],
-                globalHotkeysEnabled: false,
-            };
+            const noPortalStatus = buildStatusFromPreset('linuxWaylandNoPortal', false);
 
             const win = globalThis.window as any;
             win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(noPortalStatus);
@@ -206,10 +210,135 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        expect.stringContaining('unavailable'),
+                        'Global shortcuts are not available on KDE Plasma. No Wayland session bus was detected, so portal registration could not be attempted.',
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Global Hotkeys Disabled',
+                            duration: 20000,
+                        })
+                    );
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should show GNOME-specific warning when portal registration fails', async () => {
+            const noPortalStatus = buildStatusFromPreset('linuxWaylandGnome', false);
+
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(noPortalStatus);
+
+            render(<LinuxHotkeyNotice />);
+
+            await waitFor(
+                () => {
+                    expect(mockShowWarning).toHaveBeenCalledWith(
+                        'Global shortcuts are not available on GNOME. Your desktop environment does not support the required portal.',
+                        expect.objectContaining({
+                            id: 'linux-hotkey-notice',
+                            title: 'Global Hotkeys Disabled',
+                            duration: 20000,
+                        })
+                    );
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should show Hyprland-specific warning when portal registration fails', async () => {
+            const noPortalStatus = buildStatusFromPreset('linuxWaylandHyprland', false);
+
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(noPortalStatus);
+
+            render(<LinuxHotkeyNotice />);
+
+            await waitFor(
+                () => {
+                    expect(mockShowWarning).toHaveBeenCalledWith(
+                        'Global shortcuts are not available on Hyprland. Your desktop environment does not support the required portal.',
+                        expect.objectContaining({
+                            id: 'linux-hotkey-notice',
+                            title: 'Global Hotkeys Disabled',
+                            duration: 20000,
+                        })
+                    );
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should show generic warning for unknown desktop environment', async () => {
+            const noPortalStatus = buildStatusFromPreset('linuxWaylandUnknown', false);
+
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(noPortalStatus);
+
+            render(<LinuxHotkeyNotice />);
+
+            await waitFor(
+                () => {
+                    expect(mockShowWarning).toHaveBeenCalledWith(
+                        'Global shortcuts are not available. Your desktop environment does not support the required portal.',
+                        expect.objectContaining({
+                            id: 'linux-hotkey-notice',
+                            title: 'Global Hotkeys Disabled',
+                            duration: 20000,
+                        })
+                    );
+                },
+                { timeout: 3000 }
+            );
+        });
+
+        it('should not show warning when registration succeeds on GNOME', async () => {
+            const successStatus = buildStatusFromPreset('linuxWaylandGnome', true, [
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(successStatus);
+
+            render(<LinuxHotkeyNotice />);
+
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, 1200));
+            });
+
+            expect(mockShowWarning).not.toHaveBeenCalled();
+        });
+
+        it.each([
+            ['sway', 'Sway'],
+            ['cosmic', 'COSMIC'],
+            ['deepin', 'Deepin'],
+        ] as const)('should show %s display name in warning message', async (desktopEnvironment, displayName) => {
+            const status: PlatformHotkeyStatus = {
+                waylandStatus: {
+                    isWayland: true,
+                    desktopEnvironment,
+                    deVersion: null,
+                    portalAvailable: true,
+                    portalMethod: 'none',
+                },
+                registrationResults: [],
+                globalHotkeysEnabled: false,
+            };
+
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(status);
+
+            render(<LinuxHotkeyNotice />);
+
+            await waitFor(
+                () => {
+                    expect(mockShowWarning).toHaveBeenCalledWith(
+                        `Global shortcuts are not available on ${displayName}. Your desktop environment does not support the required portal.`,
+                        expect.objectContaining({
+                            id: 'linux-hotkey-notice',
+                            title: 'Global Hotkeys Disabled',
+                            duration: 20000,
                         })
                     );
                 },
@@ -244,7 +373,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        expect.stringContaining('unavailable'),
+                        'Global shortcuts are not available. Your desktop environment does not support the required portal.',
                         expect.any(Object)
                     );
                 },
@@ -267,7 +396,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        expect.stringContaining('unavailable'),
+                        'Global shortcuts are not available. Your desktop environment does not support the required portal.',
                         expect.any(Object)
                     );
                 },
@@ -285,7 +414,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        expect.stringContaining('unavailable'),
+                        'Global shortcuts are not available. Your desktop environment does not support the required portal.',
                         expect.any(Object)
                     );
                 },

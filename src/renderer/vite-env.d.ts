@@ -192,7 +192,7 @@ interface Window {
         getPlatformHotkeyStatus: () => Promise<{
             waylandStatus: {
                 isWayland: boolean;
-                desktopEnvironment: 'kde' | 'unknown';
+                desktopEnvironment: 'kde' | 'gnome' | 'hyprland' | 'sway' | 'cosmic' | 'deepin' | 'unknown';
                 deVersion: string | null;
                 portalAvailable: boolean;
                 portalMethod: 'chromium-flag' | 'dbus-direct' | 'dbus-fallback' | 'none';
@@ -208,7 +208,7 @@ interface Window {
             callback: (status: {
                 waylandStatus: {
                     isWayland: boolean;
-                    desktopEnvironment: 'kde' | 'unknown';
+                    desktopEnvironment: 'kde' | 'gnome' | 'hyprland' | 'sway' | 'cosmic' | 'deepin' | 'unknown';
                     deVersion: string | null;
                     portalAvailable: boolean;
                     portalMethod: 'chromium-flag' | 'dbus-direct' | 'dbus-fallback' | 'none';

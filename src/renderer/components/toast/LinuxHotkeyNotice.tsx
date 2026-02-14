@@ -13,7 +13,7 @@
 import { useEffect, useRef } from 'react';
 import { useToast } from '../../context/ToastContext';
 import { isLinux } from '../../utils/platform';
-import type { PlatformHotkeyStatus } from '../../../shared/types/hotkeys';
+import type { PlatformHotkeyStatus, DesktopEnvironment } from '../../../shared/types/hotkeys';
 
 /**
  * Toast ID for duplicate prevention
@@ -29,7 +29,17 @@ const SHOW_DELAY_MS = 1000;
 /**
  * Toast duration (ms)
  */
-const TOAST_DURATION_MS = 5000;
+const TOAST_DURATION_MS = 20000;
+
+function getDisplayName(de: DesktopEnvironment): string | null {
+    if (de === 'kde') return 'KDE Plasma';
+    if (de === 'gnome') return 'GNOME';
+    if (de === 'hyprland') return 'Hyprland';
+    if (de === 'sway') return 'Sway';
+    if (de === 'cosmic') return 'COSMIC';
+    if (de === 'deepin') return 'Deepin';
+    return null;
+}
 
 /**
  * Linux Hotkey Notice component
@@ -81,7 +91,18 @@ export function LinuxHotkeyNotice() {
             }
 
             // Hotkeys not enabled — show appropriate message
-            showWarning('Global keyboard shortcuts are currently unavailable on Linux due to Wayland limitations.', {
+            const waylandStatus = status?.waylandStatus;
+            const deName = waylandStatus ? getDisplayName(waylandStatus.desktopEnvironment) : null;
+            const message =
+                waylandStatus?.isWayland && !waylandStatus.portalAvailable
+                    ? deName
+                        ? `Global shortcuts are not available on ${deName}. No Wayland session bus was detected, so portal registration could not be attempted.`
+                        : 'Global shortcuts are not available. No Wayland session bus was detected, so portal registration could not be attempted.'
+                    : deName
+                      ? `Global shortcuts are not available on ${deName}. Your desktop environment does not support the required portal.`
+                      : 'Global shortcuts are not available. Your desktop environment does not support the required portal.';
+
+            showWarning(message, {
                 id: TOAST_ID,
                 title: 'Global Hotkeys Disabled',
                 duration: TOAST_DURATION_MS,
