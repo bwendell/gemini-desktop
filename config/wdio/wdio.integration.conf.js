@@ -82,18 +82,15 @@ export const config = {
      */
     afterSession: async function (config, capabilities, specs) {
         // Ensure we don't leave lingering Electron processes
-        const { execSync } = await import('child_process');
+        const { execSync, execFileSync } = await import('child_process');
         const platform = process.platform;
         const appRegex = electronMainPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const appMatch = appRegex.replace(/["\\$`]/g, '\\$&');
 
         try {
             if (platform === 'win32') {
                 execSync('taskkill /F /IM electron.exe /T', { stdio: 'ignore' });
             } else {
-                // On macOS/Linux, be a bit more specific if possible,
-                // but pkill -f is common in CI for this app.
-                execSync(`pkill -f "${appMatch}"`, { stdio: 'ignore' });
+                execFileSync('pkill', ['-f', appRegex], { stdio: 'ignore' });
             }
         } catch (e) {
             // Process might already be gone

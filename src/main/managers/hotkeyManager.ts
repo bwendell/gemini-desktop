@@ -409,6 +409,11 @@ export default class HotkeyManager {
         }
 
         if (plan.mode === 'wayland-dbus') {
+            if (!enabled) {
+                logger.log(`Global hotkey disabled: ${id} (Wayland D-Bus state updated, no immediate re-registration)`);
+                return;
+            }
+
             if (this._isWaylandRegistrationInFlight) {
                 logger.log(
                     `Global hotkey setting updated: ${id} = ${enabled} (registration already in flight, skipping duplicate)`
