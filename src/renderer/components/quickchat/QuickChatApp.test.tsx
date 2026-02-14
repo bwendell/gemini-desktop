@@ -453,7 +453,9 @@ describe('QuickChatApp', () => {
                 await vi.advanceTimersByTimeAsync(350);
             });
 
-            expect(mockPredictText).toHaveBeenCalledWith('Hello ');
+            await waitFor(() => {
+                expect(mockPredictText).toHaveBeenCalledWith('Hello ');
+            });
         });
     });
 
