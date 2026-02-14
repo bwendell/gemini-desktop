@@ -137,6 +137,11 @@ describe('Quick Chat Feature', () => {
             const isVisibleBefore = await quickChatPage.isVisible();
             expect(isVisibleBefore).toBe(true);
 
+            // Wait for blur suppression window to expire (500ms set in showWindow())
+            // The suppression is set when the window shows, which happens asynchronously
+            // after the IPC call returns. Use a fixed delay to ensure suppression expires.
+            await browser.pause(800);
+
             // Trigger blur by focusing the main window (simulates clicking outside)
             // This exercises the 'blur' event handler in quickChatWindow.ts
             // Note: WebDriver window switching doesn't trigger OS-level blur,
