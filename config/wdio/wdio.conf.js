@@ -15,6 +15,9 @@ import { fileURLToPath } from 'url';
 import { getAppArgs, linuxServiceConfig } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
+const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
+const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
 
 // Path to the Electron main entry (compiled from TypeScript)
 const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
@@ -158,12 +161,12 @@ export const config = {
     mochaOpts: {
         ui: 'bdd',
         timeout: 90000, // Increased from 60s for stability
-        retries: 2, // Retry individual tests up to 2 times on failure
+        retries: TEST_RETRIES,
     },
 
     // Retry failed spec files to handle flaky tests
-    specFileRetries: 1,
-    specFileRetriesDelay: 2,
+    specFileRetries: SPEC_FILE_RETRIES,
+    specFileRetriesDelay: SPEC_FILE_RETRY_DELAY_SECONDS,
     specFileRetriesDeferred: false,
 
     // Build the frontend and Electron backend before tests

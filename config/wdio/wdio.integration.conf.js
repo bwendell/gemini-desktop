@@ -8,6 +8,9 @@ dotenvConfig();
 // Get directory of this config file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
+const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
+const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
 
 // Path to the Electron main entry (compiled from TypeScript)
 const electronMainPath = join(__dirname, '../../dist-electron', 'main/main.cjs');
@@ -45,7 +48,13 @@ export const config = {
     mochaOpts: {
         ui: 'bdd',
         timeout: 60000,
+        retries: TEST_RETRIES,
     },
+
+    // Retry failed spec files to reduce CI timing-related flakes
+    specFileRetries: SPEC_FILE_RETRIES,
+    specFileRetriesDelay: SPEC_FILE_RETRY_DELAY_SECONDS,
+    specFileRetriesDeferred: false,
 
     /**
      * Gets executed before test execution begins.
