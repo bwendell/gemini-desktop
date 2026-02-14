@@ -13,7 +13,7 @@
 import { useEffect, useRef } from 'react';
 import { useToast } from '../../context/ToastContext';
 import { isLinux } from '../../utils/platform';
-import type { PlatformHotkeyStatus } from '../../../shared/types/hotkeys';
+import type { PlatformHotkeyStatus, DesktopEnvironment } from '../../../shared/types/hotkeys';
 
 /**
  * Toast ID for duplicate prevention
@@ -29,7 +29,17 @@ const SHOW_DELAY_MS = 1000;
 /**
  * Toast duration (ms)
  */
-const TOAST_DURATION_MS = 5000;
+const TOAST_DURATION_MS = 20000;
+
+function getDisplayName(de: DesktopEnvironment): string | null {
+    if (de === 'kde') return 'KDE Plasma';
+    if (de === 'gnome') return 'GNOME';
+    if (de === 'hyprland') return 'Hyprland';
+    if (de === 'sway') return 'Sway';
+    if (de === 'cosmic') return 'COSMIC';
+    if (de === 'deepin') return 'Deepin';
+    return null;
+}
 
 /**
  * Linux Hotkey Notice component
@@ -81,7 +91,44 @@ export function LinuxHotkeyNotice() {
             }
 
             // Hotkeys not enabled — show appropriate message
-            showWarning('Global keyboard shortcuts are currently unavailable on Linux due to Wayland limitations.', {
+            const waylandStatus = status?.waylandStatus;
+            const failures = status?.registrationResults.filter((result) => !result.success) ?? [];
+            const deName = waylandStatus ? getDisplayName(waylandStatus.desktopEnvironment) : null;
+
+            let message: string;
+
+            if (failures.length > 0) {
+                const failedNames = failures.map((failure) => failure.hotkeyId).join(', ');
+                const failureDetails = Array.from(
+                    new Set(
+                        failures
+                            .map((failure) => failure.error)
+                            .filter((error): error is string => Boolean(error?.trim()))
+                    )
+                );
+
+                if (failureDetails.length > 0) {
+                    message = `Global shortcuts could not be registered: ${failedNames}. ${failureDetails.join('; ')}.`;
+                } else {
+                    message = `Global shortcuts could not be registered: ${failedNames}.`;
+                }
+            } else if (waylandStatus?.isWayland) {
+                if (!waylandStatus.portalAvailable) {
+                    message = deName
+                        ? `Global shortcuts are not available on ${deName}. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.`
+                        : 'Global shortcuts are not available. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.';
+                } else {
+                    message = deName
+                        ? `Global shortcuts are currently disabled on ${deName}. Enable them in Settings to register shortcuts.`
+                        : 'Global shortcuts are currently disabled. Enable them in Settings to register shortcuts.';
+                }
+            } else {
+                message = deName
+                    ? `Global shortcuts are not available on ${deName}.`
+                    : 'Global shortcuts are not available.';
+            }
+
+            showWarning(message, {
                 id: TOAST_ID,
                 title: 'Global Hotkeys Disabled',
                 duration: TOAST_DURATION_MS,

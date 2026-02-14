@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
+import {
+    platformAdapterPresets,
+    useMockPlatformAdapter as applyMockPlatformAdapter,
+    resetPlatformAdapterForTests,
+} from '../helpers/mocks';
 import { stubPlatform, restorePlatform } from '../helpers/harness';
 
 vi.mock('electron', async () => {
@@ -35,7 +39,7 @@ const adapterForPlatform: Record<
 
 const setAdapterForCurrentPlatform = () => {
     const adapter = adapterForPlatform[process.platform] || platformAdapterPresets.linuxX11();
-    useMockPlatformAdapter(adapter);
+    applyMockPlatformAdapter(adapter);
 };
 
 vi.mock('../../src/main/platform/platformAdapterFactory', () => ({
@@ -125,6 +129,50 @@ describe('Wayland Hotkey Coordination', () => {
             expect(globalShortcut.register).not.toHaveBeenCalled();
         });
 
+        it('when detector reports Wayland+GNOME, manager attempts registration via portal', async () => {
+            adapterForPlatform.linux = platformAdapterPresets.linuxWaylandGnome();
+            setAdapterForCurrentPlatform();
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            vi.clearAllMocks();
+            hotkeyManager.registerShortcuts();
+
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            expect(globalShortcut.register).not.toHaveBeenCalled();
+        });
+
+        it('when detector reports Wayland+Hyprland, manager attempts registration via portal', async () => {
+            adapterForPlatform.linux = platformAdapterPresets.linuxWaylandHyprland();
+            setAdapterForCurrentPlatform();
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            vi.clearAllMocks();
+            hotkeyManager.registerShortcuts();
+
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            expect(globalShortcut.register).not.toHaveBeenCalled();
+        });
+
         it('when detector reports X11, manager skips Wayland-specific registration', () => {
             adapterForPlatform.linux = platformAdapterPresets.linuxX11();
             setAdapterForCurrentPlatform();
@@ -144,8 +192,39 @@ describe('Wayland Hotkey Coordination', () => {
             expect(globalShortcut.register).not.toHaveBeenCalled();
         });
 
-        it('when detector reports unsupported Wayland DE, hotkeys are disabled', () => {
-            adapterForPlatform.linux = platformAdapterPresets.linuxX11();
+        it('when detector reports Wayland+unknown DE, manager still attempts portal and handles failure', async () => {
+            adapterForPlatform.linux = platformAdapterPresets.linuxWaylandUnknown();
+            setAdapterForCurrentPlatform();
+
+            mockRegisterViaDBus.mockResolvedValue([
+                { hotkeyId: 'quickChat', success: false, error: 'Portal backend missing' },
+                { hotkeyId: 'bossKey', success: false, error: 'Portal backend missing' },
+            ]);
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            vi.clearAllMocks();
+            hotkeyManager.registerShortcuts();
+
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            expect(globalShortcut.register).not.toHaveBeenCalled();
+
+            const status = hotkeyManager.getPlatformHotkeyStatus();
+            expect(status.waylandStatus.desktopEnvironment).toBe('unknown');
+            expect(status.globalHotkeysEnabled).toBe(false);
+        });
+
+        it('when detector reports Wayland without portal availability, manager does not attempt D-Bus registration', () => {
+            adapterForPlatform.linux = platformAdapterPresets.linuxWaylandNoPortal();
             setAdapterForCurrentPlatform();
 
             windowManager = new WindowManager(false);
@@ -159,7 +238,13 @@ describe('Wayland Hotkey Coordination', () => {
             vi.clearAllMocks();
             hotkeyManager.registerShortcuts();
 
+            expect(mockRegisterViaDBus).not.toHaveBeenCalled();
             expect(globalShortcut.register).not.toHaveBeenCalled();
+
+            const status = hotkeyManager.getPlatformHotkeyStatus();
+            expect(status.waylandStatus.isWayland).toBe(true);
+            expect(status.waylandStatus.portalAvailable).toBe(false);
+            expect(status.globalHotkeysEnabled).toBe(false);
         });
     });
 
@@ -193,6 +278,33 @@ describe('Wayland Hotkey Coordination', () => {
             });
 
             expect(globalShortcut.register).not.toHaveBeenCalled();
+        });
+
+        it('on Wayland+Hyprland, D-Bus registration flow is used', async () => {
+            adapterForPlatform.linux = platformAdapterPresets.linuxWaylandHyprland();
+            setAdapterForCurrentPlatform();
+
+            mockRegisterViaDBus.mockResolvedValue([
+                { hotkeyId: 'quickChat', success: true },
+                { hotkeyId: 'bossKey', success: true },
+            ]);
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            await vi.waitFor(() => {
+                expect(mockRegisterViaDBus).toHaveBeenCalled();
+            });
+
+            expect(globalShortcut.register).not.toHaveBeenCalled();
+            expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.desktopEnvironment).toBe('hyprland');
         });
 
         it('D-Bus direct path passes action callbacks map', async () => {
@@ -260,6 +372,46 @@ describe('Wayland Hotkey Coordination', () => {
             expect(status).toHaveProperty('globalHotkeysEnabled');
             expect(status.waylandStatus.isWayland).toBe(true);
             expect(status.waylandStatus.desktopEnvironment).toBe('kde');
+        });
+
+        it('platform status includes GNOME desktop environment through coordination layer', () => {
+            adapterForPlatform.linux = platformAdapterPresets.linuxWaylandGnome();
+            setAdapterForCurrentPlatform();
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            hotkeyManager.registerShortcuts();
+            const status: PlatformHotkeyStatus = hotkeyManager.getPlatformHotkeyStatus();
+
+            expect(status.waylandStatus.isWayland).toBe(true);
+            expect(status.waylandStatus.desktopEnvironment).toBe('gnome');
+            expect(status.waylandStatus.portalAvailable).toBe(true);
+        });
+
+        it('platform status includes unknown desktop environment through coordination layer', () => {
+            adapterForPlatform.linux = platformAdapterPresets.linuxWaylandUnknown();
+            setAdapterForCurrentPlatform();
+
+            windowManager = new WindowManager(false);
+            hotkeyManager = new HotkeyManager(windowManager, {
+                alwaysOnTop: true,
+                bossKey: true,
+                quickChat: true,
+                printToPdf: true,
+            });
+
+            hotkeyManager.registerShortcuts();
+            const status: PlatformHotkeyStatus = hotkeyManager.getPlatformHotkeyStatus();
+
+            expect(status.waylandStatus.isWayland).toBe(true);
+            expect(status.waylandStatus.desktopEnvironment).toBe('unknown');
+            expect(status.waylandStatus.portalAvailable).toBe(true);
         });
 
         it('platform status returns correct defaults on non-Linux platforms', () => {

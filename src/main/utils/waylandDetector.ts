@@ -19,8 +19,24 @@ export function detectDesktopEnvironment(): DesktopEnvironment {
 
     const parts = desktopEnv.split(':');
     for (const part of parts) {
-        if (part.toLowerCase() === 'kde') {
+        const normalized = part.toLowerCase();
+        if (normalized === 'kde') {
             return 'kde';
+        }
+        if (normalized === 'gnome') {
+            return 'gnome';
+        }
+        if (normalized === 'hyprland') {
+            return 'hyprland';
+        }
+        if (normalized === 'sway') {
+            return 'sway';
+        }
+        if (normalized === 'cosmic') {
+            return 'cosmic';
+        }
+        if (normalized === 'deepin') {
+            return 'deepin';
         }
     }
 
@@ -28,33 +44,29 @@ export function detectDesktopEnvironment(): DesktopEnvironment {
 }
 
 export function detectDEVersion(de: DesktopEnvironment): string | null {
-    if (de !== 'kde') {
-        return null;
+    if (de === 'kde') {
+        const version = process.env.KDE_SESSION_VERSION;
+        if (!version) {
+            return null;
+        }
+
+        return version;
     }
 
-    const version = process.env.KDE_SESSION_VERSION;
-    if (!version) {
-        return null;
+    if (de === 'gnome') {
+        const sessionId = process.env.GNOME_DESKTOP_SESSION_ID;
+        if (!sessionId) {
+            return null;
+        }
+
+        return sessionId;
     }
 
-    return version;
+    return null;
 }
 
-export function isSupportedDE(de: DesktopEnvironment, version: string | null): boolean {
-    if (de !== 'kde') {
-        return false;
-    }
-
-    if (version === null) {
-        return false;
-    }
-
-    const majorVersion = parseInt(version, 10);
-    if (isNaN(majorVersion)) {
-        return false;
-    }
-
-    return majorVersion >= 5;
+export function isSupportedDE(de: DesktopEnvironment, _version: string | null): boolean {
+    return de !== 'unknown';
 }
 
 export function getWaylandStatus(): WaylandStatus {

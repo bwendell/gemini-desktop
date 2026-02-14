@@ -129,19 +129,59 @@ describe('WaylandDetector', () => {
             expect(detectDesktopEnvironment()).toBe('kde');
         });
 
-        it('returns "unknown" when XDG_CURRENT_DESKTOP is "GNOME"', () => {
+        it('returns "gnome" when XDG_CURRENT_DESKTOP is "GNOME"', () => {
             process.env.XDG_CURRENT_DESKTOP = 'GNOME';
-            expect(detectDesktopEnvironment()).toBe('unknown');
+            expect(detectDesktopEnvironment()).toBe('gnome');
         });
 
-        it('returns "unknown" when XDG_CURRENT_DESKTOP is "gnome" (lowercase)', () => {
+        it('returns "gnome" when XDG_CURRENT_DESKTOP is "gnome" (lowercase)', () => {
             process.env.XDG_CURRENT_DESKTOP = 'gnome';
-            expect(detectDesktopEnvironment()).toBe('unknown');
+            expect(detectDesktopEnvironment()).toBe('gnome');
         });
 
-        it('returns "unknown" when XDG_CURRENT_DESKTOP is "ubuntu:GNOME"', () => {
+        it('returns "gnome" when XDG_CURRENT_DESKTOP is "ubuntu:GNOME"', () => {
             process.env.XDG_CURRENT_DESKTOP = 'ubuntu:GNOME';
-            expect(detectDesktopEnvironment()).toBe('unknown');
+            expect(detectDesktopEnvironment()).toBe('gnome');
+        });
+
+        it('returns "hyprland" when XDG_CURRENT_DESKTOP is "Hyprland"', () => {
+            process.env.XDG_CURRENT_DESKTOP = 'Hyprland';
+            expect(detectDesktopEnvironment()).toBe('hyprland');
+        });
+
+        it('returns "hyprland" when XDG_CURRENT_DESKTOP is "hyprland"', () => {
+            process.env.XDG_CURRENT_DESKTOP = 'hyprland';
+            expect(detectDesktopEnvironment()).toBe('hyprland');
+        });
+
+        it('returns "sway" when XDG_CURRENT_DESKTOP is "Sway"', () => {
+            process.env.XDG_CURRENT_DESKTOP = 'Sway';
+            expect(detectDesktopEnvironment()).toBe('sway');
+        });
+
+        it('returns "sway" when XDG_CURRENT_DESKTOP is "sway"', () => {
+            process.env.XDG_CURRENT_DESKTOP = 'sway';
+            expect(detectDesktopEnvironment()).toBe('sway');
+        });
+
+        it('returns "cosmic" when XDG_CURRENT_DESKTOP is "COSMIC"', () => {
+            process.env.XDG_CURRENT_DESKTOP = 'COSMIC';
+            expect(detectDesktopEnvironment()).toBe('cosmic');
+        });
+
+        it('returns "cosmic" when XDG_CURRENT_DESKTOP is "cosmic"', () => {
+            process.env.XDG_CURRENT_DESKTOP = 'cosmic';
+            expect(detectDesktopEnvironment()).toBe('cosmic');
+        });
+
+        it('returns "deepin" when XDG_CURRENT_DESKTOP is "Deepin"', () => {
+            process.env.XDG_CURRENT_DESKTOP = 'Deepin';
+            expect(detectDesktopEnvironment()).toBe('deepin');
+        });
+
+        it('returns "deepin" when XDG_CURRENT_DESKTOP is "deepin"', () => {
+            process.env.XDG_CURRENT_DESKTOP = 'deepin';
+            expect(detectDesktopEnvironment()).toBe('deepin');
         });
 
         it('returns "unknown" when XDG_CURRENT_DESKTOP is undefined', () => {
@@ -205,6 +245,32 @@ describe('WaylandDetector', () => {
             expect(detectDEVersion('unknown')).toBeNull();
         });
 
+        it('returns GNOME_DESKTOP_SESSION_ID when de is "gnome"', () => {
+            process.env.GNOME_DESKTOP_SESSION_ID = 'this-is-deprecated';
+            expect(detectDEVersion('gnome')).toBe('this-is-deprecated');
+        });
+
+        it('returns null when de is "gnome" and GNOME_DESKTOP_SESSION_ID is undefined', () => {
+            delete process.env.GNOME_DESKTOP_SESSION_ID;
+            expect(detectDEVersion('gnome')).toBeNull();
+        });
+
+        it('returns null when de is "hyprland"', () => {
+            expect(detectDEVersion('hyprland')).toBeNull();
+        });
+
+        it('returns null when de is "sway"', () => {
+            expect(detectDEVersion('sway')).toBeNull();
+        });
+
+        it('returns null when de is "cosmic"', () => {
+            expect(detectDEVersion('cosmic')).toBeNull();
+        });
+
+        it('returns null when de is "deepin"', () => {
+            expect(detectDEVersion('deepin')).toBeNull();
+        });
+
         it('gracefully handles unexpected env values without throwing', () => {
             process.env.KDE_SESSION_VERSION = 'unexpected';
             expect(() => detectDEVersion('kde')).not.toThrow();
@@ -217,53 +283,34 @@ describe('WaylandDetector', () => {
     // ========================================================================
 
     describe('isSupportedDE', () => {
-        it('returns true for kde with version "6"', () => {
-            expect(isSupportedDE('kde', '6')).toBe(true);
+        it('returns true for kde', () => {
+            expect(isSupportedDE('kde', '4')).toBe(true);
+            expect(isSupportedDE('kde', null)).toBe(true);
         });
 
-        it('returns true for kde with version "5"', () => {
-            expect(isSupportedDE('kde', '5')).toBe(true);
+        it('returns true for gnome', () => {
+            expect(isSupportedDE('gnome', null)).toBe(true);
         });
 
-        it('returns true for kde with version "7" (future version)', () => {
-            expect(isSupportedDE('kde', '7')).toBe(true);
+        it('returns true for hyprland', () => {
+            expect(isSupportedDE('hyprland', null)).toBe(true);
         });
 
-        it('returns false for kde with version "4"', () => {
-            expect(isSupportedDE('kde', '4')).toBe(false);
+        it('returns true for sway', () => {
+            expect(isSupportedDE('sway', null)).toBe(true);
         });
 
-        it('returns false for kde with version "3"', () => {
-            expect(isSupportedDE('kde', '3')).toBe(false);
+        it('returns true for cosmic', () => {
+            expect(isSupportedDE('cosmic', null)).toBe(true);
         });
 
-        it('returns false for kde with version "0"', () => {
-            expect(isSupportedDE('kde', '0')).toBe(false);
+        it('returns true for deepin', () => {
+            expect(isSupportedDE('deepin', null)).toBe(true);
         });
 
-        it('returns false for kde with version null', () => {
-            expect(isSupportedDE('kde', null)).toBe(false);
-        });
-
-        it('returns false for unknown DE with version "6"', () => {
-            expect(isSupportedDE('unknown', '6')).toBe(false);
-        });
-
-        it('returns false for unknown DE with version "5"', () => {
-            expect(isSupportedDE('unknown', '5')).toBe(false);
-        });
-
-        it('returns false for unknown DE with version null', () => {
-            expect(isSupportedDE('unknown', null)).toBe(false);
-        });
-
-        it('returns false for unknown DE with any version', () => {
+        it('returns false for unknown', () => {
             expect(isSupportedDE('unknown', '10')).toBe(false);
-        });
-
-        it('handles version strings with numeric comparison correctly', () => {
-            // Edge case: '10' should be > 5
-            expect(isSupportedDE('kde', '10')).toBe(true);
+            expect(isSupportedDE('unknown', null)).toBe(false);
         });
     });
 
@@ -289,17 +336,17 @@ describe('WaylandDetector', () => {
             });
         });
 
-        it('returns portalAvailable false for GNOME on Wayland', () => {
+        it('returns portalAvailable true for GNOME on Wayland with session bus', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'GNOME';
-            delete process.env.KDE_SESSION_VERSION;
+            process.env.GNOME_DESKTOP_SESSION_ID = 'session-1';
             process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
             const status = getWaylandStatus();
 
             expect(status.isWayland).toBe(true);
-            expect(status.desktopEnvironment).toBe('unknown');
-            expect(status.portalAvailable).toBe(false);
+            expect(status.desktopEnvironment).toBe('gnome');
+            expect(status.portalAvailable).toBe(true);
             expect(status.portalMethod).toBe('none');
         });
 
@@ -315,7 +362,7 @@ describe('WaylandDetector', () => {
             expect(status.portalAvailable).toBe(false);
         });
 
-        it('returns portalAvailable false for KDE 4 on Wayland (unsupported)', () => {
+        it('returns portalAvailable true for KDE 4 on Wayland with session bus', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'KDE';
             process.env.KDE_SESSION_VERSION = '4';
@@ -326,10 +373,10 @@ describe('WaylandDetector', () => {
             expect(status.isWayland).toBe(true);
             expect(status.desktopEnvironment).toBe('kde');
             expect(status.deVersion).toBe('4');
-            expect(status.portalAvailable).toBe(false);
+            expect(status.portalAvailable).toBe(true);
         });
 
-        it('returns portalAvailable false for KDE with null version', () => {
+        it('returns portalAvailable true for KDE with null version when session bus is available', () => {
             process.env.XDG_SESSION_TYPE = 'wayland';
             process.env.XDG_CURRENT_DESKTOP = 'KDE';
             delete process.env.KDE_SESSION_VERSION;
@@ -339,6 +386,19 @@ describe('WaylandDetector', () => {
 
             expect(status.isWayland).toBe(true);
             expect(status.desktopEnvironment).toBe('kde');
+            expect(status.deVersion).toBeNull();
+            expect(status.portalAvailable).toBe(true);
+        });
+
+        it('returns portalAvailable false for unknown DE on Wayland with session bus', () => {
+            process.env.XDG_SESSION_TYPE = 'wayland';
+            process.env.XDG_CURRENT_DESKTOP = 'FutureDE';
+            process.env.DBUS_SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
+
+            const status = getWaylandStatus();
+
+            expect(status.isWayland).toBe(true);
+            expect(status.desktopEnvironment).toBe('unknown');
             expect(status.deVersion).toBeNull();
             expect(status.portalAvailable).toBe(false);
         });

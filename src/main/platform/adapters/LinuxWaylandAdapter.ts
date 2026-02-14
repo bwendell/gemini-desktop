@@ -58,10 +58,12 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
             // Chromium's globalShortcut.register() reports false positive success on KDE Plasma 6
             // and interferes with our direct D-Bus portal session. We handle global shortcuts
             // entirely via dbus-next in hotkeyManager._registerViaDBusDirect().
-            logger.log('Wayland detected with portal — will use D-Bus portal for global shortcuts');
+            logger.log(
+                `Wayland detected on ${waylandStatus.desktopEnvironment}, attempting portal registration for global shortcuts`
+            );
         } else if (waylandStatus.isWayland) {
             logger.warn(
-                `Wayland detected but portal unavailable. DE: ${waylandStatus.desktopEnvironment}, Version: ${waylandStatus.deVersion}`
+                `Portal registration not available on ${waylandStatus.desktopEnvironment} — unsupported desktop environment or no session bus`
             );
         }
     }

@@ -208,7 +208,7 @@ describe('Platform Hotkey Status IPC', () => {
             });
 
             // Valid desktop environment values per type definition
-            const validDEs = ['kde', 'unknown'];
+            const validDEs = ['kde', 'gnome', 'hyprland', 'sway', 'cosmic', 'deepin', 'unknown'];
             expect(validDEs).toContain(status.waylandStatus.desktopEnvironment);
         });
 

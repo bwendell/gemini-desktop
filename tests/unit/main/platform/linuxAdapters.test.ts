@@ -164,7 +164,7 @@ describe('LinuxWaylandAdapter', () => {
             adapter.applyAppConfiguration(app, logger);
 
             expect(logger.log).toHaveBeenCalledWith(
-                'Wayland detected with portal — will use D-Bus portal for global shortcuts'
+                'Wayland detected on kde, attempting portal registration for global shortcuts'
             );
         });
 
@@ -176,7 +176,7 @@ describe('LinuxWaylandAdapter', () => {
             adapter.applyAppConfiguration(app, logger);
 
             expect(logger.warn).toHaveBeenCalledWith(
-                expect.stringContaining('Wayland detected but portal unavailable')
+                'Portal registration not available on unknown — unsupported desktop environment or no session bus'
             );
         });
 

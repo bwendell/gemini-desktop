@@ -135,9 +135,14 @@ export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
 /**
  * Supported Linux desktop environments for Wayland global hotkey detection.
  * - 'kde': KDE Plasma (supports XDG Desktop Portal GlobalShortcuts)
+ * - 'gnome': GNOME
+ * - 'hyprland': Hyprland
+ * - 'sway': Sway
+ * - 'cosmic': COSMIC
+ * - 'deepin': Deepin
  * - 'unknown': Unrecognized or unsupported desktop environment
  */
-export type DesktopEnvironment = 'kde' | 'unknown';
+export type DesktopEnvironment = 'kde' | 'gnome' | 'hyprland' | 'sway' | 'cosmic' | 'deepin' | 'unknown';
 
 /**
  * Method used to register global shortcuts on Wayland.
