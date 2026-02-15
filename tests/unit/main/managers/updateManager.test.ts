@@ -124,4 +124,57 @@ describe('UpdateManager', () => {
         // Should broadcast update-error because it's manual
         expect(mockWebContents.send).toHaveBeenCalledWith('update-error', expect.any(String));
     });
+
+    describe('update-not-available toast suppression', () => {
+        it('should broadcast not-available on the first check (startup)', async () => {
+            await updateManager.checkForUpdates(false);
+
+            // Simulate electron-updater emitting update-not-available
+            mockAutoUpdater.emit('update-not-available', { version: '1.0.0' });
+
+            expect(mockWebContents.send).toHaveBeenCalledWith('auto-update:not-available', { version: '1.0.0' });
+        });
+
+        it('should suppress not-available on subsequent periodic checks', async () => {
+            // First check (startup) - triggers lazy init
+            await updateManager.checkForUpdates(false);
+            mockAutoUpdater.emit('update-not-available', { version: '1.0.0' });
+
+            // Clear call history from first check
+            mockWebContents.send.mockClear();
+
+            // Second periodic check
+            await updateManager.checkForUpdates(false);
+            mockAutoUpdater.emit('update-not-available', { version: '1.0.0' });
+
+            // Should NOT have broadcast not-available
+            expect(mockWebContents.send).not.toHaveBeenCalledWith('auto-update:not-available', expect.anything());
+        });
+
+        it('should broadcast not-available on manual check (even after first check)', async () => {
+            // First check
+            await updateManager.checkForUpdates(false);
+            mockAutoUpdater.emit('update-not-available', { version: '1.0.0' });
+            mockWebContents.send.mockClear();
+
+            // Manual check via Help > Check for Updates
+            await updateManager.checkForUpdates(true);
+            mockAutoUpdater.emit('update-not-available', { version: '1.0.0' });
+
+            expect(mockWebContents.send).toHaveBeenCalledWith('auto-update:not-available', { version: '1.0.0' });
+        });
+
+        it('should always broadcast update-available regardless of check type', async () => {
+            // First check - consume isFirstCheck
+            await updateManager.checkForUpdates(false);
+            mockAutoUpdater.emit('update-not-available', { version: '1.0.0' });
+            mockWebContents.send.mockClear();
+
+            // Periodic check finds an update
+            await updateManager.checkForUpdates(false);
+            mockAutoUpdater.emit('update-available', { version: '2.0.0' });
+
+            expect(mockWebContents.send).toHaveBeenCalledWith('auto-update:available', { version: '2.0.0' });
+        });
+    });
 });
