@@ -83,6 +83,10 @@ interface DBusMessage {
     body?: unknown[];
 }
 
+interface PortalShortcutSignalPayload {
+    shortcutId: string;
+}
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -396,6 +400,26 @@ function waitForPortalResponse(
     });
 }
 
+function parseShortcutSignalPayload(msg: DBusMessage): PortalShortcutSignalPayload | null {
+    const body = msg.body;
+    if (!Array.isArray(body) || body.length < 2) {
+        logger.warn('Received malformed portal shortcut signal body', { member: msg.member, body });
+        return null;
+    }
+
+    const shortcutId = body[1];
+    if (typeof shortcutId !== 'string' || shortcutId.trim().length === 0) {
+        logger.warn('Received portal shortcut signal with invalid shortcutId', {
+            member: msg.member,
+            shortcutId,
+            body,
+        });
+        return null;
+    }
+
+    return { shortcutId };
+}
+
 // ============================================================================
 // Public API
 // ============================================================================
@@ -550,7 +574,12 @@ export async function registerViaDBus(
                 msg.interface === GLOBAL_SHORTCUTS_INTERFACE &&
                 msg.member === 'Activated'
             ) {
-                const [, shortcutId] = (msg.body || []) as [string, string, Record<string, unknown>];
+                const payload = parseShortcutSignalPayload(msg);
+                if (!payload) {
+                    return;
+                }
+
+                const { shortcutId } = payload;
                 logger.log(`Shortcut activated via D-Bus: ${shortcutId}`);
 
                 // Test-only: Record activation signal for integration test verification
@@ -573,7 +602,12 @@ export async function registerViaDBus(
                 msg.interface === GLOBAL_SHORTCUTS_INTERFACE &&
                 msg.member === 'Deactivated'
             ) {
-                const [, shortcutId] = (msg.body || []) as [string, string, Record<string, unknown>];
+                const payload = parseShortcutSignalPayload(msg);
+                if (!payload) {
+                    return;
+                }
+
+                const { shortcutId } = payload;
                 logger.log(`Shortcut deactivated via D-Bus: ${shortcutId}`);
             }
         };
