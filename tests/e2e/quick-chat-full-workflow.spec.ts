@@ -19,8 +19,8 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { browser, expect } from '@wdio/globals';
-import { QuickChatPage, MainWindowPage } from './pages';
+import { expect } from '@wdio/globals';
+import { QuickChatPage } from './pages';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForWindowTransition } from './helpers/workflows';
 import { verifyGeminiEditorState, waitForTextInGeminiEditor } from './helpers/quickChatActions';
 import { E2ELogger } from './helpers/logger';
@@ -28,7 +28,6 @@ import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Quick Chat Full Workflow (E2E)', () => {
     const quickChat = new QuickChatPage();
-    const mainWindow = new MainWindowPage();
 
     before(async () => {
         await waitForAppReady();

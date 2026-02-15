@@ -8,6 +8,8 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+
+import type { GeminiNavigatePayload, GeminiReadyPayload } from '../../shared/types/tabs';
 import { createRendererLogger } from '../utils';
 
 const logger = createRendererLogger('[useQuickChatNavigation]');
@@ -37,23 +39,26 @@ export interface QuickChatNavigationState {
 export function useQuickChatNavigation(originalHandleLoad: () => void): QuickChatNavigationState {
     // State for Quick Chat navigation
     const [iframeKey, setIframeKey] = useState(0);
-    const [pendingText, setPendingText] = useState<string | null>(null);
+    const [pendingNavigate, setPendingNavigate] = useState<GeminiNavigatePayload | null>(null);
 
     // Enhanced load handler that signals ready for pending Quick Chat injection
     const handleIframeLoad = useCallback(() => {
         // Call the original load handler
         originalHandleLoad();
 
-        // If there's pending text from Quick Chat navigation, signal ready
-        if (pendingText !== null && window.electronAPI?.signalGeminiReady) {
+        if (pendingNavigate !== null && window.electronAPI?.signalGeminiReady) {
             // Small delay to ensure iframe content is fully initialized
             setTimeout(() => {
-                window.electronAPI!.signalGeminiReady(pendingText);
-                setPendingText(null);
+                const readyPayload: GeminiReadyPayload = {
+                    requestId: pendingNavigate.requestId,
+                    targetTabId: pendingNavigate.targetTabId,
+                };
+                window.electronAPI!.signalGeminiReady(readyPayload);
+                setPendingNavigate(null);
                 logger.log('Signaled Gemini ready for text injection');
             }, READY_SIGNAL_DELAY_MS);
         }
-    }, [originalHandleLoad, pendingText]);
+    }, [originalHandleLoad, pendingNavigate]);
 
     // Subscribe to Gemini navigation requests from main process
     useEffect(() => {
@@ -61,11 +66,10 @@ export function useQuickChatNavigation(originalHandleLoad: () => void): QuickCha
             return;
         }
 
-        const unsubscribe = window.electronAPI.onGeminiNavigate((data: { url: string; text: string }) => {
-            logger.log('Gemini navigation requested:', data.url);
+        const unsubscribe = window.electronAPI.onGeminiNavigate((data) => {
+            logger.log('Gemini navigation requested for tab:', data.targetTabId);
 
-            // Store the text to inject after iframe loads
-            setPendingText(data.text);
+            setPendingNavigate(data);
 
             // Force iframe to reload by changing its key
             // This causes React to unmount and remount the iframe

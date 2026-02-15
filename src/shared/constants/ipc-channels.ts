@@ -39,6 +39,10 @@ export const IPC_CHANNELS = {
     GEMINI_NAVIGATE: 'gemini:navigate',
     GEMINI_READY: 'gemini:ready',
 
+    TABS_GET_STATE: 'tabs:get-state',
+    TABS_SAVE_STATE: 'tabs:save-state',
+    TABS_SHORTCUT_TRIGGERED: 'tabs:shortcut-triggered',
+
     // Always On Top
     ALWAYS_ON_TOP_GET: 'always-on-top:get',
     ALWAYS_ON_TOP_SET: 'always-on-top:set',

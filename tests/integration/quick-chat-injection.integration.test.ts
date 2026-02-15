@@ -11,7 +11,7 @@
 import { browser, expect } from '@wdio/globals';
 
 describe('Quick Chat Injection Integration', () => {
-    let mainWindowHandle: string;
+    let _mainWindowHandle: string;
 
     before(async () => {
         // Wait for app ready
@@ -27,7 +27,7 @@ describe('Quick Chat Injection Integration', () => {
 
         // Store main window handle
         const handles = await browser.getWindowHandles();
-        mainWindowHandle = handles[0];
+        _mainWindowHandle = handles[0];
     });
 
     afterEach(async () => {

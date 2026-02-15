@@ -91,6 +91,15 @@ export const QUICK_CHAT_TEST_IDS = {
     QUICK_CHAT_GHOST_TEXT: 'quick-chat-ghost-text',
 } as const;
 
+export const TAB_TEST_IDS = {
+    TAB_BAR: 'tab-bar',
+    TAB_NEW_BUTTON: 'tab-new-button',
+    TAB_PANEL: 'tab-panel',
+    tab: (id: string) => `tab-${id}`,
+    tabClose: (id: string) => `tab-close-${id}`,
+    tabIframe: (id: string) => `tab-iframe-${id}`,
+} as const;
+
 // =============================================================================
 // Combined Export (for convenience)
 // =============================================================================
@@ -102,4 +111,5 @@ export const TEST_IDS = {
     ...OPTIONS_TEST_IDS,
     ...ABOUT_TEST_IDS,
     ...QUICK_CHAT_TEST_IDS,
+    ...TAB_TEST_IDS,
 } as const;

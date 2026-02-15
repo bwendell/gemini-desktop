@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { TextPredictionSettings } from '../../../src/renderer/components/options/TextPredictionSettings';
-import { setupMockElectronAPI, clearMockElectronAPI } from '../../helpers/mocks';
+import { setupMockElectronAPI } from '../../helpers/mocks';
 
 // Mock platform utils
 vi.mock('../../../src/renderer/utils/platform', () => ({

@@ -14,7 +14,7 @@ import { E2ELogger } from './logger';
 import { E2E_TIMING } from './e2eConstants';
 import { Selectors } from './selectors';
 import { clickMenuItemById } from './menuActions';
-import { waitForWindowCount, closeCurrentWindow } from './windowActions';
+import { waitForWindowCount, closeCurrentWindow as _closeCurrentWindow } from './windowActions';
 import {
     waitForOptionsWindow,
     closeOptionsWindow,
@@ -419,6 +419,49 @@ export async function pressComplexShortcut(modifiers: Array<'primary' | 'shift' 
     await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
 
     E2ELogger.info('workflows', `Pressed shortcut: ${modifierKeys.join('+')}+${key}`);
+}
+
+export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' | 'alt'>, key: string): Promise<void> {
+    const isMac = await isMacOS();
+    const modifierKeys: Array<'shift' | 'alt' | 'control' | 'meta'> = modifiers.map((m) => {
+        switch (m) {
+            case 'primary':
+                return isMac ? 'meta' : 'control';
+            case 'shift':
+                return 'shift';
+            case 'alt':
+                return 'alt';
+            default:
+                return m;
+        }
+    });
+
+    const keyCode = key.length === 1 ? key.toUpperCase() : key;
+
+    await browser.electron.execute(
+        (electron, payload) => {
+            const wm = (global as { windowManager?: { getMainWindow?: () => Electron.BrowserWindow | null } })
+                .windowManager;
+            if (!wm?.getMainWindow) throw new Error('WindowManager not found on global');
+            const win = wm.getMainWindow();
+            if (!win) throw new Error('MainWindow not found');
+
+            win.webContents.sendInputEvent({
+                type: 'keyDown',
+                keyCode: payload.keyCode,
+                modifiers: payload.modifiers,
+            });
+            win.webContents.sendInputEvent({
+                type: 'keyUp',
+                keyCode: payload.keyCode,
+                modifiers: payload.modifiers,
+            });
+        },
+        { keyCode, modifiers: modifierKeys }
+    );
+
+    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    E2ELogger.info('workflows', `Pressed native shortcut: ${modifierKeys.join('+')}+${key}`);
 }
 
 // =============================================================================

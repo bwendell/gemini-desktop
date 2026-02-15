@@ -16,6 +16,7 @@ import type {
 import type { UpdateInfo, DownloadProgress } from './updates';
 import type { ToastPayload } from './toast';
 import type { TextPredictionSettings } from './text-prediction';
+import type { GeminiNavigatePayload, GeminiReadyPayload, TabsState, TabShortcutPayload } from './tabs';
 
 /**
  * Electron API exposed to renderer process via contextBridge.
@@ -97,10 +98,16 @@ export interface ElectronAPI {
     // =========================================================================
 
     /** Listen for Gemini navigation requests. Returns unsubscribe function. */
-    onGeminiNavigate: (callback: (data: { url: string; text: string }) => void) => () => void;
+    onGeminiNavigate: (callback: (data: GeminiNavigatePayload) => void) => () => void;
 
     /** Signal to main process that Gemini iframe is ready for injection */
-    signalGeminiReady: (text: string) => void;
+    signalGeminiReady: (payload: GeminiReadyPayload) => void;
+
+    getTabState: () => Promise<TabsState | null>;
+
+    saveTabState: (state: TabsState) => void;
+
+    onTabShortcutTriggered: (callback: (payload: TabShortcutPayload) => void) => () => void;
 
     // =========================================================================
     // Individual Hotkeys API

@@ -25,6 +25,7 @@ import {
     TextPredictionIpcHandler,
     ResponseNotificationIpcHandler,
     ExportIpcHandler,
+    TabStateIpcHandler,
     IpcHandlerDependencies,
 } from './ipc/index';
 import SettingsStore from '../store';
@@ -163,6 +164,7 @@ export default class IpcManager {
             this.responseNotificationHandler,
             // Export handler
             new ExportIpcHandler(handlerDeps),
+            new TabStateIpcHandler(handlerDeps),
         ];
 
         this.logger.log('Initialized');

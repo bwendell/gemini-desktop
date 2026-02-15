@@ -286,7 +286,7 @@ describe('Options Window Integration', () => {
 
             // Get options window handle before switching
             const handles = await browser.getWindowHandles();
-            const optionsHandle = handles.find((h) => h !== mainWindowHandle);
+            const _optionsHandle = handles.find((h) => h !== mainWindowHandle);
 
             // IMPORTANT: Switch back to main window BEFORE closing options window
             // to prevent ECONNREFUSED errors on macOS when WebDriver tries to

@@ -7,11 +7,40 @@
  * @module BasePage
  */
 
-/// <reference path="../helpers/wdio-electron.d.ts" />
-
 import { browser } from '@wdio/globals';
 import { E2E_TIMING } from '../helpers/e2eConstants';
 import { E2ELogger } from '../helpers/logger';
+
+type WdioBrowser = {
+    $(selector: string): Promise<WebdriverIO.Element>;
+    pause(ms: number): Promise<void>;
+    execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
+    waitUntil<T>(
+        condition: () => Promise<T> | T,
+        options?: {
+            timeout?: number;
+            timeoutMsg?: string;
+            interval?: number;
+        }
+    ): Promise<T>;
+};
+
+type WdioElement = {
+    waitForDisplayed(options?: { timeout?: number; reverse?: boolean; timeoutMsg?: string }): Promise<boolean>;
+    waitForExist(options?: { timeout?: number; reverse?: boolean; timeoutMsg?: string }): Promise<boolean>;
+    click(): Promise<void>;
+    setValue(value: string): Promise<void>;
+    clearValue(): Promise<void>;
+    getText(): Promise<string>;
+    getValue(): Promise<string>;
+    getAttribute(attribute: string): Promise<string | null>;
+    isDisplayed(): Promise<boolean>;
+    isExisting(): Promise<boolean>;
+    isEnabled(): Promise<boolean>;
+    $$(selector: string): Promise<WebdriverIO.Element[]>;
+};
+
+const wdioBrowser = browser as unknown as WdioBrowser;
 
 /**
  * Abstract base class for all Page Objects.
@@ -34,7 +63,7 @@ export abstract class BasePage {
      * @param selector - CSS selector string
      */
     protected async $(selector: string): Promise<WebdriverIO.Element> {
-        return browser.$(selector);
+        return wdioBrowser.$(selector);
     }
 
     /**
@@ -42,7 +71,7 @@ export abstract class BasePage {
      * @param selector - CSS selector string
      */
     protected async $$(selector: string): Promise<WebdriverIO.Element[]> {
-        const parent = await browser.$('body');
+        const parent = (await wdioBrowser.$('body')) as unknown as WdioElement;
         return parent.$$(selector);
     }
 
@@ -57,7 +86,7 @@ export abstract class BasePage {
      */
     protected async waitForElement(selector: string, timeout = 5000): Promise<WebdriverIO.Element> {
         const element = await this.$(selector);
-        await element.waitForDisplayed({
+        await (element as unknown as WdioElement).waitForDisplayed({
             timeout,
             timeoutMsg: `[${this.pageName}] Element '${selector}' not displayed within ${timeout}ms`,
         });
@@ -71,7 +100,7 @@ export abstract class BasePage {
      */
     protected async waitForElementToExist(selector: string, timeout = 5000): Promise<WebdriverIO.Element> {
         const element = await this.$(selector);
-        await element.waitForExist({
+        await (element as unknown as WdioElement).waitForExist({
             timeout,
             timeoutMsg: `[${this.pageName}] Element '${selector}' did not exist within ${timeout}ms`,
         });
@@ -85,7 +114,7 @@ export abstract class BasePage {
      */
     protected async waitForElementToDisappear(selector: string, timeout = 5000): Promise<void> {
         const element = await this.$(selector);
-        await element.waitForDisplayed({
+        await (element as unknown as WdioElement).waitForDisplayed({
             timeout,
             reverse: true,
             timeoutMsg: `[${this.pageName}] Element '${selector}' was still displayed after ${timeout}ms`,
@@ -102,7 +131,7 @@ export abstract class BasePage {
      */
     protected async clickElement(selector: string): Promise<void> {
         const element = await this.waitForElement(selector);
-        await element.click();
+        await (element as unknown as WdioElement).click();
         this.log(`Clicked: ${selector}`);
     }
 
@@ -113,7 +142,7 @@ export abstract class BasePage {
      */
     protected async typeIntoElement(selector: string, text: string): Promise<void> {
         const element = await this.waitForElement(selector);
-        await element.setValue(text);
+        await (element as unknown as WdioElement).setValue(text);
         this.log(`Typed into ${selector}: "${text}"`);
     }
 
@@ -123,7 +152,7 @@ export abstract class BasePage {
      */
     protected async clearElement(selector: string): Promise<void> {
         const element = await this.waitForElement(selector);
-        await element.clearValue();
+        await (element as unknown as WdioElement).clearValue();
         this.log(`Cleared: ${selector}`);
     }
 
@@ -137,7 +166,7 @@ export abstract class BasePage {
      */
     protected async getElementText(selector: string): Promise<string> {
         const element = await this.waitForElement(selector);
-        return element.getText();
+        return (element as unknown as WdioElement).getText();
     }
 
     /**
@@ -146,7 +175,7 @@ export abstract class BasePage {
      */
     protected async getElementValue(selector: string): Promise<string> {
         const element = await this.waitForElement(selector);
-        return element.getValue();
+        return (element as unknown as WdioElement).getValue();
     }
 
     /**
@@ -156,7 +185,7 @@ export abstract class BasePage {
      */
     protected async getElementAttribute(selector: string, attribute: string): Promise<string | null> {
         const element = await this.$(selector);
-        return element.getAttribute(attribute);
+        return (element as unknown as WdioElement).getAttribute(attribute);
     }
 
     /**
@@ -166,7 +195,7 @@ export abstract class BasePage {
     protected async isElementDisplayed(selector: string): Promise<boolean> {
         try {
             const element = await this.$(selector);
-            return await element.isDisplayed();
+            return await (element as unknown as WdioElement).isDisplayed();
         } catch {
             return false;
         }
@@ -179,7 +208,7 @@ export abstract class BasePage {
     protected async isElementExisting(selector: string): Promise<boolean> {
         try {
             const element = await this.$(selector);
-            return await element.isExisting();
+            return await (element as unknown as WdioElement).isExisting();
         } catch {
             return false;
         }
@@ -192,7 +221,7 @@ export abstract class BasePage {
     protected async isElementEnabled(selector: string): Promise<boolean> {
         try {
             const element = await this.$(selector);
-            return await element.isEnabled();
+            return await (element as unknown as WdioElement).isEnabled();
         } catch {
             return false;
         }
@@ -207,15 +236,26 @@ export abstract class BasePage {
      * @param ms - Milliseconds to pause (default: UI_STATE_PAUSE_MS)
      */
     protected async pause(ms = E2E_TIMING.UI_STATE_PAUSE_MS): Promise<void> {
-        await browser.pause(ms);
+        await wdioBrowser.pause(ms);
     }
 
     /**
      * Execute JavaScript in the browser context.
      * @param script - Script to execute
      */
-    protected async execute<T>(script: () => T): Promise<T> {
-        return browser.execute(script);
+    protected async execute<T, Args extends unknown[]>(script: (...args: Args) => T, ...args: Args): Promise<T> {
+        return wdioBrowser.execute(script, ...args);
+    }
+
+    protected async waitUntil<T>(
+        condition: () => Promise<T> | T,
+        options?: {
+            timeout?: number;
+            timeoutMsg?: string;
+            interval?: number;
+        }
+    ): Promise<T> {
+        return wdioBrowser.waitUntil(condition, options);
     }
 
     /**

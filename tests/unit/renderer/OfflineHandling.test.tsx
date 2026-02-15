@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import App from '../../../src/renderer/App';
 import { useNetworkStatus } from '../../../src/renderer/hooks/useNetworkStatus';
 
@@ -127,8 +127,9 @@ describe('Offline Handling (Coordinated)', () => {
                 render(<App />);
             });
 
-            expect(screen.getByText(/network unavailable/i)).toBeInTheDocument();
-            expect(screen.getByText(/please check your internet connection/i)).toBeInTheDocument();
+            const overlay = screen.getByTestId('offline-overlay');
+            expect(within(overlay).getByText(/network unavailable/i)).toBeInTheDocument();
+            expect(within(overlay).getByText(/please check your internet connection/i)).toBeInTheDocument();
         });
     });
 });

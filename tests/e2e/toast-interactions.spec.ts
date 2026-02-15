@@ -79,11 +79,11 @@ describe('Toast User Interactions E2E', () => {
             E2ELogger.info('toast-interactions', 'Testing dismiss on specific toast');
 
             // GIVEN multiple persistent toasts are displayed
-            const toast1Id = await toastPage.showInfo('First toast', { persistent: true });
+            const _toast1Id = await toastPage.showInfo('First toast', { persistent: true });
             await waitForUIState(async () => (await toastPage.getToastCount()) === 1, {
                 description: 'First toast visible',
             });
-            const toast2Id = await toastPage.showWarning('Second toast', { persistent: true });
+            const _toast2Id = await toastPage.showWarning('Second toast', { persistent: true });
             await waitForUIState(async () => (await toastPage.getToastCount()) === 2, {
                 description: 'Second toast visible',
             });
@@ -114,7 +114,7 @@ describe('Toast User Interactions E2E', () => {
             E2ELogger.info('toast-interactions', 'Testing primary action button callback');
 
             // GIVEN a toast with a primary action button
-            const toastId = await toastPage.showToastWithActions('info', 'Action test', [
+            const _toastId = await toastPage.showToastWithActions('info', 'Action test', [
                 { label: 'Confirm', primary: true },
             ]);
             await toastPage.waitForToastVisible();
@@ -147,7 +147,7 @@ describe('Toast User Interactions E2E', () => {
             E2ELogger.info('toast-interactions', 'Testing secondary action button callback');
 
             // GIVEN a toast with primary and secondary action buttons
-            const toastId = await toastPage.showToastWithActions('warning', 'Multiple actions', [
+            const _toastId = await toastPage.showToastWithActions('warning', 'Multiple actions', [
                 { label: 'Primary', primary: true },
                 { label: 'Secondary', primary: false },
             ]);

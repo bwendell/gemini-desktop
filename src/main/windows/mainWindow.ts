@@ -20,10 +20,12 @@ import {
     getDevUrl,
     READY_TO_SHOW_FALLBACK_MS,
     GEMINI_RESPONSE_API_PATTERN,
+    IPC_CHANNELS,
 } from '../utils/constants';
 import { getIconPath, getDistHtmlPath } from '../utils/paths';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
+import type { TabShortcutPayload } from '../../shared/types/tabs';
 
 /**
  * Main application window.
@@ -137,6 +139,7 @@ export default class MainWindow extends BaseWindow {
         this.setupCloseHandler();
         this.setupCrashHandlers();
         this.setupResponseDetection();
+        this.setupTabShortcutForwarding();
 
         return win;
     }
@@ -478,5 +481,54 @@ export default class MainWindow extends BaseWindow {
         }
 
         this.logger.log('Response detection initialized (will activate after page load + delay)');
+    }
+
+    private resolveTabShortcutPayload(input: Electron.Input): TabShortcutPayload | null {
+        if (input.isAutoRepeat) {
+            return null;
+        }
+
+        const modifierPressed = process.platform === 'darwin' ? input.meta : input.control;
+        if (!modifierPressed) {
+            return null;
+        }
+
+        const key = input.key;
+        if (key === 't' || key === 'T') {
+            return { command: 'new' };
+        }
+
+        if (key === 'w' || key === 'W') {
+            if (process.platform === 'darwin') {
+                return null;
+            }
+            return { command: 'close' };
+        }
+
+        if (key === 'Tab') {
+            return { command: input.shift ? 'previous' : 'next' };
+        }
+
+        if (/^[1-9]$/.test(key)) {
+            return { command: 'jump', index: Number(key) - 1 };
+        }
+
+        return null;
+    }
+
+    private setupTabShortcutForwarding(): void {
+        if (!this.window) {
+            return;
+        }
+
+        this.window.webContents.on('before-input-event', (event, input) => {
+            const shortcutPayload = this.resolveTabShortcutPayload(input);
+            if (!shortcutPayload) {
+                return;
+            }
+
+            event.preventDefault();
+            this.window?.webContents.send(IPC_CHANNELS.TABS_SHORTCUT_TRIGGERED, shortcutPayload);
+        });
     }
 }

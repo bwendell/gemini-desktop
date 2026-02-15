@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Menu, shell } from 'electron';
 import MenuManager from '../../../src/main/managers/menuManager';
 import WindowManager from '../../../src/main/managers/windowManager';

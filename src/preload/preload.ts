@@ -58,6 +58,10 @@ export const IPC_CHANNELS = {
     GEMINI_NAVIGATE: 'gemini:navigate',
     GEMINI_READY: 'gemini:ready',
 
+    TABS_GET_STATE: 'tabs:get-state',
+    TABS_SAVE_STATE: 'tabs:save-state',
+    TABS_SHORTCUT_TRIGGERED: 'tabs:shortcut-triggered',
+
     // Always On Top
     ALWAYS_ON_TOP_GET: 'always-on-top:get',
     ALWAYS_ON_TOP_SET: 'always-on-top:set',
@@ -305,11 +309,12 @@ const electronAPI: ElectronAPI = {
     /**
      * Subscribe to Gemini navigation requests from main process.
      * When Quick Chat submits, main process sends this to navigate the iframe.
-     * @param callback - Function called with { url: string, text: string } when navigation is requested
+     * @param callback - Function called with navigation correlation payload when navigation is requested
      * @returns Cleanup function to unsubscribe
      */
     onGeminiNavigate: (callback) => {
-        const subscription = (_event: Electron.IpcRendererEvent, data: { url: string; text: string }) => callback(data);
+        const subscription = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) =>
+            callback(data);
         ipcRenderer.on(IPC_CHANNELS.GEMINI_NAVIGATE, subscription);
 
         return () => {
@@ -320,9 +325,23 @@ const electronAPI: ElectronAPI = {
     /**
      * Signal to main process that Gemini iframe is ready for injection.
      * Call this after the iframe has loaded a new page.
-     * @param text - The text that should be injected (passed back to main process)
+     * @param payload - Correlation payload for the pending quick chat request
      */
-    signalGeminiReady: (text: string) => ipcRenderer.send(IPC_CHANNELS.GEMINI_READY, text),
+    signalGeminiReady: (payload) => ipcRenderer.send(IPC_CHANNELS.GEMINI_READY, payload),
+
+    getTabState: () => ipcRenderer.invoke(IPC_CHANNELS.TABS_GET_STATE),
+
+    saveTabState: (state) => ipcRenderer.send(IPC_CHANNELS.TABS_SAVE_STATE, state),
+
+    onTabShortcutTriggered: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, payload: Parameters<typeof callback>[0]) =>
+            callback(payload);
+        ipcRenderer.on(IPC_CHANNELS.TABS_SHORTCUT_TRIGGERED, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.TABS_SHORTCUT_TRIGGERED, subscription);
+        };
+    },
 
     // =========================================================================
     // Individual Hotkeys API

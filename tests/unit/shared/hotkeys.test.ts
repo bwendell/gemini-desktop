@@ -124,7 +124,7 @@ describe('Hotkey Types', () => {
         it('should export HotkeyScope type (type-level check via usage)', () => {
             // This test verifies the type is exported by using it
             const globalScope: HotkeyScope = 'global';
-            const applicationScope: HotkeyScope = 'application';
+            const _applicationScope: HotkeyScope = 'application';
             expect(globalScope).toBe('global');
         });
     });

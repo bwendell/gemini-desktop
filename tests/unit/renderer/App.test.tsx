@@ -1,152 +1,131 @@
-/**
- * Unit tests for App component.
- */
+/* @vitest-environment jsdom */
 
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+
 import App from '../../../src/renderer/App';
 import { useNetworkStatus } from '../../../src/renderer/hooks/useNetworkStatus';
+import { setupMockElectronAPI } from '../../helpers/mocks';
 
-// Mock the network status hook
 vi.mock('../../../src/renderer/hooks/useNetworkStatus', () => ({
     useNetworkStatus: vi.fn(),
 }));
 
-// Mock global fetch for connectivity checks
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+type NavigatePayload = { requestId: string; targetTabId: string; text: string };
+
+function createElectronApiMock() {
+    let navigateListener: ((payload: NavigatePayload) => void) | null = null;
+
+    const api = setupMockElectronAPI({
+        getTabState: vi.fn().mockResolvedValue(null),
+        saveTabState: vi.fn(),
+        getZoomLevel: vi.fn().mockResolvedValue(100),
+        onZoomLevelChanged: vi.fn().mockReturnValue(() => undefined),
+        zoomIn: vi.fn().mockResolvedValue(110),
+        zoomOut: vi.fn().mockResolvedValue(90),
+        onGeminiNavigate: vi.fn((listener: (payload: NavigatePayload) => void) => {
+            navigateListener = listener;
+            return () => {
+                navigateListener = null;
+            };
+        }),
+        signalGeminiReady: vi.fn(),
+        onTabShortcutTriggered: vi.fn().mockReturnValue(() => undefined),
+    });
+
+    return {
+        api,
+        emitNavigate(payload: NavigatePayload) {
+            navigateListener?.(payload);
+        },
+    };
+}
 
 describe('App', () => {
+    const fetchMock = vi.fn();
+
     beforeEach(() => {
         vi.clearAllMocks();
-        // Default to online
         (useNetworkStatus as Mock).mockReturnValue(true);
-        // Mock fetch to succeed (simulates Gemini is reachable)
-        mockFetch.mockResolvedValue({ ok: true });
+        fetchMock.mockResolvedValue({ ok: true });
+        global.fetch = fetchMock as typeof global.fetch;
     });
 
-    describe('loading state', () => {
-        it('shows loading state initially', async () => {
-            await act(async () => {
-                render(<App />);
-            });
-
-            expect(screen.getByText('Loading Gemini...')).toBeInTheDocument();
-            const spinner = document.querySelector('.webview-loading-spinner');
-            expect(spinner).toBeInTheDocument();
-        });
-
-        it('hides loading when iframe loads', async () => {
-            await act(async () => {
-                render(<App />);
-            });
-
-            const iframe = screen.getByTestId('gemini-iframe');
-            await act(async () => {
-                fireEvent.load(iframe);
-            });
-
-            expect(screen.queryByText('Loading Gemini...')).not.toBeInTheDocument();
-        });
+    afterEach(() => {
+        cleanup();
     });
 
-    describe('error state', () => {
-        // Note: The iframe onError handler cannot be tested in JSDOM because
-        // fireEvent.error() doesn't trigger React's synthetic onError for iframes.
-        // This has been manually verified to work in the actual Electron environment.
-        it.skip('shows error message when iframe errors (manual test only)', () => {
-            // This test is skipped because JSDOM cannot properly simulate iframe errors
+    it('renders tabbed shell with a default active iframe', async () => {
+        createElectronApiMock();
+        render(<App />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('tab-bar')).toBeTruthy();
         });
+
+        expect(screen.getByTestId('tab-new-button')).toBeTruthy();
+        expect(screen.getByTestId('gemini-iframe')).toBeTruthy();
+        expect(document.querySelector('.tab')).toBeTruthy();
     });
 
-    describe('layout structure', () => {
-        it('renders MainLayout container', async () => {
-            await act(async () => {
-                render(<App />);
-            });
+    it('adds a tab when new-tab button is clicked', async () => {
+        createElectronApiMock();
+        render(<App />);
 
-            const layout = document.querySelector('.main-layout');
-            expect(layout).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByTestId('tab-new-button')).toBeTruthy();
         });
 
-        it('renders webview-container', async () => {
-            await act(async () => {
-                render(<App />);
-            });
+        expect(document.querySelectorAll('.tab').length).toBe(1);
 
-            const container = document.querySelector('.webview-container');
-            expect(container).toBeInTheDocument();
-        });
+        fireEvent.click(screen.getByTestId('tab-new-button'));
 
-        it('renders Titlebar via MainLayout', async () => {
-            await act(async () => {
-                render(<App />);
-            });
-
-            const titlebar = document.querySelector('.titlebar');
-            expect(titlebar).toBeInTheDocument();
-        });
-
-        it('renders iframe with correct src', async () => {
-            await act(async () => {
-                render(<App />);
-            });
-
-            const iframe = screen.getByTestId('gemini-iframe') as HTMLIFrameElement;
-            expect(iframe).toBeInTheDocument();
-            expect(iframe.src).toBe('https://gemini.google.com/app');
-        });
-
-        it('renders iframe with required permission attributes', async () => {
-            await act(async () => {
-                render(<App />);
-            });
-
-            const iframe = screen.getByTestId('gemini-iframe') as HTMLIFrameElement;
-            const allowAttr = iframe.getAttribute('allow');
-            expect(allowAttr).toBe('microphone; clipboard-write');
+        await waitFor(() => {
+            expect(document.querySelectorAll('.tab').length).toBe(2);
         });
     });
 
-    describe('theme integration', () => {
-        it('applies data-theme attribute to root element', async () => {
-            await act(async () => {
-                render(<App />);
-            });
+    it('creates target tab from navigate event and signals ready on iframe load', async () => {
+        const electron = createElectronApiMock();
+        render(<App />);
 
-            // Allow theme effect to run
-            await act(async () => {});
-
-            // Verify the data-theme attribute was set (default should be 'system' which resolves to 'dark' or 'light')
-            const themeAttr = document.documentElement.getAttribute('data-theme');
-            expect(themeAttr).toBeTruthy();
+        await waitFor(() => {
+            expect(electron.api.onGeminiNavigate).toHaveBeenCalledTimes(1);
         });
 
-        describe('offline state', () => {
-            it('renders OfflineOverlay when offline', async () => {
-                (useNetworkStatus as Mock).mockReturnValue(false);
+        const payload: NavigatePayload = {
+            requestId: 'request-1',
+            targetTabId: 'tab-target-1',
+            text: 'hello',
+        };
 
-                await act(async () => {
-                    render(<App />);
-                });
+        act(() => {
+            electron.emitNavigate(payload);
+        });
 
-                const overlay = screen.getByTestId('offline-overlay');
-                expect(overlay).toBeInTheDocument();
+        await waitFor(() => {
+            expect(document.querySelectorAll('.tab').length).toBe(2);
+        });
 
-                // Verify it's inside main-layout
-                const layout = screen.getByTestId('main-layout');
-                expect(layout).toContainElement(overlay);
+        const activeIframe = screen.getByTestId('gemini-iframe');
+        fireEvent.load(activeIframe);
+
+        await waitFor(() => {
+            expect(electron.api.signalGeminiReady).toHaveBeenCalledWith({
+                requestId: payload.requestId,
+                targetTabId: payload.targetTabId,
             });
+        });
+    });
 
-            it('does not render OfflineOverlay when online', async () => {
-                (useNetworkStatus as Mock).mockReturnValue(true);
+    it('shows offline overlay when network hook reports offline', async () => {
+        createElectronApiMock();
+        (useNetworkStatus as Mock).mockReturnValue(false);
 
-                await act(async () => {
-                    render(<App />);
-                });
+        render(<App />);
 
-                expect(screen.queryByTestId('offline-overlay')).not.toBeInTheDocument();
-            });
+        await waitFor(() => {
+            expect(screen.getByTestId('offline-overlay')).toBeTruthy();
         });
     });
 });

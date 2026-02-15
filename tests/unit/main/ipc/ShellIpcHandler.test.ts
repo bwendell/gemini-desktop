@@ -4,7 +4,6 @@
  * Tests the shell:show-item-in-folder IPC handler.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ipcMain, shell } from 'electron';
 import { ShellIpcHandler } from '../../../../src/main/managers/ipc/ShellIpcHandler';
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';

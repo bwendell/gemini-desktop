@@ -449,13 +449,15 @@ describe('QuickChatApp', () => {
 
             await act(async () => {
                 fireEvent.change(input, { target: { value: 'Hello ' } });
-                expect(mockPredictText).not.toHaveBeenCalled();
+            });
+
+            expect(mockPredictText).not.toHaveBeenCalled();
+
+            await act(async () => {
                 await vi.advanceTimersByTimeAsync(350);
             });
 
-            await waitFor(() => {
-                expect(mockPredictText).toHaveBeenCalledWith('Hello ');
-            });
+            await waitFor(() => expect(mockPredictText).toHaveBeenCalledWith('Hello '));
         });
     });
 

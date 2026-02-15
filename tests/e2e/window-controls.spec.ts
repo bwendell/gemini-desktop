@@ -11,7 +11,7 @@
  * @module window-controls.spec
  */
 
-import { browser, expect } from '@wdio/globals';
+import { expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { usesCustomControls, isMacOS, isLinuxCI } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';

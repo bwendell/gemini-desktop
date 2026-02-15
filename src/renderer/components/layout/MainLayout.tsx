@@ -4,6 +4,7 @@ import './layout.css';
 
 interface MainLayoutProps {
     children?: ReactNode;
+    tabBar?: ReactNode;
 }
 
 /**
@@ -16,10 +17,11 @@ interface MainLayoutProps {
  * This component handles the overall app structure and ensures
  * proper sizing for the embedded webview.
  */
-export function MainLayout({ children }: MainLayoutProps) {
+export function MainLayout({ children, tabBar }: MainLayoutProps) {
     return (
         <div className="main-layout" data-testid="main-layout">
             <Titlebar />
+            {tabBar}
             <main className="main-content">{children}</main>
         </div>
     );

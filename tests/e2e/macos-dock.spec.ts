@@ -13,8 +13,8 @@
  * @module macos-dock.spec
  */
 
-import { browser, expect } from '@wdio/globals';
-import { MacOSDockPage, MainWindowPage } from './pages';
+import { expect } from '@wdio/globals';
+import { MacOSDockPage } from './pages';
 import { E2ELogger } from './helpers/logger';
 import { verifyTrayCreated, getTrayTooltip } from './helpers/trayActions';
 import { waitForAppReady, getWindowCount } from './helpers/workflows';
@@ -22,7 +22,6 @@ import { waitForMacOSWindowStabilize } from './helpers/waitUtilities';
 
 describe('macOS Dock and Menubar Behavior', () => {
     const dockPage = new MacOSDockPage();
-    const mainWindow = new MainWindowPage();
 
     beforeEach(async () => {
         // Skip all tests if not on macOS

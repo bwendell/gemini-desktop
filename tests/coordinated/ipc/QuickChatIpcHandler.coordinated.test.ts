@@ -7,10 +7,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain, BrowserWindow } from 'electron';
 import IpcManager from '../../../src/main/managers/ipcManager';
 import WindowManager from '../../../src/main/managers/windowManager';
+import { getTabFrameName } from '../../../src/shared/types/tabs';
 
 // Use the centralized logger mock
 vi.mock('../../../src/main/utils/logger');
-import { mockLogger } from '../../../src/main/utils/logger';
+import { mockLogger } from '../../../src/main/utils/__mocks__/logger';
 
 // Mock electron-updater
 vi.mock('electron-updater', () => ({
@@ -63,6 +64,7 @@ describe('QuickChatIpcHandler Coordinated Tests', () => {
 
             // Create mock main window with webContents
             const mockGeminiFrame = {
+                name: 'placeholder',
                 url: 'https://gemini.google.com/app',
                 executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
             };
@@ -99,15 +101,25 @@ describe('QuickChatIpcHandler Coordinated Tests', () => {
             expect(mockMainWindow.webContents.send).toHaveBeenCalledWith(
                 'gemini:navigate',
                 expect.objectContaining({
+                    requestId: expect.any(String),
+                    targetTabId: expect.any(String),
                     text: 'Hello Gemini from Quick Chat',
                 })
             );
+
+            const navigatePayload = mockMainWindow.webContents.send.mock.calls[0][1] as {
+                requestId: string;
+                targetTabId: string;
+                text: string;
+            };
+
+            mockGeminiFrame.name = getTabFrameName(navigatePayload.targetTabId);
 
             // Step 2: Simulate gemini:ready signal (renderer signals iframe loaded)
             const readyListener = (ipcMain as any)._listeners.get('gemini:ready');
             expect(readyListener).toBeDefined();
 
-            await readyListener({}, 'Hello Gemini from Quick Chat');
+            await readyListener({}, { requestId: navigatePayload.requestId, targetTabId: navigatePayload.targetTabId });
 
             // Verify injection was executed
             expect(mockGeminiFrame.executeJavaScript).toHaveBeenCalled();
@@ -136,16 +148,36 @@ describe('QuickChatIpcHandler Coordinated Tests', () => {
 
         it('should gracefully handle missing main window in injection', async () => {
             const windowManager = new WindowManager(false);
-            vi.spyOn(windowManager, 'getMainWindow').mockReturnValue(null);
+
+            const mockMainWindow = {
+                isDestroyed: () => false,
+                webContents: {
+                    send: vi.fn(),
+                    mainFrame: {
+                        frames: [],
+                    },
+                },
+            };
+
+            vi.spyOn(windowManager, 'getMainWindow')
+                .mockReturnValueOnce(mockMainWindow as any)
+                .mockReturnValue(null);
             vi.spyOn(windowManager, 'hideQuickChat').mockImplementation(() => {});
             vi.spyOn(windowManager, 'focusMainWindow').mockImplementation(() => {});
 
             const ipcManager = new IpcManager(windowManager, null, null, null, null, null, mockStore, mockLogger);
             ipcManager.setupIpcHandlers();
 
-            // Trigger gemini:ready - should handle missing window
+            const submitListener = (ipcMain as any)._listeners.get('quick-chat:submit');
+            submitListener({}, 'Test text');
+
+            const navigatePayload = mockMainWindow.webContents.send.mock.calls[0][1] as {
+                requestId: string;
+                targetTabId: string;
+            };
+
             const readyListener = (ipcMain as any)._listeners.get('gemini:ready');
-            await readyListener({}, 'Test text');
+            await readyListener({}, { requestId: navigatePayload.requestId, targetTabId: navigatePayload.targetTabId });
 
             expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: main window not found');
         });

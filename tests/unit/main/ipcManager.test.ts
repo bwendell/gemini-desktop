@@ -11,6 +11,7 @@ import {
     createMockExportManager,
 } from '../../helpers/mocks';
 import { IPC_CHANNELS } from '../../../src/shared/constants/ipc-channels';
+import { getTabFrameName } from '../../../src/shared/types/tabs';
 
 // Mock Electron
 const { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell } = vi.hoisted(() => {
@@ -544,10 +545,14 @@ describe('IpcManager', () => {
 
             expect(mockWindowManager.hideQuickChat).toHaveBeenCalled();
             expect(mockWindowManager.focusMainWindow).toHaveBeenCalled();
-            expect(mockMainWindow.webContents.send).toHaveBeenCalledWith('gemini:navigate', {
-                url: 'https://gemini.google.com/app',
-                text: 'test message',
-            });
+            expect(mockMainWindow.webContents.send).toHaveBeenCalledWith(
+                'gemini:navigate',
+                expect.objectContaining({
+                    requestId: expect.any(String),
+                    targetTabId: expect.any(String),
+                    text: 'test message',
+                })
+            );
         });
 
         it('handles quick-chat:submit without main window', async () => {
@@ -561,12 +566,21 @@ describe('IpcManager', () => {
 
         // Option A Flow: gemini:ready triggers injection into child frame
         it('handles gemini:ready by injecting into iframe', async () => {
+            const submitHandler = (ipcMain as any)._listeners.get('quick-chat:submit');
             const handler = (ipcMain as any)._listeners.get('gemini:ready');
+
+            let navigatePayload: { requestId: string; targetTabId: string; text: string } | undefined;
             const mockMainWindow = {
                 webContents: {
+                    send: vi.fn(
+                        (_channel: string, payload: { requestId: string; targetTabId: string; text: string }) => {
+                            navigatePayload = payload;
+                        }
+                    ),
                     mainFrame: {
                         frames: [
                             {
+                                name: 'placeholder',
                                 url: 'https://gemini.google.com/app',
                                 executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
                             },
@@ -576,37 +590,66 @@ describe('IpcManager', () => {
             };
             mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
-            await handler({}, 'test message');
+            await submitHandler({}, 'test message');
+            expect(navigatePayload).toBeDefined();
+
+            mockMainWindow.webContents.mainFrame.frames[0].name = getTabFrameName(navigatePayload!.targetTabId);
+
+            await handler({}, { requestId: navigatePayload!.requestId, targetTabId: navigatePayload!.targetTabId });
 
             expect(mockMainWindow.webContents.mainFrame.frames[0].executeJavaScript).toHaveBeenCalled();
             expect(mockLogger.log).toHaveBeenCalledWith('Text injected into Gemini successfully');
         });
 
         it('handles gemini:ready without Gemini iframe', async () => {
+            const submitHandler = (ipcMain as any)._listeners.get('quick-chat:submit');
             const handler = (ipcMain as any)._listeners.get('gemini:ready');
+
+            let navigatePayload: { requestId: string; targetTabId: string; text: string } | undefined;
             const mockMainWindow = {
                 webContents: {
+                    send: vi.fn(
+                        (_channel: string, payload: { requestId: string; targetTabId: string; text: string }) => {
+                            navigatePayload = payload;
+                        }
+                    ),
                     mainFrame: {
-                        frames: [{ url: 'https://example.com', executeJavaScript: vi.fn() }],
+                        frames: [
+                            {
+                                name: 'non-target-frame',
+                                url: 'https://gemini.google.com/app',
+                                executeJavaScript: vi.fn(),
+                            },
+                        ],
                     },
                 },
             };
             mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
-            await handler({}, 'test message');
+            await submitHandler({}, 'test message');
+            expect(navigatePayload).toBeDefined();
 
-            expect(mockLogger.error).toHaveBeenCalledWith(
-                'Cannot inject text: Gemini iframe not found in child frames'
-            );
+            await handler({}, { requestId: navigatePayload!.requestId, targetTabId: navigatePayload!.targetTabId });
+
+            expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: target tab frame not found');
         });
 
         it('handles gemini:ready injection failure', async () => {
+            const submitHandler = (ipcMain as any)._listeners.get('quick-chat:submit');
             const handler = (ipcMain as any)._listeners.get('gemini:ready');
+
+            let navigatePayload: { requestId: string; targetTabId: string; text: string } | undefined;
             const mockMainWindow = {
                 webContents: {
+                    send: vi.fn(
+                        (_channel: string, payload: { requestId: string; targetTabId: string; text: string }) => {
+                            navigatePayload = payload;
+                        }
+                    ),
                     mainFrame: {
                         frames: [
                             {
+                                name: 'placeholder',
                                 url: 'https://gemini.google.com/app',
                                 executeJavaScript: vi.fn().mockResolvedValue({
                                     success: false,
@@ -619,18 +662,32 @@ describe('IpcManager', () => {
             };
             mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
-            await handler({}, 'test message');
+            await submitHandler({}, 'test message');
+            expect(navigatePayload).toBeDefined();
+
+            mockMainWindow.webContents.mainFrame.frames[0].name = getTabFrameName(navigatePayload!.targetTabId);
+
+            await handler({}, { requestId: navigatePayload!.requestId, targetTabId: navigatePayload!.targetTabId });
 
             expect(mockLogger.error).toHaveBeenCalledWith('Injection script returned failure:', 'Input not found');
         });
 
         it('handles gemini:ready executeJavaScript error', async () => {
+            const submitHandler = (ipcMain as any)._listeners.get('quick-chat:submit');
             const handler = (ipcMain as any)._listeners.get('gemini:ready');
+
+            let navigatePayload: { requestId: string; targetTabId: string; text: string } | undefined;
             const mockMainWindow = {
                 webContents: {
+                    send: vi.fn(
+                        (_channel: string, payload: { requestId: string; targetTabId: string; text: string }) => {
+                            navigatePayload = payload;
+                        }
+                    ),
                     mainFrame: {
                         frames: [
                             {
+                                name: 'placeholder',
                                 url: 'https://gemini.google.com/app',
                                 executeJavaScript: vi.fn().mockRejectedValue(new Error('Script error')),
                             },
@@ -640,7 +697,12 @@ describe('IpcManager', () => {
             };
             mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
-            await handler({}, 'test message');
+            await submitHandler({}, 'test message');
+            expect(navigatePayload).toBeDefined();
+
+            mockMainWindow.webContents.mainFrame.frames[0].name = getTabFrameName(navigatePayload!.targetTabId);
+
+            await handler({}, { requestId: navigatePayload!.requestId, targetTabId: navigatePayload!.targetTabId });
 
             expect(mockLogger.error).toHaveBeenCalledWith('Failed to inject text into Gemini:', expect.any(Error));
         });
@@ -1306,20 +1368,29 @@ describe('IpcManager', () => {
             ipcManager.setupIpcHandlers();
         });
 
-        it('handles frame URL access error when finding Gemini iframe', async () => {
-            // Now tests gemini:ready since that's when injection happens
+        it('uses frame-name targeting without touching unrelated frame URLs', async () => {
+            const submitHandler = (ipcMain as any)._listeners.get('quick-chat:submit');
             const handler = (ipcMain as any)._listeners.get('gemini:ready');
+
+            let navigatePayload: { requestId: string; targetTabId: string; text: string } | undefined;
             const mockMainWindow = {
                 webContents: {
+                    send: vi.fn(
+                        (_channel: string, payload: { requestId: string; targetTabId: string; text: string }) => {
+                            navigatePayload = payload;
+                        }
+                    ),
                     mainFrame: {
                         frames: [
                             {
+                                name: 'unrelated-frame',
                                 get url() {
                                     throw new Error('URL access failed');
                                 },
                                 executeJavaScript: vi.fn(),
                             },
                             {
+                                name: 'placeholder',
                                 url: 'https://gemini.google.com/app',
                                 executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
                             },
@@ -1329,9 +1400,13 @@ describe('IpcManager', () => {
             };
             mockWindowManager.getMainWindow.mockReturnValue(mockMainWindow);
 
-            await handler({}, 'test message');
+            await submitHandler({}, 'test message');
+            expect(navigatePayload).toBeDefined();
 
-            // Should skip the frame with error and find the Gemini frame
+            mockMainWindow.webContents.mainFrame.frames[1].name = getTabFrameName(navigatePayload!.targetTabId);
+
+            await handler({}, { requestId: navigatePayload!.requestId, targetTabId: navigatePayload!.targetTabId });
+
             expect(mockMainWindow.webContents.mainFrame.frames[1].executeJavaScript).toHaveBeenCalled();
         });
     });

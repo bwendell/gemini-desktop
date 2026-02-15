@@ -1,12 +1,13 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { MainLayout, OfflineOverlay, GeminiErrorBoundary } from './components';
+import { MainLayout, OfflineOverlay, GeminiErrorBoundary, TabBar, TabPanel } from './components';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { UpdateToastProvider } from './context/UpdateToastContext';
+import { TabProvider, useTabContext } from './context/TabContext';
 import { LinuxHotkeyNotice } from './components/toast';
-import { useGeminiIframe, useQuickChatNavigation } from './hooks';
-import { GEMINI_APP_URL } from './utils/constants';
+import { useTabKeyboardShortcuts } from './hooks';
+import type { GeminiNavigatePayload, GeminiReadyPayload } from '../shared/types/tabs';
 import './App.css';
 
 /**
@@ -32,9 +33,28 @@ import './App.css';
  * Inner app content that has access to ToastContext
  */
 function AppContent() {
-    const { isLoading, error, isOnline, handleLoad, handleError, retry } = useGeminiIframe();
-    const { iframeKey, handleIframeLoad } = useQuickChatNavigation(handleLoad);
+    const { tabs, activeTabId, createTabAndActivate, closeTab, setActiveTab, maxTabs, isAtTabLimit } = useTabContext();
     const { showToast, showSuccess, showError, showInfo, showWarning, dismissAll } = useToast();
+    const [activeTabStatus, setActiveTabStatus] = useState<{
+        isOnline: boolean;
+        error: string | null;
+        retry: () => void;
+    }>({
+        isOnline: true,
+        error: null,
+        retry: () => {
+            window.location.reload();
+        },
+    });
+    const pendingNavigateRef = useRef<GeminiNavigatePayload | null>(null);
+
+    useTabKeyboardShortcuts({
+        tabs,
+        activeTabId,
+        createTabAndActivate: () => createTabAndActivate(),
+        closeTab,
+        setActiveTab,
+    });
 
     // Expose toast helpers globally for console testing (dev mode and testing)
     useEffect(() => {
@@ -56,34 +76,70 @@ function AppContent() {
         };
     }, [showToast, showSuccess, showError, showInfo, showWarning, dismissAll]);
 
-    // Show offline overlay if network is offline OR if iframe failed to load
-    // This handles cases where navigator.onLine is true but Gemini is unreachable
-    const showOfflineOverlay = !isOnline || !!error;
+    useEffect(() => {
+        const unsubscribe = window.electronAPI?.onGeminiNavigate?.((data) => {
+            pendingNavigateRef.current = data;
+
+            const createdTabId = createTabAndActivate(data.targetTabId);
+            if (!createdTabId) {
+                pendingNavigateRef.current = null;
+                showWarning(`Maximum ${maxTabs} tabs reached`);
+            }
+        });
+
+        return () => {
+            unsubscribe?.();
+        };
+    }, [createTabAndActivate, maxTabs, showWarning]);
+
+    const handleTabReady = useCallback((tabId: string) => {
+        const pendingNavigate = pendingNavigateRef.current;
+        if (!pendingNavigate || pendingNavigate.targetTabId !== tabId) {
+            return;
+        }
+
+        const readyPayload: GeminiReadyPayload = {
+            requestId: pendingNavigate.requestId,
+            targetTabId: pendingNavigate.targetTabId,
+        };
+
+        window.setTimeout(() => {
+            window.electronAPI?.signalGeminiReady(readyPayload);
+            if (pendingNavigateRef.current?.requestId === readyPayload.requestId) {
+                pendingNavigateRef.current = null;
+            }
+        }, 500);
+    }, []);
+
+    const showOfflineOverlay = !activeTabStatus.isOnline || !!activeTabStatus.error;
 
     return (
-        <MainLayout>
-            {showOfflineOverlay && <OfflineOverlay onRetry={retry} />}
+        <MainLayout
+            tabBar={
+                <TabBar
+                    tabs={tabs}
+                    activeTabId={activeTabId}
+                    onTabClick={setActiveTab}
+                    onTabClose={closeTab}
+                    onNewTab={() => {
+                        const tabId = createTabAndActivate();
+                        if (!tabId) {
+                            showWarning(`Maximum ${maxTabs} tabs reached`);
+                        }
+                    }}
+                    isAtTabLimit={isAtTabLimit}
+                    maxTabs={maxTabs}
+                />
+            }
+        >
+            {showOfflineOverlay && <OfflineOverlay onRetry={activeTabStatus.retry} />}
             <GeminiErrorBoundary>
-                <div className="webview-container" data-testid="webview-container">
-                    {isLoading && !showOfflineOverlay && (
-                        <div className="webview-loading" data-testid="webview-loading">
-                            <div className="webview-loading-spinner" />
-                            <span>Loading Gemini...</span>
-                        </div>
-                    )}
-                    <iframe
-                        key={iframeKey}
-                        src={GEMINI_APP_URL}
-                        className="gemini-iframe"
-                        title="Gemini"
-                        onLoad={handleIframeLoad}
-                        onError={handleError}
-                        data-testid="gemini-iframe"
-                        allow="microphone; clipboard-write"
-                        // microphone: Required for voice input (Gemini Live)
-                        // clipboard-write: Required for "Copy code" and "Copy response" functionality
-                    />
-                </div>
+                <TabPanel
+                    tabs={tabs}
+                    activeTabId={activeTabId}
+                    onTabReady={handleTabReady}
+                    onActiveStatusChange={setActiveTabStatus}
+                />
             </GeminiErrorBoundary>
         </MainLayout>
     );
@@ -97,7 +153,9 @@ function App() {
         <ThemeProvider>
             <ToastProvider>
                 <UpdateToastProvider>
-                    <AppContent />
+                    <TabProvider>
+                        <AppContent />
+                    </TabProvider>
                     <LinuxHotkeyNotice />
                 </UpdateToastProvider>
             </ToastProvider>
