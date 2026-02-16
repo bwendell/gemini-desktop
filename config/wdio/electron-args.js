@@ -12,13 +12,15 @@
  */
 
 const isLinux = process.platform === 'linux';
+const isWin32 = process.platform === 'win32';
 const isCI = Boolean(process.env.CI);
 
 const linuxArgs = isLinux
     ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     : [];
+const windowsArgs = isWin32 && isCI ? ['--disable-gpu', '--disable-software-rasterizer', '--no-sandbox'] : [];
 const ciArgs = isCI ? ['--enable-logging'] : [];
-const baseAppArgs = [...linuxArgs, ...ciArgs];
+const baseAppArgs = [...linuxArgs, ...windowsArgs, ...ciArgs];
 
 /**
  * Build the final appArgs array by merging platform/CI args with config-specific args.
