@@ -73,6 +73,8 @@ export default class UpdateManager {
     private enabled: boolean = true;
     private checkInterval: ReturnType<typeof setInterval> | null = null;
     private lastCheckTime: number = 0;
+    private isFirstCheck: boolean = true;
+    private isManualCheck: boolean = false;
     private readonly settings: SettingsStore<AutoUpdateSettings>;
     private readonly badgeManager?: BadgeManager;
     private readonly trayManager?: TrayManager;
@@ -253,6 +255,7 @@ export default class UpdateManager {
 
         try {
             logger.log(manual ? 'Manual update check...' : 'Checking for updates...');
+            this.isManualCheck = manual;
             const updater = await this.ensureAutoUpdater();
             if (!updater) {
                 logger.log('Update check skipped - updater not available');
@@ -398,11 +401,19 @@ export default class UpdateManager {
         updater.on('update-available', (info: UpdateInfo) => {
             logger.log(`Update available: ${info.version}`);
             this.broadcastToWindows('auto-update:available', info);
+            this.isFirstCheck = false;
+            this.isManualCheck = false;
         });
 
         updater.on('update-not-available', (info: UpdateInfo) => {
             logger.log(`No update available (current: ${info.version})`);
-            this.broadcastToWindows('auto-update:not-available', info);
+            if (this.isFirstCheck || this.isManualCheck) {
+                this.broadcastToWindows('auto-update:not-available', info);
+            } else {
+                logger.log('Suppressing "up to date" notification (periodic background check)');
+            }
+            this.isFirstCheck = false;
+            this.isManualCheck = false;
         });
 
         updater.on('download-progress', (progress) => {
