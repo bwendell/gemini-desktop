@@ -22,10 +22,9 @@
 import { expect } from '@wdio/globals';
 import { QuickChatPage } from './pages';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForWindowTransition } from './helpers/workflows';
-import { verifyGeminiEditorState, waitForTextInGeminiEditor } from './helpers/quickChatActions';
+import { waitForTextInGeminiEditor } from './helpers/quickChatActions';
 import { E2ELogger } from './helpers/logger';
 import { waitForUIState } from './helpers/waitUtilities';
-import { isCI } from './helpers/platform';
 
 describe('Quick Chat Full Workflow (E2E)', () => {
     const quickChat = new QuickChatPage();
@@ -91,63 +90,34 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             await waitForWindowTransition(async () => !(await quickChat.isVisible()));
             E2ELogger.info('full-workflow', '   Quick Chat hidden ✓');
 
-            // Step 6: Switch to main window and wait for Gemini to load
+            // Step 6: Switch to main window and wait for text injection
+            // With tabbed chat, submit creates a new tab → iframe loads → 500ms delay → injection.
+            // waitForTextInGeminiEditor polls all Gemini frames until the expected text appears.
             E2ELogger.info('full-workflow', '6. Switching to main window...');
             await switchToMainWindow();
+            E2ELogger.info('full-workflow', '   Main window focused ✓');
 
-            if (!isCI()) {
-                // Wait for navigation and iframe loading (use increased timeout for iframe)
-                await waitForUIState(
-                    async () => {
-                        // Check if we can access the Gemini editor (indicates iframe is loaded)
-                        try {
-                            const state = await verifyGeminiEditorState();
-                            return state.iframeFound && state.editorFound;
-                        } catch {
-                            return false;
-                        }
-                    },
-                    { timeout: 10000, description: 'Gemini iframe loaded' }
-                );
-                E2ELogger.info('full-workflow', '   Main window focused ✓');
+            // Step 7: Verify text was injected into Gemini editor
+            E2ELogger.info('full-workflow', '7. Verifying text injection into Gemini...');
+            const editorState = await waitForTextInGeminiEditor(testMessage, 15000);
+            E2ELogger.info('full-workflow', `   Editor state: ${JSON.stringify(editorState)}`);
 
-                // Step 7: Verify text was injected into Gemini editor
-                E2ELogger.info('full-workflow', '7. Verifying text injection into Gemini...');
+            // Verify the text was injected
+            expect(editorState.iframeFound).toBe(true);
+            expect(editorState.editorFound).toBe(true);
+            expect(editorState.editorText).toContain(testMessage);
+            E2ELogger.info('full-workflow', '   Text injected into Gemini ✓');
 
-                // Wait for text to appear in Gemini editor (with timeout)
-                const editorState = await waitForTextInGeminiEditor(testMessage, 10000);
+            // Step 8: Verify submit button is visible and clickable (but NOT clicked due to E2E flag)
+            E2ELogger.info('full-workflow', '8. Verifying submit button state...');
+            expect(editorState.submitButtonFound).toBe(true);
+            expect(editorState.submitButtonEnabled).toBe(true);
+            E2ELogger.info('full-workflow', '   Submit button visible and clickable ✓');
+            E2ELogger.info('full-workflow', '   (NOT clicked due to E2E flag - message NOT sent to Gemini)');
 
-                E2ELogger.info('full-workflow', `   Editor state: ${JSON.stringify(editorState)}`);
-
-                // Verify the text was injected
-                expect(editorState.iframeFound).toBe(true);
-                expect(editorState.editorFound).toBe(true);
-                expect(editorState.editorText).toContain(testMessage);
-                E2ELogger.info('full-workflow', '   Text injected into Gemini ✓');
-
-                // Step 8: Verify submit button is visible and clickable (but NOT clicked due to E2E flag)
-                E2ELogger.info('full-workflow', '8. Verifying submit button state...');
-                expect(editorState.submitButtonFound).toBe(true);
-                // The button should be enabled (text is present)
-                expect(editorState.submitButtonEnabled).toBe(true);
-                E2ELogger.info('full-workflow', '   Submit button visible and clickable ✓');
-                E2ELogger.info('full-workflow', '   (NOT clicked due to E2E flag - message NOT sent to Gemini)');
-
-                E2ELogger.info('full-workflow', '\n=== Full Workflow Complete ===');
-                E2ELogger.info('full-workflow', 'Verified: Quick Chat → Type → Submit → Inject → Ready to send');
-                E2ELogger.info('full-workflow', 'E2E flag prevented actual Gemini submission ✓');
-            } else {
-                E2ELogger.info('full-workflow', '   Main window focused ✓');
-                E2ELogger.info(
-                    'full-workflow',
-                    '   Skipping Gemini iframe verification in CI environment (no network access)'
-                );
-                await browser.pause(1000);
-
-                E2ELogger.info('full-workflow', '\n=== Workflow Complete (CI Mode) ===');
-                E2ELogger.info('full-workflow', 'Verified: Quick Chat → Type → Submit → Hide');
-                E2ELogger.info('full-workflow', 'Skipped Gemini iframe checks in CI (network unavailable) ✓');
-            }
+            E2ELogger.info('full-workflow', '\n=== Full Workflow Complete ===');
+            E2ELogger.info('full-workflow', 'Verified: Quick Chat → Type → Submit → Inject → Ready to send');
+            E2ELogger.info('full-workflow', 'E2E flag prevented actual Gemini submission ✓');
         });
 
         it('should complete workflow using Enter key instead of button click', async () => {
@@ -178,36 +148,17 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             // Wait for processing using polling
             await waitForWindowTransition(async () => !(await quickChat.isVisible()));
 
-            // Switch to main and verify
+            // Switch to main and verify text injection in the new tab
             await switchToMainWindow();
 
-            if (!isCI()) {
-                await waitForUIState(
-                    async () => {
-                        try {
-                            const state = await verifyGeminiEditorState();
-                            return state.iframeFound && state.editorFound;
-                        } catch {
-                            return false;
-                        }
-                    },
-                    { timeout: 10000, description: 'Gemini iframe loaded' }
-                );
+            const editorState = await waitForTextInGeminiEditor(testMessage, 15000);
 
-                const editorState = await waitForTextInGeminiEditor(testMessage, 10000);
+            expect(editorState.iframeFound).toBe(true);
+            expect(editorState.editorFound).toBe(true);
+            expect(editorState.editorText).toContain(testMessage);
+            expect(editorState.submitButtonFound).toBe(true);
 
-                expect(editorState.editorText).toContain(testMessage);
-                expect(editorState.submitButtonFound).toBe(true);
-
-                E2ELogger.info('enter-workflow', 'Enter key workflow complete ✓');
-            } else {
-                E2ELogger.info(
-                    'enter-workflow',
-                    'Skipping Gemini iframe verification in CI environment (no network access)'
-                );
-                await browser.pause(1000);
-                E2ELogger.info('enter-workflow', 'Enter key workflow complete (CI mode) ✓');
-            }
+            E2ELogger.info('enter-workflow', 'Enter key workflow complete ✓');
         });
     });
 
