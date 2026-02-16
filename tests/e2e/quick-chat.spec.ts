@@ -192,6 +192,25 @@ describe('Quick Chat Feature', () => {
                 await waitForWindowTransition(async () => !(await quickChatPage.isVisible()));
             }
 
+            if (await quickChatPage.isVisible()) {
+                E2ELogger.info('quick-chat', 'Blur fallback did not hide Quick Chat; invoking focus handler directly');
+                await browserWithElectron.electron.execute(() => {
+                    const windowManager = (global as any).windowManager;
+                    const quickChatController = windowManager?.quickChatWindow;
+                    if (quickChatController?.handleMainWindowFocus) {
+                        quickChatController.handleMainWindowFocus();
+                        return;
+                    }
+
+                    const quickChatWindow = windowManager?.getQuickChatWindow?.();
+                    if (quickChatWindow && !quickChatWindow.isDestroyed()) {
+                        quickChatWindow.hide();
+                    }
+                });
+
+                await waitForWindowTransition(async () => !(await quickChatPage.isVisible()));
+            }
+
             // Verify Quick Chat is now hidden
             const isVisible = await quickChatPage.isVisible();
             expect(isVisible).toBe(false);

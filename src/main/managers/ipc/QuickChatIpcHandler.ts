@@ -89,6 +89,13 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
             this.pendingRequests.set(requestId, request);
             this.latestRequestByTab.set(targetTabId, requestId);
 
+            this.logger.log('Quick Chat navigation requested:', {
+                requestId,
+                targetTabId,
+                activeTabId: mainWindow.webContents.id,
+                windowId: mainWindow.id,
+            });
+
             mainWindow.webContents.send(IPC_CHANNELS.GEMINI_NAVIGATE, {
                 requestId,
                 targetTabId,
@@ -107,6 +114,8 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
                 this.logger.warn('Ignoring invalid gemini:ready payload');
                 return;
             }
+
+            this.logger.log('Gemini ready received:', payload);
 
             const request = this.pendingRequests.get(payload.requestId);
             if (!request) {
@@ -160,6 +169,14 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
         const frames = mainWindow.webContents.mainFrame.frames;
         const targetFrame = frames.find((frame) => frame.name === frameName);
 
+        this.logger.log('Quick Chat injection lookup:', {
+            requestId: request.requestId,
+            targetTabId: request.targetTabId,
+            frameName,
+            framesCount: frames.length,
+            frameNames: frames.map((frame) => frame.name),
+        });
+
         if (!targetFrame) {
             this.logger.error('Cannot inject text: target tab frame not found');
             return;
@@ -179,7 +196,10 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
             if (result?.success) {
                 this.logger.log('Text injected into Gemini successfully');
             } else {
-                this.logger.error('Injection script returned failure:', result?.error);
+                this.logger.error('Injection script returned failure:', {
+                    error: result?.error,
+                    details: result?.details,
+                });
             }
         } catch (error) {
             this.logger.error('Failed to inject text into Gemini:', error);
