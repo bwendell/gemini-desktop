@@ -234,9 +234,10 @@ describe('TextPredictionIpcHandler', () => {
                 const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
                 await handlerFn!({}, true);
 
-                expect(mockLogger.log).toHaveBeenCalledWith(
-                    'CI environment detected - skipping native module operations'
-                );
+                expect(mockLogger.log).toHaveBeenCalledWith('Skipping native module operations for text prediction', {
+                    ci: true,
+                    integrationTest: false,
+                });
                 expect(mockLlmManager.downloadModel).not.toHaveBeenCalled();
                 expect(mockLlmManager.loadModel).not.toHaveBeenCalled();
             } finally {
