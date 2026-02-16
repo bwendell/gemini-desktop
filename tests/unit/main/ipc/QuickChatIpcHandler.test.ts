@@ -295,7 +295,13 @@ describe('QuickChatIpcHandler', () => {
             const listener = mockIpcMain._listeners.get(IPC_CHANNELS.GEMINI_READY);
             await listener!({}, navigatePayload);
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Injection script returned failure:', 'Editor not found');
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Injection script returned failure:',
+                expect.objectContaining({
+                    details: undefined,
+                    error: 'Editor not found',
+                })
+            );
         });
 
         it('handles executeJavaScript exception', async () => {

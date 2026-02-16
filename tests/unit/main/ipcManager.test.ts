@@ -669,7 +669,13 @@ describe('IpcManager', () => {
 
             await handler({}, { requestId: navigatePayload!.requestId, targetTabId: navigatePayload!.targetTabId });
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Injection script returned failure:', 'Input not found');
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Injection script returned failure:',
+                expect.objectContaining({
+                    details: undefined,
+                    error: 'Input not found',
+                })
+            );
         });
 
         it('handles gemini:ready executeJavaScript error', async () => {
