@@ -31,7 +31,7 @@ export const config = {
     bail: 0,
     baseUrl: 'http://localhost',
     waitforTimeout: 30000,
-    connectionRetryTimeout: 120000,
+    connectionRetryTimeout: process.platform === 'linux' || process.platform === 'win32' ? 180000 : 120000,
     connectionRetryCount: 3,
     services: [
         [
@@ -66,6 +66,13 @@ export const config = {
         execSync('npm run build && npm run build:electron', { stdio: 'inherit' });
     },
 
+    // Wait for app to fully load before starting tests
+    before: async function (capabilities, specs) {
+        // Windows needs more time for initial startup in CI (Defender scan, first-time extraction)
+        const startupDelay = process.platform === 'win32' ? 8000 : 5000;
+        await new Promise((resolve) => setTimeout(resolve, startupDelay));
+    },
+
     /**
      * Gets executed before each worker process is spawned.
      */
@@ -97,7 +104,15 @@ export const config = {
 
         try {
             if (platform === 'win32') {
-                execSync('taskkill /F /IM electron.exe /T', { stdio: 'ignore' });
+                try {
+                    // Use PowerShell for more reliable process termination scoped to gemini-desktop
+                    execSync(
+                        "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and $_.CommandLine -like '*gemini-desktop*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }\"",
+                        { stdio: 'ignore', timeout: 10000 }
+                    );
+                } catch (e) {
+                    // Process might already be gone or no matching processes
+                }
             } else {
                 execFileSync('pkill', ['-f', appRegex], { stdio: 'ignore' });
             }
