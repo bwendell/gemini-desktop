@@ -119,6 +119,12 @@
         "**/*": "prettier --write --ignore-unknown"
     },
     "overrides": {
-        "tar": "^7.5.7"
+        "tar": "^7.5.7",
+        "dbus-next": {
+            "xml2js": "^0.6.2",
+            "usocket": {
+                "node-gyp": "^12.2.0"
+            }
+        }
     }
 }
