@@ -157,7 +157,7 @@ export const GeminiSelectors = {
         /**
          * CSS selectors for finding the conversation title.
          */
-        selectors: ['.conversation-title', 'span.conversation-title'] as const,
+        selectors: ['[data-test-id="conversation-title"]', '.conversation-title', 'span.conversation-title'] as const,
 
         /**
          * Description for logging/debugging.

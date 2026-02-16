@@ -15,6 +15,7 @@ interface TabContextValue {
     createTabAndActivate: (preferredTabId?: string) => string | null;
     closeTab: (id: string) => void;
     setActiveTab: (id: string) => void;
+    updateTabTitle: (id: string, title: string) => void;
     getActiveTab: () => TabState | null;
 }
 
@@ -199,9 +200,49 @@ export function TabProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    const updateTabTitle = useCallback((id: string, title: string) => {
+        const trimmedTitle = title.trim();
+        if (!trimmedTitle) {
+            return;
+        }
+
+        setTabsState((prev) => {
+            let didUpdate = false;
+            const nextTabs = prev.tabs.map((tab) => {
+                if (tab.id !== id || tab.title === trimmedTitle) {
+                    return tab;
+                }
+                didUpdate = true;
+                return {
+                    ...tab,
+                    title: trimmedTitle,
+                };
+            });
+
+            if (!didUpdate) {
+                return prev;
+            }
+
+            return {
+                tabs: nextTabs,
+                activeTabId: prev.activeTabId,
+            };
+        });
+    }, []);
+
     const getActiveTab = useCallback(() => {
         return tabsState.tabs.find((tab) => tab.id === tabsState.activeTabId) ?? null;
     }, [tabsState.activeTabId, tabsState.tabs]);
+
+    useEffect(() => {
+        const unsubscribe = window.electronAPI?.onTabTitleUpdated?.((payload: { tabId: string; title: string }) => {
+            updateTabTitle(payload.tabId, payload.title);
+        });
+
+        return () => {
+            unsubscribe?.();
+        };
+    }, [updateTabTitle]);
 
     const contextValue = useMemo<TabContextValue>(
         () => ({
@@ -213,6 +254,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
             createTabAndActivate,
             closeTab,
             setActiveTab,
+            updateTabTitle,
             getActiveTab,
         }),
         [
@@ -221,6 +263,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
             createTabOnly,
             getActiveTab,
             setActiveTab,
+            updateTabTitle,
             tabsState.activeTabId,
             tabsState.tabs,
         ]

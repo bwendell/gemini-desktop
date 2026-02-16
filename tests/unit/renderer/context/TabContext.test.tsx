@@ -10,6 +10,7 @@ import type { TabsState } from '../../../../src/shared/types/tabs';
 interface ElectronApiSubset {
     getTabState?: () => Promise<TabsState | null>;
     saveTabState?: (state: TabsState) => void;
+    onTabTitleUpdated?: (callback: (payload: { tabId: string; title: string }) => void) => () => void;
 }
 
 function Probe() {
@@ -232,6 +233,41 @@ describe('TabContext', () => {
         expect(saveTabState).toHaveBeenCalledTimes(1);
 
         vi.useRealTimers();
+    });
+
+    it('updates tab title when main process notifies', async () => {
+        const saveTabState = vi.fn();
+        let titleListener: ((payload: { tabId: string; title: string }) => void) | null = null;
+
+        (window as unknown as { electronAPI: ElectronApiSubset }).electronAPI = {
+            getTabState: vi.fn().mockResolvedValue({
+                tabs: [{ id: 'tab-a', title: 'New Chat', url: 'https://gemini.google.com/app', createdAt: 1 }],
+                activeTabId: 'tab-a',
+            } satisfies TabsState),
+            saveTabState,
+            onTabTitleUpdated: vi.fn((callback) => {
+                titleListener = callback;
+                return () => {
+                    titleListener = null;
+                };
+            }),
+        };
+
+        renderProvider(<Probe />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('active-id').textContent).toBe('tab-a');
+        });
+
+        act(() => {
+            titleListener?.({ tabId: 'tab-a', title: 'RSUs vs. Stock Options' });
+        });
+
+        expect(screen.getByTestId('active-title').textContent).toBe('RSUs vs. Stock Options');
+
+        await waitFor(() => {
+            expect(saveTabState).toHaveBeenCalled();
+        });
     });
 
     it('throws when hook is used outside provider', () => {

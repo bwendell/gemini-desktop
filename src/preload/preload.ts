@@ -60,6 +60,8 @@ export const IPC_CHANNELS = {
 
     TABS_GET_STATE: 'tabs:get-state',
     TABS_SAVE_STATE: 'tabs:save-state',
+    TABS_UPDATE_TITLE: 'tabs:update-title',
+    TABS_TITLE_UPDATED: 'tabs:title-updated',
     TABS_SHORTCUT_TRIGGERED: 'tabs:shortcut-triggered',
 
     // Always On Top
@@ -342,6 +344,22 @@ const electronAPI: ElectronAPI = {
             ipcRenderer.removeListener(IPC_CHANNELS.TABS_SHORTCUT_TRIGGERED, subscription);
         };
     },
+
+    onTabTitleUpdated: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, payload: Parameters<typeof callback>[0]) =>
+            callback(payload);
+        ipcRenderer.on(IPC_CHANNELS.TABS_TITLE_UPDATED, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.TABS_TITLE_UPDATED, subscription);
+        };
+    },
+
+    updateTabTitle: (tabId, title) =>
+        ipcRenderer.send(IPC_CHANNELS.TABS_UPDATE_TITLE, {
+            tabId,
+            title,
+        }),
 
     // =========================================================================
     // Individual Hotkeys API

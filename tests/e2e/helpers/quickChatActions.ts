@@ -19,7 +19,12 @@
 import { browser } from '@wdio/globals';
 import { registerHotkeyActionHandler, type HotkeyActionHandler, type HotkeyActionState } from './hotkeyHelpers';
 import { E2ELogger } from './logger';
-import { GEMINI_DOMAIN_PATTERNS, GEMINI_EDITOR_SELECTORS, GEMINI_SUBMIT_BUTTON_SELECTORS } from './e2eConstants';
+import {
+    GEMINI_DOMAIN_PATTERNS,
+    GEMINI_EDITOR_SELECTORS,
+    GEMINI_SUBMIT_BUTTON_SELECTORS,
+    GEMINI_CONVERSATION_TITLE_SELECTORS,
+} from './e2eConstants';
 
 // =============================================================================
 // Quick Chat State Interface
@@ -511,14 +516,15 @@ export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
  */
 export async function waitForTextInGeminiEditor(
     expectedText: string,
-    timeoutMs: number = 5000
+    timeoutMs: number = 5000,
+    activeTabId?: string
 ): Promise<GeminiEditorState> {
     const startTime = Date.now();
     let lastState: GeminiEditorState | null = null;
 
     while (Date.now() - startTime < timeoutMs) {
         // Use direct iframe query for more reliable results
-        const state = await readGeminiEditorDirect(expectedText);
+        const state = await readGeminiEditorDirect(expectedText, activeTabId);
         lastState = state;
 
         if (state.editorFound && state.editorText?.includes(expectedText)) {
@@ -542,51 +548,87 @@ export async function waitForTextInGeminiEditor(
     );
 }
 
+export async function getGeminiConversationTitle(tabId?: string): Promise<string | null> {
+    const titleSelectors = [...GEMINI_CONVERSATION_TITLE_SELECTORS];
+    const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
+
+    return wdioBrowser.electron.execute(
+        async (electron: typeof import('electron'), selectors: string[], domains: string[], activeTabId?: string) => {
+            const windowManager = (global as any).windowManager as
+                | { getMainWindow?: () => Electron.BrowserWindow | null }
+                | undefined;
+
+            const mainWindow = windowManager?.getMainWindow?.();
+            if (!mainWindow) {
+                return null;
+            }
+
+            const frames = mainWindow.webContents.mainFrame.frames;
+            const targetFrameName = activeTabId ? `gemini-tab-${activeTabId}` : null;
+            const targetFrame = targetFrameName ? frames.find((frame) => frame.name === targetFrameName) : null;
+            const geminiFrames = targetFrame
+                ? [targetFrame]
+                : frames.filter((frame) => {
+                      try {
+                          return domains.some((domain) => frame.url.includes(domain));
+                      } catch {
+                          return false;
+                      }
+                  });
+
+            if (geminiFrames.length === 0) {
+                return null;
+            }
+
+            const selectorsJson = JSON.stringify(selectors);
+            const titleScript = `
+                (function() {
+                    try {
+                        const selectors = ${selectorsJson};
+                        for (const selector of selectors) {
+                            const el = document.querySelector(selector);
+                            if (el) {
+                                const text = el.textContent?.trim();
+                                if (text) {
+                                    return text;
+                                }
+                            }
+                        }
+                        const fallback = document.title.replace(' - Gemini', '').trim();
+                        return fallback || null;
+                    } catch (e) {
+                        return null;
+                    }
+                })();
+            `;
+
+            for (const frame of geminiFrames) {
+                try {
+                    const result = await frame.executeJavaScript(titleScript);
+                    if (typeof result === 'string' && result.trim().length > 0) {
+                        return result.trim();
+                    }
+                } catch {
+                    continue;
+                }
+            }
+
+            return null;
+        },
+        titleSelectors,
+        domainPatterns,
+        tabId
+    );
+}
+
 /**
  * Direct async read from Gemini editor iframe.
  * More reliable for verification as it awaits the inner executeJavaScript.
  */
-async function readGeminiEditorDirect(expectedText?: string): Promise<GeminiEditorState> {
+async function readGeminiEditorDirect(expectedText?: string, activeTabId?: string): Promise<GeminiEditorState> {
     const editorSelectors = [...GEMINI_EDITOR_SELECTORS];
     const buttonSelectors = [...GEMINI_SUBMIT_BUTTON_SELECTORS];
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
-
-    // First get the frame info
-    const frameInfo = await wdioBrowser.electron.execute((_electron: typeof import('electron'), domains: string[]) => {
-        const windowManager = (global as any).windowManager as
-            | { getMainWindow?: () => Electron.BrowserWindow | null }
-            | undefined;
-
-        if (!windowManager) return { found: false, frameId: -1 };
-
-        const mainWindow = windowManager.getMainWindow?.();
-        if (!mainWindow) return { found: false, frameId: -1 };
-
-        const frames = mainWindow.webContents.mainFrame.frames;
-        const geminiFrame = frames.find((frame) => {
-            try {
-                return domains.some((domain) => frame.url.includes(domain));
-            } catch {
-                return false;
-            }
-        });
-
-        return {
-            found: !!geminiFrame,
-            frameId: geminiFrame?.frameTreeNodeId ?? -1,
-        };
-    }, domainPatterns);
-
-    if (!frameInfo.found) {
-        return {
-            iframeFound: false,
-            editorFound: false,
-            editorText: null,
-            submitButtonFound: false,
-            submitButtonEnabled: false,
-            error: 'Gemini iframe not found',
-        };
-    }
 
     // Execute read script in the iframe
     const result = await wdioBrowser.electron.execute(
@@ -595,7 +637,8 @@ async function readGeminiEditorDirect(expectedText?: string): Promise<GeminiEdit
             editorSels: string[],
             buttonSels: string[],
             domains: string[],
-            expected: string | null
+            expected: string | null,
+            tabId?: string
         ) => {
             const windowManager = (global as any).windowManager as
                 | { getMainWindow?: () => Electron.BrowserWindow | null }
@@ -614,13 +657,17 @@ async function readGeminiEditorDirect(expectedText?: string): Promise<GeminiEdit
             }
 
             const frames = mainWindow.webContents.mainFrame.frames;
-            const geminiFrames = frames.filter((frame) => {
-                try {
-                    return domains.some((domain) => frame.url.includes(domain));
-                } catch {
-                    return false;
-                }
-            });
+            const targetFrameName = tabId ? `gemini-tab-${tabId}` : null;
+            const targetFrame = targetFrameName ? frames.find((frame) => frame.name === targetFrameName) : null;
+            const geminiFrames = targetFrame
+                ? [targetFrame]
+                : frames.filter((frame) => {
+                      try {
+                          return domains.some((domain) => frame.url.includes(domain));
+                      } catch {
+                          return false;
+                      }
+                  });
 
             if (geminiFrames.length === 0) {
                 return {
@@ -732,7 +779,8 @@ async function readGeminiEditorDirect(expectedText?: string): Promise<GeminiEdit
         editorSelectors,
         buttonSelectors,
         domainPatterns,
-        expectedText ?? null
+        expectedText ?? null,
+        activeTabId
     );
 
     return result as GeminiEditorState;

@@ -109,6 +109,10 @@ export interface ElectronAPI {
 
     onTabShortcutTriggered: (callback: (payload: TabShortcutPayload) => void) => () => void;
 
+    onTabTitleUpdated: (callback: (payload: { tabId: string; title: string }) => void) => () => void;
+
+    updateTabTitle: (tabId: string, title: string) => void;
+
     // =========================================================================
     // Individual Hotkeys API
     // =========================================================================

@@ -41,6 +41,8 @@ export const IPC_CHANNELS = {
 
     TABS_GET_STATE: 'tabs:get-state',
     TABS_SAVE_STATE: 'tabs:save-state',
+    TABS_UPDATE_TITLE: 'tabs:update-title',
+    TABS_TITLE_UPDATED: 'tabs:title-updated',
     TABS_SHORTCUT_TRIGGERED: 'tabs:shortcut-triggered',
 
     // Always On Top

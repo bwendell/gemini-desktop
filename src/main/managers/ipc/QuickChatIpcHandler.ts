@@ -115,6 +115,13 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
                 return;
             }
 
+            const e2eBuffer = (
+                global as typeof globalThis & {
+                    __e2eGeminiReadyBuffer?: { enabled?: boolean; pending?: GeminiReadyPayload[] };
+                }
+            ).__e2eGeminiReadyBuffer;
+            const shouldBuffer = process.argv.includes('--e2e-disable-auto-submit') && e2eBuffer?.enabled;
+
             this.logger.log('Gemini ready received:', payload);
 
             const request = this.pendingRequests.get(payload.requestId);
@@ -134,10 +141,47 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
                 return;
             }
 
+            if (shouldBuffer) {
+                if (!Array.isArray(e2eBuffer?.pending)) {
+                    if (e2eBuffer) {
+                        e2eBuffer.pending = [];
+                    }
+                }
+                e2eBuffer?.pending?.push(payload);
+                this.logger.log('Buffered gemini:ready payload for E2E');
+                return;
+            }
+
             await this._injectTextIntoGeminiIframe(request);
             this.pendingRequests.delete(payload.requestId);
         } catch (error) {
             this.handleError('handling gemini ready', error);
+        }
+    }
+
+    public flushE2EBufferedReady(): void {
+        try {
+            const e2eBuffer = (
+                global as typeof globalThis & {
+                    __e2eGeminiReadyBuffer?: { enabled?: boolean; pending?: GeminiReadyPayload[] };
+                }
+            ).__e2eGeminiReadyBuffer;
+
+            if (!process.argv.includes('--e2e-disable-auto-submit') || !e2eBuffer?.enabled) {
+                return;
+            }
+
+            const pending = Array.isArray(e2eBuffer.pending) ? [...e2eBuffer.pending] : [];
+            e2eBuffer.pending = [];
+            e2eBuffer.enabled = false;
+
+            for (const payload of pending) {
+                void this._handleGeminiReady(payload);
+            }
+
+            e2eBuffer.enabled = true;
+        } catch (error) {
+            this.handleError('flushing E2E gemini ready buffer', error);
         }
     }
 

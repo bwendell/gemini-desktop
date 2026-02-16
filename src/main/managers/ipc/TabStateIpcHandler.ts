@@ -3,10 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { ipcMain } from 'electron';
 
 import SettingsStore from '../../store';
-import { IPC_CHANNELS } from '../../utils/constants';
+import { IPC_CHANNELS, isGeminiDomain } from '../../utils/constants';
 import { GEMINI_APP_URL } from '../../../shared/constants/urls';
 import type { TabState, TabsState } from '../../../shared/types/tabs';
+import { getTabFrameName } from '../../../shared/types/tabs';
 import { BaseIpcHandler } from './BaseIpcHandler';
+import { TITLE_EXTRACTION_SCRIPT } from '../../utils/chatExtraction';
 
 interface TabStoreRecord extends Record<string, unknown> {
     tabsState: TabsState | null;
@@ -92,6 +94,7 @@ function createDefaultTabsState(): TabsState {
 
 export class TabStateIpcHandler extends BaseIpcHandler {
     private readonly tabsStore: SettingsStore<TabStoreRecord>;
+    private responseCompleteListener: (() => void) | null = null;
 
     constructor(...args: ConstructorParameters<typeof BaseIpcHandler>) {
         super(...args);
@@ -108,6 +111,21 @@ export class TabStateIpcHandler extends BaseIpcHandler {
         ipcMain.on(IPC_CHANNELS.TABS_SAVE_STATE, (_event, state: unknown) => {
             this._handleSaveState(state);
         });
+        ipcMain.on(IPC_CHANNELS.TABS_UPDATE_TITLE, (_event, payload: unknown) => {
+            this._handleUpdateTitle(payload);
+        });
+
+        const mainWindowInstance = this.deps.windowManager.getMainWindowInstance?.();
+        if (mainWindowInstance?.on) {
+            this.responseCompleteListener = () => {
+                void this._handleResponseComplete();
+            };
+            mainWindowInstance.on('response-complete', this.responseCompleteListener);
+        }
+    }
+
+    updateTabTitle(tabId: string, title: string): void {
+        this._handleUpdateTitle({ tabId, title });
     }
 
     private _handleGetState(): TabsState | null {
@@ -140,8 +158,112 @@ export class TabStateIpcHandler extends BaseIpcHandler {
         }
     }
 
+    private _handleUpdateTitle(payload: unknown): void {
+        try {
+            if (!isRecord(payload)) {
+                return;
+            }
+
+            const rawTabId = typeof payload.tabId === 'string' ? payload.tabId.trim() : '';
+            const rawTitle = typeof payload.title === 'string' ? payload.title.trim() : '';
+            if (!rawTabId || !rawTitle) {
+                return;
+            }
+
+            const storedState = this.tabsStore.get('tabsState');
+            const normalizedState = normalizeTabsState(storedState);
+            if (!normalizedState) {
+                return;
+            }
+
+            let updated = false;
+            const nextTabs = normalizedState.tabs.map((tab) => {
+                if (tab.id !== rawTabId || tab.title === rawTitle) {
+                    return tab;
+                }
+                updated = true;
+                return {
+                    ...tab,
+                    title: rawTitle,
+                };
+            });
+
+            if (!updated) {
+                return;
+            }
+
+            const nextState: TabsState = {
+                tabs: nextTabs,
+                activeTabId: normalizedState.activeTabId,
+            };
+
+            this.tabsStore.set('tabsState', nextState);
+            this.broadcastToAllWindows(IPC_CHANNELS.TABS_TITLE_UPDATED, { tabId: rawTabId, title: rawTitle });
+        } catch (error) {
+            this.handleError('updating tab title', error);
+        }
+    }
+
+    private async _handleResponseComplete(): Promise<void> {
+        try {
+            const mainWindow = this.deps.windowManager.getMainWindow();
+            if (!mainWindow || mainWindow.isDestroyed()) {
+                this.logger.warn('Cannot sync tab title: main window not found or destroyed');
+                return;
+            }
+
+            const storedState = this.tabsStore.get('tabsState');
+            const normalizedState = normalizeTabsState(storedState);
+            if (!normalizedState) {
+                return;
+            }
+
+            const activeTabId = normalizedState.activeTabId;
+            const targetFrameName = getTabFrameName(activeTabId);
+            const frames = mainWindow.webContents.mainFrame.frames;
+            const targetFrame = frames.find((frame) => frame.name === targetFrameName);
+
+            if (!targetFrame) {
+                this.logger.warn('Cannot sync tab title: active tab frame not found', {
+                    activeTabId,
+                    targetFrameName,
+                });
+                return;
+            }
+
+            if (!isGeminiDomain(targetFrame.url)) {
+                this.logger.warn('Cannot sync tab title: active tab frame is not Gemini domain', {
+                    activeTabId,
+                    url: targetFrame.url,
+                });
+                return;
+            }
+
+            const rawTitle = (await targetFrame.executeJavaScript(TITLE_EXTRACTION_SCRIPT)) as unknown;
+            const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
+            if (!title) {
+                return;
+            }
+
+            this._handleUpdateTitle({ tabId: activeTabId, title });
+        } catch (error) {
+            this.handleError('syncing tab title', error);
+        }
+    }
+
     unregister(): void {
         ipcMain.removeHandler(IPC_CHANNELS.TABS_GET_STATE);
         ipcMain.removeAllListeners(IPC_CHANNELS.TABS_SAVE_STATE);
+        ipcMain.removeAllListeners(IPC_CHANNELS.TABS_UPDATE_TITLE);
+
+        const mainWindowInstance = this.deps.windowManager.getMainWindowInstance?.();
+        if (this.responseCompleteListener) {
+            if (mainWindowInstance?.off) {
+                mainWindowInstance.off('response-complete', this.responseCompleteListener);
+            } else if (mainWindowInstance?.removeListener) {
+                mainWindowInstance.removeListener('response-complete', this.responseCompleteListener);
+            }
+        }
+        this.responseCompleteListener = null;
     }
 }

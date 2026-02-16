@@ -45,7 +45,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
     const defaultUnsubscribe = () => {};
 
     // Build the complete mock API with all methods
-    const mockAPI: ElectronAPI = {
+    const mockAPI = {
         // =========================================================================
         // Window Controls
         // =========================================================================
@@ -54,6 +54,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         closeWindow: vi.fn(),
         showWindow: vi.fn(),
         isMaximized: vi.fn().mockResolvedValue(false),
+        toggleFullscreen: vi.fn(),
         openOptions: vi.fn(),
         openGoogleSignIn: vi.fn().mockResolvedValue(undefined),
 
@@ -86,6 +87,11 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         // =========================================================================
         onGeminiNavigate: vi.fn().mockReturnValue(defaultUnsubscribe),
         signalGeminiReady: vi.fn(),
+        onTabTitleUpdated: vi.fn().mockReturnValue(defaultUnsubscribe),
+        updateTabTitle: vi.fn(),
+        getTabState: vi.fn().mockResolvedValue(null),
+        saveTabState: vi.fn(),
+        onTabShortcutTriggered: vi.fn().mockReturnValue(defaultUnsubscribe),
 
         // =========================================================================
         // Individual Hotkeys API
@@ -128,6 +134,11 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         setAlwaysOnTop: vi.fn(),
         onAlwaysOnTopChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
 
+        getZoomLevel: vi.fn().mockResolvedValue(100),
+        zoomIn: vi.fn().mockResolvedValue(110),
+        zoomOut: vi.fn().mockResolvedValue(90),
+        onZoomLevelChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
+
         // =========================================================================
         // Auto-Update API
         // =========================================================================
@@ -149,6 +160,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         devSetUpdateEnabled: vi.fn(),
         devEmitUpdateEvent: vi.fn(),
         devMockPlatform: vi.fn(),
+        devTriggerResponseNotification: vi.fn(),
 
         // =========================================================================
         // E2E Testing Helpers
@@ -159,22 +171,12 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         onDebugTriggerError: vi.fn().mockReturnValue(defaultUnsubscribe),
 
         // =========================================================================
-        // Print to PDF API
-        // =========================================================================
-        printToPdf: vi.fn(),
-        cancelPrint: vi.fn(),
-        onPrintToPdfSuccess: vi.fn().mockReturnValue(defaultUnsubscribe),
-        onPrintToPdfError: vi.fn().mockReturnValue(defaultUnsubscribe),
-        onPrintProgressStart: vi.fn().mockReturnValue(defaultUnsubscribe),
-        onPrintProgressUpdate: vi.fn().mockReturnValue(defaultUnsubscribe),
-        onPrintProgressEnd: vi.fn().mockReturnValue(defaultUnsubscribe),
-        onPrintOverlayHide: vi.fn().mockReturnValue(defaultUnsubscribe),
-        onPrintOverlayShow: vi.fn().mockReturnValue(defaultUnsubscribe),
-
-        // =========================================================================
         // Toast API
         // =========================================================================
         onToastShow: vi.fn().mockReturnValue(defaultUnsubscribe),
+
+        exportChatToPdf: vi.fn(),
+        exportChatToMarkdown: vi.fn(),
 
         // =========================================================================
         // Shell API
@@ -197,6 +199,23 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         onTextPredictionDownloadProgress: vi.fn().mockReturnValue(defaultUnsubscribe),
         predictText: vi.fn().mockResolvedValue(null),
 
+        getPlatformHotkeyStatus: vi.fn().mockResolvedValue({
+            enabled: false,
+            supported: false,
+            reason: 'not-implemented',
+            mode: 'unknown',
+        }),
+        onPlatformHotkeyStatusChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
+
+        getDbusActivationSignalStats: vi.fn().mockResolvedValue({
+            trackingEnabled: false,
+            totalSignals: 0,
+            signalsByShortcut: {},
+            lastSignalTime: null,
+            signals: [],
+        }),
+        clearDbusActivationSignalHistory: vi.fn(),
+
         // =========================================================================
         // Response Notifications API
         // =========================================================================
@@ -207,7 +226,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         ...overrides,
     };
 
-    return mockAPI;
+    return mockAPI as ElectronAPI;
 }
 
 /**

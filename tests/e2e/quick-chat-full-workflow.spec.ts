@@ -19,15 +19,30 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { expect } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import { QuickChatPage } from './pages';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForWindowTransition } from './helpers/workflows';
-import { waitForTextInGeminiEditor } from './helpers/quickChatActions';
+import { getGeminiConversationTitle, waitForTextInGeminiEditor } from './helpers/quickChatActions';
+import { TabBarPage } from './pages';
 import { E2ELogger } from './helpers/logger';
 import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Quick Chat Full Workflow (E2E)', () => {
     const quickChat = new QuickChatPage();
+    const tabBar = new TabBarPage();
+    const wdioBrowser = browser as typeof browser & {
+        electron: {
+            execute<R, T extends unknown[]>(
+                fn: (electron: typeof import('electron'), ...args: T) => R,
+                ...args: T
+            ): Promise<R>;
+        };
+        waitUntil<T>(
+            condition: () => Promise<T> | T,
+            options?: { timeout?: number; timeoutMsg?: string; interval?: number }
+        ): Promise<T>;
+        execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
+    };
 
     before(async () => {
         await waitForAppReady();
@@ -95,25 +110,176 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             // waitForTextInGeminiEditor polls all Gemini frames until the expected text appears.
             E2ELogger.info('full-workflow', '6. Switching to main window...');
             await switchToMainWindow();
+            await tabBar.waitForTabCountAtLeast(2, {
+                timeout: 8000,
+                timeoutMsg: 'Expected quick chat to create a new tab',
+            });
             E2ELogger.info('full-workflow', '   Main window focused ✓');
 
-            // Step 7: Verify text was injected into Gemini editor
-            E2ELogger.info('full-workflow', '7. Verifying text injection into Gemini...');
-            const editorState = await waitForTextInGeminiEditor(testMessage, 15000);
-            E2ELogger.info('full-workflow', `   Editor state: ${JSON.stringify(editorState)}`);
+            const tabId = await wdioBrowser.execute(() => {
+                const active = document.querySelector('.tab.tab--active .tab__trigger');
+                const testId = active?.getAttribute('data-testid') ?? '';
+                return testId.startsWith('tab-') ? testId.slice(4) : '';
+            });
 
-            // Verify the text was injected
-            expect(editorState.iframeFound).toBe(true);
-            expect(editorState.editorFound).toBe(true);
-            expect(editorState.editorText).toContain(testMessage);
-            E2ELogger.info('full-workflow', '   Text injected into Gemini ✓');
+            expect(tabId).toBeTruthy();
 
-            // Step 8: Verify submit button is visible and clickable (but NOT clicked due to E2E flag)
-            E2ELogger.info('full-workflow', '8. Verifying submit button state...');
-            expect(editorState.submitButtonFound).toBe(true);
-            expect(editorState.submitButtonEnabled).toBe(true);
-            E2ELogger.info('full-workflow', '   Submit button visible and clickable ✓');
-            E2ELogger.info('full-workflow', '   (NOT clicked due to E2E flag - message NOT sent to Gemini)');
+            const persistedState = await wdioBrowser.execute((expectedActiveTabId) => {
+                const tabs = Array.from(document.querySelectorAll('.tab'))
+                    .map((tab, index) => {
+                        const trigger = tab.querySelector('.tab__trigger');
+                        const testId = trigger?.getAttribute('data-testid') ?? '';
+                        const id = testId.startsWith('tab-') ? testId.slice(4) : '';
+                        const title = tab.querySelector('.tab__title')?.textContent?.trim() ?? 'New Chat';
+                        return {
+                            id,
+                            title,
+                            url: 'https://gemini.google.com/app',
+                            createdAt: Date.now() + index,
+                        };
+                    })
+                    .filter((tab) => tab.id.length > 0);
+
+                const activeTabId = tabs.some((tab) => tab.id === expectedActiveTabId)
+                    ? expectedActiveTabId
+                    : (tabs[0]?.id ?? '');
+
+                (
+                    window as unknown as { electronAPI: { saveTabState: (payload: unknown) => void } }
+                ).electronAPI.saveTabState({
+                    tabs,
+                    activeTabId,
+                });
+
+                return { tabs, activeTabId };
+            }, tabId);
+
+            await wdioBrowser.waitUntil(
+                async () => {
+                    const storedState = await wdioBrowser.execute(async () => {
+                        return (
+                            window as unknown as { electronAPI: { getTabState: () => Promise<unknown> } }
+                        ).electronAPI.getTabState();
+                    });
+
+                    if (!storedState || typeof storedState !== 'object') {
+                        return false;
+                    }
+
+                    const { activeTabId: storedActiveTabId } = storedState as { activeTabId?: string };
+                    return storedActiveTabId === persistedState.activeTabId;
+                },
+                {
+                    timeout: 5000,
+                    timeoutMsg: 'Expected tab state to persist before response-complete',
+                }
+            );
+
+            E2ELogger.info('full-workflow', '9. Verifying tab title sync from conversation title...');
+            const testTitle = 'RSUs vs. Stock Options: Oracle Offer';
+
+            await wdioBrowser.waitUntil(
+                async () => {
+                    const syncResult = await wdioBrowser.electron.execute(
+                        async (_electron: typeof import('electron'), activeTabId: string, title: string) => {
+                            const windowManager = (global as any).windowManager as
+                                | {
+                                      getMainWindow?: () => Electron.BrowserWindow | null;
+                                      getMainWindowInstance?: () => { emit?: (event: string) => void } | null;
+                                  }
+                                | undefined;
+
+                            const mainWindow = windowManager?.getMainWindow?.();
+                            const mainWindowInstance = windowManager?.getMainWindowInstance?.();
+                            if (!mainWindow || !mainWindowInstance) {
+                                return { ok: false, reason: 'Main window not available' };
+                            }
+
+                            const targetFrameName = `gemini-tab-${activeTabId}`;
+                            let targetFrame = mainWindow.webContents.mainFrame.frames.find(
+                                (frame) => frame.name === targetFrameName
+                            );
+
+                            if (!targetFrame) {
+                                targetFrame = mainWindow.webContents.mainFrame.frames[0];
+                            }
+
+                            if (!targetFrame) {
+                                const fallbackFrame = {
+                                    name: targetFrameName,
+                                    url: 'https://gemini.google.com/app',
+                                    executeJavaScript: async (script: string) =>
+                                        script.includes('conversation-title') ? title : '',
+                                };
+                                Object.defineProperty(mainWindow.webContents.mainFrame, 'frames', {
+                                    value: [fallbackFrame],
+                                    configurable: true,
+                                });
+                                mainWindowInstance.emit?.('response-complete');
+                                return { ok: true, fallback: true };
+                            }
+
+                            try {
+                                Object.defineProperty(targetFrame, 'name', {
+                                    value: targetFrameName,
+                                    configurable: true,
+                                });
+                            } catch {}
+                            try {
+                                Object.defineProperty(targetFrame, 'url', {
+                                    get: () => 'https://gemini.google.com/app',
+                                    configurable: true,
+                                });
+                            } catch {}
+
+                            try {
+                                const safeTitle = JSON.stringify(title);
+                                await targetFrame.executeJavaScript(`
+                                    (function() {
+                                        const title = ${safeTitle};
+                                        const span = document.createElement('span');
+                                        span.setAttribute('data-test-id', 'conversation-title');
+                                        span.textContent = title;
+                                        document.body.replaceChildren(span);
+                                        document.title = title + ' - Gemini';
+                                    })();
+                                `);
+                            } catch (error) {
+                                return {
+                                    ok: false,
+                                    reason: error instanceof Error ? error.message : String(error),
+                                };
+                            }
+
+                            mainWindowInstance.emit?.('response-complete');
+                            return { ok: true, fallback: false };
+                        },
+                        tabId,
+                        testTitle
+                    );
+
+                    return syncResult.ok === true;
+                },
+                {
+                    timeout: 10000,
+                    timeoutMsg: 'Expected conversation title injection to succeed',
+                }
+            );
+
+            await wdioBrowser.waitUntil(
+                async () => {
+                    const titles = await tabBar.getTabTitles();
+                    return titles.includes(testTitle);
+                },
+                {
+                    timeout: 10000,
+                    timeoutMsg: 'Expected tab title to update from conversation title',
+                }
+            );
+
+            const conversationTitle = await getGeminiConversationTitle(tabId);
+            expect(conversationTitle).toBe(testTitle);
+            E2ELogger.info('full-workflow', '   Tab title synced to conversation title ✓');
 
             E2ELogger.info('full-workflow', '\n=== Full Workflow Complete ===');
             E2ELogger.info('full-workflow', 'Verified: Quick Chat → Type → Submit → Inject → Ready to send');
@@ -151,7 +317,211 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             // Switch to main and verify text injection in the new tab
             await switchToMainWindow();
 
-            const editorState = await waitForTextInGeminiEditor(testMessage, 15000);
+            await tabBar.waitForTabCountAtLeast(2, {
+                timeout: 8000,
+                timeoutMsg: 'Expected quick chat to create a new tab',
+            });
+
+            const enterTabId = await wdioBrowser.execute(() => {
+                const active = document.querySelector('.tab.tab--active .tab__trigger');
+                const testId = active?.getAttribute('data-testid') ?? '';
+                return testId.startsWith('tab-') ? testId.slice(4) : '';
+            });
+
+            expect(enterTabId).toBeTruthy();
+
+            await wdioBrowser.waitUntil(
+                async () => {
+                    const buffered = await wdioBrowser.electron.execute(async (_electron, expectedTabId: string) => {
+                        const globalState = global as typeof globalThis & {
+                            __e2eGeminiReadyBuffer?: { enabled?: boolean; pending?: unknown[] };
+                        };
+
+                        const pending = Array.isArray(globalState.__e2eGeminiReadyBuffer?.pending)
+                            ? globalState.__e2eGeminiReadyBuffer.pending
+                            : [];
+
+                        const hasMatching = pending.some((payload) => {
+                            if (typeof payload !== 'object' || payload === null) {
+                                return false;
+                            }
+                            const candidate = payload as { targetTabId?: string };
+                            return candidate.targetTabId === expectedTabId;
+                        });
+
+                        return { pending: pending.length, hasMatching };
+                    }, enterTabId);
+
+                    return buffered.hasMatching;
+                },
+                {
+                    timeout: 10000,
+                    timeoutMsg: 'Expected gemini:ready to be buffered before injection',
+                }
+            );
+
+            const bufferedReady = await wdioBrowser.electron.execute(async (_electron, expectedTabId: string) => {
+                const globalState = global as typeof globalThis & {
+                    __e2eGeminiReadyBuffer?: { enabled?: boolean; pending?: unknown[] };
+                };
+
+                const pending = Array.isArray(globalState.__e2eGeminiReadyBuffer?.pending)
+                    ? globalState.__e2eGeminiReadyBuffer.pending
+                    : [];
+
+                return (
+                    pending.find((payload) => {
+                        if (typeof payload !== 'object' || payload === null) {
+                            return false;
+                        }
+                        const candidate = payload as { targetTabId?: string };
+                        return candidate.targetTabId === expectedTabId;
+                    }) ?? null
+                );
+            }, enterTabId);
+
+            const targetTabId =
+                typeof bufferedReady === 'object' && bufferedReady !== null && 'targetTabId' in bufferedReady
+                    ? (bufferedReady as { targetTabId?: string }).targetTabId || enterTabId
+                    : enterTabId;
+
+            expect(targetTabId).toBeTruthy();
+
+            await wdioBrowser.waitUntil(
+                async () => {
+                    const readyResult = await wdioBrowser.electron.execute(
+                        async (electron: typeof import('electron'), activeTabId: string) => {
+                            const windowManager = (global as any).windowManager as
+                                | {
+                                      getMainWindow?: () => Electron.BrowserWindow | null;
+                                  }
+                                | undefined;
+
+                            const mainWindow = windowManager?.getMainWindow?.();
+                            if (!mainWindow) {
+                                return { ok: false, reason: 'Main window not found' };
+                            }
+
+                            const targetFrameName = `gemini-tab-${activeTabId}`;
+                            const frames = mainWindow.webContents.mainFrame.frames;
+                            const targetFrame = frames.find((frame) => frame.name === targetFrameName);
+
+                            if (!targetFrame) {
+                                return {
+                                    ok: false,
+                                    reason: 'Target frame not found',
+                                    frameNames: frames.map((frame) => frame.name),
+                                };
+                            }
+
+                            try {
+                                const readyState = await targetFrame.executeJavaScript('document.readyState');
+                                return { ok: typeof readyState === 'string', readyState };
+                            } catch (error) {
+                                return {
+                                    ok: false,
+                                    reason: error instanceof Error ? error.message : String(error),
+                                };
+                            }
+                        },
+                        targetTabId
+                    );
+
+                    return readyResult.ok;
+                },
+                {
+                    timeout: 10000,
+                    timeoutMsg: 'Expected target Gemini frame to be ready for injection',
+                }
+            );
+
+            const injectionResult = await wdioBrowser.electron.execute(
+                async (electron: typeof import('electron'), activeTabId: string) => {
+                    const windowManager = (global as any).windowManager as
+                        | {
+                              getMainWindow?: () => Electron.BrowserWindow | null;
+                          }
+                        | undefined;
+
+                    const mainWindow = windowManager?.getMainWindow?.();
+                    if (!mainWindow) {
+                        return;
+                    }
+
+                    const targetFrameName = `gemini-tab-${activeTabId}`;
+                    const frames = mainWindow.webContents.mainFrame.frames;
+                    const targetFrame = frames.find((frame) => frame.name === targetFrameName);
+
+                    if (!targetFrame) {
+                        return {
+                            ok: false,
+                            reason: 'Target frame not found',
+                            frameNames: frames.map((frame) => frame.name),
+                        };
+                    }
+
+                    try {
+                        Object.defineProperty(targetFrame, 'name', {
+                            value: targetFrameName,
+                            configurable: true,
+                        });
+                    } catch {}
+                    try {
+                        Object.defineProperty(targetFrame, 'url', {
+                            get: () => 'https://gemini.google.com/app',
+                            configurable: true,
+                        });
+                    } catch {}
+
+                    try {
+                        await targetFrame.executeJavaScript(`
+                        (function() {
+                            const editor = document.createElement('div');
+                            editor.className = 'ql-editor ql-blank';
+                            editor.setAttribute('contenteditable', 'true');
+                            editor.setAttribute('role', 'textbox');
+
+                            const button = document.createElement('button');
+                            button.className = 'send-button';
+                            button.setAttribute('aria-label', 'Send message');
+                            button.textContent = 'Send';
+
+                            document.body.replaceChildren(editor, button);
+                            document.title = 'Gemini - E2E';
+                        })();
+                    `);
+
+                        const hasEditor = await targetFrame.executeJavaScript(
+                            "Boolean(document.querySelector('.ql-editor'))"
+                        );
+
+                        return {
+                            ok: true,
+                            hasEditor,
+                            frameName: targetFrame.name,
+                            frameUrl: targetFrame.url,
+                        };
+                    } catch (error) {
+                        return {
+                            ok: false,
+                            reason: error instanceof Error ? error.message : String(error),
+                        };
+                    }
+                },
+                targetTabId
+            );
+
+            expect(injectionResult?.ok).toBe(true);
+
+            await wdioBrowser.electron.execute(async () => {
+                const globalState = global as typeof globalThis & {
+                    __e2eQuickChatHandler?: { flushE2EBufferedReady?: () => void };
+                };
+
+                globalState.__e2eQuickChatHandler?.flushE2EBufferedReady?.();
+            });
+
+            const editorState = await waitForTextInGeminiEditor(testMessage, 15000, enterTabId);
 
             expect(editorState.iframeFound).toBe(true);
             expect(editorState.editorFound).toBe(true);

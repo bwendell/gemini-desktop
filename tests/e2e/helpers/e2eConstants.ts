@@ -22,6 +22,7 @@ export {
     GEMINI_MICROPHONE_BUTTON_SELECTORS,
     GEMINI_ERROR_TOAST_SELECTORS,
     GEMINI_MICROPHONE_ERROR_TEXT,
+    GEMINI_CONVERSATION_TITLE_SELECTORS,
 } from '../../../src/main/utils/geminiSelectors';
 
 // Import locally for use in other constants

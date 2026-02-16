@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ipcMain } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 
 vi.mock('../../src/main/store', () => {
     const stores = new Map<string, Record<string, unknown>>();
@@ -77,11 +77,22 @@ const adapterForPlatform = {
 } as const;
 
 describe.each(['darwin', 'win32', 'linux'] as const)('Tab persistence IPC roundtrip on %s', (platform) => {
+    const tabTitleBroadcast = vi.fn();
     beforeEach(() => {
         vi.clearAllMocks();
         (ipcMain as unknown as { _reset?: () => void })._reset?.();
         (SettingsStore as unknown as { __reset?: () => void }).__reset?.();
         useMockPlatformAdapter(adapterForPlatform[platform]());
+        tabTitleBroadcast.mockClear();
+
+        vi.spyOn(BrowserWindow, 'getAllWindows').mockReturnValue([
+            {
+                isDestroyed: () => false,
+                webContents: {
+                    send: tabTitleBroadcast,
+                },
+            } as never,
+        ]);
 
         new TabStateIpcHandler({
             logger: mockLogger,
@@ -97,6 +108,7 @@ describe.each(['darwin', 'win32', 'linux'] as const)('Tab persistence IPC roundt
 
     afterEach(() => {
         resetPlatformAdapterForTests();
+        vi.restoreAllMocks();
     });
 
     it('returns null when no tab state was persisted', () => {
@@ -137,5 +149,24 @@ describe.each(['darwin', 'win32', 'linux'] as const)('Tab persistence IPC roundt
         const loaded = invokeHandler(IPC_CHANNELS.TABS_GET_STATE);
 
         expect(loaded).toEqual(latest);
+    });
+
+    it('updates a tab title via IPC', () => {
+        sendMessage(IPC_CHANNELS.TABS_SAVE_STATE, {
+            tabs: [{ id: 'tab-a', title: 'A', url: GEMINI_APP_URL, createdAt: 1 }],
+            activeTabId: 'tab-a',
+        });
+
+        sendMessage(IPC_CHANNELS.TABS_UPDATE_TITLE, { tabId: 'tab-a', title: 'Updated Title' });
+
+        const loaded = invokeHandler(IPC_CHANNELS.TABS_GET_STATE);
+        expect(loaded).toEqual({
+            tabs: [{ id: 'tab-a', title: 'Updated Title', url: GEMINI_APP_URL, createdAt: 1 }],
+            activeTabId: 'tab-a',
+        });
+        expect(tabTitleBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.TABS_TITLE_UPDATED, {
+            tabId: 'tab-a',
+            title: 'Updated Title',
+        });
     });
 });
