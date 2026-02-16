@@ -28,6 +28,14 @@ describe('QuickChatApp', () => {
         await waitFor(() => {
             expect(mockGetTextPredictionStatus).toHaveBeenCalled();
         });
+        const latestCall =
+            mockGetTextPredictionStatus.mock.results[mockGetTextPredictionStatus.mock.results.length - 1];
+        const statusPromise = latestCall?.value;
+        if (statusPromise && typeof statusPromise.then === 'function') {
+            await act(async () => {
+                await statusPromise;
+            });
+        }
     };
 
     beforeEach(() => {

@@ -151,6 +151,7 @@ describe('NotificationManager', () => {
         });
 
         it('subscribes to focus and blur events on construction', () => {
+            new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
             expect(mockMainWindow.on).toHaveBeenCalledWith('focus', expect.any(Function));
             expect(mockMainWindow.on).toHaveBeenCalledWith('blur', expect.any(Function));
         });
