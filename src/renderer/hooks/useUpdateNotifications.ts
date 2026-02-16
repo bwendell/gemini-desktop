@@ -178,14 +178,9 @@ export function useUpdateNotifications() {
      */
     /* v8 ignore start -- dev-only code for manual testing */
     useEffect(() => {
-        const devMode = isDevMode();
-        console.log('[useUpdateNotifications] Dev mode check:', devMode, {
-            DEV: import.meta.env.DEV,
-            MODE: import.meta.env.MODE,
-            hostname: window.location.hostname,
-        });
-        if (devMode) {
-            console.log('[useUpdateNotifications] Creating __testUpdateToast helper');
+        const testMode = isDevMode() || import.meta.env.MODE === 'test' || import.meta.env.MODE === 'integration';
+
+        if (testMode) {
             (window as unknown as Record<string, unknown>).__testUpdateToast = {
                 /* v8 ignore next 8 */
                 showAvailable: (version = '2.0.0') => {

@@ -21,6 +21,7 @@ import { createContext, useContext, useState, useCallback, useMemo, useEffect, u
 
 import { ToastContainer, type ToastItem } from '../components/toast/ToastContainer';
 import type { ToastType, ToastAction } from '../components/toast/Toast';
+import { isDevMode } from '../utils/platform';
 
 /**
  * Default durations for auto-dismiss (in milliseconds)
@@ -279,7 +280,9 @@ export function ToastProvider({ children }: ToastProviderProps) {
     }, [showToast, dismissToast, dismissAll, toasts, showSuccess, showError, showInfo, showWarning]);
 
     useEffect(() => {
-        if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+        const isTestMode = isDevMode() || import.meta.env.MODE === 'test' || import.meta.env.MODE === 'integration';
+
+        if (isTestMode) {
             // Create a stable proxy object on window
             const win = window as unknown as Record<string, any>;
             win.__toastTestHelpers = {
