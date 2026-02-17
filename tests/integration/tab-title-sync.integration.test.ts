@@ -29,12 +29,15 @@ describe('Tab Title Sync (Integration)', () => {
         const testTitle = 'RSUs vs. Stock Options: Oracle Offer';
         const testMessage = `Integration title sync ${Date.now()}`;
 
+        // Step 1: Submit quick chat – this is the production user flow.
+        // Quick Chat submit triggers a new tab to be created.
         await wdioBrowser.execute((text) => {
             (
                 window as unknown as { electronAPI: { submitQuickChat: (payload: string) => void } }
             ).electronAPI.submitQuickChat(text);
         }, testMessage);
 
+        // Step 2: Wait for a second tab to appear in the DOM (user sees this).
         await wdioBrowser.waitUntil(
             async () => {
                 const tabCount = await wdioBrowser.execute(
@@ -48,6 +51,7 @@ describe('Tab Title Sync (Integration)', () => {
             }
         );
 
+        // Step 3: Read the active tab id from the DOM – the user's visible state.
         const activeTabId = await wdioBrowser.execute(() => {
             const active = document.querySelector('.tab.tab--active .tab__trigger');
             const testId = active?.getAttribute('data-testid') ?? '';
@@ -56,7 +60,15 @@ describe('Tab Title Sync (Integration)', () => {
 
         expect(activeTabId).toBeTruthy();
 
-        const persistedState = await wdioBrowser.execute((expectedActiveTabId) => {
+        // Step 4: Verify the initial title the user sees is "New Chat".
+        const initialTitle = await wdioBrowser.execute(() => {
+            return document.querySelector('.tab.tab--active .tab__title')?.textContent?.trim() ?? '';
+        });
+        expect(initialTitle).toBe('New Chat');
+
+        // Step 5: Persist tab state via the production renderer API.
+        // This is what TabContext.tsx does on every state change.
+        await wdioBrowser.execute((expectedActiveTabId) => {
             const tabs = Array.from(document.querySelectorAll('.tab'))
                 .map((tab, index) => {
                     const trigger = tab.querySelector('.tab__trigger');
@@ -82,10 +94,9 @@ describe('Tab Title Sync (Integration)', () => {
                 tabs,
                 activeTabId,
             });
-
-            return { tabs, activeTabId };
         }, activeTabId);
 
+        // Step 6: Wait for tab state to be persisted in the main process store.
         await wdioBrowser.waitUntil(
             async () => {
                 const storedState = await wdioBrowser.execute(async () => {
@@ -99,90 +110,44 @@ describe('Tab Title Sync (Integration)', () => {
                 }
 
                 const { activeTabId: storedActiveTabId } = storedState as { activeTabId?: string };
-                return storedActiveTabId === persistedState.activeTabId;
+                return storedActiveTabId === activeTabId;
             },
             {
                 timeout: 5000,
-                timeoutMsg: 'Expected tab state to persist before response-complete',
+                timeoutMsg: 'Expected tab state to persist before triggering title update',
             }
         );
 
-        const syncResult = await wdioBrowser.electron.execute(
-            async (_electron: typeof import('electron'), tabId: string, title: string) => {
-                const windowManager = (
-                    global as typeof globalThis & {
-                        windowManager?: {
-                            getMainWindow?: () => Electron.BrowserWindow | null;
-                            getMainWindowInstance?: () => { emit?: (event: string) => void } | null;
-                        };
+        // Step 7: Trigger a tab title update via the PRODUCTION renderer API.
+        //
+        // In production, this happens when:
+        //   1. The 3-second title poll in TabStateIpcHandler._pollForTitleUpdate()
+        //      extracts a conversation title from the Gemini iframe, OR
+        //   2. The renderer calls electronAPI.updateTabTitle(tabId, title)
+        //
+        // Both paths send 'tabs:update-title' to ipcMain via ipcRenderer.send,
+        // which calls _handleUpdateTitle() → store update → broadcasts
+        // 'tabs:title-updated' back to all windows → renderer receives the
+        // update via onTabTitleUpdated callback → React state update → DOM.
+        //
+        // Per E2E guidelines, we trigger via the renderer's production API to
+        // exercise the full round-trip: renderer → IPC → main → broadcast → renderer.
+        await wdioBrowser.execute(
+            (tabId: string, title: string) => {
+                (
+                    window as unknown as {
+                        electronAPI: { updateTabTitle: (tabId: string, title: string) => void };
                     }
-                ).windowManager;
-
-                const mainWindow = windowManager?.getMainWindow?.();
-                const mainWindowInstance = windowManager?.getMainWindowInstance?.();
-                if (!mainWindow || !mainWindowInstance) {
-                    return { ok: false, reason: 'Main window not available' };
-                }
-
-                const targetFrameName = `gemini-tab-${tabId}`;
-                let targetFrame = mainWindow.webContents.mainFrame.frames.find(
-                    (frame) => frame.name === targetFrameName
-                );
-
-                if (!targetFrame) {
-                    targetFrame = mainWindow.webContents.mainFrame.frames[0];
-                }
-
-                if (!targetFrame) {
-                    const fallbackFrame = {
-                        name: targetFrameName,
-                        url: 'https://gemini.google.com/app',
-                        executeJavaScript: async (script: string) =>
-                            script.includes('conversation-title') ? title : '',
-                    };
-                    Object.defineProperty(mainWindow.webContents.mainFrame, 'frames', {
-                        value: [fallbackFrame],
-                        configurable: true,
-                    });
-                    mainWindowInstance.emit?.('response-complete');
-                    return { ok: true, fallback: true };
-                }
-
-                try {
-                    Object.defineProperty(targetFrame, 'name', { value: targetFrameName, configurable: true });
-                } catch {}
-                try {
-                    Object.defineProperty(targetFrame, 'url', {
-                        get: () => 'https://gemini.google.com/app',
-                        configurable: true,
-                    });
-                } catch {}
-
-                try {
-                    const safeTitle = JSON.stringify(title);
-                    await targetFrame.executeJavaScript(`
-                        (function() {
-                            const title = ${safeTitle};
-                            const span = document.createElement('span');
-                            span.setAttribute('data-test-id', 'conversation-title');
-                            span.textContent = title;
-                            document.body.replaceChildren(span);
-                            document.title = title + ' - Gemini';
-                        })();
-                    `);
-                } catch (error) {
-                    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
-                }
-
-                mainWindowInstance.emit?.('response-complete');
-                return { ok: true, fallback: false };
+                ).electronAPI.updateTabTitle(tabId, title);
             },
             activeTabId,
             testTitle
         );
 
-        expect(syncResult.ok).toBe(true);
-
+        // Step 8: Verify the user-visible outcome – tab title in the DOM updates.
+        // The production flow: ipcMain handler → store update → broadcast
+        // 'tabs:title-updated' → renderer's onTabTitleUpdated callback →
+        // React state update → DOM re-render.
         await wdioBrowser.waitUntil(
             async () => {
                 const activeTitle = await wdioBrowser.execute(() => {
