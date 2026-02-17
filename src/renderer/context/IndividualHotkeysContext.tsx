@@ -18,7 +18,7 @@
  * setAccelerator('bossKey', 'CommandOrControl+Alt+H');
  */
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { createRendererLogger } from '../utils';
 import type {
     HotkeyId as SharedHotkeyId,
@@ -240,11 +240,17 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
         }
     }, []);
 
-    return (
-        <IndividualHotkeysContext.Provider value={{ settings, accelerators, setEnabled, setAccelerator }}>
-            {children}
-        </IndividualHotkeysContext.Provider>
+    const contextValue = useMemo<IndividualHotkeysContextType>(
+        () => ({
+            settings,
+            accelerators,
+            setEnabled,
+            setAccelerator,
+        }),
+        [settings, accelerators, setEnabled, setAccelerator]
     );
+
+    return <IndividualHotkeysContext.Provider value={contextValue}>{children}</IndividualHotkeysContext.Provider>;
 }
 
 // ============================================================================
