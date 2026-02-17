@@ -70,6 +70,45 @@ describe('TabPanel', () => {
         expect(onTabReady).toHaveBeenCalledWith('tab-1');
     });
 
+    it('does not run connectivity check when inactive iframe loads', () => {
+        const handleLoad = vi.fn();
+        (useGeminiIframe as Mock).mockReturnValue({
+            isLoading: false,
+            error: null,
+            isOnline: true,
+            handleLoad,
+            handleError: vi.fn(),
+            retry: vi.fn(),
+        });
+
+        render(<TabPanel tabs={tabs} activeTabId="tab-1" />);
+
+        fireEvent.load(screen.getByTestId('tab-iframe-tab-2'));
+
+        expect(handleLoad).not.toHaveBeenCalled();
+    });
+
+    it('runs connectivity check when a loaded tab becomes active', () => {
+        const handleLoad = vi.fn();
+        (useGeminiIframe as Mock).mockReturnValue({
+            isLoading: false,
+            error: null,
+            isOnline: true,
+            handleLoad,
+            handleError: vi.fn(),
+            retry: vi.fn(),
+        });
+
+        const { rerender } = render(<TabPanel tabs={tabs} activeTabId="tab-1" />);
+
+        fireEvent.load(screen.getByTestId('tab-iframe-tab-2'));
+        expect(handleLoad).not.toHaveBeenCalled();
+
+        rerender(<TabPanel tabs={tabs} activeTabId="tab-2" />);
+
+        expect(handleLoad).toHaveBeenCalledTimes(1);
+    });
+
     it('shows loading indicator when iframe is loading', () => {
         (useGeminiIframe as Mock).mockReturnValue({
             isLoading: true,

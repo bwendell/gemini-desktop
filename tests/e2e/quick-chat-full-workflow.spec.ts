@@ -116,13 +116,12 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             });
             E2ELogger.info('full-workflow', '   Main window focused ✓');
 
-            const tabId = await wdioBrowser.execute(() => {
-                const active = document.querySelector('.tab.tab--active .tab__trigger');
-                const testId = active?.getAttribute('data-testid') ?? '';
-                return testId.startsWith('tab-') ? testId.slice(4) : '';
-            });
+            const tabId = await tabBar.getActiveTabId();
 
             expect(tabId).toBeTruthy();
+            if (!tabId) {
+                throw new Error('Expected active tab id after quick chat submission');
+            }
 
             const persistedState = await wdioBrowser.execute((expectedActiveTabId) => {
                 const tabs = Array.from(document.querySelectorAll('.tab'))
@@ -363,17 +362,16 @@ describe('Quick Chat Full Workflow (E2E)', () => {
                 timeoutMsg: 'Expected quick chat to create a new tab',
             });
 
-            const enterTabId = await wdioBrowser.execute(() => {
-                const active = document.querySelector('.tab.tab--active .tab__trigger');
-                const testId = active?.getAttribute('data-testid') ?? '';
-                return testId.startsWith('tab-') ? testId.slice(4) : '';
-            });
+            const enterTabId = await tabBar.getActiveTabId();
 
             expect(enterTabId).toBeTruthy();
+            if (!enterTabId) {
+                throw new Error('Expected active tab id after enter-key quick chat submission');
+            }
 
             await wdioBrowser.waitUntil(
                 async () => {
-                    const buffered = await wdioBrowser.electron.execute(async (_electron, expectedTabId: string) => {
+                    const buffered = (await wdioBrowser.electron.execute(async (_electron, expectedTabId: string) => {
                         const globalState = global as typeof globalThis & {
                             __e2eGeminiReadyBuffer?: { enabled?: boolean; pending?: unknown[] };
                         };
@@ -391,7 +389,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
                         });
 
                         return { pending: pending.length, hasMatching };
-                    }, enterTabId);
+                    }, enterTabId)) as { pending: number; hasMatching: boolean };
 
                     return buffered.hasMatching;
                 },

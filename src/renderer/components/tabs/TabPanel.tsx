@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import type { TabState } from '../../../shared/types/tabs';
 import { getTabFrameName } from '../../../shared/types/tabs';
@@ -28,6 +28,8 @@ interface TabIframeProps {
 function TabIframe({ tab, isActive, onTabReady, onActiveStatusChange }: TabIframeProps) {
     const { isLoading, error, isOnline, handleLoad, handleError, retry } = useGeminiIframe();
     const showError = !!error || !isOnline;
+    const hasLoadedRef = useRef(false);
+    const hasValidatedConnectivityRef = useRef(false);
 
     useEffect(() => {
         if (isActive) {
@@ -39,10 +41,23 @@ function TabIframe({ tab, isActive, onTabReady, onActiveStatusChange }: TabIfram
         }
     }, [error, isActive, isOnline, onActiveStatusChange, retry]);
 
+    useEffect(() => {
+        if (isActive && hasLoadedRef.current && !hasValidatedConnectivityRef.current) {
+            hasValidatedConnectivityRef.current = true;
+            void handleLoad();
+        }
+    }, [handleLoad, isActive]);
+
     const onIframeLoad = useCallback(() => {
-        handleLoad();
+        hasLoadedRef.current = true;
+
+        if (isActive && !hasValidatedConnectivityRef.current) {
+            hasValidatedConnectivityRef.current = true;
+            void handleLoad();
+        }
+
         onTabReady?.(tab.id);
-    }, [handleLoad, onTabReady, tab.id]);
+    }, [handleLoad, isActive, onTabReady, tab.id]);
 
     return (
         <>

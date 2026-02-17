@@ -50,7 +50,12 @@ export class TabBarPage extends BasePage {
     async getActiveTabId(): Promise<string | null> {
         return this.execute(() => {
             const active = document.querySelector('.tab.tab--active .tab__trigger');
-            return active?.getAttribute('data-testid') ?? null;
+            const testId = active?.getAttribute('data-testid');
+            if (!testId) {
+                return null;
+            }
+
+            return testId.startsWith('tab-') ? testId.slice(4) : testId;
         });
     }
 
