@@ -62,3 +62,28 @@ export const linuxServiceConfig = {
           }
         : {}),
 };
+
+/**
+ * Kill any orphaned Electron processes left behind by test runs.
+ *
+ * On Linux/macOS, uses `pkill -f` to match the "electron.*gemini-desktop" pattern.
+ * On Windows, uses PowerShell CIM queries to find and terminate matching processes.
+ *
+ * This should be called in `afterSession` hooks to prevent Electron zombie processes
+ * from accumulating across test specs and consuming memory.
+ */
+export async function killOrphanElectronProcesses() {
+    const { execSync } = await import('child_process');
+    try {
+        if (process.platform === 'win32') {
+            execSync(
+                "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and $_.CommandLine -like '*gemini-desktop*' } | ForEach-Object { taskkill /F /PID $_.ProcessId }\"",
+                { stdio: 'ignore' }
+            );
+        } else {
+            execSync('pkill -f "electron.*gemini-desktop"', { stdio: 'ignore' });
+        }
+    } catch (_) {
+        // Process might already be gone, or no matching processes found (exit code 1)
+    }
+}

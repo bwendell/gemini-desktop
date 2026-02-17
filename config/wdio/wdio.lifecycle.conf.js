@@ -10,7 +10,7 @@
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig } from './electron-args.js';
+import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -90,4 +90,9 @@ export const config = {
     },
 
     // No after hook - lifecycle tests close the app themselves
+
+    // Kill any orphaned Electron processes after each spec file
+    afterSession: async function () {
+        await killOrphanElectronProcesses();
+    },
 };

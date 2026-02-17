@@ -1,5 +1,20 @@
-const { spawnSync } = require('child_process');
+const { spawnSync, execSync } = require('child_process');
 const os = require('os');
+
+function killOrphanElectronProcesses() {
+    try {
+        if (process.platform === 'win32') {
+            execSync(
+                "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and $_.CommandLine -like '*gemini-desktop*' } | ForEach-Object { taskkill /F /PID $_.ProcessId }\"",
+                { stdio: 'ignore' }
+            );
+        } else {
+            execSync('pkill -f "electron.*gemini-desktop"', { stdio: 'ignore' });
+        }
+    } catch (_) {
+        // Process might already be gone, or no matching processes found (exit code 1)
+    }
+}
 
 // Define all groups
 const groups = [
@@ -60,6 +75,9 @@ for (const group of groups) {
 
     const passed = result.status === 0;
     results.push({ group, passed, duration });
+
+    // Kill any orphaned Electron processes between groups
+    killOrphanElectronProcesses();
 
     if (!passed) {
         console.error(`\n❌ Group '${group}' FAILED`);

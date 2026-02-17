@@ -1,7 +1,7 @@
 import { config as dotenvConfig } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig } from './electron-args.js';
+import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
 
 dotenvConfig();
 
@@ -32,7 +32,7 @@ export const config = {
     bail: 0,
     baseUrl: 'http://localhost',
     waitforTimeout: 30000,
-    connectionRetryTimeout: process.platform === 'linux' || process.platform === 'win32' ? 180000 : 120000,
+    connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
     services: [
         [
@@ -68,7 +68,7 @@ export const config = {
     },
 
     // Wait for app to fully load before starting tests
-    before: async function (capabilities, specs) {
+    before: async function () {
         // Windows needs more time for initial startup in CI (Defender scan, first-time extraction)
         const startupDelay = process.platform === 'win32' ? 8000 : 5000;
         await new Promise((resolve) => setTimeout(resolve, startupDelay));
@@ -97,28 +97,7 @@ export const config = {
     /**
      * Gets executed right after terminating the webdriver session.
      */
-    afterSession: async function (config, capabilities, specs) {
-        // Ensure we don't leave lingering Electron processes
-        const { execSync, execFileSync } = await import('child_process');
-        const platform = process.platform;
-        const appRegex = electronMainPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-        try {
-            if (platform === 'win32') {
-                try {
-                    // Use PowerShell for more reliable process termination scoped to gemini-desktop
-                    execSync(
-                        "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and $_.CommandLine -like '*gemini-desktop*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }\"",
-                        { stdio: 'ignore', timeout: 10000 }
-                    );
-                } catch (e) {
-                    // Process might already be gone or no matching processes
-                }
-            } else {
-                execFileSync('pkill', ['-f', appRegex], { stdio: 'ignore' });
-            }
-        } catch (e) {
-            // Process might already be gone
-        }
+    afterSession: async function () {
+        await killOrphanElectronProcesses();
     },
 };

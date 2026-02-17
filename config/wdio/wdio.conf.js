@@ -12,7 +12,7 @@
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig } from './electron-args.js';
+import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
@@ -221,6 +221,15 @@ export const config = {
 
     // Ensure the app quits after tests
     after: async function () {
-        await browser.electron.execute((electron) => electron.app.quit());
+        try {
+            await browser.electron.execute((electron) => electron.app.quit());
+        } catch (error) {
+            // App may already be gone or in a bad state
+        }
+    },
+
+    // Kill any orphaned Electron processes after each spec file
+    afterSession: async function () {
+        await killOrphanElectronProcesses();
     },
 };
