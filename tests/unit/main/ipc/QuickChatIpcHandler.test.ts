@@ -12,6 +12,7 @@ import { QuickChatIpcHandler } from '../../../../src/main/managers/ipc/QuickChat
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';
 import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
+import { getTabFrameName } from '../../../../src/shared/types/tabs';
 
 // Mock Electron
 const { mockIpcMain } = vi.hoisted(() => {
@@ -38,12 +39,15 @@ vi.mock('electron', () => ({
 }));
 
 // Mock InjectionScriptBuilder
+let autoSubmitArg: boolean | null = null;
+
 vi.mock('../../../../src/main/utils/injectionScript', () => ({
     InjectionScriptBuilder: class MockInjectionScriptBuilder {
         withText() {
             return this;
         }
-        withAutoSubmit() {
+        withAutoSubmit(value: boolean) {
+            autoSubmitArg = value;
             return this;
         }
         build() {
@@ -65,6 +69,7 @@ describe('QuickChatIpcHandler', () => {
             send: ReturnType<typeof vi.fn>;
             mainFrame: {
                 frames: Array<{
+                    name?: string;
                     url: string;
                     executeJavaScript: ReturnType<typeof vi.fn>;
                 }>;
@@ -72,9 +77,13 @@ describe('QuickChatIpcHandler', () => {
         };
     };
 
+    const getLatestRequestByTab = (): Map<string, string> =>
+        (handler as unknown as { latestRequestByTab: Map<string, string> }).latestRequestByTab;
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockIpcMain._reset();
+        autoSubmitArg = null;
 
         mockLogger = createMockLogger();
         mockWindowManager = createMockWindowManager();
@@ -96,7 +105,7 @@ describe('QuickChatIpcHandler', () => {
             store: createMockStore({}),
             logger: mockLogger,
             windowManager: mockWindowManager,
-        };
+        } as unknown as IpcHandlerDependencies;
 
         handler = new QuickChatIpcHandler(mockDeps);
     });
@@ -132,6 +141,8 @@ describe('QuickChatIpcHandler', () => {
             expect(mockMainWindow.webContents.send).toHaveBeenCalledWith(
                 IPC_CHANNELS.GEMINI_NAVIGATE,
                 expect.objectContaining({
+                    requestId: expect.any(String),
+                    targetTabId: expect.any(String),
                     text: 'Hello Gemini!',
                 })
             );
@@ -154,6 +165,30 @@ describe('QuickChatIpcHandler', () => {
                 'Quick Chat submit received:',
                 expect.stringContaining('Hello Gemini')
             );
+        });
+
+        it('removes expired latest request mapping before accepting a new request', () => {
+            const nowSpy = vi.spyOn(Date, 'now');
+            try {
+                nowSpy.mockReturnValue(1);
+
+                const listener = mockIpcMain._listeners.get(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+                listener!({}, 'First request');
+
+                const firstPayload = mockMainWindow.webContents.send.mock.calls[0]?.[1] as {
+                    requestId: string;
+                    targetTabId: string;
+                };
+
+                expect(getLatestRequestByTab().get(firstPayload.targetTabId)).toBe(firstPayload.requestId);
+
+                nowSpy.mockReturnValue(2 * 60 * 1000 + 2);
+                listener!({}, 'Second request');
+
+                expect(getLatestRequestByTab().has(firstPayload.targetTabId)).toBe(false);
+            } finally {
+                nowSpy.mockRestore();
+            }
         });
     });
 
@@ -210,65 +245,111 @@ describe('QuickChatIpcHandler', () => {
         });
 
         it('triggers text injection (4.2.11)', async () => {
-            // Set up mock Gemini iframe
+            const submitListener = mockIpcMain._listeners.get(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+            submitListener!({}, 'Inject this text');
+
+            const navigatePayload = mockMainWindow.webContents.send.mock.calls[0]?.[1] as {
+                requestId: string;
+                targetTabId: string;
+            };
+
             const mockGeminiFrame = {
+                name: getTabFrameName(navigatePayload.targetTabId),
                 url: 'https://gemini.google.com/app',
                 executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
             };
             mockMainWindow.webContents.mainFrame.frames = [mockGeminiFrame];
 
             const listener = mockIpcMain._listeners.get(IPC_CHANNELS.GEMINI_READY);
-            await listener!({}, 'Inject this text');
+            await listener!({}, navigatePayload);
 
             expect(mockGeminiFrame.executeJavaScript).toHaveBeenCalled();
             expect(mockLogger.log).toHaveBeenCalledWith('Text injected into Gemini successfully');
+            expect(getLatestRequestByTab().has(navigatePayload.targetTabId)).toBe(false);
         });
 
         it('logs error when Gemini iframe not found (4.2.12)', async () => {
-            // No Gemini iframe in frames
+            const submitListener = mockIpcMain._listeners.get(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+            submitListener!({}, 'Inject this text');
+
+            const navigatePayload = mockMainWindow.webContents.send.mock.calls[0]?.[1] as {
+                requestId: string;
+                targetTabId: string;
+            };
+
             mockMainWindow.webContents.mainFrame.frames = [
-                { url: 'https://other-site.com', executeJavaScript: vi.fn() },
+                { name: 'gemini-tab-some-other-id', url: 'https://gemini.google.com/app', executeJavaScript: vi.fn() },
             ];
 
             const listener = mockIpcMain._listeners.get(IPC_CHANNELS.GEMINI_READY);
-            await listener!({}, 'Inject this text');
+            await listener!({}, navigatePayload);
 
-            expect(mockLogger.error).toHaveBeenCalledWith(
-                'Cannot inject text: Gemini iframe not found in child frames'
-            );
+            expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: target tab frame not found');
         });
 
         it('logs error when main window not found', async () => {
+            const submitListener = mockIpcMain._listeners.get(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+            submitListener!({}, 'Inject this text');
+
+            const navigatePayload = mockMainWindow.webContents.send.mock.calls[0]?.[1] as {
+                requestId: string;
+                targetTabId: string;
+            };
+
             (mockWindowManager.getMainWindow as ReturnType<typeof vi.fn>).mockReturnValue(null);
 
             const listener = mockIpcMain._listeners.get(IPC_CHANNELS.GEMINI_READY);
-            await listener!({}, 'Inject this text');
+            await listener!({}, navigatePayload);
 
             expect(mockLogger.error).toHaveBeenCalledWith('Cannot inject text: main window not found');
         });
 
         it('handles injection script failure (4.2.14)', async () => {
+            const submitListener = mockIpcMain._listeners.get(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+            submitListener!({}, 'Inject this text');
+
+            const navigatePayload = mockMainWindow.webContents.send.mock.calls[0]?.[1] as {
+                requestId: string;
+                targetTabId: string;
+            };
+
             const mockGeminiFrame = {
+                name: getTabFrameName(navigatePayload.targetTabId),
                 url: 'https://gemini.google.com/app',
                 executeJavaScript: vi.fn().mockResolvedValue({ success: false, error: 'Editor not found' }),
             };
             mockMainWindow.webContents.mainFrame.frames = [mockGeminiFrame];
 
             const listener = mockIpcMain._listeners.get(IPC_CHANNELS.GEMINI_READY);
-            await listener!({}, 'Inject this text');
+            await listener!({}, navigatePayload);
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Injection script returned failure:', 'Editor not found');
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Injection script returned failure:',
+                expect.objectContaining({
+                    details: undefined,
+                    error: 'Editor not found',
+                })
+            );
         });
 
         it('handles executeJavaScript exception', async () => {
+            const submitListener = mockIpcMain._listeners.get(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+            submitListener!({}, 'Inject this text');
+
+            const navigatePayload = mockMainWindow.webContents.send.mock.calls[0]?.[1] as {
+                requestId: string;
+                targetTabId: string;
+            };
+
             const mockGeminiFrame = {
+                name: getTabFrameName(navigatePayload.targetTabId),
                 url: 'https://gemini.google.com/app',
                 executeJavaScript: vi.fn().mockRejectedValue(new Error('JS execution failed')),
             };
             mockMainWindow.webContents.mainFrame.frames = [mockGeminiFrame];
 
             const listener = mockIpcMain._listeners.get(IPC_CHANNELS.GEMINI_READY);
-            await listener!({}, 'Inject this text');
+            await listener!({}, navigatePayload);
 
             expect(mockLogger.error).toHaveBeenCalledWith('Failed to inject text into Gemini:', expect.any(Error));
         });
@@ -285,16 +366,25 @@ describe('QuickChatIpcHandler', () => {
             process.argv = [...originalArgv, '--e2e-disable-auto-submit'];
 
             try {
+                const submitListener = mockIpcMain._listeners.get(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+                submitListener!({}, 'Test text');
+
+                const navigatePayload = mockMainWindow.webContents.send.mock.calls[0]?.[1] as {
+                    requestId: string;
+                    targetTabId: string;
+                };
+
                 const mockGeminiFrame = {
+                    name: getTabFrameName(navigatePayload.targetTabId),
                     url: 'https://gemini.google.com/app',
                     executeJavaScript: vi.fn().mockResolvedValue({ success: true }),
                 };
                 mockMainWindow.webContents.mainFrame.frames = [mockGeminiFrame];
 
                 const listener = mockIpcMain._listeners.get(IPC_CHANNELS.GEMINI_READY);
-                await listener!({}, 'Test text');
+                await listener!({}, navigatePayload);
 
-                expect(mockLogger.log).toHaveBeenCalledWith('E2E mode: auto-submit disabled, will inject text only');
+                expect(autoSubmitArg).toBe(false);
             } finally {
                 process.argv = originalArgv;
             }

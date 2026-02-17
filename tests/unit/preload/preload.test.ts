@@ -132,6 +132,34 @@ describe('Preload Script', () => {
         });
     });
 
+    describe('Tabs API', () => {
+        it('onTabTitleUpdated should register listener and return unsubscribe', () => {
+            const callback = vi.fn();
+            const unsubscribe = exposedAPI.onTabTitleUpdated(callback);
+
+            expect(ipcRendererMock.on).toHaveBeenCalledWith('tabs:title-updated', expect.any(Function));
+
+            const handler = (ipcRendererMock.on as any).mock.calls.find(
+                (call: any[]) => call[0] === 'tabs:title-updated'
+            )?.[1];
+            if (handler) {
+                handler({}, { tabId: 'tab-a', title: 'Updated' });
+                expect(callback).toHaveBeenCalledWith({ tabId: 'tab-a', title: 'Updated' });
+            }
+
+            unsubscribe();
+            expect(ipcRendererMock.removeListener).toHaveBeenCalledWith('tabs:title-updated', expect.any(Function));
+        });
+
+        it('updateTabTitle should send IPC message', () => {
+            exposedAPI.updateTabTitle('tab-a', 'New Title');
+            expect(ipcRendererMock.send).toHaveBeenCalledWith('tabs:update-title', {
+                tabId: 'tab-a',
+                title: 'New Title',
+            });
+        });
+    });
+
     // Task 7.7: Text Prediction preload tests
     describe('Text Prediction API', () => {
         it('getTextPredictionEnabled should invoke IPC handler', async () => {

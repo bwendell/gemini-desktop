@@ -11,7 +11,7 @@
 
 import { browser, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { closeCurrentWindow } from './helpers/windowActions';
 import { waitForOptionsWindow } from './helpers/optionsWindowActions';
 import { E2ELogger } from './helpers/logger';
 import { waitForDuration } from './helpers/waitUtilities';

@@ -81,10 +81,10 @@ export default class QuickChatWindow extends BaseWindow {
 
         // Auto-hide when window loses focus (Spotlight behavior)
         this.window.on('blur', () => {
-            if (Date.now() < this._suppressBlurUntil) {
-                return;
-            }
-            this.hide();
+            this.handleBlur();
+        });
+        this.window.on('hide', () => {
+            this.clearReadyToShowFallbackTimeout();
         });
 
         this.window.on('closed', () => {
@@ -123,6 +123,20 @@ export default class QuickChatWindow extends BaseWindow {
         this._suppressBlurUntil = Date.now() + 500;
         this.window.show();
         this.window.focus();
+    }
+
+    private handleBlur(): void {
+        if (!this.window || this.window.isDestroyed() || !this.window.isVisible()) {
+            return;
+        }
+        if (Date.now() < this._suppressBlurUntil) {
+            return;
+        }
+        this.hide();
+    }
+
+    handleMainWindowFocus(): void {
+        this.handleBlur();
     }
 
     /**

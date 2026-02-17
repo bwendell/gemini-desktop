@@ -20,11 +20,11 @@ import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 vi.mock('fs', () => ({
     default: {
         existsSync: vi.fn().mockReturnValue(true),
-        readFileSync: vi.fn().mockReturnValue(Buffer.from('mock')),
+        readFileSync: vi.fn().mockReturnValue(Buffer.from('{}')),
         writeFileSync: vi.fn(),
     },
     existsSync: vi.fn().mockReturnValue(true),
-    readFileSync: vi.fn().mockReturnValue(Buffer.from('mock')),
+    readFileSync: vi.fn().mockReturnValue(Buffer.from('{}')),
     writeFileSync: vi.fn(),
 }));
 

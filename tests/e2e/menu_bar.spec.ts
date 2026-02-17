@@ -136,7 +136,6 @@ describe('Custom Menu Bar', () => {
             return; // Skip on macOS
         }
 
-        const fileButton = await $(Selectors.menuButton('File'));
         const viewButton = await $(Selectors.menuButton('View'));
 
         // 1. Open File menu

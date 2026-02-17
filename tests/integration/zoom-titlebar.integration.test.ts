@@ -13,7 +13,7 @@
 import { browser, expect } from '@wdio/globals';
 
 describe('Zoom Titlebar Integration', () => {
-    const DEFAULT_ZOOM = 100;
+    const _DEFAULT_ZOOM = 100;
 
     const resetZoomState = async () => {
         console.log('--- RESETTING ZOOM STATE ---');

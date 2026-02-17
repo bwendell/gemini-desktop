@@ -12,7 +12,7 @@
 import { browser, expect } from '@wdio/globals';
 
 describe('Zoom Control Integration', () => {
-    let mainWindowHandle: string;
+    let _mainWindowHandle: string;
     const DEFAULT_ZOOM = 100;
 
     before(async () => {
@@ -29,7 +29,7 @@ describe('Zoom Control Integration', () => {
 
         // Store main window handle
         const handles = await browser.getWindowHandles();
-        mainWindowHandle = handles[0];
+        _mainWindowHandle = handles[0];
 
         // Wait for the app to be fully initialized
         await browser.pause(500);
@@ -679,7 +679,7 @@ describe('Zoom Control Integration', () => {
             await browser.pause(100);
 
             // Open options window and capture its ID
-            const optionsWinId = await browser.electron.execute(() => {
+            const _optionsWinId = await browser.electron.execute(() => {
                 // @ts-expect-error
                 const win = global.windowManager.createOptionsWindow();
                 return win ? win.id : null;

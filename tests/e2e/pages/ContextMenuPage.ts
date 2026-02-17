@@ -269,7 +269,7 @@ export class ContextMenuPage extends BasePage {
             const { Menu } = require('electron');
             if (!(global as any).originalPopup) {
                 (global as any).originalPopup = Menu.prototype.popup;
-                Menu.prototype.popup = function (options) {
+                Menu.prototype.popup = function (_options) {
                     (global as any).lastContextMenu = this;
                     console.log('[E2E] Menu.popup mocked - menu captured, native popup suppressed');
                     // Do NOT call originalPopup to avoid blocking the main process
@@ -410,7 +410,7 @@ export class ContextMenuPage extends BasePage {
      * @param expectedText - The expected clipboard content
      * @returns True if the clipboard contains the expected text
      */
-    async verifyClipboardContains(expectedText: string): Promise<string> {
+    async verifyClipboardContains(_expectedText: string): Promise<string> {
         const verifyInputId = 'e2e-clipboard-verify-input';
 
         // Create a verify input

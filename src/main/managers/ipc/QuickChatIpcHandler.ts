@@ -1,102 +1,199 @@
-/**
- * Quick Chat IPC Handler.
- *
- * Handles IPC channels for Quick Chat operations:
- * - quick-chat:submit - Submits text from Quick Chat to main window
- * - quick-chat:hide - Hides the Quick Chat window
- * - quick-chat:cancel - Cancels and hides Quick Chat
- * - gemini:ready - Triggers text injection into Gemini iframe
- *
- * @module ipc/QuickChatIpcHandler
- */
+import { randomUUID } from 'node:crypto';
 
 import { ipcMain } from 'electron';
+
 import { BaseIpcHandler } from './BaseIpcHandler';
 import { IPC_CHANNELS, isGeminiDomain } from '../../utils/constants';
-import { GEMINI_APP_URL } from '../../../shared/constants/index';
+import type { GeminiReadyPayload } from '../../../shared/types/tabs';
+import { getTabFrameName } from '../../../shared/types/tabs';
 import { InjectionScriptBuilder, InjectionResult } from '../../utils/injectionScript';
 
-/**
- * Handler for Quick Chat related IPC channels.
- *
- * Manages the Quick Chat submission flow including:
- * - Hiding Quick Chat window
- * - Focusing main window
- * - Navigating to Gemini and injecting text
- */
+interface PendingQuickChatRequest {
+    requestId: string;
+    targetTabId: string;
+    text: string;
+    createdAt: number;
+}
+
+const REQUEST_TTL_MS = 2 * 60 * 1000;
+
+function isGeminiReadyPayload(payload: unknown): payload is GeminiReadyPayload {
+    if (typeof payload !== 'object' || payload === null) {
+        return false;
+    }
+
+    const candidate = payload as Partial<GeminiReadyPayload>;
+    return (
+        typeof candidate.requestId === 'string' &&
+        candidate.requestId.trim().length > 0 &&
+        typeof candidate.targetTabId === 'string' &&
+        candidate.targetTabId.trim().length > 0
+    );
+}
+
 export class QuickChatIpcHandler extends BaseIpcHandler {
-    /**
-     * Register Quick Chat IPC handlers with ipcMain.
-     */
+    private readonly pendingRequests = new Map<string, PendingQuickChatRequest>();
+    private readonly latestRequestByTab = new Map<string, string>();
+
+    private _clearLatestRequestByTabIfMatches(tabId: string, requestId: string): void {
+        const latestRequestId = this.latestRequestByTab.get(tabId);
+        if (latestRequestId === requestId) {
+            this.latestRequestByTab.delete(tabId);
+        }
+    }
+
     register(): void {
-        // Submit quick chat text - triggers iframe navigation in renderer
         ipcMain.on(IPC_CHANNELS.QUICK_CHAT_SUBMIT, (_event, text: string) => {
             this._handleSubmit(text);
         });
 
-        // Gemini iframe ready - renderer signals after iframe loads, triggers injection
-        ipcMain.on(IPC_CHANNELS.GEMINI_READY, async (_event, text: string) => {
-            await this._handleGeminiReady(text);
+        ipcMain.on(IPC_CHANNELS.GEMINI_READY, async (_event, payload: unknown) => {
+            await this._handleGeminiReady(payload);
         });
 
-        // Hide Quick Chat window
         ipcMain.on(IPC_CHANNELS.QUICK_CHAT_HIDE, () => {
             this._handleHide();
         });
 
-        // Cancel Quick Chat (hide without action)
         ipcMain.on(IPC_CHANNELS.QUICK_CHAT_CANCEL, () => {
             this._handleCancel();
         });
     }
 
-    /**
-     * Handle quick-chat:submit request.
-     * @param text - Text to submit
-     */
+    private _cleanupExpiredRequests(): void {
+        const now = Date.now();
+        for (const [requestId, request] of this.pendingRequests.entries()) {
+            if (now - request.createdAt > REQUEST_TTL_MS) {
+                this.pendingRequests.delete(requestId);
+                this._clearLatestRequestByTabIfMatches(request.targetTabId, requestId);
+            }
+        }
+    }
+
     private _handleSubmit(text: string): void {
         try {
+            this._cleanupExpiredRequests();
             this.logger.log('Quick Chat submit received:', text.substring(0, 50));
 
-            // Hide the Quick Chat window
             this.deps.windowManager.hideQuickChat();
-
-            // Focus the main window
             this.deps.windowManager.focusMainWindow();
 
-            // Send navigation request to renderer (React app will reload iframe)
             const mainWindow = this.deps.windowManager.getMainWindow();
-            if (mainWindow) {
-                this.logger.log('Sending gemini:navigate to renderer');
-                mainWindow.webContents.send(IPC_CHANNELS.GEMINI_NAVIGATE, {
-                    url: GEMINI_APP_URL,
-                    text: text,
-                });
-            } else {
+            if (!mainWindow) {
                 this.logger.error('Cannot navigate: main window not found');
+                return;
             }
+
+            const requestId = randomUUID();
+            const targetTabId = randomUUID();
+
+            const request: PendingQuickChatRequest = {
+                requestId,
+                targetTabId,
+                text,
+                createdAt: Date.now(),
+            };
+
+            this.pendingRequests.set(requestId, request);
+            this.latestRequestByTab.set(targetTabId, requestId);
+
+            this.logger.log('Quick Chat navigation requested:', {
+                requestId,
+                targetTabId,
+                activeTabId: mainWindow.webContents.id,
+                windowId: mainWindow.id,
+            });
+
+            mainWindow.webContents.send(IPC_CHANNELS.GEMINI_NAVIGATE, {
+                requestId,
+                targetTabId,
+                text,
+            });
         } catch (error) {
             this.handleError('handling quick chat submit', error);
         }
     }
 
-    /**
-     * Handle gemini:ready request.
-     * Injects text into the Gemini iframe.
-     * @param text - Text to inject
-     */
-    private async _handleGeminiReady(text: string): Promise<void> {
+    private async _handleGeminiReady(payload: unknown): Promise<void> {
         try {
-            this.logger.log('Gemini ready signal received, injecting text');
-            await this._injectTextIntoGeminiIframe(text);
+            this._cleanupExpiredRequests();
+
+            if (!isGeminiReadyPayload(payload)) {
+                this.logger.warn('Ignoring invalid gemini:ready payload');
+                return;
+            }
+
+            const e2eBuffer = (
+                global as typeof globalThis & {
+                    __e2eGeminiReadyBuffer?: { enabled?: boolean; pending?: GeminiReadyPayload[] };
+                }
+            ).__e2eGeminiReadyBuffer;
+            const shouldBuffer = process.argv.includes('--e2e-disable-auto-submit') && e2eBuffer?.enabled;
+
+            this.logger.log('Gemini ready received:', payload);
+
+            const request = this.pendingRequests.get(payload.requestId);
+            if (!request) {
+                this.logger.warn('Ignoring stale gemini:ready payload with unknown requestId');
+                return;
+            }
+
+            if (request.targetTabId !== payload.targetTabId) {
+                this.logger.warn('Ignoring gemini:ready payload with mismatched targetTabId');
+                return;
+            }
+
+            const latestRequestId = this.latestRequestByTab.get(payload.targetTabId);
+            if (latestRequestId !== payload.requestId) {
+                this.logger.warn('Ignoring out-of-order gemini:ready payload for stale request');
+                return;
+            }
+
+            if (shouldBuffer) {
+                if (!Array.isArray(e2eBuffer?.pending)) {
+                    if (e2eBuffer) {
+                        e2eBuffer.pending = [];
+                    }
+                }
+                e2eBuffer?.pending?.push(payload);
+                this.logger.log('Buffered gemini:ready payload for E2E');
+                return;
+            }
+
+            await this._injectTextIntoGeminiIframe(request);
+            this.pendingRequests.delete(payload.requestId);
+            this._clearLatestRequestByTabIfMatches(request.targetTabId, payload.requestId);
         } catch (error) {
             this.handleError('handling gemini ready', error);
         }
     }
 
-    /**
-     * Handle quick-chat:hide request.
-     */
+    public flushE2EBufferedReady(): void {
+        try {
+            const e2eBuffer = (
+                global as typeof globalThis & {
+                    __e2eGeminiReadyBuffer?: { enabled?: boolean; pending?: GeminiReadyPayload[] };
+                }
+            ).__e2eGeminiReadyBuffer;
+
+            if (!process.argv.includes('--e2e-disable-auto-submit') || !e2eBuffer?.enabled) {
+                return;
+            }
+
+            const pending = Array.isArray(e2eBuffer.pending) ? [...e2eBuffer.pending] : [];
+            e2eBuffer.pending = [];
+            e2eBuffer.enabled = false;
+
+            for (const payload of pending) {
+                void this._handleGeminiReady(payload);
+            }
+
+            e2eBuffer.enabled = true;
+        } catch (error) {
+            this.handleError('flushing E2E gemini ready buffer', error);
+        }
+    }
+
     private _handleHide(): void {
         try {
             this.deps.windowManager.hideQuickChat();
@@ -105,9 +202,6 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
         }
     }
 
-    /**
-     * Handle quick-chat:cancel request.
-     */
     private _handleCancel(): void {
         try {
             this.deps.windowManager.hideQuickChat();
@@ -117,72 +211,60 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
         }
     }
 
-    /**
-     * Inject text into the Gemini iframe (child frame of React shell).
-     * This is called after renderer signals that iframe has loaded.
-     *
-     * @param text - Text to inject into Gemini editor
-     */
-    private async _injectTextIntoGeminiIframe(text: string): Promise<void> {
+    private async _injectTextIntoGeminiIframe(request: PendingQuickChatRequest): Promise<void> {
         const mainWindow = this.deps.windowManager.getMainWindow();
         if (!mainWindow) {
             this.logger.error('Cannot inject text: main window not found');
             return;
         }
 
-        const webContents = mainWindow.webContents;
-        const mainFrame = webContents.mainFrame;
-        const frames = mainFrame.frames;
+        const frameName = getTabFrameName(request.targetTabId);
+        const frames = mainWindow.webContents.mainFrame.frames;
+        const targetFrame = frames.find((frame) => frame.name === frameName);
 
-        this.logger.log('Looking for Gemini iframe in', frames.length, 'child frames');
-
-        // Find the Gemini iframe in child frames (React shell architecture)
-        const geminiFrame = frames.find((frame) => {
-            try {
-                return isGeminiDomain(frame.url);
-            } catch {
-                return false;
-            }
+        this.logger.log('Quick Chat injection lookup:', {
+            requestId: request.requestId,
+            targetTabId: request.targetTabId,
+            frameName,
+            framesCount: frames.length,
+            frameNames: frames.map((frame) => frame.name),
         });
 
-        if (!geminiFrame) {
-            this.logger.error('Cannot inject text: Gemini iframe not found in child frames');
+        if (!targetFrame) {
+            this.logger.error('Cannot inject text: target tab frame not found');
             return;
         }
 
-        this.logger.log('Found Gemini iframe:', geminiFrame.url);
-
-        // Check if we should disable auto-submit (for E2E testing)
-        // E2E tests pass --e2e-disable-auto-submit flag to prevent actual Gemini submissions
-        const isE2EMode = process.argv.includes('--e2e-disable-auto-submit');
-
-        const shouldAutoSubmit = !isE2EMode;
-
-        if (!shouldAutoSubmit) {
-            this.logger.log('E2E mode: auto-submit disabled, will inject text only');
+        if (!isGeminiDomain(targetFrame.url)) {
+            this.logger.error('Cannot inject text: target frame URL is not Gemini domain');
+            return;
         }
 
-        // Build and execute the injection script
-        const injectionScript = new InjectionScriptBuilder().withText(text).withAutoSubmit(shouldAutoSubmit).build();
+        const isE2EMode = process.argv.includes('--e2e-disable-auto-submit');
+        const injectionScript = new InjectionScriptBuilder().withText(request.text).withAutoSubmit(!isE2EMode).build();
 
         try {
-            const result = (await geminiFrame.executeJavaScript(injectionScript)) as InjectionResult;
+            const result = (await targetFrame.executeJavaScript(injectionScript)) as InjectionResult;
 
             if (result?.success) {
                 this.logger.log('Text injected into Gemini successfully');
             } else {
-                this.logger.error('Injection script returned failure:', result?.error);
+                this.logger.error('Injection script returned failure:', {
+                    error: result?.error,
+                    details: result?.details,
+                });
             }
         } catch (error) {
             this.logger.error('Failed to inject text into Gemini:', error);
         }
     }
 
-    /** Unregister all IPC handlers. */
     unregister(): void {
         ipcMain.removeAllListeners(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
         ipcMain.removeAllListeners(IPC_CHANNELS.GEMINI_READY);
         ipcMain.removeAllListeners(IPC_CHANNELS.QUICK_CHAT_HIDE);
         ipcMain.removeAllListeners(IPC_CHANNELS.QUICK_CHAT_CANCEL);
+        this.pendingRequests.clear();
+        this.latestRequestByTab.clear();
     }
 }

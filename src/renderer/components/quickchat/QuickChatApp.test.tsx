@@ -28,6 +28,14 @@ describe('QuickChatApp', () => {
         await waitFor(() => {
             expect(mockGetTextPredictionStatus).toHaveBeenCalled();
         });
+        const latestCall =
+            mockGetTextPredictionStatus.mock.results[mockGetTextPredictionStatus.mock.results.length - 1];
+        const statusPromise = latestCall?.value;
+        if (statusPromise && typeof statusPromise.then === 'function') {
+            await act(async () => {
+                await statusPromise;
+            });
+        }
     };
 
     beforeEach(() => {
@@ -449,13 +457,15 @@ describe('QuickChatApp', () => {
 
             await act(async () => {
                 fireEvent.change(input, { target: { value: 'Hello ' } });
-                expect(mockPredictText).not.toHaveBeenCalled();
+            });
+
+            expect(mockPredictText).not.toHaveBeenCalled();
+
+            await act(async () => {
                 await vi.advanceTimersByTimeAsync(350);
             });
 
-            await waitFor(() => {
-                expect(mockPredictText).toHaveBeenCalledWith('Hello ');
-            });
+            await waitFor(() => expect(mockPredictText).toHaveBeenCalledWith('Hello '));
         });
     });
 

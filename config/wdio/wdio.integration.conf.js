@@ -11,6 +11,7 @@ const __dirname = dirname(__filename);
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
+const VITE_TEST_MODE = 'integration';
 
 // Path to the Electron main entry (compiled from TypeScript)
 const electronMainPath = join(__dirname, '../../dist-electron', 'main/main.cjs');
@@ -38,7 +39,7 @@ export const config = {
             'electron',
             {
                 appEntryPoint: electronMainPath,
-                appArgs: getAppArgs('--disable-web-security'),
+                appArgs: getAppArgs('--disable-web-security', '--integration-test'),
                 ...linuxServiceConfig,
             },
         ],
@@ -63,7 +64,7 @@ export const config = {
     onPrepare: async function () {
         const { execSync } = await import('child_process');
         console.log('Building Electron app for integration tests...');
-        execSync('npm run build && npm run build:electron', { stdio: 'inherit' });
+        execSync(`vite build --mode ${VITE_TEST_MODE} && npm run build:electron`, { stdio: 'inherit' });
     },
 
     // Wait for app to fully load before starting tests

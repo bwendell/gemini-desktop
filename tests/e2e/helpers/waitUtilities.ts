@@ -268,7 +268,7 @@ export async function waitForWindowTransition(
                     conditionMetTime = null;
                 }
             }
-        } catch (error) {
+        } catch (_error) {
             // Condition threw error, treat as not met
             conditionMetTime = null;
         }
@@ -332,7 +332,7 @@ export async function waitForAnimationSettle(
                 stableCount = 0;
                 lastValue = currentValueStr;
             }
-        } catch (error) {
+        } catch (_error) {
             // Element not found or error getting property
             stableCount = 0;
             lastValue = null;
@@ -587,7 +587,7 @@ export async function waitForCycle(
         results.push(success);
     }
 
-    const allSucceeded = results.every((r) => r);
+    const _allSucceeded = results.every((r) => r);
     E2ELogger.info(
         'waitUtilities',
         `✓ Cycle complete: ${results.filter((r) => r).length}/${operations.length} operations succeeded`

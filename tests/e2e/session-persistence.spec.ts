@@ -5,7 +5,7 @@
  * are correctly stored in the userData directory.
  */
 
-import { browser, expect } from '@wdio/globals';
+import { expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
 import {
     isSessionPersistent,

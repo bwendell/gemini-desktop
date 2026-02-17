@@ -19,7 +19,12 @@
 import { browser } from '@wdio/globals';
 import { registerHotkeyActionHandler, type HotkeyActionHandler, type HotkeyActionState } from './hotkeyHelpers';
 import { E2ELogger } from './logger';
-import { GEMINI_DOMAIN_PATTERNS, GEMINI_EDITOR_SELECTORS, GEMINI_SUBMIT_BUTTON_SELECTORS } from './e2eConstants';
+import {
+    GEMINI_DOMAIN_PATTERNS,
+    GEMINI_EDITOR_SELECTORS,
+    GEMINI_SUBMIT_BUTTON_SELECTORS,
+    GEMINI_CONVERSATION_TITLE_SELECTORS,
+} from './e2eConstants';
 
 // =============================================================================
 // Quick Chat State Interface
@@ -59,10 +64,24 @@ export interface QuickChatState extends HotkeyActionState {
  *
  * @returns Promise<void>
  */
+type WdioBrowser = typeof browser & {
+    electron: {
+        execute<R, T extends unknown[]>(
+            fn: (electron: typeof import('electron'), ...args: T) => R,
+            ...args: T
+        ): Promise<R>;
+    };
+    pause(ms: number): Promise<void>;
+    getWindowHandles(): Promise<string[]>;
+    switchToWindow(handle: string): Promise<void>;
+};
+
+const wdioBrowser = browser as WdioBrowser;
+
 export async function showQuickChatWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Showing Quick Chat via hotkey action trigger');
 
-    await browser.electron.execute(() => {
+    await wdioBrowser.electron.execute(() => {
         // Trigger via hotkeyManager action execution - same path as real hotkey press
         const hotkeyManager = (global as any).hotkeyManager as
             | { executeHotkeyAction?: (id: string) => void }
@@ -85,12 +104,12 @@ export async function showQuickChatWindow(): Promise<void> {
     // Wait for window creation to start - gives Electron time to create the window
     // before tests start polling for visibility. The window is created asynchronously
     // and shown on 'ready-to-show' event, so we need a brief delay here.
-    await browser.pause(300);
+    await wdioBrowser.pause(300);
 
     // Force-show the window if it was created but not shown (happens in headless CI
     // where ready-to-show event may not fire reliably). This ensures tests can
     // proceed even when Electron's visibility events are delayed.
-    await browser.electron.execute(() => {
+    await wdioBrowser.electron.execute(() => {
         const windowManager = (global as any).windowManager;
         const quickChatWindow = windowManager?.getQuickChatWindow?.();
         if (quickChatWindow && !quickChatWindow.isVisible() && !quickChatWindow.isDestroyed()) {
@@ -112,14 +131,14 @@ export async function showQuickChatWindow(): Promise<void> {
 export async function hideQuickChatWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Hiding Quick Chat via IPC');
 
-    await browser.electron.execute((electron: typeof import('electron')) => {
+    await wdioBrowser.electron.execute((electron: typeof import('electron')) => {
         // Send the same IPC message that the Quick Chat Escape handler sends
         const { ipcMain } = electron;
         ipcMain.emit('quick-chat:cancel', { sender: null });
     });
 
     // Small pause for window animation
-    await browser.pause(100);
+    await wdioBrowser.pause(100);
 }
 
 /**
@@ -133,7 +152,7 @@ export async function hideQuickChatWindow(): Promise<void> {
 export async function toggleQuickChatWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Toggling Quick Chat via hotkey action trigger');
 
-    await browser.electron.execute(() => {
+    await wdioBrowser.electron.execute(() => {
         const hotkeyManager = (global as any).hotkeyManager as
             | { executeHotkeyAction?: (id: string) => void }
             | undefined;
@@ -157,7 +176,7 @@ export async function toggleQuickChatWindow(): Promise<void> {
  * @returns Promise<QuickChatState> - The current Quick Chat state
  */
 export async function getQuickChatState(): Promise<QuickChatState> {
-    return browser.electron.execute((electron: typeof import('electron')) => {
+    return wdioBrowser.electron.execute((electron: typeof import('electron')) => {
         const { BrowserWindow } = electron;
         const windowManager = (global as any).windowManager;
 
@@ -189,18 +208,18 @@ export async function hideAndFocusMainWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Hiding Quick Chat via IPC and switching to main window');
 
     // Send IPC to cancel Quick Chat (works from any window context)
-    await browser.electron.execute((electron: typeof import('electron')) => {
+    await wdioBrowser.electron.execute((electron: typeof import('electron')) => {
         const { ipcMain } = electron;
         ipcMain.emit('quick-chat:cancel', { sender: null });
     });
 
     // Wait for window animation
-    await browser.pause(150);
+    await wdioBrowser.pause(150);
 
     // Switch to main window (first window handle)
-    const handles = await browser.getWindowHandles();
+    const handles = await wdioBrowser.getWindowHandles();
     if (handles.length > 0) {
-        await browser.switchToWindow(handles[0]);
+        await wdioBrowser.switchToWindow(handles[0]);
     }
 }
 
@@ -221,14 +240,14 @@ export async function submitQuickChatText(text: string): Promise<void> {
     E2ELogger.info('quick-chat-action', `Submitting text via IPC (${text.length} chars)`);
 
     // Send the same IPC message that the Quick Chat submit button sends
-    await browser.electron.execute((electron: typeof import('electron'), submittedText: string) => {
+    await wdioBrowser.electron.execute((electron: typeof import('electron'), submittedText: string) => {
         // Send via ipcMain emit - same as if renderer called ipcRenderer.send()
         const { ipcMain } = electron;
         ipcMain.emit('quick-chat:submit', { sender: null }, submittedText);
     }, text);
 
     // Wait for IPC processing
-    await browser.pause(200);
+    await wdioBrowser.pause(200);
 }
 
 /**
@@ -245,7 +264,7 @@ export async function getGeminiIframeState(): Promise<{
     // Pass domain patterns to the execute context since we can't import there
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
-    return browser.electron.execute((_electron: typeof import('electron'), domains: string[]) => {
+    return wdioBrowser.electron.execute((_electron: typeof import('electron'), domains: string[]) => {
         const windowManager = (global as any).windowManager as
             | {
                   getMainWindow?: () => Electron.BrowserWindow | null;
@@ -289,7 +308,7 @@ export async function getGeminiIframeState(): Promise<{
  * @returns Promise<{ title: string, visible: boolean, focused: boolean }[]>
  */
 export async function getAllWindowStates(): Promise<{ title: string; visible: boolean; focused: boolean }[]> {
-    return browser.electron.execute((electron: typeof import('electron')) => {
+    return wdioBrowser.electron.execute((electron: typeof import('electron')) => {
         const windows = electron.BrowserWindow.getAllWindows();
         return windows.map((w) => ({
             title: w.getTitle() || '(untitled)',
@@ -340,7 +359,7 @@ export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
     const buttonSelectors = [...GEMINI_SUBMIT_BUTTON_SELECTORS];
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
-    return browser.electron.execute(
+    return wdioBrowser.electron.execute(
         (
             _electron: typeof import('electron'),
             editorSels: string[],
@@ -497,14 +516,15 @@ export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
  */
 export async function waitForTextInGeminiEditor(
     expectedText: string,
-    timeoutMs: number = 5000
+    timeoutMs: number = 5000,
+    activeTabId?: string
 ): Promise<GeminiEditorState> {
     const startTime = Date.now();
     let lastState: GeminiEditorState | null = null;
 
     while (Date.now() - startTime < timeoutMs) {
         // Use direct iframe query for more reliable results
-        const state = await readGeminiEditorDirect();
+        const state = await readGeminiEditorDirect(expectedText, activeTabId);
         lastState = state;
 
         if (state.editorFound && state.editorText?.includes(expectedText)) {
@@ -512,7 +532,7 @@ export async function waitForTextInGeminiEditor(
             return state;
         }
 
-        await browser.pause(200);
+        await wdioBrowser.pause(200);
     }
 
     E2ELogger.info('gemini-verify', `Timeout waiting for text. Last state: ${JSON.stringify(lastState)}`);
@@ -528,55 +548,98 @@ export async function waitForTextInGeminiEditor(
     );
 }
 
+export async function getGeminiConversationTitle(tabId?: string): Promise<string | null> {
+    const titleSelectors = [...GEMINI_CONVERSATION_TITLE_SELECTORS];
+    const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
+
+    return wdioBrowser.electron.execute(
+        async (electron: typeof import('electron'), selectors: string[], domains: string[], activeTabId?: string) => {
+            const windowManager = (global as any).windowManager as
+                | { getMainWindow?: () => Electron.BrowserWindow | null }
+                | undefined;
+
+            const mainWindow = windowManager?.getMainWindow?.();
+            if (!mainWindow) {
+                return null;
+            }
+
+            const frames = mainWindow.webContents.mainFrame.frames;
+            const targetFrameName = activeTabId ? `gemini-tab-${activeTabId}` : null;
+            const targetFrame = targetFrameName ? frames.find((frame) => frame.name === targetFrameName) : null;
+            const geminiFrames = targetFrame
+                ? [targetFrame]
+                : frames.filter((frame) => {
+                      try {
+                          return domains.some((domain) => frame.url.includes(domain));
+                      } catch {
+                          return false;
+                      }
+                  });
+
+            if (geminiFrames.length === 0) {
+                return null;
+            }
+
+            const selectorsJson = JSON.stringify(selectors);
+            const titleScript = `
+                (function() {
+                    try {
+                        const selectors = ${selectorsJson};
+                        for (const selector of selectors) {
+                            const el = document.querySelector(selector);
+                            if (el) {
+                                const text = el.textContent?.trim();
+                                if (text) {
+                                    return text;
+                                }
+                            }
+                        }
+                        const fallback = document.title.replace(' - Gemini', '').trim();
+                        return fallback || null;
+                    } catch (e) {
+                        return null;
+                    }
+                })();
+            `;
+
+            for (const frame of geminiFrames) {
+                try {
+                    const result = await frame.executeJavaScript(titleScript);
+                    if (typeof result === 'string' && result.trim().length > 0) {
+                        return result.trim();
+                    }
+                } catch {
+                    continue;
+                }
+            }
+
+            return null;
+        },
+        titleSelectors,
+        domainPatterns,
+        tabId
+    );
+}
+
 /**
  * Direct async read from Gemini editor iframe.
  * More reliable for verification as it awaits the inner executeJavaScript.
  */
-async function readGeminiEditorDirect(): Promise<GeminiEditorState> {
+async function readGeminiEditorDirect(expectedText?: string, activeTabId?: string): Promise<GeminiEditorState> {
     const editorSelectors = [...GEMINI_EDITOR_SELECTORS];
     const buttonSelectors = [...GEMINI_SUBMIT_BUTTON_SELECTORS];
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
-    // First get the frame info
-    const frameInfo = await browser.electron.execute((_electron: typeof import('electron'), domains: string[]) => {
-        const windowManager = (global as any).windowManager as
-            | { getMainWindow?: () => Electron.BrowserWindow | null }
-            | undefined;
-
-        if (!windowManager) return { found: false, frameId: -1 };
-
-        const mainWindow = windowManager.getMainWindow?.();
-        if (!mainWindow) return { found: false, frameId: -1 };
-
-        const frames = mainWindow.webContents.mainFrame.frames;
-        const geminiFrame = frames.find((frame) => {
-            try {
-                return domains.some((domain) => frame.url.includes(domain));
-            } catch {
-                return false;
-            }
-        });
-
-        return {
-            found: !!geminiFrame,
-            frameId: geminiFrame?.frameTreeNodeId ?? -1,
-        };
-    }, domainPatterns);
-
-    if (!frameInfo.found) {
-        return {
-            iframeFound: false,
-            editorFound: false,
-            editorText: null,
-            submitButtonFound: false,
-            submitButtonEnabled: false,
-            error: 'Gemini iframe not found',
-        };
-    }
-
     // Execute read script in the iframe
-    const result = await browser.electron.execute(
-        async (electron: typeof import('electron'), editorSels: string[], buttonSels: string[], domains: string[]) => {
+    const result = await wdioBrowser.electron.execute(
+        async (
+            electron: typeof import('electron'),
+            editorSels: string[],
+            buttonSels: string[],
+            domains: string[],
+            expected: string | null,
+            tabId?: string
+        ) => {
             const windowManager = (global as any).windowManager as
                 | { getMainWindow?: () => Electron.BrowserWindow | null }
                 | undefined;
@@ -594,15 +657,19 @@ async function readGeminiEditorDirect(): Promise<GeminiEditorState> {
             }
 
             const frames = mainWindow.webContents.mainFrame.frames;
-            const geminiFrame = frames.find((frame) => {
-                try {
-                    return domains.some((domain) => frame.url.includes(domain));
-                } catch {
-                    return false;
-                }
-            });
+            const targetFrameName = tabId ? `gemini-tab-${tabId}` : null;
+            const targetFrame = targetFrameName ? frames.find((frame) => frame.name === targetFrameName) : null;
+            const geminiFrames = targetFrame
+                ? [targetFrame]
+                : frames.filter((frame) => {
+                      try {
+                          return domains.some((domain) => frame.url.includes(domain));
+                      } catch {
+                          return false;
+                      }
+                  });
 
-            if (!geminiFrame) {
+            if (geminiFrames.length === 0) {
                 return {
                     iframeFound: false,
                     editorFound: false,
@@ -666,26 +733,54 @@ async function readGeminiEditorDirect(): Promise<GeminiEditorState> {
         })();
       `;
 
-            try {
-                const scriptResult = await geminiFrame.executeJavaScript(readScript);
-                return {
-                    iframeFound: true,
-                    ...scriptResult,
-                };
-            } catch (e) {
-                return {
+            type GeminiEditorPartial = Omit<GeminiEditorState, 'iframeFound'>;
+            let lastState: GeminiEditorState | null = null;
+
+            for (const frame of geminiFrames) {
+                try {
+                    const scriptResult = (await frame.executeJavaScript(readScript)) as GeminiEditorPartial;
+                    const state: GeminiEditorState = {
+                        iframeFound: true,
+                        ...scriptResult,
+                    };
+
+                    lastState = state;
+
+                    if (expected && state.editorText?.includes(expected)) {
+                        return state;
+                    }
+
+                    if (!expected) {
+                        return state;
+                    }
+                } catch (e) {
+                    lastState = {
+                        iframeFound: true,
+                        editorFound: false,
+                        editorText: null,
+                        submitButtonFound: false,
+                        submitButtonEnabled: false,
+                        error: (e as Error).message || 'Script execution failed',
+                    };
+                }
+            }
+
+            return (
+                lastState || {
                     iframeFound: true,
                     editorFound: false,
                     editorText: null,
                     submitButtonFound: false,
                     submitButtonEnabled: false,
-                    error: (e as Error).message || 'Script execution failed',
-                };
-            }
+                    error: 'Gemini iframe still loading',
+                }
+            );
         },
         editorSelectors,
         buttonSelectors,
-        domainPatterns
+        domainPatterns,
+        expectedText ?? null,
+        activeTabId
     );
 
     return result as GeminiEditorState;

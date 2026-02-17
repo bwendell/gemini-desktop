@@ -25,6 +25,7 @@ import {
     TextPredictionIpcHandler,
     ResponseNotificationIpcHandler,
     ExportIpcHandler,
+    TabStateIpcHandler,
     IpcHandlerDependencies,
 } from './ipc/index';
 import SettingsStore from '../store';
@@ -75,6 +76,7 @@ export default class IpcManager {
     private readonly handlers: BaseIpcHandler[] = [];
     private readonly textPredictionHandler: TextPredictionIpcHandler;
     private readonly responseNotificationHandler: ResponseNotificationIpcHandler;
+    private readonly quickChatHandler: QuickChatIpcHandler;
     private readonly logger: Logger;
     /** Settings store exposed for integration tests */
     public readonly store: SettingsStore<UserPreferences>;
@@ -143,6 +145,12 @@ export default class IpcManager {
         // Create ResponseNotificationIpcHandler (we need reference for setNotificationManager)
         this.responseNotificationHandler = new ResponseNotificationIpcHandler(handlerDeps);
 
+        this.quickChatHandler = new QuickChatIpcHandler(handlerDeps);
+        if (process.argv.includes('--e2e-disable-auto-submit')) {
+            (global as typeof globalThis & { __e2eQuickChatHandler?: QuickChatIpcHandler }).__e2eQuickChatHandler =
+                this.quickChatHandler;
+        }
+
         // Instantiate all handlers
         this.handlers = [
             // Phase 1 handlers
@@ -157,12 +165,13 @@ export default class IpcManager {
             new AppIpcHandler(handlerDeps),
             // Phase 4 handlers
             new AutoUpdateIpcHandler(handlerDeps),
-            new QuickChatIpcHandler(handlerDeps),
+            this.quickChatHandler,
             this.textPredictionHandler,
             // Response notification handler
             this.responseNotificationHandler,
             // Export handler
             new ExportIpcHandler(handlerDeps),
+            new TabStateIpcHandler(handlerDeps),
         ];
 
         this.logger.log('Initialized');

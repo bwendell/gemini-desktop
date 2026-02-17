@@ -16,6 +16,7 @@ import {
     TITLEBAR_TEST_IDS,
     OPTIONS_TEST_IDS,
     QUICK_CHAT_TEST_IDS,
+    TAB_TEST_IDS,
 } from '../../../src/renderer/utils/testIds';
 
 /**
@@ -71,6 +72,12 @@ export const Selectors = {
     quickChatInput: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_INPUT),
     quickChatSubmit: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_SUBMIT),
     quickChatGhostText: testId(QUICK_CHAT_TEST_IDS.QUICK_CHAT_GHOST_TEXT),
+
+    tabBar: testId(TAB_TEST_IDS.TAB_BAR),
+    tabNewButton: testId(TAB_TEST_IDS.TAB_NEW_BUTTON),
+    tabPanel: testId(TAB_TEST_IDS.TAB_PANEL),
+    tab: (id: string) => testId(TAB_TEST_IDS.tab(id)),
+    tabClose: (id: string) => testId(TAB_TEST_IDS.tabClose(id)),
 
     // Update Toast
     updateToast: '[data-testid="update-toast"]',

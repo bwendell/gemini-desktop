@@ -345,6 +345,14 @@ if (!gotTheLock) {
 
         ipcManager.setupIpcHandlers();
 
+        if (process.argv.includes('--e2e-disable-auto-submit')) {
+            (
+                global as typeof globalThis & {
+                    __e2eGeminiReadyBuffer?: { enabled: boolean; pending: unknown[] };
+                }
+            ).__e2eGeminiReadyBuffer = { enabled: true, pending: [] };
+        }
+
         // Setup native application menu (critical for macOS)
         const menuManager = new MenuManager(windowManager, hotkeyManager);
         menuManager.buildMenu();

@@ -119,7 +119,7 @@ const cardVariants = {
 
 /** Animation variants for the checkmark indicator */
 const checkmarkVariants = {
-    initial: { scale: 0, opacity: 0 },
+    initial: { scale: 0.9, opacity: 0.9 },
     animate: { scale: 1, opacity: 1 },
     exit: { scale: 0, opacity: 0 },
 };

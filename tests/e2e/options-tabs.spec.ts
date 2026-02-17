@@ -9,32 +9,14 @@
  * @module options-tabs.spec
  */
 
-import { browser, $, expect } from '@wdio/globals';
-import { Selectors } from './helpers/selectors';
+import { $, expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount } from './helpers/windowActions';
-import {
-    waitForOptionsWindow,
-    closeOptionsWindow,
-    switchToOptionsWindow,
-    navigateToOptionsTab,
-} from './helpers/optionsWindowActions';
+import { waitForOptionsWindow, closeOptionsWindow, navigateToOptionsTab } from './helpers/optionsWindowActions';
 
 // NEW: Import assertion and workflow helpers
-import {
-    expectTabActive,
-    expectElementDisplayed,
-    expectUrlHash,
-    expectWindowCount as assertWindowCount,
-} from './helpers/assertions';
-import {
-    withOptionsWindowViaMenu,
-    withOptionsTab,
-    waitForAppReady,
-    ensureSingleWindow,
-    waitForIpcSettle,
-} from './helpers/workflows';
+import { expectTabActive, expectElementDisplayed, expectUrlHash } from './helpers/assertions';
+import { withOptionsWindowViaMenu, waitForAppReady, ensureSingleWindow, waitForIpcSettle } from './helpers/workflows';
 
 describe('Options Window Tab Navigation', () => {
     beforeEach(async () => {

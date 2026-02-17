@@ -15,11 +15,10 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount } from './helpers/windowActions';
+import { waitForWindowCount as _waitForWindowCount } from './helpers/windowActions';
 import { waitForOptionsWindow, switchToOptionsWindow, closeOptionsWindow } from './helpers/optionsWindowActions';
 import { getPlatform, E2EPlatform } from './helpers/platform';
 import { E2ELogger } from './helpers/logger';
-import { Selectors } from './helpers/selectors';
 import { waitForUIState } from './helpers/waitUtilities';
 
 // ============================================================================
@@ -75,7 +74,6 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
 // ============================================================================
 
 describe('Individual Hotkey Toggles', () => {
-    let mainWindowHandle: string;
     let platform: E2EPlatform;
 
     before(async () => {
@@ -85,9 +83,6 @@ describe('Individual Hotkey Toggles', () => {
 
     beforeEach(async () => {
         E2ELogger.info('hotkey-toggle', 'Opening Options window');
-
-        // Store main window handle
-        mainWindowHandle = await browser.getWindowHandle();
 
         // Open Options via menu
         await clickMenuItemById('menu-file-options');

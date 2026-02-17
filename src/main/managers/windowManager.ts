@@ -55,6 +55,10 @@ export default class WindowManager extends EventEmitter {
         this.mainWindow.on('always-on-top-changed', (enabled: boolean) => {
             this.emit('always-on-top-changed', enabled);
         });
+
+        this.mainWindow.on('focus', () => {
+            this.quickChatWindow.handleMainWindowFocus();
+        });
     }
 
     /**

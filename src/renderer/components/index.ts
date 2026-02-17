@@ -12,3 +12,6 @@ export { MainLayout } from './layout/MainLayout';
 export { ErrorBoundary } from './ErrorBoundary';
 export { GeminiErrorBoundary } from './GeminiErrorBoundary';
 export { OfflineOverlay } from './common/OfflineOverlay';
+export { Tab } from './tabs/Tab';
+export { TabBar } from './tabs/TabBar';
+export { TabPanel } from './tabs/TabPanel';

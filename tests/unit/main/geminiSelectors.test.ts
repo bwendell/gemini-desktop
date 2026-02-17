@@ -50,8 +50,16 @@ describe('Gemini Selectors Module', () => {
             expect(GeminiSelectors.timing.description).toBeTruthy();
         });
 
+        it('includes conversation title data-test-id selector', () => {
+            expect(GeminiSelectors.conversationTitle.selectors).toContain('[data-test-id="conversation-title"]');
+        });
+
         it('all selectors are valid CSS selector syntax', () => {
-            const allSelectors = [...GeminiSelectors.editor.selectors, ...GeminiSelectors.submitButton.selectors];
+            const allSelectors = [
+                ...GeminiSelectors.editor.selectors,
+                ...GeminiSelectors.submitButton.selectors,
+                ...GeminiSelectors.conversationTitle.selectors,
+            ];
 
             // Create a mock document to validate selectors
             const { JSDOM } = require('jsdom');

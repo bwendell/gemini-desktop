@@ -1,8 +1,6 @@
-/**
- * Chat Extraction Script
- *
- * Injected into the Gemini iframe to extract the conversation as a structured JSON object.
- */
+import { GEMINI_CONVERSATION_TITLE_SELECTORS } from './geminiSelectors';
+
+const TITLE_SELECTORS_JSON = JSON.stringify(GEMINI_CONVERSATION_TITLE_SELECTORS);
 
 export const CHAT_EXTRACTION_SCRIPT = `
 (() => {
@@ -13,7 +11,7 @@ export const CHAT_EXTRACTION_SCRIPT = `
             userQueryText: ['.query-text', '.user-prompt-container', '.query-text-line'],
             modelResponse: ['.model-response', 'model-response', '.markdown'],
             modelResponseContent: ['.message-content', '.markdown', '.model-response-text'],
-            title: ['.conversation-title', 'span.conversation-title'],
+            title: ${TITLE_SELECTORS_JSON},
             codeBlocks: 'pre',
             tables: 'table'
         };
@@ -108,6 +106,28 @@ export const CHAT_EXTRACTION_SCRIPT = `
             conversation: [],
             error: err.message
         };
+    }
+})()
+`;
+
+export const TITLE_EXTRACTION_SCRIPT = `
+(() => {
+    try {
+        const selectors = ${TITLE_SELECTORS_JSON};
+        for (const selector of selectors) {
+            const el = document.querySelector(selector);
+            if (el) {
+                const text = el.textContent?.trim();
+                // Only accept titles from the top bar, not the sidebar chat list
+                const isInTopBar = !!el.closest('top-bar-actions') || !!el.closest('.conversation-title-container');
+                if (text && isInTopBar) {
+                    return text;
+                }
+            }
+        }
+        return '';
+    } catch (err) {
+        return '';
     }
 })()
 `;

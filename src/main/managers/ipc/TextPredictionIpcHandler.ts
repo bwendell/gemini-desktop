@@ -159,10 +159,13 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
 
             // If enabling and LlmManager exists, trigger model download/load if needed
             if (enabled && this.deps.llmManager) {
-                // Skip native module operations in CI - the native module cannot be reliably loaded
-                // in headless CI environments, which would crash the Electron process
-                if (process.env.CI === 'true') {
-                    this.logger.log('CI environment detected - skipping native module operations');
+                const skipNativeOperations = process.env.CI === 'true' || process.argv.includes('--integration-test');
+
+                if (skipNativeOperations) {
+                    this.logger.log('Skipping native module operations for text prediction', {
+                        ci: process.env.CI === 'true',
+                        integrationTest: process.argv.includes('--integration-test'),
+                    });
                 } else {
                     if (!this.deps.llmManager.isModelDownloaded()) {
                         this.logger.log('Model not downloaded, starting download...');

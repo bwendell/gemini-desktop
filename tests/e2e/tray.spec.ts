@@ -15,14 +15,13 @@
  * @module tray.spec
  */
 
-import { browser, expect } from '@wdio/globals';
+import { expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForMacOSWindowStabilize } from './helpers/waitUtilities';
-import { MainWindowPage, TrayPage } from './pages';
+import { TrayPage } from './pages';
 
 describe('System Tray Functionality', () => {
-    const mainWindow = new MainWindowPage();
     const tray = new TrayPage();
 
     beforeEach(async () => {

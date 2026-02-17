@@ -19,6 +19,40 @@ import {
     submitQuickChatText,
 } from '../helpers/quickChatActions';
 
+type WdioBrowser = {
+    waitUntil<T>(
+        condition: () => Promise<T> | T,
+        options?: {
+            timeout?: number;
+            timeoutMsg?: string;
+            interval?: number;
+        }
+    ): Promise<T>;
+    pause(ms: number): Promise<void>;
+    keys(keys: string | string[]): Promise<void>;
+    getWindowHandles(): Promise<string[]>;
+    switchToWindow(handle: string): Promise<void>;
+    getTitle(): Promise<string>;
+    execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
+    electron: {
+        execute<R, T extends unknown[]>(
+            fn: (electron: typeof import('electron'), ...args: T) => R,
+            ...args: T
+        ): Promise<R>;
+    };
+};
+
+type WdioElement = {
+    click(): Promise<void>;
+    getValue(): Promise<string>;
+    getText(): Promise<string>;
+    isExisting(): Promise<boolean>;
+    isDisplayed(): Promise<boolean>;
+    $: (selector: string) => Promise<WebdriverIO.Element>;
+};
+
+const wdioBrowser = browser as unknown as WdioBrowser;
+
 /**
  * Page Object for the Quick Chat popup window.
  * Provides methods for visibility, input actions, and state queries.
@@ -87,7 +121,7 @@ export class QuickChatPage extends BasePage {
      * @param timeout - Timeout in milliseconds (default: 5000)
      */
     async waitForVisible(timeout = 5000): Promise<void> {
-        await browser.waitUntil(
+        await wdioBrowser.waitUntil(
             async () => {
                 const state = await getQuickChatState();
                 return state.windowVisible || state.windowFocused || state.windowReady;
@@ -106,7 +140,7 @@ export class QuickChatPage extends BasePage {
      * @param timeout - Timeout in milliseconds (default: 5000)
      */
     async waitForHidden(timeout = 5000): Promise<void> {
-        await browser.waitUntil(
+        await wdioBrowser.waitUntil(
             async () => {
                 const state = await getQuickChatState();
                 return !state.windowVisible;
@@ -120,6 +154,29 @@ export class QuickChatPage extends BasePage {
         this.log('Quick Chat window is hidden');
     }
 
+    private async ensureWindowVisible(): Promise<void> {
+        const state = await getQuickChatState();
+
+        if (!state.windowVisible || !state.windowFocused) {
+            this.log(`Quick Chat window state before focus: ${JSON.stringify(state)}`);
+
+            await wdioBrowser.electron.execute(() => {
+                const windowManager = (global as any).windowManager;
+                const quickChatWindow = windowManager?.getQuickChatWindow?.();
+
+                if (quickChatWindow && !quickChatWindow.isDestroyed()) {
+                    quickChatWindow.show();
+                    quickChatWindow.focus();
+                }
+            });
+
+            await wdioBrowser.pause(150);
+
+            const updatedState = await getQuickChatState();
+            this.log(`Quick Chat window state after focus: ${JSON.stringify(updatedState)}`);
+        }
+    }
+
     // ===========================================================================
     // INPUT ACTIONS
     // ===========================================================================
@@ -129,9 +186,10 @@ export class QuickChatPage extends BasePage {
      * @param text - Text to type
      */
     async typeText(text: string): Promise<void> {
+        await this.ensureWindowVisible();
         const input = await this.waitForElement(this.inputSelector);
-        await input.click();
-        await browser.keys(text);
+        await (input as unknown as WdioElement).click();
+        await wdioBrowser.keys(text);
         this.log(`Typed: "${text}"`);
     }
 
@@ -140,10 +198,10 @@ export class QuickChatPage extends BasePage {
      */
     async clearInput(): Promise<void> {
         const input = await this.waitForElement(this.inputSelector);
-        await input.click();
+        await (input as unknown as WdioElement).click();
         // Select all and delete to clear any existing text
-        await browser.keys(['Control', 'a']);
-        await browser.keys(['Backspace']);
+        await wdioBrowser.keys(['Control', 'a']);
+        await wdioBrowser.keys(['Backspace']);
         this.log('Cleared input field');
     }
 
@@ -156,10 +214,10 @@ export class QuickChatPage extends BasePage {
         // This matches the pattern in submitViaEnter and prevents race conditions
         // where the button click reads stale state (especially on Windows CI)
         const input = await this.$(this.inputSelector);
-        await input.click();
+        await (input as unknown as WdioElement).click();
 
         const submitButton = await this.waitForElement(this.submitButtonSelector);
-        await submitButton.click();
+        await (submitButton as unknown as WdioElement).click();
         this.log('Clicked submit button');
     }
 
@@ -178,8 +236,8 @@ export class QuickChatPage extends BasePage {
      */
     async submitViaEnter(): Promise<void> {
         const input = await this.$(this.inputSelector);
-        await input.click();
-        await browser.keys(['Enter']);
+        await (input as unknown as WdioElement).click();
+        await wdioBrowser.keys(['Enter']);
         this.log('Submitted via Enter key');
     }
 
@@ -187,7 +245,7 @@ export class QuickChatPage extends BasePage {
      * Press Escape to cancel and hide Quick Chat.
      */
     async cancel(): Promise<void> {
-        await browser.keys(['Escape']);
+        await wdioBrowser.keys(['Escape']);
         this.log('Cancelled via Escape key');
     }
 
@@ -196,7 +254,7 @@ export class QuickChatPage extends BasePage {
      * Use this when testing prediction dismissal behavior.
      */
     async pressEscape(): Promise<void> {
-        await browser.keys(['Escape']);
+        await wdioBrowser.keys(['Escape']);
         this.log('Pressed Escape key');
     }
 
@@ -205,7 +263,7 @@ export class QuickChatPage extends BasePage {
      * This inserts the prediction text into the input field.
      */
     async pressTab(): Promise<void> {
-        await browser.keys(['Tab']);
+        await wdioBrowser.keys(['Tab']);
         this.log('Pressed Tab key to accept prediction');
     }
 
@@ -219,7 +277,7 @@ export class QuickChatPage extends BasePage {
      */
     async getInputValue(): Promise<string> {
         const input = await this.waitForElement(this.inputSelector);
-        return input.getValue();
+        return (input as unknown as WdioElement).getValue();
     }
 
     /**
@@ -228,7 +286,7 @@ export class QuickChatPage extends BasePage {
      */
     async isInputFocused(): Promise<boolean> {
         const input = await this.$(this.inputSelector);
-        const isFocused = await browser.execute((el) => {
+        const isFocused = await wdioBrowser.execute((el) => {
             return document.activeElement === el;
         }, input);
         return isFocused;
@@ -279,7 +337,7 @@ export class QuickChatPage extends BasePage {
      * @param timeout - Timeout in milliseconds (default: 5000)
      */
     async waitForGhostText(timeout = 5000): Promise<void> {
-        await browser.waitUntil(
+        await wdioBrowser.waitUntil(
             async () => {
                 return this.isGhostTextDisplayed();
             },
@@ -299,15 +357,15 @@ export class QuickChatPage extends BasePage {
      */
     async getGhostTextPrediction(): Promise<string | null> {
         const ghostText = await this.$(this.ghostTextSelector);
-        if (!(await ghostText.isExisting())) {
+        if (!(await (ghostText as unknown as WdioElement).isExisting())) {
             return null;
         }
         // The prediction is in the second span: .quick-chat-ghost-text-prediction
-        const predictionSpan = await ghostText.$('.quick-chat-ghost-text-prediction');
-        if (!(await predictionSpan.isExisting())) {
+        const predictionSpan = await (ghostText as unknown as WdioElement).$('.quick-chat-ghost-text-prediction');
+        if (!(await (predictionSpan as unknown as WdioElement).isExisting())) {
             return null;
         }
-        return predictionSpan.getText();
+        return (predictionSpan as unknown as WdioElement).getText();
     }
 
     // ===========================================================================
@@ -319,12 +377,13 @@ export class QuickChatPage extends BasePage {
      * @returns True if Quick Chat window was found and switched to
      */
     async switchToQuickChatWindow(): Promise<boolean> {
-        const handles = await browser.getWindowHandles();
+        const handles = await wdioBrowser.getWindowHandles();
 
         for (const handle of handles) {
-            await browser.switchToWindow(handle);
+            await wdioBrowser.switchToWindow(handle);
             const container = await this.$(this.containerSelector);
-            if (await container.isExisting()) {
+            if (await (container as unknown as WdioElement).isExisting()) {
+                await this.ensureWindowVisible();
                 this.log('Switched to Quick Chat window');
                 return true;
             }
@@ -339,11 +398,11 @@ export class QuickChatPage extends BasePage {
      * @returns True if Quick Chat window was found and switched to
      */
     async switchToQuickChatByTitle(): Promise<boolean> {
-        const handles = await browser.getWindowHandles();
+        const handles = await wdioBrowser.getWindowHandles();
 
         for (const handle of handles) {
-            await browser.switchToWindow(handle);
-            const title = await browser.getTitle();
+            await wdioBrowser.switchToWindow(handle);
+            const title = await wdioBrowser.getTitle();
             if (title.includes('Quick Chat')) {
                 this.log('Switched to Quick Chat window (by title)');
                 return true;

@@ -61,7 +61,6 @@ vi.mock('../../../../src/main/platform/platformAdapterFactory', () => ({
 }));
 
 describe('NotificationManager', () => {
-    let notificationManager: NotificationManager;
     let notificationSpy: typeof mockNotification & {
         _instances: any[];
         isSupported: { mockReturnValue: (value: boolean) => void };
@@ -105,13 +104,6 @@ describe('NotificationManager', () => {
             id: 'test-platform',
             getNotificationSupportHint: vi.fn().mockReturnValue(undefined),
         };
-
-        notificationManager = new NotificationManager(
-            mockMainWindow,
-            mockBadgeManager,
-            mockStore as any,
-            mockPlatformAdapter
-        );
     });
 
     afterEach(() => {
@@ -159,6 +151,7 @@ describe('NotificationManager', () => {
         });
 
         it('subscribes to focus and blur events on construction', () => {
+            new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
             expect(mockMainWindow.on).toHaveBeenCalledWith('focus', expect.any(Function));
             expect(mockMainWindow.on).toHaveBeenCalledWith('blur', expect.any(Function));
         });
@@ -166,7 +159,8 @@ describe('NotificationManager', () => {
         it('clears notification badge when window regains focus', () => {
             // Start unfocused
             mockMainWindow.isFocused = vi.fn().mockReturnValue(false);
-            const manager = new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
+            // NotificationManager registers focus/blur handlers in constructor
+            new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any);
 
             // Simulate focus
             focusHandler?.();
@@ -633,12 +627,8 @@ describe('NotificationManager', () => {
 
         it('no exceptions during rapid event sequence', () => {
             mockMainWindow.isFocused = vi.fn().mockReturnValue(true);
-            const manager = new NotificationManager(
-                mockMainWindow,
-                mockBadgeManager,
-                mockStore as any,
-                mockPlatformAdapter
-            );
+            // Instantiate to register handlers - handles are exercised below
+            new NotificationManager(mockMainWindow, mockBadgeManager, mockStore as any, mockPlatformAdapter);
 
             // Rapid sequence should not throw
             expect(() => {
