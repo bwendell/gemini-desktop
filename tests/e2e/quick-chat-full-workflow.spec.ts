@@ -237,10 +237,39 @@ describe('Quick Chat Full Workflow (E2E)', () => {
                                 await targetFrame.executeJavaScript(`
                                     (function() {
                                         const title = ${safeTitle};
-                                        const span = document.createElement('span');
-                                        span.setAttribute('data-test-id', 'conversation-title');
-                                        span.textContent = title;
-                                        document.body.replaceChildren(span);
+                                        let container = document.querySelector('.conversation-title-container');
+
+                                        if (!container) {
+                                            const topBar = document.createElement('top-bar-actions');
+                                            const topBarActions = document.createElement('div');
+                                            topBarActions.className = 'top-bar-actions';
+
+                                            const leftSection = document.createElement('div');
+                                            leftSection.className = 'left-section';
+
+                                            const centerSection = document.createElement('div');
+                                            centerSection.className = 'center-section';
+
+                                            container = document.createElement('div');
+                                            container.className = 'conversation-title-container';
+
+                                            centerSection.appendChild(container);
+                                            topBarActions.appendChild(leftSection);
+                                            topBarActions.appendChild(centerSection);
+                                            topBarActions.appendChild(document.createElement('div')).className = 'right-section';
+                                            topBar.appendChild(topBarActions);
+
+                                            document.body.replaceChildren(topBar);
+                                        }
+
+                                        let titleEl = container.querySelector('[data-test-id="conversation-title"]');
+                                        if (!titleEl) {
+                                            titleEl = document.createElement('span');
+                                            titleEl.setAttribute('data-test-id', 'conversation-title');
+                                            container.appendChild(titleEl);
+                                        }
+
+                                        titleEl.textContent = title;
                                         document.title = title + ' - Gemini';
                                     })();
                                 `);
