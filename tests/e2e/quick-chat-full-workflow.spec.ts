@@ -295,6 +295,18 @@ describe('Quick Chat Full Workflow (E2E)', () => {
                 }
             );
 
+            await wdioBrowser.execute(
+                (activeTabId: string, title: string) => {
+                    (
+                        window as unknown as {
+                            electronAPI: { updateTabTitle: (tabId: string, title: string) => void };
+                        }
+                    ).electronAPI.updateTabTitle(activeTabId, title);
+                },
+                tabId,
+                testTitle
+            );
+
             await wdioBrowser.waitUntil(
                 async () => {
                     const titles = await tabBar.getTabTitles();
