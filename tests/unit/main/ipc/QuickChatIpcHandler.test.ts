@@ -77,6 +77,9 @@ describe('QuickChatIpcHandler', () => {
         };
     };
 
+    const getLatestRequestByTab = (): Map<string, string> =>
+        (handler as unknown as { latestRequestByTab: Map<string, string> }).latestRequestByTab;
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockIpcMain._reset();
@@ -163,6 +166,30 @@ describe('QuickChatIpcHandler', () => {
                 expect.stringContaining('Hello Gemini')
             );
         });
+
+        it('removes expired latest request mapping before accepting a new request', () => {
+            const nowSpy = vi.spyOn(Date, 'now');
+            try {
+                nowSpy.mockReturnValue(1);
+
+                const listener = mockIpcMain._listeners.get(IPC_CHANNELS.QUICK_CHAT_SUBMIT);
+                listener!({}, 'First request');
+
+                const firstPayload = mockMainWindow.webContents.send.mock.calls[0]?.[1] as {
+                    requestId: string;
+                    targetTabId: string;
+                };
+
+                expect(getLatestRequestByTab().get(firstPayload.targetTabId)).toBe(firstPayload.requestId);
+
+                nowSpy.mockReturnValue(2 * 60 * 1000 + 2);
+                listener!({}, 'Second request');
+
+                expect(getLatestRequestByTab().has(firstPayload.targetTabId)).toBe(false);
+            } finally {
+                nowSpy.mockRestore();
+            }
+        });
     });
 
     describe('quick-chat:hide handler', () => {
@@ -238,6 +265,7 @@ describe('QuickChatIpcHandler', () => {
 
             expect(mockGeminiFrame.executeJavaScript).toHaveBeenCalled();
             expect(mockLogger.log).toHaveBeenCalledWith('Text injected into Gemini successfully');
+            expect(getLatestRequestByTab().has(navigatePayload.targetTabId)).toBe(false);
         });
 
         it('logs error when Gemini iframe not found (4.2.12)', async () => {

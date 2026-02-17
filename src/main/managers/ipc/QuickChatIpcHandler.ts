@@ -35,6 +35,13 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
     private readonly pendingRequests = new Map<string, PendingQuickChatRequest>();
     private readonly latestRequestByTab = new Map<string, string>();
 
+    private _clearLatestRequestByTabIfMatches(tabId: string, requestId: string): void {
+        const latestRequestId = this.latestRequestByTab.get(tabId);
+        if (latestRequestId === requestId) {
+            this.latestRequestByTab.delete(tabId);
+        }
+    }
+
     register(): void {
         ipcMain.on(IPC_CHANNELS.QUICK_CHAT_SUBMIT, (_event, text: string) => {
             this._handleSubmit(text);
@@ -58,6 +65,7 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
         for (const [requestId, request] of this.pendingRequests.entries()) {
             if (now - request.createdAt > REQUEST_TTL_MS) {
                 this.pendingRequests.delete(requestId);
+                this._clearLatestRequestByTabIfMatches(request.targetTabId, requestId);
             }
         }
     }
@@ -154,6 +162,7 @@ export class QuickChatIpcHandler extends BaseIpcHandler {
 
             await this._injectTextIntoGeminiIframe(request);
             this.pendingRequests.delete(payload.requestId);
+            this._clearLatestRequestByTabIfMatches(request.targetTabId, payload.requestId);
         } catch (error) {
             this.handleError('handling gemini ready', error);
         }
