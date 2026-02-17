@@ -270,6 +270,44 @@ describe('TabContext', () => {
         });
     });
 
+    it('resets tab title to New Chat when main process sends empty-page reset', async () => {
+        const saveTabState = vi.fn();
+        let titleListener: ((payload: { tabId: string; title: string }) => void) | null = null;
+
+        (window as unknown as { electronAPI: ElectronApiSubset }).electronAPI = {
+            getTabState: vi.fn().mockResolvedValue({
+                tabs: [
+                    { id: 'tab-a', title: 'Stale Previous Title', url: 'https://gemini.google.com/app', createdAt: 1 },
+                ],
+                activeTabId: 'tab-a',
+            } satisfies TabsState),
+            saveTabState,
+            onTabTitleUpdated: vi.fn((callback) => {
+                titleListener = callback;
+                return () => {
+                    titleListener = null;
+                };
+            }),
+        };
+
+        renderProvider(<Probe />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('active-title').textContent).toBe('Stale Previous Title');
+        });
+
+        // Simulate the main process resetting title when user navigates to home page
+        act(() => {
+            titleListener?.({ tabId: 'tab-a', title: 'New Chat' });
+        });
+
+        expect(screen.getByTestId('active-title').textContent).toBe('New Chat');
+
+        await waitFor(() => {
+            expect(saveTabState).toHaveBeenCalled();
+        });
+    });
+
     it('throws when hook is used outside provider', () => {
         expect(() => renderHook(() => useTabContext())).toThrow('useTabContext must be used within a TabProvider');
     });

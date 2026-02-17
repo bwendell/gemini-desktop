@@ -94,7 +94,8 @@ function createDefaultTabsState(): TabsState {
 
 export class TabStateIpcHandler extends BaseIpcHandler {
     private readonly tabsStore: SettingsStore<TabStoreRecord>;
-    private responseCompleteListener: (() => void) | null = null;
+    private titlePollInterval: ReturnType<typeof setInterval> | null = null;
+    private static readonly TITLE_POLL_INTERVAL_MS = 3000;
 
     constructor(...args: ConstructorParameters<typeof BaseIpcHandler>) {
         super(...args);
@@ -115,13 +116,9 @@ export class TabStateIpcHandler extends BaseIpcHandler {
             this._handleUpdateTitle(payload);
         });
 
-        const mainWindowInstance = this.deps.windowManager.getMainWindowInstance?.();
-        if (mainWindowInstance?.on) {
-            this.responseCompleteListener = () => {
-                void this._handleResponseComplete();
-            };
-            mainWindowInstance.on('response-complete', this.responseCompleteListener);
-        }
+        this.titlePollInterval = setInterval(() => {
+            void this._pollForTitleUpdate();
+        }, TabStateIpcHandler.TITLE_POLL_INTERVAL_MS);
     }
 
     updateTabTitle(tabId: string, title: string): void {
@@ -204,7 +201,7 @@ export class TabStateIpcHandler extends BaseIpcHandler {
         }
     }
 
-    private async _handleResponseComplete(): Promise<void> {
+    private async _pollForTitleUpdate(): Promise<void> {
         try {
             const mainWindow = this.deps.windowManager.getMainWindow();
             if (!mainWindow || mainWindow.isDestroyed()) {
@@ -227,6 +224,7 @@ export class TabStateIpcHandler extends BaseIpcHandler {
                 this.logger.warn('Cannot sync tab title: active tab frame not found', {
                     activeTabId,
                     targetFrameName,
+                    frameCount: frames.length,
                 });
                 return;
             }
@@ -242,6 +240,7 @@ export class TabStateIpcHandler extends BaseIpcHandler {
             const rawTitle = (await targetFrame.executeJavaScript(TITLE_EXTRACTION_SCRIPT)) as unknown;
             const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
             if (!title) {
+                this._handleUpdateTitle({ tabId: activeTabId, title: 'New Chat' });
                 return;
             }
 
@@ -256,14 +255,9 @@ export class TabStateIpcHandler extends BaseIpcHandler {
         ipcMain.removeAllListeners(IPC_CHANNELS.TABS_SAVE_STATE);
         ipcMain.removeAllListeners(IPC_CHANNELS.TABS_UPDATE_TITLE);
 
-        const mainWindowInstance = this.deps.windowManager.getMainWindowInstance?.();
-        if (this.responseCompleteListener) {
-            if (mainWindowInstance?.off) {
-                mainWindowInstance.off('response-complete', this.responseCompleteListener);
-            } else if (mainWindowInstance?.removeListener) {
-                mainWindowInstance.removeListener('response-complete', this.responseCompleteListener);
-            }
+        if (this.titlePollInterval) {
+            clearInterval(this.titlePollInterval);
+            this.titlePollInterval = null;
         }
-        this.responseCompleteListener = null;
     }
 }

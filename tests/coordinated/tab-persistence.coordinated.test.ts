@@ -169,4 +169,52 @@ describe.each(['darwin', 'win32', 'linux'] as const)('Tab persistence IPC roundt
             title: 'Updated Title',
         });
     });
+
+    it('polling resets stale title to New Chat on home page', () => {
+        sendMessage(IPC_CHANNELS.TABS_SAVE_STATE, {
+            tabs: [{ id: 'tab-a', title: 'Stale Persisted Title', url: GEMINI_APP_URL, createdAt: 1 }],
+            activeTabId: 'tab-a',
+        });
+
+        // Verify the stale title is stored
+        const before = invokeHandler(IPC_CHANNELS.TABS_GET_STATE) as {
+            tabs: Array<{ id: string; title: string }>;
+        };
+        expect(before.tabs[0]?.title).toBe('Stale Persisted Title');
+
+        // Simulate what polling does when no conversation title is found (home page):
+        // it sends an update with 'New Chat' to reset the stale title
+        sendMessage(IPC_CHANNELS.TABS_UPDATE_TITLE, { tabId: 'tab-a', title: 'New Chat' });
+
+        const after = invokeHandler(IPC_CHANNELS.TABS_GET_STATE) as {
+            tabs: Array<{ id: string; title: string }>;
+        };
+        expect(after.tabs[0]?.title).toBe('New Chat');
+        expect(tabTitleBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.TABS_TITLE_UPDATED, {
+            tabId: 'tab-a',
+            title: 'New Chat',
+        });
+    });
+
+    it('title update from polling replaces stale title with conversation title', () => {
+        sendMessage(IPC_CHANNELS.TABS_SAVE_STATE, {
+            tabs: [{ id: 'tab-a', title: 'New Chat', url: GEMINI_APP_URL, createdAt: 1 }],
+            activeTabId: 'tab-a',
+        });
+
+        // Simulate what polling would do when it finds a conversation title in the top bar
+        sendMessage(IPC_CHANNELS.TABS_UPDATE_TITLE, {
+            tabId: 'tab-a',
+            title: 'Calendar Interview Count',
+        });
+
+        const loaded = invokeHandler(IPC_CHANNELS.TABS_GET_STATE) as {
+            tabs: Array<{ id: string; title: string }>;
+        };
+        expect(loaded.tabs[0]?.title).toBe('Calendar Interview Count');
+        expect(tabTitleBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.TABS_TITLE_UPDATED, {
+            tabId: 'tab-a',
+            title: 'Calendar Interview Count',
+        });
+    });
 });

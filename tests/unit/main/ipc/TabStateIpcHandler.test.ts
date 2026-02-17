@@ -61,20 +61,13 @@ vi.mock('../../../../src/main/store', () => ({
 describe('TabStateIpcHandler', () => {
     let handler: TabStateIpcHandler;
     let mockWindowManager: ReturnType<typeof createMockWindowManager>;
-    let responseCompleteHandler: (() => void) | null;
 
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.useRealTimers();
         mockIpcMain._reset();
-        responseCompleteHandler = null;
 
-        mockWindowManager = createMockWindowManager({
-            on: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
-                if (event === 'response-complete') {
-                    responseCompleteHandler = listener as () => Promise<void>;
-                }
-            }),
-        });
+        mockWindowManager = createMockWindowManager();
 
         const deps = {
             store: createMockStore({}),
@@ -91,6 +84,8 @@ describe('TabStateIpcHandler', () => {
         expect(mockIpcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.TABS_GET_STATE, expect.any(Function));
         expect(mockIpcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.TABS_SAVE_STATE, expect.any(Function));
         expect(mockIpcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.TABS_UPDATE_TITLE, expect.any(Function));
+
+        handler.unregister();
     });
 
     it('saves and returns normalized tab state', () => {
@@ -127,6 +122,8 @@ describe('TabStateIpcHandler', () => {
             createdAt: 100,
         });
         expect(state.activeTabId).toBe('tab-1');
+
+        handler.unregister();
     });
 
     it('falls back to a default tab when saved state is invalid', () => {
@@ -146,6 +143,8 @@ describe('TabStateIpcHandler', () => {
         expect(state.tabs[0]?.title).toBe('New Chat');
         expect(state.tabs[0]?.url).toBe(GEMINI_APP_URL);
         expect(state.activeTabId).toBe(state.tabs[0]?.id);
+
+        handler.unregister();
     });
 
     it('updates stored tab title when update payload is valid', () => {
@@ -178,22 +177,14 @@ describe('TabStateIpcHandler', () => {
         const state = getHandler();
         expect(state.tabs[0]?.title).toBe('Updated Title');
         expect(mockBrowserWindow.getAllWindows).toHaveBeenCalled();
+
+        handler.unregister();
     });
 
-    it('updates active tab title when response completes', async () => {
-        const tabId = 'tab-active';
-        const mainWindowInstance = {
-            on: vi.fn((event: string, listener: () => void) => {
-                if (event === 'response-complete') {
-                    responseCompleteHandler = listener;
-                }
-            }),
-            off: vi.fn(),
-        };
+    it('polls and updates active tab title from conversation title', async () => {
+        vi.useFakeTimers();
 
-        (mockWindowManager as unknown as { getMainWindowInstance?: () => unknown }).getMainWindowInstance = vi
-            .fn()
-            .mockReturnValue(mainWindowInstance);
+        const tabId = 'tab-active';
 
         handler.register();
 
@@ -235,11 +226,131 @@ describe('TabStateIpcHandler', () => {
 
         vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
 
-        await responseCompleteHandler?.();
+        // Advance past the polling interval to trigger title extraction
+        await vi.advanceTimersByTimeAsync(3000);
 
         expect(targetFrame.executeJavaScript).toHaveBeenCalledTimes(1);
         const state = getHandler();
         expect(state.tabs[0]?.title).toBe('RSUs vs. Stock Options: Oracle Offer');
         expect(mockBrowserWindow.getAllWindows).toHaveBeenCalled();
+
+        handler.unregister();
+        vi.useRealTimers();
+    });
+
+    it('resets tab title to New Chat when extraction returns empty (home page)', async () => {
+        vi.useFakeTimers();
+
+        const tabId = 'tab-stale';
+
+        handler.register();
+
+        const saveListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_SAVE_STATE);
+        const getHandler = mockIpcMain._handlers.get(IPC_CHANNELS.TABS_GET_STATE) as () => {
+            tabs: Array<{ id: string; title: string; url: string; createdAt: number }>;
+            activeTabId: string;
+        };
+
+        // Simulate a stale persisted title from a previous session
+        saveListener?.(
+            {},
+            {
+                tabs: [
+                    {
+                        id: tabId,
+                        title: 'Stale Title From Previous Session',
+                        url: GEMINI_APP_URL,
+                        createdAt: 100,
+                    },
+                ],
+                activeTabId: tabId,
+            }
+        );
+
+        const targetFrame = {
+            name: getTabFrameName(tabId),
+            url: GEMINI_APP_URL,
+            // Return empty string to simulate home/new chat page (no conversation title)
+            executeJavaScript: vi.fn().mockResolvedValue(''),
+        };
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(false),
+            webContents: {
+                mainFrame: {
+                    frames: [targetFrame],
+                },
+            },
+        };
+
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+
+        await vi.advanceTimersByTimeAsync(3000);
+
+        expect(targetFrame.executeJavaScript).toHaveBeenCalledTimes(1);
+        const state = getHandler();
+        expect(state.tabs[0]?.title).toBe('New Chat');
+        expect(mockBrowserWindow.getAllWindows).toHaveBeenCalled();
+
+        handler.unregister();
+        vi.useRealTimers();
+    });
+
+    it('does not broadcast redundant updates when title is already New Chat', async () => {
+        vi.useFakeTimers();
+
+        const tabId = 'tab-new';
+
+        handler.register();
+
+        const saveListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_SAVE_STATE);
+        const getHandler = mockIpcMain._handlers.get(IPC_CHANNELS.TABS_GET_STATE) as () => {
+            tabs: Array<{ id: string; title: string; url: string; createdAt: number }>;
+            activeTabId: string;
+        };
+
+        // Tab already has the default title
+        saveListener?.(
+            {},
+            {
+                tabs: [
+                    {
+                        id: tabId,
+                        title: 'New Chat',
+                        url: GEMINI_APP_URL,
+                        createdAt: 100,
+                    },
+                ],
+                activeTabId: tabId,
+            }
+        );
+
+        const targetFrame = {
+            name: getTabFrameName(tabId),
+            url: GEMINI_APP_URL,
+            executeJavaScript: vi.fn().mockResolvedValue(''),
+        };
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(false),
+            webContents: {
+                mainFrame: {
+                    frames: [targetFrame],
+                },
+            },
+        };
+
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+        mockBrowserWindow.getAllWindows.mockClear();
+
+        await vi.advanceTimersByTimeAsync(3000);
+
+        // Title was already 'New Chat', so no broadcast should be sent
+        const state = getHandler();
+        expect(state.tabs[0]?.title).toBe('New Chat');
+        expect(mockBrowserWindow.getAllWindows).not.toHaveBeenCalled();
+
+        handler.unregister();
+        vi.useRealTimers();
     });
 });

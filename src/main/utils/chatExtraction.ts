@@ -118,16 +118,16 @@ export const TITLE_EXTRACTION_SCRIPT = `
             const el = document.querySelector(selector);
             if (el) {
                 const text = el.textContent?.trim();
-                if (text) {
+                // Only accept titles from the top bar, not the sidebar chat list
+                const isInTopBar = !!el.closest('top-bar-actions') || !!el.closest('.conversation-title-container');
+                if (text && isInTopBar) {
                     return text;
                 }
             }
         }
-
-        const fallbackTitle = document.title.replace(' - Gemini', '').trim();
-        return fallbackTitle || 'New Chat';
+        return '';
     } catch (err) {
-        return 'New Chat';
+        return '';
     }
 })()
 `;
