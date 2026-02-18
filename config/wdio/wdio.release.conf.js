@@ -68,6 +68,8 @@ function getReleaseBinaryPath() {
     return binaryPath;
 }
 
+const releaseBinaryPath = getReleaseBinaryPath();
+
 export const config = {
     specs: [
         // Core functionality tests that work with packaged builds
@@ -113,7 +115,7 @@ export const config = {
         [
             'electron',
             {
-                appBinaryPath: getReleaseBinaryPath(),
+                appBinaryPath: releaseBinaryPath,
                 appArgs: getAppArgs('--test-auto-update'),
                 ...linuxServiceConfig,
             },
@@ -157,7 +159,7 @@ export const config = {
     waitforTimeout: 15000,
 
     // Connection retry settings
-    connectionRetryTimeout: 120000,
+    connectionRetryTimeout: process.platform === 'linux' || process.platform === 'win32' ? 180000 : 120000,
     connectionRetryCount: 3,
 
     // Wait for app to fully load before starting tests
@@ -165,17 +167,24 @@ export const config = {
         await new Promise((resolve) => setTimeout(resolve, 5000));
     },
 
-    // Ensure the app quits after tests
     after: async function () {
         try {
             await browser.electron.execute((electron) => electron.app.quit());
         } catch (error) {
-            // App may already be gone or in a bad state
+            if (process.env.WDIO_CLEANUP_DEBUG === 'true') {
+                console.warn('[WDIO cleanup] Failed to quit Electron app', error);
+            }
         }
     },
 
     // Kill any orphaned Electron processes after each spec file
     afterSession: async function () {
-        await killOrphanElectronProcesses();
+        const binaryName = path.basename(releaseBinaryPath);
+
+        await killOrphanElectronProcesses({
+            windowsName: binaryName,
+            windowsCommandSubstring: binaryName,
+            posixPattern: binaryName,
+        });
     },
 };

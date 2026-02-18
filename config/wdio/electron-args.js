@@ -63,27 +63,32 @@ export const linuxServiceConfig = {
         : {}),
 };
 
-/**
- * Kill any orphaned Electron processes left behind by test runs.
- *
- * On Linux/macOS, uses `pkill -f` to match the "electron.*gemini-desktop" pattern.
- * On Windows, uses PowerShell CIM queries to find and terminate matching processes.
- *
- * This should be called in `afterSession` hooks to prevent Electron zombie processes
- * from accumulating across test specs and consuming memory.
- */
-export async function killOrphanElectronProcesses() {
+export async function killOrphanElectronProcesses(options = {}) {
     const { execSync } = await import('child_process');
+    const {
+        windowsName = 'electron.exe',
+        windowsCommandSubstring = 'gemini-desktop',
+        posixPattern = 'electron.*gemini-desktop',
+    } = options;
+
     try {
         if (process.platform === 'win32') {
-            execSync(
-                "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and $_.CommandLine -like '*gemini-desktop*' } | ForEach-Object { taskkill /F /PID $_.ProcessId }\"",
-                { stdio: 'ignore' }
-            );
+            const escapedWindowsName = windowsName.replace(/'/g, "''");
+            const escapedCommandSubstring = windowsCommandSubstring.replace(/'/g, "''");
+            const psCommand =
+                'powershell -Command "' +
+                "Get-CimInstance Win32_Process | " +
+                `Where-Object { $_.Name -eq '${escapedWindowsName}' -and $_.CommandLine -like '*${escapedCommandSubstring}*' } | ` +
+                "ForEach-Object { taskkill /F /PID $_.ProcessId }\"";
+
+            execSync(psCommand, { stdio: 'ignore' });
         } else {
-            execSync('pkill -f "electron.*gemini-desktop"', { stdio: 'ignore' });
+            const escapedPosixPattern = posixPattern.replace(/"/g, '\\"');
+            execSync(`pkill -f "${escapedPosixPattern}"`, { stdio: 'ignore' });
         }
-    } catch (_) {
-        // Process might already be gone, or no matching processes found (exit code 1)
+    } catch (error) {
+        if (process.env.WDIO_CLEANUP_DEBUG === 'true') {
+            console.warn('[WDIO cleanup] Failed to terminate orphaned processes', error);
+        }
     }
 }

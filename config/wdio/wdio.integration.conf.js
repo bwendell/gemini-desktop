@@ -32,7 +32,7 @@ export const config = {
     bail: 0,
     baseUrl: 'http://localhost',
     waitforTimeout: 30000,
-    connectionRetryTimeout: 120000,
+    connectionRetryTimeout: process.platform === 'linux' || process.platform === 'win32' ? 180000 : 120000,
     connectionRetryCount: 3,
     services: [
         [
@@ -64,7 +64,7 @@ export const config = {
     onPrepare: async function () {
         const { execSync } = await import('child_process');
         console.log('Building Electron app for integration tests...');
-        execSync(`vite build --mode ${VITE_TEST_MODE} && npm run build:electron`, { stdio: 'inherit' });
+        execSync(`npm run build -- --mode ${VITE_TEST_MODE} && npm run build:electron`, { stdio: 'inherit' });
     },
 
     // Wait for app to fully load before starting tests
@@ -91,7 +91,11 @@ export const config = {
     after: async function () {
         try {
             await browser.electron.execute((electron) => electron.app.quit());
-        } catch (error) {}
+        } catch (error) {
+            if (process.env.WDIO_CLEANUP_DEBUG === 'true') {
+                console.warn('[WDIO cleanup] Failed to quit Electron app', error);
+            }
+        }
     },
 
     /**
