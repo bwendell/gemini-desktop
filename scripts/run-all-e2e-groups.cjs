@@ -1,20 +1,6 @@
-const { spawnSync, execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const os = require('os');
-
-function killOrphanElectronProcesses() {
-    try {
-        if (process.platform === 'win32') {
-            execSync(
-                "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and $_.CommandLine -like '*gemini-desktop*' } | ForEach-Object { taskkill /F /PID $_.ProcessId }\"",
-                { stdio: 'ignore' }
-            );
-        } else {
-            execSync('pkill -f "electron.*gemini-desktop"', { stdio: 'ignore' });
-        }
-    } catch (_) {
-        // Process might already be gone, or no matching processes found (exit code 1)
-    }
-}
+const { killOrphanElectronProcesses } = require('./e2e-cleanup.cjs');
 
 // Define all groups
 const groups = [
