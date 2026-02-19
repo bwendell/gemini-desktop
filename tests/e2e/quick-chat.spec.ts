@@ -146,7 +146,7 @@ describe('Quick Chat Feature', () => {
             const isVisibleBefore = await quickChatPage.isVisible();
             expect(isVisibleBefore).toBe(true);
 
-            const focusStateBefore = await quickChatPage.getWindowState();
+            const _focusStateBefore = await quickChatPage.getWindowState();
 
             // Wait for blur suppression window to expire (500ms set in showWindow())
             // The suppression is set when the window shows, which happens asynchronously
@@ -165,7 +165,7 @@ describe('Quick Chat Feature', () => {
                 }
             });
 
-            const focusStateAfter = await browserWithElectron.electron.execute(() => {
+            const _focusStateAfter = await browserWithElectron.electron.execute(() => {
                 const windowManager = (global as any).windowManager;
                 const mainWindow = windowManager?.getMainWindow?.();
                 const quickChatWindow = windowManager?.getQuickChatWindow?.();

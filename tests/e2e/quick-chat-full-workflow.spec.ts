@@ -223,13 +223,17 @@ describe('Quick Chat Full Workflow (E2E)', () => {
                                     value: targetFrameName,
                                     configurable: true,
                                 });
-                            } catch {}
+                            } catch (error) {
+                                void error;
+                            }
                             try {
                                 Object.defineProperty(targetFrame, 'url', {
                                     get: () => 'https://gemini.google.com/app',
                                     configurable: true,
                                 });
-                            } catch {}
+                            } catch (error) {
+                                void error;
+                            }
 
                             try {
                                 const safeTitle = JSON.stringify(title);
@@ -504,13 +508,17 @@ describe('Quick Chat Full Workflow (E2E)', () => {
                             value: targetFrameName,
                             configurable: true,
                         });
-                    } catch {}
+                    } catch (error) {
+                        void error;
+                    }
                     try {
                         Object.defineProperty(targetFrame, 'url', {
                             get: () => 'https://gemini.google.com/app',
                             configurable: true,
                         });
-                    } catch {}
+                    } catch (error) {
+                        void error;
+                    }
 
                     try {
                         await targetFrame.executeJavaScript(`
