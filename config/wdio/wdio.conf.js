@@ -209,22 +209,22 @@ export const config = {
     waitforTimeout: 15000,
 
     // Connection retry settings
-    connectionRetryTimeout: process.platform === 'linux' || process.platform === 'win32' ? 180000 : 120000,
+    connectionRetryTimeout: 120000,
     connectionRetryCount: 3,
 
     // Wait for app to fully load before starting tests
-    before: async function () {
-        const startupDelay = process.platform === 'win32' ? 8000 : 5000;
-        await new Promise((resolve) => setTimeout(resolve, startupDelay));
+    before: async function (capabilities, specs) {
+        // Add a short delay to ensure React has time to mount
+        // Increased wait time for CI environments to prevent race conditions
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     },
 
+    // Ensure the app quits after tests
     after: async function () {
         try {
             await browser.electron.execute((electron) => electron.app.quit());
         } catch (error) {
-            if (process.env.WDIO_CLEANUP_DEBUG === 'true') {
-                console.warn('[WDIO cleanup] Failed to quit Electron app', error);
-            }
+            // App may already be gone or in a bad state
         }
     },
 

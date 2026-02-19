@@ -105,13 +105,12 @@ export const baseConfig = {
         await new Promise((resolve) => setTimeout(resolve, startupDelay));
     },
 
+    // Ensure the app quits after tests
     after: async function () {
         try {
             await browser.electron.execute((electron) => electron.app.quit());
         } catch (error) {
-            if (process.env.WDIO_CLEANUP_DEBUG === 'true') {
-                console.warn('[WDIO cleanup] Failed to quit Electron app', error);
-            }
+            // App may already be gone or in a bad state
         }
     },
 
