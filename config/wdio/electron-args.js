@@ -64,7 +64,7 @@ export const linuxServiceConfig = {
 };
 
 export async function killOrphanElectronProcesses(options = {}) {
-    const { execSync } = await import('child_process');
+    const { execFileSync } = await import('child_process');
     const {
         windowsName = 'electron.exe',
         windowsCommandSubstring = 'gemini-desktop',
@@ -73,18 +73,20 @@ export async function killOrphanElectronProcesses(options = {}) {
 
     try {
         if (process.platform === 'win32') {
-            const escapedWindowsName = windowsName.replace(/'/g, "''");
-            const escapedCommandSubstring = windowsCommandSubstring.replace(/'/g, "''");
             const psCommand =
-                'powershell -Command "' +
-                "Get-CimInstance Win32_Process | " +
-                `Where-Object { $_.Name -eq '${escapedWindowsName}' -and $_.CommandLine -like '*${escapedCommandSubstring}*' } | ` +
-                "ForEach-Object { taskkill /F /PID $_.ProcessId }\"";
+                '$name = $args[0]; ' +
+                '$substring = $args[1]; ' +
+                'Get-CimInstance Win32_Process | ' +
+                'Where-Object { $_.Name -eq $name -and $_.CommandLine -like ("*" + $substring + "*") } | ' +
+                'ForEach-Object { taskkill /F /PID $_.ProcessId }';
 
-            execSync(psCommand, { stdio: 'ignore' });
+            execFileSync(
+                'powershell',
+                ['-NoProfile', '-NonInteractive', '-Command', psCommand, windowsName, windowsCommandSubstring],
+                { stdio: 'ignore' }
+            );
         } else {
-            const escapedPosixPattern = posixPattern.replace(/"/g, '\\"');
-            execSync(`pkill -f "${escapedPosixPattern}"`, { stdio: 'ignore' });
+            execFileSync('pkill', ['-f', posixPattern], { stdio: 'ignore' });
         }
     } catch (error) {
         if (process.env.WDIO_CLEANUP_DEBUG === 'true') {
