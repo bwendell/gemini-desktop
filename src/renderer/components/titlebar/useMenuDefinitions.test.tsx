@@ -278,6 +278,21 @@ describe('useMenuDefinitions', () => {
     });
 
     describe('Help menu', () => {
+        it('includes Release Notes between Check for Updates and About', () => {
+            const { result } = renderHook(() => useMenuDefinitions());
+            const helpMenu = result.current[2];
+
+            const releaseNotesItem = helpMenu.items[1];
+            expect(releaseNotesItem).toHaveProperty('id', 'menu-help-release-notes');
+            expect(releaseNotesItem).toHaveProperty('label', 'Release Notes');
+
+            const separator = helpMenu.items[2];
+            expect(separator).toEqual({ separator: true });
+
+            const aboutItem = helpMenu.items[3];
+            expect(aboutItem).toHaveProperty('id', 'menu-help-about');
+        });
+
         it('Check for Updates action calls electronAPI.checkForUpdates()', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const helpMenu = result.current[2];
@@ -292,17 +307,17 @@ describe('useMenuDefinitions', () => {
             }
         });
 
-        it('has separator after Check for Updates', () => {
+        it('has separator after Release Notes', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const helpMenu = result.current[2];
 
-            expect(helpMenu.items[1]).toEqual({ separator: true });
+            expect(helpMenu.items[2]).toEqual({ separator: true });
         });
 
         it('About action opens options window', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const helpMenu = result.current[2];
-            const aboutItem = helpMenu.items[2]; // After Check for Updates and separator
+            const aboutItem = helpMenu.items[3];
 
             expect(aboutItem).toHaveProperty('label', 'About Gemini Desktop');
 

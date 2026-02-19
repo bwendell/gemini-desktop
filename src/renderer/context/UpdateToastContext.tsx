@@ -1,45 +1,21 @@
-/**
- * Update Toast Context
- *
- * Provides update notification state throughout the application.
- * Uses the generic ToastContext to display update notifications while
- * maintaining update-specific state like hasPendingUpdate for the titlebar badge.
- *
- * @module UpdateToastContext
- */
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from './ToastContext';
 import { useUpdateNotifications } from '../hooks/useUpdateNotifications';
 import type { UpdateNotificationState } from '../hooks/useUpdateNotifications';
 import type { ToastType, ToastAction } from '../components/toast/Toast';
-
-// ============================================================================
-// Context Types
-// ============================================================================
+import { getReleaseNotesUrl } from '../../shared/utils/releaseNotes';
 
 interface UpdateToastContextType extends UpdateNotificationState {
-    /** Dismiss the current toast notification */
     dismissNotification: () => void;
-    /** Handle "Later" action - dismiss but keep pending flag */
     handleLater: () => void;
-    /** Install the downloaded update */
     installUpdate: () => void;
 }
-
-// ============================================================================
-// Context
-// ============================================================================
 
 const UpdateToastContext = createContext<UpdateToastContextType | undefined>(undefined);
 
 interface UpdateToastProviderProps {
     children: React.ReactNode;
 }
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
 
 /**
  * Map UpdateNotificationType to generic ToastType
@@ -183,17 +159,14 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
      * Show or update toast when update state changes
      */
     useEffect(() => {
-        // If we should hide the toast
         if (!visible || !type) {
             if (currentToastId) {
                 dismissToast(currentToastId);
-                // Defer setState to avoid synchronous setState in effect
                 queueMicrotask(() => setCurrentToastId(null));
             }
             return;
         }
 
-        // Build action buttons based on update type
         const actions: ToastAction[] = [];
         if (type === 'downloaded') {
             actions.push({
@@ -211,12 +184,20 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         const version = updateInfo?.version;
         const message = getMessage(type, version, errorMessage, downloadProgress);
 
-        // Dismiss existing toast before showing new one (for type changes)
+        if (type === 'available' || type === 'downloaded' || type === 'not-available') {
+            const releaseNotesAction: ToastAction = {
+                label: 'View Release Notes',
+                onClick: () => window.open(getReleaseNotesUrl(version)),
+                primary: type !== 'downloaded',
+            };
+
+            actions.push(releaseNotesAction);
+        }
+
         if (currentToastId && currentToastId !== UPDATE_TOAST_ID) {
             dismissToast(currentToastId);
         }
 
-        // Show the toast via the generic ToastContext
         const id = showToast({
             id: UPDATE_TOAST_ID,
             type: mapToToastType(type),
@@ -224,7 +205,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             message,
             progress: type === 'progress' ? (downloadProgress ?? undefined) : undefined,
             actions: actions.length > 0 ? actions : undefined,
-            persistent: true, // Update toasts should not auto-dismiss
+            persistent: true,
         });
 
         queueMicrotask(() => setCurrentToastId(id));

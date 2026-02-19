@@ -11,6 +11,7 @@ import { UpdateToastProvider, useUpdateToast } from './UpdateToastContext';
 import { ToastProvider } from './ToastContext';
 import { mockElectronAPI } from '../../../tests/unit/renderer/test/setup';
 import React from 'react';
+import { getReleaseNotesUrl } from '../../shared/utils/releaseNotes';
 
 /**
  * Helper wrapper that includes both ToastProvider and UpdateToastProvider
@@ -24,6 +25,8 @@ function TestWrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('UpdateToastContext', () => {
+    const createWindowOpenSpy = () => vi.spyOn(window, 'open').mockImplementation(() => null);
+
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -83,6 +86,33 @@ describe('UpdateToastContext', () => {
             });
         });
 
+        it('adds View Release Notes as primary action for available updates', async () => {
+            let capturedCallback: ((info: { version: string }) => void) | undefined;
+            mockElectronAPI.onUpdateAvailable.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => {};
+            });
+
+            const openSpy = createWindowOpenSpy();
+
+            render(
+                <TestWrapper>
+                    <div>Child</div>
+                </TestWrapper>
+            );
+
+            capturedCallback?.({ version: '2.0.0' });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('toast-action-0')).toHaveTextContent('View Release Notes');
+            });
+
+            fireEvent.click(screen.getByTestId('toast-action-0'));
+            expect(openSpy).toHaveBeenCalledWith(getReleaseNotesUrl('2.0.0'));
+
+            openSpy.mockRestore();
+        });
+
         it('clicking Restart Now calls installUpdate', async () => {
             let capturedCallback: ((info: { version: string }) => void) | undefined;
             mockElectronAPI.onUpdateDownloaded.mockImplementation((cb) => {
@@ -105,6 +135,35 @@ describe('UpdateToastContext', () => {
             fireEvent.click(screen.getByTestId('toast-action-0'));
 
             expect(mockElectronAPI.installUpdate).toHaveBeenCalledTimes(1);
+        });
+
+        it('adds View Release Notes as third action for downloaded updates', async () => {
+            let capturedCallback: ((info: { version: string }) => void) | undefined;
+            mockElectronAPI.onUpdateDownloaded.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => {};
+            });
+
+            const openSpy = createWindowOpenSpy();
+
+            render(
+                <TestWrapper>
+                    <div>Child</div>
+                </TestWrapper>
+            );
+
+            capturedCallback?.({ version: '2.1.0' });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('toast-action-0')).toHaveTextContent('Restart Now');
+                expect(screen.getByTestId('toast-action-1')).toHaveTextContent('Later');
+                expect(screen.getByTestId('toast-action-2')).toHaveTextContent('View Release Notes');
+            });
+
+            fireEvent.click(screen.getByTestId('toast-action-2'));
+            expect(openSpy).toHaveBeenCalledWith(getReleaseNotesUrl('2.1.0'));
+
+            openSpy.mockRestore();
         });
 
         it('clicking Later hides toast but keeps pending state', async () => {
@@ -134,6 +193,33 @@ describe('UpdateToastContext', () => {
             });
         });
 
+        it('adds View Release Notes for not-available updates', async () => {
+            let capturedCallback: ((info: { version: string }) => void) | undefined;
+            mockElectronAPI.onUpdateNotAvailable.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => {};
+            });
+
+            const openSpy = createWindowOpenSpy();
+
+            render(
+                <TestWrapper>
+                    <div>Child</div>
+                </TestWrapper>
+            );
+
+            capturedCallback?.({ version: '3.0.0' });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('toast-action-0')).toHaveTextContent('View Release Notes');
+            });
+
+            fireEvent.click(screen.getByTestId('toast-action-0'));
+            expect(openSpy).toHaveBeenCalledWith(getReleaseNotesUrl('3.0.0'));
+
+            openSpy.mockRestore();
+        });
+
         it('clicking dismiss hides toast for available type', async () => {
             let capturedCallback: ((info: { version: string }) => void) | undefined;
             mockElectronAPI.onUpdateAvailable.mockImplementation((cb) => {
@@ -157,6 +243,46 @@ describe('UpdateToastContext', () => {
 
             await waitFor(() => {
                 expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
+            });
+        });
+
+        it('does not add View Release Notes for error updates', async () => {
+            let capturedCallback: ((error: string) => void) | undefined;
+            mockElectronAPI.onUpdateError.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => {};
+            });
+
+            render(
+                <TestWrapper>
+                    <div>Child</div>
+                </TestWrapper>
+            );
+
+            capturedCallback?.('Network error');
+
+            await waitFor(() => {
+                expect(screen.queryByText('View Release Notes')).not.toBeInTheDocument();
+            });
+        });
+
+        it('does not add View Release Notes for progress updates', async () => {
+            let capturedCallback: ((progress: number) => void) | undefined;
+            mockElectronAPI.onDownloadProgress.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => {};
+            });
+
+            render(
+                <TestWrapper>
+                    <div>Child</div>
+                </TestWrapper>
+            );
+
+            capturedCallback?.(25);
+
+            await waitFor(() => {
+                expect(screen.queryByText('View Release Notes')).not.toBeInTheDocument();
             });
         });
     });

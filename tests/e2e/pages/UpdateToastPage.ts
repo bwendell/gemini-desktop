@@ -10,7 +10,7 @@
 /// <reference path="../helpers/wdio-electron.d.ts" />
 
 import { BasePage } from './BasePage';
-import { browser } from '@wdio/globals';
+import { browser as wdioBrowser } from '@wdio/globals';
 import { E2E_TIMING } from '../helpers/e2eConstants';
 
 /**
@@ -18,6 +18,10 @@ import { E2E_TIMING } from '../helpers/e2eConstants';
  * Provides methods to trigger toast states and interact with toast UI.
  */
 export class UpdateToastPage extends BasePage {
+    private readonly browser = wdioBrowser as unknown as {
+        execute<R, TArgs extends unknown[]>(script: string | ((...args: TArgs) => R), ...args: TArgs): Promise<R>;
+        pause(ms: number): Promise<void>;
+    };
     constructor() {
         super('UpdateToastPage');
     }
@@ -56,6 +60,14 @@ export class UpdateToastPage extends BasePage {
         return '[data-testid="toast-action-1"]';
     }
 
+    get releaseNotesPrimarySelector(): string {
+        return '[data-testid="toast-action-0"]';
+    }
+
+    get releaseNotesDownloadedSelector(): string {
+        return '[data-testid="toast-action-2"]';
+    }
+
     /** Update badge selector */
     get badgeSelector(): string {
         return '[data-testid="update-badge"]';
@@ -81,7 +93,7 @@ export class UpdateToastPage extends BasePage {
      */
     async showAvailable(version: string): Promise<void> {
         this.log(`Showing available toast for version ${version}`);
-        await browser.execute((v: string) => {
+        await this.browser.execute((v: string) => {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showAvailable(v);
         }, version);
@@ -94,7 +106,7 @@ export class UpdateToastPage extends BasePage {
      */
     async showDownloaded(version: string): Promise<void> {
         this.log(`Showing downloaded toast for version ${version}`);
-        await browser.execute((v: string) => {
+        await this.browser.execute((v: string) => {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showDownloaded(v);
         }, version);
@@ -107,7 +119,7 @@ export class UpdateToastPage extends BasePage {
      */
     async showError(errorMessage: string | null): Promise<void> {
         this.log(`Showing error toast: ${errorMessage}`);
-        await browser.execute((msg: string | null) => {
+        await this.browser.execute((msg: string | null) => {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showError(msg);
         }, errorMessage);
@@ -120,7 +132,7 @@ export class UpdateToastPage extends BasePage {
      */
     async showProgress(percent: number): Promise<void> {
         this.log(`Showing progress toast: ${percent}%`);
-        await browser.execute((p: number) => {
+        await this.browser.execute((p: number) => {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showProgress(p);
         }, percent);
@@ -133,7 +145,7 @@ export class UpdateToastPage extends BasePage {
      */
     async showNotAvailable(currentVersion: string): Promise<void> {
         this.log(`Showing not-available toast for version ${currentVersion}`);
-        await browser.execute((v: string) => {
+        await this.browser.execute((v: string) => {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showNotAvailable(v);
         }, currentVersion);
@@ -145,7 +157,7 @@ export class UpdateToastPage extends BasePage {
      */
     async hide(): Promise<void> {
         this.log('Hiding toast');
-        await browser.execute(() => {
+        await this.browser.execute(() => {
             // @ts-expect-error - test helper
             if (window.__testUpdateToast?.hide) {
                 // @ts-expect-error
@@ -182,7 +194,7 @@ export class UpdateToastPage extends BasePage {
      * The toast animation takes ~200ms, so we wait 500ms (ANIMATION_SETTLE) to be safe.
      */
     async waitForAnimationComplete(): Promise<void> {
-        await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+        await this.browser.pause(E2E_TIMING.ANIMATION_SETTLE);
     }
 
     // ===========================================================================
@@ -196,7 +208,9 @@ export class UpdateToastPage extends BasePage {
     async dismiss(): Promise<void> {
         this.log('Clicking dismiss button');
         await this.waitForAnimationComplete();
-        const dismissBtn = await this.$(this.dismissButtonSelector);
+        const dismissBtn = (await this.$(this.dismissButtonSelector)) as WebdriverIO.Element & {
+            waitForClickable: (options?: { timeout?: number }) => Promise<boolean>;
+        };
         await dismissBtn.waitForClickable({ timeout: 2000 });
         await this.clickElement(this.dismissButtonSelector);
     }
@@ -206,7 +220,9 @@ export class UpdateToastPage extends BasePage {
      */
     async clickRestartNow(): Promise<void> {
         this.log('Clicking Restart Now button');
-        const restartBtn = await this.$(this.restartButtonSelector);
+        const restartBtn = (await this.$(this.restartButtonSelector)) as WebdriverIO.Element & {
+            waitForClickable: (options?: { timeout?: number }) => Promise<boolean>;
+        };
         await restartBtn.waitForClickable({ timeout: 2000 });
         await this.clickElement(this.restartButtonSelector);
     }
@@ -217,9 +233,29 @@ export class UpdateToastPage extends BasePage {
     async clickLater(): Promise<void> {
         this.log('Clicking Later button');
         await this.waitForAnimationComplete();
-        const laterBtn = await this.$(this.laterButtonSelector);
+        const laterBtn = (await this.$(this.laterButtonSelector)) as WebdriverIO.Element & {
+            waitForClickable: (options?: { timeout?: number }) => Promise<boolean>;
+        };
         await laterBtn.waitForClickable({ timeout: 2000 });
         await this.clickElement(this.laterButtonSelector);
+    }
+
+    async clickReleaseNotesPrimary(): Promise<void> {
+        this.log('Clicking View Release Notes button (primary)');
+        const releaseNotesBtn = (await this.$(this.releaseNotesPrimarySelector)) as WebdriverIO.Element & {
+            waitForClickable: (options?: { timeout?: number }) => Promise<boolean>;
+        };
+        await releaseNotesBtn.waitForClickable({ timeout: 2000 });
+        await this.clickElement(this.releaseNotesPrimarySelector);
+    }
+
+    async clickReleaseNotesDownloaded(): Promise<void> {
+        this.log('Clicking View Release Notes button (downloaded)');
+        const releaseNotesBtn = (await this.$(this.releaseNotesDownloadedSelector)) as WebdriverIO.Element & {
+            waitForClickable: (options?: { timeout?: number }) => Promise<boolean>;
+        };
+        await releaseNotesBtn.waitForClickable({ timeout: 2000 });
+        await this.clickElement(this.releaseNotesDownloadedSelector);
     }
 
     // ===========================================================================
@@ -275,6 +311,22 @@ export class UpdateToastPage extends BasePage {
         return this.isElementExisting(this.laterButtonSelector);
     }
 
+    async isReleaseNotesPrimaryExisting(): Promise<boolean> {
+        return this.isElementExisting(this.releaseNotesPrimarySelector);
+    }
+
+    async isReleaseNotesDownloadedExisting(): Promise<boolean> {
+        return this.isElementExisting(this.releaseNotesDownloadedSelector);
+    }
+
+    async getReleaseNotesPrimaryText(): Promise<string> {
+        return this.getElementText(this.releaseNotesPrimarySelector);
+    }
+
+    async getReleaseNotesDownloadedText(): Promise<string> {
+        return this.getElementText(this.releaseNotesDownloadedSelector);
+    }
+
     /**
      * Check if the dismiss button exists in the DOM.
      */
@@ -320,7 +372,7 @@ export class UpdateToastPage extends BasePage {
      */
     async showBadge(version: string): Promise<void> {
         this.log(`Showing badge for version ${version}`);
-        await browser.execute((v: string) => {
+        await this.browser.execute((v: string) => {
             // @ts-expect-error - electronAPI exposed at runtime
             window.electronAPI.devShowBadge(v);
         }, version);
@@ -331,7 +383,7 @@ export class UpdateToastPage extends BasePage {
      */
     async clearBadge(): Promise<void> {
         this.log('Clearing badge');
-        await browser.execute(() => {
+        await this.browser.execute(() => {
             // @ts-expect-error - electronAPI exposed at runtime
             window.electronAPI.devClearBadge();
         });
@@ -356,7 +408,7 @@ export class UpdateToastPage extends BasePage {
      */
     async getTrayTooltip(): Promise<string> {
         // @ts-expect-error - electronAPI exposed at runtime
-        return browser.execute(() => window.electronAPI.getTrayTooltip());
+        return this.browser.execute(() => window.electronAPI.getTrayTooltip());
     }
 
     // ===========================================================================
