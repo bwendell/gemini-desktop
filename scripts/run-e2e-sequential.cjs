@@ -1,24 +1,5 @@
-const { spawnSync, execSync } = require('child_process');
-
-function killOrphanElectronProcesses() {
-    try {
-        if (process.platform === 'win32') {
-            // Use taskkill with CIM/WMI query instead of deprecated wmic
-            // Get-CimInstance can access CommandLine property to filter gemini-desktop processes
-            execSync(
-                "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'electron.exe' -and $_.CommandLine -like '*gemini-desktop*' } | ForEach-Object { taskkill /F /PID $_.ProcessId }\"",
-                {
-                    stdio: 'ignore',
-                }
-            );
-        } else {
-            // Scope to electron processes running gemini-desktop only
-            execSync('pkill -f "electron.*gemini-desktop"', { stdio: 'ignore' });
-        }
-    } catch (_) {
-        // Process might already be gone, or no matching processes found (exit code 1)
-    }
-}
+const { spawnSync } = require('child_process');
+const { killOrphanElectronProcesses } = require('./e2e-cleanup.cjs');
 
 const specs = [
     'tests/e2e/app-startup.spec.ts',

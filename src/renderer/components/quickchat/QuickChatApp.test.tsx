@@ -28,12 +28,11 @@ describe('QuickChatApp', () => {
         await waitFor(() => {
             expect(mockGetTextPredictionStatus).toHaveBeenCalled();
         });
-        const latestCall =
-            mockGetTextPredictionStatus.mock.results[mockGetTextPredictionStatus.mock.results.length - 1];
-        const statusPromise = latestCall?.value;
-        if (statusPromise && typeof statusPromise.then === 'function') {
+
+        const [initialCall] = mockGetTextPredictionStatus.mock.results;
+        if (initialCall?.value && typeof initialCall.value.then === 'function') {
             await act(async () => {
-                await statusPromise;
+                await initialCall.value;
             });
         }
     };
@@ -385,7 +384,7 @@ describe('QuickChatApp', () => {
                 await vi.advanceTimersByTimeAsync(350);
             });
 
-            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            expect(await screen.findByTestId('quick-chat-ghost-text')).toBeInTheDocument();
         });
 
         it('ghost text contains the prediction', async () => {
@@ -535,13 +534,15 @@ describe('QuickChatApp', () => {
                 await vi.advanceTimersByTimeAsync(350);
             });
 
-            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await screen.findByTestId('quick-chat-ghost-text');
 
             await act(async () => {
                 fireEvent.keyDown(input, { key: 'Tab' });
             });
 
-            expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+            });
         });
 
         it('Tab does nothing when no prediction available', async () => {
@@ -576,14 +577,16 @@ describe('QuickChatApp', () => {
                 await vi.advanceTimersByTimeAsync(350);
             });
 
-            expect(screen.getByTestId('quick-chat-ghost-text')).toBeInTheDocument();
+            await screen.findByTestId('quick-chat-ghost-text');
 
             await act(async () => {
                 fireEvent.keyDown(input, { key: 'Enter' });
             });
 
             expect(mockSubmitQuickChat).toHaveBeenCalledWith('Hello');
-            expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+            });
         });
     });
 });

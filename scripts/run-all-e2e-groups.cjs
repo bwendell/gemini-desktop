@@ -1,5 +1,6 @@
 const { spawnSync } = require('child_process');
 const os = require('os');
+const { killOrphanElectronProcesses } = require('./e2e-cleanup.cjs');
 
 // Define all groups
 const groups = [
@@ -60,6 +61,9 @@ for (const group of groups) {
 
     const passed = result.status === 0;
     results.push({ group, passed, duration });
+
+    // Kill any orphaned Electron processes between groups
+    killOrphanElectronProcesses();
 
     if (!passed) {
         console.error(`\n❌ Group '${group}' FAILED`);
