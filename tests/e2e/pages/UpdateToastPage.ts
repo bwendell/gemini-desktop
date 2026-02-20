@@ -294,7 +294,12 @@ export class UpdateToastPage extends BasePage {
      * Check if the Restart Now button exists in the DOM.
      */
     async isRestartButtonExisting(): Promise<boolean> {
-        return this.isElementExisting(this.restartButtonSelector);
+        if (!(await this.isElementExisting(this.restartButtonSelector))) {
+            return false;
+        }
+
+        const text = await this.getElementText(this.restartButtonSelector);
+        return /restart/i.test(text);
     }
 
     /**
