@@ -91,6 +91,9 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         if (!this.deps.hotkeyManager) return;
 
         try {
+            // Migrate legacy keys if present
+            this._migrateLegacyHotkeySettings();
+
             // Sync enabled states
             const savedSettings = this._getIndividualSettings();
             this.deps.hotkeyManager.updateAllSettings(savedSettings);
@@ -106,6 +109,36 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
     }
 
     /**
+     * Migrate legacy hotkey keys to new naming.
+     * Only migrates if new keys are undefined.
+     */
+    private _migrateLegacyHotkeySettings(): void {
+        const existingHotkeyPeekAndHide = this.deps.store.get('hotkeyPeekAndHide');
+        const legacyHotkeyBossKey = this.deps.store.get('hotkeyBossKey');
+
+        if (
+            existingHotkeyPeekAndHide === undefined &&
+            legacyHotkeyBossKey !== undefined &&
+            typeof legacyHotkeyBossKey === 'boolean'
+        ) {
+            this.deps.store.set('hotkeyPeekAndHide', legacyHotkeyBossKey);
+            this.logger.log('Migrated hotkeyBossKey to hotkeyPeekAndHide');
+        }
+
+        const existingAcceleratorPeekAndHide = this.deps.store.get('acceleratorPeekAndHide');
+        const legacyAcceleratorBossKey = this.deps.store.get('acceleratorBossKey');
+
+        if (
+            existingAcceleratorPeekAndHide === undefined &&
+            legacyAcceleratorBossKey !== undefined &&
+            typeof legacyAcceleratorBossKey === 'string'
+        ) {
+            this.deps.store.set('acceleratorPeekAndHide', legacyAcceleratorBossKey);
+            this.logger.log('Migrated acceleratorBossKey to acceleratorPeekAndHide');
+        }
+    }
+
+    /**
      * Handle hotkeys:individual:get request.
      * @returns All hotkey enabled states
      */
@@ -114,7 +147,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             return this._getIndividualSettings();
         } catch (error) {
             this.logger.error('Error getting individual hotkeys state:', error);
-            return { alwaysOnTop: true, bossKey: true, quickChat: true, printToPdf: true };
+            return { alwaysOnTop: true, peekAndHide: true, quickChat: true, printToPdf: true };
         }
     }
 
@@ -225,9 +258,9 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
                     enabled: enabled.alwaysOnTop,
                     accelerator: accelerators.alwaysOnTop,
                 },
-                bossKey: {
-                    enabled: enabled.bossKey,
-                    accelerator: accelerators.bossKey,
+                peekAndHide: {
+                    enabled: enabled.peekAndHide,
+                    accelerator: accelerators.peekAndHide,
                 },
                 quickChat: {
                     enabled: enabled.quickChat,
@@ -242,7 +275,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             this.logger.error('Error getting full hotkey settings:', error);
             return {
                 alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
-                bossKey: { enabled: true, accelerator: DEFAULT_ACCELERATORS.bossKey },
+                peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
                 quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
                 printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
             };
@@ -255,7 +288,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
     private _getIndividualSettings(): IndividualHotkeySettings {
         return {
             alwaysOnTop: this.deps.store.get('hotkeyAlwaysOnTop') ?? true,
-            bossKey: this.deps.store.get('hotkeyBossKey') ?? true,
+            peekAndHide: this.deps.store.get('hotkeyPeekAndHide') ?? true,
             quickChat: this.deps.store.get('hotkeyQuickChat') ?? true,
             printToPdf: this.deps.store.get('hotkeyPrintToPdf') ?? true,
         };
@@ -269,8 +302,8 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             case 'alwaysOnTop':
                 this.deps.store.set('hotkeyAlwaysOnTop', enabled);
                 break;
-            case 'bossKey':
-                this.deps.store.set('hotkeyBossKey', enabled);
+            case 'peekAndHide':
+                this.deps.store.set('hotkeyPeekAndHide', enabled);
                 break;
             case 'quickChat':
                 this.deps.store.set('hotkeyQuickChat', enabled);
@@ -287,7 +320,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
     private _getAccelerators(): HotkeyAccelerators {
         return {
             alwaysOnTop: this.deps.store.get('acceleratorAlwaysOnTop') ?? DEFAULT_ACCELERATORS.alwaysOnTop,
-            bossKey: this.deps.store.get('acceleratorBossKey') ?? DEFAULT_ACCELERATORS.bossKey,
+            peekAndHide: this.deps.store.get('acceleratorPeekAndHide') ?? DEFAULT_ACCELERATORS.peekAndHide,
             quickChat: this.deps.store.get('acceleratorQuickChat') ?? DEFAULT_ACCELERATORS.quickChat,
             printToPdf: this.deps.store.get('acceleratorPrintToPdf') ?? DEFAULT_ACCELERATORS.printToPdf,
         };
@@ -301,8 +334,8 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             case 'alwaysOnTop':
                 this.deps.store.set('acceleratorAlwaysOnTop', accelerator);
                 break;
-            case 'bossKey':
-                this.deps.store.set('acceleratorBossKey', accelerator);
+            case 'peekAndHide':
+                this.deps.store.set('acceleratorPeekAndHide', accelerator);
                 break;
             case 'quickChat':
                 this.deps.store.set('acceleratorQuickChat', accelerator);

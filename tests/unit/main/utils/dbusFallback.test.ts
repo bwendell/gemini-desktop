@@ -334,7 +334,7 @@ describe('DBusFallback', () => {
     describe('registerViaDBus', () => {
         const testShortcuts = [
             { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat toggle' },
-            { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Hide window' },
+            { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Hide window' },
         ];
 
         it('returns success results when all shortcuts bind successfully', async () => {
@@ -342,7 +342,7 @@ describe('DBusFallback', () => {
 
             expect(results).toHaveLength(2);
             expect(results[0]).toEqual({ hotkeyId: 'quickChat', success: true });
-            expect(results[1]).toEqual({ hotkeyId: 'bossKey', success: true });
+            expect(results[1]).toEqual({ hotkeyId: 'peekAndHide', success: true });
         });
 
         it('calls CreateSession with correct parameters', async () => {
@@ -371,8 +371,8 @@ describe('DBusFallback', () => {
             const quickChatTrigger = shortcutSpecs[0][1].preferred_trigger;
             expect(quickChatTrigger.value).toBe('CTRL+SHIFT+space');
 
-            const bossKeyTrigger = shortcutSpecs[1][1].preferred_trigger;
-            expect(bossKeyTrigger.value).toBe('CTRL+ALT+h');
+            const peekAndHideTrigger = shortcutSpecs[1][1].preferred_trigger;
+            expect(peekAndHideTrigger.value).toBe('CTRL+ALT+h');
         });
 
         it('returns failure results when CreateSession fails', async () => {
@@ -387,7 +387,7 @@ describe('DBusFallback', () => {
                 error: expect.stringContaining('Session creation denied'),
             });
             expect(results[1]).toEqual({
-                hotkeyId: 'bossKey',
+                hotkeyId: 'peekAndHide',
                 success: false,
                 error: expect.stringContaining('Session creation denied'),
             });
@@ -478,10 +478,10 @@ describe('DBusFallback', () => {
 
         it('should invoke the correct callback for each shortcut ID', async () => {
             const quickChatCallback = vi.fn();
-            const bossKeyCallback = vi.fn();
+            const peekAndHideCallback = vi.fn();
             const callbacks = new Map<import('../../../../src/shared/types/hotkeys').HotkeyId, () => void>([
                 ['quickChat', quickChatCallback],
-                ['bossKey', bossKeyCallback],
+                ['peekAndHide', peekAndHideCallback],
             ]);
 
             await dbusFallback.registerViaDBus(testShortcuts, callbacks);
@@ -491,11 +491,11 @@ describe('DBusFallback', () => {
                     type: 4,
                     interface: 'org.freedesktop.portal.GlobalShortcuts',
                     member: 'Activated',
-                    body: ['/session/path', 'bossKey', {}],
+                    body: ['/session/path', 'peekAndHide', {}],
                 });
             }
 
-            expect(bossKeyCallback).toHaveBeenCalledTimes(1);
+            expect(peekAndHideCallback).toHaveBeenCalledTimes(1);
             expect(quickChatCallback).not.toHaveBeenCalled();
         });
 
@@ -678,13 +678,13 @@ describe('DBusFallback', () => {
             await dbusFallback.registerViaDBus([
                 { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
+
             await dbusFallback.destroySession();
 
             // Should be able to register again
             const results = await dbusFallback.registerViaDBus([
-                { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Boss Key' },
+                { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
             ]);
-
             expect(results).toHaveLength(1);
             expect(results[0].success).toBe(true);
         });
@@ -829,7 +829,7 @@ describe('DBusFallback', () => {
                 { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
             ]);
             await dbusFallback.registerViaDBus([
-                { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Boss Key' },
+                { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
             ]);
 
             // CreateSession should be called for each registration
@@ -862,7 +862,7 @@ describe('DBusFallback', () => {
 
             const testShortcuts = [
                 { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
-                { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Boss Key' },
+                { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
             ];
 
             const results = await dbusFallback.registerViaDBus(testShortcuts);
@@ -875,7 +875,7 @@ describe('DBusFallback', () => {
                 error: expect.any(String),
             });
             expect(results[1]).toEqual({
-                hotkeyId: 'bossKey',
+                hotkeyId: 'peekAndHide',
                 success: false,
                 error: expect.any(String),
             });
@@ -889,7 +889,7 @@ describe('DBusFallback', () => {
 
             const testShortcuts = [
                 { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
-                { id: 'bossKey' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Boss Key' },
+                { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
             ];
 
             const results = await dbusFallback.registerViaDBus(testShortcuts);

@@ -123,17 +123,17 @@ describe('Platform Status Types', () => {
 
         it('should accept a failed registration result with error', () => {
             const result: HotkeyRegistrationResult = {
-                hotkeyId: 'bossKey',
+                hotkeyId: 'peekAndHide',
                 success: false,
                 error: 'Wayland does not support global shortcuts via globalShortcut API',
             };
-            expect(result.hotkeyId).toBe('bossKey');
+            expect(result.hotkeyId).toBe('peekAndHide');
             expect(result.success).toBe(false);
             expect(result.error).toBe('Wayland does not support global shortcuts via globalShortcut API');
         });
 
         it('should accept any valid HotkeyId', () => {
-            const ids: HotkeyId[] = ['alwaysOnTop', 'bossKey', 'quickChat', 'printToPdf'];
+            const ids: HotkeyId[] = ['alwaysOnTop', 'peekAndHide', 'quickChat', 'printToPdf'];
             ids.forEach((id) => {
                 const result: HotkeyRegistrationResult = { hotkeyId: id, success: true };
                 expect(result.hotkeyId).toBe(id);
@@ -164,7 +164,7 @@ describe('Platform Status Types', () => {
                 },
                 registrationResults: [
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'peekAndHide', success: true },
                 ],
                 globalHotkeysEnabled: true,
             };
@@ -200,7 +200,7 @@ describe('Platform Status Types', () => {
                 },
                 registrationResults: [
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: false, error: 'Registration failed' },
+                    { hotkeyId: 'peekAndHide', success: false, error: 'Registration failed' },
                     { hotkeyId: 'alwaysOnTop', success: true },
                     { hotkeyId: 'printToPdf', success: true },
                 ],
@@ -209,7 +209,7 @@ describe('Platform Status Types', () => {
             expect(status.registrationResults).toHaveLength(4);
             const failed = status.registrationResults.filter((r) => !r.success);
             expect(failed).toHaveLength(1);
-            expect(failed[0].hotkeyId).toBe('bossKey');
+            expect(failed[0].hotkeyId).toBe('peekAndHide');
         });
 
         it('should have waylandStatus as a nested WaylandStatus', () => {

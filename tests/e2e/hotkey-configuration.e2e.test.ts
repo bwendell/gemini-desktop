@@ -659,7 +659,7 @@ describe('Hotkey Configuration E2E', () => {
             });
 
             expect(accelerators.alwaysOnTop).toMatch(/CommandOrControl\+Alt\+1/);
-            expect(accelerators.bossKey).toMatch(/CommandOrControl\+Alt\+2/);
+            expect(accelerators.peekAndHide).toMatch(/CommandOrControl\+Alt\+2/);
             expect(accelerators.quickChat).toMatch(/CommandOrControl\+Alt\+3/);
         });
 

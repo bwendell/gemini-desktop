@@ -765,13 +765,13 @@ describe('Always On Top', () => {
 
             const initialSettings = await readUserPreferences();
             const initialTheme = initialSettings?.theme;
-            const initialHotkeys = initialSettings?.hotkeyBossKey;
+            const initialHotkeys = initialSettings?.hotkeyPeekAndHide;
 
             await setAlwaysOnTop(true, E2E_TIMING.WINDOW_TRANSITION);
 
             const newSettings = await readUserPreferences();
             expect(newSettings?.theme).toBe(initialTheme);
-            expect(newSettings?.hotkeyBossKey).toBe(initialHotkeys);
+            expect(newSettings?.hotkeyPeekAndHide).toBe(initialHotkeys);
         });
     });
 

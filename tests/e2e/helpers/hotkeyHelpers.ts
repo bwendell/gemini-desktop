@@ -48,9 +48,9 @@ function acceleratorToDisplayFormat(accelerator: string): HotkeyDefinition['disp
  */
 export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
     MINIMIZE_WINDOW: {
-        accelerator: DEFAULT_ACCELERATORS.bossKey,
-        description: 'Hide the main window to tray (Boss Key) [Global]',
-        displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.bossKey),
+        accelerator: DEFAULT_ACCELERATORS.peekAndHide,
+        description: 'Hide the main window to tray (Peek and Hide) [Global]',
+        displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.peekAndHide),
     },
     QUICK_CHAT: {
         accelerator: DEFAULT_ACCELERATORS.quickChat,
@@ -85,7 +85,7 @@ export function getExpectedAccelerator(hotkeyId: keyof typeof REGISTERED_HOTKEYS
  *
  * @param platform - The current platform ('windows', 'macos', 'linux')
  * @param hotkeyId - The hotkey identifier from REGISTERED_HOTKEYS
- * @returns Platform-specific display string (e.g., 'Ctrl+Alt+E' or 'Cmd+Alt+E')
+ * @returns Platform-specific display string (e.g., 'Ctrl+Alt+H' or 'Cmd+Alt+H')
  */
 export function getHotkeyDisplayString(platform: E2EPlatform, hotkeyId: keyof typeof REGISTERED_HOTKEYS): string {
     return REGISTERED_HOTKEYS[hotkeyId].displayFormat[platform];
@@ -293,7 +293,7 @@ export interface PlatformHotkeyStatus {
  */
 export interface GlobalShortcutRegistrationStatus {
     quickChat: boolean;
-    bossKey: boolean;
+    peekAndHide: boolean;
     status: string;
     error?: string;
 }
@@ -328,13 +328,13 @@ export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutR
         try {
             return {
                 quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
-                bossKey: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
+                peekAndHide: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
                 status: 'success',
             };
         } catch (error) {
             return {
                 quickChat: false,
-                bossKey: false,
+                peekAndHide: false,
                 status: 'error',
                 error: (error as Error).message,
             };

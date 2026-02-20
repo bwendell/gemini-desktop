@@ -1,16 +1,16 @@
 /**
- * Integration tests for Boss Key (Stealth Mode) functionality.
+ * Integration tests for Peek and Hide functionality.
  *
  * Tests the hide-to-tray workflow:
- * - Boss key hides main window to tray
+ * - Peek and Hide hides main window to tray
  * - Window hidden from taskbar/dock
  * - Restoring from tray shows window
- * - Boss key enable/disable state via IPC
+ * - Peek and Hide enable/disable state via IPC
  */
 
 import { browser, expect } from '@wdio/globals';
 
-describe('Boss Key / Stealth Mode Integration', () => {
+describe('Peek and Hide Integration', () => {
     before(async () => {
         // Wait for app ready
         await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
@@ -55,11 +55,11 @@ describe('Boss Key / Stealth Mode Integration', () => {
 
         await browser.pause(300);
 
-        // Ensure bossKey is enabled for next test
+        // Ensure peekAndHide is enabled for next test
         await browser.execute(() => {
             const api = (window as any).electronAPI;
             if (api?.setIndividualHotkey) {
-                api.setIndividualHotkey('bossKey', true);
+                api.setIndividualHotkey('peekAndHide', true);
             }
         });
     });
@@ -184,12 +184,12 @@ describe('Boss Key / Stealth Mode Integration', () => {
         });
     });
 
-    describe('Boss Key Hotkey Settings', () => {
-        it('should allow enabling boss key via IPC', async () => {
+    describe('Peek and Hide Hotkey Settings', () => {
+        it('should allow enabling Peek and Hide via IPC', async () => {
             // Disable first
             await browser.execute(() => {
                 const api = (window as any).electronAPI;
-                api.setIndividualHotkey('bossKey', false);
+                api.setIndividualHotkey('peekAndHide', false);
             });
 
             await browser.pause(200);
@@ -197,14 +197,14 @@ describe('Boss Key / Stealth Mode Integration', () => {
             // Verify disabled in main process
             let isEnabled = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.hotkeyManager.isIndividualEnabled('bossKey');
+                return global.hotkeyManager.isIndividualEnabled('peekAndHide');
             });
             expect(isEnabled).toBe(false);
 
             // Enable
             await browser.execute(() => {
                 const api = (window as any).electronAPI;
-                api.setIndividualHotkey('bossKey', true);
+                api.setIndividualHotkey('peekAndHide', true);
             });
 
             await browser.pause(200);
@@ -212,16 +212,16 @@ describe('Boss Key / Stealth Mode Integration', () => {
             // Verify enabled
             isEnabled = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.hotkeyManager.isIndividualEnabled('bossKey');
+                return global.hotkeyManager.isIndividualEnabled('peekAndHide');
             });
             expect(isEnabled).toBe(true);
         });
 
-        it('should allow disabling boss key via IPC', async () => {
+        it('should allow disabling Peek and Hide via IPC', async () => {
             // Ensure enabled
             await browser.execute(() => {
                 const api = (window as any).electronAPI;
-                api.setIndividualHotkey('bossKey', true);
+                api.setIndividualHotkey('peekAndHide', true);
             });
 
             await browser.pause(200);
@@ -229,7 +229,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
             // Disable
             await browser.execute(() => {
                 const api = (window as any).electronAPI;
-                api.setIndividualHotkey('bossKey', false);
+                api.setIndividualHotkey('peekAndHide', false);
             });
 
             await browser.pause(200);
@@ -237,26 +237,26 @@ describe('Boss Key / Stealth Mode Integration', () => {
             // Verify disabled
             const isEnabled = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.hotkeyManager.isIndividualEnabled('bossKey');
+                return global.hotkeyManager.isIndividualEnabled('peekAndHide');
             });
             expect(isEnabled).toBe(false);
         });
 
-        it('should get current boss key settings via IPC', async () => {
+        it('should get current Peek and Hide settings via IPC', async () => {
             const settings = await browser.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getIndividualHotkeys();
             });
 
-            expect(settings).toHaveProperty('bossKey');
-            expect(typeof settings.bossKey).toBe('boolean');
+            expect(settings).toHaveProperty('peekAndHide');
+            expect(typeof settings.peekAndHide).toBe('boolean');
         });
 
-        it('should persist boss key settings', async () => {
+        it('should persist Peek and Hide settings', async () => {
             // Set to disabled
             await browser.execute(() => {
                 const api = (window as any).electronAPI;
-                api.setIndividualHotkey('bossKey', false);
+                api.setIndividualHotkey('peekAndHide', false);
             });
 
             await browser.pause(500);
@@ -268,11 +268,11 @@ describe('Boss Key / Stealth Mode Integration', () => {
                 return await api.getIndividualHotkeys();
             });
 
-            expect(settings.bossKey).toBe(false);
+            expect(settings.peekAndHide).toBe(false);
         });
     });
 
-    describe('Boss Key with Window States', () => {
+    describe('Peek and Hide with Window States', () => {
         it('should hide even when window is maximized', async () => {
             // Maximize window first
             await browser.electron.execute(() => {
@@ -350,7 +350,7 @@ describe('Boss Key / Stealth Mode Integration', () => {
         });
     });
 
-    describe('Minimize and Boss Key Distinction', () => {
+    describe('Minimize and Peek and Hide Distinction', () => {
         it('should distinguish between minimize and hide to tray', async () => {
             // Get platform for conditional behavior
             const platform = await browser.electron.execute(() => process.platform);

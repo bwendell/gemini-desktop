@@ -59,13 +59,13 @@ describe('IPC Manager Coordination', () => {
             updateAllAccelerators: vi.fn(),
             getIndividualSettings: vi.fn().mockReturnValue({
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             }),
             getHotkeyAccelerators: vi.fn().mockReturnValue({
                 alwaysOnTop: 'Ctrl+Shift+T',
-                bossKey: 'Ctrl+Shift+B',
+                peekAndHide: 'Ctrl+Shift+B',
                 quickChat: 'Ctrl+Shift+X',
                 printToPdf: 'Ctrl+Shift+P',
             }),
@@ -148,13 +148,13 @@ describe('IPC Manager Coordination', () => {
                 (BrowserWindow.getAllWindows as any).mockReturnValue([mockWin]);
 
                 const handler = getListener('hotkeys:individual:set');
-                handler({}, 'bossKey', false);
+                handler({}, 'peekAndHide', false);
 
                 expect(mockWin.webContents.send).toHaveBeenCalledWith(
                     'hotkeys:individual:changed',
                     expect.objectContaining({
                         alwaysOnTop: true,
-                        bossKey: false,
+                        peekAndHide: false,
                         quickChat: true,
                     })
                 );

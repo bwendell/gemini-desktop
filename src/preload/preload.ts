@@ -385,10 +385,10 @@ const electronAPI: ElectronAPI = {
     /**
      * Set an individual hotkey's enabled state in the backend.
      *
-     * @param id - The hotkey identifier ('alwaysOnTop' | 'bossKey' | 'quickChat')
+     * @param id - The hotkey identifier ('alwaysOnTop' | 'peekAndHide' | 'quickChat')
      * @param enabled - Whether to enable (true) or disable (false) the hotkey
      */
-    setIndividualHotkey: (id: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf', enabled: boolean) =>
+    setIndividualHotkey: (id: 'alwaysOnTop' | 'peekAndHide' | 'quickChat' | 'printToPdf', enabled: boolean) =>
         ipcRenderer.send(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET, id, enabled),
 
     /**
@@ -428,10 +428,10 @@ const electronAPI: ElectronAPI = {
     /**
      * Set an accelerator for a specific hotkey.
      *
-     * @param id - The hotkey identifier ('alwaysOnTop' | 'bossKey' | 'quickChat')
+     * @param id - The hotkey identifier ('alwaysOnTop' | 'peekAndHide' | 'quickChat')
      * @param accelerator - The new accelerator string (e.g., 'CommandOrControl+Shift+T')
      */
-    setHotkeyAccelerator: (id: 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf', accelerator: string) =>
+    setHotkeyAccelerator: (id: 'alwaysOnTop' | 'peekAndHide' | 'quickChat' | 'printToPdf', accelerator: string) =>
         ipcRenderer.send(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET, id, accelerator),
 
     /**

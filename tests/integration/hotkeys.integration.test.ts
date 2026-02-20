@@ -95,7 +95,7 @@ describe('Global Hotkeys Integration', () => {
 
             // All default accelerators should use CommandOrControl for cross-platform compatibility
             expect(accelerators.alwaysOnTop).toContain('CommandOrControl');
-            expect(accelerators.bossKey).toContain('CommandOrControl');
+            expect(accelerators.peekAndHide).toContain('CommandOrControl');
             expect(accelerators.quickChat).toContain('CommandOrControl');
         });
 
@@ -113,13 +113,13 @@ describe('Global Hotkeys Integration', () => {
             const customAccelerator = 'CommandOrControl+Alt+K';
             await browser.execute(async (acc) => {
                 const api = (window as any).electronAPI;
-                await api.setHotkeyAccelerator('bossKey', acc);
+                await api.setHotkeyAccelerator('peekAndHide', acc);
             }, customAccelerator);
 
             // Verify it's stored as-is (not expanded to Ctrl/Cmd)
             const stored = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.hotkeyManager.getAccelerator('bossKey');
+                return global.hotkeyManager.getAccelerator('peekAndHide');
             });
 
             expect(stored).toBe(customAccelerator);
@@ -127,8 +127,8 @@ describe('Global Hotkeys Integration', () => {
             // Reset to default
             await browser.execute(async (defaultAcc) => {
                 const api = (window as any).electronAPI;
-                await api.setHotkeyAccelerator('bossKey', defaultAcc);
-            }, DEFAULT_ACCELERATORS.bossKey);
+                await api.setHotkeyAccelerator('peekAndHide', defaultAcc);
+            }, DEFAULT_ACCELERATORS.peekAndHide);
         });
 
         // Test that verifies renderer process receives correct platform value

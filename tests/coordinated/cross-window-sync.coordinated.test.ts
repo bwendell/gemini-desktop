@@ -102,10 +102,10 @@ describe('Cross-Window Sync Integration', () => {
             (BrowserWindow.getAllWindows as any).mockReturnValue([win1, win2]);
 
             const listener = (ipcMain as any)._listeners.get('hotkeys:individual:set');
-            listener({}, 'bossKey', false);
+            listener({}, 'peekAndHide', false);
 
             const expectedSettings = expect.objectContaining({
-                bossKey: false,
+                peekAndHide: false,
                 quickChat: true,
                 alwaysOnTop: true,
             });
@@ -113,7 +113,7 @@ describe('Cross-Window Sync Integration', () => {
             expect(win1.webContents.send).toHaveBeenCalledWith('hotkeys:individual:changed', expectedSettings);
             expect(win2.webContents.send).toHaveBeenCalledWith('hotkeys:individual:changed', expectedSettings);
 
-            expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(false);
+            expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(false);
         });
     });
 });

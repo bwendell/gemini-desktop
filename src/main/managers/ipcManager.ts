@@ -47,12 +47,12 @@ interface UserPreferences extends Record<string, unknown> {
     alwaysOnTop: boolean;
     // Individual hotkey settings
     hotkeyAlwaysOnTop: boolean;
-    hotkeyBossKey: boolean;
+    hotkeyPeekAndHide: boolean;
     hotkeyQuickChat: boolean;
     hotkeyPrintToPdf: boolean;
     // Hotkey accelerators
     acceleratorAlwaysOnTop: string;
-    acceleratorBossKey: string;
+    acceleratorPeekAndHide: string;
     acceleratorQuickChat: string;
     acceleratorPrintToPdf: string;
     // Auto-update settings
@@ -111,7 +111,7 @@ export default class IpcManager {
                     theme: 'system',
                     alwaysOnTop: false,
                     hotkeyAlwaysOnTop: true,
-                    hotkeyBossKey: true,
+                    hotkeyPeekAndHide: true,
                     hotkeyQuickChat: true,
                     hotkeyPrintToPdf: true,
                     autoUpdateEnabled: true,
