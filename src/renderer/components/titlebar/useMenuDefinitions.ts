@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MenuDefinition } from './menuTypes';
 import { createRendererLogger } from '../../utils';
+import { getReleaseNotesUrl } from '../../../shared/utils/releaseNotes';
+
+declare const __APP_VERSION__: string;
 
 const logger = createRendererLogger('[useMenuDefinitions]');
 
-// Re-export types for consumers
 export type { MenuDefinition, MenuItem } from './menuTypes';
 
 /**
@@ -216,6 +218,13 @@ export function useMenuDefinitions(): MenuDefinition[] {
                     label: 'Check for Updates',
                     action: () => {
                         window.electronAPI?.checkForUpdates();
+                    },
+                },
+                {
+                    id: 'menu-help-release-notes',
+                    label: 'Release Notes',
+                    action: () => {
+                        window.open(getReleaseNotesUrl(__APP_VERSION__));
                     },
                 },
                 { separator: true },

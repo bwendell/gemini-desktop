@@ -13,6 +13,7 @@ vi.mock('electron', () => ({
     app: {
         name: 'Gemini Desktop',
         on: vi.fn(),
+        getVersion: vi.fn().mockReturnValue('1.0.0'),
     },
     Menu: {
         buildFromTemplate: vi.fn((template) => ({
@@ -278,6 +279,39 @@ describe('MenuManager', () => {
     });
 
     describe('Help Menu', () => {
+        it('Release Notes opens GitHub releases', () => {
+            setPlatform('win32');
+            menuManager.buildMenu();
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const helpMenu = findMenuItem(template, 'Help');
+            const releaseNotesItem = findSubmenuItem(helpMenu, 'Release Notes');
+            const reportItem = findSubmenuItem(helpMenu, 'Report an Issue');
+
+            expect(releaseNotesItem).toBeTruthy();
+            releaseNotesItem.click();
+            expect(shell.openExternal).toHaveBeenCalledWith(expect.stringContaining('/releases/tag/v'));
+
+            if (reportItem) {
+                expect(releaseNotesItem).not.toBe(reportItem);
+            }
+        });
+
+        it('Release Notes is ordered between About and Report an Issue', () => {
+            setPlatform('win32');
+            menuManager.buildMenu();
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const helpMenu = findMenuItem(template, 'Help');
+
+            const submenuItems = helpMenu?.submenu ?? [];
+            const aboutIndex = submenuItems.findIndex((item: any) => item.label === 'About Gemini Desktop');
+            const releaseNotesIndex = submenuItems.findIndex((item: any) => item.label === 'Release Notes');
+            const reportIndex = submenuItems.findIndex((item: any) => item.label === 'Report an Issue');
+
+            expect(aboutIndex).toBeGreaterThanOrEqual(0);
+            expect(releaseNotesIndex).toBeGreaterThan(aboutIndex);
+            expect(reportIndex).toBeGreaterThan(releaseNotesIndex);
+        });
+
         it('Report Issue opens external link', () => {
             setPlatform('win32');
             menuManager.buildMenu();

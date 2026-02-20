@@ -5,6 +5,7 @@ import { GOOGLE_SIGNIN_URL, GITHUB_ISSUES_URL } from '../utils/constants';
 import { isApplicationHotkey, type HotkeyId } from '../types';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
+import { getReleaseNotesUrl } from '../../shared/utils/releaseNotes';
 
 /**
  * Manages the application native menu and context menus.
@@ -376,6 +377,11 @@ export default class MenuManager {
                     label: 'About Gemini Desktop',
                     id: 'menu-help-about',
                     click: () => this.windowManager.createOptionsWindow('about'),
+                },
+                {
+                    label: 'Release Notes',
+                    id: 'menu-help-release-notes',
+                    click: () => shell.openExternal(getReleaseNotesUrl(app.getVersion())),
                 },
                 {
                     label: 'Report an Issue',
