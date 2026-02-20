@@ -43,4 +43,4 @@ electron-builder.env
 prompts/
 
 .agent/skills
-.worktrees/
+.worktrees/.sisyphus/
