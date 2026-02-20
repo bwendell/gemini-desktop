@@ -1,14 +1,23 @@
 import { browser, expect } from '@wdio/globals';
 import { getReleaseNotesUrl } from '../../src/shared/utils/releaseNotes';
 
-const exec = (browser as unknown as WebdriverIO.Browser)['execute'].bind(browser as unknown as WebdriverIO.Browser);
-const waitUntil = (browser as unknown as WebdriverIO.Browser)['waitUntil'].bind(
-    browser as unknown as WebdriverIO.Browser
-);
-const pause = (browser as unknown as WebdriverIO.Browser)['pause'].bind(browser as unknown as WebdriverIO.Browser);
-const getWindowHandles = (browser as unknown as WebdriverIO.Browser)['getWindowHandles'].bind(
-    browser as unknown as WebdriverIO.Browser
-);
+type ToastInfo = {
+    exists: true;
+    type: string | undefined;
+    title: string | null;
+    message: string | null;
+    buttons: string[];
+    textContent: string | null;
+};
+
+const exec = (...args: Parameters<WebdriverIO.Browser['execute']>) =>
+    (browser as unknown as WebdriverIO.Browser).execute<unknown, unknown[]>(...args);
+const waitUntil = (...args: Parameters<WebdriverIO.Browser['waitUntil']>) =>
+    (browser as unknown as WebdriverIO.Browser).waitUntil(...args);
+const pause = (...args: Parameters<WebdriverIO.Browser['pause']>) =>
+    (browser as unknown as WebdriverIO.Browser).pause(...args);
+const getWindowHandles = (...args: Parameters<WebdriverIO.Browser['getWindowHandles']>) =>
+    (browser as unknown as WebdriverIO.Browser).getWindowHandles(...args);
 
 /**
  * Update Notification Integration Tests
@@ -49,9 +58,10 @@ describe('Update Notification Integration', () => {
     });
 
     // Helper to find a toast by ID or just the first one
-    const getToastInfo = async (toastId?: string) => {
-        return await exec((id) => {
-            const selector = id ? `[data-toast-id="${id}"]` : '[data-testid="toast"]';
+    const getToastInfo = async (toastId?: string): Promise<ToastInfo | null> => {
+        return (await exec((id) => {
+            const toastIdValue = typeof id === 'string' ? id : undefined;
+            const selector = toastIdValue ? `[data-toast-id="${toastIdValue}"]` : '[data-testid="toast"]';
             const toast = document.querySelector(selector);
             if (!toast) return null;
 
@@ -71,7 +81,7 @@ describe('Update Notification Integration', () => {
                 buttons,
                 textContent: toast.textContent,
             };
-        }, toastId);
+        }, toastId)) as ToastInfo | null;
     };
 
     const emitDevUpdateEvent = async (event: string, payload: unknown) => {
@@ -80,8 +90,8 @@ describe('Update Notification Integration', () => {
                 const win = window as Window & {
                     electronAPI?: { devEmitUpdateEvent?: (name: string, data: unknown) => void };
                 };
-
-                win.electronAPI?.devEmitUpdateEvent?.(eventName, eventPayload);
+                const name = typeof eventName === 'string' ? eventName : String(eventName ?? '');
+                win.electronAPI?.devEmitUpdateEvent?.(name, eventPayload);
             },
             event,
             payload
@@ -94,8 +104,8 @@ describe('Update Notification Integration', () => {
                 const win = window as Window & {
                     electronAPI?: { devMockPlatform?: (name: string, vars: Record<string, string>) => void };
                 };
-
-                win.electronAPI?.devMockPlatform?.(platformValue, envValue);
+                const name = typeof platformValue === 'string' ? platformValue : String(platformValue ?? '');
+                win.electronAPI?.devMockPlatform?.(name, envValue as Record<string, string>);
             },
             platform,
             env
@@ -142,13 +152,13 @@ describe('Update Notification Integration', () => {
     };
 
     const getReleaseNotesOpenedUrls = async (): Promise<string[]> => {
-        return await exec(() => {
+        return (await exec(() => {
             const win = window as Window & {
                 __releaseNotesTest?: { openedUrls: string[] };
             };
 
             return win.__releaseNotesTest?.openedUrls ?? [];
-        });
+        })) as string[];
     };
 
     describe('7.5.4.1 - IPC Events Trigger Toasts', () => {
