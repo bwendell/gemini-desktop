@@ -90,13 +90,13 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             listener!({}, 'peekAndHide', 'Alt+Shift+B');
 
             // Verify persisted to store
-            expect(storeData['acceleratorBossKey']).toBe('Alt+Shift+B');
+            expect(storeData['acceleratorPeekAndHide']).toBe('Alt+Shift+B');
         });
 
         it('should read persisted settings on get', async () => {
             // Pre-populate store
             storeData['hotkeyAlwaysOnTop'] = false;
-            storeData['hotkeyBossKey'] = true;
+            storeData['hotkeyPeekAndHide'] = true;
             storeData['hotkeyQuickChat'] = false;
             storeData['hotkeyPrintToPdf'] = true;
 
@@ -119,7 +119,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
         it('should read persisted accelerators on get', async () => {
             // Pre-populate store
             storeData['acceleratorAlwaysOnTop'] = 'Ctrl+T';
-            storeData['acceleratorBossKey'] = 'Ctrl+H';
+            storeData['acceleratorPeekAndHide'] = 'Ctrl+H';
 
             handler.register();
 
@@ -202,7 +202,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             };
             (BrowserWindow.getAllWindows as any).mockReturnValue([mockWindow1, mockWindow2]);
 
-            storeData['acceleratorBossKey'] = 'Alt+H';
+            storeData['acceleratorPeekAndHide'] = 'Alt+H';
 
             handler.register();
 
@@ -288,11 +288,11 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
     describe('Full settings integration', () => {
         it('should return combined settings from full-settings:get', async () => {
             storeData['hotkeyAlwaysOnTop'] = true;
-            storeData['hotkeyBossKey'] = false;
+            storeData['hotkeyPeekAndHide'] = false;
             storeData['hotkeyQuickChat'] = true;
             storeData['hotkeyPrintToPdf'] = false;
             storeData['acceleratorAlwaysOnTop'] = 'Alt+T';
-            storeData['acceleratorBossKey'] = 'Alt+B';
+            storeData['acceleratorPeekAndHide'] = 'Alt+B';
             storeData['acceleratorQuickChat'] = 'Ctrl+Space';
             storeData['acceleratorPrintToPdf'] = 'Ctrl+P';
 

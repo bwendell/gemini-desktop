@@ -50,7 +50,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
             theme: 'system',
             alwaysOnTop: false,
             hotkeyAlwaysOnTop: true,
-            hotkeyBossKey: true,
+            hotkeyPeekAndHide: true,
             hotkeyQuickChat: true,
             hotkeyPrintToPdf: true,
             autoUpdateEnabled: true,
@@ -98,7 +98,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
             const initialSettings: IndividualHotkeySettings = {
                 alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
-                peekAndHide: mockStore.get('hotkeyBossKey') ?? true,
+                peekAndHide: mockStore.get('hotkeyPeekAndHide') ?? true,
                 quickChat: mockStore.get('hotkeyQuickChat') ?? true,
                 printToPdf: mockStore.get('hotkeyPrintToPdf') ?? true,
             };
@@ -173,20 +173,20 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                     expect.any(Function)
                 );
 
-                expect(mockStore.set).toHaveBeenCalledWith('hotkeyBossKey', true);
+                expect(mockStore.set).toHaveBeenCalledWith('hotkeyPeekAndHide', true);
             });
         });
 
         describe('App restart simulation', () => {
             it('should load settings from store and register only enabled hotkeys', () => {
                 mockStore._data.hotkeyAlwaysOnTop = false;
-                mockStore._data.hotkeyBossKey = true;
+                mockStore._data.hotkeyPeekAndHide = true;
                 mockStore._data.hotkeyQuickChat = true;
                 mockStore.get.mockImplementation((key: string) => mockStore._data[key]);
 
                 const restartedHotkeyManager = new HotkeyManager(windowManager, {
                     alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
-                    peekAndHide: mockStore.get('hotkeyBossKey') ?? true,
+                    peekAndHide: mockStore.get('hotkeyPeekAndHide') ?? true,
                     quickChat: mockStore.get('hotkeyQuickChat') ?? true,
                 });
 
@@ -212,7 +212,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
             it('should handle all hotkeys disabled on restart', () => {
                 mockStore._data.hotkeyAlwaysOnTop = false;
-                mockStore._data.hotkeyBossKey = false;
+                mockStore._data.hotkeyPeekAndHide = false;
                 mockStore._data.hotkeyQuickChat = false;
                 mockStore.get.mockImplementation((key: string) => mockStore._data[key]);
 
@@ -248,12 +248,12 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
 
-                const setCallsForBossKey = (mockStore.set as any).mock.calls.filter(
-                    (call: any) => call[0] === 'hotkeyBossKey'
+                const setCallsForPeekAndHide = (mockStore.set as any).mock.calls.filter(
+                    (call: any) => call[0] === 'hotkeyPeekAndHide'
                 );
-                expect(setCallsForBossKey.length).toBe(6);
+                expect(setCallsForPeekAndHide.length).toBe(6);
 
-                expect(setCallsForBossKey[5][1]).toBe(true);
+                expect(setCallsForPeekAndHide[5][1]).toBe(true);
 
                 const registerCalls = (globalShortcut.register as any).mock.calls;
                 const peekAndHideRegisters = registerCalls.filter(
@@ -279,7 +279,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                 expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(false);
 
                 expect(mockStore.set).toHaveBeenCalledWith('hotkeyAlwaysOnTop', false);
-                expect(mockStore.set).toHaveBeenCalledWith('hotkeyBossKey', false);
+                expect(mockStore.set).toHaveBeenCalledWith('hotkeyPeekAndHide', false);
                 expect(mockStore.set).toHaveBeenCalledWith('hotkeyQuickChat', false);
             });
         });
