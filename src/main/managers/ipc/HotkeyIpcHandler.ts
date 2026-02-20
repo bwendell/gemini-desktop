@@ -110,18 +110,29 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
 
     /**
      * Migrate legacy hotkey keys to new naming.
-     * Reads hotkeyBossKey/acceleratorBossKey if present and migrates to hotkeyPeekAndHide/acceleratorPeekAndHide.
-     * Removes legacy keys after migration.
+     * Only migrates if new keys are undefined.
      */
     private _migrateLegacyHotkeySettings(): void {
+        const existingHotkeyPeekAndHide = this.deps.store.get('hotkeyPeekAndHide');
         const legacyHotkeyBossKey = this.deps.store.get('hotkeyBossKey');
-        if (legacyHotkeyBossKey !== undefined && typeof legacyHotkeyBossKey === 'boolean') {
+
+        if (
+            existingHotkeyPeekAndHide === undefined &&
+            legacyHotkeyBossKey !== undefined &&
+            typeof legacyHotkeyBossKey === 'boolean'
+        ) {
             this.deps.store.set('hotkeyPeekAndHide', legacyHotkeyBossKey);
             this.logger.log('Migrated hotkeyBossKey to hotkeyPeekAndHide');
         }
 
+        const existingAcceleratorPeekAndHide = this.deps.store.get('acceleratorPeekAndHide');
         const legacyAcceleratorBossKey = this.deps.store.get('acceleratorBossKey');
-        if (legacyAcceleratorBossKey !== undefined && typeof legacyAcceleratorBossKey === 'string') {
+
+        if (
+            existingAcceleratorPeekAndHide === undefined &&
+            legacyAcceleratorBossKey !== undefined &&
+            typeof legacyAcceleratorBossKey === 'string'
+        ) {
             this.deps.store.set('acceleratorPeekAndHide', legacyAcceleratorBossKey);
             this.logger.log('Migrated acceleratorBossKey to acceleratorPeekAndHide');
         }
