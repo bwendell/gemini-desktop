@@ -1,13 +1,13 @@
+import type { Browser } from '@wdio/globals';
+
 import { browser, expect, $ as wdioSelector, $$ as wdioSelectorAll } from '@wdio/globals';
 
-const exec = (browser as unknown as WebdriverIO.Browser)['execute'].bind(browser as unknown as WebdriverIO.Browser);
-const waitUntil = (browser as unknown as WebdriverIO.Browser)['waitUntil'].bind(
-    browser as unknown as WebdriverIO.Browser
-);
-const pause = (browser as unknown as WebdriverIO.Browser)['pause'].bind(browser as unknown as WebdriverIO.Browser);
-const getWindowHandles = (browser as unknown as WebdriverIO.Browser)['getWindowHandles'].bind(
-    browser as unknown as WebdriverIO.Browser
-);
+const testBrowser = browser as unknown as WebdriverIO.Browser & Browser;
+
+let exec: typeof testBrowser.execute;
+let waitUntil: typeof testBrowser.waitUntil;
+let pause: typeof testBrowser.pause;
+let getWindowHandles: typeof testBrowser.getWindowHandles;
 
 /**
  * Toast Provider Integration Tests
@@ -23,6 +23,11 @@ describe('Toast Provider Integration', () => {
     const UPDATE_TOAST_ID = 'update-notification';
 
     before(async () => {
+        exec = testBrowser.execute.bind(testBrowser);
+        waitUntil = testBrowser.waitUntil.bind(testBrowser);
+        pause = testBrowser.pause.bind(testBrowser);
+        getWindowHandles = testBrowser.getWindowHandles.bind(testBrowser);
+
         // Wait for the app to be ready
         await waitUntil(
             async () => {
@@ -37,7 +42,7 @@ describe('Toast Provider Integration', () => {
     });
 
     const getToastText = async (toastId: string) => {
-        return exec((id) => {
+        return exec((id: string) => {
             const messageEl = document.querySelector(`[data-toast-id="${id}"] [data-testid="toast-message"]`);
             return messageEl?.textContent?.trim() ?? '';
         }, toastId);
@@ -48,7 +53,7 @@ describe('Toast Provider Integration', () => {
             const win = window as any;
             if (typeof win.__toastTestHelpers?.getToasts !== 'function') return [];
 
-            return win.__toastTestHelpers.getToasts().map((toast: any) => ({
+            return win.__toastTestHelpers.getToasts().map((toast: { id: string; message: string }) => ({
                 id: toast.id,
                 message: toast.message,
             }));
@@ -56,7 +61,7 @@ describe('Toast Provider Integration', () => {
     };
 
     const toastExists = async (toastId: string) => {
-        return exec((id) => {
+        return exec((id: string) => {
             return Boolean(document.querySelector(`[data-toast-id="${id}"]`));
         }, toastId);
     };
@@ -170,7 +175,7 @@ describe('Toast Provider Integration', () => {
             await waitUntil(
                 async () => {
                     const snapshot = await getToastSnapshot();
-                    return !snapshot.some((toast) => toast.id === toastId);
+                    return !snapshot.some((toast: { id: string }) => toast.id === toastId);
                 },
                 {
                     timeout: 5000,
@@ -231,7 +236,7 @@ describe('Toast Provider Integration', () => {
             );
 
             // Verify it's an info toast (as mapped from 'available')
-            const updateToastClass = await exec((toastId) => {
+            const updateToastClass = await exec((toastId: string) => {
                 const toastEl = document.querySelector(`[data-toast-id="${toastId}"]`);
                 return toastEl?.getAttribute('class') ?? '';
             }, UPDATE_TOAST_ID);
@@ -247,7 +252,7 @@ describe('Toast Provider Integration', () => {
             await waitUntil(
                 async () => {
                     const snapshot = await getToastSnapshot();
-                    return !snapshot.some((toast) => toast.id === UPDATE_TOAST_ID);
+                    return !snapshot.some((toast: { id: string }) => toast.id === UPDATE_TOAST_ID);
                 },
                 { timeout: 8000, interval: 200, timeoutMsg: 'Toast was not removed' }
             );
@@ -269,7 +274,7 @@ describe('Toast Provider Integration', () => {
             await waitUntil(
                 async () => {
                     const snapshot = await getToastSnapshot();
-                    return toastIds.every((id) => snapshot.some((toast) => toast.id === id));
+                    return toastIds.every((id: string) => snapshot.some((toast: { id: string }) => toast.id === id));
                 },
                 { timeout: 5000, interval: 500 }
             );

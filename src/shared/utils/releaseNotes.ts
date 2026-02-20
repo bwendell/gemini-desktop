@@ -1,4 +1,4 @@
-import { GITHUB_REPO_URL } from '../constants';
+import { GITHUB_REPO_URL } from '../constants/urls';
 
 export const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases` as const;
 

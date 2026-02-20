@@ -6,6 +6,7 @@
  * Platform-aware: Entire suite skips on macOS since custom menu bar is not rendered.
  */
 
+import type { Browser } from '@wdio/globals';
 import { browser, $, $$, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
@@ -15,6 +16,7 @@ import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Custom Menu Bar', () => {
+    const testBrowser = browser as unknown as WebdriverIO.Browser & Browser;
     const mainWindow = new MainWindowPage();
 
     beforeEach(async () => {
@@ -25,6 +27,10 @@ describe('Custom Menu Bar', () => {
         }
 
         await waitForAppReady();
+
+        const menuBar = await $(Selectors.menuBar);
+        await menuBar.waitForExist({ timeout: 10000 });
+        await menuBar.waitForDisplayed({ timeout: 10000 });
     });
 
     afterEach(async () => {
@@ -125,7 +131,7 @@ describe('Custom Menu Bar', () => {
         await expect(dropdown).toBeDisplayed();
 
         // Press Escape
-        await browser.keys(['Escape']);
+        await testBrowser.keys(['Escape']);
 
         // Dropdown should disappear
         await expect(dropdown).not.toBeDisplayed();

@@ -354,6 +354,15 @@ export default class UpdateManager {
         this.badgeManager?.clearUpdateBadge();
         this.trayManager?.clearUpdateTooltip();
 
+        if (
+            this.mockEnv?.TEST_AUTO_UPDATE ||
+            process.env.TEST_AUTO_UPDATE ||
+            process.argv.includes('--test-auto-update')
+        ) {
+            logger.log('Test auto-update mode detected - skipping quitAndInstall');
+            return;
+        }
+
         if (this.autoUpdater) {
             this.autoUpdater.quitAndInstall(false, true);
         } else {
