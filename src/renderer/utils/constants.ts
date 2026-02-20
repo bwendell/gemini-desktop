@@ -22,8 +22,6 @@ export const GITHUB_LICENSE_URL = `${GITHUB_REPO_URL}/blob/main/LICENSE` as cons
  */
 export const GITHUB_DISCLAIMER_URL = `${GITHUB_REPO_URL}/blob/main/DISCLAIMER.md` as const;
 
-export const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases` as const;
-
 /**
  * Google Terms of Service URL.
  */
