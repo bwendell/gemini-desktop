@@ -208,13 +208,13 @@ describe('SettingsStore', () => {
         const DEFAULT_HOTKEY_SETTINGS = {
             individualHotkeys: {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             },
             hotkeyAccelerators: {
                 alwaysOnTop: 'CommandOrControl+Alt+P',
-                bossKey: 'CommandOrControl+Alt+H',
+                peekAndHide: 'CommandOrControl+Alt+H',
                 quickChat: 'CommandOrControl+Shift+Space',
                 printToPdf: 'CommandOrControl+Shift+P',
             },
@@ -395,13 +395,13 @@ describe('SettingsStore', () => {
                 const savedSettings = {
                     individualHotkeys: {
                         alwaysOnTop: false, // User's custom setting
-                        bossKey: true,
+                        peekAndHide: true,
                         quickChat: false, // User's custom setting
                         printToPdf: true, // User already has printToPdf
                     },
                     hotkeyAccelerators: {
                         alwaysOnTop: 'CommandOrControl+Shift+T', // User's custom accelerator
-                        bossKey: 'CommandOrControl+Alt+H',
+                        peekAndHide: 'CommandOrControl+Alt+H',
                         quickChat: 'CommandOrControl+Shift+Space',
                         printToPdf: 'CommandOrControl+Alt+P', // User changed the accelerator
                     },
@@ -435,7 +435,7 @@ describe('SettingsStore', () => {
                 // SettingsStore now does deep merge - missing keys in nested objects get defaults
                 const partialNestedSettings = {
                     individualHotkeys: {
-                        bossKey: false,
+                        peekAndHide: false,
                         // Other keys are missing - deep merge will fill them from defaults
                     },
                 };
@@ -455,7 +455,7 @@ describe('SettingsStore', () => {
                 ) as typeof DEFAULT_HOTKEY_SETTINGS.hotkeyAccelerators;
 
                 // User's setting is preserved
-                expect(loadedHotkeys.bossKey).toBe(false);
+                expect(loadedHotkeys.peekAndHide).toBe(false);
                 // Missing nested keys get filled from defaults (deep merge)
                 expect(loadedHotkeys.printToPdf).toBe(true);
                 expect(loadedHotkeys.alwaysOnTop).toBe(true);

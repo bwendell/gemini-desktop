@@ -98,7 +98,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
             const initialSettings: IndividualHotkeySettings = {
                 alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
-                bossKey: mockStore.get('hotkeyBossKey') ?? true,
+                peekAndHide: mockStore.get('hotkeyBossKey') ?? true,
                 quickChat: mockStore.get('hotkeyQuickChat') ?? true,
                 printToPdf: mockStore.get('hotkeyPrintToPdf') ?? true,
             };
@@ -143,7 +143,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                     'hotkeys:individual:changed',
                     expect.objectContaining({
                         alwaysOnTop: false,
-                        bossKey: true,
+                        peekAndHide: true,
                         quickChat: true,
                     })
                 );
@@ -151,25 +151,25 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                     'hotkeys:individual:changed',
                     expect.objectContaining({
                         alwaysOnTop: false,
-                        bossKey: true,
+                        peekAndHide: true,
                         quickChat: true,
                     })
                 );
             });
 
             it('should re-enable hotkey and register it', () => {
-                hotkeyManager.setIndividualEnabled('bossKey', false);
+                hotkeyManager.setIndividualEnabled('peekAndHide', false);
                 hotkeyManager.registerShortcuts();
 
                 vi.clearAllMocks();
 
                 const handler = getListener('hotkeys:individual:set');
-                handler({}, 'bossKey', true);
+                handler({}, 'peekAndHide', true);
 
-                expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
+                expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
 
                 expect(globalShortcut.register).toHaveBeenCalledWith(
-                    DEFAULT_ACCELERATORS.bossKey,
+                    DEFAULT_ACCELERATORS.peekAndHide,
                     expect.any(Function)
                 );
 
@@ -186,7 +186,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 const restartedHotkeyManager = new HotkeyManager(windowManager, {
                     alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
-                    bossKey: mockStore.get('hotkeyBossKey') ?? true,
+                    peekAndHide: mockStore.get('hotkeyBossKey') ?? true,
                     quickChat: mockStore.get('hotkeyQuickChat') ?? true,
                 });
 
@@ -197,14 +197,14 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                 const registerCalls = (globalShortcut.register as any).mock.calls;
                 const registeredAccelerators = registerCalls.map((call: any) => call[0]);
 
-                expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.bossKey);
+                expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.peekAndHide);
 
                 expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.quickChat);
 
                 expect(registeredAccelerators).not.toContain(DEFAULT_ACCELERATORS.alwaysOnTop);
 
                 expect(restartedHotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(false);
-                expect(restartedHotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
+                expect(restartedHotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
                 expect(restartedHotkeyManager.isIndividualEnabled('quickChat')).toBe(true);
 
                 restartedHotkeyManager.unregisterAll();
@@ -218,7 +218,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 const restartedHotkeyManager = new HotkeyManager(windowManager, {
                     alwaysOnTop: false,
-                    bossKey: false,
+                    peekAndHide: false,
                     quickChat: false,
                 });
 
@@ -239,14 +239,14 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 const handler = getListener('hotkeys:individual:set');
 
-                handler({}, 'bossKey', false);
-                handler({}, 'bossKey', true);
-                handler({}, 'bossKey', false);
-                handler({}, 'bossKey', true);
-                handler({}, 'bossKey', false);
-                handler({}, 'bossKey', true);
+                handler({}, 'peekAndHide', false);
+                handler({}, 'peekAndHide', true);
+                handler({}, 'peekAndHide', false);
+                handler({}, 'peekAndHide', true);
+                handler({}, 'peekAndHide', false);
+                handler({}, 'peekAndHide', true);
 
-                expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
+                expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
 
                 const setCallsForBossKey = (mockStore.set as any).mock.calls.filter(
                     (call: any) => call[0] === 'hotkeyBossKey'
@@ -256,8 +256,10 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                 expect(setCallsForBossKey[5][1]).toBe(true);
 
                 const registerCalls = (globalShortcut.register as any).mock.calls;
-                const bossKeyRegisters = registerCalls.filter((call: any) => call[0] === DEFAULT_ACCELERATORS.bossKey);
-                expect(bossKeyRegisters.length).toBe(3);
+                const peekAndHideRegisters = registerCalls.filter(
+                    (call: any) => call[0] === DEFAULT_ACCELERATORS.peekAndHide
+                );
+                expect(peekAndHideRegisters.length).toBe(3);
             });
 
             it('should handle toggling all hotkeys rapidly', () => {
@@ -266,14 +268,14 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 const handler = getListener('hotkeys:individual:set');
 
-                ['alwaysOnTop', 'bossKey', 'quickChat'].forEach((hotkeyId) => {
+                ['alwaysOnTop', 'peekAndHide', 'quickChat'].forEach((hotkeyId) => {
                     handler({}, hotkeyId, false);
                     handler({}, hotkeyId, true);
                     handler({}, hotkeyId, false);
                 });
 
                 expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(false);
-                expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(false);
+                expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(false);
                 expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(false);
 
                 expect(mockStore.set).toHaveBeenCalledWith('hotkeyAlwaysOnTop', false);
