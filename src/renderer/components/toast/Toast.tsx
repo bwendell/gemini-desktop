@@ -116,29 +116,31 @@ export function Toast({ id, type, title, message, icon, progress, actions, onDis
                         />
                     </div>
                 )}
+
+                {actions && actions.length > 0 && (
+                    <div className="toast__actions toast__actions--inline">
+                        {actions.map((action, index) => (
+                            <button
+                                key={index}
+                                className={`toast__button ${action.primary ? 'toast__button--primary' : 'toast__button--secondary'}`}
+                                onClick={action.onClick}
+                                data-testid={`toast-action-${index}`}
+                            >
+                                {action.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
-            <div className="toast__actions">
-                {actions?.map((action, index) => (
-                    <button
-                        key={index}
-                        className={`toast__button ${action.primary ? 'toast__button--primary' : 'toast__button--secondary'}`}
-                        onClick={action.onClick}
-                        data-testid={`toast-action-${index}`}
-                    >
-                        {action.label}
-                    </button>
-                ))}
-
-                <button
-                    className="toast__button toast__button--dismiss"
-                    onClick={onDismiss}
-                    data-testid="toast-dismiss"
-                    aria-label="Dismiss notification"
-                >
-                    ✕
-                </button>
-            </div>
+            <button
+                className="toast__button toast__button--dismiss"
+                onClick={onDismiss}
+                data-testid="toast-dismiss"
+                aria-label="Dismiss notification"
+            >
+                ✕
+            </button>
         </div>
     );
 }
