@@ -333,7 +333,7 @@ export function createMockExportManager(overrides?: Partial<Omit<MockExportManag
  * const mockHotkeyManager = createMockHotkeyManager({
  *   getIndividualSettings: vi.fn().mockReturnValue({
  *     alwaysOnTop: true,
- *     bossKey: true,
+ *     peekAndHide: true,
  *     quickChat: true,
  *     printToPdf: true,
  *   }),
@@ -343,7 +343,7 @@ export function createMockExportManager(overrides?: Partial<Omit<MockExportManag
 export function createMockHotkeyManager(overrides?: Partial<Omit<MockHotkeyManager, '_reset'>>): MockHotkeyManager {
     const defaultSettings = {
         alwaysOnTop: true,
-        bossKey: true,
+        peekAndHide: true,
         quickChat: true,
         printToPdf: true,
     };

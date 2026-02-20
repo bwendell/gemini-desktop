@@ -177,7 +177,7 @@ export default class HotkeyManager {
      * const windowManager = new WindowManager();
      * const hotkeyManager = new HotkeyManager(windowManager, {
      *   enabled: { quickChat: false },
-     *   accelerators: { bossKey: 'CommandOrControl+Alt+H' }
+     *   accelerators: { peekAndHide: 'CommandOrControl+Alt+H' }
      * });
      * ```
      */
@@ -456,7 +456,7 @@ export default class HotkeyManager {
      * - On application startup (via main.ts)
      * - When the app is ready
      *
-     * Only **global** shortcuts (quickChat, bossKey) that are individually enabled
+     * Only **global** shortcuts (quickChat, peekAndHide) that are individually enabled
      * will be registered via globalShortcut. Application hotkeys (alwaysOnTop, printToPdf)
      * are handled by MenuManager via menu accelerators.
      *
@@ -662,7 +662,7 @@ export default class HotkeyManager {
     /**
      * Register a global shortcut by its ID.
      *
-     * This method only registers global hotkeys (quickChat, bossKey).
+     * This method only registers global hotkeys (quickChat, peekAndHide).
      * Application hotkeys are handled by MenuManager via menu accelerators.
      *
      * @param id - The hotkey identifier
@@ -741,7 +741,7 @@ export default class HotkeyManager {
     /**
      * Unregister a global shortcut by its ID.
      *
-     * This method only unregisters global hotkeys (quickChat, bossKey).
+     * This method only unregisters global hotkeys (quickChat, peekAndHide).
      * Application hotkeys are handled by MenuManager via menu accelerators.
      *
      * @param id - The hotkey identifier
@@ -769,7 +769,7 @@ export default class HotkeyManager {
      * This method exists primarily for E2E testing, allowing tests to trigger
      * the same code path that would be executed when a user presses the hotkey.
      *
-     * @param id - The hotkey identifier (e.g., 'quickChat', 'bossKey', 'alwaysOnTop')
+     * @param id - The hotkey identifier (e.g., 'quickChat', 'peekAndHide', 'alwaysOnTop')
      */
     executeHotkeyAction(id: HotkeyId): void {
         const shortcutAction = this.shortcutActions.find((s) => s.id === id);

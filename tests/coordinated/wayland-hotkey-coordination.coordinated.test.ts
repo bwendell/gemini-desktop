@@ -113,7 +113,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             const initialSettings: IndividualHotkeySettings = {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             };
@@ -136,7 +136,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -158,7 +158,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -180,7 +180,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             const initialSettings: IndividualHotkeySettings = {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             };
@@ -198,13 +198,13 @@ describe('Wayland Hotkey Coordination', () => {
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: false, error: 'Portal backend missing' },
-                { hotkeyId: 'bossKey', success: false, error: 'Portal backend missing' },
+                { hotkeyId: 'peekAndHide', success: false, error: 'Portal backend missing' },
             ]);
 
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -230,7 +230,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -260,13 +260,13 @@ describe('Wayland Hotkey Coordination', () => {
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -286,13 +286,13 @@ describe('Wayland Hotkey Coordination', () => {
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -314,7 +314,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -332,13 +332,13 @@ describe('Wayland Hotkey Coordination', () => {
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: false, error: 'Denied' },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -359,7 +359,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -381,7 +381,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -401,7 +401,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -422,7 +422,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -451,7 +451,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -465,7 +465,7 @@ describe('Wayland Hotkey Coordination', () => {
                     expect.any(Function)
                 );
                 expect(globalShortcut.register).toHaveBeenCalledWith(
-                    DEFAULT_ACCELERATORS.bossKey,
+                    DEFAULT_ACCELERATORS.peekAndHide,
                     expect.any(Function)
                 );
 
@@ -479,7 +479,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -511,20 +511,20 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
 
             hotkeyManager.registerShortcuts();
 
-            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('peekAndHide', false);
 
-            expect(hotkeyManager.getIndividualSettings().bossKey).toBe(false);
+            expect(hotkeyManager.getIndividualSettings().peekAndHide).toBe(false);
 
             resolveRegistration([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             await vi.waitFor(() => {
@@ -541,13 +541,13 @@ describe('Wayland Hotkey Coordination', () => {
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -562,7 +562,7 @@ describe('Wayland Hotkey Coordination', () => {
             adapterForPlatform.linux = platformAdapterPresets.linuxWayland();
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             hotkeyManager.registerShortcuts();
@@ -587,7 +587,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -602,7 +602,7 @@ describe('Wayland Hotkey Coordination', () => {
 
             resolveRegistration([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             await vi.waitFor(() => {
@@ -624,7 +624,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -634,7 +634,7 @@ describe('Wayland Hotkey Coordination', () => {
 
             resolveRegistration([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             await vi.waitFor(() => {
@@ -660,7 +660,7 @@ describe('Wayland Hotkey Coordination', () => {
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -668,16 +668,16 @@ describe('Wayland Hotkey Coordination', () => {
             hotkeyManager.registerShortcuts();
 
             const stateBeforeToggle = hotkeyManager.getIndividualSettings();
-            expect(stateBeforeToggle.bossKey).toBe(true);
+            expect(stateBeforeToggle.peekAndHide).toBe(true);
 
-            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('peekAndHide', false);
 
             const stateAfterToggle = hotkeyManager.getIndividualSettings();
-            expect(stateAfterToggle.bossKey).toBe(false);
+            expect(stateAfterToggle.peekAndHide).toBe(false);
 
             resolveRegistration([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             await vi.waitFor(() => {
@@ -685,7 +685,7 @@ describe('Wayland Hotkey Coordination', () => {
             });
 
             const finalState = hotkeyManager.getIndividualSettings();
-            expect(finalState.bossKey).toBe(false);
+            expect(finalState.peekAndHide).toBe(false);
         });
 
         it('CT-004: partial registration failure propagates error state correctly', async () => {
@@ -693,13 +693,13 @@ describe('Wayland Hotkey Coordination', () => {
 
             mockRegisterViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: false, error: 'AccessDenied' },
+                { hotkeyId: 'peekAndHide', success: false, error: 'AccessDenied' },
             ]);
 
             windowManager = new WindowManager(false);
             hotkeyManager = new HotkeyManager(windowManager, {
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });

@@ -188,7 +188,7 @@ describe('IPC Round-Trip Integration', () => {
 
             expect(result).toEqual({
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });

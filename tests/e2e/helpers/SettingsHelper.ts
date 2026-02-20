@@ -110,10 +110,10 @@ export class SettingsHelper {
 
     /**
      * Get the enabled state of a specific hotkey.
-     * @param hotkeyId - The hotkey identifier ('alwaysOnTop', 'bossKey', 'quickChat')
+     * @param hotkeyId - The hotkey identifier ('alwaysOnTop', 'peekAndHide', 'quickChat')
      * @returns true if the hotkey is enabled, undefined if not set
      */
-    async getHotkeyEnabled(hotkeyId: 'alwaysOnTop' | 'bossKey' | 'quickChat'): Promise<boolean | undefined> {
+    async getHotkeyEnabled(hotkeyId: 'alwaysOnTop' | 'peekAndHide' | 'quickChat'): Promise<boolean | undefined> {
         return getHotkeyEnabledSetting(hotkeyId);
     }
 

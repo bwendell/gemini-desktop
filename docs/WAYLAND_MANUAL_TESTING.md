@@ -26,7 +26,7 @@ echo "KDE Version: $KDE_SESSION_VERSION"
 
 ### 2) Portal Dialog
 
-- [ ] Toggle a global hotkey off and back on (Quick Chat or Boss Key).
+- [ ] Toggle a global hotkey off and back on (Quick Chat or Peek and Hide).
 - [ ] If the KDE portal dialog appears, click **Allow**.
 - [ ] Confirm the hotkey status updates after approval.
 
@@ -34,7 +34,7 @@ echo "KDE Version: $KDE_SESSION_VERSION"
 
 - [ ] **Quick Chat** — Press `Ctrl+Shift+Space`.
     - Expected: Quick Chat window appears centered on screen.
-- [ ] **Stealth Mode (Boss Key)** — Press `Ctrl+Alt+H`.
+- [ ] **Peek and Hide** — Press `Ctrl+Alt+H`.
     - Expected: Main window hides to tray.
 
 ### 4) Failure/Conflict Signals

@@ -38,7 +38,7 @@ Users have been asking for a desktop Gemini client with these features—**we de
 | ⌨️ Global keyboard shortcuts                   | ✅ **Fully Customizable**    |
 | 🚀 Spotlight-style Quick Chat                  | ✅ **Instant Access**        |
 | 📌 Always-on-top window                        | ✅ **Easy Access to Gemini** |
-| 🕵️ Quick Privacy / Hiding                      | ✅ **Stealth Mode**          |
+| 🕵️ Quick Privacy / Hiding                      | ✅ **Peek and Hide**         |
 | 💻 Cross-platform (Windows, macOS, Linux)      | ✅ **All three**             |
 | 🔐 Stable login & persistent sessions          | ✅ **OAuth done right**      |
 | 🔒 No data collection                          | ✅ **Zero telemetry**        |
@@ -69,7 +69,7 @@ Users have been asking for a desktop Gemini client with these features—**we de
 - **⌨️ Keyboard-First** — Type, submit with Enter, dismiss with Escape. No context switching required
 - **🎯 Smart Positioning** — Appears on your active screen, keeps you in the flow
 
-### 🕵️ Stealth Mode
+### 🕵️ Peek and Hide
 
 Need to vanish? Press **`Ctrl+Alt+H`** (or **`Cmd+Alt+H`**) to instantly minimize the app to the system tray. Out of sight, out of mind, until you need it again.
 
@@ -144,14 +144,14 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 <div align="center">
 
-| Shortcut            | Action                              |
-| ------------------- | ----------------------------------- |
-| `Ctrl+Shift+Space`  | Toggle Quick Chat                   |
-| `Ctrl+Alt+H`        | **Stealth Mode** (Minimize to tray) |
-| `Ctrl+P`            | Print to PDF                        |
-| `Ctrl+=` / `Ctrl+-` | Zoom In / Out                       |
-| `Ctrl+,`            | Open Settings                       |
-| `Escape`            | Close Quick Chat                    |
+| Shortcut            | Action                               |
+| ------------------- | ------------------------------------ |
+| `Ctrl+Shift+Space`  | Toggle Quick Chat                    |
+| `Ctrl+Alt+H`        | **Peek and Hide** (Minimize to tray) |
+| `Ctrl+P`            | Print to PDF                         |
+| `Ctrl+=` / `Ctrl+-` | Zoom In / Out                        |
+| `Ctrl+,`            | Open Settings                        |
+| `Escape`            | Close Quick Chat                     |
 
 </div>
 
@@ -163,7 +163,7 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 - 🚀 **Native Experience** — Run Gemini as a standalone desktop app
 - 🎨 **Custom Title Bar** — Native-feeling window controls
-- 🕵️ **Stealth Mode** — Instantly hide the app with one keystroke
+- 🕵️ **Peek and Hide** — Instantly hide the app with one keystroke
 - 📌 **Always On Top** — Pin the window above others
 - 🔄 **System Tray** — Minimize to tray, quick access
 - 🌙 **Theme Sync** — Follows your system light/dark preference
@@ -185,7 +185,7 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 ### v0.9.0 — Peek & Hide
 
-- **Boss Key toggle** to quickly show/hide the app without losing context. ([#91](https://github.com/bwendell/gemini-desktop/issues/91))
+- **Peek and Hide toggle** to quickly show/hide the app without losing context. ([#91](https://github.com/bwendell/gemini-desktop/issues/91))
 
 ### Future Work
 

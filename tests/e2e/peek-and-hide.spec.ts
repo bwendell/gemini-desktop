@@ -1,7 +1,7 @@
 /**
- * E2E Test: Boss Key (Hide All Windows)
+ * E2E Test: Peek and Hide (Hide All Windows)
  *
- * Tests the Boss Key hotkey functionality (Ctrl+Alt+H / Cmd+Alt+H) which
+ * Tests the Peek and Hide hotkey functionality (Ctrl+Alt+H / Cmd+Alt+H) which
  * minimizes/hides the main window for quick privacy.
  *
  * The boss key is designed to quickly hide the application when needed.
@@ -19,7 +19,7 @@ import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { isLinuxCI } from './helpers/platform';
 import { isWindowVisible, hideWindow, restoreWindow, showWindow } from './helpers/windowStateActions';
 
-describe('Boss Key (Hide All Windows)', () => {
+describe('Peek and Hide (Hide All Windows)', () => {
     const mainWindow = new MainWindowPage();
 
     beforeEach(async () => {
@@ -63,7 +63,7 @@ describe('Boss Key (Hide All Windows)', () => {
         });
     });
 
-    describe('Boss Key Action', () => {
+    describe('Peek and Hide Action', () => {
         it('should hide main window when boss key is triggered', async function () {
             // Skip on Linux CI - window minimize detection doesn't work under Xvfb
             if (await isLinuxCI()) {
@@ -115,7 +115,7 @@ describe('Boss Key (Hide All Windows)', () => {
         });
     });
 
-    describe('Boss Key with Multiple Windows', () => {
+    describe('Peek and Hide with Multiple Windows', () => {
         it('should handle boss key when options window is also open', async () => {
             // This test is informational - boss key currently only affects main window
             // Future enhancement could hide all windows

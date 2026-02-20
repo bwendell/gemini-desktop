@@ -81,15 +81,15 @@ describe('Hotkey Collision and Coordination Integration', () => {
             it('should synchronize hotkey state through IpcManager to Store', () => {
                 hotkeyManager.registerShortcuts();
 
-                hotkeyManager.setIndividualEnabled('bossKey', false);
+                hotkeyManager.setIndividualEnabled('peekAndHide', false);
 
                 if (expectsGlobalHotkeys) {
-                    expect(globalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.bossKey);
+                    expect(globalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.peekAndHide);
                 } else {
                     expect(globalShortcut.unregister).not.toHaveBeenCalled();
                 }
 
-                expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(false);
+                expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(false);
             });
         });
 

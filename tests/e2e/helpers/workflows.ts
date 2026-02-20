@@ -160,7 +160,7 @@ export async function changeThemeWithRestore(newTheme: 'light' | 'dark' | 'syste
 /**
  * Records a new hotkey accelerator in the options window.
  *
- * @param hotkeyId - The hotkey identifier (e.g., 'alwaysOnTop', 'bossKey', 'quickChat')
+ * @param hotkeyId - The hotkey identifier (e.g., 'alwaysOnTop', 'peekAndHide', 'quickChat')
  * @param keys - Array of keys to press (e.g., ['Control', 'Shift', 'F'])
  *
  * @example
@@ -200,7 +200,7 @@ export async function recordHotkey(hotkeyId: string, keys: string[]): Promise<vo
  * @param keys - Array of keys to press
  *
  * @example
- * await recordHotkeyViaOptions('bossKey', ['Control', 'Shift', 'H']);
+ * await recordHotkeyViaOptions('peekAndHide', ['Control', 'Shift', 'H']);
  */
 export async function recordHotkeyViaOptions(hotkeyId: string, keys: string[]): Promise<void> {
     await withOptionsWindowViaHotkey(async () => {

@@ -44,7 +44,7 @@ describe('Global Hotkey Registration', () => {
                     // Only check GLOBAL hotkeys - these are registered via globalShortcut
                     // Application hotkeys (alwaysOnTop, printToPdf) are handled by Menu accelerators
                     quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
-                    bossKey: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
+                    peekAndHide: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
                     status: 'success',
                 };
             } catch (error) {
@@ -72,7 +72,7 @@ describe('Global Hotkey Registration', () => {
         }
 
         // Check if ANY global hotkey was registered - if none registered, it's environmental
-        const anyRegistered = registrationStatus.quickChat || registrationStatus.bossKey;
+        const anyRegistered = registrationStatus.quickChat || registrationStatus.peekAndHide;
 
         if (!anyRegistered) {
             console.log('⚠️  Skipping test: No global hotkeys were registered in this environment');
@@ -85,6 +85,6 @@ describe('Global Hotkey Registration', () => {
         // Note: Application hotkeys (alwaysOnTop, printToPdf) are NOT checked here
         // because they use Menu accelerators, not globalShortcut.register()
         expect(registrationStatus.quickChat).toBe(true);
-        expect(registrationStatus.bossKey).toBe(true);
+        expect(registrationStatus.peekAndHide).toBe(true);
     });
 });

@@ -424,7 +424,7 @@ describe('Options Window Integration', () => {
 
             expect(hotkeySettings).not.toBeNull();
             expect(hotkeySettings).toHaveProperty('alwaysOnTop');
-            expect(hotkeySettings).toHaveProperty('bossKey');
+            expect(hotkeySettings).toHaveProperty('peekAndHide');
             expect(hotkeySettings).toHaveProperty('quickChat');
         });
     });

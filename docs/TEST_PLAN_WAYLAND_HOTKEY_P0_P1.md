@@ -38,7 +38,7 @@ This test plan addresses critical gaps in coverage for Wayland KDE global hotkey
 
 1. **D-Bus is fully mocked** in unit tests via `vi.mock('dbus-next')` and `dbus-next-mock.ts`
 2. **Test environment**: Linux Wayland KDE Plasma 5.27+ (or mocked equivalent)
-3. **Hotkey IDs used**: `quickChat`, `bossKey` (Wayland global hotkeys); `alwaysOnTop`, `printToPdf` are application hotkeys (out of scope for Wayland global registration)
+3. **Hotkey IDs used**: `quickChat`, `peekAndHide` (Wayland global hotkeys); `alwaysOnTop`, `printToPdf` are application hotkeys (out of scope for Wayland global registration)
 4. **Portal method**: Only `dbus-direct` is currently active (`chromium-flag` is intentionally disabled)
 5. **Electron accelerator format**: Converted to XDG keysym format (e.g., `CommandOrControl+Shift+Space` → `CTRL+SHIFT+space`)
 6. **Test data**: All mocked responses mimic real D-Bus portal behavior
@@ -108,13 +108,13 @@ DEBUG_DBUS=1 npx vitest tests/unit/main/utils/dbusFallback.test.ts -t "P0:" --re
 
 **Preconditions**:
 
-- HotkeyManager initialized with 2 hotkeys: `quickChat`, `bossKey` (Wayland global hotkeys only)
+- HotkeyManager initialized with 2 hotkeys: `quickChat`, `peekAndHide` (Wayland global hotkeys only)
 - Wayland detection returns `portalAvailable: true`
 - D-Bus CreateSession succeeds (session path = `/org/freedesktop/portal/desktop/request/1_0/path1`)
 
 **Steps**:
 
-1. Mock `BindShortcuts` to return success (code=0) for `quickChat`, failure (code=2) for `bossKey`
+1. Mock `BindShortcuts` to return success (code=0) for `quickChat`, failure (code=2) for `peekAndHide`
 2. Call `hotkeyManager.registerShortcuts()`
 3. Simulate D-Bus `Response` signal for both shortcut groups (one success batch, one failure batch)
 4. Wait for registration to complete (async)
@@ -123,7 +123,7 @@ DEBUG_DBUS=1 npx vitest tests/unit/main/utils/dbusFallback.test.ts -t "P0:" --re
 **Expected Results**:
 
 - `_registrationResults['quickChat']` = `{ success: true }`
-- `_registrationResults['bossKey']` = `{ success: false, error: 'System shortcut conflict' }`
+- `_registrationResults['peekAndHide']` = `{ success: false, error: 'System shortcut conflict' }`
 - `globalHotkeysEnabled` = `true` (partial success still enables feature)
 - `registrationResults` array returned to renderer lists both success and failures
 - `anySuccess` flag = `true` (at least one hotkey succeeded)
@@ -154,7 +154,7 @@ vi.mock('dbus-next', () => ({
     },
 }));
 
-// For bossKey failure, mock second BindShortcuts call
+// For peekAndHide failure, mock second BindShortcuts call
 mockBindShortcuts.mockImplementationOnce(async (opts) => {
     process.nextTick(() => {
         simulateResponse('/org/freedesktop/portal/desktop/request/1_0/path2', 2, {});
@@ -171,7 +171,7 @@ mockBindShortcuts.mockImplementationOnce(async (opts) => {
 
 **Preconditions**:
 
-- HotkeyManager initialized with 2 hotkeys: `quickChat`, `bossKey`
+- HotkeyManager initialized with 2 hotkeys: `quickChat`, `peekAndHide`
 - Wayland detection returns `portalAvailable: true`
 - D-Bus connection initially succeeds
 
@@ -290,7 +290,7 @@ it('should distinguish user dismissal (code=1) from error (code=2)', async () =>
 
 **Preconditions**:
 
-- HotkeyManager initialized with 2 hotkeys: `quickChat`, `bossKey` (Wayland global hotkeys only)
+- HotkeyManager initialized with 2 hotkeys: `quickChat`, `peekAndHide` (Wayland global hotkeys only)
 - `registerShortcuts()` called but not yet completed
 - Registration is stalled (awaiting BindShortcuts response)
 
@@ -298,7 +298,7 @@ it('should distinguish user dismissal (code=1) from error (code=2)', async () =>
 
 1. Mock `BindShortcuts` to delay response (use `setTimeout` instead of `process.nextTick()`)
 2. Call `hotkeyManager.registerShortcuts()` (don't await)
-3. Immediately call `hotkeyManager.setIndividualEnabled('bossKey', false)` while registration in-flight
+3. Immediately call `hotkeyManager.setIndividualEnabled('peekAndHide', false)` while registration in-flight
 4. Wait for registration to complete
 5. Query final state
 
@@ -306,7 +306,7 @@ it('should distinguish user dismissal (code=1) from error (code=2)', async () =>
 
 - No race condition (no duplicate registration calls)
 - `_registrationResults` reflects original registration attempt
-- `setIndividualEnabled('bossKey', false)` either queued or rejected with clear error
+- `setIndividualEnabled('peekAndHide', false)` either queued or rejected with clear error
 - State is consistent (no partial updates or stale callbacks)
 - If queued: second registration attempt respects disabled state
 
@@ -329,10 +329,10 @@ mockBindShortcuts.mockReturnValue(bindShortcutsPromise);
 hotkeyManager.registerShortcuts();
 
 // Toggle while in-flight
-hotkeyManager.setIndividualEnabled('bossKey', false);
+hotkeyManager.setIndividualEnabled('peekAndHide', false);
 
 // Verify no race
-expect(hotkeyManager.getHotkeyState('bossKey').enabled).toBe(false);
+expect(hotkeyManager.getHotkeyState('peekAndHide').enabled).toBe(false);
 
 // Complete registration
 resolveBindShortcuts();
@@ -341,7 +341,7 @@ resolveBindShortcuts();
 const results = hotkeyManager.getPlatformHotkeyStatus();
 expect(results.registrationResults).toMatchObject([
     { hotkeyId: 'quickChat', success: true },
-    { hotkeyId: 'bossKey', success: false, error: 'Disabled by user' },
+    { hotkeyId: 'peekAndHide', success: false, error: 'Disabled by user' },
 ]);
 ```
 
@@ -402,7 +402,7 @@ expect(sessionPaths[0]).not.toBe(sessionPaths[1]);
 // But _registrationResults should only reflect second attempt
 expect(hotkeyManager._registrationResults).toMatchObject({
     quickChat: { success: true },
-    bossKey: { success: true },
+    peekAndHide: { success: true },
 });
 ```
 
@@ -515,7 +515,7 @@ describe('P0/P1: Wayland Hotkey Registration', () => {
 
         // Assert
         expect(hotkeyManager._registrationResults.get('quickChat')?.success).toBe(true);
-        expect(hotkeyManager._registrationResults.get('bossKey')?.success).toBe(false);
+        expect(hotkeyManager._registrationResults.get('peekAndHide')?.success).toBe(false);
     });
 });
 ```
