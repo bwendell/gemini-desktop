@@ -87,7 +87,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             expect(listener).toBeDefined();
 
             // Set a new accelerator
-            listener!({}, 'bossKey', 'Alt+Shift+B');
+            listener!({}, 'peekAndHide', 'Alt+Shift+B');
 
             // Verify persisted to store
             expect(storeData['acceleratorBossKey']).toBe('Alt+Shift+B');
@@ -110,7 +110,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
 
             expect(result).toEqual({
                 alwaysOnTop: false,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: false,
                 printToPdf: true,
             });
@@ -130,7 +130,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
 
             expect(result).toEqual({
                 alwaysOnTop: 'Ctrl+T',
-                bossKey: 'Ctrl+H',
+                peekAndHide: 'Ctrl+H',
                 quickChat: DEFAULT_ACCELERATORS.quickChat,
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });
@@ -207,19 +207,19 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             handler.register();
 
             const listener = (ipcMain as any)._listeners?.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET);
-            listener!({}, 'bossKey', 'Alt+H');
+            listener!({}, 'peekAndHide', 'Alt+H');
 
             // Both windows should receive the broadcast
             expect(mockWindow1.webContents.send).toHaveBeenCalledWith(
                 IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED,
                 expect.objectContaining({
-                    bossKey: 'Alt+H',
+                    peekAndHide: 'Alt+H',
                 })
             );
             expect(mockWindow2.webContents.send).toHaveBeenCalledWith(
                 IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED,
                 expect.objectContaining({
-                    bossKey: 'Alt+H',
+                    peekAndHide: 'Alt+H',
                 })
             );
         });
@@ -240,7 +240,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             handler.register();
 
             const listener = (ipcMain as any)._listeners?.get(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET);
-            listener!({}, 'bossKey', false);
+            listener!({}, 'peekAndHide', false);
 
             // Only active window should receive the broadcast
             expect(mockActiveWindow.webContents.send).toHaveBeenCalled();
@@ -262,7 +262,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
 
             expect(mockHotkeyManager.updateAllSettings).toHaveBeenCalledWith({
                 alwaysOnTop: false,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: false,
                 printToPdf: true,
             });
@@ -270,7 +270,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             expect(mockHotkeyManager.updateAllAccelerators).toHaveBeenCalledWith(
                 expect.objectContaining({
                     alwaysOnTop: 'Alt+P',
-                    bossKey: 'Alt+H',
+                    peekAndHide: 'Alt+H',
                 })
             );
         });
@@ -303,7 +303,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
 
             expect(result).toEqual({
                 alwaysOnTop: { enabled: true, accelerator: 'Alt+T' },
-                bossKey: { enabled: false, accelerator: 'Alt+B' },
+                peekAndHide: { enabled: false, accelerator: 'Alt+B' },
                 quickChat: { enabled: true, accelerator: 'Ctrl+Space' },
                 printToPdf: { enabled: false, accelerator: 'Ctrl+P' },
             });

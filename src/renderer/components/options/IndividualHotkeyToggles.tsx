@@ -43,8 +43,8 @@ const HOTKEY_CONFIGS: HotkeyConfig[] = [
         description: 'Toggle window always-on-top',
     },
     {
-        id: 'bossKey',
-        label: 'Boss Key',
+        id: 'peekAndHide',
+        label: 'Peek and Hide',
         description: 'Quickly minimize to system tray',
     },
     {

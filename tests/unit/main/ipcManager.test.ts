@@ -283,7 +283,9 @@ describe('IpcManager', () => {
         beforeEach(() => {
             mockHotkeyManager = {
                 setIndividualEnabled: vi.fn(),
-                getIndividualSettings: vi.fn().mockReturnValue({ alwaysOnTop: true, bossKey: true, quickChat: true }),
+                getIndividualSettings: vi
+                    .fn()
+                    .mockReturnValue({ alwaysOnTop: true, peekAndHide: true, quickChat: true }),
             };
             ipcManager = new IpcManager(
                 mockWindowManager,
@@ -301,7 +303,7 @@ describe('IpcManager', () => {
         it('handles hotkeys:individual:get', async () => {
             mockStore.get.mockImplementation((key: string) => {
                 if (key === 'hotkeyAlwaysOnTop') return true;
-                if (key === 'hotkeyBossKey') return false;
+                if (key === 'hotkeyPeekAndHide') return false;
                 if (key === 'hotkeyQuickChat') return true;
                 if (key === 'hotkeyPrintToPdf') return true;
                 return undefined;
@@ -310,7 +312,7 @@ describe('IpcManager', () => {
             const result = await handler();
             expect(result).toEqual({
                 alwaysOnTop: true,
-                bossKey: false,
+                peekAndHide: false,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -1192,7 +1194,7 @@ describe('IpcManager', () => {
             const result = await handler();
             expect(result).toEqual({
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -1425,9 +1427,9 @@ describe('IpcManager', () => {
         it('covers all individual hotkey set cases', () => {
             const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
 
-            // bossKey case
-            handler({}, 'bossKey', true);
-            expect(mockStore.set).toHaveBeenCalledWith('hotkeyBossKey', true);
+            // peekAndHide case
+            handler({}, 'peekAndHide', true);
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeyPeekAndHide', true);
 
             // quickChat case
             handler({}, 'quickChat', false);
@@ -1460,7 +1462,7 @@ describe('IpcManager', () => {
                 setAccelerator: vi.fn(),
                 getAccelerators: vi.fn().mockReturnValue({
                     alwaysOnTop: 'CmdOrCtrl+Shift+T',
-                    bossKey: 'CmdOrCtrl+Alt+E',
+                    peekAndHide: 'CmdOrCtrl+Alt+E',
                     quickChat: 'CmdOrCtrl+Shift+Space',
                     printToPdf: 'CmdOrCtrl+Shift+P',
                 }),
@@ -1481,7 +1483,7 @@ describe('IpcManager', () => {
         it('handles hotkeys:accelerator:get', async () => {
             mockStore.get.mockImplementation((key: string) => {
                 if (key === 'acceleratorAlwaysOnTop') return 'CmdOrCtrl+Shift+T';
-                if (key === 'acceleratorBossKey') return 'CmdOrCtrl+Alt+E';
+                if (key === 'acceleratorPeekAndHide') return 'CmdOrCtrl+Alt+E';
                 if (key === 'acceleratorQuickChat') return 'CmdOrCtrl+Shift+Space';
                 if (key === 'acceleratorPrintToPdf') return 'CmdOrCtrl+Shift+P';
                 return undefined;
@@ -1490,7 +1492,7 @@ describe('IpcManager', () => {
             const result = await handler();
             expect(result).toEqual({
                 alwaysOnTop: 'CmdOrCtrl+Shift+T',
-                bossKey: 'CmdOrCtrl+Alt+E',
+                peekAndHide: 'CmdOrCtrl+Alt+E',
                 quickChat: 'CmdOrCtrl+Shift+Space',
                 printToPdf: 'CmdOrCtrl+Shift+P',
             });
@@ -1522,8 +1524,8 @@ describe('IpcManager', () => {
             const mockWin = { isDestroyed: () => false, webContents: { send: vi.fn() } };
             (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
 
-            handler({}, 'bossKey', 'CmdOrCtrl+Alt+B');
-            expect(mockStore.set).toHaveBeenCalledWith('acceleratorBossKey', 'CmdOrCtrl+Alt+B');
+            handler({}, 'peekAndHide', 'CmdOrCtrl+Alt+B');
+            expect(mockStore.set).toHaveBeenCalledWith('acceleratorPeekAndHide', 'CmdOrCtrl+Alt+B');
 
             handler({}, 'quickChat', 'CmdOrCtrl+Q');
             expect(mockStore.set).toHaveBeenCalledWith('acceleratorQuickChat', 'CmdOrCtrl+Q');
@@ -1597,11 +1599,11 @@ describe('IpcManager', () => {
         it('handles hotkeys:full-settings:get', async () => {
             mockStore.get.mockImplementation((key: string) => {
                 if (key === 'hotkeyAlwaysOnTop') return true;
-                if (key === 'hotkeyBossKey') return false;
+                if (key === 'hotkeyPeekAndHide') return false;
                 if (key === 'hotkeyQuickChat') return true;
                 if (key === 'hotkeyPrintToPdf') return false;
                 if (key === 'acceleratorAlwaysOnTop') return 'CmdOrCtrl+T';
-                if (key === 'acceleratorBossKey') return 'CmdOrCtrl+E';
+                if (key === 'acceleratorPeekAndHide') return 'CmdOrCtrl+E';
                 if (key === 'acceleratorQuickChat') return 'CmdOrCtrl+Space';
                 if (key === 'acceleratorPrintToPdf') return 'CmdOrCtrl+P';
                 return undefined;
@@ -1609,7 +1611,7 @@ describe('IpcManager', () => {
             const handler = (ipcMain as any)._handlers.get('hotkeys:full-settings:get');
             const result = await handler();
             expect(result.alwaysOnTop).toEqual({ enabled: true, accelerator: 'CmdOrCtrl+T' });
-            expect(result.bossKey).toEqual({ enabled: false, accelerator: 'CmdOrCtrl+E' });
+            expect(result.peekAndHide).toEqual({ enabled: false, accelerator: 'CmdOrCtrl+E' });
         });
 
         it('handles hotkeys:full-settings:get error', async () => {
