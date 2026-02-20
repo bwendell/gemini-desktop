@@ -44,12 +44,12 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
         rowTestId: 'hotkey-row-alwaysOnTop',
     },
     {
-        id: 'bossKey',
-        label: 'Boss Key',
+        id: 'peekAndHide',
+        label: 'Peek and Hide',
         shortcutWin: 'Ctrl+Alt+H',
         shortcutMac: '⌘+⌥+H', // macOS displays symbols: ⌘ (Cmd), ⌥ (Alt)
-        testId: 'hotkey-toggle-bossKey',
-        rowTestId: 'hotkey-row-bossKey',
+        testId: 'hotkey-toggle-peekAndHide',
+        rowTestId: 'hotkey-row-peekAndHide',
     },
     {
         id: 'quickChat',
@@ -330,11 +330,11 @@ describe('Individual Hotkey Toggles', () => {
             });
         });
 
-        describe('Boss Key Hotkey Behavior', () => {
-            const config = HOTKEY_CONFIGS.find((c) => c.id === 'bossKey')!;
+        describe('Peek and Hide Hotkey Behavior', () => {
+            const config = HOTKEY_CONFIGS.find((c) => c.id === 'peekAndHide')!;
 
             afterEach(async () => {
-                // Re-enable Boss Key after each test
+                // Re-enable Peek and Hide after each test
                 try {
                     await setToggleTo(config.testId, 'true');
                 } catch {
@@ -342,8 +342,8 @@ describe('Individual Hotkey Toggles', () => {
                 }
             });
 
-            it('should disable Boss Key action when toggle is OFF', async () => {
-                // Disable Boss Key via toggle
+            it('should disable Peek and Hide action when toggle is OFF', async () => {
+                // Disable Peek and Hide via toggle
                 await setToggleTo(config.testId, 'false');
 
                 // Verify toggle is off
@@ -351,11 +351,11 @@ describe('Individual Hotkey Toggles', () => {
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('false');
 
-                E2ELogger.info('hotkey-toggle', 'Boss Key toggle disabled - minimize hotkey should not work');
+                E2ELogger.info('hotkey-toggle', 'Peek and Hide toggle disabled - minimize hotkey should not work');
             });
 
-            it('should enable Boss Key action when toggle is ON', async () => {
-                // Enable Boss Key via toggle
+            it('should enable Peek and Hide action when toggle is ON', async () => {
+                // Enable Peek and Hide via toggle
                 await setToggleTo(config.testId, 'true');
 
                 // Verify toggle is on
@@ -363,7 +363,7 @@ describe('Individual Hotkey Toggles', () => {
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('true');
 
-                E2ELogger.info('hotkey-toggle', 'Boss Key toggle enabled - minimize hotkey should work');
+                E2ELogger.info('hotkey-toggle', 'Peek and Hide toggle enabled - minimize hotkey should work');
             });
         });
 

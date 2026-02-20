@@ -6,7 +6,7 @@
  *
  * ## Hotkeys
  * - **Always on Top**: Toggle window always-on-top
- * - **Boss Key**: Minimize window
+ * - **Peek and Hide**: Minimize window
  * - **Quick Chat**: Open quick chat overlay
  *
  * @module IndividualHotkeyToggles
