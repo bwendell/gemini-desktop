@@ -174,25 +174,6 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 ---
 
-## 🗺️ Roadmap
-
-> **Note:** This roadmap reflects current priorities and may shift based on user feedback and upstream Gemini changes.
-
-### v0.8.0 — Chat Tabs & Release Notes
-
-- **Tabbed conversations** to keep multiple chats open at once. ([#72](https://github.com/bwendell/gemini-desktop/issues/72))
-- **Release notes discoverability** via Help menu entry and update toast action buttons.
-
-### v0.9.0 — Peek & Hide
-
-- **Boss Key toggle** to quickly show/hide the app without losing context. ([#91](https://github.com/bwendell/gemini-desktop/issues/91))
-
-### Future Work
-
-- **Investigate AI Studio support** and feasibility for a better Gemini Live experience. ([#90](https://github.com/bwendell/gemini-desktop/issues/90))
-
----
-
 <div align="center">
 
 ![Gemini Desktop Main Window Interface](docs/assets/main_window.png)
