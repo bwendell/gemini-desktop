@@ -1462,7 +1462,7 @@ describe('IpcManager', () => {
                 setAccelerator: vi.fn(),
                 getAccelerators: vi.fn().mockReturnValue({
                     alwaysOnTop: 'CmdOrCtrl+Shift+T',
-                    peekAndHide: 'CmdOrCtrl+Alt+E',
+                    peekAndHide: 'CmdOrCtrl+Alt+H',
                     quickChat: 'CmdOrCtrl+Shift+Space',
                     printToPdf: 'CmdOrCtrl+Shift+P',
                 }),
@@ -1483,7 +1483,7 @@ describe('IpcManager', () => {
         it('handles hotkeys:accelerator:get', async () => {
             mockStore.get.mockImplementation((key: string) => {
                 if (key === 'acceleratorAlwaysOnTop') return 'CmdOrCtrl+Shift+T';
-                if (key === 'acceleratorPeekAndHide') return 'CmdOrCtrl+Alt+E';
+                if (key === 'acceleratorPeekAndHide') return 'CmdOrCtrl+Alt+H';
                 if (key === 'acceleratorQuickChat') return 'CmdOrCtrl+Shift+Space';
                 if (key === 'acceleratorPrintToPdf') return 'CmdOrCtrl+Shift+P';
                 return undefined;
@@ -1492,7 +1492,7 @@ describe('IpcManager', () => {
             const result = await handler();
             expect(result).toEqual({
                 alwaysOnTop: 'CmdOrCtrl+Shift+T',
-                peekAndHide: 'CmdOrCtrl+Alt+E',
+                peekAndHide: 'CmdOrCtrl+Alt+H',
                 quickChat: 'CmdOrCtrl+Shift+Space',
                 printToPdf: 'CmdOrCtrl+Shift+P',
             });

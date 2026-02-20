@@ -85,7 +85,7 @@ export function getExpectedAccelerator(hotkeyId: keyof typeof REGISTERED_HOTKEYS
  *
  * @param platform - The current platform ('windows', 'macos', 'linux')
  * @param hotkeyId - The hotkey identifier from REGISTERED_HOTKEYS
- * @returns Platform-specific display string (e.g., 'Ctrl+Alt+E' or 'Cmd+Alt+E')
+ * @returns Platform-specific display string (e.g., 'Ctrl+Alt+H' or 'Cmd+Alt+H')
  */
 export function getHotkeyDisplayString(platform: E2EPlatform, hotkeyId: keyof typeof REGISTERED_HOTKEYS): string {
     return REGISTERED_HOTKEYS[hotkeyId].displayFormat[platform];

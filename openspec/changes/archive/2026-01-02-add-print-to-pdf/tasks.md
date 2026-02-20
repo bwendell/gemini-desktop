@@ -35,12 +35,12 @@
 - [x] 2.2 Refactor hotkeys into global and application hotkeys
 
     **Goal**: Separate hotkeys into two categories based on their behavior:
-    - **Global hotkeys** (`quickChat`, `bossKey`): Work system-wide via `globalShortcut.register()`, even when app is not focused
+    - **Global hotkeys** (`quickChat`, `peekAndHide`): Work system-wide via `globalShortcut.register()`, even when app is not focused
     - **Application hotkeys** (`alwaysOnTop`, `printToPdf`): Work only when app window is focused via Menu accelerators
 
     ### 2.2.1 Update shared types (`src/shared/types/hotkeys.ts`)
     - [x] Add `HotkeyScope` type: `'global' | 'application'`
-    - [x] Add `GLOBAL_HOTKEY_IDS: HotkeyId[]` = `['quickChat', 'bossKey']`
+    - [x] Add `GLOBAL_HOTKEY_IDS: HotkeyId[]` = `['quickChat', 'peekAndHide']`
     - [x] Add `APPLICATION_HOTKEY_IDS: HotkeyId[]` = `['alwaysOnTop', 'printToPdf']`
     - [x] Add `HOTKEY_SCOPE_MAP: Record<HotkeyId, HotkeyScope>` mapping each ID to its scope
     - [x] Add `getHotkeyScope(id: HotkeyId): HotkeyScope` helper function
@@ -94,7 +94,7 @@
         - Test `getHotkeyScope()` returns correct scope for each hotkey
         - Test `isGlobalHotkey()` and `isApplicationHotkey()` helpers
         - Test that `alwaysOnTop` and `printToPdf` are NOT registered via `globalShortcut`
-        - Test that `quickChat` and `bossKey` ARE registered via `globalShortcut`
+        - Test that `quickChat` and `peekAndHide` ARE registered via `globalShortcut`
     - [x] Update `setIndividualEnabled` tests to verify scope-aware behavior
     - [x] Update `setAccelerator` tests to verify scope-aware behavior
 
@@ -104,7 +104,7 @@
 
     **Completed changes**:
     - [x] Add tests for new type exports: `HotkeyScope`, `GLOBAL_HOTKEY_IDS`, `APPLICATION_HOTKEY_IDS`
-    - [x] Test `getHotkeyScope()` returns `'global'` for `quickChat`, `bossKey`
+    - [x] Test `getHotkeyScope()` returns `'global'` for `quickChat`, `peekAndHide`
     - [x] Test `getHotkeyScope()` returns `'application'` for `alwaysOnTop`, `printToPdf`
     - [x] Test `isGlobalHotkey()` and `isApplicationHotkey()` helper functions
     - [x] Test `GLOBAL_HOTKEY_IDS.length + APPLICATION_HOTKEY_IDS.length === HOTKEY_IDS.length`

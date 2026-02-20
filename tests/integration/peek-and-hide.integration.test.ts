@@ -1,16 +1,16 @@
 /**
- * Integration tests for Peek and Hide (Stealth Mode) functionality.
+ * Integration tests for Peek and Hide functionality.
  *
  * Tests the hide-to-tray workflow:
- * - Boss key hides main window to tray
+ * - Peek and Hide hides main window to tray
  * - Window hidden from taskbar/dock
  * - Restoring from tray shows window
- * - Boss key enable/disable state via IPC
+ * - Peek and Hide enable/disable state via IPC
  */
 
 import { browser, expect } from '@wdio/globals';
 
-describe('Peek and Hide / Stealth Mode Integration', () => {
+describe('Peek and Hide Integration', () => {
     before(async () => {
         // Wait for app ready
         await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
@@ -185,7 +185,7 @@ describe('Peek and Hide / Stealth Mode Integration', () => {
     });
 
     describe('Peek and Hide Hotkey Settings', () => {
-        it('should allow enabling boss key via IPC', async () => {
+        it('should allow enabling Peek and Hide via IPC', async () => {
             // Disable first
             await browser.execute(() => {
                 const api = (window as any).electronAPI;
@@ -217,7 +217,7 @@ describe('Peek and Hide / Stealth Mode Integration', () => {
             expect(isEnabled).toBe(true);
         });
 
-        it('should allow disabling boss key via IPC', async () => {
+        it('should allow disabling Peek and Hide via IPC', async () => {
             // Ensure enabled
             await browser.execute(() => {
                 const api = (window as any).electronAPI;
@@ -242,7 +242,7 @@ describe('Peek and Hide / Stealth Mode Integration', () => {
             expect(isEnabled).toBe(false);
         });
 
-        it('should get current boss key settings via IPC', async () => {
+        it('should get current Peek and Hide settings via IPC', async () => {
             const settings = await browser.execute(async () => {
                 const api = (window as any).electronAPI;
                 return await api.getIndividualHotkeys();
@@ -252,7 +252,7 @@ describe('Peek and Hide / Stealth Mode Integration', () => {
             expect(typeof settings.peekAndHide).toBe('boolean');
         });
 
-        it('should persist boss key settings', async () => {
+        it('should persist Peek and Hide settings', async () => {
             // Set to disabled
             await browser.execute(() => {
                 const api = (window as any).electronAPI;
