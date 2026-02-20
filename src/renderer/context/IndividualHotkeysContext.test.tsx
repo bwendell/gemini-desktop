@@ -19,7 +19,7 @@ function TestConsumer() {
     return (
         <div>
             <span data-testid="alwaysOnTop">{settings.alwaysOnTop.toString()}</span>
-            <span data-testid="bossKey">{settings.bossKey.toString()}</span>
+            <span data-testid="peekAndHide">{settings.peekAndHide.toString()}</span>
             <span data-testid="quickChat">{settings.quickChat.toString()}</span>
             <button onClick={() => setEnabled('quickChat', false)} data-testid="disable-quickchat">
                 Disable Quick Chat
@@ -56,7 +56,7 @@ describe('IndividualHotkeysContext', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('true');
-                expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+                expect(screen.getByTestId('peekAndHide')).toHaveTextContent('true');
                 expect(screen.getByTestId('quickChat')).toHaveTextContent('true');
             });
         });
@@ -66,7 +66,7 @@ describe('IndividualHotkeysContext', () => {
                 ...window.electronAPI,
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: false,
-                    bossKey: true,
+                    peekAndHide: true,
                     quickChat: false,
                     printToPdf: true,
                 }),
@@ -81,7 +81,7 @@ describe('IndividualHotkeysContext', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('false');
-                expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+                expect(screen.getByTestId('peekAndHide')).toHaveTextContent('true');
                 expect(screen.getByTestId('quickChat')).toHaveTextContent('false');
             });
         });
@@ -121,7 +121,7 @@ describe('IndividualHotkeysContext', () => {
             // Should still use defaults when data is invalid
             await waitFor(() => {
                 expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('true');
-                expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+                expect(screen.getByTestId('peekAndHide')).toHaveTextContent('true');
                 expect(screen.getByTestId('quickChat')).toHaveTextContent('true');
             });
         });
@@ -134,7 +134,7 @@ describe('IndividualHotkeysContext', () => {
                 ...window.electronAPI,
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
-                    bossKey: true,
+                    peekAndHide: true,
                     quickChat: true,
                     printToPdf: true,
                 }),
@@ -166,7 +166,7 @@ describe('IndividualHotkeysContext', () => {
                 ...window.electronAPI,
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
-                    bossKey: true,
+                    peekAndHide: true,
                     quickChat: true,
                     printToPdf: true,
                 }),
@@ -225,7 +225,7 @@ describe('IndividualHotkeysContext', () => {
                 ...window.electronAPI,
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
-                    bossKey: true,
+                    peekAndHide: true,
                     quickChat: true,
                     printToPdf: true,
                 }),
@@ -242,20 +242,20 @@ describe('IndividualHotkeysContext', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+                expect(screen.getByTestId('peekAndHide')).toHaveTextContent('true');
             });
 
             // Simulate external change
             await act(async () => {
                 changeCallback?.({
                     alwaysOnTop: true,
-                    bossKey: false,
+                    peekAndHide: false,
                     quickChat: true,
                     printToPdf: true,
                 });
             });
 
-            expect(screen.getByTestId('bossKey')).toHaveTextContent('false');
+            expect(screen.getByTestId('peekAndHide')).toHaveTextContent('false');
         });
 
         it('should ignore invalid data from change events', async () => {
@@ -265,7 +265,7 @@ describe('IndividualHotkeysContext', () => {
                 ...window.electronAPI,
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
-                    bossKey: true,
+                    peekAndHide: true,
                     quickChat: true,
                     printToPdf: true,
                 }),
@@ -282,7 +282,7 @@ describe('IndividualHotkeysContext', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+                expect(screen.getByTestId('peekAndHide')).toHaveTextContent('true');
             });
 
             // Send invalid data - should be ignored
@@ -292,7 +292,7 @@ describe('IndividualHotkeysContext', () => {
 
             // Settings should remain unchanged
             expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('true');
-            expect(screen.getByTestId('bossKey')).toHaveTextContent('true');
+            expect(screen.getByTestId('peekAndHide')).toHaveTextContent('true');
             expect(screen.getByTestId('quickChat')).toHaveTextContent('true');
         });
     });
@@ -316,7 +316,7 @@ describe('IndividualHotkeysContext', () => {
                 ...window.electronAPI,
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
-                    bossKey: true,
+                    peekAndHide: true,
                     quickChat: true,
                     printToPdf: true,
                 }),

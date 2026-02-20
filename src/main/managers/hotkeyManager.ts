@@ -12,7 +12,7 @@
  *
  * Hotkeys are divided into two categories based on their scope:
  *
- * ### Global Hotkeys (quickChat, bossKey)
+ * ### Global Hotkeys (quickChat, peekAndHide)
  * - Registered via Electron's `globalShortcut` API
  * - Work system-wide, even when the application is not focused
  * - Used for actions that need to work from anywhere (e.g., show/hide app)
@@ -112,7 +112,7 @@ export interface HotkeyManagerInitialSettings {
  * const hotkeyManager = new HotkeyManager(windowManager);
  * hotkeyManager.registerShortcuts(); // Register enabled global shortcuts
  * hotkeyManager.setIndividualEnabled('quickChat', false); // Disable Quick Chat hotkey
- * hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H'); // Change accelerator
+ * hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+H'); // Change accelerator
  * ```
  *
  * @class HotkeyManager
@@ -130,7 +130,7 @@ export default class HotkeyManager {
      */
     private _individualSettings: IndividualHotkeySettings = {
         alwaysOnTop: true,
-        bossKey: true,
+        peekAndHide: true,
         quickChat: true,
         printToPdf: true,
     };
@@ -213,12 +213,12 @@ export default class HotkeyManager {
         // Define shortcut actions
         // Each shortcut maps an id to an action callback
         this.shortcutActions = [
-            // GLOBAL: Boss Key needs to work even when app is hidden/unfocused to quickly hide it system-wide
+            // GLOBAL: Peek and Hide needs to work even when app is hidden/unfocused to quickly hide it system-wide
             {
-                id: 'bossKey',
+                id: 'peekAndHide',
                 action: () => {
-                    const accelerator = this._accelerators.bossKey;
-                    logger.log(`Hotkey pressed: ${accelerator} (Boss Key)`);
+                    const accelerator = this._accelerators.peekAndHide;
+                    logger.log(`Hotkey pressed: ${accelerator} (Peek and Hide)`);
                     this.windowManager.hideToTray();
                 },
             },
@@ -296,9 +296,9 @@ export default class HotkeyManager {
                 enabled: this._individualSettings.alwaysOnTop,
                 accelerator: this._accelerators.alwaysOnTop,
             },
-            bossKey: {
-                enabled: this._individualSettings.bossKey,
-                accelerator: this._accelerators.bossKey,
+            peekAndHide: {
+                enabled: this._individualSettings.peekAndHide,
+                accelerator: this._accelerators.peekAndHide,
             },
             quickChat: {
                 enabled: this._individualSettings.quickChat,
