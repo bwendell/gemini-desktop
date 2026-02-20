@@ -106,7 +106,7 @@ describe('LinuxHotkeyNotice', () => {
                 },
                 registrationResults: [
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'peekAndHide', success: true },
                 ],
                 globalHotkeysEnabled: true,
             };
@@ -136,7 +136,7 @@ describe('LinuxHotkeyNotice', () => {
                 },
                 registrationResults: [
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: false, error: 'Already registered by another app' },
+                    { hotkeyId: 'peekAndHide', success: false, error: 'Already registered by another app' },
                 ],
                 globalHotkeysEnabled: true,
             };
@@ -149,7 +149,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        expect.stringContaining('bossKey'),
+                        expect.stringContaining('peekAndHide'),
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Hotkey Registration Partial',
@@ -172,7 +172,7 @@ describe('LinuxHotkeyNotice', () => {
                 },
                 registrationResults: [
                     { hotkeyId: 'quickChat', success: false, error: 'Conflict' },
-                    { hotkeyId: 'bossKey', success: false, error: 'Conflict' },
+                    { hotkeyId: 'peekAndHide', success: false, error: 'Conflict' },
                 ],
                 globalHotkeysEnabled: true,
             };
@@ -185,7 +185,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        expect.stringContaining('quickChat, bossKey'),
+                        expect.stringContaining('quickChat, peekAndHide'),
                         expect.any(Object)
                     );
                 },
@@ -353,7 +353,7 @@ describe('LinuxHotkeyNotice', () => {
         it('should show registration failure details when attempts were made', async () => {
             const failedRegistrationStatus = buildStatusFromPreset('linuxWaylandGnome', false, [
                 { hotkeyId: 'quickChat', success: false, error: 'Bind timeout' },
-                { hotkeyId: 'bossKey', success: false, error: 'Already in use' },
+                { hotkeyId: 'peekAndHide', success: false, error: 'Already in use' },
             ]);
 
             const win = globalThis.window as any;
@@ -364,7 +364,7 @@ describe('LinuxHotkeyNotice', () => {
             await waitFor(
                 () => {
                     expect(mockShowWarning).toHaveBeenCalledWith(
-                        'Global shortcuts could not be registered: quickChat, bossKey. Bind timeout; Already in use.',
+                        'Global shortcuts could not be registered: quickChat, peekAndHide. Bind timeout; Already in use.',
                         expect.objectContaining({
                             id: 'linux-hotkey-notice',
                             title: 'Global Hotkeys Disabled',
@@ -379,7 +379,7 @@ describe('LinuxHotkeyNotice', () => {
         it('should not show warning when registration succeeds on GNOME', async () => {
             const successStatus = buildStatusFromPreset('linuxWaylandGnome', true, [
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             const win = globalThis.window as any;

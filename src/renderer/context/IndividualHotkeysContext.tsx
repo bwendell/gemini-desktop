@@ -15,7 +15,7 @@
  * // Use the hotkey state in components
  * const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
  * setEnabled('quickChat', false);
- * setAccelerator('bossKey', 'CommandOrControl+Alt+H');
+ * setAccelerator('peekAndHide', 'CommandOrControl+Alt+H');
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
