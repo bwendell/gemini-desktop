@@ -406,6 +406,121 @@ describe('Peek and Hide Integration', () => {
             );
         });
     });
+    describe('Peek & Hide Toggle via HotkeyManager Dispatch', () => {
+        it('should hide visible window via hotkeyManager.executeHotkeyAction', async () => {
+            const initiallyVisible = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.isMainWindowVisible();
+            });
+            expect(initiallyVisible).toBe(true);
+
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        const win = global.windowManager.getMainWindow();
+                        return win && !win.isVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not hide after hotkeyManager.executeHotkeyAction' }
+            );
+
+            const isHidden = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return !global.windowManager.isMainWindowVisible();
+            });
+            expect(isHidden).toBe(true);
+        });
+
+        it('should restore hidden window via hotkeyManager.executeHotkeyAction', async () => {
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.windowManager.hideToTray();
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        const win = global.windowManager.getMainWindow();
+                        return win && !win.isVisible();
+                    });
+                },
+                { timeout: 5000 }
+            );
+
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not restore after hotkeyManager.executeHotkeyAction' }
+            );
+
+            const isVisible = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.isMainWindowVisible();
+            });
+            expect(isVisible).toBe(true);
+        });
+
+        it('should complete a full toggle cycle via hotkeyManager.executeHotkeyAction', async () => {
+            const initiallyVisible = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.isMainWindowVisible();
+            });
+            expect(initiallyVisible).toBe(true);
+
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return !global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not hide on first executeHotkeyAction' }
+            );
+
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not restore on second executeHotkeyAction' }
+            );
+
+            const finallyVisible = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.isMainWindowVisible();
+            });
+            expect(finallyVisible).toBe(true);
+        });
+    });
+
     describe('Peek and Hide Toggle', () => {
         it('should toggle: hide visible window via toggleMainWindowVisibility', async () => {
             // Verify window is visible initially (beforeEach ensures this)

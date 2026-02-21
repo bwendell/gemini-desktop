@@ -133,6 +133,129 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(isVisible).toBe(true);
         });
     });
+    describe('Peek & Hide Toggle via HotkeyManager Dispatch (E2E)', () => {
+        it('should hide visible window via hotkeyManager.executeHotkeyAction', async function () {
+            if (await isLinuxCI()) {
+                E2ELogger.info(
+                    'peek-and-hide',
+                    'Skipping hotkeyManager dispatch (hide) - Linux CI uses headless Xvfb without window manager'
+                );
+                this.skip();
+            }
+
+            const initiallyVisible = await isWindowVisible();
+            expect(initiallyVisible).toBe(true);
+            E2ELogger.info('peek-and-hide', 'Window is visible before hotkeyManager dispatch');
+
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return !global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not hide after hotkeyManager.executeHotkeyAction' }
+            );
+
+            const isHiddenAfterDispatch = await isWindowVisible();
+            expect(isHiddenAfterDispatch).toBe(false);
+            E2ELogger.info('peek-and-hide', 'Window hidden via hotkeyManager dispatch (visible → hidden)');
+
+            await restoreWindow();
+            await showWindow();
+        });
+
+        it('should restore hidden window via hotkeyManager.executeHotkeyAction', async function () {
+            if (await isLinuxCI()) {
+                E2ELogger.info(
+                    'peek-and-hide',
+                    'Skipping hotkeyManager dispatch (restore) - Linux CI uses headless Xvfb without window manager'
+                );
+                this.skip();
+            }
+
+            await hideWindow();
+
+            const isHiddenBefore = await isWindowVisible();
+            expect(isHiddenBefore).toBe(false);
+            E2ELogger.info('peek-and-hide', 'Window is hidden, dispatching hotkeyManager to restore');
+
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not restore after hotkeyManager.executeHotkeyAction' }
+            );
+
+            const isVisibleAfterDispatch = await isWindowVisible();
+            expect(isVisibleAfterDispatch).toBe(true);
+            E2ELogger.info('peek-and-hide', 'Window restored via hotkeyManager dispatch (hidden → visible)');
+        });
+
+        it('should complete a full toggle cycle via hotkeyManager.executeHotkeyAction', async function () {
+            if (await isLinuxCI()) {
+                E2ELogger.info(
+                    'peek-and-hide',
+                    'Skipping hotkeyManager dispatch (full cycle) - Linux CI uses headless Xvfb without window manager'
+                );
+                this.skip();
+            }
+
+            const initiallyVisible = await isWindowVisible();
+            expect(initiallyVisible).toBe(true);
+            E2ELogger.info('peek-and-hide', 'Window initially visible — starting hotkeyManager dispatch cycle');
+
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return !global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not hide on first hotkeyManager dispatch' }
+            );
+
+            expect(await isWindowVisible()).toBe(false);
+            E2ELogger.info('peek-and-hide', 'Dispatch cycle step 1: window hidden');
+
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not restore on second hotkeyManager dispatch' }
+            );
+
+            expect(await isWindowVisible()).toBe(true);
+            E2ELogger.info('peek-and-hide', 'Dispatch cycle step 2: window restored — full cycle complete');
+        });
+    });
+
     describe('Peek & Hide Toggle (E2E)', () => {
         it('should hide visible window when toggleMainWindowVisibility is called', async function () {
             // Skip on Linux CI - window hide detection doesn't work under headless Xvfb

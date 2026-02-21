@@ -1116,6 +1116,24 @@ describe('HotkeyManager', () => {
                 expect(mockDbusFallback.destroySession).toHaveBeenCalled();
             });
 
+            it('should invoke toggleMainWindowVisibility when peekAndHide D-Bus callback fires', async () => {
+                createWaylandKdeStatus();
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
+                });
+
+                const actionCallbacks = mockDbusFallback.registerViaDBus.mock.calls[0][1] as Map<string, () => void>;
+                expect(actionCallbacks.has('peekAndHide')).toBe(true);
+
+                const peekAndHideCallback = actionCallbacks.get('peekAndHide')!;
+                peekAndHideCallback();
+
+                expect(mockWindowManager.toggleMainWindowVisibility).toHaveBeenCalledTimes(1);
+            });
+
             it('should pass action callbacks to registerViaDBus in fallback path', async () => {
                 mockAdapterState.plan = {
                     mode: 'native',
