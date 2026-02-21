@@ -1,0 +1,9 @@
+195:    describe('isMainWindowVisible', () => {
+197:            expect(windowManager.isMainWindowVisible()).toBe(false);
+203:            expect(windowManager.isMainWindowVisible()).toBe(true);
+209:            expect(windowManager.isMainWindowVisible()).toBe(false);
+213:    describe('toggleMainWindowVisibility', () => {
+219:            windowManager.toggleMainWindowVisibility();
+228:            windowManager.toggleMainWindowVisibility();
+239:            windowManager.toggleMainWindowVisibility();
+--- Branch coverage assertions ---

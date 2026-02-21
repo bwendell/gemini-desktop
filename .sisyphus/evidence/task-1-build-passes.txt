@@ -1,0 +1,23 @@
+
+> gemini-desktop@0.8.0 build
+> tsc && vite build
+
+vite v7.3.1 building client environment for production...
+transforming...
+✓ 503 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/src/renderer/windows/quickchat/quickchat.html    1.65 kB │ gzip:  0.66 kB
+dist/src/renderer/windows/options/options.html        1.77 kB │ gzip:  0.69 kB
+dist/index.html                                       2.01 kB │ gzip:  0.74 kB
+dist/assets/icon-BQuAaO4H.png                       443.36 kB
+dist/assets/quickchat-Cw5Dr6lR.css                    3.54 kB │ gzip:  1.18 kB
+dist/assets/main-DqSzapYz.css                        12.50 kB │ gzip:  2.77 kB
+dist/assets/App-DWJ3SHmV.css                         17.18 kB │ gzip:  3.81 kB
+dist/assets/options-DyJFp2xP.js                       2.03 kB │ gzip:  0.82 kB
+dist/assets/quickchat-B65qi_Rf.js                     3.46 kB │ gzip:  1.39 kB
+dist/assets/main-DgJntYzA.js                         30.64 kB │ gzip:  9.85 kB
+dist/assets/App-z61fwWNz.js                         145.26 kB │ gzip: 47.29 kB
+dist/assets/ThemeContext-BAofKvMp.js                196.49 kB │ gzip: 61.97 kB
+✓ built in 2.99s
+BUILD PASSED

@@ -71,7 +71,7 @@ Users have been asking for a desktop Gemini client with these features—**we de
 
 ### 🕵️ Peek and Hide
 
-Need to vanish? Press **`Ctrl+Alt+H`** (or **`Cmd+Alt+H`**) to instantly minimize the app to the system tray. Out of sight, out of mind, until you need it again.
+Press **`Ctrl+Alt+H`** (or **`Cmd+Alt+H`**) to toggle the app visibility. First press hides to the system tray — second press restores and focuses the window instantly.
 
 ### 📌 Always On Top
 
@@ -144,14 +144,14 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 <div align="center">
 
-| Shortcut            | Action                               |
-| ------------------- | ------------------------------------ |
-| `Ctrl+Shift+Space`  | Toggle Quick Chat                    |
-| `Ctrl+Alt+H`        | **Peek and Hide** (Minimize to tray) |
-| `Ctrl+P`            | Print to PDF                         |
-| `Ctrl+=` / `Ctrl+-` | Zoom In / Out                        |
-| `Ctrl+,`            | Open Settings                        |
-| `Escape`            | Close Quick Chat                     |
+| Shortcut            | Action                                |
+| ------------------- | ------------------------------------- |
+| `Ctrl+Shift+Space`  | Toggle Quick Chat                     |
+| `Ctrl+Alt+H`        | **Peek and Hide** (Toggle visibility) |
+| `Ctrl+P`            | Print to PDF                          |
+| `Ctrl+=` / `Ctrl+-` | Zoom In / Out                         |
+| `Ctrl+,`            | Open Settings                         |
+| `Escape`            | Close Quick Chat                      |
 
 </div>
 
@@ -163,7 +163,7 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 - 🚀 **Native Experience** — Run Gemini as a standalone desktop app
 - 🎨 **Custom Title Bar** — Native-feeling window controls
-- 🕵️ **Peek and Hide** — Instantly hide the app with one keystroke
+- 🕵️ **Peek and Hide** — Toggle app visibility: hide to tray or restore with one keystroke
 - 📌 **Always On Top** — Pin the window above others
 - 🔄 **System Tray** — Minimize to tray, quick access
 - 🌙 **Theme Sync** — Follows your system light/dark preference

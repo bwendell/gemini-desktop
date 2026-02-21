@@ -1,0 +1,3 @@
+308:            it('should complete a full toggle cycle: visible → hidden → visible', () => {
+338:            it('should create main window when it does not exist (destroyed edge case)', () => {
+--- Cycle tests found ---
