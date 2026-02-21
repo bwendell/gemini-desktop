@@ -60,6 +60,8 @@ export interface MockWindowManager {
     restoreFromTray: ReturnType<typeof vi.fn>;
     hideToTray: ReturnType<typeof vi.fn>;
     minimizeMainWindow: ReturnType<typeof vi.fn>;
+    isMainWindowVisible: ReturnType<typeof vi.fn>;
+    toggleMainWindowVisibility: ReturnType<typeof vi.fn>;
     setQuitting: ReturnType<typeof vi.fn>;
     // Zoom control methods
     getZoomLevel: ReturnType<typeof vi.fn>;
@@ -189,6 +191,8 @@ export function createMockWindowManager(overrides?: Partial<Omit<MockWindowManag
         restoreFromTray: vi.fn(),
         hideToTray: vi.fn(),
         minimizeMainWindow: vi.fn(),
+        isMainWindowVisible: vi.fn().mockReturnValue(false),
+        toggleMainWindowVisibility: vi.fn(),
         setQuitting: vi.fn(),
         // Zoom control methods
         getZoomLevel: vi.fn().mockReturnValue(100),
