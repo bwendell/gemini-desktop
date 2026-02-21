@@ -531,7 +531,7 @@ describe('HotkeyManager', () => {
             expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
         });
 
-        it('should call hideToTray when peek and hide key is triggered', () => {
+        it('should call toggleMainWindowVisibility when peek and hide key is triggered', () => {
             mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
                 if (accelerator === DEFAULT_ACCELERATORS.peekAndHide) {
                     callback();
@@ -541,7 +541,7 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            expect(mockWindowManager.hideToTray).toHaveBeenCalledTimes(1);
+            expect(mockWindowManager.toggleMainWindowVisibility).toHaveBeenCalledTimes(1);
         });
 
         it('should call toggleQuickChat when quick chat hotkey is triggered', () => {
@@ -713,7 +713,7 @@ describe('HotkeyManager', () => {
 
         it('should execute peekAndHide action', () => {
             hotkeyManager.executeHotkeyAction('peekAndHide');
-            expect(mockWindowManager.hideToTray).toHaveBeenCalled();
+            expect(mockWindowManager.toggleMainWindowVisibility).toHaveBeenCalled();
         });
 
         it('should execute quickChat action', () => {
@@ -764,7 +764,7 @@ describe('HotkeyManager', () => {
         });
 
         it('should handle action execution error in registered shortcut', () => {
-            mockWindowManager.hideToTray = vi.fn(() => {
+            mockWindowManager.toggleMainWindowVisibility = vi.fn(() => {
                 throw new Error('Action failed');
             });
 
@@ -1114,6 +1114,24 @@ describe('HotkeyManager', () => {
                 expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('none');
                 expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
                 expect(mockDbusFallback.destroySession).toHaveBeenCalled();
+            });
+
+            it('should invoke toggleMainWindowVisibility when peekAndHide D-Bus callback fires', async () => {
+                createWaylandKdeStatus();
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
+                });
+
+                const actionCallbacks = mockDbusFallback.registerViaDBus.mock.calls[0][1] as Map<string, () => void>;
+                expect(actionCallbacks.has('peekAndHide')).toBe(true);
+
+                const peekAndHideCallback = actionCallbacks.get('peekAndHide')!;
+                peekAndHideCallback();
+
+                expect(mockWindowManager.toggleMainWindowVisibility).toHaveBeenCalledTimes(1);
             });
 
             it('should pass action callbacks to registerViaDBus in fallback path', async () => {

@@ -1,0 +1,11 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/home/opc/repos/gemini-desktop[39m
+
+ [32m✓[39m tests/coordinated/hotkey-coordination.coordinated.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 120[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m33 passed[39m[22m[90m (33)[39m
+[2m   Start at [22m 08:35:02
+[2m   Duration [22m 1.72s[2m (transform 631ms, setup 129ms, import 626ms, tests 120ms, environment 652ms)[22m
+
+Coordinated tests captured

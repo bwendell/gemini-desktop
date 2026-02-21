@@ -1,0 +1,11 @@
+[WindowManager] [DEBUG] mainWindow.create() returned, window: exists
+
+ [32m✓[39m tests/unit/main/windowManager.test.ts [2m([22m[2m27 tests[22m[2m)[22m[32m 103[2mms[22m[39m
+ [32m✓[39m tests/unit/main/hotkeyManager.test.ts [2m([22m[2m90 tests[22m[2m)[22m[33m 681[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[32m117 passed[39m[22m[90m (117)[39m
+[2m   Start at [22m 08:34:56
+[2m   Duration [22m 1.20s[2m (transform 655ms, setup 181ms, import 626ms, tests 784ms, environment 0ms)[22m
+
+117 tests pass (27 windowManager + 90 hotkeyManager)
