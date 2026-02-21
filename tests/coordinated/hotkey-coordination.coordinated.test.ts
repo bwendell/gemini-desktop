@@ -283,5 +283,67 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                 expect(mockStore.set).toHaveBeenCalledWith('hotkeyQuickChat', false);
             });
         });
+
+        describe('Peek & Hide Toggle Coordination', () => {
+            it('should toggle: hide main window when visible', () => {
+                const win = windowManager.createMainWindow();
+                // Window starts visible by default in the mock
+                expect(win.isVisible()).toBe(true);
+
+                windowManager.toggleMainWindowVisibility();
+
+                expect(win.isVisible()).toBe(false);
+            });
+
+            it('should toggle: restore main window when hidden', () => {
+                const win = windowManager.createMainWindow();
+                win.hide();
+                expect(win.isVisible()).toBe(false);
+
+                windowManager.toggleMainWindowVisibility();
+
+                expect(win.isVisible()).toBe(true);
+            });
+
+            it('should complete a full toggle cycle: visible → hidden → visible', () => {
+                const win = windowManager.createMainWindow();
+                expect(win.isVisible()).toBe(true);
+
+                // First press: visible → hidden
+                windowManager.toggleMainWindowVisibility();
+                expect(win.isVisible()).toBe(false);
+
+                // Second press: hidden → visible
+                windowManager.toggleMainWindowVisibility();
+                expect(win.isVisible()).toBe(true);
+            });
+
+            it('should not affect quick chat window state when toggling main window', () => {
+                const mainWin = windowManager.createMainWindow();
+                const quickChatWin = windowManager.createQuickChatWindow();
+
+                // Both visible initially
+                expect(mainWin.isVisible()).toBe(true);
+                expect(quickChatWin.isVisible()).toBe(true);
+
+                // Toggle main window only
+                windowManager.toggleMainWindowVisibility();
+
+                // Main window should be hidden
+                expect(mainWin.isVisible()).toBe(false);
+                // Quick chat window is unaffected
+                expect(quickChatWin.isVisible()).toBe(true);
+            });
+
+            it('should create main window when it does not exist (destroyed edge case)', () => {
+                // No window created yet
+                expect(windowManager.getMainWindow()).toBeNull();
+
+                windowManager.toggleMainWindowVisibility();
+
+                // A new window should have been created
+                expect(windowManager.getMainWindow()).not.toBeNull();
+            });
+        });
     });
 });

@@ -191,4 +191,55 @@ describe('WindowManager', () => {
             expect(win.hide).toHaveBeenCalled();
         });
     });
+
+    describe('isMainWindowVisible', () => {
+        it('returns false when window does not exist', () => {
+            expect(windowManager.isMainWindowVisible()).toBe(false);
+        });
+
+        it('returns true when window exists and is visible', () => {
+            const win = windowManager.createMainWindow();
+            win.isVisible = vi.fn().mockReturnValue(true);
+            expect(windowManager.isMainWindowVisible()).toBe(true);
+        });
+
+        it('returns false when window exists but is hidden', () => {
+            const win = windowManager.createMainWindow();
+            win.hide();
+            expect(windowManager.isMainWindowVisible()).toBe(false);
+        });
+    });
+
+    describe('toggleMainWindowVisibility', () => {
+        it('hides to tray when main window is visible', () => {
+            const win = windowManager.createMainWindow();
+            // Window starts visible by default in the mock
+            expect(win.isVisible()).toBe(true);
+
+            windowManager.toggleMainWindowVisibility();
+
+            expect(win.hide).toHaveBeenCalled();
+        });
+
+        it('restores from tray when main window is hidden', () => {
+            const win = windowManager.createMainWindow();
+            win.hide(); // hide first so isVisible() returns false
+
+            windowManager.toggleMainWindowVisibility();
+
+            // restoreFromTray calls show() + focus()
+            expect(win.show).toHaveBeenCalled();
+            expect(win.focus).toHaveBeenCalled();
+        });
+
+        it('creates main window when window does not exist', () => {
+            // No window created — getMainWindow() returns null
+            expect(windowManager.getMainWindow()).toBeNull();
+
+            windowManager.toggleMainWindowVisibility();
+
+            // A new window should have been created
+            expect((BrowserWindow as any)._instances.length).toBe(1);
+        });
+    });
 });

@@ -406,4 +406,167 @@ describe('Peek and Hide Integration', () => {
             );
         });
     });
+    describe('Peek and Hide Toggle', () => {
+        it('should toggle: hide visible window via toggleMainWindowVisibility', async () => {
+            // Verify window is visible initially (beforeEach ensures this)
+            const initiallyVisible = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.isMainWindowVisible();
+            });
+            expect(initiallyVisible).toBe(true);
+
+            // Trigger toggle (visible → hidden)
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.windowManager.toggleMainWindowVisibility();
+            });
+
+            // Wait for window to hide
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        const win = global.windowManager.getMainWindow();
+                        return win && !win.isVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not hide after toggle' }
+            );
+
+            const isHidden = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return !global.windowManager.isMainWindowVisible();
+            });
+            expect(isHidden).toBe(true);
+        });
+
+        it('should toggle: restore hidden window via toggleMainWindowVisibility', async () => {
+            // First hide the window
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.windowManager.hideToTray();
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        const win = global.windowManager.getMainWindow();
+                        return win && !win.isVisible();
+                    });
+                },
+                { timeout: 5000 }
+            );
+
+            // Trigger toggle (hidden → visible)
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.windowManager.toggleMainWindowVisibility();
+            });
+
+            // Wait for window to show
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not restore after toggle' }
+            );
+
+            const isVisible = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.isMainWindowVisible();
+            });
+            expect(isVisible).toBe(true);
+        });
+
+        it('should complete a full toggle cycle: visible → hidden → visible', async () => {
+            // Verify initially visible
+            const initiallyVisible = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.isMainWindowVisible();
+            });
+            expect(initiallyVisible).toBe(true);
+
+            // First toggle: visible → hidden
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.windowManager.toggleMainWindowVisibility();
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return !global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not hide on first toggle' }
+            );
+
+            // Second toggle: hidden → visible
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.windowManager.toggleMainWindowVisibility();
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return global.windowManager.isMainWindowVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window did not restore on second toggle' }
+            );
+
+            const finallyVisible = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.isMainWindowVisible();
+            });
+            expect(finallyVisible).toBe(true);
+        });
+
+        it('should recreate destroyed window when toggling', async () => {
+            // Verify window exists
+            const windowExists = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.getMainWindow() !== null;
+            });
+            expect(windowExists).toBe(true);
+
+            // Destroy the main window
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                const win = global.windowManager.getMainWindow();
+                if (win) win.destroy();
+            });
+
+            await browser.pause(300);
+
+            // Toggle should recreate the window
+            await browser.electron.execute(() => {
+                // @ts-expect-error
+                global.windowManager.toggleMainWindowVisibility();
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return await browser.electron.execute(() => {
+                        // @ts-expect-error
+                        return global.windowManager.getMainWindow() !== null;
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Window was not recreated after destroy + toggle' }
+            );
+
+            const windowRecreated = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.windowManager.getMainWindow() !== null;
+            });
+            expect(windowRecreated).toBe(true);
+        });
+    });
 });
