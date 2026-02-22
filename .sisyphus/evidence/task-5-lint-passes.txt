@@ -1,6 +1,0 @@
-Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type
-
-✖ 314 problems (0 errors, 314 warnings)
-  0 errors and 1 warning potentially fixable with the `--fix` option.
-
-LINT COMPLETED (0 errors)

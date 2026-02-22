@@ -1,9 +1,0 @@
-src/main/managers/windowManager.ts:150:    isMainWindowVisible(): boolean {
-src/main/managers/windowManager.ts:158:    toggleMainWindowVisibility(): void {
-src/main/managers/windowManager.ts:159:        if (this.isMainWindowVisible()) {
-src/main/managers/hotkeyManager.ts:222:                    this.windowManager.toggleMainWindowVisibility();
-tests/helpers/mocks/main/managers.ts:63:    isMainWindowVisible: ReturnType<typeof vi.fn>;
-tests/helpers/mocks/main/managers.ts:64:    toggleMainWindowVisibility: ReturnType<typeof vi.fn>;
-tests/helpers/mocks/main/managers.ts:194:        isMainWindowVisible: vi.fn().mockReturnValue(false),
-tests/helpers/mocks/main/managers.ts:195:        toggleMainWindowVisibility: vi.fn(),
---- Methods verified ---

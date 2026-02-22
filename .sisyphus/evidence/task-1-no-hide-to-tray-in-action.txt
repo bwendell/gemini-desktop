@@ -1,1 +1,0 @@
-NO hideToTray calls in hotkeyManager.ts (correct)
