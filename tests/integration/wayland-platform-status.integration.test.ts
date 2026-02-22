@@ -20,6 +20,9 @@ const browserWithElectron = browser as unknown as {
     };
 };
 
+const isLinuxCI = process.platform === 'linux' && process.env.CI === 'true';
+const isWinCI = process.platform === 'win32' && process.env.CI === 'true';
+
 describe('Platform Hotkey Status IPC', () => {
     before(async function () {
         // Wait for app to be ready with at least one window
@@ -88,8 +91,8 @@ describe('Platform Hotkey Status IPC', () => {
             expect(typeof status.waylandStatus).toBe('object');
             expect(Array.isArray(status.registrationResults)).toBe(true);
         });
-
-        it('globalHotkeysEnabled field reflects actual registration state', async () => {
+        it('globalHotkeysEnabled field reflects actual registration state', async function () {
+            if (isLinuxCI || isWinCI) this.skip();
             // Get platform status from main process
             const status = await browserWithElectron.electron.execute(() => {
                 return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;

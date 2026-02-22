@@ -212,7 +212,7 @@ describe('TabStateIpcHandler', () => {
         const targetFrame = {
             name: getTabFrameName(tabId),
             url: GEMINI_APP_URL,
-            executeJavaScript: vi.fn().mockResolvedValue('RSUs vs. Stock Options: Oracle Offer'),
+            executeJavaScript: vi.fn().mockResolvedValue('Test Conversation Title'),
         };
 
         const mockMainWindow = {
@@ -231,7 +231,7 @@ describe('TabStateIpcHandler', () => {
 
         expect(targetFrame.executeJavaScript).toHaveBeenCalledTimes(1);
         const state = getHandler();
-        expect(state.tabs[0]?.title).toBe('RSUs vs. Stock Options: Oracle Offer');
+        expect(state.tabs[0]?.title).toBe('Test Conversation Title');
         expect(mockBrowserWindow.getAllWindows).toHaveBeenCalled();
 
         handler.unregister();

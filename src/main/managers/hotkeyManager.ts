@@ -219,7 +219,7 @@ export default class HotkeyManager {
                 action: () => {
                     const accelerator = this._accelerators.peekAndHide;
                     logger.log(`Hotkey pressed: ${accelerator} (Peek and Hide)`);
-                    this.windowManager.hideToTray();
+                    this.windowManager.toggleMainWindowVisibility();
                 },
             },
             // GLOBAL: Quick Chat needs to be accessible from anywhere to open the prompt overlay
