@@ -274,7 +274,7 @@ jobs:
                   if-no-files-found: ignore
 
             - name: Setup Java for Allure
-              uses: actions/setup-java@7a6d8a2bda7c4f8f0e2b2b3a3a4b5c6d7e8f9a0b # v4
+              uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
               if: always()
               with:
                   java-version: '17'
@@ -366,7 +366,7 @@ jobs:
                   if-no-files-found: ignore
 
             - name: Setup Java for Allure
-              uses: actions/setup-java@7a6d8a2bda7c4f8f0e2b2b3a3a4b5c6d7e8f9a0b # v4
+              uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
               if: always()
               with:
                   java-version: '17'
@@ -469,7 +469,7 @@ jobs:
                   if-no-files-found: ignore
 
             - name: Setup Java for Allure
-              uses: actions/setup-java@7a6d8a2bda7c4f8f0e2b2b3a3a4b5c6d7e8f9a0b # v4
+              uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
               if: always()
               with:
                   java-version: '17'
