@@ -1,5 +1,9 @@
 import { baseConfig } from './wdio.base.conf.js';
 
+if (!process.env.E2E_GROUP || process.env.E2E_GROUP === 'unknown') {
+    process.env.E2E_GROUP = 'debug';
+}
+
 export const config = {
     ...baseConfig,
     logLevel: 'debug',

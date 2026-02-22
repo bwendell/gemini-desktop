@@ -21,11 +21,14 @@ const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 0);
 
 const SENSITIVE_KEY_REGEX = /(token|cookie|auth|session|password|secret|key)/i;
 
-const sanitizeFilename = (value) =>
-    value
+const sanitizeFilename = (value) => {
+    const sanitized = value
         .replace(/[^a-zA-Z0-9_-]+/g, '_')
         .replace(/^_+|_+$/g, '')
-        .slice(0, 200) || 'unknown';
+        .slice(0, 200);
+
+    return sanitized || 'unknown';
+};
 
 const redactSensitiveData = (input) => {
     if (Array.isArray(input)) {
@@ -48,6 +51,46 @@ const redactSensitiveData = (input) => {
 
 const ensureDirectory = async (directoryPath) => {
     await fs.promises.mkdir(directoryPath, { recursive: true });
+};
+
+const getRunMetadata = () => ({
+    os: process.env.E2E_OS || process.env.RUNNER_OS || process.platform,
+    group: process.env.E2E_GROUP || 'unknown',
+    ci: Boolean(process.env.CI),
+});
+
+const failureIndexPath = path.resolve(__dirname, '../../tests/e2e/logs/failure-index.json');
+
+const loadFailureIndex = async (runMetadata) => {
+    let raw = null;
+    let parsed = null;
+
+    try {
+        raw = await fs.promises.readFile(failureIndexPath, 'utf-8');
+    } catch (error) {
+        raw = null;
+    }
+
+    if (raw) {
+        try {
+            parsed = JSON.parse(raw);
+        } catch (error) {
+            parsed = null;
+        }
+    }
+
+    if (parsed && Array.isArray(parsed.failures)) {
+        return {
+            ...parsed,
+            run: parsed.run ?? runMetadata,
+        };
+    }
+
+    return {
+        generatedAt: new Date().toISOString(),
+        run: runMetadata,
+        failures: [],
+    };
 };
 
 export const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
@@ -191,11 +234,38 @@ export const baseConfig = {
             const redactedState = redactSensitiveData(appState);
             await fs.promises.writeFile(logPath, JSON.stringify(redactedState, null, 2), 'utf-8');
 
-            // Attach to Allure if available
+            const runMetadata = getRunMetadata();
+            const failureIndex = await loadFailureIndex(runMetadata);
+            const retryAttempts = typeof result?.retries === 'number' ? result.retries : 0;
+
+            failureIndex.failures.push({
+                specFile: test?.file ?? 'unknown-spec',
+                testTitle: test?.title ?? 'unknown-test',
+                attempt: retryAttempts + 1,
+                retries: {
+                    attempts: retryAttempts,
+                    limit: SPEC_FILE_RETRIES,
+                },
+                rerunCommand: `npx wdio run config/wdio/wdio.conf.js --spec ${test?.file ?? ''}`,
+                artifacts: {
+                    screenshot: screenshotPath,
+                    stateDump: logPath,
+                },
+            });
+
+            await fs.promises.writeFile(failureIndexPath, JSON.stringify(failureIndex, null, 2), 'utf-8');
+
             if (browser.allure) {
-                await browser.allure.addAttachment('Screenshot', await fs.promises.readFile(screenshotPath), 'image/png');
-                await browser.allure.addAttachment('State Dump', JSON.stringify(redactedState, null, 2), 'application/json');
-                await browser.allure.addAttachment('Rerun Command', `npx wdio run config/wdio/wdio.conf.js --spec ${test?.file || ''}`, 'text/plain');
+                const reportScreenshot = await fs.promises.readFile(screenshotPath);
+                const reportStateDump = JSON.stringify(redactedState, null, 2);
+
+                await browser.allure.addAttachment('Screenshot', reportScreenshot, 'image/png');
+                await browser.allure.addAttachment('State Dump', reportStateDump, 'application/json');
+                await browser.allure.addAttachment(
+                    'Rerun Command',
+                    `npx wdio run config/wdio/wdio.conf.js --spec ${test?.file || ''}`,
+                    'text/plain'
+                );
             }
         } catch (error) {
             console.warn('Failed to capture failure diagnostics:', error);
@@ -212,26 +282,50 @@ export const baseConfig = {
         try {
             const logsDir = path.resolve(__dirname, '../../tests/e2e/logs');
             await fs.promises.mkdir(logsDir, { recursive: true });
-            
-            if (retries && retries.retries > 0) {
-                const flakyTests = specs.map(spec => ({
+
+            const timestamp = new Date().toISOString();
+            const specFiles = Array.isArray(specs) && specs.length > 0 ? specs : [];
+
+            if (retries > 0) {
+                const flakyTests = specFiles.map((spec) => ({
                     specFile: spec,
-                    retries: retries.retries,
-                    timestamp: new Date().toISOString()
+                    retries,
+                    timestamp,
                 }));
-                
+
                 const flakyReport = {
-                    generatedAt: new Date().toISOString(),
-                    flakyTests
+                    generatedAt: timestamp,
+                    flakyTests,
                 };
-                
+
                 await fs.promises.writeFile(
                     path.join(logsDir, 'flaky-report.json'),
                     JSON.stringify(flakyReport, null, 2),
                     'utf-8'
                 );
             }
-            
+
+            if (exitCode !== 0) {
+                const runMetadata = getRunMetadata();
+                const failureIndex = await loadFailureIndex(runMetadata);
+
+                if (failureIndex.failures.length === 0) {
+                    failureIndex.failures = specFiles.map((spec) => ({
+                        specFile: spec,
+                        testTitle: 'unknown',
+                        attempt: 1,
+                        retries: { attempts: retries, limit: SPEC_FILE_RETRIES },
+                        rerunCommand: `npx wdio run config/wdio/wdio.conf.js --spec ${spec}`,
+                        artifacts: {
+                            screenshot: null,
+                            stateDump: null,
+                        },
+                    }));
+                }
+
+                await fs.promises.writeFile(failureIndexPath, JSON.stringify(failureIndex, null, 2), 'utf-8');
+            }
+
             // Copy allure categories
             const categoriesSource = path.resolve(__dirname, '../../tests/e2e/allure-categories.json');
             const categoriesDest = path.resolve(__dirname, '../../tests/e2e/allure-results/categories.json');
