@@ -175,7 +175,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
             );
 
             E2ELogger.info('full-workflow', '9. Verifying tab title sync from conversation title...');
-            const testTitle = 'RSUs vs. Stock Options: Oracle Offer';
+            const testTitle = 'Sample Conversation Title';
 
             await wdioBrowser.waitUntil(
                 async () => {

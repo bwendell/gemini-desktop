@@ -44,7 +44,7 @@ describe('Release Build: Global Hotkey Registration', () => {
         expect(registration.status).toBe('success');
         E2ELogger.info(LOG_CTX, 'Global shortcut registration state', {
             quickChat: registration.quickChat,
-            bossKey: registration.bossKey,
+            peekAndHide: registration.peekAndHide,
         });
     });
 
@@ -70,7 +70,7 @@ describe('Release Build: Global Hotkey Registration', () => {
         }
 
         // On some CI environments, another Electron instance may claim the hotkeys
-        const anyRegistered = registration.quickChat || registration.bossKey;
+        const anyRegistered = registration.quickChat || registration.peekAndHide;
         if (!anyRegistered) {
             skipTest(
                 this,
@@ -81,7 +81,7 @@ describe('Release Build: Global Hotkey Registration', () => {
         }
 
         expect(registration.quickChat).toBe(true);
-        expect(registration.bossKey).toBe(true);
+        expect(registration.peekAndHide).toBe(true);
         E2ELogger.info(LOG_CTX, '✓ macOS/Windows hotkeys registered as expected');
     });
 
@@ -168,7 +168,7 @@ describe('Release Build: Platform Hotkey Status IPC', () => {
             return;
         }
 
-        const actuallyRegistered = registration.quickChat || registration.bossKey;
+        const actuallyRegistered = registration.quickChat || registration.peekAndHide;
 
         // If globalHotkeysEnabled is true, at least one hotkey should be registered
         if (status.globalHotkeysEnabled) {
@@ -243,12 +243,12 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         expect(['dbus-direct', 'dbus-fallback']).toContain(status.waylandStatus.portalMethod);
 
         const quickChatResult = status.registrationResults.find((r) => r.hotkeyId === 'quickChat');
-        const bossKeyResult = status.registrationResults.find((r) => r.hotkeyId === 'bossKey');
+        const peekAndHideResult = status.registrationResults.find((r) => r.hotkeyId === 'peekAndHide');
 
         expect(quickChatResult).toBeDefined();
-        expect(bossKeyResult).toBeDefined();
+        expect(peekAndHideResult).toBeDefined();
         expect(quickChatResult.success).toBe(true);
-        expect(bossKeyResult.success).toBe(true);
+        expect(peekAndHideResult.success).toBe(true);
 
         E2ELogger.info(LOG_CTX, '✓ Wayland+KDE hotkeys registered via portal');
     });
@@ -279,7 +279,7 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
 
         E2ELogger.info(LOG_CTX, 'Wayland portal path active; globalShortcut is not authoritative', {
             quickChat: registration.quickChat,
-            bossKey: registration.bossKey,
+            peekAndHide: registration.peekAndHide,
             portalMethod: status.waylandStatus.portalMethod,
         });
     });
@@ -362,7 +362,7 @@ describe('Release Build: Wayland+KDE Portal Signal Tracking', () => {
             skipTest(
                 this,
                 'Wayland+KDE portal activation signals',
-                'Set E2E_WAYLAND_MANUAL_HOTKEYS=1 and manually press Quick Chat/Boss Key to run'
+                'Set E2E_WAYLAND_MANUAL_HOTKEYS=1 and manually press Quick Chat/Peek and Hide to run'
             );
         }
 
@@ -396,7 +396,10 @@ describe('Release Build: Wayland+KDE Portal Signal Tracking', () => {
 
         await clearDbusActivationSignalHistory();
 
-        E2ELogger.info(LOG_CTX, 'Waiting for portal activation signals. Manually trigger Quick Chat or Boss Key now.');
+        E2ELogger.info(
+            LOG_CTX,
+            'Waiting for portal activation signals. Manually trigger Quick Chat or Peek and Hide now.'
+        );
 
         const activated = await browser.waitUntil(
             async () => {
@@ -417,14 +420,14 @@ describe('Release Build: Wayland+KDE Portal Signal Tracking', () => {
         expect(stats?.totalSignals).toBeGreaterThan(0);
 
         const quickChatSignals = stats?.signalsByShortcut?.quickChat ?? 0;
-        const bossKeySignals = stats?.signalsByShortcut?.bossKey ?? 0;
+        const peekAndHideSignals = stats?.signalsByShortcut?.peekAndHide ?? 0;
 
-        expect(quickChatSignals + bossKeySignals).toBeGreaterThan(0);
+        expect(quickChatSignals + peekAndHideSignals).toBeGreaterThan(0);
 
         E2ELogger.info(LOG_CTX, '✓ Portal activation signals observed', {
             totalSignals: stats?.totalSignals,
             quickChatSignals,
-            bossKeySignals,
+            peekAndHideSignals,
         });
     });
 });

@@ -144,6 +144,31 @@ export default class WindowManager extends EventEmitter {
     }
 
     /**
+     * Check if the main window is visible.
+     * @returns True if visible, false otherwise
+     */
+    isMainWindowVisible(): boolean {
+        const win = this.mainWindow.getWindow();
+        return win ? win.isVisible() : false;
+    }
+
+    /**
+     * Toggle main window visibility: hide if visible, restore if hidden/null.
+     */
+    toggleMainWindowVisibility(): void {
+        if (this.isMainWindowVisible()) {
+            this.hideToTray();
+        } else {
+            if (this.mainWindow.isValid()) {
+                this.restoreFromTray();
+            } else {
+                this.createMainWindow();
+                this.focusMainWindow();
+            }
+        }
+    }
+
+    /**
      * Create the Quick Chat floating window.
      * @returns The Quick Chat window
      */

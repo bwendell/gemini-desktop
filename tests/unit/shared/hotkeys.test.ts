@@ -18,14 +18,18 @@ import {
 describe('Hotkey Types', () => {
     describe('hotkey scope types', () => {
         describe('GLOBAL_HOTKEY_IDS', () => {
-            it('should contain quickChat and bossKey', () => {
+            it('should contain quickChat and peekAndHide', () => {
                 expect(GLOBAL_HOTKEY_IDS).toContain('quickChat');
-                expect(GLOBAL_HOTKEY_IDS).toContain('bossKey');
+                expect(GLOBAL_HOTKEY_IDS).toContain('peekAndHide');
             });
 
             it('should not contain application hotkeys', () => {
                 expect(GLOBAL_HOTKEY_IDS).not.toContain('alwaysOnTop');
                 expect(GLOBAL_HOTKEY_IDS).not.toContain('printToPdf');
+            });
+
+            it('should not contain bossKey (renamed to peekAndHide)', () => {
+                expect(GLOBAL_HOTKEY_IDS).not.toContain('bossKey');
             });
         });
 
@@ -49,7 +53,7 @@ describe('Hotkey Types', () => {
 
             it('should map global hotkeys to "global"', () => {
                 expect(HOTKEY_SCOPE_MAP.quickChat).toBe('global');
-                expect(HOTKEY_SCOPE_MAP.bossKey).toBe('global');
+                expect(HOTKEY_SCOPE_MAP.peekAndHide).toBe('global');
             });
 
             it('should map application hotkeys to "application"', () => {
@@ -64,8 +68,8 @@ describe('Hotkey Types', () => {
             expect(getHotkeyScope('quickChat')).toBe('global');
         });
 
-        it('should return global for bossKey', () => {
-            expect(getHotkeyScope('bossKey')).toBe('global');
+        it('should return global for peekAndHide', () => {
+            expect(getHotkeyScope('peekAndHide')).toBe('global');
         });
 
         it('should return application for alwaysOnTop', () => {
@@ -78,12 +82,16 @@ describe('Hotkey Types', () => {
     });
 
     describe('isGlobalHotkey', () => {
-        it.each(['quickChat', 'bossKey'] as const)('should return true for %s', (id) => {
+        it.each(['quickChat', 'peekAndHide'] as const)('should return true for %s', (id) => {
             expect(isGlobalHotkey(id)).toBe(true);
         });
 
         it.each(['alwaysOnTop', 'printToPdf'] as const)('should return false for %s', (id) => {
             expect(isGlobalHotkey(id)).toBe(false);
+        });
+
+        it('should return false for peekAndHide when checking application scope', () => {
+            expect(isApplicationHotkey('peekAndHide')).toBe(false);
         });
     });
 
@@ -92,7 +100,7 @@ describe('Hotkey Types', () => {
             expect(isApplicationHotkey(id)).toBe(true);
         });
 
-        it.each(['quickChat', 'bossKey'] as const)('should return false for %s', (id) => {
+        it.each(['quickChat', 'peekAndHide'] as const)('should return false for %s', (id) => {
             expect(isApplicationHotkey(id)).toBe(false);
         });
     });
@@ -150,7 +158,7 @@ describe('Hotkey Types', () => {
 
     describe('HotkeyId type', () => {
         it('should include printToPdf as a valid HotkeyId', () => {
-            const validIds: HotkeyId[] = ['quickChat', 'bossKey', 'alwaysOnTop', 'printToPdf'];
+            const validIds: HotkeyId[] = ['quickChat', 'peekAndHide', 'alwaysOnTop', 'printToPdf'];
             validIds.forEach((id) => {
                 expect(HOTKEY_IDS).toContain(id);
             });
@@ -178,7 +186,9 @@ describe('Hotkey Types', () => {
         });
 
         it('should include all expected hotkey IDs', () => {
-            expect(HOTKEY_IDS).toEqual(expect.arrayContaining(['quickChat', 'bossKey', 'alwaysOnTop', 'printToPdf']));
+            expect(HOTKEY_IDS).toEqual(
+                expect.arrayContaining(['quickChat', 'peekAndHide', 'alwaysOnTop', 'printToPdf'])
+            );
         });
 
         it('should have printToPdf at a consistent position', () => {
@@ -217,7 +227,7 @@ describe('Hotkey Types', () => {
         it('should accept printToPdf with enabled true', () => {
             const settings: IndividualHotkeySettings = {
                 quickChat: true,
-                bossKey: true,
+                peekAndHide: true,
                 alwaysOnTop: true,
                 printToPdf: true,
             };
@@ -227,7 +237,7 @@ describe('Hotkey Types', () => {
         it('should accept printToPdf with enabled false', () => {
             const settings: IndividualHotkeySettings = {
                 quickChat: true,
-                bossKey: true,
+                peekAndHide: true,
                 alwaysOnTop: true,
                 printToPdf: false,
             };
@@ -238,7 +248,7 @@ describe('Hotkey Types', () => {
             // This verifies that the interface requires printToPdf
             const settings: IndividualHotkeySettings = {
                 quickChat: false,
-                bossKey: false,
+                peekAndHide: false,
                 alwaysOnTop: false,
                 printToPdf: true,
             };
@@ -254,7 +264,7 @@ describe('Hotkey Types', () => {
             };
             const settings: HotkeySettings = {
                 quickChat: config,
-                bossKey: config,
+                peekAndHide: config,
                 alwaysOnTop: config,
                 printToPdf: config,
             };
@@ -265,7 +275,7 @@ describe('Hotkey Types', () => {
         it('should accept custom accelerator for printToPdf', () => {
             const settings: HotkeySettings = {
                 quickChat: { enabled: true, accelerator: 'CommandOrControl+Shift+Space' },
-                bossKey: { enabled: true, accelerator: 'CommandOrControl+Alt+E' },
+                peekAndHide: { enabled: true, accelerator: 'CommandOrControl+Alt+E' },
                 alwaysOnTop: { enabled: true, accelerator: 'CommandOrControl+Shift+T' },
                 printToPdf: { enabled: true, accelerator: 'CommandOrControl+Alt+P' },
             };
@@ -275,7 +285,7 @@ describe('Hotkey Types', () => {
         it('should accept default accelerator for printToPdf', () => {
             const settings: HotkeySettings = {
                 quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
-                bossKey: { enabled: true, accelerator: DEFAULT_ACCELERATORS.bossKey },
+                peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
                 alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
                 printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
             };
@@ -285,7 +295,7 @@ describe('Hotkey Types', () => {
         it('should reflect disabled state in HotkeyConfig', () => {
             const settings: HotkeySettings = {
                 quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
-                bossKey: { enabled: true, accelerator: DEFAULT_ACCELERATORS.bossKey },
+                peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
                 alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
                 printToPdf: { enabled: false, accelerator: DEFAULT_ACCELERATORS.printToPdf },
             };
@@ -301,8 +311,8 @@ describe('Hotkey Types', () => {
                 switch (id) {
                     case 'quickChat':
                         return 'quick';
-                    case 'bossKey':
-                        return 'boss';
+                    case 'peekAndHide':
+                        return 'peekAndHide';
                     case 'alwaysOnTop':
                         return 'aot';
                     case 'printToPdf':

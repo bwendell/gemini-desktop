@@ -91,7 +91,7 @@ describe('IPC Sanitization Integration', () => {
                 const handler = (ipcMain as any)._listeners.get('hotkeys:individual:set');
                 expect(handler).toBeDefined();
 
-                handler({}, 'bossKey', 'yes');
+                handler({}, 'peekAndHide', 'yes');
 
                 expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('Invalid enabled value: yes'));
 

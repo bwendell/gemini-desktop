@@ -263,7 +263,7 @@ IpcManager (orchestrator)
 
 **Name:** `HotkeyManager` (`src/main/managers/hotkeyManager.ts`)
 
-**Description:** Registers and manages global keyboard shortcuts that work even when the application is not focused. Supports customizable accelerators for Quick Chat (`Ctrl+Shift+Space`), Stealth Mode (`Ctrl+Alt+H`), Always On Top (`Ctrl+Shift+T`), and Settings (`Ctrl+,`). Includes special handling for Linux/Wayland via `GlobalShortcutsPortal`.
+**Description:** Registers and manages global keyboard shortcuts that work even when the application is not focused. Supports customizable accelerators for Quick Chat (`Ctrl+Shift+Space`), Peek and Hide (`Ctrl+Alt+H`), Always On Top (`Ctrl+Shift+T`), and Settings (`Ctrl+,`). Includes special handling for Linux/Wayland via `GlobalShortcutsPortal`.
 
 **Technologies:** Electron globalShortcut API, TypeScript
 
@@ -616,7 +616,7 @@ app.on('will-quit', () => {
 | **Preload Script**   | Bridge script that runs before renderer, exposes safe APIs via `contextBridge`.           |
 | **IPC**              | Inter-Process Communication - Electron's message passing between main and renderer.       |
 | **Quick Chat**       | Spotlight-style floating prompt window for quick Gemini queries.                          |
-| **Stealth Mode**     | Feature to instantly hide the app to system tray.                                         |
+| **Peek and Hide**    | Feature to instantly hide the app to system tray.                                         |
 | **WDIO**             | WebdriverIO - Testing framework used for integration and E2E tests.                       |
 | **contextBridge**    | Electron API for safely exposing Node.js functionality to renderer.                       |
 | **electron-updater** | Library for auto-update functionality in Electron apps.                                   |

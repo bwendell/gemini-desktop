@@ -7,12 +7,12 @@
 /**
  * Identifiers for individual hotkey features.
  */
-export type HotkeyId = 'alwaysOnTop' | 'bossKey' | 'quickChat' | 'printToPdf';
+export type HotkeyId = 'alwaysOnTop' | 'peekAndHide' | 'quickChat' | 'printToPdf';
 
 /**
  * All valid hotkey IDs as an array for iteration and validation.
  */
-export const HOTKEY_IDS: HotkeyId[] = ['alwaysOnTop', 'bossKey', 'quickChat', 'printToPdf'];
+export const HOTKEY_IDS: HotkeyId[] = ['alwaysOnTop', 'peekAndHide', 'quickChat', 'printToPdf'];
 
 /**
  * Scope of a hotkey determining its registration mechanism.
@@ -25,7 +25,7 @@ export type HotkeyScope = 'global' | 'application';
  * Hotkeys that work system-wide via Electron's globalShortcut API.
  * These work even when the application is not focused.
  */
-export const GLOBAL_HOTKEY_IDS: HotkeyId[] = ['quickChat', 'bossKey'];
+export const GLOBAL_HOTKEY_IDS: HotkeyId[] = ['quickChat', 'peekAndHide'];
 
 /**
  * Hotkeys that work only when the application window is focused.
@@ -38,7 +38,7 @@ export const APPLICATION_HOTKEY_IDS: HotkeyId[] = ['alwaysOnTop', 'printToPdf'];
  */
 export const HOTKEY_SCOPE_MAP: Record<HotkeyId, HotkeyScope> = {
     quickChat: 'global',
-    bossKey: 'global',
+    peekAndHide: 'global',
     alwaysOnTop: 'application',
     printToPdf: 'application',
 };
@@ -77,8 +77,8 @@ export function isApplicationHotkey(id: HotkeyId): boolean {
 export interface IndividualHotkeySettings {
     /** Always on Top toggle hotkey enabled state */
     alwaysOnTop: boolean;
-    /** Boss Key / Minimize hotkey enabled state */
-    bossKey: boolean;
+    /** Peek and Hide hotkey enabled state */
+    peekAndHide: boolean;
     /** Quick Chat toggle hotkey enabled state */
     quickChat: boolean;
     /** Print to PDF hotkey enabled state */
@@ -100,7 +100,7 @@ export interface HotkeyConfig {
  */
 export interface HotkeySettings {
     alwaysOnTop: HotkeyConfig;
-    bossKey: HotkeyConfig;
+    peekAndHide: HotkeyConfig;
     quickChat: HotkeyConfig;
     printToPdf: HotkeyConfig;
 }
@@ -119,9 +119,9 @@ export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
     // Ctrl+Alt+P = Pin window (always on top)
     // Note: Ctrl+Alt+T conflicts with GNOME terminal shortcut
     alwaysOnTop: 'CommandOrControl+Alt+P',
-    // Ctrl+Alt+H = Hide window (boss key)
+    // Ctrl+Alt+H = Peek and Hide window
     // Note: Ctrl+Alt+E was not conflicting but H is more intuitive
-    bossKey: 'CommandOrControl+Alt+H',
+    peekAndHide: 'CommandOrControl+Alt+H',
     // Ctrl+Shift+Space = Quick Chat toggle
     quickChat: 'CommandOrControl+Shift+Space',
     // Ctrl+Shift+P = Print to PDF

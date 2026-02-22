@@ -108,7 +108,7 @@ export class OptionsPage extends BasePage {
     /**
      * Get selector for a specific hotkey toggle switch button.
      * Targets the switch element where aria-checked is defined.
-     * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'bossKey')
+     * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'peekAndHide')
      */
     hotkeyToggleSelector(hotkeyId: string): string {
         return `[data-testid="hotkey-toggle-${hotkeyId}-switch"]`;
@@ -124,7 +124,7 @@ export class OptionsPage extends BasePage {
 
     /**
      * Get selector for the accelerator container within a hotkey row.
-     * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'bossKey')
+     * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'peekAndHide')
      */
     acceleratorContainerSelector(hotkeyId: string): string {
         return `[data-testid="hotkey-row-${hotkeyId}"] .keycap-container`;
@@ -308,7 +308,7 @@ export class OptionsPage extends BasePage {
 
     /**
      * Click the accelerator input to start recording mode.
-     * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'bossKey')
+     * @param hotkeyId - Hotkey ID (e.g., 'alwaysOnTop', 'quickChat', 'peekAndHide')
      */
     async clickAcceleratorInput(hotkeyId: string): Promise<void> {
         this.log(`Clicking accelerator input for: ${hotkeyId}`);

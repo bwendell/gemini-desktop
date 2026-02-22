@@ -50,7 +50,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
             theme: 'system',
             alwaysOnTop: false,
             hotkeyAlwaysOnTop: true,
-            hotkeyBossKey: true,
+            hotkeyPeekAndHide: true,
             hotkeyQuickChat: true,
             hotkeyPrintToPdf: true,
             autoUpdateEnabled: true,
@@ -98,7 +98,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
             const initialSettings: IndividualHotkeySettings = {
                 alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
-                bossKey: mockStore.get('hotkeyBossKey') ?? true,
+                peekAndHide: mockStore.get('hotkeyPeekAndHide') ?? true,
                 quickChat: mockStore.get('hotkeyQuickChat') ?? true,
                 printToPdf: mockStore.get('hotkeyPrintToPdf') ?? true,
             };
@@ -143,7 +143,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                     'hotkeys:individual:changed',
                     expect.objectContaining({
                         alwaysOnTop: false,
-                        bossKey: true,
+                        peekAndHide: true,
                         quickChat: true,
                     })
                 );
@@ -151,42 +151,42 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                     'hotkeys:individual:changed',
                     expect.objectContaining({
                         alwaysOnTop: false,
-                        bossKey: true,
+                        peekAndHide: true,
                         quickChat: true,
                     })
                 );
             });
 
             it('should re-enable hotkey and register it', () => {
-                hotkeyManager.setIndividualEnabled('bossKey', false);
+                hotkeyManager.setIndividualEnabled('peekAndHide', false);
                 hotkeyManager.registerShortcuts();
 
                 vi.clearAllMocks();
 
                 const handler = getListener('hotkeys:individual:set');
-                handler({}, 'bossKey', true);
+                handler({}, 'peekAndHide', true);
 
-                expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
+                expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
 
                 expect(globalShortcut.register).toHaveBeenCalledWith(
-                    DEFAULT_ACCELERATORS.bossKey,
+                    DEFAULT_ACCELERATORS.peekAndHide,
                     expect.any(Function)
                 );
 
-                expect(mockStore.set).toHaveBeenCalledWith('hotkeyBossKey', true);
+                expect(mockStore.set).toHaveBeenCalledWith('hotkeyPeekAndHide', true);
             });
         });
 
         describe('App restart simulation', () => {
             it('should load settings from store and register only enabled hotkeys', () => {
                 mockStore._data.hotkeyAlwaysOnTop = false;
-                mockStore._data.hotkeyBossKey = true;
+                mockStore._data.hotkeyPeekAndHide = true;
                 mockStore._data.hotkeyQuickChat = true;
                 mockStore.get.mockImplementation((key: string) => mockStore._data[key]);
 
                 const restartedHotkeyManager = new HotkeyManager(windowManager, {
                     alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
-                    bossKey: mockStore.get('hotkeyBossKey') ?? true,
+                    peekAndHide: mockStore.get('hotkeyPeekAndHide') ?? true,
                     quickChat: mockStore.get('hotkeyQuickChat') ?? true,
                 });
 
@@ -197,14 +197,14 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                 const registerCalls = (globalShortcut.register as any).mock.calls;
                 const registeredAccelerators = registerCalls.map((call: any) => call[0]);
 
-                expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.bossKey);
+                expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.peekAndHide);
 
                 expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.quickChat);
 
                 expect(registeredAccelerators).not.toContain(DEFAULT_ACCELERATORS.alwaysOnTop);
 
                 expect(restartedHotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(false);
-                expect(restartedHotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
+                expect(restartedHotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
                 expect(restartedHotkeyManager.isIndividualEnabled('quickChat')).toBe(true);
 
                 restartedHotkeyManager.unregisterAll();
@@ -212,13 +212,13 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
             it('should handle all hotkeys disabled on restart', () => {
                 mockStore._data.hotkeyAlwaysOnTop = false;
-                mockStore._data.hotkeyBossKey = false;
+                mockStore._data.hotkeyPeekAndHide = false;
                 mockStore._data.hotkeyQuickChat = false;
                 mockStore.get.mockImplementation((key: string) => mockStore._data[key]);
 
                 const restartedHotkeyManager = new HotkeyManager(windowManager, {
                     alwaysOnTop: false,
-                    bossKey: false,
+                    peekAndHide: false,
                     quickChat: false,
                 });
 
@@ -239,25 +239,27 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 const handler = getListener('hotkeys:individual:set');
 
-                handler({}, 'bossKey', false);
-                handler({}, 'bossKey', true);
-                handler({}, 'bossKey', false);
-                handler({}, 'bossKey', true);
-                handler({}, 'bossKey', false);
-                handler({}, 'bossKey', true);
+                handler({}, 'peekAndHide', false);
+                handler({}, 'peekAndHide', true);
+                handler({}, 'peekAndHide', false);
+                handler({}, 'peekAndHide', true);
+                handler({}, 'peekAndHide', false);
+                handler({}, 'peekAndHide', true);
 
-                expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
+                expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
 
-                const setCallsForBossKey = (mockStore.set as any).mock.calls.filter(
-                    (call: any) => call[0] === 'hotkeyBossKey'
+                const setCallsForPeekAndHide = (mockStore.set as any).mock.calls.filter(
+                    (call: any) => call[0] === 'hotkeyPeekAndHide'
                 );
-                expect(setCallsForBossKey.length).toBe(6);
+                expect(setCallsForPeekAndHide.length).toBe(6);
 
-                expect(setCallsForBossKey[5][1]).toBe(true);
+                expect(setCallsForPeekAndHide[5][1]).toBe(true);
 
                 const registerCalls = (globalShortcut.register as any).mock.calls;
-                const bossKeyRegisters = registerCalls.filter((call: any) => call[0] === DEFAULT_ACCELERATORS.bossKey);
-                expect(bossKeyRegisters.length).toBe(3);
+                const peekAndHideRegisters = registerCalls.filter(
+                    (call: any) => call[0] === DEFAULT_ACCELERATORS.peekAndHide
+                );
+                expect(peekAndHideRegisters.length).toBe(3);
             });
 
             it('should handle toggling all hotkeys rapidly', () => {
@@ -266,19 +268,81 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 const handler = getListener('hotkeys:individual:set');
 
-                ['alwaysOnTop', 'bossKey', 'quickChat'].forEach((hotkeyId) => {
+                ['alwaysOnTop', 'peekAndHide', 'quickChat'].forEach((hotkeyId) => {
                     handler({}, hotkeyId, false);
                     handler({}, hotkeyId, true);
                     handler({}, hotkeyId, false);
                 });
 
                 expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(false);
-                expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(false);
+                expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(false);
                 expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(false);
 
                 expect(mockStore.set).toHaveBeenCalledWith('hotkeyAlwaysOnTop', false);
-                expect(mockStore.set).toHaveBeenCalledWith('hotkeyBossKey', false);
+                expect(mockStore.set).toHaveBeenCalledWith('hotkeyPeekAndHide', false);
                 expect(mockStore.set).toHaveBeenCalledWith('hotkeyQuickChat', false);
+            });
+        });
+
+        describe('Peek & Hide Toggle Coordination', () => {
+            it('should toggle: hide main window when visible', () => {
+                const win = windowManager.createMainWindow();
+                // Window starts visible by default in the mock
+                expect(win.isVisible()).toBe(true);
+
+                windowManager.toggleMainWindowVisibility();
+
+                expect(win.isVisible()).toBe(false);
+            });
+
+            it('should toggle: restore main window when hidden', () => {
+                const win = windowManager.createMainWindow();
+                win.hide();
+                expect(win.isVisible()).toBe(false);
+
+                windowManager.toggleMainWindowVisibility();
+
+                expect(win.isVisible()).toBe(true);
+            });
+
+            it('should complete a full toggle cycle: visible → hidden → visible', () => {
+                const win = windowManager.createMainWindow();
+                expect(win.isVisible()).toBe(true);
+
+                // First press: visible → hidden
+                windowManager.toggleMainWindowVisibility();
+                expect(win.isVisible()).toBe(false);
+
+                // Second press: hidden → visible
+                windowManager.toggleMainWindowVisibility();
+                expect(win.isVisible()).toBe(true);
+            });
+
+            it('should not affect quick chat window state when toggling main window', () => {
+                const mainWin = windowManager.createMainWindow();
+                const quickChatWin = windowManager.createQuickChatWindow();
+
+                // Both visible initially
+                expect(mainWin.isVisible()).toBe(true);
+                expect(quickChatWin.isVisible()).toBe(true);
+
+                // Toggle main window only
+                windowManager.toggleMainWindowVisibility();
+
+                // Main window should be hidden
+                expect(mainWin.isVisible()).toBe(false);
+                // Quick chat window is unaffected
+                expect(quickChatWin.isVisible()).toBe(true);
+            });
+
+            it('should create main window when it does not exist (destroyed edge case)', () => {
+                // No window created yet
+                expect(windowManager.getMainWindow()).toBeNull();
+
+                windowManager.toggleMainWindowVisibility();
+
+                // A new window should have been created
+                expect(windowManager.getMainWindow()).not.toBeNull();
             });
         });
     });

@@ -677,7 +677,7 @@ describe('MenuManager', () => {
             )[1];
 
             vi.clearAllMocks();
-            enableHandler('bossKey');
+            enableHandler('peekAndHide');
             expect(Menu.buildFromTemplate).not.toHaveBeenCalled();
         });
     });

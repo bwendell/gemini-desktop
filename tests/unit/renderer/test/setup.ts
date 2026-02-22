@@ -64,7 +64,7 @@ const mockElectronAPI = {
     // Individual Hotkeys API
     getIndividualHotkeys: vi.fn().mockResolvedValue({
         alwaysOnTop: true,
-        bossKey: true,
+        peekAndHide: true,
         quickChat: true,
         printToPdf: true,
     }),
@@ -74,17 +74,17 @@ const mockElectronAPI = {
     // Hotkey Accelerators API
     getHotkeyAccelerators: vi.fn().mockResolvedValue({
         alwaysOnTop: 'Control+Alt+T',
-        bossKey: 'Control+Alt+B',
+        peekAndHide: 'Control+Alt+B',
         quickChat: 'Control+Alt+X',
         printToPdf: 'Control+Alt+P',
     }),
     setHotkeyAccelerator: vi.fn(),
     onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(() => {}),
     getFullHotkeySettings: vi.fn().mockResolvedValue({
-        enabled: { alwaysOnTop: true, bossKey: true, quickChat: true, printToPdf: true },
+        enabled: { alwaysOnTop: true, peekAndHide: true, quickChat: true, printToPdf: true },
         accelerators: {
             alwaysOnTop: 'Control+Alt+T',
-            bossKey: 'Control+Alt+B',
+            peekAndHide: 'Control+Alt+B',
             quickChat: 'Control+Alt+X',
             printToPdf: 'Control+Alt+P',
         },

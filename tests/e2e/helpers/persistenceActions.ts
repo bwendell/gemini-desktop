@@ -159,10 +159,10 @@ export interface UserPreferencesData {
     theme?: 'light' | 'dark' | 'system';
     alwaysOnTop?: boolean;
     hotkeyAlwaysOnTop?: boolean;
-    hotkeyBossKey?: boolean;
+    hotkeyPeekAndHide?: boolean;
     hotkeyQuickChat?: boolean;
     acceleratorAlwaysOnTop?: string;
-    acceleratorBossKey?: string;
+    acceleratorPeekAndHide?: string;
     acceleratorQuickChat?: string;
     autoUpdateEnabled?: boolean;
     zoomLevel?: number;
@@ -239,18 +239,18 @@ export async function getAlwaysOnTopSetting(): Promise<boolean | undefined> {
 /**
  * Get an individual hotkey enabled state from settings.
  *
- * @param hotkeyId - The hotkey identifier ('alwaysOnTop', 'bossKey', 'quickChat')
+ * @param hotkeyId - The hotkey identifier ('alwaysOnTop', 'peekAndHide', 'quickChat')
  * @returns true/false if set, undefined if not found
  */
 export async function getHotkeyEnabledSetting(
-    hotkeyId: 'alwaysOnTop' | 'bossKey' | 'quickChat'
+    hotkeyId: 'alwaysOnTop' | 'peekAndHide' | 'quickChat'
 ): Promise<boolean | undefined> {
     const prefs = await readUserPreferences();
     if (!prefs) return undefined;
 
     const keyMap: Record<string, keyof UserPreferencesData> = {
         alwaysOnTop: 'hotkeyAlwaysOnTop',
-        bossKey: 'hotkeyBossKey',
+        peekAndHide: 'hotkeyPeekAndHide',
         quickChat: 'hotkeyQuickChat',
     };
 

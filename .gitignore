@@ -49,4 +49,5 @@ tests/e2e/logs/
 prompts/
 
 .agent/skills
+.worktrees/.sisyphus/
 .worktrees/

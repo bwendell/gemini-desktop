@@ -110,8 +110,8 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
             });
         });
 
-        describe('Boss key hide → Window state coordination', () => {
-            it('should hide all windows via boss key and track state', () => {
+        describe('Peek and Hide → Window state coordination', () => {
+            it('should hide all windows via Peek and Hide and track state', () => {
                 const mainWindow = windowManager.createMainWindow();
                 const quickChatWindow = windowManager.createQuickChatWindow();
 

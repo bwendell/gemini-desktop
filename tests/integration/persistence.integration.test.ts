@@ -40,7 +40,7 @@ describe('Application Lifecycle & Persistence', () => {
         // 1. Change setting via Renderer IPC
         await browser.execute(async () => {
             const api = (window as any).electronAPI;
-            await api.setIndividualHotkey('bossKey', false);
+            await api.setIndividualHotkey('peekAndHide', false);
         });
 
         await browser.pause(1000);
@@ -50,7 +50,7 @@ describe('Application Lifecycle & Persistence', () => {
         const content = fs.readFileSync(settingsPath, 'utf-8');
         const settings = JSON.parse(content);
 
-        // Key in store is 'hotkeyBossKey' based on ipcManager map
-        expect(settings).toHaveProperty('hotkeyBossKey', false);
+        // Key in store is 'hotkeyPeekAndHide' based on ipcManager map
+        expect(settings).toHaveProperty('hotkeyPeekAndHide', false);
     });
 });

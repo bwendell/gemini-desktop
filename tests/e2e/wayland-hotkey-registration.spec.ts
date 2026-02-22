@@ -102,9 +102,9 @@ describe('Wayland Hotkey Registration', () => {
         }
 
         const quickChatResult = status.registrationResults.find((result) => result.hotkeyId === 'quickChat');
-        const bossKeyResult = status.registrationResults.find((result) => result.hotkeyId === 'bossKey');
+        const peekAndHideResult = status.registrationResults.find((result) => result.hotkeyId === 'peekAndHide');
 
-        if (!quickChatResult || !bossKeyResult) {
+        if (!quickChatResult || !peekAndHideResult) {
             skipTest(
                 this,
                 'Wayland+KDE hotkeys',
@@ -114,7 +114,7 @@ describe('Wayland Hotkey Registration', () => {
 
         expect(status.globalHotkeysEnabled).toBe(true);
         expect(quickChatResult.success).toBe(true);
-        expect(bossKeyResult.success).toBe(true);
+        expect(peekAndHideResult.success).toBe(true);
 
         console.log('✓ Wayland hotkeys registered successfully');
     });
@@ -369,7 +369,7 @@ describe('Non-Linux Platform Behavior', () => {
         }
 
         // Check if ANY global hotkey was registered
-        const anyRegistered = registrationStatus.quickChat || registrationStatus.bossKey;
+        const anyRegistered = registrationStatus.quickChat || registrationStatus.peekAndHide;
 
         if (!anyRegistered) {
             skipTest(
@@ -381,7 +381,7 @@ describe('Non-Linux Platform Behavior', () => {
 
         // Verify both global hotkeys are registered on non-Linux platforms
         expect(registrationStatus.quickChat).toBe(true);
-        expect(registrationStatus.bossKey).toBe(true);
+        expect(registrationStatus.peekAndHide).toBe(true);
 
         console.log('✓ Non-Linux hotkey registration working as expected');
     });

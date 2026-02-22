@@ -15,7 +15,7 @@
  * // Use the hotkey state in components
  * const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
  * setEnabled('quickChat', false);
- * setAccelerator('bossKey', 'CommandOrControl+Alt+H');
+ * setAccelerator('peekAndHide', 'CommandOrControl+Alt+H');
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
@@ -74,7 +74,7 @@ interface IndividualHotkeysProviderProps {
 /** Default settings when API is unavailable */
 const DEFAULT_SETTINGS: IndividualHotkeySettings = {
     alwaysOnTop: true,
-    bossKey: true,
+    peekAndHide: true,
     quickChat: true,
     printToPdf: true,
 };
@@ -87,11 +87,11 @@ function isValidSettings(data: unknown): data is IndividualHotkeySettings {
         typeof data === 'object' &&
         data !== null &&
         'alwaysOnTop' in data &&
-        'bossKey' in data &&
+        'peekAndHide' in data &&
         'quickChat' in data &&
         'printToPdf' in data &&
         typeof (data as IndividualHotkeySettings).alwaysOnTop === 'boolean' &&
-        typeof (data as IndividualHotkeySettings).bossKey === 'boolean' &&
+        typeof (data as IndividualHotkeySettings).peekAndHide === 'boolean' &&
         typeof (data as IndividualHotkeySettings).quickChat === 'boolean' &&
         typeof (data as IndividualHotkeySettings).printToPdf === 'boolean'
     );
@@ -105,11 +105,11 @@ function isValidAccelerators(data: unknown): data is HotkeyAccelerators {
         typeof data === 'object' &&
         data !== null &&
         'alwaysOnTop' in data &&
-        'bossKey' in data &&
+        'peekAndHide' in data &&
         'quickChat' in data &&
         'printToPdf' in data &&
         typeof (data as HotkeyAccelerators).alwaysOnTop === 'string' &&
-        typeof (data as HotkeyAccelerators).bossKey === 'string' &&
+        typeof (data as HotkeyAccelerators).peekAndHide === 'string' &&
         typeof (data as HotkeyAccelerators).quickChat === 'string' &&
         typeof (data as HotkeyAccelerators).printToPdf === 'string'
     );
@@ -261,7 +261,7 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
  * @example
  * const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
  * setEnabled('quickChat', false); // Disable Quick Chat hotkey
- * setAccelerator('bossKey', 'CommandOrControl+Alt+H'); // Change Boss Key shortcut
+ * setAccelerator('peekAndHide', 'CommandOrControl+Alt+H'); // Change Peek and Hide shortcut
  */
 export function useIndividualHotkeys(): IndividualHotkeysContextType {
     const context = useContext(IndividualHotkeysContext);

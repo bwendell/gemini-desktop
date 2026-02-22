@@ -150,12 +150,12 @@ describe('Settings Persistence', () => {
 
             // 2. Get initial toggle states for all three hotkeys
             const initialAlwaysOnTop = await optionsPage.isHotkeyEnabled('alwaysOnTop');
-            const initialBossKey = await optionsPage.isHotkeyEnabled('bossKey');
+            const initialPeekAndHide = await optionsPage.isHotkeyEnabled('peekAndHide');
             const initialQuickChat = await optionsPage.isHotkeyEnabled('quickChat');
 
             E2ELogger.info(
                 'settings-persistence',
-                `Initial states - AlwaysOnTop: ${initialAlwaysOnTop}, BossKey: ${initialBossKey}, QuickChat: ${initialQuickChat}`
+                `Initial states - AlwaysOnTop: ${initialAlwaysOnTop}, PeekAndHide: ${initialPeekAndHide}, QuickChat: ${initialQuickChat}`
             );
 
             // 3. Toggle Always-on-Top hotkey and verify persistence
@@ -167,14 +167,14 @@ describe('Settings Persistence', () => {
             expect(hotkeyState).toBe(!initialAlwaysOnTop);
             E2ELogger.info('settings-persistence', `AlwaysOnTop saved: ${hotkeyState}`);
 
-            // 4. Toggle Boss Key hotkey and verify persistence
-            await optionsPage.toggleHotkey('bossKey');
-            const bossKeyPersisted = await waitForSettingValue('hotkeyBossKey', !initialBossKey, 3000);
-            expect(bossKeyPersisted).toBe(true);
+            // 4. Toggle Peek and Hide hotkey and verify persistence
+            await optionsPage.toggleHotkey('peekAndHide');
+            const peekAndHidePersisted = await waitForSettingValue('hotkeyPeekAndHide', !initialPeekAndHide, 3000);
+            expect(peekAndHidePersisted).toBe(true);
 
-            hotkeyState = await settings.getHotkeyEnabled('bossKey');
-            expect(hotkeyState).toBe(!initialBossKey);
-            E2ELogger.info('settings-persistence', `BossKey saved: ${hotkeyState}`);
+            hotkeyState = await settings.getHotkeyEnabled('peekAndHide');
+            expect(hotkeyState).toBe(!initialPeekAndHide);
+            E2ELogger.info('settings-persistence', `PeekAndHide saved: ${hotkeyState}`);
 
             // 5. Toggle Quick Chat hotkey and verify persistence
             await optionsPage.toggleHotkey('quickChat');
@@ -187,20 +187,20 @@ describe('Settings Persistence', () => {
 
             // 6. Restore original states
             await optionsPage.toggleHotkey('alwaysOnTop');
-            await optionsPage.toggleHotkey('bossKey');
+            await optionsPage.toggleHotkey('peekAndHide');
             await optionsPage.toggleHotkey('quickChat');
 
             // Wait for all to be persisted and assert
             const alwaysOnTopRestored = await waitForSettingValue('hotkeyAlwaysOnTop', initialAlwaysOnTop, 3000);
-            const bossKeyRestored = await waitForSettingValue('hotkeyBossKey', initialBossKey, 3000);
+            const peekAndHideRestored = await waitForSettingValue('hotkeyPeekAndHide', initialPeekAndHide, 3000);
             const quickChatRestored = await waitForSettingValue('hotkeyQuickChat', initialQuickChat, 3000);
             expect(alwaysOnTopRestored).toBe(true);
-            expect(bossKeyRestored).toBe(true);
+            expect(peekAndHideRestored).toBe(true);
             expect(quickChatRestored).toBe(true);
 
             // 7. Verify all states restored
             expect(await settings.getHotkeyEnabled('alwaysOnTop')).toBe(initialAlwaysOnTop);
-            expect(await settings.getHotkeyEnabled('bossKey')).toBe(initialBossKey);
+            expect(await settings.getHotkeyEnabled('peekAndHide')).toBe(initialPeekAndHide);
             expect(await settings.getHotkeyEnabled('quickChat')).toBe(initialQuickChat);
 
             E2ELogger.info('settings-persistence', 'All individual hotkey states restored');
@@ -215,27 +215,27 @@ describe('Settings Persistence', () => {
             await waitForWindowCount(2);
             await optionsPage.waitForLoad();
 
-            // 2. Toggle only Boss Key (leave others unchanged)
-            const initialBossKey = await optionsPage.isHotkeyEnabled('bossKey');
-            await optionsPage.toggleHotkey('bossKey');
+            // 2. Toggle only Peek and Hide (leave others unchanged)
+            const initialPeekAndHide = await optionsPage.isHotkeyEnabled('peekAndHide');
+            await optionsPage.toggleHotkey('peekAndHide');
 
             // Wait for settings to be persisted and assert
-            const bossKeyChanged = await waitForSettingValue('hotkeyBossKey', !initialBossKey, 3000);
-            expect(bossKeyChanged).toBe(true);
+            const peekAndHideChanged = await waitForSettingValue('hotkeyPeekAndHide', !initialPeekAndHide, 3000);
+            expect(peekAndHideChanged).toBe(true);
 
-            // 3. Verify only Boss Key changed in settings
-            const bossKeyState = await settings.getHotkeyEnabled('bossKey');
-            expect(bossKeyState).toBe(!initialBossKey);
+            // 3. Verify only Peek and Hide changed in settings
+            const peekAndHideState = await settings.getHotkeyEnabled('peekAndHide');
+            expect(peekAndHideState).toBe(!initialPeekAndHide);
 
             // 4. Restore and verify
-            await optionsPage.toggleHotkey('bossKey');
+            await optionsPage.toggleHotkey('peekAndHide');
 
             // Wait for settings to be persisted and assert
-            const bossKeyRestored2 = await waitForSettingValue('hotkeyBossKey', initialBossKey, 3000);
-            expect(bossKeyRestored2).toBe(true);
+            const peekAndHideRestored2 = await waitForSettingValue('hotkeyPeekAndHide', initialPeekAndHide, 3000);
+            expect(peekAndHideRestored2).toBe(true);
 
-            const restoredBossKey = await settings.getHotkeyEnabled('bossKey');
-            expect(restoredBossKey).toBe(initialBossKey);
+            const restoredPeekAndHide = await settings.getHotkeyEnabled('peekAndHide');
+            expect(restoredPeekAndHide).toBe(initialPeekAndHide);
 
             E2ELogger.info('settings-persistence', 'Individual hotkey persistence verified');
 

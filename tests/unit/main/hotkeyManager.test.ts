@@ -126,19 +126,19 @@ describe('HotkeyManager', () => {
         it('should initialize shortcut actions with correct IDs', () => {
             const shortcutActions = (hotkeyManager as unknown as { shortcutActions: { id: string }[] }).shortcutActions;
             expect(shortcutActions).toHaveLength(4);
-            expect(shortcutActions.map((s) => s.id)).toEqual(['bossKey', 'quickChat', 'alwaysOnTop', 'printToPdf']);
+            expect(shortcutActions.map((s) => s.id)).toEqual(['peekAndHide', 'quickChat', 'alwaysOnTop', 'printToPdf']);
         });
 
         it('should accept initial settings (old style)', () => {
             const customManager = new HotkeyManager(mockWindowManager, {
                 alwaysOnTop: false,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: false,
             });
 
             expect(customManager.getIndividualSettings()).toEqual({
                 alwaysOnTop: false,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: false,
                 printToPdf: true,
             });
@@ -148,21 +148,21 @@ describe('HotkeyManager', () => {
             const customManager = new HotkeyManager(mockWindowManager, {
                 enabled: {
                     alwaysOnTop: false,
-                    bossKey: true,
+                    peekAndHide: true,
                     quickChat: false,
                 },
                 accelerators: {
-                    bossKey: 'CommandOrControl+Alt+H',
+                    peekAndHide: 'CommandOrControl+Alt+H',
                 },
             });
 
             expect(customManager.getIndividualSettings()).toEqual({
                 alwaysOnTop: false,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: false,
                 printToPdf: true,
             });
-            expect(customManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+H');
+            expect(customManager.getAccelerator('peekAndHide')).toBe('CommandOrControl+Alt+H');
             // Others should have defaults
             expect(customManager.getAccelerator('alwaysOnTop')).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
             expect(customManager.getAccelerator('quickChat')).toBe(DEFAULT_ACCELERATORS.quickChat);
@@ -179,8 +179,8 @@ describe('HotkeyManager', () => {
                 expect(getHotkeyScope('quickChat')).toBe('global');
             });
 
-            it('should return "global" for bossKey', () => {
-                expect(getHotkeyScope('bossKey')).toBe('global');
+            it('should return "global" for peekAndHide', () => {
+                expect(getHotkeyScope('peekAndHide')).toBe('global');
             });
 
             it('should return "application" for alwaysOnTop', () => {
@@ -197,8 +197,8 @@ describe('HotkeyManager', () => {
                 expect(isGlobalHotkey('quickChat')).toBe(true);
             });
 
-            it('should return true for bossKey', () => {
-                expect(isGlobalHotkey('bossKey')).toBe(true);
+            it('should return true for peekAndHide', () => {
+                expect(isGlobalHotkey('peekAndHide')).toBe(true);
             });
 
             it('should return false for alwaysOnTop', () => {
@@ -215,8 +215,8 @@ describe('HotkeyManager', () => {
                 expect(isApplicationHotkey('quickChat')).toBe(false);
             });
 
-            it('should return false for bossKey', () => {
-                expect(isApplicationHotkey('bossKey')).toBe(false);
+            it('should return false for peekAndHide', () => {
+                expect(isApplicationHotkey('peekAndHide')).toBe(false);
             });
 
             it('should return true for alwaysOnTop', () => {
@@ -230,7 +230,7 @@ describe('HotkeyManager', () => {
 
         describe('GLOBAL_HOTKEY_IDS and APPLICATION_HOTKEY_IDS', () => {
             it('should have correct global hotkey IDs', () => {
-                expect(GLOBAL_HOTKEY_IDS).toEqual(['quickChat', 'bossKey']);
+                expect(GLOBAL_HOTKEY_IDS).toEqual(['quickChat', 'peekAndHide']);
             });
 
             it('should have correct application hotkey IDs', () => {
@@ -252,7 +252,7 @@ describe('HotkeyManager', () => {
         it('should return default settings (all enabled)', () => {
             expect(hotkeyManager.getIndividualSettings()).toEqual({
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -267,7 +267,7 @@ describe('HotkeyManager', () => {
         it('should return default accelerators', () => {
             expect(hotkeyManager.getAccelerators()).toEqual({
                 alwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
-                bossKey: DEFAULT_ACCELERATORS.bossKey,
+                peekAndHide: DEFAULT_ACCELERATORS.peekAndHide,
                 quickChat: DEFAULT_ACCELERATORS.quickChat,
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });
@@ -277,7 +277,7 @@ describe('HotkeyManager', () => {
     describe('getAccelerator', () => {
         it('should return accelerator for specific hotkey', () => {
             expect(hotkeyManager.getAccelerator('alwaysOnTop')).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
-            expect(hotkeyManager.getAccelerator('bossKey')).toBe(DEFAULT_ACCELERATORS.bossKey);
+            expect(hotkeyManager.getAccelerator('peekAndHide')).toBe(DEFAULT_ACCELERATORS.peekAndHide);
             expect(hotkeyManager.getAccelerator('quickChat')).toBe(DEFAULT_ACCELERATORS.quickChat);
             expect(hotkeyManager.getAccelerator('printToPdf')).toBe(DEFAULT_ACCELERATORS.printToPdf);
         });
@@ -290,9 +290,9 @@ describe('HotkeyManager', () => {
                     enabled: true,
                     accelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
                 },
-                bossKey: {
+                peekAndHide: {
                     enabled: true,
-                    accelerator: DEFAULT_ACCELERATORS.bossKey,
+                    accelerator: DEFAULT_ACCELERATORS.peekAndHide,
                 },
                 quickChat: {
                     enabled: true,
@@ -306,10 +306,10 @@ describe('HotkeyManager', () => {
         });
 
         it('should reflect changes to enabled states', () => {
-            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('peekAndHide', false);
             const settings = hotkeyManager.getFullSettings();
-            expect(settings.bossKey.enabled).toBe(false);
-            expect(settings.bossKey.accelerator).toBe(DEFAULT_ACCELERATORS.bossKey);
+            expect(settings.peekAndHide.enabled).toBe(false);
+            expect(settings.peekAndHide.accelerator).toBe(DEFAULT_ACCELERATORS.peekAndHide);
         });
 
         it('should reflect changes to accelerators', () => {
@@ -326,8 +326,8 @@ describe('HotkeyManager', () => {
         });
 
         it('should update the accelerator for a hotkey', () => {
-            hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H');
-            expect(hotkeyManager.getAccelerator('bossKey')).toBe('CommandOrControl+Alt+H');
+            hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+H');
+            expect(hotkeyManager.getAccelerator('peekAndHide')).toBe('CommandOrControl+Alt+H');
         });
 
         it('should re-register with new accelerator if hotkey was registered', () => {
@@ -336,17 +336,17 @@ describe('HotkeyManager', () => {
             vi.clearAllMocks();
 
             // Change accelerator for enabled hotkey (use a value that's not the default)
-            hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+B');
+            hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+B');
 
             // Should unregister old accelerator
-            expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.bossKey);
+            expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.peekAndHide);
             // Should register new accelerator
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith('CommandOrControl+Alt+B', expect.any(Function));
         });
 
         it('should not re-register if hotkey was not registered', () => {
             // Don't register shortcuts first
-            hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H');
+            hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+H');
 
             expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
             expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
@@ -357,7 +357,7 @@ describe('HotkeyManager', () => {
             vi.clearAllMocks();
 
             // Set to same value
-            hotkeyManager.setAccelerator('bossKey', DEFAULT_ACCELERATORS.bossKey);
+            hotkeyManager.setAccelerator('peekAndHide', DEFAULT_ACCELERATORS.peekAndHide);
 
             // Should not trigger any registration changes
             expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
@@ -373,14 +373,14 @@ describe('HotkeyManager', () => {
         it('should update all accelerators at once', () => {
             hotkeyManager.updateAllAccelerators({
                 alwaysOnTop: 'CommandOrControl+Shift+A',
-                bossKey: 'CommandOrControl+Alt+B',
+                peekAndHide: 'CommandOrControl+Alt+B',
                 quickChat: 'CommandOrControl+Shift+Q',
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });
 
             expect(hotkeyManager.getAccelerators()).toEqual({
                 alwaysOnTop: 'CommandOrControl+Shift+A',
-                bossKey: 'CommandOrControl+Alt+B',
+                peekAndHide: 'CommandOrControl+Alt+B',
                 quickChat: 'CommandOrControl+Shift+Q',
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });
@@ -390,7 +390,7 @@ describe('HotkeyManager', () => {
     describe('isIndividualEnabled', () => {
         it('should return true for enabled hotkeys', () => {
             expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(true);
-            expect(hotkeyManager.isIndividualEnabled('bossKey')).toBe(true);
+            expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
             expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(true);
         });
 
@@ -424,13 +424,13 @@ describe('HotkeyManager', () => {
             hotkeyManager.registerShortcuts();
 
             // Now disable one
-            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('peekAndHide', false);
 
-            expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.bossKey);
+            expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.peekAndHide);
         });
 
         it('should not call unregister if hotkey was never registered', () => {
-            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('peekAndHide', false);
             expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
         });
 
@@ -453,14 +453,14 @@ describe('HotkeyManager', () => {
         it('should update all settings at once', () => {
             hotkeyManager.updateAllSettings({
                 alwaysOnTop: false,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: false,
                 printToPdf: true,
             });
 
             expect(hotkeyManager.getIndividualSettings()).toEqual({
                 alwaysOnTop: false,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: false,
                 printToPdf: true,
             });
@@ -476,13 +476,13 @@ describe('HotkeyManager', () => {
             mockGlobalShortcut.register.mockReturnValue(true);
         });
 
-        it('should register only global shortcuts (quickChat, bossKey)', () => {
+        it('should register only global shortcuts (quickChat, peekAndHide)', () => {
             hotkeyManager.registerShortcuts();
 
             // Only 2 global hotkeys should be registered via globalShortcut
             expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
-                DEFAULT_ACCELERATORS.bossKey,
+                DEFAULT_ACCELERATORS.peekAndHide,
                 expect.any(Function)
             );
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
@@ -506,7 +506,7 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            // Only bossKey should be registered (quickChat disabled)
+            // Only peekAndHide should be registered (quickChat disabled)
             expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(1);
             expect(mockGlobalShortcut.register).not.toHaveBeenCalledWith(
                 DEFAULT_ACCELERATORS.quickChat,
@@ -531,9 +531,9 @@ describe('HotkeyManager', () => {
             expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
         });
 
-        it('should call hideToTray when boss key is triggered', () => {
+        it('should call toggleMainWindowVisibility when peek and hide key is triggered', () => {
             mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
-                if (accelerator === DEFAULT_ACCELERATORS.bossKey) {
+                if (accelerator === DEFAULT_ACCELERATORS.peekAndHide) {
                     callback();
                 }
                 return true;
@@ -541,7 +541,7 @@ describe('HotkeyManager', () => {
 
             hotkeyManager.registerShortcuts();
 
-            expect(mockWindowManager.hideToTray).toHaveBeenCalledTimes(1);
+            expect(mockWindowManager.toggleMainWindowVisibility).toHaveBeenCalledTimes(1);
         });
 
         it('should call toggleQuickChat when quick chat hotkey is triggered', () => {
@@ -640,7 +640,7 @@ describe('HotkeyManager', () => {
             const globalActions = hotkeyManager.getGlobalHotkeyActions();
 
             expect(globalActions).toHaveLength(2);
-            expect(globalActions.map((a) => a.id)).toEqual(['bossKey', 'quickChat']);
+            expect(globalActions.map((a) => a.id)).toEqual(['peekAndHide', 'quickChat']);
         });
 
         it('getApplicationHotkeyActions should return only application hotkeys', () => {
@@ -666,7 +666,7 @@ describe('HotkeyManager', () => {
 
         it('isEnabled should return false if all hotkeys are disabled', () => {
             hotkeyManager.setIndividualEnabled('alwaysOnTop', false);
-            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('peekAndHide', false);
             hotkeyManager.setIndividualEnabled('quickChat', false);
             hotkeyManager.setIndividualEnabled('printToPdf', false);
 
@@ -679,7 +679,7 @@ describe('HotkeyManager', () => {
 
             expect(hotkeyManager.getIndividualSettings()).toEqual({
                 alwaysOnTop: false,
-                bossKey: false,
+                peekAndHide: false,
                 quickChat: false,
                 printToPdf: false,
             });
@@ -687,7 +687,7 @@ describe('HotkeyManager', () => {
 
         it('setEnabled(true) should enable all hotkeys', () => {
             hotkeyManager.setIndividualEnabled('alwaysOnTop', false);
-            hotkeyManager.setIndividualEnabled('bossKey', false);
+            hotkeyManager.setIndividualEnabled('peekAndHide', false);
             hotkeyManager.setIndividualEnabled('quickChat', false);
             hotkeyManager.setIndividualEnabled('printToPdf', false);
 
@@ -695,7 +695,7 @@ describe('HotkeyManager', () => {
 
             expect(hotkeyManager.getIndividualSettings()).toEqual({
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             });
@@ -711,9 +711,9 @@ describe('HotkeyManager', () => {
             mockGlobalShortcut.register.mockReturnValue(true);
         });
 
-        it('should execute bossKey action', () => {
-            hotkeyManager.executeHotkeyAction('bossKey');
-            expect(mockWindowManager.hideToTray).toHaveBeenCalled();
+        it('should execute peekAndHide action', () => {
+            hotkeyManager.executeHotkeyAction('peekAndHide');
+            expect(mockWindowManager.toggleMainWindowVisibility).toHaveBeenCalled();
         });
 
         it('should execute quickChat action', () => {
@@ -764,12 +764,12 @@ describe('HotkeyManager', () => {
         });
 
         it('should handle action execution error in registered shortcut', () => {
-            mockWindowManager.hideToTray = vi.fn(() => {
+            mockWindowManager.toggleMainWindowVisibility = vi.fn(() => {
                 throw new Error('Action failed');
             });
 
             mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
-                if (accelerator === DEFAULT_ACCELERATORS.bossKey) {
+                if (accelerator === DEFAULT_ACCELERATORS.peekAndHide) {
                     callback(); // Should not throw
                 }
                 return true;
@@ -927,7 +927,7 @@ describe('HotkeyManager', () => {
             // Mock successful registration
             mockDbusFallback.registerViaDBus.mockResolvedValue([
                 { hotkeyId: 'quickChat', success: true },
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
             ]);
 
             hotkeyManager.registerShortcuts();
@@ -957,7 +957,7 @@ describe('HotkeyManager', () => {
             mockGlobalShortcut.isRegistered.mockReturnValue(false);
 
             mockDbusFallback.registerViaDBus.mockResolvedValue([
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
                 { hotkeyId: 'quickChat', success: true },
             ]);
 
@@ -972,7 +972,7 @@ describe('HotkeyManager', () => {
             // On Wayland with portal available, registration goes via direct D-Bus path
             expect(status.waylandStatus.portalMethod).toBe('dbus-direct');
             expect(status.registrationResults).toContainEqual(
-                expect.objectContaining({ hotkeyId: 'bossKey', success: true })
+                expect.objectContaining({ hotkeyId: 'peekAndHide', success: true })
             );
         });
 
@@ -989,7 +989,7 @@ describe('HotkeyManager', () => {
             };
 
             mockDbusFallback.registerViaDBus.mockResolvedValue([
-                { hotkeyId: 'bossKey', success: true },
+                { hotkeyId: 'peekAndHide', success: true },
                 { hotkeyId: 'quickChat', success: true },
             ]);
 
@@ -1043,7 +1043,7 @@ describe('HotkeyManager', () => {
 
                 const actionCallbacks = mockDbusFallback.registerViaDBus.mock.calls[0][1] as Map<string, () => void>;
                 expect(actionCallbacks.has('quickChat')).toBe(true);
-                expect(actionCallbacks.has('bossKey')).toBe(true);
+                expect(actionCallbacks.has('peekAndHide')).toBe(true);
             });
 
             it('should only register enabled hotkeys via D-Bus direct path', async () => {
@@ -1058,13 +1058,13 @@ describe('HotkeyManager', () => {
 
                 const [shortcuts] = mockDbusFallback.registerViaDBus.mock.calls[0];
                 expect(shortcuts).toHaveLength(1);
-                expect(shortcuts[0]).toEqual(expect.objectContaining({ id: 'bossKey' }));
+                expect(shortcuts[0]).toEqual(expect.objectContaining({ id: 'peekAndHide' }));
             });
 
             it('should set portalMethod to dbus-direct on successful D-Bus direct registration', async () => {
                 createWaylandKdeStatus();
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
-                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'peekAndHide', success: true },
                     { hotkeyId: 'quickChat', success: true },
                 ]);
 
@@ -1089,7 +1089,7 @@ describe('HotkeyManager', () => {
             it('should clear stale registrationResults and set portalMethod to none when all hotkeys disabled', async () => {
                 createWaylandKdeStatus();
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
-                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'peekAndHide', success: true },
                     { hotkeyId: 'quickChat', success: true },
                 ]);
 
@@ -1103,7 +1103,7 @@ describe('HotkeyManager', () => {
                 vi.clearAllMocks();
 
                 hotkeyManager.setIndividualEnabled('quickChat', false);
-                hotkeyManager.setIndividualEnabled('bossKey', false);
+                hotkeyManager.setIndividualEnabled('peekAndHide', false);
                 createWaylandKdeStatus();
 
                 hotkeyManager.registerShortcuts();
@@ -1114,6 +1114,24 @@ describe('HotkeyManager', () => {
                 expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('none');
                 expect(hotkeyManager.getPlatformHotkeyStatus().globalHotkeysEnabled).toBe(false);
                 expect(mockDbusFallback.destroySession).toHaveBeenCalled();
+            });
+
+            it('should invoke toggleMainWindowVisibility when peekAndHide D-Bus callback fires', async () => {
+                createWaylandKdeStatus();
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
+                });
+
+                const actionCallbacks = mockDbusFallback.registerViaDBus.mock.calls[0][1] as Map<string, () => void>;
+                expect(actionCallbacks.has('peekAndHide')).toBe(true);
+
+                const peekAndHideCallback = actionCallbacks.get('peekAndHide')!;
+                peekAndHideCallback();
+
+                expect(mockWindowManager.toggleMainWindowVisibility).toHaveBeenCalledTimes(1);
             });
 
             it('should pass action callbacks to registerViaDBus in fallback path', async () => {
@@ -1155,7 +1173,7 @@ describe('HotkeyManager', () => {
                 expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
                 const actionCallbacks = mockDbusFallback.registerViaDBus.mock.calls[0][1] as Map<string, () => void>;
                 expect(actionCallbacks.has('quickChat')).toBe(true);
-                expect(actionCallbacks.has('bossKey')).toBe(true);
+                expect(actionCallbacks.has('peekAndHide')).toBe(true);
             });
         });
 
@@ -1206,7 +1224,7 @@ describe('HotkeyManager', () => {
                 // registerViaDBus returns mixed results
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: false, error: 'System shortcut conflict' },
+                    { hotkeyId: 'peekAndHide', success: false, error: 'System shortcut conflict' },
                 ]);
 
                 hotkeyManager.registerShortcuts();
@@ -1223,7 +1241,11 @@ describe('HotkeyManager', () => {
                     expect.objectContaining({ hotkeyId: 'quickChat', success: true })
                 );
                 expect(status.registrationResults).toContainEqual(
-                    expect.objectContaining({ hotkeyId: 'bossKey', success: false, error: 'System shortcut conflict' })
+                    expect.objectContaining({
+                        hotkeyId: 'peekAndHide',
+                        success: false,
+                        error: 'System shortcut conflict',
+                    })
                 );
 
                 // anySuccess=true -> portalMethod should be 'dbus-direct'
@@ -1271,19 +1293,19 @@ describe('HotkeyManager', () => {
                 // Start registration (fire-and-forget)
                 hotkeyManager.registerShortcuts();
 
-                // Toggle bossKey OFF while registration is in-flight
+                // Toggle peekAndHide OFF while registration is in-flight
                 // setIndividualEnabled on Linux with _globalHotkeysEnabled=true will try _unregisterShortcutById
                 // But since registration is via D-Bus (not globalShortcut), the _registeredShortcuts map
-                // won't have bossKey, so _unregisterShortcutById is a no-op
-                hotkeyManager.setIndividualEnabled('bossKey', false);
+                // won't have peekAndHide, so _unregisterShortcutById is a no-op
+                hotkeyManager.setIndividualEnabled('peekAndHide', false);
 
                 // Verify setting updated immediately
-                expect(hotkeyManager.getIndividualSettings().bossKey).toBe(false);
+                expect(hotkeyManager.getIndividualSettings().peekAndHide).toBe(false);
 
                 // Complete the registration
                 resolveRegistration([
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'peekAndHide', success: true },
                 ]);
 
                 await vi.waitFor(() => {
@@ -1295,14 +1317,14 @@ describe('HotkeyManager', () => {
                 expect(secondCallShortcuts[0]).toEqual(expect.objectContaining({ id: 'quickChat' }));
 
                 // State is consistent
-                expect(hotkeyManager.getIndividualSettings().bossKey).toBe(false);
+                expect(hotkeyManager.getIndividualSettings().peekAndHide).toBe(false);
             });
 
             it('should destroy D-Bus session when unregisterAll is called on Wayland', async () => {
                 createWaylandKdeStatus();
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'peekAndHide', success: true },
                 ]);
 
                 hotkeyManager.registerShortcuts();
@@ -1326,7 +1348,7 @@ describe('HotkeyManager', () => {
                 // First registration - one success, one failure
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: false, error: 'First attempt failed' },
+                    { hotkeyId: 'peekAndHide', success: false, error: 'First attempt failed' },
                 ]);
 
                 hotkeyManager.registerShortcuts();
@@ -1339,7 +1361,7 @@ describe('HotkeyManager', () => {
                 // Verify first registration results
                 let status = hotkeyManager.getPlatformHotkeyStatus();
                 expect(status.registrationResults).toContainEqual(
-                    expect.objectContaining({ hotkeyId: 'bossKey', success: false })
+                    expect.objectContaining({ hotkeyId: 'peekAndHide', success: false })
                 );
                 expect(status.globalHotkeysEnabled).toBe(true);
 
@@ -1361,7 +1383,7 @@ describe('HotkeyManager', () => {
                 // Wait for stale results to be cleared and new results populated
                 await vi.waitFor(() => {
                     status = hotkeyManager.getPlatformHotkeyStatus();
-                    // Should only have 1 result (stale bossKey result cleared)
+                    // Should only have 1 result (stale peekAndHide result cleared)
                     expect(status.registrationResults).toHaveLength(1);
                     // Should contain only the new quickChat failure
                     expect(status.registrationResults[0]).toEqual(
@@ -1376,7 +1398,7 @@ describe('HotkeyManager', () => {
                 // All registrations fail
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
                     { hotkeyId: 'quickChat', success: false, error: 'Shortcut conflict' },
-                    { hotkeyId: 'bossKey', success: false, error: 'Permission denied' },
+                    { hotkeyId: 'peekAndHide', success: false, error: 'Permission denied' },
                 ]);
 
                 hotkeyManager.registerShortcuts();
@@ -1398,7 +1420,7 @@ describe('HotkeyManager', () => {
                 // Partial success - one succeeds, one fails
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: false, error: 'Shortcut conflict' },
+                    { hotkeyId: 'peekAndHide', success: false, error: 'Shortcut conflict' },
                 ]);
 
                 hotkeyManager.registerShortcuts();
@@ -1420,7 +1442,7 @@ describe('HotkeyManager', () => {
                 // First, register with some results
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
                     { hotkeyId: 'quickChat', success: true },
-                    { hotkeyId: 'bossKey', success: true },
+                    { hotkeyId: 'peekAndHide', success: true },
                 ]);
 
                 hotkeyManager.registerShortcuts();
@@ -1432,7 +1454,7 @@ describe('HotkeyManager', () => {
 
                 // Now disable all hotkeys
                 hotkeyManager.setIndividualEnabled('quickChat', false);
-                hotkeyManager.setIndividualEnabled('bossKey', false);
+                hotkeyManager.setIndividualEnabled('peekAndHide', false);
 
                 vi.clearAllMocks();
                 createWaylandKdeStatus();

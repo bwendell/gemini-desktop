@@ -108,13 +108,13 @@ describe('UpdateManager ↔ BadgeManager ↔ TrayManager ↔ IpcManager Notifica
             updateAllAccelerators: vi.fn(),
             getIndividualSettings: vi.fn().mockReturnValue({
                 alwaysOnTop: true,
-                bossKey: true,
+                peekAndHide: true,
                 quickChat: true,
                 printToPdf: true,
             }),
             getHotkeyAccelerators: vi.fn().mockReturnValue({
                 alwaysOnTop: 'Ctrl+Shift+T',
-                bossKey: 'Ctrl+Shift+B',
+                peekAndHide: 'Ctrl+Shift+B',
                 quickChat: 'Ctrl+Shift+X',
                 printToPdf: 'Ctrl+Shift+P',
             }),

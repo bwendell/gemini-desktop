@@ -70,7 +70,7 @@
     - [x] Ensure window bounds, resize, and state are verified (3/3 tests pass in window-bounds.spec.ts)
     - **Acceptance Criteria**: `npm run test:e2e:group:window` passes; window bounds/state are correctly restored.
     - **Result**: ✅ All 6 spec files pass:
-        - `boss-key.spec.ts`: 5/5 pass
+        - `peek-and-hide.spec.ts`: 5/5 pass
         - `dependent-windows.spec.ts`: 3/3 pass
         - `window-bounds.spec.ts`: 3/3 pass
         - `window-controls.spec.ts`: 8/8 pass, 1 skip

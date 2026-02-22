@@ -12,7 +12,7 @@
  *
  * Hotkeys are divided into two categories based on their scope:
  *
- * ### Global Hotkeys (quickChat, bossKey)
+ * ### Global Hotkeys (quickChat, peekAndHide)
  * - Registered via Electron's `globalShortcut` API
  * - Work system-wide, even when the application is not focused
  * - Used for actions that need to work from anywhere (e.g., show/hide app)
@@ -112,7 +112,7 @@ export interface HotkeyManagerInitialSettings {
  * const hotkeyManager = new HotkeyManager(windowManager);
  * hotkeyManager.registerShortcuts(); // Register enabled global shortcuts
  * hotkeyManager.setIndividualEnabled('quickChat', false); // Disable Quick Chat hotkey
- * hotkeyManager.setAccelerator('bossKey', 'CommandOrControl+Alt+H'); // Change accelerator
+ * hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+H'); // Change accelerator
  * ```
  *
  * @class HotkeyManager
@@ -130,7 +130,7 @@ export default class HotkeyManager {
      */
     private _individualSettings: IndividualHotkeySettings = {
         alwaysOnTop: true,
-        bossKey: true,
+        peekAndHide: true,
         quickChat: true,
         printToPdf: true,
     };
@@ -177,7 +177,7 @@ export default class HotkeyManager {
      * const windowManager = new WindowManager();
      * const hotkeyManager = new HotkeyManager(windowManager, {
      *   enabled: { quickChat: false },
-     *   accelerators: { bossKey: 'CommandOrControl+Alt+H' }
+     *   accelerators: { peekAndHide: 'CommandOrControl+Alt+H' }
      * });
      * ```
      */
@@ -213,13 +213,13 @@ export default class HotkeyManager {
         // Define shortcut actions
         // Each shortcut maps an id to an action callback
         this.shortcutActions = [
-            // GLOBAL: Boss Key needs to work even when app is hidden/unfocused to quickly hide it system-wide
+            // GLOBAL: Peek and Hide needs to work even when app is hidden/unfocused to quickly hide it system-wide
             {
-                id: 'bossKey',
+                id: 'peekAndHide',
                 action: () => {
-                    const accelerator = this._accelerators.bossKey;
-                    logger.log(`Hotkey pressed: ${accelerator} (Boss Key)`);
-                    this.windowManager.hideToTray();
+                    const accelerator = this._accelerators.peekAndHide;
+                    logger.log(`Hotkey pressed: ${accelerator} (Peek and Hide)`);
+                    this.windowManager.toggleMainWindowVisibility();
                 },
             },
             // GLOBAL: Quick Chat needs to be accessible from anywhere to open the prompt overlay
@@ -296,9 +296,9 @@ export default class HotkeyManager {
                 enabled: this._individualSettings.alwaysOnTop,
                 accelerator: this._accelerators.alwaysOnTop,
             },
-            bossKey: {
-                enabled: this._individualSettings.bossKey,
-                accelerator: this._accelerators.bossKey,
+            peekAndHide: {
+                enabled: this._individualSettings.peekAndHide,
+                accelerator: this._accelerators.peekAndHide,
             },
             quickChat: {
                 enabled: this._individualSettings.quickChat,
@@ -456,7 +456,7 @@ export default class HotkeyManager {
      * - On application startup (via main.ts)
      * - When the app is ready
      *
-     * Only **global** shortcuts (quickChat, bossKey) that are individually enabled
+     * Only **global** shortcuts (quickChat, peekAndHide) that are individually enabled
      * will be registered via globalShortcut. Application hotkeys (alwaysOnTop, printToPdf)
      * are handled by MenuManager via menu accelerators.
      *
@@ -662,7 +662,7 @@ export default class HotkeyManager {
     /**
      * Register a global shortcut by its ID.
      *
-     * This method only registers global hotkeys (quickChat, bossKey).
+     * This method only registers global hotkeys (quickChat, peekAndHide).
      * Application hotkeys are handled by MenuManager via menu accelerators.
      *
      * @param id - The hotkey identifier
@@ -741,7 +741,7 @@ export default class HotkeyManager {
     /**
      * Unregister a global shortcut by its ID.
      *
-     * This method only unregisters global hotkeys (quickChat, bossKey).
+     * This method only unregisters global hotkeys (quickChat, peekAndHide).
      * Application hotkeys are handled by MenuManager via menu accelerators.
      *
      * @param id - The hotkey identifier
@@ -769,7 +769,7 @@ export default class HotkeyManager {
      * This method exists primarily for E2E testing, allowing tests to trigger
      * the same code path that would be executed when a user presses the hotkey.
      *
-     * @param id - The hotkey identifier (e.g., 'quickChat', 'bossKey', 'alwaysOnTop')
+     * @param id - The hotkey identifier (e.g., 'quickChat', 'peekAndHide', 'alwaysOnTop')
      */
     executeHotkeyAction(id: HotkeyId): void {
         const shortcutAction = this.shortcutActions.find((s) => s.id === id);
