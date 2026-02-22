@@ -5,15 +5,50 @@
  * Group-specific configurations extend this file and define their own 'specs' array.
  */
 
+import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
+// Retry policy: spec-level retries for infrastructure flakiness, test-level disabled for speed
+// Rationale: One retry at spec level catches environment issues without excessive overhead
+const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 1);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
-const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
+// Test-level retries disabled by default - use spec-level for flaky tests
+const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 0);
+
+const SENSITIVE_KEY_REGEX = /(token|cookie|auth|session|password|secret|key)/i;
+
+const sanitizeFilename = (value) =>
+    value
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 200) || 'unknown';
+
+const redactSensitiveData = (input) => {
+    if (Array.isArray(input)) {
+        return input.map((item) => redactSensitiveData(item));
+    }
+
+    if (input && typeof input === 'object') {
+        return Object.entries(input).reduce((accumulator, [key, value]) => {
+            if (SENSITIVE_KEY_REGEX.test(key)) {
+                accumulator[key] = '[REDACTED]';
+            } else {
+                accumulator[key] = redactSensitiveData(value);
+            }
+            return accumulator;
+        }, {});
+    }
+
+    return input;
+};
+
+const ensureDirectory = async (directoryPath) => {
+    await fs.promises.mkdir(directoryPath, { recursive: true });
+};
 
 export const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
 
@@ -40,7 +75,7 @@ export const baseConfig = {
     ],
 
     // Framework & Reporters
-    reporters: ['spec'],
+    reporters: ['spec', ['allure', { outputDir: 'tests/e2e/allure-results/' }]],
     framework: 'mocha',
     mochaOpts: {
         ui: 'bdd',
@@ -114,8 +149,96 @@ export const baseConfig = {
         }
     },
 
+    afterTest: async function (test, context, result) {
+        if (result?.passed) {
+            return;
+        }
+
+        try {
+            const screenshotsDir = path.resolve(__dirname, '../../tests/e2e/screenshots');
+            const logsDir = path.resolve(__dirname, '../../tests/e2e/logs');
+            await Promise.all([ensureDirectory(screenshotsDir), ensureDirectory(logsDir)]);
+
+            const specName = sanitizeFilename(path.basename(test?.file ?? 'unknown-spec'));
+            const titleName = sanitizeFilename(test?.title ?? 'unknown-test');
+            const timestamp = Date.now();
+            const baseName = `${specName}--${titleName}--${timestamp}`;
+            const screenshotPath = path.join(screenshotsDir, `${baseName}.png`);
+            const logPath = path.join(logsDir, `${baseName}.json`);
+
+            await browser.saveScreenshot(screenshotPath);
+
+            const appState = await browser.electron.execute((electron) => {
+                const windows = electron.BrowserWindow.getAllWindows().map((window) => ({
+                    id: window.id,
+                    title: window.getTitle(),
+                    bounds: window.getBounds(),
+                    isVisible: window.isVisible(),
+                    isFocused: window.isFocused(),
+                }));
+
+                return {
+                    userDataPath: electron.app.getPath('userData'),
+                    windows,
+                    process: {
+                        platform: electron.process.platform,
+                        versions: electron.process.versions,
+                        pid: electron.process.pid,
+                    },
+                };
+            });
+
+            const redactedState = redactSensitiveData(appState);
+            await fs.promises.writeFile(logPath, JSON.stringify(redactedState, null, 2), 'utf-8');
+
+            // Attach to Allure if available
+            if (browser.allure) {
+                await browser.allure.addAttachment('Screenshot', await fs.promises.readFile(screenshotPath), 'image/png');
+                await browser.allure.addAttachment('State Dump', JSON.stringify(redactedState, null, 2), 'application/json');
+                await browser.allure.addAttachment('Rerun Command', `npx wdio run config/wdio/wdio.conf.js --spec ${test?.file || ''}`, 'text/plain');
+            }
+        } catch (error) {
+            console.warn('Failed to capture failure diagnostics:', error);
+        }
+    },
+
     // Kill any orphaned Electron processes after each spec file
     afterSession: async function () {
         await killOrphanElectronProcesses();
+    },
+
+    // Generate flaky test report and copy allure categories after worker ends
+    onWorkerEnd: async function (cid, exitCode, specs, retries) {
+        try {
+            const logsDir = path.resolve(__dirname, '../../tests/e2e/logs');
+            await fs.promises.mkdir(logsDir, { recursive: true });
+            
+            if (retries && retries.retries > 0) {
+                const flakyTests = specs.map(spec => ({
+                    specFile: spec,
+                    retries: retries.retries,
+                    timestamp: new Date().toISOString()
+                }));
+                
+                const flakyReport = {
+                    generatedAt: new Date().toISOString(),
+                    flakyTests
+                };
+                
+                await fs.promises.writeFile(
+                    path.join(logsDir, 'flaky-report.json'),
+                    JSON.stringify(flakyReport, null, 2),
+                    'utf-8'
+                );
+            }
+            
+            // Copy allure categories
+            const categoriesSource = path.resolve(__dirname, '../../tests/e2e/allure-categories.json');
+            const categoriesDest = path.resolve(__dirname, '../../tests/e2e/allure-results/categories.json');
+            await fs.promises.mkdir(path.dirname(categoriesDest), { recursive: true });
+            await fs.promises.copyFile(categoriesSource, categoriesDest).catch(() => {});
+        } catch (error) {
+            console.warn('Failed to generate flaky report:', error);
+        }
     },
 };
