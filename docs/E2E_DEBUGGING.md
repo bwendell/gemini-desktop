@@ -34,32 +34,6 @@ Sensitive fields are automatically redacted from state dumps:
 
 Redacted values show as `[REDACTED]`.
 
-## AI Triage Workflow
-
-The `failure-index.json` provides machine-readable failure data:
-
-```json
-{
-  "generatedAt": "2024-01-15T10:30:00Z",
-  "run": {
-    "os": "linux",
-    "group": "startup",
-    "ci": true
-  },
-  "failures": [{
-    "specFile": "tests/e2e/app-startup.spec.ts",
-    "testTitle": "should start the app",
-    "attempt": 1,
-    "retries": { "attempts": 0, "limit": 1 },
-    "rerunCommand": "npx wdio run config/wdio/wdio.conf.js --spec tests/e2e/app-startup.spec.ts",
-    "artifacts": {
-      "screenshot": "tests/e2e/screenshots/app-startup--should_start_the_app--1705315800000.png",
-      "stateDump": "tests/e2e/logs/app-startup--should_start_the_app--1705315800000.json"
-    }
-  }]
-}
-```
-
 ## Local Debugging
 
 ### Debug Config
