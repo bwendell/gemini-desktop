@@ -271,6 +271,37 @@ jobs:
                   retention-days: 7
                   if-no-files-found: ignore
 
+            - name: Setup Java for Allure
+              uses: actions/setup-java@7a6d8a2bda7c4f8f0e2b2b3a3a4b5c6d7e8f9a0b # v4
+              if: always()
+              with:
+                  java-version: '17'
+                  distribution: 'temurin'
+
+            - name: Generate Allure Report
+              if: always()
+              continue-on-error: true
+              run: npx allure generate tests/e2e/allure-results --clean -o tests/e2e/allure-report
+              shell: bash
+
+            - name: Upload Allure Results
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              if: always()
+              with:
+                  name: allure-results-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  path: tests/e2e/allure-results/
+                  retention-days: 7
+                  if-no-files-found: ignore
+
+            - name: Upload Allure Report
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              if: always()
+              with:
+                  name: allure-report-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  path: tests/e2e/allure-report/
+                  retention-days: 7
+                  if-no-files-found: ignore
+
     # ===========================================================================
     # E2E Tests - macOS
     # ===========================================================================
@@ -327,6 +358,37 @@ jobs:
                   path: |
                       tests/e2e/screenshots/
                       tests/e2e/logs/
+                  retention-days: 7
+                  if-no-files-found: ignore
+
+            - name: Setup Java for Allure
+              uses: actions/setup-java@7a6d8a2bda7c4f8f0e2b2b3a3a4b5c6d7e8f9a0b # v4
+              if: always()
+              with:
+                  java-version: '17'
+                  distribution: 'temurin'
+
+            - name: Generate Allure Report
+              if: always()
+              continue-on-error: true
+              run: npx allure generate tests/e2e/allure-results --clean -o tests/e2e/allure-report
+              shell: bash
+
+            - name: Upload Allure Results
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              if: always()
+              with:
+                  name: allure-results-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  path: tests/e2e/allure-results/
+                  retention-days: 7
+                  if-no-files-found: ignore
+
+            - name: Upload Allure Report
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              if: always()
+              with:
+                  name: allure-report-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  path: tests/e2e/allure-report/
                   retention-days: 7
                   if-no-files-found: ignore
 
@@ -397,6 +459,37 @@ jobs:
                   path: |
                       tests/e2e/screenshots/
                       tests/e2e/logs/
+                  retention-days: 7
+                  if-no-files-found: ignore
+
+            - name: Setup Java for Allure
+              uses: actions/setup-java@7a6d8a2bda7c4f8f0e2b2b3a3a4b5c6d7e8f9a0b # v4
+              if: always()
+              with:
+                  java-version: '17'
+                  distribution: 'temurin'
+
+            - name: Generate Allure Report
+              if: always()
+              continue-on-error: true
+              run: npx allure generate tests/e2e/allure-results --clean -o tests/e2e/allure-report
+              shell: bash
+
+            - name: Upload Allure Results
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              if: always()
+              with:
+                  name: allure-results-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  path: tests/e2e/allure-results/
+                  retention-days: 7
+                  if-no-files-found: ignore
+
+            - name: Upload Allure Report
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              if: always()
+              with:
+                  name: allure-report-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  path: tests/e2e/allure-report/
                   retention-days: 7
                   if-no-files-found: ignore
 
