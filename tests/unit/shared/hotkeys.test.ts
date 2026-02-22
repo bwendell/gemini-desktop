@@ -274,7 +274,7 @@ describe('Hotkey Types', () => {
 
         it('should accept custom accelerator for printToPdf', () => {
             const settings: HotkeySettings = {
-                quickChat: { enabled: true, accelerator: 'CommandOrControl+Shift+Space' },
+                quickChat: { enabled: true, accelerator: 'CommandOrControl+Shift+Alt+Space' },
                 peekAndHide: { enabled: true, accelerator: 'CommandOrControl+Alt+E' },
                 alwaysOnTop: { enabled: true, accelerator: 'CommandOrControl+Shift+T' },
                 printToPdf: { enabled: true, accelerator: 'CommandOrControl+Alt+P' },

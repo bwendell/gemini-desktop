@@ -51,7 +51,7 @@ Users have been asking for a desktop Gemini client with these features—**we de
 
 ### 🚀 Quick Chat - Spotlight for Gemini
 
-**Like macOS Spotlight, but for AI.** Press **`Ctrl+Shift+Space`** (or **`Cmd+Shift+Space`** on Mac) from anywhere—writing code, browsing, reading docs—and a floating command center appears instantly.
+**Like macOS Spotlight, but for AI.** Press **`Ctrl+Shift+Alt+Space`** (or **`Cmd+Shift+Alt+Space`** on Mac) from anywhere—writing code, browsing, reading docs—and a floating command center appears instantly.
 
 <!-- [INSERT QUICK CHAT SCREENSHOT HERE] -->
 
@@ -144,14 +144,14 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 <div align="center">
 
-| Shortcut            | Action                                |
-| ------------------- | ------------------------------------- |
-| `Ctrl+Shift+Space`  | Toggle Quick Chat                     |
-| `Ctrl+Alt+H`        | **Peek and Hide** (Toggle visibility) |
-| `Ctrl+P`            | Print to PDF                          |
-| `Ctrl+=` / `Ctrl+-` | Zoom In / Out                         |
-| `Ctrl+,`            | Open Settings                         |
-| `Escape`            | Close Quick Chat                      |
+| Shortcut               | Action                                |
+| ---------------------- | ------------------------------------- |
+| `Ctrl+Shift+Alt+Space` | Toggle Quick Chat                     |
+| `Ctrl+Alt+H`           | **Peek and Hide** (Toggle visibility) |
+| `Ctrl+P`               | Print to PDF                          |
+| `Ctrl+=` / `Ctrl+-`    | Zoom In / Out                         |
+| `Ctrl+,`               | Open Settings                         |
+| `Escape`               | Close Quick Chat                      |
 
 </div>
 

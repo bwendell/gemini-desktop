@@ -341,7 +341,7 @@
 
 - [x] 6.8 Verify text prediction displays in Quick Chat
     - **Precondition:** Text prediction enabled, model ready
-    - Open Quick Chat (Ctrl+Shift+Space)
+    - Open Quick Chat (Ctrl+Shift+Alt+Space)
     - Type partial text and wait 300ms+ for prediction
     - **Acceptance:**
         - Ghost text (semi-transparent prediction) appears after cursor

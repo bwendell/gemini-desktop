@@ -10,7 +10,7 @@ describe('Global Hotkeys Integration', () => {
         // Verify registration via Main Process
         const isRegistered = await browser.electron.execute((_electron) => {
             // Check if the 'quickChat' accelerator is registered
-            // We know the accelerator is 'CommandOrControl+Shift+Space'
+            // We know the accelerator is 'CommandOrControl+Shift+Alt+Space'
             // We can also check internal manager state
             // @ts-expect-error
             return global.hotkeyManager.isIndividualEnabled('quickChat');

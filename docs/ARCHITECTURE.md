@@ -263,7 +263,7 @@ IpcManager (orchestrator)
 
 **Name:** `HotkeyManager` (`src/main/managers/hotkeyManager.ts`)
 
-**Description:** Registers and manages global keyboard shortcuts that work even when the application is not focused. Supports customizable accelerators for Quick Chat (`Ctrl+Shift+Space`), Peek and Hide (`Ctrl+Alt+H`), Always On Top (`Ctrl+Shift+T`), and Settings (`Ctrl+,`). Includes special handling for Linux/Wayland via `GlobalShortcutsPortal`.
+**Description:** Registers and manages global keyboard shortcuts that work even when the application is not focused. Supports customizable accelerators for Quick Chat (`Ctrl+Shift+Alt+Space`), Peek and Hide (`Ctrl+Alt+H`), Always On Top (`Ctrl+Shift+T`), and Settings (`Ctrl+,`). Includes special handling for Linux/Wayland via `GlobalShortcutsPortal`.
 
 **Technologies:** Electron globalShortcut API, TypeScript
 

@@ -229,7 +229,7 @@ E2E tests should NEVER simulate or mock the system under test.
 Before writing any code, write down the exact steps a user would take:
 
 ```text
-1. User presses Ctrl+Shift+Space
+1. User presses Ctrl+Shift+Alt+Space
 2. Quick Chat window opens
 3. User types "Hello Gemini"
 4. User presses Enter or clicks Submit

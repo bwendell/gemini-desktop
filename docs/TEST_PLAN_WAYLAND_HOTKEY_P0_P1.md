@@ -40,7 +40,7 @@ This test plan addresses critical gaps in coverage for Wayland KDE global hotkey
 2. **Test environment**: Linux Wayland KDE Plasma 5.27+ (or mocked equivalent)
 3. **Hotkey IDs used**: `quickChat`, `peekAndHide` (Wayland global hotkeys); `alwaysOnTop`, `printToPdf` are application hotkeys (out of scope for Wayland global registration)
 4. **Portal method**: Only `dbus-direct` is currently active (`chromium-flag` is intentionally disabled)
-5. **Electron accelerator format**: Converted to XDG keysym format (e.g., `CommandOrControl+Shift+Space` → `CTRL+SHIFT+space`)
+5. **Electron accelerator format**: Converted to XDG keysym format (e.g., `CommandOrControl+Shift+Alt+Space` → `CTRL+SHIFT+ALT+space`)
 6. **Test data**: All mocked responses mimic real D-Bus portal behavior
 
 ---

@@ -327,7 +327,7 @@ export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutR
         const { globalShortcut } = _electron;
         try {
             return {
-                quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
+                quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
                 peekAndHide: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
                 status: 'success',
             };

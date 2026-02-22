@@ -108,7 +108,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         // Hotkey Accelerators API
         // =========================================================================
         getHotkeyAccelerators: vi.fn().mockResolvedValue({
-            quickChat: 'CommandOrControl+Shift+Space',
+            quickChat: 'CommandOrControl+Shift+Alt+Space',
             alwaysOnTop: 'CommandOrControl+Alt+T',
             printToPdf: 'CommandOrControl+Alt+P',
         }),
@@ -119,7 +119,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
                 printToPdf: true,
             },
             accelerators: {
-                quickChat: 'CommandOrControl+Shift+Space',
+                quickChat: 'CommandOrControl+Shift+Alt+Space',
                 alwaysOnTop: 'CommandOrControl+Alt+T',
                 printToPdf: 'CommandOrControl+Alt+P',
             },
