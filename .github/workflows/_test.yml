@@ -259,6 +259,8 @@ jobs:
               env:
                   ELECTRON_USE_DIST: 'true'
                   DEBUG: 'wdio:*'
+                  E2E_GROUP: ${{ matrix.group }}
+                  E2E_OS: windows-latest
 
             - name: Upload E2E Screenshots (on failure)
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
@@ -288,7 +290,7 @@ jobs:
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: always()
               with:
-                  name: allure-results-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  name: allure-results-${{ matrix.group }}-windows-latest${{ inputs.artifact-suffix }}
                   path: tests/e2e/allure-results/
                   retention-days: 7
                   if-no-files-found: ignore
@@ -297,7 +299,7 @@ jobs:
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: always()
               with:
-                  name: allure-report-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  name: allure-report-${{ matrix.group }}-windows-latest${{ inputs.artifact-suffix }}
                   path: tests/e2e/allure-report/
                   retention-days: 7
                   if-no-files-found: ignore
@@ -349,6 +351,8 @@ jobs:
               env:
                   ELECTRON_USE_DIST: 'true'
                   DEBUG: 'wdio:*'
+                  E2E_GROUP: ${{ matrix.group }}
+                  E2E_OS: macos-latest
 
             - name: Upload E2E Screenshots (on failure)
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
@@ -378,7 +382,7 @@ jobs:
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: always()
               with:
-                  name: allure-results-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  name: allure-results-${{ matrix.group }}-macos-latest${{ inputs.artifact-suffix }}
                   path: tests/e2e/allure-results/
                   retention-days: 7
                   if-no-files-found: ignore
@@ -387,7 +391,7 @@ jobs:
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: always()
               with:
-                  name: allure-report-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  name: allure-report-${{ matrix.group }}-macos-latest${{ inputs.artifact-suffix }}
                   path: tests/e2e/allure-report/
                   retention-days: 7
                   if-no-files-found: ignore
@@ -450,6 +454,8 @@ jobs:
               env:
                   ELECTRON_USE_DIST: 'true'
                   DEBUG: 'wdio:*'
+                  E2E_GROUP: ${{ matrix.group }}
+                  E2E_OS: ubuntu-latest
 
             - name: Upload E2E Screenshots (on failure)
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
@@ -479,7 +485,7 @@ jobs:
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: always()
               with:
-                  name: allure-results-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  name: allure-results-${{ matrix.group }}-ubuntu-latest${{ inputs.artifact-suffix }}
                   path: tests/e2e/allure-results/
                   retention-days: 7
                   if-no-files-found: ignore
@@ -488,7 +494,7 @@ jobs:
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               if: always()
               with:
-                  name: allure-report-${{ matrix.group }}-${{ matrix.os }}${{ inputs.artifact-suffix }}
+                  name: allure-report-${{ matrix.group }}-ubuntu-latest${{ inputs.artifact-suffix }}
                   path: tests/e2e/allure-report/
                   retention-days: 7
                   if-no-files-found: ignore
@@ -571,6 +577,8 @@ jobs:
               shell: bash
               env:
                   DEBUG: 'wdio:*'
+                  E2E_GROUP: release
+                  E2E_OS: ${{ matrix.os }}
 
             # Upload artifacts on failure for debugging
             - name: Upload Release E2E Screenshots (on failure)
