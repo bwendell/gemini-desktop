@@ -349,15 +349,31 @@ describe('Quick Chat Injection Integration', () => {
                 { timeout: 5000, timeoutMsg: 'Quick Chat window did not appear' }
             );
 
-            // 2. Execute in Quick Chat window's webContents to verify electronAPI
-            const hasSubmitQuickChat = await browserWithElectron.electron.execute(() => {
-                const { BrowserWindow } = require('electron');
-                const wins = BrowserWindow.getAllWindows();
-                const qcWin = wins.find((w: { getTitle(): string }) => w.getTitle().includes('Quick Chat'));
-                if (!qcWin) return false;
+            await browserWithElectron.waitUntil(
+                async () => {
+                    return await browserWithElectron.electron.execute(async () => {
+                        const qcWin = global.windowManager.getQuickChatWindow();
+                        if (!qcWin || qcWin.isDestroyed()) return false;
+                        if (qcWin.webContents.isLoading()) {
+                            await new Promise<void>((resolve) => {
+                                qcWin.webContents.once('did-finish-load', () => resolve());
+                            });
+                        }
+                        const result = await qcWin.webContents.executeJavaScript(
+                            'typeof window.electronAPI?.submitQuickChat === "function"'
+                        );
+                        return result === true;
+                    });
+                },
+                { timeout: 10000, timeoutMsg: 'electronAPI not ready in Quick Chat window' }
+            );
 
-                // Check if electronAPI exists in the Quick Chat renderer
-                return qcWin.webContents.executeJavaScript('typeof window.electronAPI?.submitQuickChat === "function"');
+            const hasSubmitQuickChat = await browserWithElectron.electron.execute(async () => {
+                const qcWin = global.windowManager.getQuickChatWindow();
+                if (!qcWin || qcWin.isDestroyed()) return false;
+                return await qcWin.webContents.executeJavaScript(
+                    'typeof window.electronAPI?.submitQuickChat === "function"'
+                );
             });
 
             expect(hasSubmitQuickChat).toBe(true);

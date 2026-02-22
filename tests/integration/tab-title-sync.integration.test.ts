@@ -26,7 +26,7 @@ describe('Tab Title Sync (Integration)', () => {
     });
 
     it('updates active tab title from conversation title after response completes', async () => {
-        const testTitle = 'RSUs vs. Stock Options: Oracle Offer';
+        const testTitle = 'Sample Conversation Title';
         const testMessage = `Integration title sync ${Date.now()}`;
 
         // Step 1: Submit quick chat – this is the production user flow.
