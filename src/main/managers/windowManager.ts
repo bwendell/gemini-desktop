@@ -159,10 +159,11 @@ export default class WindowManager extends EventEmitter {
         if (this.isMainWindowVisible()) {
             this.hideToTray();
         } else {
-            if (this.mainWindow.getWindow()) {
+            if (this.mainWindow.isValid()) {
                 this.restoreFromTray();
             } else {
                 this.createMainWindow();
+                this.focusMainWindow();
             }
         }
     }

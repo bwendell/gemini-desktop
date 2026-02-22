@@ -612,37 +612,75 @@ describe('Peek and Hide Integration', () => {
             });
             expect(windowExists).toBe(true);
 
+            const originalHandles = await browserWithElectron.getWindowHandles();
+            const originalHandle = originalHandles[0];
+
+            await browserWithElectron.electron.execute(() => {
+                global.windowManager.createOptionsWindow();
+            });
+
+            await browserWithElectron.waitUntil(
+                async () => (await browserWithElectron.getWindowHandles()).length > originalHandles.length,
+                { timeout: 5000, timeoutMsg: 'Options window did not open' }
+            );
+
+            const handlesAfterOptions = await browserWithElectron.getWindowHandles();
+            const optionsHandle = handlesAfterOptions.find((handle) => handle !== originalHandle) ?? originalHandle;
+            await browserWithElectron.switchToWindow(optionsHandle);
+
             // Destroy the main window
             await browserWithElectron.electron.execute(() => {
                 const win = global.windowManager.getMainWindow();
                 if (win) win.destroy();
             });
 
-            await browserWithElectron.pause(300);
+            await browserWithElectron.waitUntil(
+                async () => {
+                    return await browserWithElectron.electron.execute(() => {
+                        const win = global.windowManager.getMainWindow();
+                        return !win || win.isDestroyed();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Main window did not destroy' }
+            );
 
-            const recreateResult = await browserWithElectron.electron.execute(async () => {
+            await browserWithElectron.electron.execute(() => {
                 global.windowManager.toggleMainWindowVisibility();
+            });
 
-                const start = Date.now();
-                while (Date.now() - start < 5000) {
-                    if (global.windowManager.getMainWindow()) {
-                        return {
-                            recreated: true,
-                            visible: global.windowManager.isMainWindowVisible(),
-                        };
-                    }
+            await browserWithElectron.waitUntil(
+                async () => {
+                    return await browserWithElectron.electron.execute(() => {
+                        const win = global.windowManager.getMainWindow();
+                        return !!win && win.isVisible();
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Main window did not recreate and show after destroy' }
+            );
 
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                }
-
+            const recreateResult = await browserWithElectron.electron.execute(() => {
                 return {
-                    recreated: false,
-                    visible: false,
+                    recreated: global.windowManager.getMainWindow() !== null,
+                    visible: global.windowManager.isMainWindowVisible(),
                 };
             });
 
             expect(recreateResult.recreated).toBe(true);
             expect(recreateResult.visible).toBe(true);
+
+            const handlesAfterRecreate = await browserWithElectron.getWindowHandles();
+            const recreatedHandle = handlesAfterRecreate.find((handle) => handle !== optionsHandle) ?? originalHandle;
+            await browserWithElectron.switchToWindow(recreatedHandle);
+
+            await browserWithElectron.electron.execute(async () => {
+                const { BrowserWindow } = await import('electron');
+                const mainWin = global.windowManager.getMainWindow();
+                BrowserWindow.getAllWindows().forEach((win) => {
+                    if (win !== mainWin && !win.isDestroyed()) {
+                        win.close();
+                    }
+                });
+            });
         });
     });
 });
