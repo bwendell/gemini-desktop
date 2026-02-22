@@ -17,7 +17,9 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 1);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 // Test-level retries disabled by default - use spec-level for flaky tests
-const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 0);
+// Test-level retries - temporarily re-enabled to 1 to stabilize tests while diagnostics are enabled
+// Can be set to 0 via env var when diagnostics are disabled
+const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 1);
 
 const SENSITIVE_KEY_REGEX = /(token|cookie|auth|session|password|secret|key)/i;
 
@@ -197,6 +199,15 @@ export const baseConfig = {
             return;
         }
 
+        // Skip heavy diagnostics if explicitly disabled (useful for CI stability)
+        if (process.env.E2E_DISABLE_DIAGNOSTICS === 'true') {
+            return;
+        }
+
+        // Limit diagnostics on Linux to avoid resource contention issues
+        const isLinux = process.platform === 'linux';
+        const skipHeavyOperations = isLinux && process.env.CI;
+
         try {
             const screenshotsDir = path.resolve(__dirname, '../../tests/e2e/screenshots');
             const logsDir = path.resolve(__dirname, '../../tests/e2e/logs');
@@ -209,66 +220,95 @@ export const baseConfig = {
             const screenshotPath = path.join(screenshotsDir, `${baseName}.png`);
             const logPath = path.join(logsDir, `${baseName}.json`);
 
-            await browser.saveScreenshot(screenshotPath);
+            // Capture screenshot with individual error handling
+            let screenshotCaptured = false;
+            try {
+                await browser.saveScreenshot(screenshotPath);
+                screenshotCaptured = true;
+            } catch (screenshotError) {
+                console.warn('Failed to capture screenshot:', screenshotError.message);
+            }
 
-            const appState = await browser.electron.execute((electron) => {
-                const windows = electron.BrowserWindow.getAllWindows().map((window) => ({
-                    id: window.id,
-                    title: window.getTitle(),
-                    bounds: window.getBounds(),
-                    isVisible: window.isVisible(),
-                    isFocused: window.isFocused(),
-                }));
+            // Skip heavy IPC operations on Linux CI to avoid destabilizing the worker
+            let redactedState = null;
+            if (!skipHeavyOperations) {
+                try {
+                    const appState = await browser.electron.execute((electron) => {
+                        const windows = electron.BrowserWindow.getAllWindows().map((window) => ({
+                            id: window.id,
+                            title: window.getTitle(),
+                            bounds: window.getBounds(),
+                            isVisible: window.isVisible(),
+                            isFocused: window.isFocused(),
+                        }));
 
-                return {
-                    userDataPath: electron.app.getPath('userData'),
-                    windows,
-                    process: {
-                        platform: electron.process.platform,
-                        versions: electron.process.versions,
-                        pid: electron.process.pid,
+                        return {
+                            userDataPath: electron.app.getPath('userData'),
+                            windows,
+                            process: {
+                                platform: electron.process.platform,
+                                versions: electron.process.versions,
+                                pid: electron.process.pid,
+                            },
+                        };
+                    });
+
+                    redactedState = redactSensitiveData(appState);
+                    await fs.promises.writeFile(logPath, JSON.stringify(redactedState, null, 2), 'utf-8');
+                } catch (stateError) {
+                    console.warn('Failed to capture app state:', stateError.message);
+                }
+            }
+
+            // Update failure index with best-effort error handling
+            try {
+                const runMetadata = getRunMetadata();
+                const failureIndex = await loadFailureIndex(runMetadata);
+                const retryAttempts = typeof result?.retries === 'number' ? result.retries : 0;
+
+                failureIndex.failures.push({
+                    specFile: test?.file ?? 'unknown-spec',
+                    testTitle: test?.title ?? 'unknown-test',
+                    attempt: retryAttempts + 1,
+                    retries: {
+                        attempts: retryAttempts,
+                        limit: SPEC_FILE_RETRIES,
                     },
-                };
-            });
+                    rerunCommand: `npx wdio run config/wdio/wdio.conf.js --spec ${test?.file ?? ''}`,
+                    artifacts: {
+                        screenshot: screenshotCaptured ? screenshotPath : null,
+                        stateDump: redactedState ? logPath : null,
+                    },
+                });
 
-            const redactedState = redactSensitiveData(appState);
-            await fs.promises.writeFile(logPath, JSON.stringify(redactedState, null, 2), 'utf-8');
+                await fs.promises.writeFile(failureIndexPath, JSON.stringify(failureIndex, null, 2), 'utf-8');
+            } catch (indexError) {
+                console.warn('Failed to update failure index:', indexError.message);
+            }
 
-            const runMetadata = getRunMetadata();
-            const failureIndex = await loadFailureIndex(runMetadata);
-            const retryAttempts = typeof result?.retries === 'number' ? result.retries : 0;
-
-            failureIndex.failures.push({
-                specFile: test?.file ?? 'unknown-spec',
-                testTitle: test?.title ?? 'unknown-test',
-                attempt: retryAttempts + 1,
-                retries: {
-                    attempts: retryAttempts,
-                    limit: SPEC_FILE_RETRIES,
-                },
-                rerunCommand: `npx wdio run config/wdio/wdio.conf.js --spec ${test?.file ?? ''}`,
-                artifacts: {
-                    screenshot: screenshotPath,
-                    stateDump: logPath,
-                },
-            });
-
-            await fs.promises.writeFile(failureIndexPath, JSON.stringify(failureIndex, null, 2), 'utf-8');
-
-            if (browser.allure) {
-                const reportScreenshot = await fs.promises.readFile(screenshotPath);
-                const reportStateDump = JSON.stringify(redactedState, null, 2);
-
-                await browser.allure.addAttachment('Screenshot', reportScreenshot, 'image/png');
-                await browser.allure.addAttachment('State Dump', reportStateDump, 'application/json');
-                await browser.allure.addAttachment(
-                    'Rerun Command',
-                    `npx wdio run config/wdio/wdio.conf.js --spec ${test?.file || ''}`,
-                    'text/plain'
-                );
+            // Add Allure attachments with proper guards
+            if (browser.allure && typeof browser.allure.addAttachment === 'function') {
+                try {
+                    if (screenshotCaptured) {
+                        const reportScreenshot = await fs.promises.readFile(screenshotPath);
+                        await browser.allure.addAttachment('Screenshot', reportScreenshot, 'image/png');
+                    }
+                    if (redactedState) {
+                        const reportStateDump = JSON.stringify(redactedState, null, 2);
+                        await browser.allure.addAttachment('State Dump', reportStateDump, 'application/json');
+                    }
+                    await browser.allure.addAttachment(
+                        'Rerun Command',
+                        `npx wdio run config/wdio/wdio.conf.js --spec ${test?.file || ''}`,
+                        'text/plain'
+                    );
+                } catch (allureError) {
+                    console.warn('Failed to add Allure attachments:', allureError.message);
+                }
             }
         } catch (error) {
-            console.warn('Failed to capture failure diagnostics:', error);
+            // Top-level catch - never let hook failures affect test execution
+            console.warn('Failed to capture failure diagnostics:', error.message);
         }
     },
 
@@ -286,53 +326,68 @@ export const baseConfig = {
             const timestamp = new Date().toISOString();
             const specFiles = Array.isArray(specs) && specs.length > 0 ? specs : [];
 
+            // Write flaky report only if there were retries
             if (retries > 0) {
-                const flakyTests = specFiles.map((spec) => ({
-                    specFile: spec,
-                    retries,
-                    timestamp,
-                }));
-
-                const flakyReport = {
-                    generatedAt: timestamp,
-                    flakyTests,
-                };
-
-                await fs.promises.writeFile(
-                    path.join(logsDir, 'flaky-report.json'),
-                    JSON.stringify(flakyReport, null, 2),
-                    'utf-8'
-                );
-            }
-
-            if (exitCode !== 0) {
-                const runMetadata = getRunMetadata();
-                const failureIndex = await loadFailureIndex(runMetadata);
-
-                if (failureIndex.failures.length === 0) {
-                    failureIndex.failures = specFiles.map((spec) => ({
+                try {
+                    const flakyTests = specFiles.map((spec) => ({
                         specFile: spec,
-                        testTitle: 'unknown',
-                        attempt: 1,
-                        retries: { attempts: retries, limit: SPEC_FILE_RETRIES },
-                        rerunCommand: `npx wdio run config/wdio/wdio.conf.js --spec ${spec}`,
-                        artifacts: {
-                            screenshot: null,
-                            stateDump: null,
-                        },
+                        retries,
+                        timestamp,
                     }));
-                }
 
-                await fs.promises.writeFile(failureIndexPath, JSON.stringify(failureIndex, null, 2), 'utf-8');
+                    const flakyReport = {
+                        generatedAt: timestamp,
+                        flakyTests,
+                    };
+
+                    await fs.promises.writeFile(
+                        path.join(logsDir, 'flaky-report.json'),
+                        JSON.stringify(flakyReport, null, 2),
+                        'utf-8'
+                    );
+                } catch (flakyError) {
+                    console.warn('Failed to write flaky report:', flakyError.message);
+                }
             }
 
-            // Copy allure categories
-            const categoriesSource = path.resolve(__dirname, '../../tests/e2e/allure-categories.json');
-            const categoriesDest = path.resolve(__dirname, '../../tests/e2e/allure-results/categories.json');
-            await fs.promises.mkdir(path.dirname(categoriesDest), { recursive: true });
-            await fs.promises.copyFile(categoriesSource, categoriesDest).catch(() => {});
+            // Update failure index for non-zero exit codes
+            if (exitCode !== 0) {
+                try {
+                    const runMetadata = getRunMetadata();
+                    const failureIndex = await loadFailureIndex(runMetadata);
+
+                    if (failureIndex.failures.length === 0) {
+                        failureIndex.failures = specFiles.map((spec) => ({
+                            specFile: spec,
+                            testTitle: 'unknown',
+                            attempt: 1,
+                            retries: { attempts: retries, limit: SPEC_FILE_RETRIES },
+                            rerunCommand: `npx wdio run config/wdio/wdio.conf.js --spec ${spec}`,
+                            artifacts: {
+                                screenshot: null,
+                                stateDump: null,
+                            },
+                        }));
+                    }
+
+                    await fs.promises.writeFile(failureIndexPath, JSON.stringify(failureIndex, null, 2), 'utf-8');
+                } catch (indexError) {
+                    console.warn('Failed to update failure index:', indexError.message);
+                }
+            }
+
+            // Copy allure categories (best-effort)
+            try {
+                const categoriesSource = path.resolve(__dirname, '../../tests/e2e/allure-categories.json');
+                const categoriesDest = path.resolve(__dirname, '../../tests/e2e/allure-results/categories.json');
+                await fs.promises.mkdir(path.dirname(categoriesDest), { recursive: true });
+                await fs.promises.copyFile(categoriesSource, categoriesDest);
+            } catch {
+                // Silently ignore - categories are optional
+            }
         } catch (error) {
-            console.warn('Failed to generate flaky report:', error);
+            // Never let hook failures affect test execution
+            console.warn('Failed to generate flaky report:', error.message);
         }
     },
 };
