@@ -38,6 +38,7 @@ import type NotificationManager from './notificationManager';
 import type ExportManager from './exportManager';
 import type { ModelStatus } from './llmManager';
 import type { ThemePreference, Logger } from '../types';
+import { DEFAULT_ACCELERATORS } from '../../shared/types/hotkeys';
 
 /**
  * User preferences structure for settings store.
@@ -117,9 +118,11 @@ export default class IpcManager {
                     hotkeyQuickChat: true,
                     hotkeyVoiceChat: true,
                     hotkeyPrintToPdf: true,
-                    acceleratorAlwaysOnTop: 'CommandOrControl+Alt+P',
-                    acceleratorPeekAndHide: 'CommandOrControl+Alt+H',
-                    acceleratorQuickChat: 'CommandOrControl+Shift+Alt+Space',
+                    acceleratorAlwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
+                    acceleratorPeekAndHide: DEFAULT_ACCELERATORS.peekAndHide,
+                    acceleratorQuickChat: DEFAULT_ACCELERATORS.quickChat,
+                    acceleratorVoiceChat: DEFAULT_ACCELERATORS.voiceChat,
+                    acceleratorPrintToPdf: DEFAULT_ACCELERATORS.printToPdf,
                     autoUpdateEnabled: true,
                     textPredictionEnabled: false,
                     textPredictionGpuEnabled: false,
@@ -127,8 +130,6 @@ export default class IpcManager {
                     textPredictionModelId: 'qwen3-0.6b',
                     zoomLevel: 100,
                     responseNotificationsEnabled: true,
-                    acceleratorVoiceChat: 'CommandOrControl+Shift+M',
-                    acceleratorPrintToPdf: 'CommandOrControl+Shift+P',
                 },
             });
         /* v8 ignore next -- production fallback, tests always inject logger */
