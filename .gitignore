@@ -45,3 +45,4 @@ prompts/
 .agent/skills
 .worktrees/.sisyphus/
 .worktrees/
+.sisyphus/
