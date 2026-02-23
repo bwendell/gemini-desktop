@@ -195,52 +195,30 @@ export class UpdateToastPage extends BasePage {
     }
 
     /**
-     * Wait for the toast to be hidden, with self-healing for late IPC re-shows.
+     * Wait for the toast to be hidden, with fallback for late IPC re-shows.
      *
-     * On slow CI runners, async IPC events (e.g., onUpdateError from a previous test's
-     * installUpdate()) can arrive after clickLater() and re-show the toast. This method
-     * polls for visibility and actively suppresses re-appearances using dismiss() which
-     * only sets visible=false without clearing hasPendingUpdate (preserving badge state).
+     * Uses WDIO's native waitForDisplayed({ reverse: true }) which correctly
+     * waits for Framer Motion exit animations to complete. If the toast is
+     * STILL visible after the first wait (due to a late IPC event re-showing
+     * it), falls back to a nuclear hide() that resets ALL state, then waits
+     * once more.
      *
      * @param timeout - Timeout in milliseconds (default: 5000)
      */
     async waitForHidden(timeout = 5000): Promise<void> {
-        this.log('Waiting for toast to be hidden (self-healing)');
-        const pollInterval = 200;
-        const maxAttempts = Math.ceil(timeout / pollInterval);
-        let dismissCount = 0;
-
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            const isVisible = await this.isDisplayed();
-
-            if (!isVisible) {
-                // Toast is hidden — wait one more interval to confirm it stays hidden
-                // (catches race where IPC arrives right after animation completes)
-                await this.browser.pause(pollInterval);
-                const stillHidden = !(await this.isDisplayed());
-                if (stillHidden) {
-                    if (dismissCount > 0) {
-                        this.log(`Toast stayed hidden after ${dismissCount} dismiss(es)`);
-                    }
-                    return;
-                }
-                // Toast re-appeared during confirmation — fall through to dismiss
-                this.log('Toast re-appeared during confirmation pause, suppressing');
-            }
-
-            // Toast is (still) visible — suppress it with lightweight dismiss
-            dismissCount++;
-            this.log(`Late IPC re-show detected (attempt ${attempt + 1}), calling dismiss #${dismissCount}`);
-            await this.dismissToast();
-            // Wait for React state update + exit animation
-            await this.browser.pause(pollInterval);
+        this.log('Waiting for toast to be hidden');
+        try {
+            await this.waitForElementToDisappear(this.toastSelector, timeout);
+            return;
+        } catch {
+            // Toast still visible after timeout — likely a late IPC re-show.
+            // Use nuclear hide() to reset all state and try once more.
+            this.log('Toast still visible after initial wait, using hide() to force-clear');
+            await this.hide();
+            // Wait for React state update + Framer Motion exit animation
+            await this.browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await this.waitForElementToDisappear(this.toastSelector, timeout);
         }
-
-        // If we get here, toast never stayed hidden — fail with clear message
-        throw new Error(
-            `[${this.constructor.name}] Toast was still visible after ${timeout}ms ` +
-            `(${dismissCount} dismiss attempts). Late IPC events may still be arriving.`
-        );
     }
 
     /**

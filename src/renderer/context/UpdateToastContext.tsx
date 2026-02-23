@@ -160,8 +160,10 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
      */
     useEffect(() => {
         if (!visible || !type) {
+            // Always use the stable UPDATE_TOAST_ID rather than currentToastId,
+            // which may be null due to queueMicrotask race from a previous effect run.
+            dismissToast(UPDATE_TOAST_ID);
             if (currentToastId) {
-                dismissToast(currentToastId);
                 queueMicrotask(() => setCurrentToastId(null));
             }
             return;

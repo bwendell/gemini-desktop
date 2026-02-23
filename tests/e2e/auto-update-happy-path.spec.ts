@@ -14,8 +14,9 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { expect } from '@wdio/globals';
+import { expect, browser } from '@wdio/globals';
 import { getPlatform, E2EPlatform } from './helpers/platform';
+import { waitForDuration } from './helpers/waitUtilities';
 import { E2ELogger } from './helpers/logger';
 import { UpdateToastPage } from './pages';
 
@@ -31,6 +32,23 @@ describe('Auto-Update Happy Path', () => {
         platform = await getPlatform();
         updateToast = new UpdateToastPage();
         E2ELogger.info('auto-update-happy-path', `Platform: ${platform.toUpperCase()}`);
+        // Wait for app to be ready
+        await waitForDuration(2000, 'App startup');
+
+        // Disable auto-updates to prevent startup check interference.
+        // Without this, the 10-second delayed startup check fires during tests,
+        // hits GitHub's API (which fails with 406 in E2E), and re-shows an error
+        // toast that interferes with waitForHidden() assertions.
+        await browser.execute(() => {
+            // @ts-expect-error - electronAPI exposed at runtime
+            if (window.electronAPI) {
+                // @ts-expect-error
+                window.electronAPI.setAutoUpdateEnabled(false);
+            }
+        });
+
+        // Allow IPC to process
+        await waitForDuration(1000, 'IPC processing');
     });
 
     beforeEach(async () => {
