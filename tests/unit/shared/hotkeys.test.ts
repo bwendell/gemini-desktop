@@ -18,9 +18,10 @@ import {
 describe('Hotkey Types', () => {
     describe('hotkey scope types', () => {
         describe('GLOBAL_HOTKEY_IDS', () => {
-            it('should contain quickChat and peekAndHide', () => {
+            it('should contain quickChat, peekAndHide and voiceChat', () => {
                 expect(GLOBAL_HOTKEY_IDS).toContain('quickChat');
                 expect(GLOBAL_HOTKEY_IDS).toContain('peekAndHide');
+                expect(GLOBAL_HOTKEY_IDS).toContain('voiceChat');
             });
 
             it('should not contain application hotkeys', () => {
@@ -51,9 +52,10 @@ describe('Hotkey Types', () => {
                 expect(Object.keys(HOTKEY_SCOPE_MAP).length).toBe(HOTKEY_IDS.length);
             });
 
-            it('should map global hotkeys to "global"', () => {
+            it('should map voiceChat to "global"', () => {
                 expect(HOTKEY_SCOPE_MAP.quickChat).toBe('global');
                 expect(HOTKEY_SCOPE_MAP.peekAndHide).toBe('global');
+                expect(HOTKEY_SCOPE_MAP.voiceChat).toBe('global');
             });
 
             it('should map application hotkeys to "application"', () => {
@@ -68,8 +70,8 @@ describe('Hotkey Types', () => {
             expect(getHotkeyScope('quickChat')).toBe('global');
         });
 
-        it('should return global for peekAndHide', () => {
-            expect(getHotkeyScope('peekAndHide')).toBe('global');
+        it('should return global for voiceChat', () => {
+            expect(getHotkeyScope('voiceChat')).toBe('global');
         });
 
         it('should return application for alwaysOnTop', () => {
@@ -82,7 +84,7 @@ describe('Hotkey Types', () => {
     });
 
     describe('isGlobalHotkey', () => {
-        it.each(['quickChat', 'peekAndHide'] as const)('should return true for %s', (id) => {
+        it.each(['quickChat', 'peekAndHide', 'voiceChat'] as const)('should return true for %s', (id) => {
             expect(isGlobalHotkey(id)).toBe(true);
         });
 
@@ -100,7 +102,7 @@ describe('Hotkey Types', () => {
             expect(isApplicationHotkey(id)).toBe(true);
         });
 
-        it.each(['quickChat', 'peekAndHide'] as const)('should return false for %s', (id) => {
+        it.each(['quickChat', 'peekAndHide', 'voiceChat'] as const)('should return false for %s', (id) => {
             expect(isApplicationHotkey(id)).toBe(false);
         });
     });
@@ -181,13 +183,13 @@ describe('Hotkey Types', () => {
             expect(HOTKEY_IDS).toContain('printToPdf');
         });
 
-        it('should have exactly 4 hotkey IDs', () => {
-            expect(HOTKEY_IDS).toHaveLength(4);
+        it('should have exactly 5 hotkey IDs', () => {
+            expect(HOTKEY_IDS).toHaveLength(5);
         });
 
         it('should include all expected hotkey IDs', () => {
             expect(HOTKEY_IDS).toEqual(
-                expect.arrayContaining(['quickChat', 'peekAndHide', 'alwaysOnTop', 'printToPdf'])
+                expect.arrayContaining(['quickChat', 'peekAndHide', 'alwaysOnTop', 'printToPdf', 'voiceChat'])
             );
         });
 
@@ -304,9 +306,85 @@ describe('Hotkey Types', () => {
         });
     });
 
+    describe('IndividualHotkeySettings for voiceChat', () => {
+        it('should accept voiceChat with enabled true', () => {
+            const settings: IndividualHotkeySettings = {
+                quickChat: true,
+                peekAndHide: true,
+                voiceChat: true,
+                alwaysOnTop: true,
+                printToPdf: true,
+            };
+            expect(settings.voiceChat).toBe(true);
+        });
+
+        it('should accept voiceChat with enabled false', () => {
+            const settings: IndividualHotkeySettings = {
+                quickChat: true,
+                peekAndHide: true,
+                voiceChat: false,
+                alwaysOnTop: true,
+                printToPdf: true,
+            };
+            expect(settings.voiceChat).toBe(false);
+        });
+
+        it('should require voiceChat property (type-level check)', () => {
+            // This verifies that the interface requires voiceChat
+            const settings: IndividualHotkeySettings = {
+                quickChat: false,
+                peekAndHide: false,
+                voiceChat: true,
+                alwaysOnTop: false,
+                printToPdf: true,
+            };
+            expect(Object.keys(settings)).toContain('voiceChat');
+        });
+    });
+
+    describe('voiceChat default accelerator', () => {
+        it('should have default accelerator CommandOrControl+Shift+M', () => {
+            expect(DEFAULT_ACCELERATORS.voiceChat).toBe('CommandOrControl+Shift+M');
+        });
+
+        it('should be a valid Electron accelerator format', () => {
+            const accelerator = DEFAULT_ACCELERATORS.voiceChat;
+            expect(accelerator).toMatch(/^(CommandOrControl|Ctrl|Command)\+/);
+        });
+
+        it('should use CommandOrControl modifier for cross-platform compatibility', () => {
+            expect(DEFAULT_ACCELERATORS.voiceChat).toContain('CommandOrControl');
+        });
+    });
+
+    describe('voiceChat hotkey scope', () => {
+        it('should be classified as a global hotkey', () => {
+            expect(isGlobalHotkey('voiceChat')).toBe(true);
+        });
+
+        it('should NOT be classified as an application hotkey', () => {
+            expect(isApplicationHotkey('voiceChat')).toBe(false);
+        });
+
+        it('should return global scope from getHotkeyScope', () => {
+            expect(getHotkeyScope('voiceChat')).toBe('global');
+        });
+
+        it('should be in GLOBAL_HOTKEY_IDS array', () => {
+            expect(GLOBAL_HOTKEY_IDS).toContain('voiceChat');
+        });
+
+        it('should NOT be in APPLICATION_HOTKEY_IDS array', () => {
+            expect(APPLICATION_HOTKEY_IDS).not.toContain('voiceChat');
+        });
+
+        it('should have correct scope in HOTKEY_SCOPE_MAP', () => {
+            expect(HOTKEY_SCOPE_MAP.voiceChat).toBe('global');
+        });
+    });
+
     describe('printToPdf edge cases', () => {
         it('should handle printToPdf in exhaustive switch statements', () => {
-            // If there's a switch over HotkeyId, ensure printToPdf case exists
             const handleHotkey = (id: HotkeyId): string => {
                 switch (id) {
                     case 'quickChat':
