@@ -35,6 +35,7 @@ describe('Release Build: System Tray', () => {
             return {
                 exists: true,
                 tooltip: tray.getToolTip?.() || 'Gemini Desktop',
+                diagnostics: trayManager.getTrayIconDiagnostics?.() || null,
                 error: null,
             };
         });
@@ -44,6 +45,14 @@ describe('Release Build: System Tray', () => {
         }
 
         expect(trayInfo.exists).toBe(true);
+
+        if (process.platform === 'darwin') {
+            expect(trayInfo.diagnostics).toBeTruthy();
+            expect(trayInfo.diagnostics.isTemplate).toBe(true);
+            expect(trayInfo.diagnostics.width).toBeLessThanOrEqual(32);
+            expect(trayInfo.diagnostics.height).toBeLessThanOrEqual(32);
+        }
+
         E2ELogger.info('tray-icon', `Tray icon verified with tooltip: ${trayInfo.tooltip}`);
     });
 

@@ -13,7 +13,7 @@
  * @module macos-dock.spec
  */
 
-import { expect } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import { MacOSDockPage } from './pages';
 import { E2ELogger } from './helpers/logger';
 import { verifyTrayCreated, getTrayTooltip } from './helpers/trayActions';
@@ -121,6 +121,31 @@ describe('macOS Dock and Menubar Behavior', () => {
             expect(trayExists).toBe(true);
 
             E2ELogger.info('macos-dock', 'Menubar tray icon exists on macOS');
+        });
+
+        it('should use template-sized tray icon on macOS', async () => {
+            if (!(await dockPage.isMacOS())) {
+                return;
+            }
+
+            const diagnostics = (await (
+                browser as unknown as { electron: { execute: <T>(fn: () => T) => Promise<T> } }
+            ).electron.execute(() => {
+                const trayManager = (global as any).trayManager;
+                return trayManager?.getTrayIconDiagnostics?.() ?? null;
+            })) as {
+                isTemplate: boolean;
+                width: number;
+                height: number;
+            } | null;
+
+            expect(diagnostics).toBeTruthy();
+            if (!diagnostics) {
+                return;
+            }
+            expect(diagnostics.isTemplate).toBe(true);
+            expect(diagnostics.width).toBeLessThanOrEqual(32);
+            expect(diagnostics.height).toBeLessThanOrEqual(32);
         });
 
         it('should attempt to retrieve tray tooltip on macOS', async () => {
