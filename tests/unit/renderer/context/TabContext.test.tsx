@@ -121,6 +121,25 @@ describe('TabContext', () => {
         expect(screen.getByTestId('active-title').textContent).toBe('New Chat');
     });
 
+    it('falls back to the first tab when activeTabId is missing', async () => {
+        const getTabState = vi.fn().mockResolvedValue({
+            tabs: [
+                { id: 'tab-a', title: 'A', url: 'https://example.com', createdAt: 10 },
+                { id: 'tab-b', title: 'B', url: 'https://example.com', createdAt: 11 },
+            ],
+            activeTabId: 'missing',
+        } satisfies TabsState);
+
+        (window as unknown as { electronAPI: ElectronApiSubset }).electronAPI = { getTabState, saveTabState: vi.fn() };
+
+        renderProvider(<Probe />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('tab-count').textContent).toBe('2');
+        });
+        expect(screen.getByTestId('active-id').textContent).toBe('tab-a');
+    });
+
     it('falls back to a single default tab when no state is persisted', async () => {
         const getTabState = vi.fn().mockResolvedValue(null);
         (window as unknown as { electronAPI: ElectronApiSubset }).electronAPI = { getTabState, saveTabState: vi.fn() };

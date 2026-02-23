@@ -13,7 +13,7 @@ vi.mock('../../../src/renderer/hooks/useNetworkStatus', () => ({
 
 type NavigatePayload = { requestId: string; targetTabId: string; text: string };
 
-function createElectronApiMock() {
+function createElectronApiMock(overrides: Record<string, unknown> = {}) {
     let navigateListener: ((payload: NavigatePayload) => void) | null = null;
 
     const api = setupMockElectronAPI({
@@ -31,6 +31,7 @@ function createElectronApiMock() {
         }),
         signalGeminiReady: vi.fn(),
         onTabShortcutTriggered: vi.fn().mockReturnValue(() => undefined),
+        ...overrides,
     });
 
     return {
@@ -66,6 +67,27 @@ describe('App', () => {
         expect(screen.getByTestId('tab-new-button')).toBeTruthy();
         expect(screen.getByTestId('gemini-iframe')).toBeTruthy();
         expect(document.querySelector('.tab')).toBeTruthy();
+    });
+
+    it('renders an active iframe when persisted activeTabId is invalid', async () => {
+        createElectronApiMock({
+            getTabState: vi.fn().mockResolvedValue({
+                tabs: [
+                    { id: 'tab-a', title: 'A', url: 'https://gemini.google.com/app', createdAt: 1 },
+                    { id: 'tab-b', title: 'B', url: 'https://gemini.google.com/app', createdAt: 2 },
+                ],
+                activeTabId: 'missing-tab',
+            }),
+        });
+
+        render(<App />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('gemini-iframe')).toBeTruthy();
+        });
+
+        const activeIframe = screen.getByTestId('gemini-iframe');
+        expect(activeIframe.getAttribute('id')).toBe('tab-iframe-tab-a');
     });
 
     it('adds a tab when new-tab button is clicked', async () => {

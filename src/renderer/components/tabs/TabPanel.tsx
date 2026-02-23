@@ -99,13 +99,15 @@ function TabIframe({ tab, isActive, onTabReady, onActiveStatusChange }: TabIfram
 }
 
 export function TabPanel({ tabs, activeTabId, onTabReady, onActiveStatusChange }: TabPanelProps) {
+    const resolvedActiveTabId = tabs.some((tab) => tab.id === activeTabId) ? activeTabId : (tabs[0]?.id ?? '');
+
     return (
         <div className="webview-container" data-testid={TAB_TEST_IDS.TAB_PANEL}>
             {tabs.map((tab) => (
                 <TabIframe
                     key={tab.id}
                     tab={tab}
-                    isActive={tab.id === activeTabId}
+                    isActive={tab.id === resolvedActiveTabId}
                     onTabReady={onTabReady}
                     onActiveStatusChange={onActiveStatusChange}
                 />

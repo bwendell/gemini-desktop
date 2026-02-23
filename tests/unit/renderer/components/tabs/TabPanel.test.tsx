@@ -142,4 +142,16 @@ describe('TabPanel', () => {
         expect(screen.queryByTestId('tab-panel')).not.toBeNull();
         expect(document.querySelectorAll('iframe').length).toBe(0);
     });
+
+    it('falls back to first tab when active tab id is missing', () => {
+        render(<TabPanel tabs={tabs} activeTabId="missing-tab" />);
+
+        const fallbackActiveIframe = screen.getByTestId('gemini-iframe');
+        const firstTabIframe = screen.getByTestId('gemini-iframe') as HTMLIFrameElement;
+        const secondTabIframe = screen.getByTestId('tab-iframe-tab-2') as HTMLIFrameElement;
+
+        expect(fallbackActiveIframe.getAttribute('id')).toBe('tab-iframe-tab-1');
+        expect(firstTabIframe.style.display).toBe('block');
+        expect(secondTabIframe.style.display).toBe('none');
+    });
 });
