@@ -49,11 +49,13 @@ interface UserPreferences extends Record<string, unknown> {
     hotkeyAlwaysOnTop: boolean;
     hotkeyPeekAndHide: boolean;
     hotkeyQuickChat: boolean;
+    hotkeyVoiceChat: boolean;
     hotkeyPrintToPdf: boolean;
     // Hotkey accelerators
     acceleratorAlwaysOnTop: string;
     acceleratorPeekAndHide: string;
     acceleratorQuickChat: string;
+    acceleratorVoiceChat: string;
     acceleratorPrintToPdf: string;
     // Auto-update settings
     autoUpdateEnabled: boolean;
@@ -113,7 +115,11 @@ export default class IpcManager {
                     hotkeyAlwaysOnTop: true,
                     hotkeyPeekAndHide: true,
                     hotkeyQuickChat: true,
+                    hotkeyVoiceChat: true,
                     hotkeyPrintToPdf: true,
+                    acceleratorAlwaysOnTop: 'CommandOrControl+Alt+P',
+                    acceleratorPeekAndHide: 'CommandOrControl+Alt+H',
+                    acceleratorQuickChat: 'CommandOrControl+Shift+Alt+Space',
                     autoUpdateEnabled: true,
                     textPredictionEnabled: false,
                     textPredictionGpuEnabled: false,
@@ -121,6 +127,8 @@ export default class IpcManager {
                     textPredictionModelId: 'qwen3-0.6b',
                     zoomLevel: 100,
                     responseNotificationsEnabled: true,
+                    acceleratorVoiceChat: 'CommandOrControl+Shift+M',
+                    acceleratorPrintToPdf: 'CommandOrControl+Shift+P',
                 },
             });
         /* v8 ignore next -- production fallback, tests always inject logger */
