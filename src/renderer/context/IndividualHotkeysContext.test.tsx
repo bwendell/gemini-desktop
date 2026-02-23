@@ -21,6 +21,7 @@ function TestConsumer() {
             <span data-testid="alwaysOnTop">{settings.alwaysOnTop.toString()}</span>
             <span data-testid="peekAndHide">{settings.peekAndHide.toString()}</span>
             <span data-testid="quickChat">{settings.quickChat.toString()}</span>
+            <span data-testid="voiceChat">{settings.voiceChat.toString()}</span>
             <button onClick={() => setEnabled('quickChat', false)} data-testid="disable-quickchat">
                 Disable Quick Chat
             </button>
@@ -68,6 +69,7 @@ describe('IndividualHotkeysContext', () => {
                     alwaysOnTop: false,
                     peekAndHide: true,
                     quickChat: false,
+                    voiceChat: false,
                     printToPdf: true,
                 }),
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
@@ -83,6 +85,7 @@ describe('IndividualHotkeysContext', () => {
                 expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('false');
                 expect(screen.getByTestId('peekAndHide')).toHaveTextContent('true');
                 expect(screen.getByTestId('quickChat')).toHaveTextContent('false');
+                expect(screen.getByTestId('voiceChat')).toHaveTextContent('false');
             });
         });
 
@@ -136,6 +139,7 @@ describe('IndividualHotkeysContext', () => {
                     alwaysOnTop: true,
                     peekAndHide: true,
                     quickChat: true,
+                    voiceChat: true,
                     printToPdf: true,
                 }),
                 setIndividualHotkey: mockSetIndividualHotkey,
@@ -168,6 +172,7 @@ describe('IndividualHotkeysContext', () => {
                     alwaysOnTop: true,
                     peekAndHide: true,
                     quickChat: true,
+                    voiceChat: true,
                     printToPdf: true,
                 }),
                 setIndividualHotkey: vi.fn().mockImplementation(() => {
@@ -227,6 +232,7 @@ describe('IndividualHotkeysContext', () => {
                     alwaysOnTop: true,
                     peekAndHide: true,
                     quickChat: true,
+                    voiceChat: true,
                     printToPdf: true,
                 }),
                 onIndividualHotkeysChanged: vi.fn((cb) => {
@@ -251,6 +257,7 @@ describe('IndividualHotkeysContext', () => {
                     alwaysOnTop: true,
                     peekAndHide: false,
                     quickChat: true,
+                    voiceChat: true,
                     printToPdf: true,
                 });
             });
@@ -267,6 +274,7 @@ describe('IndividualHotkeysContext', () => {
                     alwaysOnTop: true,
                     peekAndHide: true,
                     quickChat: true,
+                    voiceChat: true,
                     printToPdf: true,
                 }),
                 onIndividualHotkeysChanged: vi.fn((cb) => {
@@ -294,6 +302,7 @@ describe('IndividualHotkeysContext', () => {
             expect(screen.getByTestId('alwaysOnTop')).toHaveTextContent('true');
             expect(screen.getByTestId('peekAndHide')).toHaveTextContent('true');
             expect(screen.getByTestId('quickChat')).toHaveTextContent('true');
+            expect(screen.getByTestId('voiceChat')).toHaveTextContent('true');
         });
     });
 
@@ -318,6 +327,7 @@ describe('IndividualHotkeysContext', () => {
                     alwaysOnTop: true,
                     peekAndHide: true,
                     quickChat: true,
+                    voiceChat: true,
                     printToPdf: true,
                 }),
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(mockCleanup),

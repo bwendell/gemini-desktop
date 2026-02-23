@@ -268,7 +268,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 const handler = getListener('hotkeys:individual:set');
 
-                ['alwaysOnTop', 'peekAndHide', 'quickChat'].forEach((hotkeyId) => {
+                ['alwaysOnTop', 'peekAndHide', 'quickChat', 'voiceChat'].forEach((hotkeyId) => {
                     handler({}, hotkeyId, false);
                     handler({}, hotkeyId, true);
                     handler({}, hotkeyId, false);
