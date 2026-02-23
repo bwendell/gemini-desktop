@@ -67,6 +67,11 @@ export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
         description: 'Print conversation to PDF [Application]',
         displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.printToPdf),
     },
+    VOICE_CHAT: {
+        accelerator: DEFAULT_ACCELERATORS.voiceChat,
+        description: 'Activate voice chat [Global]',
+        displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.voiceChat),
+    },
 };
 
 /**
