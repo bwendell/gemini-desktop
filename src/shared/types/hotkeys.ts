@@ -119,8 +119,6 @@ export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
     // Ctrl+Alt+P = Pin window (always on top)
     // Note: Ctrl+Alt+T conflicts with GNOME terminal shortcut
     alwaysOnTop: 'CommandOrControl+Alt+P',
-    // Ctrl+Shift+Space = Peek and Hide window
-    // Note: Ctrl+Alt+E was not conflicting but H is more intuitive
     peekAndHide: 'CommandOrControl+Shift+Space',
     // Ctrl+Shift+Alt+Space = Quick Chat toggle
     quickChat: 'CommandOrControl+Shift+Alt+Space',
