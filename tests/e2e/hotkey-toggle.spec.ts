@@ -46,8 +46,8 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     {
         id: 'peekAndHide',
         label: 'Peek and Hide',
-        shortcutWin: 'Ctrl+Alt+H',
-        shortcutMac: '⌘+⌥+H', // macOS displays symbols: ⌘ (Cmd), ⌥ (Alt)
+        shortcutWin: 'Ctrl+Shift+Space',
+        shortcutMac: '⌘+⇧+Space', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift)
         testId: 'hotkey-toggle-peekAndHide',
         rowTestId: 'hotkey-row-peekAndHide',
     },

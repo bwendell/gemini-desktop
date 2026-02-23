@@ -1,7 +1,7 @@
 /**
  * E2E Test: Peek and Hide (Hide All Windows)
  *
- * Tests the Peek and Hide hotkey functionality (Ctrl+Alt+H / Cmd+Alt+H) which
+ * Tests the Peek and Hide hotkey functionality (Ctrl+Shift+Space / Cmd+Shift+Space) which
  * minimizes/hides the main window for quick privacy.
  *
  * Peek and Hide is designed to quickly hide the application when needed.
@@ -56,7 +56,7 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             E2ELogger.info('peek-and-hide', `Expected display format on ${platform}: ${expectedDisplay}`);
 
-            // The hotkey should be Ctrl+Alt+H on Windows/Linux, Cmd+Alt+H on macOS
+            // The hotkey should be Ctrl+Shift+Space on Windows/Linux, Cmd+Shift+Space on macOS
             if (platform === 'darwin') {
                 expect(expectedDisplay).toContain('Cmd');
             } else {
