@@ -25,6 +25,7 @@ describe('Tab Persistence E2E', () => {
         execute: <T>(script: string | ((...args: any[]) => T), ...args: any[]) => Promise<T>;
         keys: (keys: string | string[]) => Promise<void>;
         $: (selector: string) => Promise<{ waitForExist: (options?: { timeout?: number }) => Promise<boolean> }>;
+        refresh: () => Promise<void>;
     };
 
     beforeEach(async () => {
@@ -52,6 +53,36 @@ describe('Tab Persistence E2E', () => {
 
         expect(content.tabsState?.tabs?.length).toBeGreaterThanOrEqual(3);
         expect(typeof content.tabsState?.activeTabId).toBe('string');
+    });
+
+    it('falls back to a valid tab when persisted activeTabId is invalid', async () => {
+        await wdioBrowser.execute(() => {
+            (
+                window as unknown as { electronAPI: { saveTabState: (payload: unknown) => void } }
+            ).electronAPI.saveTabState({
+                tabs: [
+                    { id: 'tab-a', title: 'A', url: 'https://gemini.google.com/app', createdAt: 1 },
+                    { id: 'tab-b', title: 'B', url: 'https://gemini.google.com/app', createdAt: 2 },
+                ],
+                activeTabId: 'missing-tab',
+            });
+        });
+
+        await wdioBrowser.refresh();
+
+        await wdioBrowser.waitUntil(
+            async () => {
+                const activeTabId = await tabBar.getActiveTabId();
+                return activeTabId === 'tab-a' || activeTabId === 'tab-b';
+            },
+            {
+                timeout: 5000,
+                timeoutMsg: 'Expected active tab to fall back to a valid tab after reload',
+            }
+        );
+
+        const activeTabId = await tabBar.getActiveTabId();
+        expect(activeTabId === 'tab-a' || activeTabId === 'tab-b').toBe(true);
     });
 
     it('quick chat submission opens a deterministic new target tab', async () => {

@@ -79,6 +79,15 @@ describe('Authentication Flow', () => {
         // 6. Verify main window still works
         const mainUrl = await browser.getUrl();
         expect(mainUrl).toBeDefined();
+
+        const visibleGeminiIframeCount = await browser.execute(() => {
+            const iframes = Array.from(document.querySelectorAll('iframe[src*="gemini.google.com"]'));
+            return iframes.filter((iframe) => {
+                const style = window.getComputedStyle(iframe);
+                return style.display !== 'none' && style.visibility !== 'hidden';
+            }).length;
+        });
+        expect(visibleGeminiIframeCount).toBeGreaterThanOrEqual(1);
     });
 
     it('should close auth window and return to main window when closed manually', async () => {
