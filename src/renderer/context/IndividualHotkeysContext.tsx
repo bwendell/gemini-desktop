@@ -76,6 +76,7 @@ const DEFAULT_SETTINGS: IndividualHotkeySettings = {
     alwaysOnTop: true,
     peekAndHide: true,
     quickChat: true,
+    voiceChat: true,
     printToPdf: true,
 };
 
@@ -89,10 +90,12 @@ function isValidSettings(data: unknown): data is IndividualHotkeySettings {
         'alwaysOnTop' in data &&
         'peekAndHide' in data &&
         'quickChat' in data &&
+        'voiceChat' in data &&
         'printToPdf' in data &&
         typeof (data as IndividualHotkeySettings).alwaysOnTop === 'boolean' &&
         typeof (data as IndividualHotkeySettings).peekAndHide === 'boolean' &&
         typeof (data as IndividualHotkeySettings).quickChat === 'boolean' &&
+        typeof (data as IndividualHotkeySettings).voiceChat === 'boolean' &&
         typeof (data as IndividualHotkeySettings).printToPdf === 'boolean'
     );
 }
@@ -107,10 +110,12 @@ function isValidAccelerators(data: unknown): data is HotkeyAccelerators {
         'alwaysOnTop' in data &&
         'peekAndHide' in data &&
         'quickChat' in data &&
+        'voiceChat' in data &&
         'printToPdf' in data &&
         typeof (data as HotkeyAccelerators).alwaysOnTop === 'string' &&
         typeof (data as HotkeyAccelerators).peekAndHide === 'string' &&
         typeof (data as HotkeyAccelerators).quickChat === 'string' &&
+        typeof (data as HotkeyAccelerators).voiceChat === 'string' &&
         typeof (data as HotkeyAccelerators).printToPdf === 'string'
     );
 }
