@@ -52,7 +52,7 @@ describe('Quick Chat Feature', () => {
             // Verify the hotkey is actually registered at the OS level
             // Note: Triggering the hotkey via robotjs is flaky, so we verify registration status instead.
             // This follows E2E principles by checking ACTUAL registration state, not manipulating internals.
-            const defaultAccelerator = 'CommandOrControl+Shift+Space';
+            const defaultAccelerator = 'CommandOrControl+Shift+Alt+Space';
             const isRegistered = await isHotkeyRegistered(defaultAccelerator);
 
             E2ELogger.info('quick-chat', `Hotkey "${defaultAccelerator}" registration: ${isRegistered}`);
@@ -80,9 +80,9 @@ describe('Quick Chat Feature', () => {
 
             // Verify platform-specific display format
             if (platform === 'macos') {
-                expect(displayString).toBe('Cmd+Shift+Space');
+                expect(displayString).toBe('Cmd+Shift+Alt+Space');
             } else {
-                expect(displayString).toBe('Ctrl+Shift+Space');
+                expect(displayString).toBe('Ctrl+Shift+Alt+Space');
             }
 
             E2ELogger.info('quick-chat', `Platform: ${platform}, Display String: ${displayString}`);

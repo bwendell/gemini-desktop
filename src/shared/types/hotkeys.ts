@@ -122,8 +122,8 @@ export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
     // Ctrl+Alt+H = Peek and Hide window
     // Note: Ctrl+Alt+E was not conflicting but H is more intuitive
     peekAndHide: 'CommandOrControl+Alt+H',
-    // Ctrl+Shift+Space = Quick Chat toggle
-    quickChat: 'CommandOrControl+Shift+Space',
+    // Ctrl+Shift+Alt+Space = Quick Chat toggle
+    quickChat: 'CommandOrControl+Shift+Alt+Space',
     // Ctrl+Shift+P = Print to PDF
     printToPdf: 'CommandOrControl+Shift+P',
 };

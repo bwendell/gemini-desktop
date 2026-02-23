@@ -185,7 +185,9 @@ describe('DBusFallback', () => {
 
     describe('electronAcceleratorToXdg', () => {
         it('converts CommandOrControl to CTRL', () => {
-            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+Space')).toBe('CTRL+SHIFT+space');
+            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+Alt+Space')).toBe(
+                'CTRL+SHIFT+ALT+space'
+            );
         });
 
         it('converts CmdOrCtrl to CTRL', () => {
@@ -227,7 +229,9 @@ describe('DBusFallback', () => {
         });
 
         it('handles the default app accelerators correctly', () => {
-            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+Space')).toBe('CTRL+SHIFT+space');
+            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+Alt+Space')).toBe(
+                'CTRL+SHIFT+ALT+space'
+            );
             expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Alt+H')).toBe('CTRL+ALT+h');
             expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Alt+P')).toBe('CTRL+ALT+p');
             expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+P')).toBe('CTRL+SHIFT+p');
@@ -333,7 +337,11 @@ describe('DBusFallback', () => {
 
     describe('registerViaDBus', () => {
         const testShortcuts = [
-            { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat toggle' },
+            {
+                id: 'quickChat' as const,
+                accelerator: 'CommandOrControl+Shift+Alt+Space',
+                description: 'Quick Chat toggle',
+            },
             { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Hide window' },
         ];
 
@@ -369,7 +377,7 @@ describe('DBusFallback', () => {
 
             // Check that accelerators were converted
             const quickChatTrigger = shortcutSpecs[0][1].preferred_trigger;
-            expect(quickChatTrigger.value).toBe('CTRL+SHIFT+space');
+            expect(quickChatTrigger.value).toBe('CTRL+SHIFT+ALT+space');
 
             const peekAndHideTrigger = shortcutSpecs[1][1].preferred_trigger;
             expect(peekAndHideTrigger.value).toBe('CTRL+ALT+h');
@@ -652,7 +660,11 @@ describe('DBusFallback', () => {
     describe('destroySession', () => {
         it('disconnects D-Bus connection when session exists', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             await dbusFallback.destroySession();
@@ -662,7 +674,11 @@ describe('DBusFallback', () => {
 
         it('removes bus-level message handler on destroy', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             await dbusFallback.destroySession();
@@ -676,7 +692,11 @@ describe('DBusFallback', () => {
 
         it('cleans up session state (allows new registration)', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             await dbusFallback.destroySession();
@@ -691,7 +711,11 @@ describe('DBusFallback', () => {
 
         it('handles disconnect errors gracefully', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             mockDisconnect.mockImplementation(() => {
@@ -720,7 +744,11 @@ describe('DBusFallback', () => {
             mockGetProxyObject.mockRejectedValue(new Error('org.freedesktop.DBus.Error.NameHasNoOwner'));
 
             const results = await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             expect(results[0].success).toBe(false);
@@ -731,7 +759,11 @@ describe('DBusFallback', () => {
             mockCreateSession.mockRejectedValue(new Error('org.freedesktop.DBus.Error.Timeout'));
 
             const results = await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             expect(results[0].success).toBe(false);
@@ -742,7 +774,11 @@ describe('DBusFallback', () => {
             mockCreateSession.mockRejectedValue(new Error('org.freedesktop.DBus.Error.AccessDenied'));
 
             const results = await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             expect(results[0].success).toBe(false);
@@ -753,7 +789,11 @@ describe('DBusFallback', () => {
             mockBindShortcuts.mockRejectedValue(new Error('org.freedesktop.DBus.Error.NoReply'));
 
             const results = await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             expect(results[0].success).toBe(false);
@@ -764,7 +804,11 @@ describe('DBusFallback', () => {
             mockGetProxyObject.mockRejectedValue(new Error('org.freedesktop.DBus.Error.ServiceUnknown'));
 
             const results = await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             expect(results[0].success).toBe(false);
@@ -780,7 +824,11 @@ describe('DBusFallback', () => {
             });
 
             const results = await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
 
             expect(results[0].success).toBe(false);
@@ -794,7 +842,7 @@ describe('DBusFallback', () => {
                 dbusFallback.registerViaDBus([
                     {
                         id: 'quickChat' as const,
-                        accelerator: 'CommandOrControl+Shift+Space',
+                        accelerator: 'CommandOrControl+Shift+Alt+Space',
                         description: 'Quick Chat',
                     },
                 ])
@@ -809,7 +857,11 @@ describe('DBusFallback', () => {
 
         it('never throws uncaught exceptions to caller from destroySession', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
             mockDisconnect.mockImplementation(() => {
                 throw new Error('Crash during disconnect');
@@ -826,7 +878,11 @@ describe('DBusFallback', () => {
     describe('Session Lifecycle', () => {
         it('creates new session on repeated registerViaDBus calls (destroying previous)', async () => {
             await dbusFallback.registerViaDBus([
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ]);
             await dbusFallback.registerViaDBus([
                 { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
@@ -861,7 +917,11 @@ describe('DBusFallback', () => {
             );
 
             const testShortcuts = [
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
                 { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
             ];
 
@@ -888,7 +948,11 @@ describe('DBusFallback', () => {
             mockBindShortcuts.mockRejectedValue(new Error('org.freedesktop.DBus.Error.NotConnected'));
 
             const testShortcuts = [
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
                 { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
             ];
 
@@ -905,7 +969,11 @@ describe('DBusFallback', () => {
 
         describe('P1-1: User Dismissal vs System Error', () => {
             const testShortcuts = [
-                { id: 'quickChat' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+                {
+                    id: 'quickChat' as const,
+                    accelerator: 'CommandOrControl+Shift+Alt+Space',
+                    description: 'Quick Chat',
+                },
             ];
 
             it('P1-1a: should handle user dismissal (code=1) as non-success', async () => {

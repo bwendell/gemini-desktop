@@ -33,7 +33,7 @@ describe('Global Hotkeys', () => {
     });
 
     describe('Quick Chat Hotkey', () => {
-        it('should toggle Quick Chat window visibility when pressing CommandOrControl+Shift+Space', async () => {
+        it('should toggle Quick Chat window visibility when pressing CommandOrControl+Shift+Alt+Space', async () => {
             // ENVIRONMENTAL CHECK: Verify that hotkeys can be registered in this environment
             // On some platforms/CI environments, global hotkeys may fail to register due to:
             // - Security restrictions (Windows UAC)
@@ -43,7 +43,7 @@ describe('Global Hotkeys', () => {
                 try {
                     const { globalShortcut } = _electron;
                     return {
-                        quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
+                        quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
                     };
                 } catch (error) {
                     return { quickChat: false, error: (error as Error).message };
@@ -68,8 +68,7 @@ describe('Global Hotkeys', () => {
             }
 
             // 2. ACTION: Press the Hotkey via workflow helper
-            // Simulating: Cmd/Ctrl + Shift + Space
-            await pressComplexShortcut(['primary', 'shift'], 'Space');
+            await pressComplexShortcut(['primary', 'shift', 'alt'], 'Space');
 
             // Allow time for window animation and OS handling
             await waitForWindowTransition();
@@ -80,7 +79,7 @@ describe('Global Hotkeys', () => {
             expect(isVisibleAfterOpen).toBe(true);
 
             // 4. ACTION: Press Hotkey again to close (Toggle behavior)
-            await pressComplexShortcut(['primary', 'shift'], 'Space');
+            await pressComplexShortcut(['primary', 'shift', 'alt'], 'Space');
             await waitForWindowTransition();
 
             // 5. VERIFICATION: Quick Chat should be hidden via Page Object
