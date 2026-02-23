@@ -46,16 +46,16 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     {
         id: 'peekAndHide',
         label: 'Peek and Hide',
-        shortcutWin: 'Ctrl+Shift+Space',
-        shortcutMac: '⌘+⇧+Space', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift)
+        shortcutWin: 'Ctrl+Shift+␣',
+        shortcutMac: '⌘+⇧+␣', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift), ␣ (Space)
         testId: 'hotkey-toggle-peekAndHide',
         rowTestId: 'hotkey-row-peekAndHide',
     },
     {
         id: 'quickChat',
         label: 'Quick Chat',
-        shortcutWin: 'Ctrl+Shift+␣',
-        shortcutMac: '⌘+⇧+␣', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift), ␣ (Space)
+        shortcutWin: 'Ctrl+Shift+Alt+␣',
+        shortcutMac: '⌘+⇧+⌥+␣',
         testId: 'hotkey-toggle-quickChat',
         rowTestId: 'hotkey-row-quickChat',
     },
@@ -112,10 +112,11 @@ describe('Individual Hotkey Toggles', () => {
         it('should display correct labels for each toggle', async () => {
             for (const config of HOTKEY_CONFIGS) {
                 const row = await $(`[data-testid="${config.rowTestId}"]`);
-                await browser.waitUntil(async () => (await row.getText()).includes(config.label), {
+                const labelFound = await waitForUIState(async () => (await row.getText()).includes(config.label), {
                     timeout: 5000,
-                    timeoutMsg: `Expected row to contain "${config.label}"`,
+                    description: `Row contains "${config.label}"`,
                 });
+                expect(labelFound).toBe(true);
             }
         });
 
@@ -128,10 +129,11 @@ describe('Individual Hotkey Toggles', () => {
                 // (the display uses separate <kbd> elements, so we check each part individually)
                 const keyParts = expectedShortcut.split('+');
                 for (const part of keyParts) {
-                    await browser.waitUntil(async () => (await row.getText()).includes(part), {
+                    const partFound = await waitForUIState(async () => (await row.getText()).includes(part), {
                         timeout: 5000,
-                        timeoutMsg: `Expected row to contain "${part}" (from shortcut "${expectedShortcut}")`,
+                        description: `Row contains "${part}" for "${expectedShortcut}"`,
                     });
+                    expect(partFound).toBe(true);
                 }
                 E2ELogger.info('hotkey-toggle', `${config.label}: displays "${expectedShortcut}"`);
             }
@@ -142,23 +144,29 @@ describe('Individual Hotkey Toggles', () => {
             const row = await $(`[data-testid="${config.rowTestId}"]`);
 
             if (platform === 'macos') {
-                await browser.waitUntil(async () => (await row.getText()).includes('⌘'), {
+                const hasCommand = await waitForUIState(async () => (await row.getText()).includes('⌘'), {
                     timeout: 5000,
-                    timeoutMsg: 'Expected row to contain "⌘" (macOS Command symbol)',
+                    description: 'Row contains "⌘" (macOS Command symbol)',
                 });
-                await browser.waitUntil(async () => !(await row.getText()).includes('Ctrl'), {
+                expect(hasCommand).toBe(true);
+
+                const lacksCtrl = await waitForUIState(async () => !(await row.getText()).includes('Ctrl'), {
                     timeout: 5000,
-                    timeoutMsg: 'Expected row NOT to contain "Ctrl"',
+                    description: 'Row does not contain "Ctrl"',
                 });
+                expect(lacksCtrl).toBe(true);
             } else {
-                await browser.waitUntil(async () => (await row.getText()).includes('Ctrl'), {
+                const hasCtrl = await waitForUIState(async () => (await row.getText()).includes('Ctrl'), {
                     timeout: 5000,
-                    timeoutMsg: 'Expected row to contain "Ctrl"',
+                    description: 'Row contains "Ctrl"',
                 });
-                await browser.waitUntil(async () => !(await row.getText()).includes('⌘'), {
+                expect(hasCtrl).toBe(true);
+
+                const lacksCommand = await waitForUIState(async () => !(await row.getText()).includes('⌘'), {
                     timeout: 5000,
-                    timeoutMsg: 'Expected row NOT to contain "⌘" (macOS Command symbol)',
+                    description: 'Row does not contain "⌘" (macOS Command symbol)',
                 });
+                expect(lacksCommand).toBe(true);
             }
         });
     });
