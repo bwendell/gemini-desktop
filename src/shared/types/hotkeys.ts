@@ -7,12 +7,12 @@
 /**
  * Identifiers for individual hotkey features.
  */
-export type HotkeyId = 'alwaysOnTop' | 'peekAndHide' | 'quickChat' | 'printToPdf';
+export type HotkeyId = 'alwaysOnTop' | 'peekAndHide' | 'quickChat' | 'printToPdf' | 'voiceChat';
 
 /**
  * All valid hotkey IDs as an array for iteration and validation.
  */
-export const HOTKEY_IDS: HotkeyId[] = ['alwaysOnTop', 'peekAndHide', 'quickChat', 'printToPdf'];
+export const HOTKEY_IDS: HotkeyId[] = ['alwaysOnTop', 'peekAndHide', 'quickChat', 'printToPdf', 'voiceChat'];
 
 /**
  * Scope of a hotkey determining its registration mechanism.
@@ -25,7 +25,7 @@ export type HotkeyScope = 'global' | 'application';
  * Hotkeys that work system-wide via Electron's globalShortcut API.
  * These work even when the application is not focused.
  */
-export const GLOBAL_HOTKEY_IDS: HotkeyId[] = ['quickChat', 'peekAndHide'];
+export const GLOBAL_HOTKEY_IDS: HotkeyId[] = ['quickChat', 'peekAndHide', 'voiceChat'];
 
 /**
  * Hotkeys that work only when the application window is focused.
@@ -39,6 +39,7 @@ export const APPLICATION_HOTKEY_IDS: HotkeyId[] = ['alwaysOnTop', 'printToPdf'];
 export const HOTKEY_SCOPE_MAP: Record<HotkeyId, HotkeyScope> = {
     quickChat: 'global',
     peekAndHide: 'global',
+    voiceChat: 'global',
     alwaysOnTop: 'application',
     printToPdf: 'application',
 };
@@ -81,6 +82,8 @@ export interface IndividualHotkeySettings {
     peekAndHide: boolean;
     /** Quick Chat toggle hotkey enabled state */
     quickChat: boolean;
+    /** Voice Chat hotkey enabled state */
+    voiceChat: boolean;
     /** Print to PDF hotkey enabled state */
     printToPdf: boolean;
 }
@@ -102,6 +105,7 @@ export interface HotkeySettings {
     alwaysOnTop: HotkeyConfig;
     peekAndHide: HotkeyConfig;
     quickChat: HotkeyConfig;
+    voiceChat: HotkeyConfig;
     printToPdf: HotkeyConfig;
 }
 
@@ -122,6 +126,8 @@ export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
     peekAndHide: 'CommandOrControl+Shift+Space',
     // Ctrl+Shift+Alt+Space = Quick Chat toggle
     quickChat: 'CommandOrControl+Shift+Alt+Space',
+    // Ctrl+Shift+M = Voice Chat toggle
+    voiceChat: 'CommandOrControl+Shift+M',
     // Ctrl+Shift+P = Print to PDF
     printToPdf: 'CommandOrControl+Shift+P',
 };
