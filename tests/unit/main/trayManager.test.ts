@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Tray, Menu, app } from 'electron';
+import { Tray, Menu, app, nativeImage } from 'electron';
 import TrayManager from '../../../src/main/managers/trayManager';
 import type WindowManager from '../../../src/main/managers/windowManager';
 import {
@@ -14,6 +14,7 @@ import {
     platformAdapterPresets,
     createMockPlatformAdapter,
 } from '../../helpers/mocks';
+import { restorePlatform, stubPlatform } from '../../helpers/harness/platform';
 
 describe('TrayManager', () => {
     let trayManager: TrayManager;
@@ -33,6 +34,7 @@ describe('TrayManager', () => {
     });
 
     afterEach(() => {
+        restorePlatform();
         resetPlatformAdapterForTests();
     });
 
@@ -57,6 +59,7 @@ describe('TrayManager', () => {
         });
 
         it('creates Tray with .png icon on macOS', async () => {
+            stubPlatform('darwin');
             useMockPlatformAdapter(platformAdapterPresets.mac());
 
             // Reimport TrayManager after platform mock
@@ -66,6 +69,14 @@ describe('TrayManager', () => {
 
             expect(tray).toBeDefined();
             expect((tray as any).iconPath).toContain('icon.png');
+            expect(nativeImage.createFromPath).toHaveBeenCalledWith(expect.stringContaining('icon.png'));
+            expect((tray as any).setImage).toHaveBeenCalledTimes(1);
+            expect((tray as any).setPressedImage).toHaveBeenCalledTimes(1);
+
+            const diagnostics = manager.getTrayIconDiagnostics();
+            expect(diagnostics?.isTemplate).toBe(true);
+            expect(diagnostics?.width).toBe(18);
+            expect(diagnostics?.height).toBe(18);
         });
 
         it('creates Tray with .png icon on Linux', async () => {

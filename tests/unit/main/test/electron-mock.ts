@@ -212,24 +212,72 @@ export const contextBridge = {
 };
 
 export const nativeImage = {
-    createFromPath: vi.fn((_path) => ({
-        isEmpty: vi.fn().mockReturnValue(false),
-        getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
-        toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
-        toDataURL: vi.fn().mockReturnValue('data:image/png;base64,mock'),
-    })),
-    createFromDataURL: vi.fn((url) => ({
-        isEmpty: vi.fn().mockReturnValue(false),
-        getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
-        toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
-        toDataURL: vi.fn().mockReturnValue(url),
-    })),
-    createFromBuffer: vi.fn((buffer) => ({
-        isEmpty: vi.fn().mockReturnValue(false),
-        getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
-        toPNG: vi.fn().mockReturnValue(buffer),
-        toDataURL: vi.fn().mockReturnValue('data:image/png;base64,mock'),
-    })),
+    createFromPath: vi.fn((_path) => {
+        let size = { width: 16, height: 16 };
+        let isTemplateImage = false;
+        const image = {
+            isEmpty: vi.fn().mockReturnValue(false),
+            getSize: vi.fn(() => size),
+            toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+            toDataURL: vi.fn().mockReturnValue('data:image/png;base64,mock'),
+            setTemplateImage: vi.fn((value: boolean) => {
+                isTemplateImage = value;
+            }),
+            isTemplateImage: vi.fn(() => isTemplateImage),
+            resize: vi.fn((options: { width?: number; height?: number }) => {
+                size = {
+                    width: options.width ?? size.width,
+                    height: options.height ?? size.height,
+                };
+                return image;
+            }),
+        };
+        return image;
+    }),
+    createFromDataURL: vi.fn((url) => {
+        let size = { width: 16, height: 16 };
+        let isTemplateImage = false;
+        const image = {
+            isEmpty: vi.fn().mockReturnValue(false),
+            getSize: vi.fn(() => size),
+            toPNG: vi.fn().mockReturnValue(Buffer.from('mock-png')),
+            toDataURL: vi.fn().mockReturnValue(url),
+            setTemplateImage: vi.fn((value: boolean) => {
+                isTemplateImage = value;
+            }),
+            isTemplateImage: vi.fn(() => isTemplateImage),
+            resize: vi.fn((options: { width?: number; height?: number }) => {
+                size = {
+                    width: options.width ?? size.width,
+                    height: options.height ?? size.height,
+                };
+                return image;
+            }),
+        };
+        return image;
+    }),
+    createFromBuffer: vi.fn((buffer) => {
+        let size = { width: 16, height: 16 };
+        let isTemplateImage = false;
+        const image = {
+            isEmpty: vi.fn().mockReturnValue(false),
+            getSize: vi.fn(() => size),
+            toPNG: vi.fn().mockReturnValue(buffer),
+            toDataURL: vi.fn().mockReturnValue('data:image/png;base64,mock'),
+            setTemplateImage: vi.fn((value: boolean) => {
+                isTemplateImage = value;
+            }),
+            isTemplateImage: vi.fn(() => isTemplateImage),
+            resize: vi.fn((options: { width?: number; height?: number }) => {
+                size = {
+                    width: options.width ?? size.width,
+                    height: options.height ?? size.height,
+                };
+                return image;
+            }),
+        };
+        return image;
+    }),
     createEmpty: vi.fn(() => ({
         isEmpty: vi.fn().mockReturnValue(true),
         getSize: vi.fn().mockReturnValue({ width: 0, height: 0 }),
@@ -262,16 +310,27 @@ export const globalShortcut = {
 // ============================================================================
 export class Tray {
     static _instances: any[] = [];
-    iconPath: string;
+    iconPath: string | null;
+    icon: unknown;
     private _tooltip: string = '';
     private _contextMenu: any = null;
     private _clickHandler: ((event: any) => void) | null = null;
     private _isDestroyed: boolean = false;
+    private _image: unknown = null;
+    private _pressedImage: unknown = null;
 
-    constructor(iconPath: string) {
-        this.iconPath = iconPath;
+    constructor(icon: unknown) {
+        this.icon = icon;
+        this.iconPath = typeof icon === 'string' ? icon : null;
         Tray._instances.push(this);
     }
+
+    setImage = vi.fn((image: unknown) => {
+        this._image = image;
+    });
+    setPressedImage = vi.fn((image: unknown) => {
+        this._pressedImage = image;
+    });
 
     setToolTip = vi.fn((tip: string) => {
         this._tooltip = tip;
@@ -295,6 +354,12 @@ export class Tray {
     }
     getContextMenu() {
         return this._contextMenu;
+    }
+    getImage() {
+        return this._image;
+    }
+    getPressedImage() {
+        return this._pressedImage;
     }
     simulateClick() {
         if (this._clickHandler) {

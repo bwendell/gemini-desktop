@@ -5,7 +5,7 @@
  * @module TrayManager
  */
 
-import { Tray, Menu, app } from 'electron';
+import { Tray, Menu, app, nativeImage } from 'electron';
 import * as fs from 'fs';
 import type { MenuItemConstructorOptions } from 'electron';
 import { getIconPath } from '../utils/paths';
@@ -27,6 +27,8 @@ const logger = createLogger('[TrayManager]');
  * @class TrayManager
  */
 export default class TrayManager {
+    private static readonly MAC_TRAY_ICON_SIZE = 18;
+
     /** Reference to the window manager */
     private windowManager: WindowManager;
 
@@ -35,6 +37,14 @@ export default class TrayManager {
 
     /** Track current tooltip for E2E testing */
     private currentToolTip: string = TRAY_TOOLTIP;
+
+    private trayIconDiagnostics: {
+        sourcePath: string;
+        platform: NodeJS.Platform;
+        isTemplate: boolean;
+        width: number | null;
+        height: number | null;
+    } | null = null;
 
     /**
      * Creates a new TrayManager instance.
@@ -62,6 +72,15 @@ export default class TrayManager {
             }
 
             this.tray = new Tray(iconPath);
+            this.trayIconDiagnostics = {
+                sourcePath: iconPath,
+                platform: process.platform,
+                isTemplate: false,
+                width: null,
+                height: null,
+            };
+
+            this._applyPlatformTrayImage(iconPath);
 
             // Set tooltip
             this.tray.setToolTip(this.currentToolTip);
@@ -83,6 +102,36 @@ export default class TrayManager {
             logger.error('Failed to create tray:', error);
             throw error;
         }
+    }
+
+    private _applyPlatformTrayImage(iconPath: string): void {
+        if (!this.tray || process.platform !== 'darwin') {
+            return;
+        }
+
+        const trayImage = nativeImage.createFromPath(iconPath);
+        if (trayImage.isEmpty()) {
+            logger.warn('Tray icon image is empty, using fallback tray image path');
+            return;
+        }
+
+        const resizedImage = trayImage.resize({
+            width: TrayManager.MAC_TRAY_ICON_SIZE,
+            height: TrayManager.MAC_TRAY_ICON_SIZE,
+        });
+        resizedImage.setTemplateImage(true);
+
+        this.tray.setImage(resizedImage);
+        this.tray.setPressedImage(resizedImage);
+
+        const size = resizedImage.getSize();
+        this.trayIconDiagnostics = {
+            sourcePath: iconPath,
+            platform: process.platform,
+            isTemplate: true,
+            width: size.width,
+            height: size.height,
+        };
     }
 
     /**
@@ -182,6 +231,16 @@ export default class TrayManager {
      */
     getToolTip(): string {
         return this.currentToolTip;
+    }
+
+    getTrayIconDiagnostics(): {
+        sourcePath: string;
+        platform: NodeJS.Platform;
+        isTemplate: boolean;
+        width: number | null;
+        height: number | null;
+    } | null {
+        return this.trayIconDiagnostics;
     }
 
     /**
