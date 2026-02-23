@@ -112,7 +112,7 @@ export interface HotkeyManagerInitialSettings {
  * const hotkeyManager = new HotkeyManager(windowManager);
  * hotkeyManager.registerShortcuts(); // Register enabled global shortcuts
  * hotkeyManager.setIndividualEnabled('quickChat', false); // Disable Quick Chat hotkey
- * hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+H'); // Change accelerator
+ * hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Shift+Space'); // Change accelerator
  * ```
  *
  * @class HotkeyManager
@@ -177,7 +177,7 @@ export default class HotkeyManager {
      * const windowManager = new WindowManager();
      * const hotkeyManager = new HotkeyManager(windowManager, {
      *   enabled: { quickChat: false },
-     *   accelerators: { peekAndHide: 'CommandOrControl+Alt+H' }
+     *   accelerators: { peekAndHide: 'CommandOrControl+Shift+Space' }
      * });
      * ```
      */

@@ -201,7 +201,7 @@ const ELECTRON_TO_XKB_KEYS: Record<string, string> = {
  *
  * @example
  * electronAcceleratorToXdg('CommandOrControl+Shift+Space') // → 'CTRL+SHIFT+space'
- * electronAcceleratorToXdg('CommandOrControl+Alt+H')       // → 'CTRL+ALT+h'
+ * electronAcceleratorToXdg('CommandOrControl+Shift+Space')       // → 'CTRL+SHIFT+space'
  * electronAcceleratorToXdg('Ctrl+Shift+F12')               // → 'CTRL+SHIFT+F12'
  *
  * @param accelerator - Electron-format accelerator string
