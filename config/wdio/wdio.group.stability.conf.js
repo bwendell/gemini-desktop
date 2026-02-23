@@ -10,5 +10,9 @@ export const config = {
         '../../tests/e2e/single-instance.spec.ts',
         '../../tests/e2e/webview-content.spec.ts',
         '../../tests/e2e/microphone-permission.spec.ts',
+        '../../tests/e2e/toast-interactions.spec.ts',
+        '../../tests/e2e/toast-stacking.spec.ts',
+        '../../tests/e2e/toast-visibility.spec.ts',
+        '../../tests/e2e/toast-workflow.spec.ts',
     ],
 };
