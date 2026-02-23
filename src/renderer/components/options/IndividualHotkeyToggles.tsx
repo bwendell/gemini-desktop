@@ -6,7 +6,7 @@
  *
  * ## Hotkeys
  * - **Always on Top**: Toggle window always-on-top
- * - **Peek and Hide**: Minimize window
+ * - **Peek and Hide**: Toggle hide to/restore from system tray
  * - **Quick Chat**: Open quick chat overlay
  *
  * @module IndividualHotkeyToggles
@@ -45,7 +45,7 @@ const HOTKEY_CONFIGS: HotkeyConfig[] = [
     {
         id: 'peekAndHide',
         label: 'Peek and Hide',
-        description: 'Quickly minimize to system tray',
+        description: 'Toggle hide to/restore from system tray',
     },
     {
         id: 'quickChat',

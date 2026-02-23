@@ -213,7 +213,7 @@ export default class HotkeyManager {
         // Define shortcut actions
         // Each shortcut maps an id to an action callback
         this.shortcutActions = [
-            // GLOBAL: Peek and Hide needs to work even when app is hidden/unfocused to quickly hide it system-wide
+            // GLOBAL: Peek and Hide toggles between hiding to system tray and restoring the window
             {
                 id: 'peekAndHide',
                 action: () => {
