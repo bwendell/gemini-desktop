@@ -7,7 +7,6 @@
  * @module micActivation
  */
 
-import { InjectionScriptBuilder } from './injectionScript';
 import { GEMINI_MICROPHONE_BUTTON_SELECTORS } from './geminiSelectors';
 import type { WebFrameMain } from 'electron';
 
@@ -43,17 +42,6 @@ export type MicActivationResult = {
  * ```
  */
 export async function activateMicrophoneInFrame(frame: WebFrameMain): Promise<MicActivationResult> {
-    const builder = new InjectionScriptBuilder();
-
-    // Build script that finds and clicks the microphone button
-    // Uses safe utilities provided by InjectionScriptBuilder
-    const script = builder
-        .withConfig({
-            logLevel: 'info',
-        })
-        .withLogLevel('info')
-        .build();
-
     const injectionScript = `
 (function() {
     'use strict';
