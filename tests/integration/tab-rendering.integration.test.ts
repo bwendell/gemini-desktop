@@ -43,6 +43,15 @@ describe('Tab Rendering (Integration)', () => {
             return document.querySelectorAll('iframe[src*="gemini.google.com"]').length;
         });
 
+        const visibleIframeCount = await browser.execute(() => {
+            const iframes = Array.from(document.querySelectorAll('iframe[src*="gemini.google.com"]'));
+            return iframes.filter((iframe) => {
+                const style = window.getComputedStyle(iframe);
+                return style.display !== 'none' && style.visibility !== 'hidden';
+            }).length;
+        });
+
         expect(iframeCount).toBeGreaterThanOrEqual(1);
+        expect(visibleIframeCount).toBeGreaterThanOrEqual(1);
     });
 });
