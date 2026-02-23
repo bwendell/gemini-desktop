@@ -132,6 +132,7 @@ export default class HotkeyManager {
         alwaysOnTop: true,
         peekAndHide: true,
         quickChat: true,
+        voiceChat: true,
         printToPdf: true,
     };
 
@@ -303,6 +304,10 @@ export default class HotkeyManager {
             quickChat: {
                 enabled: this._individualSettings.quickChat,
                 accelerator: this._accelerators.quickChat,
+            },
+            voiceChat: {
+                enabled: this._individualSettings.voiceChat,
+                accelerator: this._accelerators.voiceChat,
             },
             printToPdf: {
                 enabled: this._individualSettings.printToPdf,

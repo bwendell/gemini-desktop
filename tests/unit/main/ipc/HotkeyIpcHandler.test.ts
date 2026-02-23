@@ -222,6 +222,7 @@ describe('HotkeyIpcHandler', () => {
                 alwaysOnTop: true,
                 peekAndHide: false,
                 quickChat: true,
+                voiceChat: true,
                 printToPdf: false,
             });
         });
@@ -236,6 +237,7 @@ describe('HotkeyIpcHandler', () => {
                 alwaysOnTop: true,
                 peekAndHide: true,
                 quickChat: true,
+                voiceChat: true,
                 printToPdf: true,
             });
         });
@@ -252,6 +254,7 @@ describe('HotkeyIpcHandler', () => {
                 alwaysOnTop: true,
                 peekAndHide: true,
                 quickChat: true,
+                voiceChat: true,
                 printToPdf: true,
             });
             expect(mockLogger.error).toHaveBeenCalled();
@@ -348,6 +351,7 @@ describe('HotkeyIpcHandler', () => {
                 alwaysOnTop: 'Alt+Shift+A',
                 peekAndHide: 'Alt+Shift+B',
                 quickChat: 'Alt+Shift+Q',
+                voiceChat: 'CommandOrControl+Shift+M',
                 printToPdf: 'Alt+Shift+P',
             });
         });
@@ -487,6 +491,7 @@ describe('HotkeyIpcHandler', () => {
                 alwaysOnTop: { enabled: true, accelerator: 'Alt+P' },
                 peekAndHide: { enabled: false, accelerator: 'Alt+H' },
                 quickChat: { enabled: true, accelerator: 'Ctrl+Space' },
+                voiceChat: { enabled: true, accelerator: 'CommandOrControl+Shift+M' },
                 printToPdf: { enabled: true, accelerator: 'Ctrl+Shift+P' },
             });
         });
@@ -503,6 +508,7 @@ describe('HotkeyIpcHandler', () => {
                 alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
                 peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
                 quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
+                voiceChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.voiceChat },
                 printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
             });
             expect(mockLogger.error).toHaveBeenCalled();
