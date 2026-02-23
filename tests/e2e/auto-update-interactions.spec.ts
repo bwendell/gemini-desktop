@@ -9,8 +9,12 @@
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
 import { expect, browser } from '@wdio/globals';
-import { waitForDuration } from './helpers/waitUtilities';
+import { waitForDuration, waitForUIState } from './helpers/waitUtilities';
 import { UpdateToastPage } from './pages';
+
+const wdioBrowser = browser as unknown as {
+    execute<R>(script: () => R): Promise<R>;
+};
 
 describe('Auto-Update User Interactions', () => {
     let updateToast: UpdateToastPage;
@@ -23,12 +27,14 @@ describe('Auto-Update User Interactions', () => {
         await waitForDuration(2000, 'App startup');
 
         // Disable auto-updates settings via IPC to stop the startup check
-        await browser.execute(() => {
-            // @ts-expect-error - electronAPI exposed at runtime
-            if (window.electronAPI) {
-                // @ts-expect-error
-                window.electronAPI.setAutoUpdateEnabled(false);
-            }
+        await wdioBrowser.execute(() => {
+            const win = window as unknown as {
+                electronAPI?: {
+                    setAutoUpdateEnabled: (enabled: boolean) => void;
+                };
+            };
+
+            win.electronAPI?.setAutoUpdateEnabled(false);
         });
 
         // Allow IPC to process
@@ -104,8 +110,14 @@ describe('Auto-Update User Interactions', () => {
             // THEN the toast should dismiss
             expect(await updateToast.isDisplayed()).toBe(false);
 
-            // AND the titlebar badge should remain visible
-            expect(await updateToast.isBadgeDisplayed()).toBe(true);
+            const badgeRemainsVisible = await waitForUIState(async () => updateToast.isBadgeExisting(), {
+                timeout: 3000,
+                interval: 100,
+                description: 'Pending update badge remains after Later click',
+            });
+
+            expect(badgeRemainsVisible).toBe(true);
+            expect(await updateToast.isBadgeExisting()).toBe(true);
 
             // AND the tray tooltip should remain updated
             const tooltip = await updateToast.getTrayTooltip();
