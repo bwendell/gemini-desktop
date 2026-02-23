@@ -1,6 +1,9 @@
 /**
  * WebdriverIO configuration for Electron E2E testing.
  *
+ * This config runs ALL E2E tests sequentially.
+ * For parallel execution, use group configs (wdio.group.*.conf.js).
+ *
  * Platform Support:
  * - Windows: ✅ Fully supported
  * - Linux: ✅ Fully supported
@@ -9,20 +12,10 @@
  * @see https://webdriver.io/docs/desktop-testing/electron
  */
 
-import path from 'path';
-import { spawnSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
-const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
-const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
-
-// Path to the Electron main entry (compiled from TypeScript)
-const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
+import { baseConfig } from './wdio.base.conf.js';
 
 export const config = {
+    ...baseConfig,
     specs: [
         // =========================================================================
         // Startup & Initialization
@@ -132,104 +125,43 @@ export const config = {
         // System Integration
         // =========================================================================
         '../../tests/e2e/microphone-permission.spec.ts',
+
+        // =========================================================================
+        // Previously Orphaned Specs (now included)
+        // =========================================================================
+        // Toast specs - stability group
+        '../../tests/e2e/toast-interactions.spec.ts',
+        '../../tests/e2e/toast-stacking.spec.ts',
+        '../../tests/e2e/toast-visibility.spec.ts',
+        '../../tests/e2e/toast-workflow.spec.ts',
+        // Toast specs - update group
+        '../../tests/e2e/toast-update-integration.spec.ts',
+        // Response notifications - options group
+        '../../tests/e2e/response-notifications.spec.ts',
+        // Release notes - update group
+        '../../tests/e2e/release-notes-workflow.spec.ts',
+        // Zoom - window group
+        '../../tests/e2e/zoom-control.spec.ts',
+        '../../tests/e2e/zoom-titlebar.spec.ts',
+        // Tab keyboard shortcuts - window group
+        '../../tests/e2e/tab-keyboard-shortcuts.spec.ts',
+        // Tab persistence - options group
+        '../../tests/e2e/tab-persistence.spec.ts',
+        // Text prediction - options group
+        '../../tests/e2e/text-prediction-options.spec.ts',
+        // Text prediction quickchat - quickchat group
+        '../../tests/e2e/text-prediction-quickchat.spec.ts',
+        // Voice chat - quickchat group
+        '../../tests/e2e/voiceChat.spec.ts',
+        // Hotkey configuration - hotkeys group
+        '../../tests/e2e/hotkey-configuration.e2e.test.ts',
+        // Wayland hotkey - hotkeys group
+        '../../tests/e2e/wayland-hotkey-registration.spec.ts',
+        // macOS tab visibility - macos group
+        '../../tests/e2e/macos-tab-visibility.spec.ts',
+        // Lifecycle (already in wdio.lifecycle.conf.js but listed here for completeness)
+        '../../tests/e2e/lifecycle.spec.ts',
+        // Tabs
+        '../../tests/e2e/tabs.spec.ts',
     ],
-    maxInstances: 1,
-
-    // Use Electron service with appEntryPoint
-    services: [
-        [
-            'electron',
-            {
-                appEntryPoint: electronMainPath,
-                appArgs: getAppArgs('--test-auto-update', '--e2e-disable-auto-submit'),
-                ...linuxServiceConfig,
-            },
-        ],
-    ],
-
-    // Capabilities for Electron
-    capabilities: [
-        {
-            browserName: 'electron',
-            maxInstances: 1, // Force sequential execution
-        },
-    ],
-
-    // Framework & Reporters
-    reporters: ['spec'],
-    framework: 'mocha',
-    mochaOpts: {
-        ui: 'bdd',
-        timeout: 90000, // Increased from 60s for stability
-        retries: TEST_RETRIES,
-    },
-
-    // Retry failed spec files to handle flaky tests
-    specFileRetries: SPEC_FILE_RETRIES,
-    specFileRetriesDelay: SPEC_FILE_RETRY_DELAY_SECONDS,
-    specFileRetriesDeferred: false,
-
-    // Build the frontend and Electron backend before tests
-    onPrepare: () => {
-        if (process.env.SKIP_BUILD) {
-            console.log('Skipping build (SKIP_BUILD is set)...');
-            return;
-        }
-
-        console.log('Building frontend for E2E tests...');
-        let result = spawnSync('npm', ['run', 'build'], {
-            stdio: 'inherit',
-            shell: true,
-        });
-
-        if (result.status !== 0) {
-            throw new Error('Failed to build frontend');
-        }
-        console.log('Build complete.');
-
-        console.log('Building Electron backend...');
-        result = spawnSync('npm', ['run', 'build:electron'], {
-            stdio: 'inherit',
-            shell: true,
-        });
-
-        if (result.status !== 0) {
-            throw new Error('Failed to build Electron backend');
-        }
-        console.log('Electron backend build complete.');
-    },
-
-    // Log level
-    logLevel: 'info',
-
-    // Base URL for the app
-    baseUrl: '',
-
-    // Default timeout for all waitFor* commands
-    waitforTimeout: 15000,
-
-    // Connection retry settings
-    connectionRetryTimeout: 120000,
-    connectionRetryCount: 3,
-
-    // Wait for app to fully load before starting tests
-    before: async function (capabilities, specs) {
-        // Add a short delay to ensure React has time to mount
-        // Increased wait time for CI environments to prevent race conditions
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-    },
-
-    // Ensure the app quits after tests
-    after: async function () {
-        try {
-            await browser.electron.execute((electron) => electron.app.quit());
-        } catch (error) {
-            // App may already be gone or in a bad state
-        }
-    },
-
-    // Kill any orphaned Electron processes after each spec file
-    afterSession: async function () {
-        await killOrphanElectronProcesses();
-    },
 };

@@ -10,5 +10,7 @@ export const config = {
         '../../tests/e2e/auto-update-platform.spec.ts',
         '../../tests/e2e/auto-update-toggle.spec.ts',
         '../../tests/e2e/auto-update-tray.spec.ts',
+        '../../tests/e2e/toast-update-integration.spec.ts',
+        '../../tests/e2e/release-notes-workflow.spec.ts',
     ],
 };
