@@ -15,7 +15,6 @@
 
 import { browser, expect } from '@wdio/globals';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
-import { E2ELogger } from './helpers/logger';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForUIState, waitForAnimationSettle, waitForDuration } from './helpers/waitUtilities';
 import { ToastPage } from './pages/ToastPage';
@@ -48,14 +47,11 @@ describe('Toast Full Workflow E2E', () => {
 
     describe('Success Toast Workflow (7.6.5.1)', () => {
         it('should complete: trigger → appears → auto-dismiss → removed', async () => {
-            E2ELogger.info('toast-workflow', 'Starting success toast workflow test');
-
             // 1. Trigger success toast
             const toastId = await toastPage.showSuccess('Operation completed successfully!', {
                 title: 'Success',
             });
             expect(toastId).toBeTruthy();
-            E2ELogger.info('toast-workflow', `Created toast with ID: ${toastId}`);
 
             // 2. Verify toast appears in DOM
             await toastPage.waitForToastVisible();
@@ -79,7 +75,6 @@ describe('Toast Full Workflow E2E', () => {
 
             // 4. Wait for auto-dismiss (success duration is 5000ms)
             // We wait a bit longer to account for animation time
-            E2ELogger.info('toast-workflow', 'Waiting for auto-dismiss (5s + buffer)...');
             await waitForDuration(5500, 'INTENTIONAL: Testing 5s auto-dismiss timer for success toast');
 
             // 5. Verify toast is removed
@@ -88,8 +83,6 @@ describe('Toast Full Workflow E2E', () => {
 
             const contextToasts = await toastPage.getToasts();
             expect(contextToasts.length).toBe(0);
-
-            E2ELogger.info('toast-workflow', '✓ Success toast workflow complete');
         });
     });
 
@@ -99,8 +92,6 @@ describe('Toast Full Workflow E2E', () => {
 
     describe('Error Toast Workflow (7.6.5.2)', () => {
         it('should: trigger → appears → persists 10s → manual dismiss → removed', async () => {
-            E2ELogger.info('toast-workflow', 'Starting error toast workflow test');
-
             // 1. Trigger error toast
             const toastId = await toastPage.showError('Something went wrong!', {
                 title: 'Error',
@@ -116,15 +107,12 @@ describe('Toast Full Workflow E2E', () => {
             expect(toastClass).toContain('toast--error');
 
             // 3. Verify toast persists after 5 seconds (success would auto-dismiss by now)
-            E2ELogger.info('toast-workflow', 'Verifying error toast persists for 5s...');
             await waitForDuration(5500, 'INTENTIONAL: Testing error toast persistence (success would dismiss by now)');
 
             let count = await toastPage.getToastCount();
             expect(count).toBe(1); // Error toast should still be visible
-            E2ELogger.info('toast-workflow', 'Toast still visible after 5s ✓');
 
             // 4. Click dismiss button to manually remove
-            E2ELogger.info('toast-workflow', 'Clicking dismiss button...');
             await toastPage.dismissToast(0);
             await waitForAnimationSettle('[data-testid="toast"]', {
                 timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
@@ -133,26 +121,19 @@ describe('Toast Full Workflow E2E', () => {
             // 5. Verify toast is removed
             count = await toastPage.getToastCount();
             expect(count).toBe(0);
-
-            E2ELogger.info('toast-workflow', '✓ Error toast workflow complete');
         });
 
         it('should auto-dismiss after 10 seconds if not manually dismissed', async () => {
-            E2ELogger.info('toast-workflow', 'Testing error toast auto-dismiss at 10s');
-
             // Trigger error toast
             await toastPage.showError('Auto-dismiss test', { title: 'Error' });
             await toastPage.waitForToastVisible();
 
             // Wait for the full 10s duration + buffer
-            E2ELogger.info('toast-workflow', 'Waiting for 10s auto-dismiss...');
             await waitForDuration(10500, 'INTENTIONAL: Testing 10s auto-dismiss timer for error toast');
 
             // Verify auto-dismissed
             const count = await toastPage.getToastCount();
             expect(count).toBe(0);
-
-            E2ELogger.info('toast-workflow', '✓ Error toast auto-dismissed after 10s');
         });
     });
 
@@ -162,8 +143,6 @@ describe('Toast Full Workflow E2E', () => {
 
     describe('Progress Toast Workflow (7.6.5.3)', () => {
         it('should: trigger → appears → progress updates → completion', async () => {
-            E2ELogger.info('toast-workflow', 'Starting progress toast workflow test');
-
             // 1. Trigger progress toast at 0%
             const toastId = await toastPage.showProgress('Downloading...', 0, {
                 title: 'Download Progress',
@@ -187,7 +166,6 @@ describe('Toast Full Workflow E2E', () => {
             expect(parseInt(progressValue ?? '0', 10)).toBe(0);
 
             // 3. Update progress to 50%
-            E2ELogger.info('toast-workflow', 'Updating progress to 50%...');
             await toastPage.showProgress('Downloading...', 50, {
                 title: 'Download Progress',
                 id: 'test-progress-toast',
@@ -202,7 +180,6 @@ describe('Toast Full Workflow E2E', () => {
             expect(parseInt(progressValue ?? '0', 10)).toBe(50);
 
             // 4. Update progress to 100%
-            E2ELogger.info('toast-workflow', 'Updating progress to 100%...');
             await toastPage.showProgress('Download complete!', 100, {
                 title: 'Download Progress',
                 id: 'test-progress-toast',
@@ -228,8 +205,6 @@ describe('Toast Full Workflow E2E', () => {
 
             const finalCount = await toastPage.getToastCount();
             expect(finalCount).toBe(0);
-
-            E2ELogger.info('toast-workflow', '✓ Progress toast workflow complete');
         });
     });
 
@@ -239,8 +214,6 @@ describe('Toast Full Workflow E2E', () => {
 
     describe('Multi-Toast Workflow (7.6.5.4)', () => {
         it('should: trigger 3 → all stack → dismiss middle → re-stack', async () => {
-            E2ELogger.info('toast-workflow', 'Starting multi-toast workflow test');
-
             // 1. Trigger 3 toasts in sequence (all persistent to control timing)
             const toast1Id = await toastPage.showInfo('First toast', {
                 title: 'Toast 1',
@@ -276,7 +249,6 @@ describe('Toast Full Workflow E2E', () => {
             // 2. Verify all 3 toasts are stacked
             const initialCount = await toastPage.getToastCount();
             expect(initialCount).toBe(3);
-            E2ELogger.info('toast-workflow', '3 toasts stacked ✓');
 
             // Verify stacking order
             const messages = await toastPage.getToastMessagesInOrder();
@@ -295,7 +267,6 @@ describe('Toast Full Workflow E2E', () => {
             expect(thirdToastClass).toContain('toast--success');
 
             // 3. Dismiss middle toast (toast 2)
-            E2ELogger.info('toast-workflow', 'Dismissing middle toast...');
             await toastPage.dismissToastById(toast2Id);
             await waitForAnimationSettle('[data-testid="toast"]', {
                 timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
@@ -315,8 +286,6 @@ describe('Toast Full Workflow E2E', () => {
             expect(firstRemainingClass).toContain('toast--info');
             expect(secondRemainingClass).toContain('toast--success');
 
-            E2ELogger.info('toast-workflow', 'Toast re-stacking verified ✓');
-
             // 5. Cleanup - dismiss remaining toasts
             await toastPage.dismissToastById(toast1Id);
             await toastPage.dismissToastById(toast3Id);
@@ -326,13 +295,9 @@ describe('Toast Full Workflow E2E', () => {
 
             const finalCount = await toastPage.getToastCount();
             expect(finalCount).toBe(0);
-
-            E2ELogger.info('toast-workflow', '✓ Multi-toast workflow complete');
         });
 
         it('should dismiss toasts via click on dismiss button', async () => {
-            E2ELogger.info('toast-workflow', 'Testing dismiss via button click');
-
             // Create 2 persistent toasts
             await toastPage.showInfo('Toast to dismiss', {
                 persistent: true,
@@ -361,8 +326,6 @@ describe('Toast Full Workflow E2E', () => {
             });
 
             expect(await toastPage.getToastCount()).toBe(0);
-
-            E2ELogger.info('toast-workflow', '✓ Click dismiss workflow complete');
         });
     });
 });
