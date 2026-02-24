@@ -19,7 +19,6 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { E2ELogger } from '../helpers/logger';
 
 describe('Release Build: Auto-Update System', () => {
     it('should be running as a packaged app (required for updater)', async () => {
@@ -28,7 +27,6 @@ describe('Release Build: Auto-Update System', () => {
         });
 
         expect(isPackaged).toBe(true);
-        E2ELogger.info('auto-update-packaged', 'Confirmed app is packaged - updater can function');
     });
 
     it('should have updateManager initialized', async () => {
@@ -47,8 +45,6 @@ describe('Release Build: Auto-Update System', () => {
                         : 'method not found',
             };
         });
-
-        E2ELogger.info('auto-update-packaged', 'UpdateManager status', updateInfo);
 
         expect(updateInfo.exists).toBe(true);
     });
@@ -89,13 +85,8 @@ describe('Release Build: Auto-Update System', () => {
             }
         });
 
-        E2ELogger.info('auto-update-packaged', 'Version info', versionInfo);
-
         if (!versionInfo.success) {
-            E2ELogger.info(
-                'auto-update-packaged',
-                `Package.json read not available: ${versionInfo.error}. Using app.getVersion().`
-            );
+            return;
         }
 
         expect(versionInfo.appVersion).toBeTruthy();
@@ -137,12 +128,9 @@ describe('Release Build: Auto-Update System', () => {
             return { accessible: false, error: 'No auto-update getter method found' };
         });
 
-        E2ELogger.info('auto-update-packaged', 'Auto-update setting', settingInfo);
-
         // If the updateManager exists and has auto-update functionality, test passes
         // Skip if the method isn't available (may be a different API in the build)
         if (!settingInfo.accessible) {
-            E2ELogger.info('auto-update-packaged', `Auto-update setting check skipped: ${settingInfo.error}`);
             return;
         }
 
@@ -177,13 +165,7 @@ describe('Release Build: Auto-Update System', () => {
             }
         });
 
-        E2ELogger.info('auto-update-packaged', 'electron-updater availability', updaterInfo);
-
         if (!updaterInfo.success) {
-            E2ELogger.info(
-                'auto-update-packaged',
-                `electron-updater check not available: ${updaterInfo.error}. Skipping verification.`
-            );
             // Test passes - we verified the updateManager is available via the global
             return;
         }
@@ -223,13 +205,7 @@ describe('Release Build: Auto-Update System', () => {
             }
         });
 
-        E2ELogger.info('auto-update-packaged', 'Update feed configuration', feedInfo);
-
         if (!feedInfo.success) {
-            E2ELogger.info(
-                'auto-update-packaged',
-                `Update feed check not available: ${feedInfo.error}. Skipping verification.`
-            );
             return;
         }
 
