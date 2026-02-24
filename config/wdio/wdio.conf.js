@@ -220,6 +220,21 @@ export const config = {
         await new Promise((resolve) => setTimeout(resolve, 5000));
     },
 
+    // Clear test execution breadcrumbs at test start
+    beforeTest: async function (test, context) {
+        // Import inside hook to avoid circular dependencies
+        // Guard against import failures with safe fallback logger
+        let testLogger;
+        try {
+            const imported = await import('../../tests/e2e/helpers/testLogger.ts');
+            testLogger = imported.testLogger;
+        } catch (error) {
+            // Fallback logger with no-op clear/dump methods
+            testLogger = { clear: () => {}, dump: () => '' };
+        }
+        testLogger.clear();
+    },
+
     // Ensure the app quits after tests
     after: async function () {
         try {
@@ -234,8 +249,25 @@ export const config = {
         await killOrphanElectronProcesses();
     },
 
-    // Capture screenshot and DOM snapshot on test failure
+    // Capture screenshot, DOM snapshot, and breadcrumb trail on test failure
     afterTest: async function (test, context, { error, result, duration, passed, retries }) {
+        // Import inside hook to avoid circular dependencies
+        // Guard against import failures with safe fallback logger
+        let testLogger;
+        try {
+            const imported = await import('../../tests/e2e/helpers/testLogger.ts');
+            testLogger = imported.testLogger;
+        } catch (error) {
+            // Fallback logger with no-op dump method
+            testLogger = { dump: () => '' };
+        }
+
+        // Dump breadcrumbs on failure
+        if (!passed) {
+            const breadcrumbOutput = testLogger.dump();
+            console.log(breadcrumbOutput);
+        }
+
         if (!passed) {
             try {
                 const sanitizeSegment = (value, fallback) =>
