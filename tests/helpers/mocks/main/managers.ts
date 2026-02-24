@@ -54,6 +54,7 @@ export interface MockWindowManager {
     hideQuickChat: ReturnType<typeof vi.fn>;
     showQuickChat: ReturnType<typeof vi.fn>;
     toggleQuickChat: ReturnType<typeof vi.fn>;
+    activateVoiceChat: ReturnType<typeof vi.fn>;
     focusMainWindow: ReturnType<typeof vi.fn>;
     getMainWindow: ReturnType<typeof vi.fn>;
     getQuickChatWindow: ReturnType<typeof vi.fn>;
@@ -185,6 +186,7 @@ export function createMockWindowManager(overrides?: Partial<Omit<MockWindowManag
         hideQuickChat: vi.fn(),
         showQuickChat: vi.fn(),
         toggleQuickChat: vi.fn(),
+        activateVoiceChat: vi.fn(),
         focusMainWindow: vi.fn(),
         getMainWindow: vi.fn().mockReturnValue(null),
         getQuickChatWindow: vi.fn().mockReturnValue(null),

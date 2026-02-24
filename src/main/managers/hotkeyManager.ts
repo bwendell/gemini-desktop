@@ -214,7 +214,6 @@ export default class HotkeyManager {
         // Define shortcut actions
         // Each shortcut maps an id to an action callback
         this.shortcutActions = [
-            // GLOBAL: Peek and Hide toggles between hiding to system tray and restoring the window
             {
                 id: 'peekAndHide',
                 action: () => {
@@ -223,7 +222,6 @@ export default class HotkeyManager {
                     this.windowManager.toggleMainWindowVisibility();
                 },
             },
-            // GLOBAL: Quick Chat needs to be accessible from anywhere to open the prompt overlay
             {
                 id: 'quickChat',
                 action: () => {
@@ -232,7 +230,14 @@ export default class HotkeyManager {
                     this.windowManager.toggleQuickChat();
                 },
             },
-            // APPLICATION: Always On Top acts on the active window state, handled via Menu accelerators
+            {
+                id: 'voiceChat',
+                action: () => {
+                    const accelerator = this._accelerators.voiceChat;
+                    logger.log(`Hotkey pressed: ${accelerator} (Voice Chat)`);
+                    void this.windowManager.activateVoiceChat();
+                },
+            },
             {
                 id: 'alwaysOnTop',
                 action: () => {
@@ -243,7 +248,6 @@ export default class HotkeyManager {
                     this.windowManager.setAlwaysOnTop(!current);
                 },
             },
-            // APPLICATION: Print to PDF is a window-specific action, handled via Menu accelerators
             {
                 id: 'printToPdf',
                 action: () => {
