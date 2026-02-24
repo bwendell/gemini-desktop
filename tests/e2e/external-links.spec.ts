@@ -21,7 +21,6 @@ import { browser, $, expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { expectWindowCount } from './helpers/assertions';
-import { E2ELogger } from './helpers/logger';
 import { waitForDuration } from './helpers/waitUtilities';
 
 describe('External Link Sanitization', () => {
@@ -36,8 +35,6 @@ describe('External Link Sanitization', () => {
     });
 
     it('should open external links in default browser instead of the app', async () => {
-        E2ELogger.info('external-links', 'Testing external link with target="_blank"');
-
         // 1. Inject a mock external link into the page
         // NOTE: This is required for testing because no guaranteed external links exist in the UI
         await browser.execute(() => {
@@ -58,7 +55,6 @@ describe('External Link Sanitization', () => {
         // 2. Verify the link is displayed
         const link = await $('#mock-external-link');
         await expect(link).toBeDisplayed();
-        E2ELogger.info('external-links', 'External link injected and visible');
 
         // 3. Click the link (real user action)
         await link.click();
@@ -69,20 +65,15 @@ describe('External Link Sanitization', () => {
         // 5. Verify no new Electron window was opened
         // (External links should open in system browser, not Electron)
         await expectWindowCount(1);
-        E2ELogger.info('external-links', 'Verified no new Electron window opened');
 
         // 6. Verify the current window URL did not change
         const currentUrl = await browser.getUrl();
         expect(currentUrl).not.toContain('example.com');
-        E2ELogger.info('external-links', 'Verified main window did not navigate to external URL');
     });
 
     it('should block direct navigation of main window to external URLs', async () => {
-        E2ELogger.info('external-links', 'Testing direct navigation blocking (will-navigate handler)');
-
         // 1. Get the initial URL
         const initialUrl = await browser.getUrl();
-        E2ELogger.info('external-links', `Initial URL: ${initialUrl}`);
 
         // 2. Attempt to navigate to an external URL using window.location
         // NOTE: This tests the `will-navigate` handler in WindowManager
@@ -96,11 +87,9 @@ describe('External Link Sanitization', () => {
         // 4. Verify the URL did not change to the external site
         const currentUrl = await browser.getUrl();
         expect(currentUrl).toBe(initialUrl);
-        E2ELogger.info('external-links', 'Verified navigation to external URL was blocked');
 
         // 5. Verify app is still functional
         const isLoaded = await mainWindow.isLoaded();
         expect(isLoaded).toBe(true);
-        E2ELogger.info('external-links', 'Verified app is still functional after blocked navigation');
     });
 });
