@@ -15,7 +15,6 @@
 
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
-import { E2ELogger } from './helpers/logger';
 import { isHotkeyRegistered, REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { isLinuxCI } from './helpers/platform';
@@ -36,7 +35,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
         it('should have Peek and Hide hotkey registered by default', async function () {
             // Skip on Linux CI - global hotkeys are disabled due to Wayland limitations
             if (await isLinuxCI()) {
-                E2ELogger.info('peek-and-hide', 'Skipping - Linux CI does not support global hotkeys');
                 this.skip();
             }
 
@@ -44,7 +42,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
             const isRegistered = await isHotkeyRegistered(accelerator);
 
             expect(isRegistered).toBe(true);
-            E2ELogger.info('peek-and-hide', `Peek and Hide (${accelerator}) is registered`);
         });
 
         it('should display correct platform-specific hotkey format', async () => {
@@ -53,8 +50,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
                 platform === 'darwin'
                     ? REGISTERED_HOTKEYS.MINIMIZE_WINDOW.displayFormat.macos
                     : REGISTERED_HOTKEYS.MINIMIZE_WINDOW.displayFormat.windows;
-
-            E2ELogger.info('peek-and-hide', `Expected display format on ${platform}: ${expectedDisplay}`);
 
             // The hotkey should be Ctrl+Shift+Space on Windows/Linux, Cmd+Shift+Space on macOS
             if (platform === 'darwin') {
@@ -69,21 +64,18 @@ describe('Peek and Hide (Hide All Windows)', () => {
         it('should hide main window when Peek and Hide is triggered', async function () {
             // Skip on Linux CI - window minimize detection doesn't work under Xvfb
             if (await isLinuxCI()) {
-                E2ELogger.info('peek-and-hide', 'Skipping - Linux CI uses headless Xvfb without window manager');
                 this.skip();
             }
 
             // 1. Verify main window is visible initially
             const initialVisibility = await isWindowVisible();
             expect(initialVisibility).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Main window is visible initially');
 
             await hideWindow();
 
             const visible = await isWindowVisible();
 
             expect(visible).toBe(false);
-            E2ELogger.info('peek-and-hide', `After Peek and Hide: visible=${visible}`);
 
             // 4. Restore window for cleanup
             await restoreWindow();
@@ -92,13 +84,11 @@ describe('Peek and Hide (Hide All Windows)', () => {
             // 5. Verify window is restored
             const afterRestore = await isWindowVisible();
             expect(afterRestore).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Window restored successfully');
         });
 
         it('should remain hidden until explicitly restored', async function () {
             // Skip on Linux CI - window minimize detection doesn't work under Xvfb
             if (await isLinuxCI()) {
-                E2ELogger.info('peek-and-hide', 'Skipping - Linux CI uses headless Xvfb without window manager');
                 this.skip();
             }
 
@@ -109,7 +99,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             const stillVisible = await isWindowVisible();
             expect(stillVisible).toBe(false);
-            E2ELogger.info('peek-and-hide', 'Window remained hidden as expected');
 
             // 4. Cleanup - restore
             await restoreWindow();
@@ -121,8 +110,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
         it('should handle Peek and Hide when options window is also open', async () => {
             // This test is informational - Peek and Hide currently only affects main window
             // Future enhancement could hide all windows
-
-            E2ELogger.info('peek-and-hide', 'Peek and Hide affects main window; options window behavior may vary');
 
             // Verify the main window is loaded and can be minimized
             const isLoaded = await mainWindow.isLoaded();
@@ -136,16 +123,11 @@ describe('Peek and Hide (Hide All Windows)', () => {
     describe('Peek & Hide Toggle via HotkeyManager Dispatch (E2E)', () => {
         it('should hide visible window via hotkeyManager.executeHotkeyAction', async function () {
             if (await isLinuxCI()) {
-                E2ELogger.info(
-                    'peek-and-hide',
-                    'Skipping hotkeyManager dispatch (hide) - Linux CI uses headless Xvfb without window manager'
-                );
                 this.skip();
             }
 
             const initiallyVisible = await isWindowVisible();
             expect(initiallyVisible).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Window is visible before hotkeyManager dispatch');
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -164,7 +146,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             const isHiddenAfterDispatch = await isWindowVisible();
             expect(isHiddenAfterDispatch).toBe(false);
-            E2ELogger.info('peek-and-hide', 'Window hidden via hotkeyManager dispatch (visible → hidden)');
 
             await restoreWindow();
             await showWindow();
@@ -172,10 +153,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
         it('should restore hidden window via hotkeyManager.executeHotkeyAction', async function () {
             if (await isLinuxCI()) {
-                E2ELogger.info(
-                    'peek-and-hide',
-                    'Skipping hotkeyManager dispatch (restore) - Linux CI uses headless Xvfb without window manager'
-                );
                 this.skip();
             }
 
@@ -183,7 +160,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             const isHiddenBefore = await isWindowVisible();
             expect(isHiddenBefore).toBe(false);
-            E2ELogger.info('peek-and-hide', 'Window is hidden, dispatching hotkeyManager to restore');
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -202,21 +178,15 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             const isVisibleAfterDispatch = await isWindowVisible();
             expect(isVisibleAfterDispatch).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Window restored via hotkeyManager dispatch (hidden → visible)');
         });
 
         it('should complete a full toggle cycle via hotkeyManager.executeHotkeyAction', async function () {
             if (await isLinuxCI()) {
-                E2ELogger.info(
-                    'peek-and-hide',
-                    'Skipping hotkeyManager dispatch (full cycle) - Linux CI uses headless Xvfb without window manager'
-                );
                 this.skip();
             }
 
             const initiallyVisible = await isWindowVisible();
             expect(initiallyVisible).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Window initially visible — starting hotkeyManager dispatch cycle');
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -234,7 +204,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
             );
 
             expect(await isWindowVisible()).toBe(false);
-            E2ELogger.info('peek-and-hide', 'Dispatch cycle step 1: window hidden');
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
@@ -252,7 +221,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
             );
 
             expect(await isWindowVisible()).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Dispatch cycle step 2: window restored — full cycle complete');
         });
     });
 
@@ -260,17 +228,12 @@ describe('Peek and Hide (Hide All Windows)', () => {
         it('should hide visible window when toggleMainWindowVisibility is called', async function () {
             // Skip on Linux CI - window hide detection doesn't work under headless Xvfb
             if (await isLinuxCI()) {
-                E2ELogger.info(
-                    'peek-and-hide',
-                    'Skipping toggle (hide) - Linux CI uses headless Xvfb without window manager'
-                );
                 this.skip();
             }
 
             // Verify window is visible before toggle
             const initiallyVisible = await isWindowVisible();
             expect(initiallyVisible).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Window is visible before toggle');
 
             // Trigger toggle via windowManager (visible → hidden)
             await browser.electron.execute(() => {
@@ -291,7 +254,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             const isHiddenAfterToggle = await isWindowVisible();
             expect(isHiddenAfterToggle).toBe(false);
-            E2ELogger.info('peek-and-hide', 'Window is hidden after toggle (visible → hidden)');
 
             // Cleanup: restore window
             await restoreWindow();
@@ -301,10 +263,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
         it('should restore hidden window when toggleMainWindowVisibility is called again', async function () {
             // Skip on Linux CI - window visibility detection doesn't work under headless Xvfb
             if (await isLinuxCI()) {
-                E2ELogger.info(
-                    'peek-and-hide',
-                    'Skipping toggle (restore) - Linux CI uses headless Xvfb without window manager'
-                );
                 this.skip();
             }
 
@@ -314,7 +272,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
             // Verify window is hidden
             const isHiddenBefore = await isWindowVisible();
             expect(isHiddenBefore).toBe(false);
-            E2ELogger.info('peek-and-hide', 'Window is hidden, now triggering toggle to restore');
 
             // Trigger toggle (hidden → visible)
             await browser.electron.execute(() => {
@@ -335,23 +292,17 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             const isVisibleAfterToggle = await isWindowVisible();
             expect(isVisibleAfterToggle).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Window restored successfully via toggle (hidden → visible)');
         });
 
         it('should complete a full toggle cycle: visible → hidden → visible', async function () {
             // Skip on Linux CI - window visibility detection doesn't work under headless Xvfb
             if (await isLinuxCI()) {
-                E2ELogger.info(
-                    'peek-and-hide',
-                    'Skipping full toggle cycle - Linux CI uses headless Xvfb without window manager'
-                );
                 this.skip();
             }
 
             // Verify initially visible
             const initiallyVisible = await isWindowVisible();
             expect(initiallyVisible).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Window initially visible — starting full toggle cycle');
 
             // First toggle: visible → hidden
             await browser.electron.execute(() => {
@@ -370,7 +321,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
             );
 
             expect(await isWindowVisible()).toBe(false);
-            E2ELogger.info('peek-and-hide', 'Toggle cycle step 1: window hidden');
 
             // Second toggle: hidden → visible
             await browser.electron.execute(() => {
@@ -389,7 +339,6 @@ describe('Peek and Hide (Hide All Windows)', () => {
             );
 
             expect(await isWindowVisible()).toBe(true);
-            E2ELogger.info('peek-and-hide', 'Toggle cycle step 2: window restored — full cycle complete');
         });
     });
 });
