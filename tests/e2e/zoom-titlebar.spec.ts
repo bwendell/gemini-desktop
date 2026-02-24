@@ -15,7 +15,6 @@
 import { browser, expect, $ } from '@wdio/globals';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForIpcSettle } from './helpers/workflows';
 import { isMacOS } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
 import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Zoom Control via Custom Titlebar E2E', () => {
@@ -93,11 +92,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
         it('7.3.1 should show Zoom In item with (100%) label in View menu', async () => {
             // Skip on macOS (uses native menu bar)
             if (await isMacOS()) {
-                E2ELogger.info('zoom-titlebar', 'Skipping Windows/Linux test on macOS');
                 return;
             }
-
-            E2ELogger.info('zoom-titlebar', 'Testing Zoom In menu item visibility');
 
             // Open the View menu
             await openViewMenu();
@@ -106,20 +102,15 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             const zoomInText = await getMenuItemText('menu-view-zoom-in');
             expect(zoomInText).toContain('Zoom In');
             expect(zoomInText).toContain('(100%)');
-            E2ELogger.info('zoom-titlebar', `Zoom In item text: ${zoomInText}`);
 
             await closeMenu();
-            E2ELogger.info('zoom-titlebar', '✓ Zoom In menu item visibility test passed');
         });
 
         it('7.3.2 should show Zoom Out item with (100%) label in View menu', async () => {
             // Skip on macOS (uses native menu bar)
             if (await isMacOS()) {
-                E2ELogger.info('zoom-titlebar', 'Skipping Windows/Linux test on macOS');
                 return;
             }
-
-            E2ELogger.info('zoom-titlebar', 'Testing Zoom Out menu item visibility');
 
             // Open the View menu
             await openViewMenu();
@@ -128,10 +119,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             const zoomOutText = await getMenuItemText('menu-view-zoom-out');
             expect(zoomOutText).toContain('Zoom Out');
             expect(zoomOutText).toContain('(100%)');
-            E2ELogger.info('zoom-titlebar', `Zoom Out item text: ${zoomOutText}`);
 
             await closeMenu();
-            E2ELogger.info('zoom-titlebar', '✓ Zoom Out menu item visibility test passed');
         });
     });
 
@@ -143,11 +132,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
         it('7.3.3 should increase zoom when clicking Zoom In menu item', async () => {
             // Skip on macOS (uses native menu bar)
             if (await isMacOS()) {
-                E2ELogger.info('zoom-titlebar', 'Skipping Windows/Linux test on macOS');
                 return;
             }
-
-            E2ELogger.info('zoom-titlebar', 'Testing Zoom In menu item click');
 
             // Verify initial zoom is 100%
             const initialZoom = await browser.electron.execute(() => {
@@ -165,19 +151,13 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(newZoom).toBeGreaterThan(100);
-            E2ELogger.info('zoom-titlebar', `Zoom increased from 100% to ${newZoom}%`);
-
-            E2ELogger.info('zoom-titlebar', '✓ Zoom In menu item click test passed');
         });
 
         it('7.3.4 should decrease zoom when clicking Zoom Out menu item', async () => {
             // Skip on macOS (uses native menu bar)
             if (await isMacOS()) {
-                E2ELogger.info('zoom-titlebar', 'Skipping Windows/Linux test on macOS');
                 return;
             }
-
-            E2ELogger.info('zoom-titlebar', 'Testing Zoom Out menu item click');
 
             // First zoom in to have room to zoom out
             await browser.electron.execute(() => {
@@ -189,7 +169,6 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(startZoom).toBe(125);
-            E2ELogger.info('zoom-titlebar', `Starting zoom: ${startZoom}%`);
 
             // Open View menu and click Zoom Out
             await openViewMenu();
@@ -201,9 +180,6 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(newZoom).toBeLessThan(startZoom);
-            E2ELogger.info('zoom-titlebar', `Zoom decreased from ${startZoom}% to ${newZoom}%`);
-
-            E2ELogger.info('zoom-titlebar', '✓ Zoom Out menu item click test passed');
         });
     });
 
@@ -215,11 +191,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
         it('7.3.5 should update menu item labels after zoom change', async () => {
             // Skip on macOS (uses native menu bar)
             if (await isMacOS()) {
-                E2ELogger.info('zoom-titlebar', 'Skipping Windows/Linux test on macOS');
                 return;
             }
-
-            E2ELogger.info('zoom-titlebar', 'Testing zoom label updates');
 
             // Set zoom to 150%
             await browser.electron.execute(() => {
@@ -232,14 +205,11 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
 
             const zoomInText = await getMenuItemText('menu-view-zoom-in');
             expect(zoomInText).toContain('(150%)');
-            E2ELogger.info('zoom-titlebar', `Zoom In label after change: ${zoomInText}`);
 
             const zoomOutText = await getMenuItemText('menu-view-zoom-out');
             expect(zoomOutText).toContain('(150%)');
-            E2ELogger.info('zoom-titlebar', `Zoom Out label after change: ${zoomOutText}`);
 
             await closeMenu();
-            E2ELogger.info('zoom-titlebar', '✓ Zoom label update test passed');
         });
     });
 
@@ -251,11 +221,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
         it('7.3.6 should cap at 200% after multiple Zoom In clicks', async () => {
             // Skip on macOS (uses native menu bar)
             if (await isMacOS()) {
-                E2ELogger.info('zoom-titlebar', 'Skipping Windows/Linux test on macOS');
                 return;
             }
-
-            E2ELogger.info('zoom-titlebar', 'Testing 200% zoom cap via titlebar menu');
 
             // Set zoom close to max
             await browser.electron.execute(() => {
@@ -276,19 +243,13 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(finalZoom).toBe(200);
-            E2ELogger.info('zoom-titlebar', `Final zoom after multiple Zoom In: ${finalZoom}%`);
-
-            E2ELogger.info('zoom-titlebar', '✓ 200% zoom cap test passed');
         });
 
         it('7.3.7 should cap at 50% after multiple Zoom Out clicks', async () => {
             // Skip on macOS (uses native menu bar)
             if (await isMacOS()) {
-                E2ELogger.info('zoom-titlebar', 'Skipping Windows/Linux test on macOS');
                 return;
             }
-
-            E2ELogger.info('zoom-titlebar', 'Testing 50% zoom cap via titlebar menu');
 
             // Set zoom close to min
             await browser.electron.execute(() => {
@@ -309,9 +270,6 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(finalZoom).toBe(50);
-            E2ELogger.info('zoom-titlebar', `Final zoom after multiple Zoom Out: ${finalZoom}%`);
-
-            E2ELogger.info('zoom-titlebar', '✓ 50% zoom cap test passed');
         });
     });
 });
