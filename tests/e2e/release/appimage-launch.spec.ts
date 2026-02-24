@@ -16,10 +16,7 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { E2ELogger } from '../helpers/logger';
 import { isLinuxSync } from '../helpers/platform';
-
-const LOG_CTX = 'appimage-launch';
 
 describe('Release Build: AppImage Launch Verification', () => {
     it('should start the application and report ready', async () => {
@@ -28,7 +25,6 @@ describe('Release Build: AppImage Launch Verification', () => {
         });
 
         expect(isReady).toBe(true);
-        E2ELogger.info(LOG_CTX, 'Application started successfully');
     });
 
     it('should be running as a packaged build', async () => {
@@ -37,7 +33,6 @@ describe('Release Build: AppImage Launch Verification', () => {
         });
 
         expect(isPackaged).toBe(true);
-        E2ELogger.info(LOG_CTX, 'App is running in packaged mode');
     });
 
     it('should have renderer process fully loaded', async () => {
@@ -76,7 +71,6 @@ describe('Release Build: AppImage Launch Verification', () => {
         });
 
         expect(rendererState.loaded).toBe(true);
-        E2ELogger.info(LOG_CTX, 'Renderer loaded', rendererState);
     });
 
     it('should expose electronAPI through preload bridge', async () => {
@@ -96,7 +90,6 @@ describe('Release Build: AppImage Launch Verification', () => {
         expect(bridgeInfo.hasIsElectron).toBe(true);
         expect(bridgeInfo.hasGetTheme).toBe(true);
         expect(bridgeInfo.hasIsMaximized).toBe(true);
-        E2ELogger.info(LOG_CTX, 'Preload bridge verified', bridgeInfo);
     });
 
     it('should complete IPC round-trips successfully', async () => {
@@ -114,14 +107,12 @@ describe('Release Build: AppImage Launch Verification', () => {
         });
 
         expect(typeof isMaximized).toBe('boolean');
-        E2ELogger.info(LOG_CTX, `IPC round-trips OK: theme=${themeData.preference}, maximized=${isMaximized}`);
     });
 });
 
 describe('Release Build: Sandbox Auto-Disable Verification', () => {
     before(function () {
         if (!isLinuxSync()) {
-            E2ELogger.info(LOG_CTX, 'Skipping sandbox verification: not Linux');
             this.skip();
         }
     });
@@ -136,7 +127,6 @@ describe('Release Build: Sandbox Auto-Disable Verification', () => {
 
         // Just logging — the state depends on the OS environment
         expect(typeof sandboxState.hasNoSandbox).toBe('boolean');
-        E2ELogger.info(LOG_CTX, 'Sandbox command-line state', sandboxState);
     });
 
     it('should have consistent sandbox state with kernel restrictions', async () => {
@@ -199,8 +189,6 @@ describe('Release Build: Sandbox Auto-Disable Verification', () => {
             }
         });
 
-        E2ELogger.info(LOG_CTX, 'Sandbox consistency check', consistency);
-
         // If both sandbox mechanisms are unavailable, --no-sandbox MUST be set
         // (sandboxInit.ts should have handled this at startup)
         expect(consistency.isConsistent).toBe(true);
@@ -214,14 +202,9 @@ describe('Release Build: Sandbox Auto-Disable Verification', () => {
             };
         });
 
-        E2ELogger.info(LOG_CTX, 'AppImage environment', appImageInfo);
-
         // When running from linux-unpacked, APPIMAGE won't be set — that's fine
         if (appImageInfo.appImagePath) {
             expect(appImageInfo.appImagePath).toContain('.AppImage');
-            E2ELogger.info(LOG_CTX, 'Running as AppImage — APPIMAGE env correctly set');
-        } else {
-            E2ELogger.info(LOG_CTX, 'Running from linux-unpacked — APPIMAGE env not set (expected)');
         }
     });
 });
@@ -233,7 +216,6 @@ describe('Release Build: Process Stability After Launch', () => {
         });
 
         expect(uptime).toBeLessThan(30);
-        E2ELogger.info(LOG_CTX, `Process uptime: ${uptime.toFixed(2)}s`);
     });
 
     it('should have acceptable memory usage', async () => {
@@ -246,13 +228,11 @@ describe('Release Build: Process Stability After Launch', () => {
         });
 
         expect(memInfo.rssMB).toBeLessThan(1000);
-        E2ELogger.info(LOG_CTX, `Memory: RSS=${memInfo.rssMB}MB, Heap=${memInfo.heapUsedMB}MB`);
     });
 
     it('should respond to getTitle without renderer crash', async () => {
         const title = await browser.getTitle();
 
         expect(typeof title).toBe('string');
-        E2ELogger.info(LOG_CTX, `App title: "${title}" — renderer is responsive`);
     });
 });
