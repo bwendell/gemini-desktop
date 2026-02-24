@@ -191,7 +191,7 @@ describe('DBusFallback', () => {
         });
 
         it('converts CmdOrCtrl to CTRL', () => {
-            expect(dbusFallback.electronAcceleratorToXdg('CmdOrCtrl+Alt+H')).toBe('CTRL+ALT+h');
+            expect(dbusFallback.electronAcceleratorToXdg('CmdOrCtrl+Shift+Space')).toBe('CTRL+SHIFT+space');
         });
 
         it('converts Ctrl to CTRL', () => {
@@ -232,7 +232,7 @@ describe('DBusFallback', () => {
             expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+Alt+Space')).toBe(
                 'CTRL+SHIFT+ALT+space'
             );
-            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Alt+H')).toBe('CTRL+ALT+h');
+            expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+Space')).toBe('CTRL+SHIFT+space');
             expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Alt+P')).toBe('CTRL+ALT+p');
             expect(dbusFallback.electronAcceleratorToXdg('CommandOrControl+Shift+P')).toBe('CTRL+SHIFT+p');
         });
@@ -342,7 +342,7 @@ describe('DBusFallback', () => {
                 accelerator: 'CommandOrControl+Shift+Alt+Space',
                 description: 'Quick Chat toggle',
             },
-            { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Hide window' },
+            { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Hide window' },
         ];
 
         it('returns success results when all shortcuts bind successfully', async () => {
@@ -380,7 +380,7 @@ describe('DBusFallback', () => {
             expect(quickChatTrigger.value).toBe('CTRL+SHIFT+ALT+space');
 
             const peekAndHideTrigger = shortcutSpecs[1][1].preferred_trigger;
-            expect(peekAndHideTrigger.value).toBe('CTRL+ALT+h');
+            expect(peekAndHideTrigger.value).toBe('CTRL+SHIFT+space');
         });
 
         it('returns failure results when CreateSession fails', async () => {
@@ -703,7 +703,11 @@ describe('DBusFallback', () => {
 
             // Should be able to register again
             const results = await dbusFallback.registerViaDBus([
-                { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
+                {
+                    id: 'peekAndHide' as const,
+                    accelerator: 'CommandOrControl+Shift+Space',
+                    description: 'Peek and Hide',
+                },
             ]);
             expect(results).toHaveLength(1);
             expect(results[0].success).toBe(true);
@@ -885,7 +889,11 @@ describe('DBusFallback', () => {
                 },
             ]);
             await dbusFallback.registerViaDBus([
-                { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
+                {
+                    id: 'peekAndHide' as const,
+                    accelerator: 'CommandOrControl+Shift+Space',
+                    description: 'Peek and Hide',
+                },
             ]);
 
             // CreateSession should be called for each registration
@@ -922,7 +930,11 @@ describe('DBusFallback', () => {
                     accelerator: 'CommandOrControl+Shift+Alt+Space',
                     description: 'Quick Chat',
                 },
-                { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
+                {
+                    id: 'peekAndHide' as const,
+                    accelerator: 'CommandOrControl+Shift+Space',
+                    description: 'Peek and Hide',
+                },
             ];
 
             const results = await dbusFallback.registerViaDBus(testShortcuts);
@@ -953,7 +965,11 @@ describe('DBusFallback', () => {
                     accelerator: 'CommandOrControl+Shift+Alt+Space',
                     description: 'Quick Chat',
                 },
-                { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Alt+H', description: 'Peek and Hide' },
+                {
+                    id: 'peekAndHide' as const,
+                    accelerator: 'CommandOrControl+Shift+Space',
+                    description: 'Peek and Hide',
+                },
             ];
 
             const results = await dbusFallback.registerViaDBus(testShortcuts);

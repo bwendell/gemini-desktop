@@ -71,7 +71,7 @@ Users have been asking for a desktop Gemini client with these features—**we de
 
 ### 🕵️ Peek and Hide
 
-Press **`Ctrl+Alt+H`** (or **`Cmd+Alt+H`**) to toggle the app visibility. First press hides to the system tray — second press restores and focuses the window instantly.
+Press **`Ctrl+Shift+Space`** (or **`Cmd+Shift+Space`**) to toggle the app visibility. First press hides to the system tray — second press restores and focuses the window instantly.
 
 ### 📌 Always On Top
 
@@ -147,7 +147,7 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 | Shortcut               | Action                                |
 | ---------------------- | ------------------------------------- |
 | `Ctrl+Shift+Alt+Space` | Toggle Quick Chat                     |
-| `Ctrl+Alt+H`           | **Peek and Hide** (Toggle visibility) |
+| `Ctrl+Shift+Space`     | **Peek and Hide** (Toggle visibility) |
 | `Ctrl+P`               | Print to PDF                          |
 | `Ctrl+=` / `Ctrl+-`    | Zoom In / Out                         |
 | `Ctrl+,`               | Open Settings                         |

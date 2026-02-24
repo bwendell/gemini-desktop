@@ -15,7 +15,7 @@
  * // Use the hotkey state in components
  * const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
  * setEnabled('quickChat', false);
- * setAccelerator('peekAndHide', 'CommandOrControl+Alt+H');
+ * setAccelerator('peekAndHide', 'CommandOrControl+Shift+Space');
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
@@ -261,7 +261,7 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
  * @example
  * const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
  * setEnabled('quickChat', false); // Disable Quick Chat hotkey
- * setAccelerator('peekAndHide', 'CommandOrControl+Alt+H'); // Change Peek and Hide shortcut
+ * setAccelerator('peekAndHide', 'CommandOrControl+Shift+Space'); // Change Peek and Hide shortcut
  */
 export function useIndividualHotkeys(): IndividualHotkeysContextType {
     const context = useContext(IndividualHotkeysContext);

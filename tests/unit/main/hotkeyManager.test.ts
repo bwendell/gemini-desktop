@@ -152,7 +152,7 @@ describe('HotkeyManager', () => {
                     quickChat: false,
                 },
                 accelerators: {
-                    peekAndHide: 'CommandOrControl+Alt+H',
+                    peekAndHide: 'CommandOrControl+Shift+Space',
                 },
             });
 
@@ -162,7 +162,7 @@ describe('HotkeyManager', () => {
                 quickChat: false,
                 printToPdf: true,
             });
-            expect(customManager.getAccelerator('peekAndHide')).toBe('CommandOrControl+Alt+H');
+            expect(customManager.getAccelerator('peekAndHide')).toBe('CommandOrControl+Shift+Space');
             // Others should have defaults
             expect(customManager.getAccelerator('alwaysOnTop')).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
             expect(customManager.getAccelerator('quickChat')).toBe(DEFAULT_ACCELERATORS.quickChat);
@@ -326,8 +326,8 @@ describe('HotkeyManager', () => {
         });
 
         it('should update the accelerator for a hotkey', () => {
-            hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+H');
-            expect(hotkeyManager.getAccelerator('peekAndHide')).toBe('CommandOrControl+Alt+H');
+            hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Shift+Space');
+            expect(hotkeyManager.getAccelerator('peekAndHide')).toBe('CommandOrControl+Shift+Space');
         });
 
         it('should re-register with new accelerator if hotkey was registered', () => {
@@ -346,7 +346,7 @@ describe('HotkeyManager', () => {
 
         it('should not re-register if hotkey was not registered', () => {
             // Don't register shortcuts first
-            hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+H');
+            hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Shift+Space');
 
             expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
             expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
