@@ -14,7 +14,6 @@
  */
 
 import { browser, expect, $ } from '@wdio/globals';
-import { E2ELogger } from './helpers/logger';
 import { expectElementDisplayed, expectElementNotDisplayed } from './helpers/assertions';
 import { waitForDuration } from './helpers/waitUtilities';
 
@@ -111,7 +110,6 @@ describe('Offline Behavior', () => {
 
         // 2. Block Gemini requests via CDP Fetch interception
         await blockGeminiRequests();
-        E2ELogger.info('offline', 'Blocked Gemini requests via CDP Fetch');
 
         // 3. Reload to trigger offline state
         await reloadPage();
@@ -127,14 +125,11 @@ describe('Offline Behavior', () => {
         expect(await retryButton.isDisplayed()).toBe(true);
         expect(await retryButton.isEnabled()).toBe(true);
 
-        E2ELogger.info('offline', 'Verified OfflineOverlay, Icon, and Retry Button are visible');
-
         // 5. Test Retry button click (should trigger reload)
         await retryButton.click();
 
         // 6. Verify the app is still responsive (not crashed)
         expect(await isAppResponsive()).toBe(true);
-        E2ELogger.info('offline', 'App remained responsive after retry click');
     });
 
     it('should restore functionality when network returns', async () => {
@@ -143,7 +138,6 @@ describe('Offline Behavior', () => {
 
         // 2. Restore network
         await restoreNetwork();
-        E2ELogger.info('offline', 'Restored network');
 
         // 3. Refresh and verify app loads
         await reloadPage();
@@ -151,7 +145,6 @@ describe('Offline Behavior', () => {
 
         const title = await browser.getTitle();
         expect(title).not.toBe('');
-        E2ELogger.info('offline', 'App successfully recovered after network restoration');
     });
 
     it('should reload page and recover when retry button is clicked after connection restored', async () => {
@@ -180,7 +173,5 @@ describe('Offline Behavior', () => {
 
         // 7. Verify gemini iframe is visible
         await expectElementDisplayed('[data-testid="gemini-iframe"]');
-
-        E2ELogger.info('offline', 'Manual retry successfully recovered the app');
     });
 });
