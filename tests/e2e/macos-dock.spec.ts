@@ -15,7 +15,6 @@
 
 import { expect } from '@wdio/globals';
 import { MacOSDockPage } from './pages';
-import { E2ELogger } from './helpers/logger';
 import { verifyTrayCreated, getTrayTooltip } from './helpers/trayActions';
 import { waitForAppReady, getWindowCount } from './helpers/workflows';
 import { waitForMacOSWindowStabilize } from './helpers/waitUtilities';
@@ -36,7 +35,6 @@ describe('macOS Dock and Menubar Behavior', () => {
     describe('Dock Icon Behavior (macOS only)', () => {
         it('should exist on macOS', async () => {
             if (!(await dockPage.isMacOS())) {
-                E2ELogger.info('macos-dock', 'Skipping - not on macOS');
                 return;
             }
 
@@ -47,8 +45,6 @@ describe('macOS Dock and Menubar Behavior', () => {
 
             const windowCount = await getWindowCount();
             expect(windowCount).toBeGreaterThan(0);
-
-            E2ELogger.info('macos-dock', 'App running on macOS with Dock icon');
         });
 
         it('should recreate window when activate event is fired with no windows', async () => {
@@ -71,8 +67,6 @@ describe('macOS Dock and Menubar Behavior', () => {
 
             // Should still have the same window (not create duplicates)
             expect(afterActivateCount).toBe(initialCount);
-
-            E2ELogger.info('macos-dock', 'Activate event handled correctly');
         });
 
         it('should NOT quit app when all windows closed on macOS', async () => {
@@ -84,8 +78,6 @@ describe('macOS Dock and Menubar Behavior', () => {
 
             // On macOS, should NOT quit when windows closed
             expect(wouldQuit).toBe(false);
-
-            E2ELogger.info('macos-dock', 'App configured to stay running when windows closed');
         });
 
         it('should have correct Dock menu items on macOS', async () => {
@@ -105,22 +97,19 @@ describe('macOS Dock and Menubar Behavior', () => {
             expect(hasSettings).toBe(true);
 
             const labels = await dockPage.getDockMenuLabels();
-            E2ELogger.info('macos-dock', `Dock menu verified with ${labels.length} items`);
+            expect(labels.length).toBeGreaterThanOrEqual(2);
         });
     });
 
     describe('Menubar Tray Icon (macOS)', () => {
         it('should have menubar tray icon on macOS', async () => {
             if (!(await dockPage.isMacOS())) {
-                E2ELogger.info('macos-dock', 'Skipping menubar test - not on macOS');
                 return;
             }
 
             // Tray icon should exist on macOS
             const trayExists = await verifyTrayCreated();
             expect(trayExists).toBe(true);
-
-            E2ELogger.info('macos-dock', 'Menubar tray icon exists on macOS');
         });
 
         it('should attempt to retrieve tray tooltip on macOS', async () => {
@@ -134,9 +123,7 @@ describe('macOS Dock and Menubar Behavior', () => {
             // via setToolTip(). This is a known Electron limitation on macOS.
             // We've already verified the tray exists in the previous test.
             if (tooltip !== null) {
-                E2ELogger.info('macos-dock', `Menubar tray tooltip retrieved: "${tooltip}"`);
-            } else {
-                E2ELogger.info('macos-dock', 'Tooltip retrieval returned null (macOS limitation)');
+                expect(tooltip).toBeTruthy();
             }
 
             // Accept either a valid tooltip string or null (macOS limitation)
@@ -152,9 +139,6 @@ describe('macOS Dock and Menubar Behavior', () => {
 
             // Verify macOS window conventions using the Page Object
             const conventions = await dockPage.verifyMacOSWindowConventions();
-
-            E2ELogger.info('macos-dock', `Uses native controls: ${conventions.usesNativeControls}`);
-            E2ELogger.info('macos-dock', `Has custom controls: ${conventions.hasCustomControls}`);
 
             // On macOS, we expect native traffic lights, so custom controls should be absent
             expect(conventions.usesNativeControls).toBe(true);
