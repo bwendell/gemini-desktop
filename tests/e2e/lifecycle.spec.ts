@@ -13,7 +13,6 @@ import { browser, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
 import { closeCurrentWindow } from './helpers/windowActions';
 import { waitForOptionsWindow } from './helpers/optionsWindowActions';
-import { E2ELogger } from './helpers/logger';
 import { waitForDuration } from './helpers/waitUtilities';
 
 /**
@@ -50,7 +49,6 @@ describe.skip('Application Lifecycle', () => {
         await browser.switchToWindow(mainHandle);
 
         // 3. Close the main window - this should trigger app shutdown
-        E2ELogger.info('lifecycle', 'Closing main window to trigger app shutdown');
         await closeCurrentWindow();
 
         // 4. The app should quit when main window closes.
@@ -62,16 +60,10 @@ describe.skip('Application Lifecycle', () => {
             // If we can still get handles, check if app has closed
             const remainingHandles = await browser.getWindowHandles();
 
-            if (remainingHandles.length === 0) {
-                E2ELogger.info('lifecycle', 'App closed successfully - no windows remaining');
-            } else {
-                // If windows still exist after close, that's an actual failure
-                E2ELogger.info('lifecycle', `Unexpected: ${remainingHandles.length} windows still open`);
-                expect(remainingHandles.length).toBe(0);
-            }
-        } catch (error: any) {
+            // If windows still exist after close, that's an actual failure
+            expect(remainingHandles.length).toBe(0);
+        } catch (_error: unknown) {
             // Session errors are expected when the app quits
-            E2ELogger.info('lifecycle', 'App quit as expected', { error: error.message });
             // Test passes - we reached the shutdown phase
         }
     });
