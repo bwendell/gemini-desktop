@@ -1,29 +1,21 @@
 /**
  * WebdriverIO configuration for Electron E2E testing.
  *
+ * This file extends the base configuration and defines the complete spec list.
+ * For group-specific configurations, see wdio.group.*.conf.js files.
+ *
  * Platform Support:
- * - Windows: ✅ Fully supported
- * - Linux: ✅ Fully supported
- * - macOS: ✅ Fully supported
+ * - Windows: Fully supported
+ * - Linux: Fully supported
+ * - macOS: Fully supported
  *
  * @see https://webdriver.io/docs/desktop-testing/electron
  */
 
-import path from 'path';
-import { promises as fs } from 'fs';
-import { spawnSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
-const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
-const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
-
-// Path to the Electron main entry (compiled from TypeScript)
-const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
+import { baseConfig } from './wdio.base.conf.js';
 
 export const config = {
+    ...baseConfig,
     specs: [
         // =========================================================================
         // Startup & Initialization
@@ -43,6 +35,9 @@ export const config = {
         '../../tests/e2e/window-state.spec.ts',
         '../../tests/e2e/window-titlebar.spec.ts',
         '../../tests/e2e/window-management-edge-cases.spec.ts',
+        '../../tests/e2e/zoom-control.spec.ts',
+        '../../tests/e2e/zoom-titlebar.spec.ts',
+        '../../tests/e2e/tab-keyboard-shortcuts.spec.ts',
 
         // =========================================================================
         // Menu & Context Menu
@@ -58,12 +53,15 @@ export const config = {
         '../../tests/e2e/hotkeys.spec.ts',
         '../../tests/e2e/hotkey-registration.spec.ts',
         '../../tests/e2e/hotkey-toggle.spec.ts',
+        '../../tests/e2e/hotkey-configuration.e2e.test.ts',
+        '../../tests/e2e/wayland-hotkey-registration.spec.ts',
 
         // =========================================================================
         // Quick Chat
         // =========================================================================
         '../../tests/e2e/quick-chat.spec.ts',
         '../../tests/e2e/quick-chat-full-workflow.spec.ts',
+        '../../tests/e2e/text-prediction-quickchat.spec.ts',
 
         // =========================================================================
         // Options & Settings
@@ -71,6 +69,9 @@ export const config = {
         '../../tests/e2e/options-window.spec.ts',
         '../../tests/e2e/options-tabs.spec.ts',
         '../../tests/e2e/settings-persistence.spec.ts',
+        '../../tests/e2e/response-notifications.spec.ts',
+        '../../tests/e2e/tab-persistence.spec.ts',
+        '../../tests/e2e/text-prediction-options.spec.ts',
 
         // =========================================================================
         // Theme
@@ -104,12 +105,18 @@ export const config = {
         '../../tests/e2e/auto-update-startup.spec.ts',
         '../../tests/e2e/auto-update-toggle.spec.ts',
         '../../tests/e2e/auto-update-tray.spec.ts',
+        '../../tests/e2e/toast-update-integration.spec.ts',
+        '../../tests/e2e/release-notes-workflow.spec.ts',
 
         // =========================================================================
         // Error Recovery & Stability
         // =========================================================================
         '../../tests/e2e/fatal-error-recovery.spec.ts',
         '../../tests/e2e/offline-behavior.spec.ts',
+        '../../tests/e2e/toast-interactions.spec.ts',
+        '../../tests/e2e/toast-stacking.spec.ts',
+        '../../tests/e2e/toast-visibility.spec.ts',
+        '../../tests/e2e/toast-workflow.spec.ts',
 
         // =========================================================================
         // Session & Persistence
@@ -134,168 +141,4 @@ export const config = {
         // =========================================================================
         '../../tests/e2e/microphone-permission.spec.ts',
     ],
-    maxInstances: 1,
-
-    // Use Electron service with appEntryPoint
-    services: [
-        [
-            'electron',
-            {
-                appEntryPoint: electronMainPath,
-                appArgs: getAppArgs('--test-auto-update', '--e2e-disable-auto-submit'),
-                ...linuxServiceConfig,
-            },
-        ],
-    ],
-
-    // Capabilities for Electron
-    capabilities: [
-        {
-            browserName: 'electron',
-            maxInstances: 1, // Force sequential execution
-        },
-    ],
-
-    // Framework & Reporters
-    reporters: ['spec'],
-    framework: 'mocha',
-    mochaOpts: {
-        ui: 'bdd',
-        timeout: 90000, // Increased from 60s for stability
-        retries: TEST_RETRIES,
-    },
-
-    // Retry failed spec files to handle flaky tests
-    specFileRetries: SPEC_FILE_RETRIES,
-    specFileRetriesDelay: SPEC_FILE_RETRY_DELAY_SECONDS,
-    specFileRetriesDeferred: false,
-
-    // Build the frontend and Electron backend before tests
-    onPrepare: () => {
-        if (process.env.SKIP_BUILD) {
-            console.log('Skipping build (SKIP_BUILD is set)...');
-            return;
-        }
-
-        console.log('Building frontend for E2E tests...');
-        let result = spawnSync('npm', ['run', 'build'], {
-            stdio: 'inherit',
-            shell: true,
-        });
-
-        if (result.status !== 0) {
-            throw new Error('Failed to build frontend');
-        }
-        console.log('Build complete.');
-
-        console.log('Building Electron backend...');
-        result = spawnSync('npm', ['run', 'build:electron'], {
-            stdio: 'inherit',
-            shell: true,
-        });
-
-        if (result.status !== 0) {
-            throw new Error('Failed to build Electron backend');
-        }
-        console.log('Electron backend build complete.');
-    },
-
-    // Log level
-    logLevel: 'info',
-
-    // Base URL for the app
-    baseUrl: '',
-
-    // Default timeout for all waitFor* commands
-    waitforTimeout: 15000,
-
-    // Connection retry settings
-    connectionRetryTimeout: 120000,
-    connectionRetryCount: 3,
-
-    // Wait for app to fully load before starting tests
-    before: async function (capabilities, specs) {
-        // Add a short delay to ensure React has time to mount
-        // Increased wait time for CI environments to prevent race conditions
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-    },
-
-    // Clear test execution breadcrumbs at test start
-    beforeTest: async function (test, context) {
-        // Import inside hook to avoid circular dependencies
-        // Guard against import failures with safe fallback logger
-        let testLogger;
-        try {
-            const imported = await import('../../tests/e2e/helpers/testLogger.ts');
-            testLogger = imported.testLogger;
-        } catch (error) {
-            // Fallback logger with no-op clear/dump methods
-            testLogger = { clear: () => {}, dump: () => '' };
-        }
-        testLogger.clear();
-    },
-
-    // Ensure the app quits after tests
-    after: async function () {
-        try {
-            await browser.electron.execute((electron) => electron.app.quit());
-        } catch (error) {
-            // App may already be gone or in a bad state
-        }
-    },
-
-    // Kill any orphaned Electron processes after each spec file
-    afterSession: async function () {
-        await killOrphanElectronProcesses();
-    },
-
-    // Capture screenshot, DOM snapshot, and breadcrumb trail on test failure
-    afterTest: async function (test, context, { error, result, duration, passed, retries }) {
-        // Import inside hook to avoid circular dependencies
-        // Guard against import failures with safe fallback logger
-        let testLogger;
-        try {
-            const imported = await import('../../tests/e2e/helpers/testLogger.ts');
-            testLogger = imported.testLogger;
-        } catch (error) {
-            // Fallback logger with no-op dump method
-            testLogger = { dump: () => '' };
-        }
-
-        // Dump breadcrumbs on failure
-        if (!passed) {
-            const breadcrumbOutput = testLogger.dump();
-            console.log(breadcrumbOutput);
-        }
-
-        if (!passed) {
-            try {
-                const sanitizeSegment = (value, fallback) =>
-                    String(value ?? fallback)
-                        .replace(/[<>:"/\\|?*]/g, '_')
-                        .replace(/\s+/g, '-')
-                        .replace(/[. ]+$/g, '')
-                        .slice(0, 80);
-                const sanitizedSpecName = sanitizeSegment(test?.parent, 'unknown-spec');
-                const sanitizedTestTitle = sanitizeSegment(test?.title, 'unknown-test');
-                const retryAttempt = typeof retries === 'number' ? retries : (retries?.attempts ?? 0);
-                const attemptNum = retryAttempt + 1;
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                const baseFilename = `${sanitizedSpecName}-${sanitizedTestTitle}-attempt-${attemptNum}-${timestamp}`;
-                const screenshotPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.png`);
-                const domPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.html`);
-
-                await fs.mkdir(path.dirname(screenshotPath), { recursive: true });
-
-                await browser.saveScreenshot(screenshotPath);
-                console.log(`Screenshot saved: ${screenshotPath}`);
-
-                const domSnapshot = await browser.execute(() => document.documentElement.outerHTML);
-                await fs.writeFile(domPath, String(domSnapshot ?? ''), 'utf8');
-                console.log(`DOM snapshot saved: ${domPath}`);
-            } catch (captureError) {
-                console.warn('Failed to capture test failure artifacts:', captureError?.message);
-            }
-        }
-    },
 };
