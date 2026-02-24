@@ -23,7 +23,6 @@
 
 import { browser, expect } from '@wdio/globals';
 import { ContextMenuPage } from './pages';
-import { E2ELogger } from './helpers/logger';
 import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Context Menu', () => {
@@ -69,8 +68,6 @@ describe('Context Menu', () => {
         expect(cutItem).not.toBeNull();
         expect(copyItem).not.toBeNull();
         expect(pasteItem).not.toBeNull();
-
-        E2ELogger.info('context-menu', 'Context menu structure verified (shimmed menu)');
     });
 
     it.skip('should copy text to clipboard via context menu', async () => {
@@ -86,8 +83,6 @@ describe('Context Menu', () => {
         const copyItem = await contextMenu.getMenuItemState('copy');
         expect(copyItem?.enabled).toBe(true);
         expect(copyItem?.label).toMatch(/Copy/i);
-
-        E2ELogger.info('context-menu', 'Copy menu item availability verified');
     });
 
     it.skip('should paste text from clipboard via context menu', async () => {
@@ -106,8 +101,6 @@ describe('Context Menu', () => {
         const pasteItem = await contextMenu.getMenuItemState('paste');
         expect(pasteItem?.enabled).toBe(true);
         expect(pasteItem?.label).toMatch(/Paste/i);
-
-        E2ELogger.info('context-menu', 'Paste menu item availability verified');
     });
 
     it.skip('should cut text to clipboard via context menu', async () => {
@@ -123,8 +116,6 @@ describe('Context Menu', () => {
         const cutItem = await contextMenu.getMenuItemState('cut');
         expect(cutItem?.enabled).toBe(true);
         expect(cutItem?.label).toMatch(/Cut/i);
-
-        E2ELogger.info('context-menu', 'Cut menu item availability verified');
     });
 
     it.skip('should select all text via context menu', async () => {
@@ -145,8 +136,6 @@ describe('Context Menu', () => {
         const selectAllItem = await contextMenu.getMenuItemState('selectAll');
         expect(selectAllItem?.enabled).toBe(true);
         expect(selectAllItem?.label).toMatch(/Select All/i);
-
-        E2ELogger.info('context-menu', 'Select All menu item availability verified');
     });
 
     it.skip('should delete selected text via context menu', async () => {
@@ -164,8 +153,6 @@ describe('Context Menu', () => {
         // Some implementations might not have explicit "Delete" item, but checking if it's there if expected.
         // If it's missing, this test fails, which is correct if we expect it.
         // Assuming standard Electron context menu has Delete.
-
-        E2ELogger.info('context-menu', 'Delete menu item availability verified');
     });
 
     // =========================================================================
@@ -194,8 +181,6 @@ describe('Context Menu', () => {
             // Or disabled? Usually disabled if no selection.
             // Let's assume strict disabled for this test case intent.
             expect(deleteItem?.enabled).toBe(false);
-
-            E2ELogger.info('context-menu', 'Disabled state test completed - items disabled on empty input');
         });
 
         it('should allow Paste when clipboard has content', async () => {
@@ -213,8 +198,6 @@ describe('Context Menu', () => {
             // Verify Paste is enabled
             const pasteItem = await contextMenu.getMenuItemState('paste');
             expect(pasteItem?.enabled).toBe(true);
-
-            E2ELogger.info('context-menu', 'Paste availability with clipboard content verified');
         });
     });
 
@@ -248,8 +231,6 @@ describe('Context Menu', () => {
 
             // Cleanup
             await contextMenu.removeTestInput(readonlyInputId);
-
-            E2ELogger.info('context-menu', 'Read-only input menu state verified');
         });
     });
 
@@ -267,8 +248,6 @@ describe('Context Menu', () => {
             // Verify by pasting
             const pastedValue = await contextMenu.verifyClipboardContains(testText);
             expect(pastedValue).toBe(testText);
-
-            E2ELogger.info('context-menu', 'Keyboard shortcut Ctrl+C verified');
         });
 
         it('should support Ctrl+V/Cmd+V keyboard shortcut for paste', async () => {
@@ -283,8 +262,6 @@ describe('Context Menu', () => {
 
             const inputValue = await testInput.getValue();
             expect(inputValue).toBe(testText);
-
-            E2ELogger.info('context-menu', 'Keyboard shortcut Ctrl+V verified');
         });
 
         it('should support Ctrl+X/Cmd+X keyboard shortcut for cut', async () => {
@@ -306,8 +283,6 @@ describe('Context Menu', () => {
 
             const pastedValue = await testInput.getValue();
             expect(pastedValue).toBe(testText);
-
-            E2ELogger.info('context-menu', 'Keyboard shortcut Ctrl+X verified');
         });
 
         it('should support Ctrl+A/Cmd+A keyboard shortcut for select all', async () => {
@@ -323,8 +298,6 @@ describe('Context Menu', () => {
             // Paste into new input to verify full selection was copied
             const copiedValue = await contextMenu.verifyClipboardContains(testText);
             expect(copiedValue).toBe(testText);
-
-            E2ELogger.info('context-menu', 'Keyboard shortcut Ctrl+A verified');
         });
     });
 
@@ -354,8 +327,6 @@ describe('Context Menu', () => {
 
             // Cleanup
             await contextMenu.removeTestInput(targetInputId);
-
-            E2ELogger.info('context-menu', 'Sequential menu availability verified');
         });
 
         it('should perform multiple operations in sequence: type, select, cut, paste', async () => {
@@ -380,8 +351,6 @@ describe('Context Menu', () => {
             await contextMenu.openContextMenu(testInput);
             const pasteItem = await contextMenu.getMenuItemState('paste');
             expect(pasteItem).not.toBeNull();
-
-            E2ELogger.info('context-menu', 'Sequential operations menu state verified');
         });
     });
 
@@ -397,7 +366,6 @@ describe('Context Menu', () => {
             await contextMenu.closeContextMenu();
 
             // Test passes if no error occurred - context menu was triggered
-            E2ELogger.info('context-menu', 'Webview container context menu triggered');
         });
     });
 });
