@@ -88,6 +88,7 @@ export interface MockWebContents {
     printToPDF?: ReturnType<typeof vi.fn>;
     mainFrame?: {
         frames: Array<{
+            name?: string;
             url: string;
             executeJavaScript: ReturnType<typeof vi.fn>;
         }>;
@@ -171,6 +172,7 @@ export function createMockWebContents(options: MockWebContentsOptions = {}): Moc
 
         // Create mock frame for iframe scroll info
         const mockGeminiFrame = {
+            name: 'gemini-tab-0',
             url: 'https://gemini.google.com/app',
             executeJavaScript: vi.fn().mockResolvedValue({
                 scrollHeight,
