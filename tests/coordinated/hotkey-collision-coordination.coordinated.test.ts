@@ -59,7 +59,7 @@ describe('Hotkey Collision and Coordination Integration', () => {
                         expect.stringContaining('FAILED to register hotkey: quickChat')
                     );
 
-                    expect(globalShortcut.register).toHaveBeenCalledTimes(2);
+                    expect(globalShortcut.register).toHaveBeenCalledTimes(3);
 
                     expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(true);
 

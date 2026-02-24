@@ -52,6 +52,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
             hotkeyAlwaysOnTop: true,
             hotkeyPeekAndHide: true,
             hotkeyQuickChat: true,
+            hotkeyVoiceChat: true,
             hotkeyPrintToPdf: true,
             autoUpdateEnabled: true,
         };
@@ -100,6 +101,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                 alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
                 peekAndHide: mockStore.get('hotkeyPeekAndHide') ?? true,
                 quickChat: mockStore.get('hotkeyQuickChat') ?? true,
+                voiceChat: mockStore.get('hotkeyVoiceChat') ?? true,
                 printToPdf: mockStore.get('hotkeyPrintToPdf') ?? true,
             };
             hotkeyManager = new HotkeyManager(windowManager, initialSettings);
@@ -182,12 +184,14 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                 mockStore._data.hotkeyAlwaysOnTop = false;
                 mockStore._data.hotkeyPeekAndHide = true;
                 mockStore._data.hotkeyQuickChat = true;
+                mockStore._data.hotkeyVoiceChat = true;
                 mockStore.get.mockImplementation((key: string) => mockStore._data[key]);
 
                 const restartedHotkeyManager = new HotkeyManager(windowManager, {
                     alwaysOnTop: mockStore.get('hotkeyAlwaysOnTop') ?? true,
                     peekAndHide: mockStore.get('hotkeyPeekAndHide') ?? true,
                     quickChat: mockStore.get('hotkeyQuickChat') ?? true,
+                    voiceChat: mockStore.get('hotkeyVoiceChat') ?? true,
                 });
 
                 vi.clearAllMocks();
@@ -201,11 +205,14 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.quickChat);
 
+                expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.voiceChat);
+
                 expect(registeredAccelerators).not.toContain(DEFAULT_ACCELERATORS.alwaysOnTop);
 
                 expect(restartedHotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(false);
                 expect(restartedHotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
                 expect(restartedHotkeyManager.isIndividualEnabled('quickChat')).toBe(true);
+                expect(restartedHotkeyManager.isIndividualEnabled('voiceChat')).toBe(true);
 
                 restartedHotkeyManager.unregisterAll();
             });
@@ -214,12 +221,14 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
                 mockStore._data.hotkeyAlwaysOnTop = false;
                 mockStore._data.hotkeyPeekAndHide = false;
                 mockStore._data.hotkeyQuickChat = false;
+                mockStore._data.hotkeyVoiceChat = false;
                 mockStore.get.mockImplementation((key: string) => mockStore._data[key]);
 
                 const restartedHotkeyManager = new HotkeyManager(windowManager, {
                     alwaysOnTop: false,
                     peekAndHide: false,
                     quickChat: false,
+                    voiceChat: false,
                 });
 
                 vi.clearAllMocks();
