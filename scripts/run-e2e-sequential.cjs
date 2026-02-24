@@ -45,6 +45,9 @@ for (const spec of specs) {
     console.log(`Running spec: ${spec}`);
     console.log(`---------------------------------------------------------\n`);
 
+    process.env.E2E_GROUP = 'sequential';
+    process.env.E2E_OS = process.platform;
+
     const result = spawnSync('npx', ['wdio', 'run', 'config/wdio/wdio.conf.js', '--spec', spec], {
         stdio: 'inherit',
         shell: true,

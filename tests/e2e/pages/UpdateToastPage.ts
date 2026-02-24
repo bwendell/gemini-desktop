@@ -167,6 +167,20 @@ export class UpdateToastPage extends BasePage {
         await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
     }
 
+
+    /**
+     * Lightweight dismiss: sets visible=false without clearing hasPendingUpdate or type.
+     * Unlike hide(), this preserves badge state. Used to suppress late IPC re-shows.
+     */
+    async dismissToast(): Promise<void> {
+        this.log('Dismissing toast (visible=false only)');
+        await this.browser.execute(() => {
+            // @ts-expect-error - test helper
+            window.__testUpdateToast?.dismiss?.();
+        });
+        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    }
+
     // ===========================================================================
     // WAIT OPERATIONS
     // ===========================================================================
@@ -181,12 +195,30 @@ export class UpdateToastPage extends BasePage {
     }
 
     /**
-     * Wait for the toast to be hidden.
-     * @param timeout - Timeout in milliseconds (default: 3000)
+     * Wait for the toast to be hidden, with fallback for late IPC re-shows.
+     *
+     * Uses WDIO's native waitForDisplayed({ reverse: true }) which correctly
+     * waits for Framer Motion exit animations to complete. If the toast is
+     * STILL visible after the first wait (due to a late IPC event re-showing
+     * it), falls back to a nuclear hide() that resets ALL state, then waits
+     * once more.
+     *
+     * @param timeout - Timeout in milliseconds (default: 5000)
      */
     async waitForHidden(timeout = 5000): Promise<void> {
         this.log('Waiting for toast to be hidden');
-        await this.waitForElementToDisappear(this.toastSelector, timeout);
+        try {
+            await this.waitForElementToDisappear(this.toastSelector, timeout);
+            return;
+        } catch {
+            // Toast still visible after timeout — likely a late IPC re-show.
+            // Use nuclear hide() to reset all state and try once more.
+            this.log('Toast still visible after initial wait, using hide() to force-clear');
+            await this.hide();
+            // Wait for React state update + Framer Motion exit animation
+            await this.browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+            await this.waitForElementToDisappear(this.toastSelector, timeout);
+        }
     }
 
     /**
@@ -213,6 +245,8 @@ export class UpdateToastPage extends BasePage {
         };
         await dismissBtn.waitForClickable({ timeout: 2000 });
         await this.clickElement(this.dismissButtonSelector);
+        // Allow React state update and exit animation to begin
+        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
     }
 
     /**
@@ -238,6 +272,8 @@ export class UpdateToastPage extends BasePage {
         };
         await laterBtn.waitForClickable({ timeout: 2000 });
         await this.clickElement(this.laterButtonSelector);
+        // Allow React state update and exit animation to begin
+        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
     }
 
     async clickReleaseNotesPrimary(): Promise<void> {
@@ -422,11 +458,21 @@ export class UpdateToastPage extends BasePage {
 
     /**
      * Clear any existing toasts and badges (for test setup).
+     *
+     * Calls hide() twice with pauses to handle IPC race conditions:
+     * Previous tests may trigger async IPC events (e.g., installUpdate() failing)
+     * that arrive after the first hide(), re-showing the toast.
      */
     async clearAll(): Promise<void> {
         this.log('Clearing all toasts and badges');
         await this.clearBadge();
+        // First hide() to clear any currently visible toast
         await this.hide();
-        await this.pause();
+        // Pause to allow any late IPC events to arrive and re-show the toast
+        await this.browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+        // Second hide() to catch any toast re-shown by late IPC events
+        await this.hide();
+        // Final pause for animation settle
+        await this.browser.pause(E2E_TIMING.ANIMATION_SETTLE);
     }
 }

@@ -40,6 +40,12 @@ electron-builder.env
 
 .wdio-test-data/
 
+# E2E test artifacts
+tests/e2e/allure-results/
+tests/e2e/allure-report/
+tests/e2e/screenshots/
+tests/e2e/logs/
+
 prompts/
 
 .agent/skills

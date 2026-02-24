@@ -239,6 +239,12 @@ export function useUpdateNotifications() {
                         visible: true,
                     }));
                 },
+                /* v8 ignore next 5 */
+                dismiss: () => {
+                    // Lightweight hide: sets visible=false without clearing hasPendingUpdate or type.
+                    // Used by E2E tests to suppress late IPC re-shows without losing badge state.
+                    setState((prev) => ({ ...prev, visible: false }));
+                },
                 /* v8 ignore next 11 */
                 hide: () => {
                     // Reset all state including hasPendingUpdate (for titlebar badge)
