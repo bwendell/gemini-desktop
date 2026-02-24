@@ -13,7 +13,7 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { browser, $, expect } from '@wdio/globals';
+import { $, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForWindowCount as _waitForWindowCount } from './helpers/windowActions';
 import { waitForOptionsWindow, switchToOptionsWindow, closeOptionsWindow } from './helpers/optionsWindowActions';
