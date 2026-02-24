@@ -49,7 +49,6 @@ describe('System Tray Functionality', () => {
             const trayExists = await tray.isCreated();
 
             expect(trayExists).toBe(true);
-            E2ELogger.info('tray', 'Tray icon verified as existing');
         });
 
         // Skip: Electron Tray API has no getToolTip() method - we can only setToolTip().
@@ -60,8 +59,6 @@ describe('System Tray Functionality', () => {
             // Tooltip should be set (from TRAY_TOOLTIP constant)
             expect(tooltip).not.toBeNull();
             expect(tooltip).toContain('Gemini');
-
-            E2ELogger.info('tray', `Tray tooltip: "${tooltip}"`);
         });
 
         it('should report tray state correctly', async () => {
@@ -71,8 +68,6 @@ describe('System Tray Functionality', () => {
             expect(state.isDestroyed).toBe(false);
             // Note: state.tooltip will be null because Electron has no getToolTip() API
             // The tooltip being set is verified implicitly by tray creation working.
-
-            E2ELogger.info('tray', `Tray state: ${JSON.stringify(state)}`);
         });
     });
 
@@ -91,8 +86,6 @@ describe('System Tray Functionality', () => {
             // 3. Window should be visible again
             const visibleAfterTrayClick = await tray.isWindowVisible();
             expect(visibleAfterTrayClick).toBe(true);
-
-            E2ELogger.info('tray', 'Tray click restored window successfully');
         });
     });
 
@@ -111,8 +104,6 @@ describe('System Tray Functionality', () => {
             // 3. Window should be visible
             const visibleAfterShow = await tray.isWindowVisible();
             expect(visibleAfterShow).toBe(true);
-
-            E2ELogger.info('tray', 'Show menu item restored window successfully');
         });
 
         // Note: We skip testing "Quit" because it would terminate the app
@@ -140,8 +131,6 @@ describe('System Tray Functionality', () => {
             await tray.hideAndRestoreViaTrayClick();
             isVisible = await tray.isWindowVisible();
             expect(isVisible).toBe(true);
-
-            E2ELogger.info('tray', 'Multiple hide/restore cycles completed successfully');
         });
 
         it('should keep tray icon after window is hidden', async () => {
@@ -159,8 +148,6 @@ describe('System Tray Functionality', () => {
             await waitForMacOSWindowStabilize(async () => await tray.isWindowVisible(), {
                 description: 'Window stabilization after tray restore',
             });
-
-            E2ELogger.info('tray', 'Tray icon persists when window is hidden');
         });
     });
 });

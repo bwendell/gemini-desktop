@@ -22,7 +22,6 @@
 
 import { expect } from '@wdio/globals';
 import { TrayPage } from './pages';
-import { E2ELogger } from './helpers/logger';
 import { waitForAppReady } from './helpers/workflows';
 import { isMacOS } from './helpers/platform';
 
@@ -67,7 +66,6 @@ describe('Minimize-to-Tray Workflow', () => {
             if (!errorMessage.includes('Promise was collected')) {
                 throw error;
             }
-            E2ELogger.info('minimize-to-tray', 'Cleanup interrupted by test teardown (safe to ignore)');
         }
     });
 
@@ -83,8 +81,6 @@ describe('Minimize-to-Tray Workflow', () => {
             // Window should be hidden
             const hiddenToTray = await tray.isHiddenToTray();
             expect(hiddenToTray).toBe(true);
-
-            E2ELogger.info('minimize-to-tray', 'Window hidden to tray');
         });
 
         it('should not be minimized to taskbar (hidden vs minimized)', async () => {
@@ -98,8 +94,6 @@ describe('Minimize-to-Tray Workflow', () => {
             // Should not be visible
             const isVisible = await tray.isWindowVisible();
             expect(isVisible).toBe(false);
-
-            E2ELogger.info('minimize-to-tray', 'Window is hidden, not minimized');
         });
 
         // Skip: Electron doesn't provide an isSkipTaskbar() getter - we can only setSkipTaskbar().
@@ -107,13 +101,11 @@ describe('Minimize-to-Tray Workflow', () => {
         it.skip('should skip taskbar on Windows/Linux when hidden to tray', async () => {
             // Skip on macOS (no taskbar concept)
             if (await isMacOS()) {
-                E2ELogger.info('minimize-to-tray', 'Skipping taskbar test on macOS');
                 return;
             }
 
             // Skip on Linux CI (Xvfb limitations)
             if (await tray.isLinuxCI()) {
-                E2ELogger.info('minimize-to-tray', 'Skipping taskbar test on Linux CI');
                 return;
             }
 
@@ -123,8 +115,6 @@ describe('Minimize-to-Tray Workflow', () => {
             // Should skip taskbar
             const skipTaskbar = await tray.isSkipTaskbar();
             expect(skipTaskbar).toBe(true);
-
-            E2ELogger.info('minimize-to-tray', 'Window is skipping taskbar');
         });
     });
 
@@ -143,8 +133,6 @@ describe('Minimize-to-Tray Workflow', () => {
             // 3. Window should be visible again
             const visibleAfterRestore = await tray.isWindowVisible();
             expect(visibleAfterRestore).toBe(true);
-
-            E2ELogger.info('minimize-to-tray', 'Window restored from tray after hide');
         });
 
         it('should restore taskbar visibility on Windows/Linux', async () => {
@@ -167,8 +155,6 @@ describe('Minimize-to-Tray Workflow', () => {
             // 3. Should NOT skip taskbar anymore
             const skipTaskbar = await tray.isSkipTaskbar();
             expect(skipTaskbar).toBe(false);
-
-            E2ELogger.info('minimize-to-tray', 'Taskbar visibility restored after restore');
         });
     });
 
@@ -180,8 +166,6 @@ describe('Minimize-to-Tray Workflow', () => {
             // Tray should still exist
             const trayExists = await tray.isCreated();
             expect(trayExists).toBe(true);
-
-            E2ELogger.info('minimize-to-tray', 'Tray icon persists when window is hidden');
         });
     });
 
@@ -204,8 +188,6 @@ describe('Minimize-to-Tray Workflow', () => {
             await tray.restoreWindowViaTrayClick();
             visible = await tray.isWindowVisible();
             expect(visible).toBe(true);
-
-            E2ELogger.info('minimize-to-tray', 'Multiple hide/restore cycles successful');
         });
     });
 });
