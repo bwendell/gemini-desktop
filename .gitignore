@@ -39,6 +39,8 @@ scripts/set-release-env.ps1
 electron-builder.env
 
 .wdio-test-data/
+tests/e2e/screenshots/*.png
+tests/e2e/screenshots/*.html
 
 prompts/
 

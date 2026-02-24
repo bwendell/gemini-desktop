@@ -6,6 +6,7 @@
  */
 
 import path from 'path';
+import { promises as fs } from 'fs';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
@@ -117,5 +118,38 @@ export const baseConfig = {
     // Kill any orphaned Electron processes after each spec file
     afterSession: async function () {
         await killOrphanElectronProcesses();
+    },
+
+    // Capture screenshot and DOM snapshot on test failure
+    afterTest: async function (test, context, { error, result, duration, passed, retries }) {
+        if (!passed) {
+            try {
+                const sanitizeSegment = (value, fallback) =>
+                    String(value ?? fallback)
+                        .replace(/[<>:"/\\|?*]/g, '_')
+                        .replace(/\s+/g, '-')
+                        .replace(/[. ]+$/g, '')
+                        .slice(0, 80);
+                const sanitizedSpecName = sanitizeSegment(test?.parent, 'unknown-spec');
+                const sanitizedTestTitle = sanitizeSegment(test?.title, 'unknown-test');
+                const retryAttempt = typeof retries === 'number' ? retries : (retries?.attempts ?? 0);
+                const attemptNum = retryAttempt + 1;
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const baseFilename = `${sanitizedSpecName}-${sanitizedTestTitle}-attempt-${attemptNum}-${timestamp}`;
+                const screenshotPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.png`);
+                const domPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.html`);
+
+                await fs.mkdir(path.dirname(screenshotPath), { recursive: true });
+
+                await browser.saveScreenshot(screenshotPath);
+                console.log(`Screenshot saved: ${screenshotPath}`);
+
+                const domSnapshot = await browser.execute(() => document.documentElement.outerHTML);
+                await fs.writeFile(domPath, String(domSnapshot ?? ''), 'utf8');
+                console.log(`DOM snapshot saved: ${domPath}`);
+            } catch (captureError) {
+                console.warn('Failed to capture test failure artifacts:', captureError?.message);
+            }
+        }
     },
 };
