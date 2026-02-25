@@ -359,13 +359,21 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
         const errorMessage =
             this.deps.llmManager?.getErrorMessage() ??
             (!nativeAvailable ? (this.deps.llmManager?.getNativeProbeError() ?? undefined) : undefined);
-        return {
+        const settings: TextPredictionSettings = {
             enabled: this.deps.store.get('textPredictionEnabled') ?? false,
             gpuEnabled: this.deps.store.get('textPredictionGpuEnabled') ?? false,
             status,
             downloadProgress: this.deps.llmManager?.getDownloadProgress(),
-            errorMessage,
         };
+
+        if (typeof errorMessage === 'string' && errorMessage.length > 0) {
+            return {
+                ...settings,
+                errorMessage,
+            };
+        }
+
+        return settings;
     }
 
     /**
