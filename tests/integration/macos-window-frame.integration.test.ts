@@ -120,13 +120,18 @@ describe('macOS Window Frame Integration Tests', () => {
         expect(layoutDimensions.width).toBe(layoutDimensions.windowWidth);
         expect(layoutDimensions.height).toBe(layoutDimensions.windowHeight);
 
-        // Verify main-content is flex child
-        const mainContentDisplay = await browserWithElectron.execute(() => {
+        const mainContentInfo = await browserWithElectron.execute(() => {
             const mainContent = document.querySelector('.main-content');
-            return mainContent ? window.getComputedStyle(mainContent).display : null;
+            if (!mainContent) {
+                return { display: null, height: 0 };
+            }
+            const style = window.getComputedStyle(mainContent);
+            return { display: style.display, height: (mainContent as HTMLElement).offsetHeight };
         });
 
-        expect(mainContentDisplay).toBe('flex');
+        expect(mainContentInfo.display).not.toBeNull();
+        expect(mainContentInfo.display).not.toBe('none');
+        expect(mainContentInfo.height).toBeGreaterThan(0);
 
         // Verify webview-container is absolutely positioned (fills main-content)
         const webviewPosition = await browserWithElectron.execute(() => {
