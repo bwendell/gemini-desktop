@@ -10,7 +10,6 @@
  */
 
 import { $, expect } from '@wdio/globals';
-import { E2ELogger } from './helpers/logger';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForOptionsWindow, closeOptionsWindow, navigateToOptionsTab } from './helpers/optionsWindowActions';
 
@@ -38,8 +37,6 @@ describe('Options Window Tab Navigation', () => {
 
                 // Use assertion helper for element display check
                 await expectElementDisplayed('[data-testid="theme-selector"]');
-
-                E2ELogger.info('options-tabs', 'Settings tab is active by default');
             });
         });
 
@@ -52,8 +49,6 @@ describe('Options Window Tab Navigation', () => {
                 // Use assertion helpers
                 await expectTabActive('about');
                 await expectElementDisplayed('[data-testid="about-section"]');
-
-                E2ELogger.info('options-tabs', 'Successfully switched to About tab');
             });
         });
 
@@ -70,8 +65,6 @@ describe('Options Window Tab Navigation', () => {
                 // Use assertion helpers
                 await expectTabActive('settings');
                 await expectElementDisplayed('[data-testid="theme-selector"]');
-
-                E2ELogger.info('options-tabs', 'Successfully switched back to Settings tab');
             });
         });
 
@@ -89,8 +82,6 @@ describe('Options Window Tab Navigation', () => {
                 await waitForIpcSettle();
 
                 await expectUrlHash('#settings');
-
-                E2ELogger.info('options-tabs', 'URL hash updates correctly with tab changes');
             });
         });
     });
@@ -105,8 +96,6 @@ describe('Options Window Tab Navigation', () => {
                 // Use assertion helpers
                 await expectTabActive('about');
                 await expectElementDisplayed('[data-testid="about-section"]');
-
-                E2ELogger.info('options-tabs', 'Help > About correctly opens to About tab');
             } finally {
                 await closeOptionsWindow();
             }
@@ -137,8 +126,6 @@ describe('About Tab Content Verification', () => {
 
             // Version should contain numbers and dots (e.g., "1.0.0" or "Version 1.0.0")
             expect(versionText).toMatch(/\d+\.\d+/);
-
-            E2ELogger.info('options-tabs', `App version displayed: ${versionText}`);
         } finally {
             await closeOptionsWindow();
         }
@@ -153,9 +140,6 @@ describe('About Tab Content Verification', () => {
 
             if (await disclaimer.isExisting()) {
                 await expect(disclaimer).toBeDisplayed();
-                E2ELogger.info('options-tabs', 'Disclaimer section is visible');
-            } else {
-                E2ELogger.info('options-tabs', 'Disclaimer element not found with expected testId');
             }
         } finally {
             await closeOptionsWindow();
@@ -174,10 +158,6 @@ describe('About Tab Content Verification', () => {
 
                 const tagName = await licenseLink.getTagName();
                 expect(['a', 'button']).toContain(tagName.toLowerCase());
-
-                E2ELogger.info('options-tabs', 'License link is present and clickable');
-            } else {
-                E2ELogger.info('options-tabs', 'License link not found with expected testId');
             }
         } finally {
             await closeOptionsWindow();
@@ -195,8 +175,6 @@ describe('About Tab Content Verification', () => {
             const links = await aboutSection.$$('a');
 
             if (links.length > 0) {
-                E2ELogger.info('options-tabs', `Found ${links.length} links in About section`);
-
                 for (const link of links) {
                     const href = await link.getAttribute('href');
                     expect(href).toBeTruthy();
@@ -207,8 +185,6 @@ describe('About Tab Content Verification', () => {
                     }
                 }
             }
-
-            E2ELogger.info('options-tabs', 'About section links verified');
         } finally {
             await closeOptionsWindow();
         }
@@ -228,8 +204,6 @@ describe('About Tab Content Verification', () => {
             const mentionsGoogle = textContent.toLowerCase().includes('google');
 
             expect(mentionsGemini || mentionsGoogle).toBe(true);
-
-            E2ELogger.info('options-tabs', 'About section contains appropriate branding references');
         } finally {
             await closeOptionsWindow();
         }

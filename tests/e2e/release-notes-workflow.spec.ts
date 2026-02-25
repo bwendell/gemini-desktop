@@ -4,7 +4,6 @@ import { browser as wdioBrowser, expect } from '@wdio/globals';
 import { MainWindowPage, UpdateToastPage } from './pages';
 import { getReleaseNotesUrl } from '../../src/shared/utils/releaseNotes';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
-import { E2ELogger } from './helpers/logger';
 import { waitForUIState } from './helpers/waitUtilities';
 
 describe('Release Notes Workflow E2E', () => {
@@ -82,8 +81,6 @@ describe('Release Notes Workflow E2E', () => {
     });
 
     it('opens release notes from Help menu for current version', async () => {
-        E2ELogger.info('release-notes', 'Opening release notes via Help menu');
-
         await mainWindow.clickMenuById('menu-help-release-notes');
 
         await waitForUIState(async () => (await getOpenedUrls()).length > 0, {
@@ -98,8 +95,6 @@ describe('Release Notes Workflow E2E', () => {
     });
 
     it('opens release notes from update available toast for update version', async () => {
-        E2ELogger.info('release-notes', 'Opening release notes from available update toast');
-
         await updateToast.showAvailable('3.5.0');
         await updateToast.waitForVisible();
         expect(await updateToast.isReleaseNotesPrimaryExisting()).toBe(true);
@@ -116,8 +111,6 @@ describe('Release Notes Workflow E2E', () => {
     });
 
     it('opens release notes from downloaded update toast for update version', async () => {
-        E2ELogger.info('release-notes', 'Opening release notes from downloaded update toast');
-
         await updateToast.showDownloaded('3.6.0');
         await updateToast.waitForVisible();
         expect(await updateToast.isReleaseNotesDownloadedExisting()).toBe(true);

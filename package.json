@@ -64,9 +64,9 @@
     "dependencies": {
         "dbus-next": "^0.10.2",
         "electron-log": "^5.4.3",
-        "electron-updater": "^6.6.2",
+        "electron-updater": "^6.8.3",
         "framer-motion": "^12.34.0",
-        "marked": "^17.0.1",
+        "marked": "^17.0.3",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
         "turndown": "^7.2.2",

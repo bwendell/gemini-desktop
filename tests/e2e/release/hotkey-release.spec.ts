@@ -42,10 +42,6 @@ describe('Release Build: Global Hotkey Registration', () => {
         }
 
         expect(registration.status).toBe('success');
-        E2ELogger.info(LOG_CTX, 'Global shortcut registration state', {
-            quickChat: registration.quickChat,
-            peekAndHide: registration.peekAndHide,
-        });
     });
 
     it('on macOS/Windows: both global hotkeys should be registered', async function () {
@@ -82,7 +78,6 @@ describe('Release Build: Global Hotkey Registration', () => {
 
         expect(registration.quickChat).toBe(true);
         expect(registration.peekAndHide).toBe(true);
-        E2ELogger.info(LOG_CTX, '✓ macOS/Windows hotkeys registered as expected');
     });
 
     it('on Linux non-Wayland: global hotkeys should NOT be registered', async function () {
@@ -104,10 +99,6 @@ describe('Release Build: Global Hotkey Registration', () => {
         }
 
         expect(status.globalHotkeysEnabled).toBe(false);
-        E2ELogger.info(LOG_CTX, '✓ Linux non-Wayland correctly has hotkeys disabled', {
-            desktopEnvironment: status.waylandStatus.desktopEnvironment,
-            portalMethod: status.waylandStatus.portalMethod,
-        });
     });
 });
 
@@ -132,15 +123,6 @@ describe('Release Build: Platform Hotkey Status IPC', () => {
         expect(typeof status.waylandStatus.portalMethod).toBe('string');
         expect(typeof status.globalHotkeysEnabled).toBe('boolean');
         expect(Array.isArray(status.registrationResults)).toBe(true);
-
-        E2ELogger.info(LOG_CTX, 'Platform hotkey status via IPC', {
-            isWayland: status.waylandStatus.isWayland,
-            de: status.waylandStatus.desktopEnvironment,
-            portalAvailable: status.waylandStatus.portalAvailable,
-            portalMethod: status.waylandStatus.portalMethod,
-            globalHotkeysEnabled: status.globalHotkeysEnabled,
-            registrationCount: status.registrationResults.length,
-        });
     });
 
     it('should have consistent globalHotkeysEnabled with actual registration', async () => {
@@ -159,7 +141,6 @@ describe('Release Build: Platform Hotkey Status IPC', () => {
         }
 
         if (status.waylandStatus.isWayland) {
-            E2ELogger.info(LOG_CTX, 'Skipping globalShortcut consistency on Wayland; portal registration used');
             return;
         }
 
@@ -174,11 +155,6 @@ describe('Release Build: Platform Hotkey Status IPC', () => {
         if (status.globalHotkeysEnabled) {
             expect(actuallyRegistered).toBe(true);
         }
-
-        E2ELogger.info(LOG_CTX, 'Consistency check', {
-            globalHotkeysEnabled: status.globalHotkeysEnabled,
-            actuallyRegistered,
-        });
     });
 });
 
@@ -212,11 +188,6 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
             expect(deVersion).not.toBeNull();
             expect(majorVersion).toBeGreaterThanOrEqual(5);
         }
-
-        E2ELogger.info(LOG_CTX, 'KDE Wayland portal detection', {
-            deVersion,
-            portalAvailable: status.waylandStatus.portalAvailable,
-        });
     });
 
     it('should register hotkeys successfully when portal is available', async () => {
@@ -227,15 +198,10 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         }
 
         if (!status.waylandStatus.isWayland) {
-            E2ELogger.info(LOG_CTX, 'Not a Wayland session — skipping');
             return;
         }
 
         if (!status.waylandStatus.portalAvailable) {
-            E2ELogger.info(LOG_CTX, 'Portal not available — skipping', {
-                de: status.waylandStatus.desktopEnvironment,
-                portalMethod: status.waylandStatus.portalMethod,
-            });
             return;
         }
 
@@ -249,8 +215,6 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         expect(peekAndHideResult).toBeDefined();
         expect(quickChatResult.success).toBe(true);
         expect(peekAndHideResult.success).toBe(true);
-
-        E2ELogger.info(LOG_CTX, '✓ Wayland+KDE hotkeys registered via portal');
     });
 
     it('should avoid globalShortcut false positives on Wayland', async () => {
@@ -277,11 +241,8 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
             return;
         }
 
-        E2ELogger.info(LOG_CTX, 'Wayland portal path active; globalShortcut is not authoritative', {
-            quickChat: registration.quickChat,
-            peekAndHide: registration.peekAndHide,
-            portalMethod: status.waylandStatus.portalMethod,
-        });
+        expect(registration.quickChat).toBeDefined();
+        expect(registration.peekAndHide).toBeDefined();
     });
 
     it('should disable hotkeys when portal is unavailable on Wayland', async function () {
@@ -353,8 +314,6 @@ describe('Release Build: Wayland+KDE Portal Signal Tracking', () => {
         expect(stats.totalSignals).toBe(0);
         expect(stats.signals).toHaveLength(0);
         expect(Object.keys(stats.signalsByShortcut)).toHaveLength(0);
-
-        E2ELogger.info(LOG_CTX, '✓ D-Bus signal tracking enabled and cleared');
     });
 
     it('should wait for portal activation signals to arrive', async function () {
@@ -396,11 +355,6 @@ describe('Release Build: Wayland+KDE Portal Signal Tracking', () => {
 
         await clearDbusActivationSignalHistory();
 
-        E2ELogger.info(
-            LOG_CTX,
-            'Waiting for portal activation signals. Manually trigger Quick Chat or Peek and Hide now.'
-        );
-
         const activated = await browser.waitUntil(
             async () => {
                 const stats = await getDbusActivationSignalStats();
@@ -423,12 +377,6 @@ describe('Release Build: Wayland+KDE Portal Signal Tracking', () => {
         const peekAndHideSignals = stats?.signalsByShortcut?.peekAndHide ?? 0;
 
         expect(quickChatSignals + peekAndHideSignals).toBeGreaterThan(0);
-
-        E2ELogger.info(LOG_CTX, '✓ Portal activation signals observed', {
-            totalSignals: stats?.totalSignals,
-            quickChatSignals,
-            peekAndHideSignals,
-        });
     });
 });
 
@@ -446,7 +394,6 @@ describe('Release Build: Hotkey Graceful Degradation', () => {
         });
 
         expect(windowOK).toBe(true);
-        E2ELogger.info(LOG_CTX, '✓ App responsive — no hotkey-related crashes');
     });
 
     it('should not have uncaught renderer errors', async () => {
@@ -461,6 +408,5 @@ describe('Release Build: Hotkey Graceful Degradation', () => {
 
         expect(hasErrors.electronAPIPresent).toBe(true);
         expect(hasErrors.platformAvailable).toBe(true);
-        E2ELogger.info(LOG_CTX, '✓ No renderer errors — preload bridge intact');
     });
 });

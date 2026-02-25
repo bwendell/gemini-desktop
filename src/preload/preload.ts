@@ -16,7 +16,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ElectronAPI } from '../shared/types';
+import type { ElectronAPI, HotkeyId } from '../shared/types';
 
 /** Whether to expose test-only D-Bus activation signal APIs */
 const TEST_ONLY_DBUS_SIGNALS_ENABLED = process.env.NODE_ENV === 'test' || process.env.DEBUG_DBUS === '1';
@@ -388,7 +388,7 @@ const electronAPI: ElectronAPI = {
      * @param id - The hotkey identifier ('alwaysOnTop' | 'peekAndHide' | 'quickChat')
      * @param enabled - Whether to enable (true) or disable (false) the hotkey
      */
-    setIndividualHotkey: (id: 'alwaysOnTop' | 'peekAndHide' | 'quickChat' | 'printToPdf', enabled: boolean) =>
+    setIndividualHotkey: (id: HotkeyId, enabled: boolean) =>
         ipcRenderer.send(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET, id, enabled),
 
     /**
@@ -431,7 +431,7 @@ const electronAPI: ElectronAPI = {
      * @param id - The hotkey identifier ('alwaysOnTop' | 'peekAndHide' | 'quickChat')
      * @param accelerator - The new accelerator string (e.g., 'CommandOrControl+Shift+T')
      */
-    setHotkeyAccelerator: (id: 'alwaysOnTop' | 'peekAndHide' | 'quickChat' | 'printToPdf', accelerator: string) =>
+    setHotkeyAccelerator: (id: HotkeyId, accelerator: string) =>
         ipcRenderer.send(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET, id, accelerator),
 
     /**

@@ -14,8 +14,6 @@
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
 import { expect } from '@wdio/globals';
-import { getPlatform, E2EPlatform } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
 import { UpdateToastPage } from './pages';
 
 // ============================================================================
@@ -23,13 +21,10 @@ import { UpdateToastPage } from './pages';
 // ============================================================================
 
 describe('Auto-Update Error Recovery', () => {
-    let platform: E2EPlatform;
     let updateToast: UpdateToastPage;
 
     before(async () => {
-        platform = await getPlatform();
         updateToast = new UpdateToastPage();
-        E2ELogger.info('auto-update-error-recovery', `Platform: ${platform.toUpperCase()}`);
     });
 
     beforeEach(async () => {
@@ -49,8 +44,6 @@ describe('Auto-Update Error Recovery', () => {
 
             expect(await updateToast.getTitle()).toBe('Update Error');
             expect(await updateToast.getMessage()).toContain('Network connection failed');
-
-            E2ELogger.info('auto-update-error-recovery', 'Error toast displayed correctly');
         });
 
         it('should allow dismissing error toast', async () => {
@@ -61,8 +54,6 @@ describe('Auto-Update Error Recovery', () => {
             // Dismiss
             await updateToast.dismiss();
             await updateToast.waitForHidden();
-
-            E2ELogger.info('auto-update-error-recovery', 'Error toast dismissed successfully');
         });
     });
 
@@ -87,8 +78,6 @@ describe('Auto-Update Error Recovery', () => {
 
             // THEN: Should show update available
             expect(await updateToast.getTitle()).toBe('Update Available');
-
-            E2ELogger.info('auto-update-error-recovery', 'Retry after error succeeded');
         });
 
         it('should handle multiple errors in sequence', async () => {
@@ -107,8 +96,6 @@ describe('Auto-Update Error Recovery', () => {
             await updateToast.waitForVisible();
 
             expect(await updateToast.getMessage()).toContain('Second error');
-
-            E2ELogger.info('auto-update-error-recovery', 'Multiple errors handled correctly');
         });
 
         it('should not display badge for errors', async () => {
@@ -118,8 +105,6 @@ describe('Auto-Update Error Recovery', () => {
 
             // Badge should NOT appear for errors
             expect(await updateToast.isBadgeExisting()).toBe(false);
-
-            E2ELogger.info('auto-update-error-recovery', 'No badge for errors (correct)');
         });
     });
 
@@ -135,8 +120,6 @@ describe('Auto-Update Error Recovery', () => {
             const message = await updateToast.getMessage();
             expect(message).toContain('Failed to download update');
             expect(message).toContain('Connection timed out');
-
-            E2ELogger.info('auto-update-error-recovery', 'Download failure error displayed');
         });
 
         it('should handle generic error with fallback message', async () => {
@@ -147,8 +130,6 @@ describe('Auto-Update Error Recovery', () => {
             const text = await updateToast.getMessage();
             // Should show default fallback
             expect(text).toContain('error');
-
-            E2ELogger.info('auto-update-error-recovery', 'Fallback error message displayed');
         });
 
         it('should handle insufficient disk space error', async () => {
@@ -156,8 +137,6 @@ describe('Auto-Update Error Recovery', () => {
             await updateToast.waitForVisible();
 
             expect(await updateToast.getMessage()).toContain('Insufficient disk space');
-
-            E2ELogger.info('auto-update-error-recovery', 'Disk space error displayed');
         });
     });
 
@@ -182,8 +161,6 @@ describe('Auto-Update Error Recovery', () => {
             await updateToast.waitForVisible();
 
             expect(await updateToast.getTitle()).toBe('Update Error');
-
-            E2ELogger.info('auto-update-error-recovery', 'Transition from available to error succeeded');
         });
 
         it('should transition from error to downloaded correctly', async () => {
@@ -203,8 +180,6 @@ describe('Auto-Update Error Recovery', () => {
 
             // Should have Restart Now button
             expect(await updateToast.isRestartButtonDisplayed()).toBe(true);
-
-            E2ELogger.info('auto-update-error-recovery', 'Transition from error to downloaded succeeded');
         });
     });
 });

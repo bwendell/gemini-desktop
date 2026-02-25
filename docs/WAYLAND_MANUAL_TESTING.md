@@ -34,7 +34,7 @@ echo "KDE Version: $KDE_SESSION_VERSION"
 
 - [ ] **Quick Chat** — Press `Ctrl+Shift+Alt+Space`.
     - Expected: Quick Chat window appears centered on screen.
-- [ ] **Peek and Hide** — Press `Ctrl+Alt+H`.
+- [ ] **Peek and Hide** — Press `Ctrl+Shift+Space`.
     - Expected: Main window hides to tray.
 
 ### 4) Failure/Conflict Signals

@@ -18,7 +18,7 @@ name: Test
 # =============================================================================
 on:
     push:
-        # Run on all branches
+        branches: [main]
     pull_request:
         branches: [main]
     # Allow manual triggering from Actions tab

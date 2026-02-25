@@ -44,7 +44,7 @@ describe('Global Hotkey Registration', () => {
                     // Only check GLOBAL hotkeys - these are registered via globalShortcut
                     // Application hotkeys (alwaysOnTop, printToPdf) are handled by Menu accelerators
                     quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
-                    peekAndHide: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
+                    peekAndHide: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
                     status: 'success',
                 };
             } catch (error) {

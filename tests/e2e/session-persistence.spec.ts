@@ -17,7 +17,6 @@ import {
 } from './helpers/persistenceActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForWindowCount } from './helpers/windowActions';
-import { E2ELogger } from './helpers/logger';
 
 describe('Session Persistence', () => {
     const mainWindow = new MainWindowPage();
@@ -39,14 +38,12 @@ describe('Session Persistence', () => {
     it('should use the default persistent session', async () => {
         const isPersistent = await isSessionPersistent();
         expect(isPersistent).toBe(true);
-        E2ELogger.info('session', 'Verified default session is persistent');
     });
 
     it('should create a Cookies file in the userData directory', async () => {
         // Wait for Electron to flush cookies to disk
         const exists = await waitForCookiesFile(userDataPath, 5000);
         expect(exists).toBe(true);
-        E2ELogger.info('session', `Verified Cookies file exists at ${exists ? 'expected location' : 'UNKNOWN'}`);
     });
 
     it('should persist cookies across window reloads', async () => {
@@ -68,7 +65,6 @@ describe('Session Persistence', () => {
 
         expect(cookies.length).toBe(1);
         expect(cookies[0].value).toBe(cookieValue);
-        E2ELogger.info('session', 'Verified cookie survived window reload');
     });
 
     it('should share cookies between different windows (Main and Options)', async () => {
@@ -93,7 +89,6 @@ describe('Session Persistence', () => {
 
         expect(retrieved.length).toBe(1);
         expect(retrieved[0].value).toBe(testCookie.value);
-        E2ELogger.info('session', 'Verified cookie is shared across windows via default session');
 
         // 4. Close options window
         await optionsPage.close();

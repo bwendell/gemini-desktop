@@ -13,7 +13,6 @@ import { MainWindowPage, OptionsPage, TrayPage, AuthWindowPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAllWindowsHidden, closeWindow } from './helpers/windowStateActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
-import { E2ELogger } from './helpers/logger';
 import { waitForUIState, waitForWindowTransition } from './helpers/waitUtilities';
 
 describe('Dependent Windows', () => {
@@ -36,7 +35,6 @@ describe('Dependent Windows', () => {
 
         // 2. Wait for options window to appear (2 windows total)
         await waitForWindowCount(2, 5000);
-        E2ELogger.info('dependent-windows', 'Options window opened successfully');
 
         const handles = await browser.getWindowHandles();
         expect(handles.length).toBe(2);
@@ -47,7 +45,6 @@ describe('Dependent Windows', () => {
 
         // 4. Close main window via IPC API (works on all platforms including macOS with native controls)
         await closeWindow();
-        E2ELogger.info('dependent-windows', 'Closed main window via close button');
 
         // 5. Wait for both windows to close/hide
         // When main window hides to tray, options window should also close
@@ -62,7 +59,6 @@ describe('Dependent Windows', () => {
         // 6. Verify no windows remain visible (both hidden/closed)
         // Note: The main window is hidden (not closed), so window count drops to 0
         await waitForAllWindowsHidden(5000);
-        E2ELogger.info('dependent-windows', 'Both windows closed/hidden as expected');
 
         // 7. Restore from tray to verify app is still running
         await tray.clickShowMenuItemAndWait();
@@ -95,7 +91,6 @@ describe('Dependent Windows', () => {
 
         // 4. Wait for main window to reappear
         await waitForWindowCount(1, 5000);
-        E2ELogger.info('dependent-windows', 'Main window restored from tray');
 
         // 5. Open options window again
         await mainWindow.openOptionsViaMenu();
@@ -108,7 +103,6 @@ describe('Dependent Windows', () => {
         // 7. Switch to options window and verify it's functional
         await browser.switchToWindow(newHandles[1]);
         await optionsPage.waitForLoad();
-        E2ELogger.info('dependent-windows', 'Options window reopened successfully after restore');
 
         // 8. Clean up - close options window
         await optionsPage.close();
@@ -119,7 +113,6 @@ describe('Dependent Windows', () => {
         // 1. Open Options window
         await mainWindow.openOptionsViaMenu();
         await waitForWindowCount(2, 5000);
-        E2ELogger.info('dependent-windows', 'Options window opened');
 
         // 2. Switch to main window and open Auth window via menu
         const handles = await browser.getWindowHandles();
@@ -136,7 +129,6 @@ describe('Dependent Windows', () => {
             { description: 'Auth window appears' }
         );
         const allHandles = await browser.getWindowHandles();
-        E2ELogger.info('dependent-windows', `Windows after opening auth: ${allHandles.length}`);
 
         // Should have at least 2 windows (main + options, auth may merge or not)
         expect(allHandles.length).toBeGreaterThanOrEqual(2);
@@ -144,7 +136,6 @@ describe('Dependent Windows', () => {
         // 3. Switch back to main window and close it via IPC API (works on all platforms)
         await browser.switchToWindow(mainHandle);
         await closeWindow();
-        E2ELogger.info('dependent-windows', 'Closed main window');
 
         // 4. Wait for all windows to close/hide
         await waitForWindowTransition(
@@ -155,7 +146,6 @@ describe('Dependent Windows', () => {
             { description: 'All windows closed with main window', timeout: 7000 }
         );
         await waitForAllWindowsHidden(5000);
-        E2ELogger.info('dependent-windows', 'All dependent windows closed with main window');
 
         // 5. Restore from tray for cleanup
         await tray.clickShowMenuItemAndWait();

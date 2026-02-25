@@ -112,7 +112,7 @@ export interface HotkeyManagerInitialSettings {
  * const hotkeyManager = new HotkeyManager(windowManager);
  * hotkeyManager.registerShortcuts(); // Register enabled global shortcuts
  * hotkeyManager.setIndividualEnabled('quickChat', false); // Disable Quick Chat hotkey
- * hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+H'); // Change accelerator
+ * hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Shift+Space'); // Change accelerator
  * ```
  *
  * @class HotkeyManager
@@ -132,6 +132,7 @@ export default class HotkeyManager {
         alwaysOnTop: true,
         peekAndHide: true,
         quickChat: true,
+        voiceChat: true,
         printToPdf: true,
     };
 
@@ -177,7 +178,7 @@ export default class HotkeyManager {
      * const windowManager = new WindowManager();
      * const hotkeyManager = new HotkeyManager(windowManager, {
      *   enabled: { quickChat: false },
-     *   accelerators: { peekAndHide: 'CommandOrControl+Alt+H' }
+     *   accelerators: { peekAndHide: 'CommandOrControl+Shift+Space' }
      * });
      * ```
      */
@@ -213,7 +214,6 @@ export default class HotkeyManager {
         // Define shortcut actions
         // Each shortcut maps an id to an action callback
         this.shortcutActions = [
-            // GLOBAL: Peek and Hide toggles between hiding to system tray and restoring the window
             {
                 id: 'peekAndHide',
                 action: () => {
@@ -222,7 +222,6 @@ export default class HotkeyManager {
                     this.windowManager.toggleMainWindowVisibility();
                 },
             },
-            // GLOBAL: Quick Chat needs to be accessible from anywhere to open the prompt overlay
             {
                 id: 'quickChat',
                 action: () => {
@@ -231,7 +230,14 @@ export default class HotkeyManager {
                     this.windowManager.toggleQuickChat();
                 },
             },
-            // APPLICATION: Always On Top acts on the active window state, handled via Menu accelerators
+            {
+                id: 'voiceChat',
+                action: () => {
+                    const accelerator = this._accelerators.voiceChat;
+                    logger.log(`Hotkey pressed: ${accelerator} (Voice Chat)`);
+                    void this.windowManager.activateVoiceChat();
+                },
+            },
             {
                 id: 'alwaysOnTop',
                 action: () => {
@@ -242,7 +248,6 @@ export default class HotkeyManager {
                     this.windowManager.setAlwaysOnTop(!current);
                 },
             },
-            // APPLICATION: Print to PDF is a window-specific action, handled via Menu accelerators
             {
                 id: 'printToPdf',
                 action: () => {
@@ -303,6 +308,10 @@ export default class HotkeyManager {
             quickChat: {
                 enabled: this._individualSettings.quickChat,
                 accelerator: this._accelerators.quickChat,
+            },
+            voiceChat: {
+                enabled: this._individualSettings.voiceChat,
+                accelerator: this._accelerators.voiceChat,
             },
             printToPdf: {
                 enabled: this._individualSettings.printToPdf,

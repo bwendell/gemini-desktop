@@ -18,7 +18,6 @@
 
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
-import { E2ELogger } from './helpers/logger';
 import { isMacOS } from './helpers/platform';
 import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
@@ -46,15 +45,12 @@ describe('macOS Native Menu Shortcuts', () => {
     describe('Cmd+, (Preferences) Shortcut (macOS only)', () => {
         it('should open Options window via menu action', async () => {
             if (!(await isMacOS())) {
-                E2ELogger.info('macos-menu', 'Skipping - not on macOS');
                 return;
             }
 
             // Verify only main window is open initially
             const initialHandles = await browser.getWindowHandles();
             expect(initialHandles.length).toBe(1);
-
-            E2ELogger.info('macos-menu', 'Initial state: single main window');
 
             // Open options via menu (simulates what Cmd+, does)
             await mainWindow.openOptionsViaMenu();
@@ -66,8 +62,6 @@ describe('macOS Native Menu Shortcuts', () => {
 
             // Switch to options window and verify it loaded
             await optionsPage.waitForLoad();
-
-            E2ELogger.info('macos-menu', 'Options window opened via menu action');
         });
 
         it('should focus existing Options window if already open', async () => {
@@ -107,8 +101,6 @@ describe('macOS Native Menu Shortcuts', () => {
             // Should still have only 2 windows (no duplicate)
             const secondHandles = await browser.getWindowHandles();
             expect(secondHandles.length).toBe(2);
-
-            E2ELogger.info('macos-menu', 'No duplicate Options window created');
         });
     });
 
@@ -128,10 +120,9 @@ describe('macOS Native Menu Shortcuts', () => {
 
             // Check if menu bar exists (custom menu on Windows/Linux, may not exist on macOS)
             const hasMenuBar = await mainWindow.isMenuBarDisplayed();
-            E2ELogger.info('macos-menu', `Custom menu bar present: ${hasMenuBar}`);
+            expect(typeof hasMenuBar).toBe('boolean');
 
             // App functionality is verified by successfully loading the main window
-            E2ELogger.info('macos-menu', 'App is running and functional on macOS');
         });
     });
 });

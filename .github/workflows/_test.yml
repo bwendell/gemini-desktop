@@ -145,8 +145,8 @@ jobs:
               if: runner.os == 'Linux'
               run: |
                   sudo apt-get update
-                  # Install Electron dependencies + node-llama-cpp build dependencies (cmake, clang, libgomp1)
-                  sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6 cmake clang libgomp1
+                  # Install Electron runtime dependencies only (keep apt install fast for CI)
+                  sudo apt-get install -y --no-install-recommends xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
                   # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
                   # See: https://github.com/electron/electron/issues/41066
                   sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -199,8 +199,8 @@ jobs:
               if: runner.os == 'Linux'
               run: |
                   sudo apt-get update
-                  # Install Electron dependencies + node-llama-cpp build dependencies (cmake, clang, libgomp1)
-                  sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6 cmake clang libgomp1
+                  # Install Electron runtime dependencies only (keep apt install fast for CI)
+                  sudo apt-get install -y --no-install-recommends xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
                   # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
                   # See: https://github.com/electron/electron/issues/41066
                   sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -359,8 +359,8 @@ jobs:
             - name: Setup Linux Environment
               run: |
                   sudo apt-get update
-                  # Install Electron dependencies + node-llama-cpp build dependencies (cmake, clang, libgomp1)
-                  sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6 cmake clang libgomp1
+                  # Install Electron runtime dependencies only (keep apt install fast for CI)
+                  sudo apt-get install -y --no-install-recommends xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
                   # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
                   # See: https://github.com/electron/electron/issues/41066
                   sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -445,8 +445,8 @@ jobs:
               if: runner.os == 'Linux'
               run: |
                   sudo apt-get update
-                  # Install Electron dependencies + node-llama-cpp build dependencies (cmake, clang, libgomp1)
-                  sudo apt-get install -y xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6 cmake clang libgomp1
+                  # Install Electron runtime dependencies only (keep apt install fast for CI)
+                  sudo apt-get install -y --no-install-recommends xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libayatana-appindicator3-1 libxtst6
                   # Ubuntu 24.04+ restricts unprivileged user namespaces which breaks Electron
                   sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 

@@ -53,6 +53,11 @@ const HOTKEY_CONFIGS: HotkeyConfig[] = [
         description: 'Open floating chat overlay',
     },
     {
+        id: 'voiceChat',
+        label: 'Voice Chat',
+        description: 'Toggle Gemini microphone input from anywhere',
+    },
+    {
         id: 'printToPdf',
         label: 'Print to PDF',
         description: 'Save current conversation as PDF',

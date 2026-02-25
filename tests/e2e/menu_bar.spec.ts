@@ -10,7 +10,6 @@ import type { Browser } from '@wdio/globals';
 import { browser, $, $$, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
-import { E2ELogger } from './helpers/logger';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForUIState } from './helpers/waitUtilities';
@@ -22,7 +21,6 @@ describe('Custom Menu Bar', () => {
     beforeEach(async () => {
         // Skip entire suite on macOS
         if (!(await usesCustomControls())) {
-            E2ELogger.info('menu_bar', 'Skipping test - macOS uses native menu bar');
             return;
         }
 

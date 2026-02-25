@@ -44,7 +44,6 @@ describe('Release Build: System Tray', () => {
         }
 
         expect(trayInfo.exists).toBe(true);
-        E2ELogger.info('tray-icon', `Tray icon verified with tooltip: ${trayInfo.tooltip}`);
     });
 
     it('should have tray icon displayed (implicit via tray creation)', async () => {
@@ -59,7 +58,6 @@ describe('Release Build: System Tray', () => {
         });
 
         expect(trayCreated).toBe(true);
-        E2ELogger.info('tray-icon', 'Tray icon is displayed (tray creation successful)');
     });
 
     it('should have tray click handler registered', async () => {
@@ -75,7 +73,6 @@ describe('Release Build: System Tray', () => {
         });
 
         expect(hasClickHandler).toBe(true);
-        E2ELogger.info('tray-icon', 'Tray click handler is registered');
     });
 
     it('should be able to show/hide via tray', async () => {
@@ -101,6 +98,5 @@ describe('Release Build: System Tray', () => {
 
         expect(testResult.success).toBe(true);
         expect(testResult.hasClick).toBe(true);
-        E2ELogger.info('tray-icon', 'Tray click functionality verified');
     });
 });

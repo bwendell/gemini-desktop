@@ -13,7 +13,6 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { E2ELogger } from '../helpers/logger';
 import { isLinuxSync } from '../helpers/platform';
 
 describe('Release Build: AppImage Sandbox Detection', () => {
@@ -22,8 +21,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
             return electron.app.isReady();
         });
         expect(isReady).toBe(true);
-
-        E2ELogger.info('sandbox-appimage', 'Application started successfully');
     });
 
     it('should be running as a packaged app', async () => {
@@ -32,7 +29,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
         });
 
         expect(isPackaged).toBe(true);
-        E2ELogger.info('sandbox-appimage', 'App is running in packaged mode');
     });
 
     it('should detect current platform correctly', async () => {
@@ -41,7 +37,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
         });
 
         expect(['darwin', 'win32', 'linux']).toContain(platform);
-        E2ELogger.info('sandbox-appimage', `Platform detected: ${platform}`);
     });
 
     describe('Linux AppImage specific tests', () => {
@@ -59,17 +54,10 @@ describe('Release Build: AppImage Sandbox Detection', () => {
                 };
             });
 
-            E2ELogger.info('sandbox-appimage', `APPIMAGE env: ${appImageEnv.appImagePath || 'not set'}`);
-
             // If running as AppImage, APPIMAGE env should be set
             // This may not be set in unpacked linux-unpacked directory
             if (appImageEnv.appImagePath) {
                 expect(appImageEnv.appImagePath).toContain('.AppImage');
-            } else {
-                E2ELogger.info(
-                    'sandbox-appimage',
-                    'Not running as AppImage (linux-unpacked directory). APPIMAGE detection skipped.'
-                );
             }
         });
 
@@ -87,11 +75,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
                     argvHasNoSandbox: process.argv.includes('--no-sandbox'),
                 };
             });
-
-            E2ELogger.info(
-                'sandbox-appimage',
-                `Sandbox state: hasNoSandbox=${sandboxInfo.hasNoSandbox}, argvHasNoSandbox=${sandboxInfo.argvHasNoSandbox}`
-            );
 
             // Either way, the app should be running - this just logs the state
             expect(typeof sandboxInfo.hasNoSandbox).toBe('boolean');
@@ -111,7 +94,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
 
             // contextIsolation should prevent require from being available
             expect(hasRequire).toBe(false);
-            E2ELogger.info('sandbox-appimage', 'contextIsolation verified: require not exposed');
         });
 
         it('should expose electronAPI through preload bridge', async () => {
@@ -120,7 +102,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
             });
 
             expect(hasElectronAPI).toBe(true);
-            E2ELogger.info('sandbox-appimage', 'electronAPI bridge verified');
         });
 
         it('should not expose process.versions directly', async () => {
@@ -133,7 +114,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
             });
 
             expect(hasProcessVersions).toBe(false);
-            E2ELogger.info('sandbox-appimage', 'process.versions correctly isolated');
         });
     });
 
@@ -146,7 +126,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
 
             expect(themeData).toHaveProperty('preference');
             expect(themeData).toHaveProperty('effectiveTheme');
-            E2ELogger.info('sandbox-appimage', `IPC working: theme=${themeData.preference}`);
         });
 
         it('should be able to query window state (isMaximized)', async () => {
@@ -156,7 +135,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
             });
 
             expect(typeof isMaximized).toBe('boolean');
-            E2ELogger.info('sandbox-appimage', `Window state IPC working: isMaximized=${isMaximized}`);
         });
 
         it('should have platform info exposed via electronAPI', async () => {
@@ -170,7 +148,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
 
             expect(['darwin', 'win32', 'linux']).toContain(platformInfo.platform);
             expect(platformInfo.isElectron).toBe(true);
-            E2ELogger.info('sandbox-appimage', `Platform info: ${platformInfo.platform}`);
         });
     });
 
@@ -218,11 +195,6 @@ describe('Release Build: AppImage Sandbox Detection', () => {
                     };
                 }
             });
-
-            E2ELogger.info(
-                'sandbox-appimage',
-                `Kernel restrictions: AppArmor=${restrictionInfo.appArmorRestriction}, UserNS=${restrictionInfo.usernsRestriction}`
-            );
 
             // The key assertion: regardless of restrictions, the app is running
             expect(restrictionInfo.appRunning).toBe(true);

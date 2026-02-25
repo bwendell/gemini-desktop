@@ -532,8 +532,8 @@ describe('Wayland Hotkey Coordination', () => {
             });
 
             const secondCallShortcuts = mockRegisterViaDBus.mock.calls[1][0] as Array<{ id: string }>;
-            expect(secondCallShortcuts).toHaveLength(1);
-            expect(secondCallShortcuts[0]?.id).toBe('quickChat');
+            expect(secondCallShortcuts).toHaveLength(2);
+            expect(secondCallShortcuts.map((s) => s?.id).sort()).toEqual(['quickChat', 'voiceChat']);
         });
 
         it('P1-3: re-registration clears previous results and calls destroySession', async () => {

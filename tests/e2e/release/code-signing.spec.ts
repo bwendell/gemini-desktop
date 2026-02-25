@@ -21,7 +21,6 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { E2ELogger } from '../helpers/logger';
 import { isWindowsSync, isLinuxSync } from '../helpers/platform';
 
 describe('Release Build: Code Signing', () => {
@@ -34,8 +33,6 @@ describe('Release Build: Code Signing', () => {
                 isPackaged: electron.app.isPackaged,
             };
         });
-
-        E2ELogger.info('code-signing', 'Platform info', platformInfo);
 
         expect(platformInfo.platform).toMatch(/^(win32|darwin|linux)$/);
         expect(platformInfo.isPackaged).toBe(true);
@@ -66,13 +63,7 @@ describe('Release Build: Code Signing', () => {
             }
         });
 
-        E2ELogger.info('code-signing', 'Executable info', execInfo);
-
         if (!execInfo.success) {
-            E2ELogger.info(
-                'code-signing',
-                `File system check not available: ${execInfo.error}. Verifying execPath exists as string.`
-            );
             // Fallback: At least verify execPath is a valid-looking path
             expect(execInfo.path).toBeTruthy();
             expect(typeof execInfo.path).toBe('string');
@@ -93,7 +84,6 @@ describe('Release Build: Code Signing', () => {
         const platformCheck = await browser.electron.execute(() => process.platform);
 
         if (platformCheck !== 'win32') {
-            E2ELogger.info('code-signing', 'Skipping Windows signing check - not on Windows');
             this.skip();
             return;
         }
@@ -133,23 +123,13 @@ describe('Release Build: Code Signing', () => {
             }
         });
 
-        E2ELogger.info('code-signing', 'Windows signing status', signingInfo);
-
         if (!signingInfo.success) {
-            E2ELogger.info(
-                'code-signing',
-                `Code signing check not available: ${signingInfo.error}. Skipping verification.`
-            );
             return;
         }
 
         if (signingInfo.checked) {
             // In CI/test builds, signature may be "NotSigned" or "Valid"
             // We log the status for visibility but don't hard-fail on unsigned test builds
-            E2ELogger.info(
-                'code-signing',
-                `Signature status: ${signingInfo.status}, Signed: ${signingInfo.hasCertificate}`
-            );
 
             // If signed, verify it's valid
             if (signingInfo.hasCertificate) {
@@ -163,7 +143,6 @@ describe('Release Build: Code Signing', () => {
         const platformCheck = await browser.electron.execute(() => process.platform);
 
         if (platformCheck !== 'darwin') {
-            E2ELogger.info('code-signing', 'Skipping macOS signing check - not on macOS');
             this.skip();
             return;
         }
@@ -213,23 +192,13 @@ describe('Release Build: Code Signing', () => {
             }
         });
 
-        E2ELogger.info('code-signing', 'macOS signing status', signingInfo);
-
         if (!signingInfo.success) {
-            E2ELogger.info(
-                'code-signing',
-                `Code signing check not available: ${signingInfo.error}. Skipping verification.`
-            );
             return;
         }
 
         // In CI/test builds, may be unsigned
         // Log for visibility
-        if (signingInfo.valid) {
-            E2ELogger.info('code-signing', 'macOS code signature is valid');
-        } else {
-            E2ELogger.info('code-signing', `macOS code signature issue: ${signingInfo.error}`);
-        }
+        expect(typeof signingInfo.valid).toBe('boolean');
     });
 
     // Linux skips signing checks
@@ -240,8 +209,6 @@ describe('Release Build: Code Signing', () => {
             this.skip();
             return;
         }
-
-        E2ELogger.info('code-signing', 'Linux does not use traditional code signing - test passed');
         expect(true).toBe(true);
     });
 
@@ -254,8 +221,6 @@ describe('Release Build: Code Signing', () => {
                 userDataPath: electron.app.getPath('userData'),
             };
         });
-
-        E2ELogger.info('code-signing', 'App metadata', metadata);
 
         if (isLinuxSync()) {
             expect(metadata.name).toMatch(/^(Gemini Desktop|gemini-desktop)$/);

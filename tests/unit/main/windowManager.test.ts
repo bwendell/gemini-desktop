@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow } from 'electron';
 
 import { platformAdapterPresets, resetPlatformAdapterForTests, useMockPlatformAdapter } from '../../helpers/mocks';
+import { createMockWebContents } from '../../helpers/mocks';
 
 import WindowManager from '../../../src/main/managers/windowManager';
 
@@ -240,6 +241,162 @@ describe('WindowManager', () => {
 
             // A new window should have been created
             expect((BrowserWindow as any)._instances.length).toBe(1);
+        });
+    });
+
+    describe('activateVoiceChat', () => {
+        it('restores from tray when main window is hidden', async () => {
+            const win = windowManager.createMainWindow();
+            win.hide();
+
+            await windowManager.activateVoiceChat();
+
+            expect(win.show).toHaveBeenCalled();
+            expect(win.focus).toHaveBeenCalled();
+        });
+
+        it('focuses main window when already visible', async () => {
+            windowManager.createMainWindow();
+
+            await windowManager.activateVoiceChat();
+
+            const win = windowManager.getMainWindow();
+            expect(win?.show).toHaveBeenCalled();
+            expect(win?.focus).toHaveBeenCalled();
+        });
+
+        it('creates main window when none exists', async () => {
+            await windowManager.activateVoiceChat();
+
+            expect(windowManager.getMainWindow()).not.toBeNull();
+        });
+
+        it('activates microphone in active tab frame', async () => {
+            const win = windowManager.createMainWindow();
+            const webContents = createMockWebContents({
+                url: 'https://gemini.google.com/app',
+            });
+            const executeJavaScript = vi.fn().mockResolvedValue({ success: true });
+            (webContents as any).mainFrame = {
+                frames: [
+                    {
+                        name: 'gemini-tab-active-tab',
+                        url: 'https://gemini.google.com/app',
+                        executeJavaScript,
+                    },
+                ],
+            };
+            Object.defineProperty(win, 'webContents', {
+                value: webContents,
+                writable: true,
+            });
+
+            const store = (windowManager as unknown as { tabStateStore: { set: (k: string, v: unknown) => void } })
+                .tabStateStore;
+            store.set('tabsState', {
+                tabs: [
+                    {
+                        id: 'active-tab',
+                        title: 'New Chat',
+                        url: 'https://gemini.google.com/app',
+                        createdAt: Date.now(),
+                    },
+                ],
+                activeTabId: 'active-tab',
+            });
+
+            await windowManager.activateVoiceChat();
+
+            expect(executeJavaScript).toHaveBeenCalledWith(expect.any(String), true);
+        });
+
+        it('falls back to Gemini frame when active tab frame is missing', async () => {
+            const win = windowManager.createMainWindow();
+            const webContents = createMockWebContents({
+                url: 'https://gemini.google.com/app',
+            });
+            const executeJavaScript = vi.fn().mockResolvedValue({ success: true });
+            (webContents as any).mainFrame = {
+                frames: [
+                    {
+                        name: 'gemini-tab-other',
+                        url: 'https://gemini.google.com/app',
+                        executeJavaScript,
+                    },
+                ],
+            };
+            Object.defineProperty(win, 'webContents', {
+                value: webContents,
+                writable: true,
+            });
+
+            const store = (windowManager as unknown as { tabStateStore: { set: (k: string, v: unknown) => void } })
+                .tabStateStore;
+            store.set('tabsState', {
+                tabs: [
+                    {
+                        id: 'active-tab',
+                        title: 'New Chat',
+                        url: 'https://gemini.google.com/app',
+                        createdAt: Date.now(),
+                    },
+                ],
+                activeTabId: 'active-tab',
+            });
+
+            await windowManager.activateVoiceChat();
+
+            expect(executeJavaScript).toHaveBeenCalledWith(expect.any(String), true);
+        });
+
+        it('falls back to Gemini frame when active tab is missing', async () => {
+            const win = windowManager.createMainWindow();
+            const webContents = createMockWebContents({
+                url: 'https://gemini.google.com/app',
+            });
+            const executeJavaScript = vi.fn().mockResolvedValue({ success: true });
+            (webContents as any).mainFrame = {
+                frames: [
+                    {
+                        name: 'gemini-tab-fallback',
+                        url: 'https://gemini.google.com/app',
+                        executeJavaScript,
+                    },
+                ],
+            };
+            Object.defineProperty(win, 'webContents', {
+                value: webContents,
+                writable: true,
+            });
+
+            await windowManager.activateVoiceChat();
+
+            expect(executeJavaScript).toHaveBeenCalledWith(expect.any(String), true);
+        });
+
+        it('no-ops when fallback frame is non-Gemini domain', async () => {
+            const win = windowManager.createMainWindow();
+            const webContents = createMockWebContents({
+                url: 'https://example.com',
+            });
+            const executeJavaScript = vi.fn().mockResolvedValue({ success: true });
+            (webContents as any).mainFrame = {
+                frames: [
+                    {
+                        name: 'gemini-tab-fallback',
+                        url: 'https://example.com',
+                        executeJavaScript,
+                    },
+                ],
+            };
+            Object.defineProperty(win, 'webContents', {
+                value: webContents,
+                writable: true,
+            });
+
+            await windowManager.activateVoiceChat();
+
+            expect(executeJavaScript).not.toHaveBeenCalled();
         });
     });
 });
