@@ -13,19 +13,22 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useFakeTimers, useRealTimers } from '../../helpers/harness';
-import { existsSync as existsSyncFn } from 'fs';
+import { existsSync as existsSyncFn, readFileSync as readFileSyncFn } from 'fs';
 import LlmManager, { type ModelStatus, MODEL_REGISTRY, DEFAULT_MODEL_ID } from '../../../src/main/managers/llmManager';
 
 // Mock electron's app module
 vi.mock('electron', () => ({
     app: {
         getPath: vi.fn().mockReturnValue('/mock/userData'),
+        getAppPath: vi.fn().mockReturnValue('/mock/appPath'),
+        isPackaged: false,
     },
 }));
 
 // Mock fs module
 vi.mock('fs', () => ({
     existsSync: vi.fn().mockReturnValue(false),
+    readFileSync: vi.fn().mockReturnValue('{"version":"0.0.0-test"}'),
 }));
 
 // Mock logger - uses __mocks__ directory
@@ -57,6 +60,7 @@ const mockSessionInstance = {
 
 // Get mocked existsSync reference
 const existsSync = vi.mocked(existsSyncFn);
+const readFileSync = vi.mocked(readFileSyncFn);
 
 describe('LlmManager', () => {
     let llmManager: LlmManager;
@@ -100,6 +104,79 @@ describe('LlmManager', () => {
 
         it('initializes with default model ID', () => {
             expect(llmManager.getCurrentModelId()).toBe(DEFAULT_MODEL_ID);
+        });
+    });
+
+    describe('native availability probe', () => {
+        let originalNodeEnv: string | undefined;
+        let originalCI: string | undefined;
+        let originalProcessType: string | undefined;
+        let originalArgv: string[];
+        let originalRequireResolve: NodeRequire['resolve'];
+
+        beforeEach(() => {
+            originalNodeEnv = process.env.NODE_ENV;
+            originalCI = process.env.CI;
+            originalProcessType = process.type;
+            originalArgv = [...process.argv];
+            originalRequireResolve = require.resolve;
+        });
+
+        afterEach(() => {
+            if (originalNodeEnv === undefined) {
+                delete process.env.NODE_ENV;
+            } else {
+                process.env.NODE_ENV = originalNodeEnv;
+            }
+            if (originalCI === undefined) {
+                delete process.env.CI;
+            } else {
+                process.env.CI = originalCI;
+            }
+            const processWithType = process as NodeJS.Process & {
+                type?: 'browser' | 'renderer' | 'service-worker' | 'worker' | 'utility' | undefined;
+            };
+            processWithType.type = originalProcessType as typeof processWithType.type;
+            process.argv = originalArgv;
+            (require as NodeRequire).resolve = originalRequireResolve;
+            readFileSync.mockReturnValue('{"version":"0.0.0-test"}');
+        });
+
+        it('returns false and captures error when probe is blocked by CI', async () => {
+            process.env.NODE_ENV = 'production';
+            process.env.CI = 'true';
+
+            await expect(llmManager.downloadModel()).rejects.toThrow('Native module operations disabled');
+            expect(llmManager.getStatus()).toBe('error');
+            expect(llmManager.getNativeProbeError()).toContain('disabled');
+        });
+
+        it('returns false and captures error when not in main process', async () => {
+            process.env.NODE_ENV = 'production';
+            delete process.env.CI;
+            (
+                process as NodeJS.Process & {
+                    type?: 'browser' | 'renderer' | 'service-worker' | 'worker' | 'utility' | undefined;
+                }
+            ).type = 'renderer';
+
+            await expect(llmManager.loadModel()).rejects.toThrow('must run in main process');
+            expect(llmManager.getStatus()).toBe('error');
+            expect(llmManager.getNativeProbeError()).toContain('main process');
+        });
+
+        it('returns true in test environment without probing native package', () => {
+            process.env.NODE_ENV = 'test';
+            delete process.env.CI;
+            process.argv = ['node', 'vitest'];
+            const processWithType = process as NodeJS.Process & {
+                type?: 'browser' | 'renderer' | 'service-worker' | 'worker' | 'utility' | undefined;
+            };
+            processWithType.type = originalProcessType as typeof processWithType.type;
+
+            expect(llmManager.ensureNativeAvailable('test')).toBe(true);
+            expect(llmManager.isNativeAvailable()).toBe(true);
+            expect(llmManager.getNativeProbeError()).toBeNull();
         });
     });
 

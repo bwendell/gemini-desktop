@@ -82,11 +82,18 @@ describe('TextPredictionSettings Coordination', () => {
 
         // Use shared factory with test-specific overrides
         setupMockElectronAPI({
-            getTextPredictionStatus: mockGetTextPredictionStatus,
-            setTextPredictionEnabled: mockSetTextPredictionEnabled,
-            setTextPredictionGpuEnabled: mockSetTextPredictionGpuEnabled,
-            onTextPredictionStatusChanged: mockOnTextPredictionStatusChanged,
-            onTextPredictionDownloadProgress: mockOnTextPredictionDownloadProgress,
+            getTextPredictionStatus:
+                mockGetTextPredictionStatus as unknown as () => Promise<TextPredictionSettingsType>,
+            setTextPredictionEnabled: mockSetTextPredictionEnabled as unknown as (enabled: boolean) => Promise<void>,
+            setTextPredictionGpuEnabled: mockSetTextPredictionGpuEnabled as unknown as (
+                enabled: boolean
+            ) => Promise<void>,
+            onTextPredictionStatusChanged: mockOnTextPredictionStatusChanged as unknown as (
+                callback: (settings: TextPredictionSettingsType) => void
+            ) => () => void,
+            onTextPredictionDownloadProgress: mockOnTextPredictionDownloadProgress as unknown as (
+                callback: (progress: number) => void
+            ) => () => void,
         });
     });
 
@@ -960,6 +967,20 @@ describe('TextPredictionSettings Coordination', () => {
                 expect(screen.getByTestId('text-prediction-status-text')).toHaveTextContent(
                     /Error:.*GPU not available/
                 );
+            });
+        });
+
+        it('should display fallback error message when errorMessage is missing', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'error',
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('text-prediction-status-text')).toHaveTextContent(/Error:.*Unknown error/);
             });
         });
 

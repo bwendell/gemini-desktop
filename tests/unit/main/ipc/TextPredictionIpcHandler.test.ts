@@ -8,7 +8,7 @@
  * - CI environment handling
  * - Status and download progress broadcasting
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TextPredictionIpcHandler } from '../../../../src/main/managers/ipc/TextPredictionIpcHandler';
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';
@@ -61,6 +61,7 @@ describe('TextPredictionIpcHandler', () => {
     let mockDeps: IpcHandlerDependencies;
     let mockLogger: ReturnType<typeof createMockLogger>;
     let mockStore: ReturnType<typeof createMockStore>;
+    let originalNodeEnv: string | undefined;
     let mockLlmManager: {
         isModelDownloaded: ReturnType<typeof vi.fn>;
         isModelLoaded: ReturnType<typeof vi.fn>;
@@ -74,9 +75,14 @@ describe('TextPredictionIpcHandler', () => {
         isGpuEnabled: ReturnType<typeof vi.fn>;
         setGpuEnabled: ReturnType<typeof vi.fn>;
         onStatusChange: ReturnType<typeof vi.fn>;
+        isNativeAvailable: ReturnType<typeof vi.fn>;
+        ensureNativeAvailable: ReturnType<typeof vi.fn>;
+        getNativeProbeError: ReturnType<typeof vi.fn>;
     };
 
     beforeEach(() => {
+        originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'test';
         vi.clearAllMocks();
         mockIpcMain._reset();
         mockBrowserWindow._reset();
@@ -100,16 +106,28 @@ describe('TextPredictionIpcHandler', () => {
             isGpuEnabled: vi.fn().mockReturnValue(false),
             setGpuEnabled: vi.fn(),
             onStatusChange: vi.fn(),
+            isNativeAvailable: vi.fn().mockReturnValue(true),
+            ensureNativeAvailable: vi.fn().mockReturnValue(true),
+            getNativeProbeError: vi.fn().mockReturnValue(null),
         };
 
         mockDeps = {
-            store: mockStore,
-            logger: mockLogger,
-            windowManager: createMockWindowManager(),
+            store: mockStore as unknown as IpcHandlerDependencies['store'],
+            logger: mockLogger as unknown as IpcHandlerDependencies['logger'],
+            windowManager: createMockWindowManager() as unknown as IpcHandlerDependencies['windowManager'],
             llmManager: mockLlmManager as any,
+            llmNativeAvailable: true,
         };
 
         handler = new TextPredictionIpcHandler(mockDeps);
+    });
+
+    afterEach(() => {
+        if (originalNodeEnv === undefined) {
+            delete process.env.NODE_ENV;
+        } else {
+            process.env.NODE_ENV = originalNodeEnv;
+        }
     });
 
     describe('register', () => {
@@ -173,11 +191,14 @@ describe('TextPredictionIpcHandler', () => {
 
     describe('text-prediction:set-enabled handler', () => {
         let originalCI: string | undefined;
+        let originalNodeEnv: string | undefined;
 
         beforeEach(() => {
             // Save and clear CI env to ensure tests exercise the full code path
             originalCI = process.env.CI;
             delete process.env.CI;
+            originalNodeEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'production';
             handler.register();
         });
 
@@ -187,6 +208,11 @@ describe('TextPredictionIpcHandler', () => {
                 delete process.env.CI;
             } else {
                 process.env.CI = originalCI;
+            }
+            if (originalNodeEnv === undefined) {
+                delete process.env.NODE_ENV;
+            } else {
+                process.env.NODE_ENV = originalNodeEnv;
             }
         });
 
@@ -199,6 +225,8 @@ describe('TextPredictionIpcHandler', () => {
         });
 
         it('downloads model if not downloaded when enabling (4.3.14)', async () => {
+            mockDeps.llmNativeAvailable = true;
+            mockLlmManager.ensureNativeAvailable.mockReturnValue(true);
             mockLlmManager.isModelDownloaded.mockReturnValue(false);
 
             const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
@@ -209,6 +237,8 @@ describe('TextPredictionIpcHandler', () => {
         });
 
         it('loads model if not loaded when enabling (4.3.15)', async () => {
+            mockDeps.llmNativeAvailable = true;
+            mockLlmManager.ensureNativeAvailable.mockReturnValue(true);
             mockLlmManager.isModelDownloaded.mockReturnValue(true);
             mockLlmManager.isModelLoaded.mockReturnValue(false);
 
@@ -216,6 +246,35 @@ describe('TextPredictionIpcHandler', () => {
             await handlerFn!({}, true);
 
             expect(mockLlmManager.loadModel).toHaveBeenCalled();
+        });
+
+        it('skips enable when native availability probe fails', async () => {
+            process.env.NODE_ENV = 'production';
+            const processWithType = process as NodeJS.Process & {
+                type?: 'browser' | 'renderer' | 'service-worker' | 'worker' | 'utility' | undefined;
+            };
+            processWithType.type = undefined as unknown as typeof processWithType.type;
+            mockLlmManager.ensureNativeAvailable.mockReturnValue(false);
+            mockDeps.llmNativeAvailable = false;
+            mockLlmManager.isModelDownloaded.mockReturnValue(true);
+
+            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
+            await handlerFn!({}, true);
+
+            expect(mockLogger.warn).toHaveBeenCalledWith(
+                'Text prediction enable requested but native module unavailable',
+                {
+                    error: mockLlmManager.getNativeProbeError.mock.results[0]?.value ?? null,
+                }
+            );
+            expect(mockLlmManager.downloadModel).not.toHaveBeenCalled();
+            expect(mockLlmManager.loadModel).not.toHaveBeenCalled();
+            expect(mockBrowserWindow._mockWebContents.send).toHaveBeenCalledWith(
+                IPC_CHANNELS.TEXT_PREDICTION_STATUS_CHANGED,
+                expect.objectContaining({
+                    status: 'error',
+                })
+            );
         });
 
         it('unloads model when disabling (4.3.16)', async () => {
@@ -452,6 +511,28 @@ describe('TextPredictionIpcHandler', () => {
 
             expect(mockLlmManager.setGpuEnabled).toHaveBeenCalledWith(true);
             expect(mockLlmManager.loadModel).toHaveBeenCalled();
+        });
+
+        it('skips auto-load when native module unavailable', async () => {
+            process.env.NODE_ENV = 'production';
+            mockLlmManager.ensureNativeAvailable.mockReturnValue(false);
+            mockDeps.llmNativeAvailable = false;
+
+            await handler.initializeOnStartup();
+
+            expect(mockLogger.warn).toHaveBeenCalledWith(
+                'Text prediction initialization skipped - native module unavailable',
+                {
+                    error: mockLlmManager.getNativeProbeError.mock.results[0]?.value ?? null,
+                }
+            );
+            expect(mockLlmManager.loadModel).not.toHaveBeenCalled();
+            expect(mockBrowserWindow._mockWebContents.send).toHaveBeenCalledWith(
+                IPC_CHANNELS.TEXT_PREDICTION_STATUS_CHANGED,
+                expect.objectContaining({
+                    status: 'error',
+                })
+            );
         });
     });
 

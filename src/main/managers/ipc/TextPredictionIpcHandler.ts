@@ -89,6 +89,19 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
             this.logger.log('Text prediction initialization skipped - no LlmManager');
             return;
         }
+        if (process.env.NODE_ENV !== 'test') {
+            this.deps.llmNativeAvailable = this.deps.llmManager.ensureNativeAvailable('initializeOnStartup');
+        }
+        if (this.deps.llmNativeAvailable === undefined) {
+            this.deps.llmNativeAvailable = this.deps.llmManager.isNativeAvailable();
+        }
+        if (!this.deps.llmNativeAvailable) {
+            this.logger.warn('Text prediction initialization skipped - native module unavailable', {
+                error: this.deps.llmManager.getNativeProbeError(),
+            });
+            this._broadcastStatusChange();
+            return;
+        }
 
         try {
             const enabled = this.deps.store.get('textPredictionEnabled') ?? false;
@@ -153,6 +166,16 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
                 return;
             }
 
+            if (enabled && this.deps.llmManager) {
+                if (process.env.NODE_ENV !== 'test' && process.type && process.type !== 'browser') {
+                    this.logger.error('Text prediction enable blocked - not in main process', {
+                        processType: process.type,
+                    });
+                    this._broadcastStatusChange();
+                    return;
+                }
+            }
+
             // Persist preference
             this.deps.store.set('textPredictionEnabled', enabled);
             this.logger.log(`Text prediction enabled set to: ${enabled}`);
@@ -167,6 +190,19 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
                         integrationTest: process.argv.includes('--integration-test'),
                     });
                 } else {
+                    if (process.env.NODE_ENV !== 'test') {
+                        this.deps.llmNativeAvailable = this.deps.llmManager.ensureNativeAvailable('setEnabled');
+                    }
+                    if (this.deps.llmNativeAvailable === undefined) {
+                        this.deps.llmNativeAvailable = this.deps.llmManager.isNativeAvailable();
+                    }
+                    if (!this.deps.llmNativeAvailable) {
+                        this.logger.warn('Text prediction enable requested but native module unavailable', {
+                            error: this.deps.llmManager.getNativeProbeError(),
+                        });
+                        this._broadcastStatusChange();
+                        return;
+                    }
                     if (!this.deps.llmManager.isModelDownloaded()) {
                         this.logger.log('Model not downloaded, starting download...');
                         // Trigger download with progress events
@@ -316,16 +352,28 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
      * Get the current text prediction status.
      */
     private _getStatus(): TextPredictionSettings {
-        return {
+        const nativeAvailable = this.deps.llmNativeAvailable ?? this.deps.llmManager?.isNativeAvailable() ?? false;
+        const modelStatus = this.deps.llmManager?.getStatus();
+        const storedStatus = this.deps.store.get('textPredictionModelStatus') as ModelStatus | undefined;
+        const status = nativeAvailable ? (modelStatus ?? storedStatus ?? 'not-downloaded') : 'error';
+        const errorMessage =
+            this.deps.llmManager?.getErrorMessage() ??
+            (!nativeAvailable ? (this.deps.llmManager?.getNativeProbeError() ?? undefined) : undefined);
+        const settings: TextPredictionSettings = {
             enabled: this.deps.store.get('textPredictionEnabled') ?? false,
             gpuEnabled: this.deps.store.get('textPredictionGpuEnabled') ?? false,
-            status:
-                this.deps.llmManager?.getStatus() ??
-                (this.deps.store.get('textPredictionModelStatus') as ModelStatus) ??
-                'not-downloaded',
+            status,
             downloadProgress: this.deps.llmManager?.getDownloadProgress(),
-            errorMessage: this.deps.llmManager?.getErrorMessage() ?? undefined,
         };
+
+        if (typeof errorMessage === 'string' && errorMessage.length > 0) {
+            return {
+                ...settings,
+                errorMessage,
+            };
+        }
+
+        return settings;
     }
 
     /**

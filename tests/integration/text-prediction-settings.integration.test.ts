@@ -7,7 +7,21 @@
  * These tests use real IPC communication between renderer and main processes.
  */
 
-import { browser, expect } from '@wdio/globals';
+import { browser as baseBrowser, expect } from '@wdio/globals';
+
+const browser = baseBrowser as unknown as {
+    execute<T, A extends unknown[]>(script: string | ((...args: A) => T), ...args: A): Promise<T>;
+    waitUntil<T>(
+        condition: () => Promise<T> | T,
+        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
+    ): Promise<T>;
+    getWindowHandles(): Promise<string[]>;
+    switchToWindow(handle: string): Promise<void>;
+    pause(ms: number): Promise<void>;
+    electron: {
+        execute<R, T extends unknown[]>(fn: (...args: T) => R, ...args: T): Promise<R>;
+    };
+};
 
 describe('Text Prediction Settings IPC Integration', () => {
     let mainWindowHandle: string;
@@ -83,7 +97,7 @@ describe('Text Prediction Settings IPC Integration', () => {
             // Restore original value
             await browser.execute(async (value: boolean) => {
                 await (window as any).electronAPI.setTextPredictionEnabled(value);
-            }, initialValue);
+            }, initialValue as boolean);
         });
 
         it('should round-trip through main process correctly', async () => {
@@ -164,7 +178,7 @@ describe('Text Prediction Settings IPC Integration', () => {
             // Restore original value
             await browser.execute(async (value: boolean) => {
                 await (window as any).electronAPI.setTextPredictionEnabled(value);
-            }, initialValue);
+            }, initialValue as boolean);
         });
 
         it('should update store via main process IPC handler', async () => {
@@ -240,7 +254,7 @@ describe('Text Prediction Settings IPC Integration', () => {
             // Restore
             await browser.execute(async (value: boolean) => {
                 await (window as any).electronAPI.setTextPredictionGpuEnabled(value);
-            }, initialValue);
+            }, initialValue as boolean);
         });
     });
 
@@ -287,7 +301,7 @@ describe('Text Prediction Settings IPC Integration', () => {
             // Restore
             await browser.execute(async (value: boolean) => {
                 await (window as any).electronAPI.setTextPredictionGpuEnabled(value);
-            }, initialValue);
+            }, initialValue as boolean);
         });
     });
 
@@ -324,6 +338,19 @@ describe('Text Prediction Settings IPC Integration', () => {
 
             const validStatuses = ['not-downloaded', 'downloading', 'initializing', 'ready', 'error'];
             expect(validStatuses).toContain(status.status);
+        });
+
+        it('should expose errorMessage when status is error', async () => {
+            const status = await browser.execute(async () => {
+                return await (window as any).electronAPI.getTextPredictionStatus();
+            });
+
+            if (status.status === 'error') {
+                expect(typeof status.errorMessage).toBe('string');
+                expect((status.errorMessage as string).length).toBeGreaterThan(0);
+            } else {
+                expect(status.errorMessage === undefined || typeof status.errorMessage === 'string').toBe(true);
+            }
         });
     });
 
@@ -405,7 +432,6 @@ describe('Text Prediction Settings IPC Integration', () => {
         afterEach(async () => {
             // Close options window if open
             await browser.electron.execute(() => {
-                // @ts-expect-error
                 const { BrowserWindow } = require('electron');
                 const mainWin = (global as any).windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {
