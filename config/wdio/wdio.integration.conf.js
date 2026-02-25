@@ -9,6 +9,11 @@ dotenvConfig();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
+const CHROMEDRIVER_PATH = process.env.CHROMEDRIVER_PATH;
+
+if (!CHROMEDRIVER_PATH) {
+    throw new Error('CHROMEDRIVER_PATH must be set to a local chromedriver binary for integration tests.');
+}
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
 const VITE_TEST_MODE = 'integration';
@@ -25,6 +30,10 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': {
+                binary: CHROMEDRIVER_PATH,
+                cacheDir: process.env.WEBDRIVER_CACHE_DIR,
+            },
             maxInstances: 1, // Force sequential execution
         },
     ],
@@ -91,7 +100,9 @@ export const config = {
     after: async function () {
         try {
             await browser.electron.execute((electron) => electron.app.quit());
-        } catch (error) {}
+        } catch (error) {
+            console.warn('Failed to quit Electron app:', error);
+        }
     },
 
     /**

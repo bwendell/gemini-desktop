@@ -13,6 +13,11 @@ import { fileURLToPath } from 'url';
 import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const CHROMEDRIVER_PATH = process.env.CHROMEDRIVER_PATH;
+
+if (!CHROMEDRIVER_PATH) {
+    throw new Error('CHROMEDRIVER_PATH must be set to a local chromedriver binary for E2E tests.');
+}
 
 const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
 
@@ -35,6 +40,10 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': {
+                binary: CHROMEDRIVER_PATH,
+                cacheDir: process.env.WEBDRIVER_CACHE_DIR,
+            },
         },
     ],
 
