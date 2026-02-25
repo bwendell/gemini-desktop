@@ -1829,7 +1829,7 @@ describe('IpcManager', () => {
 
         beforeEach(() => {
             mockLlmManager = {
-                ensureNativeAvailable: vi.fn().mockResolvedValue(true),
+                ensureNativeAvailable: vi.fn().mockReturnValue(true),
                 isNativeAvailable: vi.fn().mockReturnValue(true),
                 getStatus: vi.fn().mockReturnValue('not-downloaded'),
                 isGpuEnabled: vi.fn().mockReturnValue(false),

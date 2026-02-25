@@ -406,7 +406,7 @@ export function createMockLlmManager(overrides?: Partial<Omit<MockLlmManager, '_
         downloadModel: vi.fn().mockResolvedValue(undefined),
         loadModel: vi.fn().mockResolvedValue(undefined),
         unloadModel: vi.fn(),
-        ensureNativeAvailable: vi.fn().mockResolvedValue(true),
+        ensureNativeAvailable: vi.fn().mockReturnValue(true),
         getStatus: vi.fn().mockReturnValue('idle'),
         getErrorMessage: vi.fn().mockReturnValue(null),
         getNativeProbeError: vi.fn().mockReturnValue(null),

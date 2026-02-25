@@ -144,7 +144,6 @@ export default class IpcManager {
             hotkeyManager: hotkeyManager || null,
             updateManager: updateManager || null,
             llmManager: llmManager || null,
-            llmNativeAvailable: llmManager ? llmManager.isNativeAvailable() : false,
             notificationManager: notificationManager || null,
             exportManager: exportManager || null,
         };
