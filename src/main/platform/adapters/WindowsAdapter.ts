@@ -20,6 +20,7 @@ import type {
     MainWindowPlatformConfig,
     TitleBarStyle,
     AppIconFilename,
+    TrayIconFilename,
 } from '../types';
 import { APP_ID } from '../../utils/constants';
 
@@ -77,6 +78,10 @@ export class WindowsAdapter implements PlatformAdapter {
     }
 
     getAppIconFilename(): AppIconFilename {
+        return 'icon.ico';
+    }
+
+    getTrayIconFilename(): TrayIconFilename {
         return 'icon.ico';
     }
 

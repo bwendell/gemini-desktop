@@ -21,6 +21,7 @@ import type {
     MainWindowPlatformConfig,
     TitleBarStyle,
     AppIconFilename,
+    TrayIconFilename,
 } from './types';
 
 /**
@@ -147,6 +148,12 @@ export interface PlatformAdapter {
      * Windows: 'icon.ico', others: 'icon.png'
      */
     getAppIconFilename(): AppIconFilename;
+
+    /**
+     * Get the tray icon filename for this platform.
+     * Windows: 'icon.ico', others: 'icon.png'
+     */
+    getTrayIconFilename(): TrayIconFilename;
 
     /**
      * Check if automatic updates should be disabled based on environment.

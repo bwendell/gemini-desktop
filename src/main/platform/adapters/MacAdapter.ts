@@ -20,6 +20,7 @@ import type {
     MainWindowPlatformConfig,
     TitleBarStyle,
     AppIconFilename,
+    TrayIconFilename,
 } from '../types';
 
 /** Default WaylandStatus for non-Linux platforms */
@@ -79,6 +80,10 @@ export class MacAdapter implements PlatformAdapter {
 
     getAppIconFilename(): AppIconFilename {
         return 'icon.png';
+    }
+
+    getTrayIconFilename(): TrayIconFilename {
+        return 'icon-mac-tray.png';
     }
 
     shouldDisableUpdates(_env: NodeJS.ProcessEnv): boolean {

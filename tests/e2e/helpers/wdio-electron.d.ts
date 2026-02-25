@@ -25,6 +25,15 @@ export interface WdioCookie {
 
 export type WdioElement = WebdriverIO.Element;
 
+declare global {
+    const describe: (title: string, fn: () => void) => void;
+    const it: (title: string, fn?: (() => void | Promise<void>)) => void;
+    const before: (fn: () => void | Promise<void>) => void;
+    const beforeEach: (fn: () => void | Promise<void>) => void;
+    const after: (fn: () => void | Promise<void>) => void;
+    const afterEach: (fn: () => void | Promise<void>) => void;
+}
+
 declare module '@wdio/globals' {
     type WdioElement = import('./wdio-electron').WdioElement;
 

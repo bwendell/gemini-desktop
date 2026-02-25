@@ -96,6 +96,12 @@ Download the `.dmg` for your architecture from [Releases](https://github.com/bwe
 - **Apple Silicon (M1/M2/M3)**: `Gemini Desktop-x.x.x-arm64.dmg`
 - **Intel**: `Gemini Desktop-x.x.x-x64.dmg`
 
+> ⚠️ **Important:** The app is not code-signed, so macOS will quarantine it on first launch. After installing, run the following command to remove the quarantine flag:
+>
+> ```bash
+> xattr -rd com.apple.quarantine "/Applications/Gemini Desktop.app"
+> ```
+
 ### Linux
 
 Download the `.AppImage` or `.deb` from [Releases](https://github.com/bwendell/gemini-desktop/releases).

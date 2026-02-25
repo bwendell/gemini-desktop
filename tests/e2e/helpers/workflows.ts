@@ -503,7 +503,7 @@ export async function waitForIpcSettle(): Promise<void> {
  * instead of static timeouts to handle timing variability on slower CI runners.
  *
  * @param condition - Optional async function that returns true when transition is complete
- * @param timeout - Max wait time in ms (default: 3000)
+ * @param timeout - Max wait time in ms (default: E2E_TIMING.TIMEOUTS.WINDOW_TRANSITION)
  * @returns true if condition was met within timeout, false otherwise (or void if no condition)
  *
  * @example
@@ -515,7 +515,7 @@ export async function waitForIpcSettle(): Promise<void> {
  */
 export async function waitForWindowTransition(
     condition?: () => Promise<boolean>,
-    timeout = 3000
+    timeout = E2E_TIMING.TIMEOUTS?.WINDOW_TRANSITION ?? 3000
 ): Promise<boolean | void> {
     if (!condition) {
         // Backwards-compatible: static pause when no condition provided

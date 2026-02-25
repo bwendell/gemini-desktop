@@ -20,6 +20,7 @@ import type {
     MainWindowPlatformConfig,
     TitleBarStyle,
     AppIconFilename,
+    TrayIconFilename,
 } from '../types';
 import { getWaylandPlatformStatus } from '../../utils/constants';
 
@@ -105,6 +106,10 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
     }
 
     getAppIconFilename(): AppIconFilename {
+        return 'icon.png';
+    }
+
+    getTrayIconFilename(): TrayIconFilename {
         return 'icon.png';
     }
 

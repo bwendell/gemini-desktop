@@ -75,3 +75,22 @@ export function getNotificationIconPath(): string {
     // In development, icons are in build/ directory
     return path.join(__dirname, '../../../build', iconFilename);
 }
+
+/**
+ * Get the tray icon path.
+ * In development: uses the build/ directory relative to source
+ * In production: uses process.resourcesPath where electron-builder copies icons
+ *
+ * @returns Absolute path to tray icon
+ */
+export function getTrayIconPath(): string {
+    const trayIconFilename = getPlatformAdapter().getTrayIconFilename();
+
+    // In packaged app, icons are in resources/ directory (via electron-builder extraFiles)
+    if (app.isPackaged) {
+        return path.join(process.resourcesPath, trayIconFilename);
+    }
+
+    // In development, icons are in build/ directory
+    return path.join(__dirname, '../../../build', trayIconFilename);
+}
