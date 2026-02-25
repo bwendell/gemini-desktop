@@ -427,6 +427,16 @@ npm run test:e2e        # Runs all specs in the sequential runner
 npm run test:e2e:all    # Runs all specs including lifecycle tests
 ```
 
+### Headless ARM Linux (AI Agent Path)
+
+For Linux ARM64 headless environments, use the auto-mode script:
+
+```bash
+npm run test:headless:auto
+```
+
+This path automatically configures CI/Xvfb-compatible execution and ARM Chromedriver resolution.
+
 ### Running Integration Tests (Single Spec)
 
 Integration tests support the `--spec` flag correctly:

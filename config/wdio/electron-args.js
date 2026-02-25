@@ -13,14 +13,10 @@
 
 const isLinux = process.platform === 'linux';
 const isWin32 = process.platform === 'win32';
-const isCI = Boolean(process.env.CI);
 
-const linuxArgs = isLinux
-    ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
-    : [];
-const windowsArgs = isWin32 && isCI ? ['--disable-gpu', '--disable-software-rasterizer', '--no-sandbox'] : [];
-const ciArgs = isCI ? ['--enable-logging'] : [];
-const baseAppArgs = [...linuxArgs, ...windowsArgs, ...ciArgs];
+function isCiEnvironment() {
+    return Boolean(process.env.CI);
+}
 
 /**
  * Build the final appArgs array by merging platform/CI args with config-specific args.
@@ -32,7 +28,14 @@ const baseAppArgs = [...linuxArgs, ...windowsArgs, ...ciArgs];
  *   getAppArgs('--test-auto-update', '--e2e-disable-auto-submit')
  */
 export function getAppArgs(...extraArgs) {
-    return [...baseAppArgs, ...extraArgs];
+    const isCI = isCiEnvironment();
+    const linuxArgs = isLinux
+        ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        : [];
+    const windowsArgs = isWin32 && isCI ? ['--disable-gpu', '--disable-software-rasterizer', '--no-sandbox'] : [];
+    const ciArgs = isCI ? ['--enable-logging'] : [];
+
+    return [...linuxArgs, ...windowsArgs, ...ciArgs, ...extraArgs];
 }
 
 /**
@@ -46,22 +49,26 @@ export function getAppArgs(...extraArgs) {
  *       ...linuxServiceConfig,
  *   }]]
  */
-export const linuxServiceConfig = {
-    // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
-    // See: https://github.com/electron/electron/issues/41066
-    ...(isLinux && isCI ? { apparmorAutoInstall: 'sudo' } : { apparmorAutoInstall: false }),
-    // Enable wdio-electron-service's built-in Xvfb management for Linux CI
-    // This is required for headless test execution - do NOT use xvfb-run wrapper
-    // as it sets DISPLAY which prevents autoXvfb from working properly with workers
-    ...(isLinux && isCI
-        ? {
-              autoXvfb: true,
-              xvfbAutoInstall: true,
-              xvfbAutoInstallMode: 'sudo',
-              xvfbMaxRetries: 5,
-          }
-        : {}),
-};
+export function getLinuxServiceConfig() {
+    const isCI = isCiEnvironment();
+
+    return {
+        // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
+        // See: https://github.com/electron/electron/issues/41066
+        ...(isLinux && isCI ? { apparmorAutoInstall: 'sudo' } : { apparmorAutoInstall: false }),
+        // Enable wdio-electron-service's built-in Xvfb management for Linux CI
+        // This is required for headless test execution - do NOT use xvfb-run wrapper
+        // as it sets DISPLAY which prevents autoXvfb from working properly with workers
+        ...(isLinux && isCI
+            ? {
+                  autoXvfb: true,
+                  xvfbAutoInstall: true,
+                  xvfbAutoInstallMode: 'sudo',
+                  xvfbMaxRetries: 5,
+              }
+            : {}),
+    };
+}
 
 /**
  * Kill any orphaned Electron processes left behind by test runs.

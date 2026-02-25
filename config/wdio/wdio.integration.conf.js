@@ -1,13 +1,16 @@
 import { config as dotenvConfig } from 'dotenv';
-import { join, dirname } from 'path';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import armEnv from '../../scripts/wdio-arm-env.cjs';
+import { getAppArgs, getLinuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
 
 dotenvConfig();
 
 // Get directory of this config file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const projectRoot = resolve(__dirname, '../..');
+armEnv.applyArmWdioEnvironment(projectRoot);
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
@@ -40,7 +43,7 @@ export const config = {
             {
                 appEntryPoint: electronMainPath,
                 appArgs: getAppArgs('--disable-web-security', '--integration-test'),
-                ...linuxServiceConfig,
+                ...getLinuxServiceConfig(),
             },
         ],
     ],
@@ -62,6 +65,11 @@ export const config = {
      * Build the Electron app before running tests.
      */
     onPrepare: async function () {
+        if (armEnv.isTruthyEnv(process.env.SKIP_BUILD)) {
+            console.log('Skipping build (SKIP_BUILD is set)...');
+            return;
+        }
+
         const { execSync } = await import('child_process');
         console.log('Building Electron app for integration tests...');
         execSync(`vite build --mode ${VITE_TEST_MODE} && npm run build:electron`, { stdio: 'inherit' });

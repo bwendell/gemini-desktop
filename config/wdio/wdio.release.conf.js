@@ -15,9 +15,12 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import armEnv from '../../scripts/wdio-arm-env.cjs';
+import { getAppArgs, getLinuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const projectRoot = path.resolve(__dirname, '../..');
+armEnv.applyArmWdioEnvironment(projectRoot);
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
@@ -115,7 +118,7 @@ export const config = {
             {
                 appBinaryPath: getReleaseBinaryPath(),
                 appArgs: getAppArgs('--test-auto-update'),
-                ...linuxServiceConfig,
+                ...getLinuxServiceConfig(),
             },
         ],
     ],

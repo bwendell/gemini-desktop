@@ -92,14 +92,16 @@ npm run electron:dev
 
 ### Available Scripts
 
-| Script                   | Description             |
-| ------------------------ | ----------------------- |
-| `npm run electron:dev`   | Start development mode  |
-| `npm run electron:build` | Build for production    |
-| `npm run test`           | Run React unit tests    |
-| `npm run test:electron`  | Run Electron unit tests |
-| `npm run test:e2e`       | Run E2E tests           |
-| `npm run test:all`       | Run all tests           |
+| Script                       | Description                                          |
+| ---------------------------- | ---------------------------------------------------- |
+| `npm run electron:dev`       | Start development mode                               |
+| `npm run electron:build`     | Build for production                                 |
+| `npm run test`               | Run React unit tests                                 |
+| `npm run test:electron`      | Run Electron unit tests                              |
+| `npm run test:e2e`           | Run E2E tests                                        |
+| `npm run test:integration`   | Run WDIO integration tests                           |
+| `npm run test:headless:auto` | Auto-detect headless ARM coordinated+integration+E2E |
+| `npm run test:all`           | Run all tests                                        |
 
 ---
 
@@ -155,6 +157,9 @@ npm run test:electron
 
 # E2E tests (requires built app)
 npm run test:e2e
+
+# Headless ARM Linux auto-mode (coordinated + integration + E2E)
+npm run test:headless:auto
 ```
 
 ### Writing Tests

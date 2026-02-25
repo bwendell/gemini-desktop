@@ -286,7 +286,26 @@ npm run test:all
 
 # Run only E2E tests
 npm run test:e2e
+
+# Auto-detect headless ARM/Linux for coordinated + integration + E2E
+npm run test:headless:auto
 ```
+
+### Headless ARM Linux Auto-Mode
+
+When running on a headless Linux ARM64 machine, WDIO now auto-configures itself:
+
+- Detects `linux + arm64` and enables CI/Xvfb-compatible behavior for WDIO.
+- Downloads and caches ARM Chromedriver matching installed Electron.
+- Exports `CHROMEDRIVER_PATH` automatically so WDIO uses the ARM binary.
+- Auto-sets `SKIP_BUILD=true` if `node-llama-cpp` is unavailable but `dist-electron` already exists.
+
+Manual overrides are available if needed:
+
+- `CHROMEDRIVER_PATH=/abs/path/to/chromedriver` to pin a custom driver.
+- `GEMINI_DESKTOP_CACHE_DIR=/abs/cache/dir` to customize driver cache location.
+
+See `docs/HEADLESS_ARM_TESTING.md` for details.
 
 We believe that a robust test suite is key to maintaining a high-quality experience.
 

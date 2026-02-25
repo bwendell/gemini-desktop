@@ -1,5 +1,8 @@
 const { spawnSync } = require('child_process');
 const { killOrphanElectronProcesses } = require('./e2e-cleanup.cjs');
+const { applyArmWdioEnvironment, isTruthyEnv } = require('./wdio-arm-env.cjs');
+
+applyArmWdioEnvironment(process.cwd());
 
 const specs = [
     'tests/e2e/app-startup.spec.ts',
@@ -17,20 +20,24 @@ const specs = [
     'tests/e2e/window-controls.spec.ts',
 ];
 
-console.log('Building app once for all tests...');
-const buildResult = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', shell: true });
-if (buildResult.status !== 0) {
-    console.error('Frontend build failed');
-    process.exit(1);
-}
+if (!isTruthyEnv(process.env.SKIP_BUILD)) {
+    console.log('Building app once for all tests...');
+    const buildResult = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', shell: true });
+    if (buildResult.status !== 0) {
+        console.error('Frontend build failed');
+        process.exit(1);
+    }
 
-const buildElectronResult = spawnSync('npm', ['run', 'build:electron'], {
-    stdio: 'inherit',
-    shell: true,
-});
-if (buildElectronResult.status !== 0) {
-    console.error('Electron build failed');
-    process.exit(1);
+    const buildElectronResult = spawnSync('npm', ['run', 'build:electron'], {
+        stdio: 'inherit',
+        shell: true,
+    });
+    if (buildElectronResult.status !== 0) {
+        console.error('Electron build failed');
+        process.exit(1);
+    }
+} else {
+    console.log('Skipping build phase (SKIP_BUILD is set).');
 }
 
 // Set SKIP_BUILD to true for individual test runs to avoid rebuilding/relaunching excessive processes

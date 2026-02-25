@@ -24,8 +24,16 @@ The project uses **npm** for package management and **Vitest** + **WebdriverIO**
 - `npm run test:watch` - Run unit tests in watch mode
 - `npm run test:electron` - Run electron-specific unit tests
 - `npm run test:coordinated` - Run coordinated multi-window tests
+- `npm run test:integration` - Run WDIO integration tests
 - `npm run test:e2e` - Run E2E tests sequentially
+- `npm run test:headless:auto` - Coordinated + integration + E2E with headless ARM auto-detection
 - `npm run test:all` - Run all test suites
+
+**Headless ARM note (AI agents):**
+
+- On Linux ARM64 hosts, WDIO now auto-detects headless mode, provisions ARM Chromedriver, and sets `CHROMEDRIVER_PATH` automatically.
+- Use `npm run test:headless:auto` for one-command validation in headless ARM environments.
+- Optional overrides: `CHROMEDRIVER_PATH=/abs/path/to/chromedriver` and `GEMINI_DESKTOP_CACHE_DIR=/path/to/cache`.
 
 **Running a Single Test:**
 

@@ -1,6 +1,9 @@
 const { spawnSync } = require('child_process');
 const os = require('os');
 const { killOrphanElectronProcesses } = require('./e2e-cleanup.cjs');
+const { applyArmWdioEnvironment, isTruthyEnv } = require('./wdio-arm-env.cjs');
+
+applyArmWdioEnvironment(process.cwd());
 
 // Define all groups
 const groups = [
@@ -23,21 +26,25 @@ if (platform === 'darwin') {
     groups.push('macos');
 }
 
-console.log('Building app once for all tests...');
-// Build once
-const buildResult = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', shell: true });
-if (buildResult.status !== 0) {
-    console.error('Frontend build failed');
-    process.exit(1);
-}
+if (!isTruthyEnv(process.env.SKIP_BUILD)) {
+    console.log('Building app once for all tests...');
+    // Build once
+    const buildResult = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', shell: true });
+    if (buildResult.status !== 0) {
+        console.error('Frontend build failed');
+        process.exit(1);
+    }
 
-const buildElectronResult = spawnSync('npm', ['run', 'build:electron'], {
-    stdio: 'inherit',
-    shell: true,
-});
-if (buildElectronResult.status !== 0) {
-    console.error('Electron build failed');
-    process.exit(1);
+    const buildElectronResult = spawnSync('npm', ['run', 'build:electron'], {
+        stdio: 'inherit',
+        shell: true,
+    });
+    if (buildElectronResult.status !== 0) {
+        console.error('Electron build failed');
+        process.exit(1);
+    }
+} else {
+    console.log('Skipping build phase (SKIP_BUILD is set).');
 }
 
 // Set SKIP_BUILD to true for individual test runs

@@ -58,6 +58,7 @@
         "test:e2e:lifecycle": "wdio run config/wdio/wdio.lifecycle.conf.js",
         "test:e2e:release": "wdio run config/wdio/wdio.release.conf.js",
         "test:e2e:all": "npm run test:e2e && npm run test:e2e:lifecycle",
+        "test:headless:auto": "npm run test:coordinated && npm run test:integration && npm run test:e2e",
         "test:all": "npm run test && npm run test:electron && npm run test:coordinated && npm run test:integration && npm run test:e2e:all",
         "docs": "typedoc --out docs src"
     },

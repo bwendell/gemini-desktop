@@ -10,9 +10,12 @@
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import armEnv from '../../scripts/wdio-arm-env.cjs';
+import { getAppArgs, getLinuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const projectRoot = path.resolve(__dirname, '../..');
+armEnv.applyArmWdioEnvironment(projectRoot);
 
 const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
 
@@ -26,7 +29,7 @@ export const config = {
             {
                 appEntryPoint: electronMainPath,
                 appArgs: getAppArgs(),
-                ...linuxServiceConfig,
+                ...getLinuxServiceConfig(),
             },
         ],
     ],
@@ -48,6 +51,11 @@ export const config = {
 
     // Build the frontend and Electron backend before tests
     onPrepare: () => {
+        if (armEnv.isTruthyEnv(process.env.SKIP_BUILD)) {
+            console.log('Skipping build (SKIP_BUILD is set)...');
+            return;
+        }
+
         console.log('Building frontend for E2E tests...');
         let result = spawnSync('npm', ['run', 'build'], {
             stdio: 'inherit',
