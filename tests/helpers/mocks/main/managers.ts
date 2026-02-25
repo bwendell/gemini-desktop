@@ -136,10 +136,13 @@ export interface MockLlmManager {
     downloadModel: ReturnType<typeof vi.fn>;
     loadModel: ReturnType<typeof vi.fn>;
     unloadModel: ReturnType<typeof vi.fn>;
+    ensureNativeAvailable: ReturnType<typeof vi.fn>;
     getStatus: ReturnType<typeof vi.fn>;
     getErrorMessage: ReturnType<typeof vi.fn>;
+    getNativeProbeError: ReturnType<typeof vi.fn>;
     isModelDownloaded: ReturnType<typeof vi.fn>;
     isModelLoaded: ReturnType<typeof vi.fn>;
+    isNativeAvailable: ReturnType<typeof vi.fn>;
     predict: ReturnType<typeof vi.fn>;
     cancelPrediction: ReturnType<typeof vi.fn>;
     onStatusChange: ReturnType<typeof vi.fn>;
@@ -403,10 +406,13 @@ export function createMockLlmManager(overrides?: Partial<Omit<MockLlmManager, '_
         downloadModel: vi.fn().mockResolvedValue(undefined),
         loadModel: vi.fn().mockResolvedValue(undefined),
         unloadModel: vi.fn(),
+        ensureNativeAvailable: vi.fn().mockResolvedValue(true),
         getStatus: vi.fn().mockReturnValue('idle'),
         getErrorMessage: vi.fn().mockReturnValue(null),
+        getNativeProbeError: vi.fn().mockReturnValue(null),
         isModelDownloaded: vi.fn().mockReturnValue(false),
         isModelLoaded: vi.fn().mockReturnValue(false),
+        isNativeAvailable: vi.fn().mockReturnValue(true),
         predict: vi.fn().mockResolvedValue(''),
         cancelPrediction: vi.fn(),
         onStatusChange: vi.fn().mockReturnValue(() => {}),

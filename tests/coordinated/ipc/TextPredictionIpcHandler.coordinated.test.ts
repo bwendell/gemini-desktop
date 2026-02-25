@@ -10,7 +10,7 @@ import WindowManager from '../../../src/main/managers/windowManager';
 
 // Use the centralized logger mock
 vi.mock('../../../src/main/utils/logger');
-import { mockLogger } from '../../../src/main/utils/logger';
+import { mockLogger } from '../../../src/main/utils/__mocks__/logger';
 
 // Mock electron-updater
 vi.mock('electron-updater', () => ({
@@ -47,6 +47,7 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
         mockLlmManager = {
             isModelDownloaded: vi.fn().mockReturnValue(true),
             isModelLoaded: vi.fn().mockReturnValue(false),
+            isNativeAvailable: vi.fn().mockReturnValue(true),
             loadModel: vi.fn().mockResolvedValue(undefined),
             unloadModel: vi.fn(),
             downloadModel: vi.fn().mockResolvedValue(undefined),
@@ -54,6 +55,7 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
             getStatus: vi.fn().mockReturnValue('ready'),
             getDownloadProgress: vi.fn().mockReturnValue(0),
             getErrorMessage: vi.fn().mockReturnValue(null),
+            getNativeProbeError: vi.fn().mockReturnValue(null),
             isGpuEnabled: vi.fn().mockReturnValue(false),
             setGpuEnabled: vi.fn(),
             onStatusChange: vi.fn(),

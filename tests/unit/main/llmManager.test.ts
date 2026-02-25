@@ -20,6 +20,8 @@ import LlmManager, { type ModelStatus, MODEL_REGISTRY, DEFAULT_MODEL_ID } from '
 vi.mock('electron', () => ({
     app: {
         getPath: vi.fn().mockReturnValue('/mock/userData'),
+        getAppPath: vi.fn().mockReturnValue('/mock/appPath'),
+        isPackaged: false,
     },
 }));
 

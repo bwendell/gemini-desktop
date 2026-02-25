@@ -61,6 +61,7 @@ describe('TextPredictionIpcHandler', () => {
     let mockDeps: IpcHandlerDependencies;
     let mockLogger: ReturnType<typeof createMockLogger>;
     let mockStore: ReturnType<typeof createMockStore>;
+    let originalNodeEnv: string | undefined;
     let mockLlmManager: {
         isModelDownloaded: ReturnType<typeof vi.fn>;
         isModelLoaded: ReturnType<typeof vi.fn>;
@@ -74,9 +75,13 @@ describe('TextPredictionIpcHandler', () => {
         isGpuEnabled: ReturnType<typeof vi.fn>;
         setGpuEnabled: ReturnType<typeof vi.fn>;
         onStatusChange: ReturnType<typeof vi.fn>;
+        isNativeAvailable: ReturnType<typeof vi.fn>;
+        getNativeProbeError: ReturnType<typeof vi.fn>;
     };
 
     beforeEach(() => {
+        originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'test';
         vi.clearAllMocks();
         mockIpcMain._reset();
         mockBrowserWindow._reset();
@@ -100,16 +105,27 @@ describe('TextPredictionIpcHandler', () => {
             isGpuEnabled: vi.fn().mockReturnValue(false),
             setGpuEnabled: vi.fn(),
             onStatusChange: vi.fn(),
+            isNativeAvailable: vi.fn().mockReturnValue(true),
+            getNativeProbeError: vi.fn().mockReturnValue(null),
         };
 
         mockDeps = {
-            store: mockStore,
-            logger: mockLogger,
-            windowManager: createMockWindowManager(),
+            store: mockStore as unknown as IpcHandlerDependencies['store'],
+            logger: mockLogger as unknown as IpcHandlerDependencies['logger'],
+            windowManager: createMockWindowManager() as unknown as IpcHandlerDependencies['windowManager'],
             llmManager: mockLlmManager as any,
+            llmNativeAvailable: true,
         };
 
         handler = new TextPredictionIpcHandler(mockDeps);
+    });
+
+    afterEach(() => {
+        if (originalNodeEnv === undefined) {
+            delete process.env.NODE_ENV;
+        } else {
+            process.env.NODE_ENV = originalNodeEnv;
+        }
     });
 
     describe('register', () => {
