@@ -206,7 +206,10 @@ export default class LlmManager {
         }
     }
 
-    isNativeAvailable(): boolean {
+    isNativeAvailable(context: string = 'isNativeAvailable'): boolean {
+        if (this.nativeAvailable === null) {
+            return this.ensureNativeAvailable(context);
+        }
         return this.nativeAvailable === true;
     }
 
