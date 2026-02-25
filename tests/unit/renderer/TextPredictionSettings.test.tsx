@@ -10,6 +10,7 @@
  * @module TextPredictionSettings.test
  */
 
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { TextPredictionSettings } from '../../../src/renderer/components/options/TextPredictionSettings';
@@ -220,7 +221,7 @@ describe('TextPredictionSettings', () => {
         });
 
         it('updates progress when download progress event received', async () => {
-            let progressCallback: ((progress: number) => void) | null = null;
+            let progressCallback: ((progress: number) => void) | undefined;
             mockOnTextPredictionDownloadProgress.mockImplementation((cb: (progress: number) => void) => {
                 progressCallback = cb;
                 return () => {};
@@ -240,9 +241,7 @@ describe('TextPredictionSettings', () => {
             });
 
             // Simulate progress update
-            if (progressCallback) {
-                progressCallback(50);
-            }
+            progressCallback?.(50);
 
             await waitFor(() => {
                 expect(screen.getByText(/50%/)).toBeInTheDocument();
@@ -337,6 +336,20 @@ describe('TextPredictionSettings', () => {
             });
         });
 
+        it('displays error status with fallback message when no errorMessage provided', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'error',
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('text-prediction-status-text')).toHaveTextContent(/Error:.*Unknown error/);
+            });
+        });
+
         it('shows retry button on error', async () => {
             mockGetTextPredictionStatus.mockResolvedValue({
                 enabled: true,
@@ -389,7 +402,7 @@ describe('TextPredictionSettings', () => {
 
     describe('Without ElectronAPI', () => {
         it('handles missing electronAPI gracefully', async () => {
-            window.electronAPI = undefined;
+            window.electronAPI = undefined as unknown as typeof window.electronAPI;
 
             render(<TextPredictionSettings />);
 

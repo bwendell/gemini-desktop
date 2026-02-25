@@ -188,6 +188,42 @@ describe('QuickChatApp Text Prediction Coordination', () => {
             expect(mockPredictText).toHaveBeenCalledTimes(1);
             expect(mockPredictText).toHaveBeenCalledWith('Hel');
         });
+
+        it('should not request prediction when status is error', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'error',
+                errorMessage: 'Native module unavailable',
+            });
+            mockPredictText.mockResolvedValue('should-not-be-called');
+
+            render(<QuickChatApp />);
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(10);
+            });
+
+            expect(mockGetTextPredictionStatus).toHaveBeenCalled();
+
+            await act(async () => {
+                statusChangedCallback?.({
+                    enabled: true,
+                    gpuEnabled: false,
+                    status: 'error',
+                    errorMessage: 'Native module unavailable',
+                } as TextPredictionSettings);
+            });
+
+            const input = screen.getByTestId('quick-chat-input');
+            await act(async () => {
+                fireEvent.change(input, { target: { value: 'Hello' } });
+                await vi.advanceTimersByTimeAsync(350);
+            });
+
+            expect(mockPredictText).not.toHaveBeenCalled();
+            expect(screen.queryByTestId('quick-chat-ghost-text')).not.toBeInTheDocument();
+        });
     });
 
     /**
