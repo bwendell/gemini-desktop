@@ -20,6 +20,7 @@ import type {
     MainWindowPlatformConfig,
     TitleBarStyle,
     AppIconFilename,
+    TrayIconFilename,
 } from '../types';
 
 /** Default WaylandStatus for non-Wayland contexts */
@@ -90,6 +91,10 @@ export class LinuxX11Adapter implements PlatformAdapter {
     }
 
     getAppIconFilename(): AppIconFilename {
+        return 'icon.png';
+    }
+
+    getTrayIconFilename(): TrayIconFilename {
         return 'icon.png';
     }
 

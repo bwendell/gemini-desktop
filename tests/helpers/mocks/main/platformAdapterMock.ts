@@ -73,6 +73,7 @@ export function createMockPlatformAdapter(overrides: Partial<MockPlatformAdapter
         getDockMenuTemplate: vi.fn().mockReturnValue(null),
         getTitleBarStyle: vi.fn().mockReturnValue(undefined),
         getAppIconFilename: vi.fn().mockReturnValue('icon.ico'),
+        getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
         shouldDisableUpdates: vi.fn().mockReturnValue(false),
         requestMediaPermissions: vi.fn().mockResolvedValue(undefined),
         getNotificationSupportHint: vi.fn().mockReturnValue(undefined),
@@ -95,6 +96,7 @@ export const platformAdapterPresets = {
         return createMockPlatformAdapter({
             id: 'linux-wayland',
             getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
                 createDefaultPlan({
                     mode: 'wayland-dbus',
@@ -120,6 +122,7 @@ export const platformAdapterPresets = {
         return createMockPlatformAdapter({
             id: 'linux-wayland',
             getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
                 createDefaultPlan({
                     mode: 'wayland-dbus',
@@ -144,6 +147,7 @@ export const platformAdapterPresets = {
         return createMockPlatformAdapter({
             id: 'linux-wayland',
             getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
                 createDefaultPlan({
                     mode: 'wayland-dbus',
@@ -168,6 +172,7 @@ export const platformAdapterPresets = {
         return createMockPlatformAdapter({
             id: 'linux-wayland',
             getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
                 createDefaultPlan({
                     mode: 'wayland-dbus',
@@ -192,6 +197,7 @@ export const platformAdapterPresets = {
         return createMockPlatformAdapter({
             id: 'linux-wayland',
             getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
                 createDefaultPlan({
                     mode: 'disabled',
@@ -213,6 +219,7 @@ export const platformAdapterPresets = {
         return createMockPlatformAdapter({
             id: 'linux-x11',
             getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(
                 createDefaultPlan({
                     mode: 'disabled',
@@ -229,6 +236,8 @@ export const platformAdapterPresets = {
     windows: (): MockPlatformAdapter =>
         createMockPlatformAdapter({
             id: 'windows',
+            getAppIconFilename: vi.fn().mockReturnValue('icon.ico'),
+            getTrayIconFilename: vi.fn().mockReturnValue('icon.ico'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(createDefaultPlan()),
             supportsBadges: vi.fn().mockReturnValue(true),
             getWaylandStatus: vi.fn().mockReturnValue(DEFAULT_WAYLAND_STATUS),
@@ -251,6 +260,7 @@ export const platformAdapterPresets = {
         createMockPlatformAdapter({
             id: 'mac',
             getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+            getTrayIconFilename: vi.fn().mockReturnValue('trayIconTemplate.png'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(createDefaultPlan()),
             supportsBadges: vi.fn().mockReturnValue(true),
             getWaylandStatus: vi.fn().mockReturnValue(DEFAULT_WAYLAND_STATUS),

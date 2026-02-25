@@ -21,6 +21,7 @@ import type {
     MainWindowPlatformConfig,
     TitleBarStyle,
     AppIconFilename,
+    TrayIconFilename,
 } from './types';
 
 /**
@@ -147,6 +148,12 @@ export interface PlatformAdapter {
      * Windows: 'icon.ico', others: 'icon.png'
      */
     getAppIconFilename(): AppIconFilename;
+
+    /**
+     * Get the tray icon filename for this platform.
+     * macOS: 'trayIconTemplate.png' (template for dark/light mode), Windows: 'icon.ico', Linux: 'icon.png'
+     */
+    getTrayIconFilename(): TrayIconFilename;
 
     /**
      * Check if automatic updates should be disabled based on environment.
