@@ -10,13 +10,10 @@ import { promises as fs } from 'fs';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const CHROMEDRIVER_PATH = process.env.CHROMEDRIVER_PATH;
-
-if (!CHROMEDRIVER_PATH) {
-    throw new Error('CHROMEDRIVER_PATH must be set to a local chromedriver binary for E2E tests.');
-}
+const chromedriverOptions = getChromedriverOptions();
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
@@ -41,10 +38,7 @@ export const baseConfig = {
     capabilities: [
         {
             browserName: 'electron',
-            'wdio:chromedriverOptions': {
-                binary: CHROMEDRIVER_PATH,
-                cacheDir: process.env.WEBDRIVER_CACHE_DIR,
-            },
+            'wdio:chromedriverOptions': chromedriverOptions,
             maxInstances: 1,
         },
     ],
