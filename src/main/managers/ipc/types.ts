@@ -62,6 +62,7 @@ export interface IpcHandlerDependencies {
     updateManager?: UpdateManager | null;
     /** Optional LLM manager for text prediction */
     llmManager?: LlmManager | null;
+    llmNativeAvailable?: boolean;
     /** Optional notification manager for response notifications */
     notificationManager?: NotificationManager | null;
     /** Optional export manager for high-quality PDF/MD export */

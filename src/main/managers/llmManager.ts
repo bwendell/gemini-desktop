@@ -9,7 +9,7 @@
 
 import { app } from 'electron';
 import * as path from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 // node-llama-cpp is ESM-only with top-level await, so we must use dynamic import()
 // Types are imported for TypeScript but the actual module is loaded dynamically
 import type { Llama, LlamaModel, LlamaContext, LlamaCompletion } from 'node-llama-cpp';
@@ -123,6 +123,9 @@ export default class LlmManager {
     private currentModelId: string = DEFAULT_MODEL_ID;
     private modelPath: string | null = null;
     private abortController: AbortController | null = null;
+    private nativeAvailable: boolean | null = null;
+    private nativeProbeError: string | null = null;
+    private nativeVersion: string | null = null;
 
     // node-llama-cpp instances
     private llama: Llama | null = null;
@@ -135,6 +138,76 @@ export default class LlmManager {
 
     constructor() {
         logger.log('LlmManager created');
+    }
+
+    ensureNativeAvailable(context: string): boolean {
+        if (this.nativeAvailable !== null) {
+            return this.nativeAvailable;
+        }
+
+        if (process.env.NODE_ENV === 'test') {
+            this.nativeAvailable = true;
+            return true;
+        }
+
+        if (process.env.CI === 'true' || process.argv.includes('--integration-test')) {
+            this.nativeAvailable = false;
+            this.nativeProbeError = 'Native module operations disabled in CI or integration tests.';
+            logger.warn('Native module probe blocked by environment', {
+                context,
+                ci: process.env.CI === 'true',
+                integrationTest: process.argv.includes('--integration-test'),
+            });
+            return false;
+        }
+
+        if (process.type && process.type !== 'browser') {
+            this.nativeAvailable = false;
+            this.nativeProbeError = `node-llama-cpp must run in main process, got process.type=${process.type}`;
+            logger.error('Native module probe failed (not main process)', {
+                context,
+                processType: process.type,
+            });
+            return false;
+        }
+
+        try {
+            const pkgPath = require.resolve('node-llama-cpp/package.json');
+            const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { version?: string };
+            this.nativeVersion = pkg.version ?? null;
+            if (!this.nativeVersion) {
+                this.nativeAvailable = false;
+                this.nativeProbeError = 'node-llama-cpp version missing in package.json';
+                logger.warn('Native module probe failed (missing version)', {
+                    context,
+                    packageJsonPath: pkgPath,
+                });
+                return false;
+            }
+            this.nativeAvailable = true;
+            logger.log('Native module probe succeeded', {
+                context,
+                version: this.nativeVersion,
+                packageJsonPath: pkgPath,
+            });
+            return true;
+        } catch (error) {
+            this.nativeAvailable = false;
+            this.nativeProbeError = error instanceof Error ? error.message : 'node-llama-cpp not found';
+            const appPath = typeof app.getAppPath === 'function' ? app.getAppPath() : 'unknown';
+            const isPackaged = typeof app.isPackaged === 'boolean' ? app.isPackaged : false;
+            logger.warn('Native module probe failed', {
+                context,
+                error: this.nativeProbeError,
+                appPath,
+                isPackaged,
+            });
+            return false;
+        }
+    }
+
+    isNativeAvailable(): boolean {
+        return this.nativeAvailable === true;
     }
 
     /**
@@ -220,6 +293,11 @@ export default class LlmManager {
      * @throws Error if download fails
      */
     async downloadModel(onProgress?: DownloadProgressCallback, modelId: string = this.currentModelId): Promise<void> {
+        if (!this.ensureNativeAvailable('downloadModel')) {
+            const message = this.nativeProbeError ?? 'node-llama-cpp is not available';
+            this.setStatus('error', message);
+            throw new Error(message);
+        }
         // Guard against concurrent downloads
         if (this.status === 'downloading') {
             throw new Error('Download already in progress');
@@ -307,6 +385,11 @@ export default class LlmManager {
      * @throws Error if model not downloaded or loading fails
      */
     async loadModel(): Promise<void> {
+        if (!this.ensureNativeAvailable('loadModel')) {
+            const message = this.nativeProbeError ?? 'node-llama-cpp is not available';
+            this.setStatus('error', message);
+            throw new Error(message);
+        }
         // Guard against concurrent load operations
         if (this.status === 'initializing') {
             throw new Error('Model is currently loading');
@@ -590,6 +673,10 @@ export default class LlmManager {
      */
     getStatus(): ModelStatus {
         return this.status;
+    }
+
+    getNativeProbeError(): string | null {
+        return this.nativeProbeError;
     }
 
     /**
