@@ -147,7 +147,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             return this._getIndividualSettings();
         } catch (error) {
             this.logger.error('Error getting individual hotkeys state:', error);
-            return { alwaysOnTop: true, peekAndHide: true, quickChat: true, printToPdf: true };
+            return { alwaysOnTop: true, peekAndHide: true, quickChat: true, voiceChat: true, printToPdf: true };
         }
     }
 
@@ -266,6 +266,10 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
                     enabled: enabled.quickChat,
                     accelerator: accelerators.quickChat,
                 },
+                voiceChat: {
+                    enabled: enabled.voiceChat,
+                    accelerator: accelerators.voiceChat,
+                },
                 printToPdf: {
                     enabled: enabled.printToPdf,
                     accelerator: accelerators.printToPdf,
@@ -277,6 +281,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
                 alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
                 peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
                 quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
+                voiceChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.voiceChat },
                 printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
             };
         }
@@ -290,6 +295,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             alwaysOnTop: this.deps.store.get('hotkeyAlwaysOnTop') ?? true,
             peekAndHide: this.deps.store.get('hotkeyPeekAndHide') ?? true,
             quickChat: this.deps.store.get('hotkeyQuickChat') ?? true,
+            voiceChat: this.deps.store.get('hotkeyVoiceChat') ?? true,
             printToPdf: this.deps.store.get('hotkeyPrintToPdf') ?? true,
         };
     }
@@ -308,6 +314,9 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             case 'quickChat':
                 this.deps.store.set('hotkeyQuickChat', enabled);
                 break;
+            case 'voiceChat':
+                this.deps.store.set('hotkeyVoiceChat', enabled);
+                break;
             case 'printToPdf':
                 this.deps.store.set('hotkeyPrintToPdf', enabled);
                 break;
@@ -322,6 +331,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             alwaysOnTop: this.deps.store.get('acceleratorAlwaysOnTop') ?? DEFAULT_ACCELERATORS.alwaysOnTop,
             peekAndHide: this.deps.store.get('acceleratorPeekAndHide') ?? DEFAULT_ACCELERATORS.peekAndHide,
             quickChat: this.deps.store.get('acceleratorQuickChat') ?? DEFAULT_ACCELERATORS.quickChat,
+            voiceChat: this.deps.store.get('acceleratorVoiceChat') ?? DEFAULT_ACCELERATORS.voiceChat,
             printToPdf: this.deps.store.get('acceleratorPrintToPdf') ?? DEFAULT_ACCELERATORS.printToPdf,
         };
     }
@@ -339,6 +349,9 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
                 break;
             case 'quickChat':
                 this.deps.store.set('acceleratorQuickChat', accelerator);
+                break;
+            case 'voiceChat':
+                this.deps.store.set('acceleratorVoiceChat', accelerator);
                 break;
             case 'printToPdf':
                 this.deps.store.set('acceleratorPrintToPdf', accelerator);

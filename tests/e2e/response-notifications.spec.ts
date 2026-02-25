@@ -23,8 +23,7 @@
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
-import { getPlatform, E2EPlatform } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
+import { getPlatform } from './helpers/platform';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 import { E2E_TIMING } from './helpers/e2eConstants';
@@ -37,20 +36,12 @@ describe('Response Notifications', () => {
     const mainWindow = new MainWindowPage();
     const optionsPage = new OptionsPage();
 
-    let platform: E2EPlatform;
-
-    before(async () => {
-        platform = await getPlatform();
-        E2ELogger.info('response-notifications', `Platform: ${platform.toUpperCase()}`);
-    });
-
     // ========================================================================
     // Task 9.1: Toggle response notifications in Options
     // ========================================================================
 
     describe('Toggle in Options (Task 9.1)', () => {
         beforeEach(async () => {
-            E2ELogger.info('response-notifications', 'Opening Options window');
             await waitForAppReady();
 
             // Open Options via menu
@@ -60,7 +51,6 @@ describe('Response Notifications', () => {
         });
 
         afterEach(async () => {
-            E2ELogger.info('response-notifications', 'Cleaning up');
             await ensureSingleWindow();
         });
 
@@ -69,14 +59,10 @@ describe('Response Notifications', () => {
 
             const text = await optionsPage.getNotificationsSectionText();
             expect(text.toLowerCase()).toContain('notification');
-
-            E2ELogger.info('response-notifications', 'Notifications section visible');
         });
 
         it('should display the response notifications toggle', async () => {
             expect(await optionsPage.isResponseNotificationsToggleDisplayed()).toBe(true);
-
-            E2ELogger.info('response-notifications', 'Response notifications toggle visible');
         });
 
         it('should display toggle with label and description', async () => {
@@ -84,25 +70,20 @@ describe('Response Notifications', () => {
 
             expect(text).toContain('Response Notifications');
             expect(text.toLowerCase()).toContain('unfocused');
-
-            E2ELogger.info('response-notifications', 'Toggle has label and description');
         });
 
         it('should have aria-checked attribute on toggle switch', async () => {
             const isEnabled = await optionsPage.isResponseNotificationsEnabled();
 
             expect([true, false]).toContain(isEnabled);
-            E2ELogger.info('response-notifications', `Initial state: enabled=${isEnabled}`);
         });
 
         it('should toggle state when clicked', async () => {
             const initialEnabled = await optionsPage.isResponseNotificationsEnabled();
-            E2ELogger.info('response-notifications', `Initial state: ${initialEnabled}`);
 
             await optionsPage.toggleResponseNotifications();
 
             const newEnabled = await optionsPage.isResponseNotificationsEnabled();
-            E2ELogger.info('response-notifications', `After click: ${newEnabled}`);
 
             expect(newEnabled).not.toBe(initialEnabled);
 
@@ -117,8 +98,6 @@ describe('Response Notifications', () => {
 
             const final = await optionsPage.isResponseNotificationsEnabled();
             expect(final).toBe(initial);
-
-            E2ELogger.info('response-notifications', 'Toggle round-trip verified');
         });
 
         it('should persist state via IPC round-trip', async () => {
@@ -131,8 +110,6 @@ describe('Response Notifications', () => {
             await optionsPage.enableResponseNotifications();
             const afterEnable = await optionsPage.isResponseNotificationsEnabled();
             expect(afterEnable).toBe(true);
-
-            E2ELogger.info('response-notifications', 'IPC round-trip verified');
         });
     });
 
@@ -160,8 +137,6 @@ describe('Response Notifications', () => {
             const stateBeforeClose = await optionsPage.isResponseNotificationsEnabled();
             expect(stateBeforeClose).toBe(false);
 
-            E2ELogger.info('response-notifications', 'Set toggle to disabled');
-
             // Close Options
             await optionsPage.close();
             await waitForWindowCount(1, 5000);
@@ -175,12 +150,8 @@ describe('Response Notifications', () => {
             const stateAfterReopen = await optionsPage.isResponseNotificationsEnabled();
             expect(stateAfterReopen).toBe(false);
 
-            E2ELogger.info('response-notifications', 'Toggle state persisted as disabled');
-
             // Restore to enabled
             await optionsPage.enableResponseNotifications();
-
-            E2ELogger.info('response-notifications', 'Session persistence verified');
         });
 
         it('should remember enabled state after Options close/reopen', async () => {
@@ -206,8 +177,6 @@ describe('Response Notifications', () => {
             // Verify state was preserved
             const stateAfterReopen = await optionsPage.isResponseNotificationsEnabled();
             expect(stateAfterReopen).toBe(true);
-
-            E2ELogger.info('response-notifications', 'Toggle state persisted as enabled');
         });
     });
 
@@ -263,7 +232,6 @@ describe('Response Notifications', () => {
             });
 
             expect(badgeShown).toBe(true);
-            E2ELogger.info('response-notifications', 'Badge shown after response-complete event');
 
             // 5. Now focus the window via production method
             await browser.electron.execute(() => {
@@ -289,7 +257,6 @@ describe('Response Notifications', () => {
             });
 
             expect(badgeCleared).toBe(true);
-            E2ELogger.info('response-notifications', 'Badge cleared on window focus');
         });
     });
 
@@ -368,7 +335,6 @@ describe('Response Notifications', () => {
 
             expect(result.shown).toBe(true);
             expect(result.hasBadge).toBe(true);
-            E2ELogger.info('response-notifications', 'Event-triggered notification verified');
         });
     });
 
@@ -432,14 +398,11 @@ describe('Response Notifications', () => {
             });
 
             if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
                 return;
             }
 
             expect(result.showCalled).toBe(true);
             expect(result.focusCalled).toBe(true);
-
-            E2ELogger.info('response-notifications', 'Notification click focuses window verified');
         });
 
         it('should restore minimized window when notification is clicked', async () => {
@@ -505,27 +468,18 @@ describe('Response Notifications', () => {
             });
 
             if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
                 return;
             }
 
             // restore() should only be called if the window was actually minimized
             if (result.wasMinimized) {
                 expect(result.restoreCalled).toBe(true);
-                E2ELogger.info('response-notifications', 'Window was minimized and restore was called');
-            } else {
-                E2ELogger.info(
-                    'response-notifications',
-                    'Window minimize not supported in this environment - testing focus only'
-                );
             }
 
             // show() and focus() should always be called
             expect(result.showCalled).toBe(true);
             expect(result.focusCalled).toBe(true);
             expect(result.isNowVisible).toBe(true);
-
-            E2ELogger.info('response-notifications', 'focusMainWindow verified');
         });
     });
 
@@ -570,7 +524,6 @@ describe('Response Notifications', () => {
 
             expect(check.shown).toBe(false);
             expect(check.hasBadge).toBe(false);
-            E2ELogger.info('response-notifications', 'No notification when focused verified (network triggered)');
         });
     });
 
@@ -628,7 +581,6 @@ describe('Response Notifications', () => {
 
             expect(check.shown).toBe(false);
             expect(check.hasBadge).toBe(false);
-            E2ELogger.info('response-notifications', 'No notification when disabled verified (network triggered)');
         });
 
         it('should NOT show notification for non-matching URLs (e.g. log / analytics)', async () => {
@@ -661,10 +613,6 @@ describe('Response Notifications', () => {
 
             expect(check.shown).toBe(false);
             expect(check.hasBadge).toBe(false);
-            E2ELogger.info(
-                'response-notifications',
-                'Spurious URL filtering verified (log endpoint correctly ignored)'
-            );
         });
     });
 
@@ -684,8 +632,6 @@ describe('Response Notifications', () => {
         it('should work on current platform', async () => {
             const detectedPlatform = await getPlatform();
             expect(['windows', 'macos', 'linux']).toContain(detectedPlatform);
-
-            E2ELogger.info('response-notifications', `Testing on platform: ${detectedPlatform}`);
 
             // Verify notification manager exists and is functional
             const result = await browser.electron.execute(async () => {
@@ -708,8 +654,6 @@ describe('Response Notifications', () => {
                 expect(result.hasOnResponseComplete).toBe(true);
                 expect(result.hasOnWindowFocus).toBe(true);
             }
-
-            E2ELogger.info('response-notifications', `Platform ${detectedPlatform} verified`);
         });
 
         it('should handle badge on current platform', async () => {
@@ -735,10 +679,6 @@ describe('Response Notifications', () => {
         });
 
         it('should show notification on current platform via full production wiring', async () => {
-            const detectedPlatform = await getPlatform();
-
-            E2ELogger.info('response-notifications', `Testing full notification flow on platform: ${detectedPlatform}`);
-
             // This test uses FULL production wiring via mainWindow.emit('response-complete')
             // to verify notification works on current platform (platform-agnostic check)
             const result = await browser.electron.execute(async () => {
@@ -800,7 +740,6 @@ describe('Response Notifications', () => {
             });
 
             if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
                 return;
             }
 
@@ -811,15 +750,6 @@ describe('Response Notifications', () => {
             if (result.currentPlatform !== 'linux') {
                 expect(result.hasBadge).toBe(true);
             }
-
-            E2ELogger.info(
-                'response-notifications',
-                `Platform ${result.currentPlatform}: notification=${result.notificationCalled}, badge=${result.hasBadge}`
-            );
-            E2ELogger.info(
-                'response-notifications',
-                'Full notification flow on current platform verified via production wiring'
-            );
         });
     });
 
@@ -849,11 +779,6 @@ describe('Response Notifications', () => {
                 };
             }, detectedPlatform);
 
-            E2ELogger.info(
-                'response-notifications',
-                `Platform: ${result.platform}, Notification.isSupported(): ${result.isNotificationSupported}`
-            );
-
             // On all desktop platforms, notifications should be supported
             // (may be disabled by user in OS settings, but API should exist)
             expect(result.isNotificationSupported).toBeDefined();
@@ -863,7 +788,6 @@ describe('Response Notifications', () => {
         it('should use Windows toast notification and taskbar overlay (Windows only)', async () => {
             const detectedPlatform = await getPlatform();
             if (detectedPlatform !== 'windows') {
-                E2ELogger.info('response-notifications', 'Skipping Windows-specific test on non-Windows platform');
                 return;
             }
 
@@ -944,7 +868,6 @@ describe('Response Notifications', () => {
             });
 
             if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
                 return;
             }
 
@@ -955,18 +878,12 @@ describe('Response Notifications', () => {
 
             // Note: overlayIconSet may be true or false depending on badge manager implementation
             // The important thing is no errors occurred and badge state was properly tracked
-            E2ELogger.info(
-                'response-notifications',
-                `Windows: notification=${result.notificationCalled}, badge=${result.hasBadge}, overlaySet=${result.overlayIconSet}`
-            );
-            E2ELogger.info('response-notifications', 'Windows toast notification and taskbar overlay verified');
         });
 
         // macOS-specific test (Task 9.9)
         it('should use macOS Notification Center and dock badge (macOS only)', async () => {
             const detectedPlatform = await getPlatform();
             if (detectedPlatform !== 'macos') {
-                E2ELogger.info('response-notifications', 'Skipping macOS-specific test on non-macOS platform');
                 return;
             }
 
@@ -1048,7 +965,6 @@ describe('Response Notifications', () => {
             });
 
             if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
                 return;
             }
 
@@ -1056,19 +972,12 @@ describe('Response Notifications', () => {
             expect(result.hasDockBadgeSupport).toBe(true);
             expect(result.notificationCalled).toBe(true);
             expect(result.hasBadge).toBe(true);
-
-            E2ELogger.info(
-                'response-notifications',
-                `macOS: notification=${result.notificationCalled}, badge=${result.hasBadge}, dockBadgeSet=${result.dockBadgeSet}`
-            );
-            E2ELogger.info('response-notifications', 'macOS Notification Center and dock badge verified');
         });
 
         // Linux-specific test (Task 9.10)
         it('should handle Linux gracefully with libnotify notification and no native badge (Linux only)', async () => {
             const detectedPlatform = await getPlatform();
             if (detectedPlatform !== 'linux') {
-                E2ELogger.info('response-notifications', 'Skipping Linux-specific test on non-Linux platform');
                 return;
             }
 
@@ -1141,7 +1050,6 @@ describe('Response Notifications', () => {
             });
 
             if ('error' in result) {
-                E2ELogger.info('response-notifications', `Skipping: ${result.error}`);
                 return;
             }
 
@@ -1151,12 +1059,6 @@ describe('Response Notifications', () => {
             expect(result.notificationCalled).toBe(true);
             // Badge operations should not throw on Linux (gracefully skipped)
             expect(result.badgeNoError).toBe(true);
-
-            E2ELogger.info(
-                'response-notifications',
-                `Linux: notificationSupported=${result.isNotificationSupported}, notificationCalled=${result.notificationCalled}, badgeNoError=${result.badgeNoError}`
-            );
-            E2ELogger.info('response-notifications', 'Linux libnotify notification and graceful badge skip verified');
         });
     });
 });

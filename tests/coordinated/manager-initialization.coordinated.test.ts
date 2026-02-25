@@ -96,6 +96,7 @@ describe('Manager Initialization Integration', () => {
                     alwaysOnTop: true,
                     peekAndHide: true,
                     quickChat: true,
+                    voiceChat: true,
                     printToPdf: true,
                 });
             });

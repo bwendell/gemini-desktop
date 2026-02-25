@@ -13,7 +13,6 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { E2ELogger } from '../helpers/logger';
 
 // Performance thresholds
 const MAX_HEAP_MB = 500; // Maximum heap size warning threshold
@@ -32,14 +31,10 @@ describe('Release Build: Startup Performance', () => {
             };
         });
 
-        E2ELogger.info('startup-performance', 'Startup timing', startupInfo);
-
         expect(startupInfo.isReady).toBe(true);
 
         // Uptime should be reasonable (less than 30 seconds since process start)
         expect(startupInfo.uptime).toBeLessThan(30);
-
-        E2ELogger.info('startup-performance', `App process uptime: ${startupInfo.uptime.toFixed(2)} seconds`);
     });
 
     it('should have acceptable memory usage', async () => {
@@ -53,14 +48,10 @@ describe('Release Build: Startup Performance', () => {
             };
         });
 
-        E2ELogger.info('startup-performance', 'Memory usage (main process)', memoryInfo);
-
         // These are sanity checks - values will vary by platform and load
         // We're looking for severe issues, not optimizing
         expect(memoryInfo.heapUsedMB).toBeLessThan(MAX_HEAP_MB);
         expect(memoryInfo.rssMB).toBeLessThan(MAX_PROCESS_MEMORY_MB);
-
-        E2ELogger.info('startup-performance', `Memory OK: Heap ${memoryInfo.heapUsedMB}MB / RSS ${memoryInfo.rssMB}MB`);
     });
 
     it('should have main window visible', async () => {
@@ -89,8 +80,6 @@ describe('Release Build: Startup Performance', () => {
                 return { exists: false, error: error.message };
             }
         });
-
-        E2ELogger.info('startup-performance', 'Main window state', windowInfo);
 
         expect(windowInfo.exists).toBe(true);
         expect(windowInfo.isVisible).toBe(true);
@@ -143,8 +132,6 @@ describe('Release Build: Startup Performance', () => {
                 return { loaded: false, error: error.message };
             }
         });
-
-        E2ELogger.info('startup-performance', 'Renderer state', rendererInfo);
         expect(rendererInfo.loaded).toBe(true);
     });
 
@@ -156,8 +143,6 @@ describe('Release Build: Startup Performance', () => {
                 idleWakeupsPerSecond: metrics.idleWakeupsPerSecond,
             };
         });
-
-        E2ELogger.info('startup-performance', 'CPU metrics', cpuInfo);
 
         // CPU usage should be reasonable (not stuck at 100%)
         // Note: This is a snapshot and may vary significantly
@@ -184,10 +169,7 @@ describe('Release Build: Startup Performance', () => {
             }
         });
 
-        E2ELogger.info('startup-performance', 'V8 heap statistics', v8Stats);
-
         if (!v8Stats.success) {
-            E2ELogger.info('startup-performance', `V8 stats not available: ${v8Stats.error}`);
             // Skip this check if v8 module isn't available in this context
             return;
         }
@@ -195,7 +177,5 @@ describe('Release Build: Startup Performance', () => {
         // Verify heap is not approaching limit (indicates potential memory leak)
         const heapUsagePercent = (v8Stats.usedHeapSizeMB / v8Stats.heapSizeLimitMB) * 100;
         expect(heapUsagePercent).toBeLessThan(80);
-
-        E2ELogger.info('startup-performance', `V8 heap usage: ${heapUsagePercent.toFixed(1)}% of limit`);
     });
 });

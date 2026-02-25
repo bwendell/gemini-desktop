@@ -305,6 +305,7 @@ describe('IpcManager', () => {
                 if (key === 'hotkeyAlwaysOnTop') return true;
                 if (key === 'hotkeyPeekAndHide') return false;
                 if (key === 'hotkeyQuickChat') return true;
+                if (key === 'hotkeyVoiceChat') return true;
                 if (key === 'hotkeyPrintToPdf') return true;
                 return undefined;
             });
@@ -314,6 +315,7 @@ describe('IpcManager', () => {
                 alwaysOnTop: true,
                 peekAndHide: false,
                 quickChat: true,
+                voiceChat: true,
                 printToPdf: true,
             });
         });
@@ -1196,6 +1198,7 @@ describe('IpcManager', () => {
                 alwaysOnTop: true,
                 peekAndHide: true,
                 quickChat: true,
+                voiceChat: true,
                 printToPdf: true,
             });
             expect(mockLogger.error).toHaveBeenCalledWith('Error getting individual hotkeys state:', expect.any(Error));
@@ -1435,6 +1438,9 @@ describe('IpcManager', () => {
             handler({}, 'quickChat', false);
             expect(mockStore.set).toHaveBeenCalledWith('hotkeyQuickChat', false);
 
+            handler({}, 'voiceChat', false);
+            expect(mockStore.set).toHaveBeenCalledWith('hotkeyVoiceChat', false);
+
             // printToPdf case
             handler({}, 'printToPdf', true);
             expect(mockStore.set).toHaveBeenCalledWith('hotkeyPrintToPdf', true);
@@ -1462,8 +1468,9 @@ describe('IpcManager', () => {
                 setAccelerator: vi.fn(),
                 getAccelerators: vi.fn().mockReturnValue({
                     alwaysOnTop: 'CmdOrCtrl+Shift+T',
-                    peekAndHide: 'CmdOrCtrl+Alt+H',
+                    peekAndHide: 'CmdOrCtrl+Shift+Space',
                     quickChat: 'CmdOrCtrl+Shift+Space',
+                    voiceChat: 'CmdOrCtrl+Shift+M',
                     printToPdf: 'CmdOrCtrl+Shift+P',
                 }),
             };
@@ -1483,8 +1490,9 @@ describe('IpcManager', () => {
         it('handles hotkeys:accelerator:get', async () => {
             mockStore.get.mockImplementation((key: string) => {
                 if (key === 'acceleratorAlwaysOnTop') return 'CmdOrCtrl+Shift+T';
-                if (key === 'acceleratorPeekAndHide') return 'CmdOrCtrl+Alt+H';
+                if (key === 'acceleratorPeekAndHide') return 'CmdOrCtrl+Shift+Space';
                 if (key === 'acceleratorQuickChat') return 'CmdOrCtrl+Shift+Space';
+                if (key === 'acceleratorVoiceChat') return 'CmdOrCtrl+Shift+M';
                 if (key === 'acceleratorPrintToPdf') return 'CmdOrCtrl+Shift+P';
                 return undefined;
             });
@@ -1492,8 +1500,9 @@ describe('IpcManager', () => {
             const result = await handler();
             expect(result).toEqual({
                 alwaysOnTop: 'CmdOrCtrl+Shift+T',
-                peekAndHide: 'CmdOrCtrl+Alt+H',
+                peekAndHide: 'CmdOrCtrl+Shift+Space',
                 quickChat: 'CmdOrCtrl+Shift+Space',
+                voiceChat: 'CmdOrCtrl+Shift+M',
                 printToPdf: 'CmdOrCtrl+Shift+P',
             });
         });
@@ -1529,6 +1538,9 @@ describe('IpcManager', () => {
 
             handler({}, 'quickChat', 'CmdOrCtrl+Q');
             expect(mockStore.set).toHaveBeenCalledWith('acceleratorQuickChat', 'CmdOrCtrl+Q');
+
+            handler({}, 'voiceChat', 'CmdOrCtrl+M');
+            expect(mockStore.set).toHaveBeenCalledWith('acceleratorVoiceChat', 'CmdOrCtrl+M');
 
             handler({}, 'printToPdf', 'CmdOrCtrl+P');
             expect(mockStore.set).toHaveBeenCalledWith('acceleratorPrintToPdf', 'CmdOrCtrl+P');
@@ -1601,10 +1613,12 @@ describe('IpcManager', () => {
                 if (key === 'hotkeyAlwaysOnTop') return true;
                 if (key === 'hotkeyPeekAndHide') return false;
                 if (key === 'hotkeyQuickChat') return true;
+                if (key === 'hotkeyVoiceChat') return true;
                 if (key === 'hotkeyPrintToPdf') return false;
                 if (key === 'acceleratorAlwaysOnTop') return 'CmdOrCtrl+T';
                 if (key === 'acceleratorPeekAndHide') return 'CmdOrCtrl+E';
                 if (key === 'acceleratorQuickChat') return 'CmdOrCtrl+Space';
+                if (key === 'acceleratorVoiceChat') return 'CmdOrCtrl+M';
                 if (key === 'acceleratorPrintToPdf') return 'CmdOrCtrl+P';
                 return undefined;
             });

@@ -28,7 +28,6 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
-import { E2ELogger } from './helpers/logger';
 import { clickMenuItemById } from './helpers/menuActions';
 
 describe('First-Run Experience', () => {
@@ -45,8 +44,6 @@ describe('First-Run Experience', () => {
             const currentTheme = await browser.execute(() => {
                 return document.documentElement.getAttribute('data-theme');
             });
-
-            E2ELogger.info('first-run', `Current data-theme: ${currentTheme}`);
             // The default is usually 'system', which resolves to 'light' or 'dark' on the html element
             // or explicitly 'system' if the app sets it that way.
             // Based on theme.spec.ts, the data-theme attribute reflects the resolved theme ('light' or 'dark')
@@ -73,8 +70,6 @@ describe('First-Run Experience', () => {
             const optionsTitlebar = await $(Selectors.optionsTitlebar);
             await expect(optionsTitlebar).toBeExisting();
 
-            E2ELogger.info('first-run', 'Menu verification: Settings window opened via menu item');
-
             // Close the options window
             await browser.closeWindow();
 
@@ -100,8 +95,6 @@ describe('First-Run Experience', () => {
             // Check if we can find the menu bar (Windows/Linux) or just general body existence
             const body = await $('body');
             await expect(body).toBeDisplayed();
-
-            E2ELogger.info('first-run', 'Main window is interactive and loaded');
         });
     });
 });

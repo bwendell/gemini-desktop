@@ -12,7 +12,6 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { E2ELogger } from '../helpers/logger';
 import { isLinuxSync } from '../helpers/platform';
 
 describe('Release Build: Packaged Resources', () => {
@@ -21,8 +20,6 @@ describe('Release Build: Packaged Resources', () => {
             return electron.app.isReady();
         });
         expect(isReady).toBe(true);
-
-        E2ELogger.info('packaged-resources', 'Application started successfully from package');
     });
 
     it('should have the correct app name from package', async () => {
@@ -35,7 +32,6 @@ describe('Release Build: Packaged Resources', () => {
         } else {
             expect(appName).toBe('Gemini Desktop');
         }
-        E2ELogger.info('packaged-resources', `App name: ${appName}`);
     });
 
     it('should have a valid app path', async () => {
@@ -45,8 +41,6 @@ describe('Release Build: Packaged Resources', () => {
 
         expect(appPath).toBeTruthy();
         expect(typeof appPath).toBe('string');
-
-        E2ELogger.info('packaged-resources', `App path: ${appPath}`);
     });
 
     it('should be running as a packaged app', async () => {
@@ -55,7 +49,6 @@ describe('Release Build: Packaged Resources', () => {
         });
 
         expect(isPackaged).toBe(true);
-        E2ELogger.info('packaged-resources', 'App is running in packaged mode');
     });
 
     it('should have valid resources directory', async () => {
@@ -86,20 +79,14 @@ describe('Release Build: Packaged Resources', () => {
         });
 
         if (!resourcesInfo.success) {
-            E2ELogger.info(
-                'packaged-resources',
-                `File system check not available: ${resourcesInfo.error}. Verifying resourcesPath exists as string.`
-            );
             // Fallback: At least verify resourcesPath is a valid-looking path
             expect(resourcesInfo.path).toBeTruthy();
             expect(typeof resourcesInfo.path).toBe('string');
-            E2ELogger.info('packaged-resources', `Resources path (unverified): ${resourcesInfo.path}`);
             return;
         }
 
         expect(resourcesInfo.exists).toBe(true);
         expect(resourcesInfo.isDirectory).toBe(true);
-        E2ELogger.info('packaged-resources', `Resources path: ${resourcesInfo.path}`);
     });
 
     it('should have icon files in resources directory', async () => {
@@ -134,15 +121,9 @@ describe('Release Build: Packaged Resources', () => {
         });
 
         if (!iconInfo.success) {
-            E2ELogger.info(
-                'packaged-resources',
-                `Icon file check not available: ${iconInfo.error}. Skipping file verification.`
-            );
             // Test passes - we can't verify files but the app is running which implies resources exist
             return;
         }
-
-        E2ELogger.info('packaged-resources', `Resources contents: ${iconInfo.files.join(', ')}`);
 
         // Platform-specific checks
         if (iconInfo.platform === 'win32') {
@@ -183,15 +164,9 @@ describe('Release Build: Packaged Resources', () => {
         });
 
         if (!preloadInfo.success) {
-            E2ELogger.info(
-                'packaged-resources',
-                `Preload script check not available: ${preloadInfo.error}. App path: ${preloadInfo.appPath}`
-            );
             // Test passes - we can't verify file existence but the app is running which implies preload loaded
             return;
         }
-
-        E2ELogger.info('packaged-resources', `Preload path: ${preloadInfo.path}`);
         expect(preloadInfo.exists).toBe(true);
     });
 
@@ -220,16 +195,11 @@ describe('Release Build: Packaged Resources', () => {
         });
 
         if (!mainInfo.success) {
-            E2ELogger.info(
-                'packaged-resources',
-                `Main entry point check not available: ${mainInfo.error}. App path: ${mainInfo.appPath}`
-            );
             // Test passes - the app is running so the main entry point obviously loaded
             return;
         }
 
         expect(mainInfo.exists).toBe(true);
-        E2ELogger.info('packaged-resources', `Main entry point verified: ${mainInfo.path}`);
     });
 
     it('should have dist folder with index.html', async () => {
@@ -257,15 +227,10 @@ describe('Release Build: Packaged Resources', () => {
         });
 
         if (!distInfo.success) {
-            E2ELogger.info(
-                'packaged-resources',
-                `index.html check not available: ${distInfo.error}. App path: ${distInfo.appPath}`
-            );
             // Test passes - the app rendered so index.html obviously loaded
             return;
         }
 
         expect(distInfo.exists).toBe(true);
-        E2ELogger.info('packaged-resources', `Index.html verified: ${distInfo.path}`);
     });
 });

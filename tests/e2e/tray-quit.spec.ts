@@ -14,7 +14,6 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
-import { E2ELogger } from './helpers/logger';
 import { clickTrayMenuItem, verifyTrayCreated } from './helpers/trayActions';
 
 describe('Tray Quit Functionality', () => {
@@ -40,17 +39,14 @@ describe('Tray Quit Functionality', () => {
         // 1. Verify tray exists before attempting to quit
         const trayExists = await verifyTrayCreated();
         expect(trayExists).toBe(true);
-        E2ELogger.info('tray-quit', 'Tray icon verified before quit');
 
         // 2. Get initial window count to confirm app is running
         const initialHandles = await browser.getWindowHandles();
         expect(initialHandles.length).toBeGreaterThan(0);
-        E2ELogger.info('tray-quit', `Windows before quit: ${initialHandles.length}`);
 
         // 3. Click "Quit" in tray context menu
         // This dispatches the quit action via IPC - it returns immediately
         // but the app will close asynchronously after this call.
-        E2ELogger.info('tray-quit', 'Clicking Quit menu item...');
         await clickTrayMenuItem('quit');
 
         // If we reach here, the quit action was successfully dispatched.
@@ -62,7 +58,6 @@ describe('Tray Quit Functionality', () => {
         // The actual quit is confirmed by the chromedriver logs showing
         // "[TrayManager] Executing tray action programmatically: quit" followed by
         // "[MainWindow] Window closed" and "[TrayManager] Tray destroyed"
-        E2ELogger.info('tray-quit', 'Quit action dispatched successfully - app is shutting down');
 
         // NOTE: We intentionally do NOT try to verify window state after quit.
         // Any browser.* call would block for the bridge timeout and fail.

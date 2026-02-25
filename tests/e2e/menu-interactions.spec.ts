@@ -9,7 +9,6 @@
 import { expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { MainWindowPage } from './pages';
-import { E2ELogger } from './helpers/logger';
 import { waitForAppReady } from './helpers/workflows';
 
 describe('Menu Interactions (Sequential)', () => {
@@ -17,7 +16,6 @@ describe('Menu Interactions (Sequential)', () => {
 
     beforeEach(async () => {
         if (!(await usesCustomControls())) {
-            E2ELogger.info('menu-interactions', 'Skipping - macOS uses native menu bar');
             return;
         }
         await waitForAppReady();

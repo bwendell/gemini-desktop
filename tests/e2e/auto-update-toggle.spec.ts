@@ -16,8 +16,7 @@
 import { expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
-import { getPlatform, E2EPlatform } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
+import { getPlatform } from './helpers/platform';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 
 // ============================================================================
@@ -28,15 +27,7 @@ describe('Auto-Update Toggle', () => {
     const mainWindow = new MainWindowPage();
     const optionsPage = new OptionsPage();
 
-    let platform: E2EPlatform;
-
-    before(async () => {
-        platform = await getPlatform();
-        E2ELogger.info('auto-update-toggle', `Platform: ${platform.toUpperCase()}`);
-    });
-
     beforeEach(async () => {
-        E2ELogger.info('auto-update-toggle', 'Opening Options window');
         await waitForAppReady();
 
         // Open Options via menu
@@ -46,7 +37,6 @@ describe('Auto-Update Toggle', () => {
     });
 
     afterEach(async () => {
-        E2ELogger.info('auto-update-toggle', 'Cleaning up');
         await ensureSingleWindow();
     });
 
@@ -60,14 +50,10 @@ describe('Auto-Update Toggle', () => {
 
             const heading = await optionsPage.getUpdatesSectionHeading();
             expect(heading.toLowerCase()).toContain('updates');
-
-            E2ELogger.info('auto-update-toggle', 'Updates section visible');
         });
 
         it('should display the auto-update toggle', async () => {
             expect(await optionsPage.isAutoUpdateToggleDisplayed()).toBe(true);
-
-            E2ELogger.info('auto-update-toggle', 'Auto-update toggle visible');
         });
 
         it('should display toggle with label and description', async () => {
@@ -75,16 +61,12 @@ describe('Auto-Update Toggle', () => {
 
             expect(text).toContain('Automatic Updates');
             expect(text.toLowerCase()).toContain('download');
-
-            E2ELogger.info('auto-update-toggle', 'Toggle has label and description');
         });
 
         it('should have toggle switch element', async () => {
             // Verify the toggle switch element exists and has aria-checked attribute
             const isEnabled = await optionsPage.isAutoUpdateEnabled();
             expect([true, false]).toContain(isEnabled);
-
-            E2ELogger.info('auto-update-toggle', 'Toggle switch element verified');
         });
     });
 
@@ -97,17 +79,14 @@ describe('Auto-Update Toggle', () => {
             const isEnabled = await optionsPage.isAutoUpdateEnabled();
 
             expect([true, false]).toContain(isEnabled);
-            E2ELogger.info('auto-update-toggle', `Initial state: enabled=${isEnabled}`);
         });
 
         it('should toggle state when clicked', async () => {
             const initialEnabled = await optionsPage.isAutoUpdateEnabled();
-            E2ELogger.info('auto-update-toggle', `Initial state: ${initialEnabled}`);
 
             await optionsPage.toggleAutoUpdate();
 
             const newEnabled = await optionsPage.isAutoUpdateEnabled();
-            E2ELogger.info('auto-update-toggle', `After click: ${newEnabled}`);
 
             expect(newEnabled).not.toBe(initialEnabled);
 
@@ -122,8 +101,6 @@ describe('Auto-Update Toggle', () => {
 
             const final = await optionsPage.isAutoUpdateEnabled();
             expect(final).toBe(initial);
-
-            E2ELogger.info('auto-update-toggle', 'Toggle round-trip verified');
         });
 
         it('should remember state within session', async () => {
@@ -147,8 +124,6 @@ describe('Auto-Update Toggle', () => {
 
             // Restore to enabled
             await optionsPage.toggleAutoUpdate();
-
-            E2ELogger.info('auto-update-toggle', 'Session persistence verified');
         });
     });
 
@@ -163,8 +138,6 @@ describe('Auto-Update Toggle', () => {
 
             // Toggle should exist and be interactable on all platforms
             expect(await optionsPage.isAutoUpdateToggleDisplayed()).toBe(true);
-
-            E2ELogger.info('auto-update-toggle', `Verified on platform: ${detectedPlatform}`);
         });
     });
 });

@@ -214,7 +214,7 @@ describe('SettingsStore', () => {
             },
             hotkeyAccelerators: {
                 alwaysOnTop: 'CommandOrControl+Alt+P',
-                peekAndHide: 'CommandOrControl+Alt+H',
+                peekAndHide: 'CommandOrControl+Shift+Space',
                 quickChat: 'CommandOrControl+Shift+Alt+Space',
                 printToPdf: 'CommandOrControl+Shift+P',
             },
@@ -401,7 +401,7 @@ describe('SettingsStore', () => {
                     },
                     hotkeyAccelerators: {
                         alwaysOnTop: 'CommandOrControl+Shift+T', // User's custom accelerator
-                        peekAndHide: 'CommandOrControl+Alt+H',
+                        peekAndHide: 'CommandOrControl+Shift+Space',
                         quickChat: 'CommandOrControl+Shift+Alt+Space',
                         printToPdf: 'CommandOrControl+Alt+P', // User changed the accelerator
                     },

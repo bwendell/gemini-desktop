@@ -13,7 +13,6 @@
  */
 
 import { browser, expect } from '@wdio/globals';
-import { E2ELogger } from './helpers/logger';
 import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 import {
     GEMINI_MICROPHONE_BUTTON_SELECTORS,
@@ -48,7 +47,6 @@ describe('Microphone Permission', () => {
 
             expect(allowAttr).toContain('microphone');
             expect(allowAttr).not.toContain('camera'); // Camera access intentionally removed
-            E2ELogger.info('microphone', `Iframe allow attribute: ${allowAttr}`);
         });
     });
 
@@ -79,7 +77,6 @@ describe('Microphone Permission', () => {
             );
 
             expect(frameInfo.frameUrl).toContain('gemini');
-            E2ELogger.info('microphone', `Found Gemini frame: ${frameInfo.frameUrl}`);
         });
 
         it('should not show error toast when clicking microphone button', async () => {
@@ -131,7 +128,6 @@ describe('Microphone Permission', () => {
             );
 
             expect(clickResult.executed).toBe(true);
-            E2ELogger.info('microphone', 'Clicked microphone button');
 
             // Wait for any error toast to appear (intentional delay for negative test)
             await waitForDuration(2000, 'Error toast appearance window');
@@ -181,7 +177,6 @@ describe('Microphone Permission', () => {
 
             // Verify no microphone error toast appeared
             expect(hasErrorToast).toBe(false);
-            E2ELogger.info('microphone', 'No microphone error toast detected');
         });
     });
 });

@@ -682,23 +682,3 @@ export async function waitForDuration(durationMs: number, description?: string):
 
     E2ELogger.info('waitUtilities', `${logPrefix}✓ Duration wait complete`);
 }
-
-// =============================================================================
-// Utility Exports
-// =============================================================================
-
-/**
- * Re-export with deprecation notice for backward compatibility.
- * These are transitional exports to help with migration.
- * @deprecated Use the specific waitFor* functions instead
- */
-export const DeprecatedWaits = {
-    /** @deprecated Use waitForUIState() instead */
-    uiStatePause: (ms = 300) => browser.pause(ms),
-    /** @deprecated Use waitForIPCRoundTrip() instead */
-    ipcRoundTrip: (ms = 300) => browser.pause(ms),
-    /** @deprecated Use waitForWindowTransition() instead */
-    windowTransition: (ms = 500) => browser.pause(ms),
-    /** @deprecated Use waitForAnimationSettle() instead */
-    animationSettle: (ms = 500) => browser.pause(ms),
-} as const;

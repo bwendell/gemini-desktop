@@ -27,6 +27,8 @@ describe('Hotkey Collision and Coordination Integration', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         if ((globalShortcut as any)._reset) (globalShortcut as any)._reset();
+        (globalShortcut.register as any).mockReturnValue(true);
+        (globalShortcut.isRegistered as any).mockReturnValue(false);
     });
 
     afterEach(() => {
@@ -57,7 +59,7 @@ describe('Hotkey Collision and Coordination Integration', () => {
                         expect.stringContaining('FAILED to register hotkey: quickChat')
                     );
 
-                    expect(globalShortcut.register).toHaveBeenCalledTimes(2);
+                    expect(globalShortcut.register).toHaveBeenCalledTimes(3);
 
                     expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(true);
 
@@ -85,6 +87,7 @@ describe('Hotkey Collision and Coordination Integration', () => {
 
                 if (expectsGlobalHotkeys) {
                     expect(globalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.peekAndHide);
+                    expect(globalShortcut.unregister).toHaveBeenCalledTimes(1);
                 } else {
                     expect(globalShortcut.unregister).not.toHaveBeenCalled();
                 }

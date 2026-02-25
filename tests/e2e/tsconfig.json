@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "Node",
+        "types": ["node", "@wdio/globals"],
+        "strict": true,
+        "skipLibCheck": true,
+        "noEmit": true
+    },
+    "files": ["./helpers/wdio-electron.d.ts"],
+    "include": ["./**/*.ts"]
+}

@@ -145,4 +145,122 @@ describe('Global Hotkeys Integration', () => {
             expect(rendererPlatform).toBe(mainPlatform);
         });
     });
+
+    describe('Voice Chat Hotkey', () => {
+        it('should have voiceChat hotkey registered in the main process', async () => {
+            // Verify voiceChat is registered and enabled by default
+            const isRegistered = await browser.electron.execute((_electron) => {
+                // @ts-expect-error
+                return global.hotkeyManager.isIndividualEnabled('voiceChat');
+            });
+
+            expect(isRegistered).toBe(true);
+        });
+
+        it('should have voiceChat accelerator default to CommandOrControl+Shift+M', async () => {
+            // Verify default accelerator is set correctly
+            const accelerator = await browser.electron.execute((_electron) => {
+                // @ts-expect-error
+                return global.hotkeyManager.getAccelerator('voiceChat');
+            });
+
+            expect(accelerator).toBe(DEFAULT_ACCELERATORS.voiceChat);
+            expect(accelerator).toBe('CommandOrControl+Shift+M');
+        });
+
+        it('should allow disabling voiceChat via Renderer IPC', async () => {
+            // Disable voiceChat via renderer API
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                await api.setIndividualHotkey('voiceChat', false);
+            });
+
+            // Verify in Main Process that voiceChat is disabled
+            const isEnabled = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.hotkeyManager.isIndividualEnabled('voiceChat');
+            });
+
+            expect(isEnabled).toBe(false);
+        });
+
+        it('should allow re-enabling voiceChat via Renderer IPC', async () => {
+            // Re-enable voiceChat via renderer API
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                await api.setIndividualHotkey('voiceChat', true);
+            });
+
+            // Verify in Main Process that voiceChat is enabled
+            const isEnabled = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.hotkeyManager.isIndividualEnabled('voiceChat');
+            });
+
+            expect(isEnabled).toBe(true);
+        });
+
+        it('should allow changing voiceChat accelerator via Renderer IPC', async () => {
+            // Set custom accelerator for voiceChat
+            const customAccelerator = 'CommandOrControl+Alt+V';
+            await browser.execute(async (accelerator) => {
+                const api = (window as any).electronAPI;
+                await api.setHotkeyAccelerator('voiceChat', accelerator);
+            }, customAccelerator);
+
+            // Verify in Main Process
+            const savedAccelerator = await browser.electron.execute((_electron) => {
+                // @ts-expect-error
+                return global.hotkeyManager.getAccelerator('voiceChat');
+            });
+
+            expect(savedAccelerator).toBe(customAccelerator);
+
+            // Reset to default
+            await browser.execute(async (defaultAcc) => {
+                const api = (window as any).electronAPI;
+                await api.setHotkeyAccelerator('voiceChat', defaultAcc);
+            }, DEFAULT_ACCELERATORS.voiceChat);
+        });
+
+        it('should unregister voiceChat shortcut when disabled and re-register when enabled', async () => {
+            // Disable voiceChat
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                await api.setIndividualHotkey('voiceChat', false);
+            });
+
+            // Verify it's disabled in main process
+            let isEnabled = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.hotkeyManager.isIndividualEnabled('voiceChat');
+            });
+            expect(isEnabled).toBe(false);
+
+            // Re-enable voiceChat
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                await api.setIndividualHotkey('voiceChat', true);
+            });
+
+            // Verify it's enabled again
+            isEnabled = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.hotkeyManager.isIndividualEnabled('voiceChat');
+            });
+            expect(isEnabled).toBe(true);
+        });
+
+        it('should include voiceChat in all default accelerators', async () => {
+            // Fetch all accelerators from main process
+            const accelerators = await browser.electron.execute(() => {
+                // @ts-expect-error
+                return global.hotkeyManager.getAccelerators();
+            });
+
+            // Verify voiceChat is present and uses CommandOrControl
+            expect(accelerators.voiceChat).toBeDefined();
+            expect(accelerators.voiceChat).toContain('CommandOrControl');
+        });
+    });
 });

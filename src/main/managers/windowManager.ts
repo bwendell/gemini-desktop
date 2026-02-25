@@ -8,13 +8,17 @@
  * @module WindowManager
  */
 
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, type WebFrameMain } from 'electron';
 import { EventEmitter } from 'events';
 import { createLogger } from '../utils/logger';
+import { isGeminiDomain } from '../utils/constants';
+import SettingsStore from '../store';
+import { activateMicrophoneInFrame } from '../utils/micActivation';
 import MainWindow from '../windows/mainWindow';
 import AuthWindow from '../windows/authWindow';
 import OptionsWindow from '../windows/optionsWindow';
 import QuickChatWindow from '../windows/quickChatWindow';
+import { getTabFrameName, type TabsState } from '../../shared/types/tabs';
 
 const logger = createLogger('[WindowManager]');
 
@@ -23,6 +27,7 @@ const logger = createLogger('[WindowManager]');
  * Range: 50% to 200% inclusive.
  */
 export const ZOOM_LEVEL_STEPS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200] as const;
+const TAB_STATE_CONFIG_NAME = 'tabs-state';
 
 export default class WindowManager extends EventEmitter {
     readonly isDev: boolean;
@@ -31,6 +36,7 @@ export default class WindowManager extends EventEmitter {
     private authWindow: AuthWindow;
     private quickChatWindow: QuickChatWindow;
     private _zoomLevel: number = 100;
+    private tabStateStore: SettingsStore<{ tabsState: TabsState | null }>;
 
     /**
      * Creates a new WindowManager instance.
@@ -45,6 +51,13 @@ export default class WindowManager extends EventEmitter {
         this.optionsWindow = new OptionsWindow(isDev);
         this.authWindow = new AuthWindow(isDev);
         this.quickChatWindow = new QuickChatWindow(isDev);
+
+        this.tabStateStore = new SettingsStore<{ tabsState: TabsState | null }>({
+            configName: TAB_STATE_CONFIG_NAME,
+            defaults: {
+                tabsState: null,
+            },
+        });
 
         // Wire up callbacks between windows
         this.mainWindow.setAuthWindowCallback((url) => this.createAuthWindow(url));
@@ -217,6 +230,69 @@ export default class WindowManager extends EventEmitter {
         this.mainWindow.show();
         this.mainWindow.focus();
         logger.log('Main window focused');
+    }
+
+    async activateVoiceChat(): Promise<void> {
+        try {
+            if (!this.mainWindow.isValid()) {
+                this.createMainWindow();
+            }
+
+            if (this.isMainWindowVisible()) {
+                this.focusMainWindow();
+            } else {
+                this.restoreFromTray();
+            }
+
+            const mainWindow = this.getMainWindow();
+            if (!mainWindow) {
+                logger.debug('Voice chat activation skipped: main window not available');
+                return;
+            }
+
+            const frames = mainWindow.webContents.mainFrame.frames;
+            const tabState = this.tabStateStore.get('tabsState');
+            const activeTabId = tabState?.activeTabId;
+            const targetFrameName = activeTabId ? getTabFrameName(activeTabId) : null;
+            const targetFrame = targetFrameName ? frames.find((frame) => frame.name === targetFrameName) : undefined;
+
+            if (!targetFrame) {
+                const fallbackFrame = frames.find((frame) => isGeminiDomain(frame.url));
+                if (!fallbackFrame) {
+                    logger.debug('Voice chat activation skipped: active tab frame not found', {
+                        activeTabId,
+                        targetFrameName,
+                        framesCount: frames.length,
+                        frameNames: frames.map((frame) => frame.name),
+                    });
+                    return;
+                }
+
+                const fallbackResult = await activateMicrophoneInFrame(fallbackFrame as WebFrameMain);
+                if (fallbackResult.success) {
+                    logger.log('Voice chat microphone activation succeeded');
+                } else {
+                    logger.error('Voice chat microphone activation failed', fallbackResult.error);
+                }
+                return;
+            }
+
+            if (!isGeminiDomain(targetFrame.url)) {
+                logger.debug('Voice chat activation skipped: active frame not Gemini domain', {
+                    url: targetFrame.url,
+                });
+                return;
+            }
+
+            const result = await activateMicrophoneInFrame(targetFrame as WebFrameMain);
+            if (result.success) {
+                logger.log('Voice chat microphone activation succeeded');
+            } else {
+                logger.error('Voice chat microphone activation failed', result.error);
+            }
+        } catch (error) {
+            logger.error('Failed to activate voice chat:', error);
+        }
     }
 
     /**
