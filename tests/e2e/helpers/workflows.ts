@@ -15,7 +15,7 @@ import { testLogger } from './testLogger';
 import { E2E_TIMING } from './e2eConstants';
 import { Selectors } from './selectors';
 import { clickMenuItemById } from './menuActions';
-import { waitForWindowCount, closeCurrentWindow as _closeCurrentWindow } from './windowActions';
+import { waitForWindowCount } from './windowActions';
 import {
     waitForIPCRoundTrip,
     waitForUIState,
@@ -83,13 +83,16 @@ export async function withOptionsWindowViaMenu<T>(action: () => Promise<T>): Pro
     await clickMenuItemById('menu-file-options');
     await waitForWindowCount(2);
     await switchToOptionsWindow();
-    await waitForUIState(
+    const optionsWindowReady = await waitForUIState(
         async () => {
             const content = await workflowsBrowser.$('[data-testid="options-content"]');
             return await content.isDisplayed();
         },
         { description: 'Options window ready' }
     );
+    if (!optionsWindowReady) {
+        throw new Error('Options window did not become ready');
+    }
 
     testLogger.breadcrumb('workflow', 'Options window opened and ready');
 
@@ -145,13 +148,16 @@ export async function withOptionsWindowViaHotkey<T>(action: () => Promise<T>): P
 export async function withOptionsTab<T>(tabName: 'settings' | 'about', action: () => Promise<T>): Promise<T> {
     return withOptionsWindowViaMenu(async () => {
         await navigateToOptionsTab(tabName);
-        await waitForUIState(
+        const tabBecameActive = await waitForUIState(
             async () => {
                 const tab = await workflowsBrowser.$(`[data-testid="options-tab-${tabName}"]`);
                 return (await tab.getAttribute('aria-selected')) === 'true';
             },
             { description: `Options tab ${tabName} active` }
         );
+        if (!tabBecameActive) {
+            throw new Error(`Timed out waiting for options tab '${tabName}' to become active`);
+        }
         return await action();
     });
 }
@@ -179,10 +185,8 @@ export async function changeTheme(theme: 'light' | 'dark' | 'system'): Promise<v
         await themeCard.click();
         await waitForUIState(
             async () => {
-                const currentTheme = await workflowsBrowser.execute(() => {
-                    return document.documentElement.getAttribute('data-theme');
-                });
-                return currentTheme === theme;
+                const ariaChecked = await themeCard.getAttribute('aria-checked');
+                return ariaChecked === 'true';
             },
             { description: `Theme ${theme} applied` }
         );
@@ -335,7 +339,7 @@ export async function toggleSwitch(toggleSelector: string): Promise<void> {
             await toggle.click();
         },
         {
-            verification: async () => (await toggle.getAttribute('aria-checked')) !== String(wasChecked),
+            verification: async () => (await toggle.getAttribute('aria-checked')) === String(!wasChecked),
         }
     );
 
@@ -590,7 +594,7 @@ export async function waitForIpcSettle(): Promise<void> {
  *
  * @param condition - Optional async function that returns true when transition is complete
  * @param timeout - Max wait time in ms (default: E2E_TIMING.TIMEOUTS.WINDOW_TRANSITION)
- * @returns true if condition was met within timeout, false otherwise (or void if no condition)
+ * @returns true if condition was met within timeout, false otherwise
  *
  * @example
  * // Static pause (backwards compatible)
@@ -602,18 +606,11 @@ export async function waitForIpcSettle(): Promise<void> {
 export async function waitForWindowTransition(
     condition?: () => Promise<boolean>,
     timeout = E2E_TIMING.TIMEOUTS?.WINDOW_TRANSITION ?? 3000
-): Promise<boolean | void> {
-    if (!condition) {
-        return waitForWindowTransitionFromUtilities(async () => true, {
-            timeout,
-            stableDuration: E2E_TIMING.WINDOW_TRANSITION,
-            description: 'Window transition (fallback)',
-        });
-    }
-
-    return waitForWindowTransitionFromUtilities(condition, {
+): Promise<boolean> {
+    return waitForWindowTransitionFromUtilities(condition ?? (async () => true), {
         timeout,
-        description: 'Window transition',
+        stableDuration: E2E_TIMING.WINDOW_TRANSITION,
+        description: condition ? 'Window transition' : 'Window transition (fallback)',
     });
 }
 
