@@ -1,0 +1,48 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="ring-gradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#4285F4" />
+            <stop offset="35%" stop-color="#A062A1" />
+            <stop offset="60%" stop-color="#EA4335" />
+            <stop offset="85%" stop-color="#FBBC04" />
+            <stop offset="100%" stop-color="#4285F4" />
+        </linearGradient>
+        <linearGradient id="inner-teal" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#4DB6AC" />
+            <stop offset="100%" stop-color="#00796B" />
+        </linearGradient>
+        <linearGradient id="inner-gold" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#FFD54F" />
+            <stop offset="100%" stop-color="#FBC02D" />
+        </linearGradient>
+        <linearGradient id="star-highlight" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#80DEEA" />
+            <stop offset="50%" stop-color="#0097A7" />
+            <stop offset="100%" stop-color="#1A237E" />
+        </linearGradient>
+    </defs>
+    <g fill="none" fill-rule="evenodd">
+        <circle cx="256" cy="256" r="224" stroke="url(#ring-gradient)" stroke-width="48" />
+        <path
+            d="M128 256a128 128 0 0 1 128-128"
+            stroke="url(#inner-teal)"
+            stroke-width="32"
+            stroke-linecap="round"
+        />
+        <path
+            d="M384 256a128 128 0 0 1-128 128"
+            stroke="url(#inner-gold)"
+            stroke-width="32"
+            stroke-linecap="round"
+        />
+        <path
+            d="M256 140l26 70 76 10-56 48 16 74-62-38-62 38 16-74-56-48 76-10z"
+            fill="url(#star-highlight)"
+        />
+        <path
+            d="M256 172l18 48 52 7-38 32 11 50-43-26-43 26 11-50-38-32 52-7z"
+            fill="#1A237E"
+            opacity="0.35"
+        />
+    </g>
+</svg>
