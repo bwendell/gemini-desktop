@@ -13,6 +13,27 @@ import { BasePage } from './BasePage';
 import { browser } from '@wdio/globals';
 import { E2E_TIMING } from '../helpers/e2eConstants';
 
+type TPBrowser = {
+    execute<R>(fn: (...args: any[]) => R, ...args: any[]): Promise<R>;
+    waitUntil<T>(
+        condition: () => Promise<T> | T,
+        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
+    ): Promise<T>;
+    pause(ms: number): Promise<void>;
+};
+const tpBrowser = browser as unknown as TPBrowser;
+type TPElement = {
+    $(selector: string): Promise<TPElement>;
+    waitForClickable(options?: { timeout?: number }): Promise<void>;
+    getText(): Promise<string>;
+    getAttribute(attr: string): Promise<string | null>;
+    getCSSProperty(prop: string): Promise<{ value: string; parsed?: { value: unknown } }>;
+    isExisting(): Promise<boolean>;
+    click(): Promise<void>;
+};
+function toTPEl(el: WebdriverIO.Element): TPElement {
+    return el as unknown as TPElement;
+}
 /**
  * Toast type options
  */
@@ -105,7 +126,7 @@ export class ToastPage extends BasePage {
      */
     async showToast(options: ShowToastOptions): Promise<string> {
         this.log(`Showing toast: type=${options.type}, message=${options.message}`);
-        const id = await browser.execute((opts: ShowToastOptions) => {
+        const id = await tpBrowser.execute((opts: ShowToastOptions) => {
             // @ts-expect-error - test helper
             return window.__toastTestHelpers.showToast(opts);
         }, options);
@@ -121,7 +142,7 @@ export class ToastPage extends BasePage {
      */
     async showSuccess(message: string, options?: Partial<ShowToastOptions>): Promise<string> {
         this.log(`Showing success toast: ${message}`);
-        const id = await browser.execute(
+        const id = await tpBrowser.execute(
             (msg: string, opts: Partial<ShowToastOptions> | undefined) => {
                 // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showSuccess(msg, opts);
@@ -141,7 +162,7 @@ export class ToastPage extends BasePage {
      */
     async showError(message: string, options?: Partial<ShowToastOptions>): Promise<string> {
         this.log(`Showing error toast: ${message}`);
-        const id = await browser.execute(
+        const id = await tpBrowser.execute(
             (msg: string, opts: Partial<ShowToastOptions> | undefined) => {
                 // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showError(msg, opts);
@@ -161,7 +182,7 @@ export class ToastPage extends BasePage {
      */
     async showInfo(message: string, options?: Partial<ShowToastOptions>): Promise<string> {
         this.log(`Showing info toast: ${message}`);
-        const id = await browser.execute(
+        const id = await tpBrowser.execute(
             (msg: string, opts: Partial<ShowToastOptions> | undefined) => {
                 // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showInfo(msg, opts);
@@ -181,7 +202,7 @@ export class ToastPage extends BasePage {
      */
     async showWarning(message: string, options?: Partial<ShowToastOptions>): Promise<string> {
         this.log(`Showing warning toast: ${message}`);
-        const id = await browser.execute(
+        const id = await tpBrowser.execute(
             (msg: string, opts: Partial<ShowToastOptions> | undefined) => {
                 // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showWarning(msg, opts);
@@ -202,7 +223,7 @@ export class ToastPage extends BasePage {
      */
     async showProgress(message: string, progress: number, options?: Partial<ShowToastOptions>): Promise<string> {
         this.log(`Showing progress toast: ${message} (${progress}%)`);
-        const id = await browser.execute(
+        const id = await tpBrowser.execute(
             (msg: string, prog: number, opts: Partial<ShowToastOptions> | undefined) => {
                 // @ts-expect-error - test helper
                 return window.__toastTestHelpers.showToast({
@@ -227,7 +248,7 @@ export class ToastPage extends BasePage {
      */
     async dismissToastById(id: string): Promise<void> {
         this.log(`Dismissing toast by ID: ${id}`);
-        await browser.execute((toastId: string) => {
+        await tpBrowser.execute((toastId: string) => {
             // @ts-expect-error - test helper
             window.__toastTestHelpers.dismissToast(toastId);
         }, id);
@@ -239,7 +260,7 @@ export class ToastPage extends BasePage {
      */
     async dismissAll(): Promise<void> {
         this.log('Dismissing all toasts');
-        await browser.execute(() => {
+        await tpBrowser.execute(() => {
             // @ts-expect-error - test helper
             window.__toastTestHelpers.dismissAll();
         });
@@ -250,7 +271,7 @@ export class ToastPage extends BasePage {
      * Get the current toasts from the context.
      */
     async getToasts(): Promise<Array<{ id: string; type: ToastType; message: string }>> {
-        return browser.execute(() => {
+        return tpBrowser.execute(() => {
             // @ts-expect-error - test helper
             return window.__toastTestHelpers.getToasts();
         });
@@ -302,7 +323,7 @@ export class ToastPage extends BasePage {
      * The toast animation takes ~200ms, so we wait 500ms (ANIMATION_SETTLE) to be safe.
      */
     async waitForAnimationComplete(): Promise<void> {
-        await browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+        await tpBrowser.pause(E2E_TIMING.ANIMATION_SETTLE);
     }
 
     /**
@@ -331,7 +352,7 @@ export class ToastPage extends BasePage {
             return;
         }
 
-        await browser.waitUntil(
+        await tpBrowser.waitUntil(
             async () => {
                 const currentCount = await this.getToastCount();
                 return currentCount < initialCount;
@@ -374,12 +395,12 @@ export class ToastPage extends BasePage {
         }
 
         let title: string | undefined;
-        const titleEl = await toast.$(this.titleSelector);
+        const titleEl = await toTPEl(toast).$(this.titleSelector);
         if (await titleEl.isExisting()) {
             title = await titleEl.getText();
         }
 
-        const messageEl = await toast.$(this.messageSelector);
+        const messageEl = await toTPEl(toast).$(this.messageSelector);
         const message = await messageEl.getText();
 
         return { title, message };
@@ -397,7 +418,7 @@ export class ToastPage extends BasePage {
         this.log('Clicking dismiss button');
         await this.waitForAnimationComplete();
         const dismissBtn = await this.$(this.dismissButtonSelector);
-        await dismissBtn.waitForClickable({ timeout: 2000 });
+        await toTPEl(dismissBtn).waitForClickable({ timeout: 2000 });
         await this.clickElement(this.dismissButtonSelector);
     }
 
@@ -414,7 +435,7 @@ export class ToastPage extends BasePage {
             throw new Error(`Cannot dismiss: no toast at index ${index}`);
         }
 
-        const dismissBtn = await toast.$(this.dismissButtonSelector);
+        const dismissBtn = await toTPEl(toast).$(this.dismissButtonSelector);
         await dismissBtn.waitForClickable({ timeout: 2000 });
         await dismissBtn.click();
     }
@@ -428,7 +449,7 @@ export class ToastPage extends BasePage {
         await this.waitForAnimationComplete();
         const selector = this.actionButtonSelector(index);
         const actionBtn = await this.$(selector);
-        await actionBtn.waitForClickable({ timeout: 2000 });
+        await toTPEl(actionBtn).waitForClickable({ timeout: 2000 });
         await this.clickElement(selector);
     }
 
@@ -447,7 +468,7 @@ export class ToastPage extends BasePage {
             throw new Error(`Cannot click action: no toast at index ${toastIndex}`);
         }
 
-        const actionBtn = await toast.$(this.actionButtonSelector(actionIndex));
+        const actionBtn = await toTPEl(toast).$(this.actionButtonSelector(actionIndex));
 
         // Verify label if provided
         if (label) {
@@ -535,7 +556,7 @@ export class ToastPage extends BasePage {
      */
     async getToastIcon(): Promise<string> {
         const iconElement = await this.$('.toast__icon');
-        return iconElement.getText();
+        return toTPEl(iconElement).getText();
     }
 
     /**
@@ -557,7 +578,7 @@ export class ToastPage extends BasePage {
      */
     async getToastTypeClass(): Promise<string | null> {
         const toast = await this.$(this.toastSelector);
-        const className = await toast.getAttribute('class');
+        const className = await toTPEl(toast).getAttribute('class');
         const match = className?.match(/toast--(\w+)/);
         return match ? match[1] : null;
     }
@@ -568,9 +589,9 @@ export class ToastPage extends BasePage {
      */
     async isPositionedBottomLeft(): Promise<boolean> {
         const container = await this.$(this.containerSelector);
-        const position = await container.getCSSProperty('position');
-        const bottom = await container.getCSSProperty('bottom');
-        const left = await container.getCSSProperty('left');
+        const position = await toTPEl(container).getCSSProperty('position');
+        const bottom = await toTPEl(container).getCSSProperty('bottom');
+        const left = await toTPEl(container).getCSSProperty('left');
 
         // Position should be fixed, bottom and left should be small values (not auto)
         const isFixed = position.value === 'fixed';
@@ -610,7 +631,7 @@ export class ToastPage extends BasePage {
      * but with our implementation, newest toasts are added last and display at top.
      */
     async getToastIdsInOrder(): Promise<string[]> {
-        const ids = await browser.execute((selector: string) => {
+        const ids = await tpBrowser.execute((selector: string) => {
             const toasts = document.querySelectorAll(selector);
             return Array.from(toasts).map((toast) => {
                 return (toast as HTMLElement).getAttribute('data-toast-id') || '';
@@ -623,7 +644,7 @@ export class ToastPage extends BasePage {
      * Get toast messages in DOM order.
      */
     async getToastMessagesInOrder(): Promise<string[]> {
-        const messages = await browser.execute(
+        const messages = await tpBrowser.execute(
             (toastSelector: string, msgSelector: string) => {
                 const toasts = document.querySelectorAll(toastSelector);
                 return Array.from(toasts).map((toast) => {
@@ -641,7 +662,7 @@ export class ToastPage extends BasePage {
      * Get the bounding rect of each toast for verifying vertical stacking.
      */
     async getToastPositions(): Promise<Array<{ x: number; y: number; width: number; height: number }>> {
-        const positions = await browser.execute((selector: string) => {
+        const positions = await tpBrowser.execute((selector: string) => {
             const toasts = document.querySelectorAll(selector);
             return Array.from(toasts).map((toast) => {
                 const rect = (toast as HTMLElement).getBoundingClientRect();
@@ -668,7 +689,7 @@ export class ToastPage extends BasePage {
 
         const ids: string[] = [];
         for (let i = 0; i < count; i++) {
-            const id = await browser.execute(
+            const id = await tpBrowser.execute(
                 (t: ToastType, msg: string, opts: typeof options) => {
                     // @ts-expect-error - test helper
                     return window.__toastTestHelpers.showToast({
@@ -684,7 +705,7 @@ export class ToastPage extends BasePage {
             ids.push(id);
 
             if (delayMs > 0 && i < count - 1) {
-                await browser.pause(delayMs);
+                await tpBrowser.pause(delayMs);
             }
         }
 
@@ -702,7 +723,7 @@ export class ToastPage extends BasePage {
         this.log(`Dismissing toast at index ${index}`);
         await this.waitForAnimationComplete();
 
-        await browser.execute(
+        await tpBrowser.execute(
             (toastSelector: string, dismissSelector: string, idx: number) => {
                 const toasts = document.querySelectorAll(toastSelector);
                 if (idx >= toasts.length) throw new Error(`Toast index ${idx} out of range`);
@@ -749,7 +770,7 @@ export class ToastPage extends BasePage {
      * @returns Object with label and index of last clicked action, or null if none clicked
      */
     async getLastActionClicked(): Promise<{ label: string; index: number } | null> {
-        return browser.execute(() => {
+        return tpBrowser.execute(() => {
             // @ts-expect-error - test tracking
             return window.__lastActionClicked ?? null;
         });
@@ -760,7 +781,7 @@ export class ToastPage extends BasePage {
      * Call this before tests that need to verify action button clicks.
      */
     async clearActionClickTracking(): Promise<void> {
-        await browser.execute(() => {
+        await tpBrowser.execute(() => {
             // @ts-expect-error - test tracking
             delete window.__lastActionClicked;
         });
@@ -785,7 +806,7 @@ export class ToastPage extends BasePage {
     ): Promise<string> {
         this.log(`Showing ${type} toast with ${actions.length} action(s): ${message}`);
 
-        const id = await browser.execute(
+        const id = await tpBrowser.execute(
             (
                 toastType: string,
                 msg: string,
