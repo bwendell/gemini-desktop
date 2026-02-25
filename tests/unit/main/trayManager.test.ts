@@ -15,7 +15,6 @@ import {
     createMockPlatformAdapter,
 } from '../../helpers/mocks';
 
-
 // Mock fs module to control file existence
 vi.mock('fs', () => ({
     existsSync: vi.fn((path: string) => {
@@ -24,14 +23,59 @@ vi.mock('fs', () => ({
     }),
 }));
 
+const trayInstances: (typeof mockTrayInstance)[] = [];
+const mockTrayInstance = {
+    setToolTip: vi.fn(),
+    setContextMenu: vi.fn(),
+    on: vi.fn(),
+    destroy: vi.fn(),
+    isDestroyed: vi.fn().mockReturnValue(false),
+    simulateClick: vi.fn(),
+    getTooltip: vi.fn().mockReturnValue('Gemini Desktop'),
+};
+
+const mockNativeImage = {
+    isEmpty: vi.fn().mockReturnValue(false),
+    setTemplateImage: vi.fn(),
+};
+
+vi.mock('electron', async () => ({
+    Tray: function Tray() {
+        trayInstances.push(mockTrayInstance);
+        return mockTrayInstance;
+    },
+    Menu: {
+        buildFromTemplate: vi.fn(() => ({ items: [] })),
+    },
+    app: {
+        quit: vi.fn(),
+    },
+    nativeImage: {
+        createFromPath: vi.fn(() => mockNativeImage),
+    },
+}));
+
 describe('TrayManager', () => {
     let trayManager: TrayManager;
     let mockWindowManager: WindowManager;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        (Tray as any)._reset();
-        (Menu as any)._reset?.();
+        trayInstances.splice(0, trayInstances.length);
+        mockTrayInstance.setToolTip.mockClear();
+        mockTrayInstance.setContextMenu.mockClear();
+        mockTrayInstance.on.mockClear();
+        mockTrayInstance.destroy.mockClear();
+        mockTrayInstance.isDestroyed.mockClear();
+        mockTrayInstance.isDestroyed.mockReturnValue(false);
+        mockTrayInstance.simulateClick.mockClear();
+        mockTrayInstance.getTooltip.mockClear();
+        mockNativeImage.isEmpty.mockClear();
+        mockNativeImage.isEmpty.mockReturnValue(false);
+        mockNativeImage.setTemplateImage.mockClear();
+        vi.mocked(Menu.buildFromTemplate).mockClear();
+        vi.mocked(app.quit).mockClear();
+        vi.mocked(nativeImage.createFromPath).mockClear();
 
         // Mock WindowManager using shared factory
         mockWindowManager = createMockWindowManager({
@@ -62,12 +106,15 @@ describe('TrayManager', () => {
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
-            expect(tray).toBeInstanceOf(Tray);
             expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('icon.ico');
         });
 
-        it('creates Tray with .png icon on macOS', async () => {
-            useMockPlatformAdapter(platformAdapterPresets.mac());
+        it('creates Tray with macOS-specific tray icon on macOS', async () => {
+            useMockPlatformAdapter(
+                createMockPlatformAdapter({
+                    getTrayIconFilename: vi.fn().mockReturnValue('icon-mac-tray.png'),
+                })
+            );
 
             // Reimport TrayManager after platform mock
             const { default: TrayManager } = await import('../../../src/main/managers/trayManager');
@@ -75,12 +122,10 @@ describe('TrayManager', () => {
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
-            // TrayManager creates nativeImage, not raw iconPath - assert the tray was created successfully
-            expect(tray).toBeInstanceOf(Tray);
             const trayIcon = vi.mocked(nativeImage.createFromPath).mock.results[0]?.value as {
                 setTemplateImage?: (value: boolean) => void;
             };
-            expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('icon.png');
+            expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('icon-mac-tray.png');
             expect(trayIcon.setTemplateImage).not.toHaveBeenCalled();
         });
 
@@ -93,7 +138,6 @@ describe('TrayManager', () => {
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
-            expect(tray).toBeInstanceOf(Tray);
             expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('icon.png');
         });
 
@@ -133,7 +177,7 @@ describe('TrayManager', () => {
             const tray2 = trayManager.createTray();
 
             expect(tray1).toBe(tray2);
-            expect((Tray as any)._instances.length).toBe(1);
+            expect(trayInstances.length).toBe(1);
         });
 
         it('falls back to app icon when tray icon is missing', async () => {
@@ -169,7 +213,8 @@ describe('TrayManager', () => {
             const tray = trayManager.createTray() as any;
 
             // Simulate click
-            tray.simulateClick();
+            const clickHandler = vi.mocked(mockTrayInstance.on).mock.calls.find((call) => call[0] === 'click')?.[1];
+            clickHandler?.();
 
             expect(mockWindowManager.restoreFromTray).toHaveBeenCalled();
         });

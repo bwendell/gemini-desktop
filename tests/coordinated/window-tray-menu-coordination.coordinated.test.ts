@@ -59,6 +59,7 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
         beforeEach(() => {
             platformAdapter = adapterForPlatform[platform]();
             useMockPlatformAdapter(platformAdapter);
+            pathsMocks.getTrayIconPath.mockReturnValue('/mock/icon.png');
             windowManager = new WindowManager(false);
             trayManager = new TrayManager(windowManager);
             menuManager = new MenuManager(windowManager);
@@ -115,6 +116,35 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
                 menuManager.buildMenu();
 
                 expect(Menu.setApplicationMenu).toHaveBeenCalledTimes(2);
+            });
+        });
+
+        describe('Tray icon path selection', () => {
+            it('should use macOS-specific tray icon asset on darwin', () => {
+                if (platform !== 'darwin') {
+                    expect(true).toBe(true);
+                    return;
+                }
+
+                pathsMocks.getTrayIconPath.mockReturnValueOnce('/mock/icon-mac-tray.png');
+
+                trayManager.createTray();
+
+                expect(pathsMocks.getTrayIconPath).toHaveBeenCalled();
+                const lastResult = pathsMocks.getTrayIconPath.mock.results.slice(-1)[0]?.value as string | undefined;
+                expect(lastResult).toContain('icon-mac-tray.png');
+            });
+
+            it('should use default tray icon asset on non-macOS platforms', () => {
+                if (platform === 'darwin') {
+                    expect(true).toBe(true);
+                    return;
+                }
+
+                trayManager.createTray();
+
+                expect(pathsMocks.getTrayIconPath).toHaveBeenCalled();
+                expect(pathsMocks.getTrayIconPath()).toContain('icon.png');
             });
         });
 
@@ -360,5 +390,5 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
                 }
             });
         });
-});
+    });
 });

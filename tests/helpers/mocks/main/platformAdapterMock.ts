@@ -73,7 +73,7 @@ export function createMockPlatformAdapter(overrides: Partial<MockPlatformAdapter
         getDockMenuTemplate: vi.fn().mockReturnValue(null),
         getTitleBarStyle: vi.fn().mockReturnValue(undefined),
         getAppIconFilename: vi.fn().mockReturnValue('icon.ico'),
-        getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
+        getTrayIconFilename: vi.fn().mockReturnValue('icon-mac-tray.png'),
         shouldDisableUpdates: vi.fn().mockReturnValue(false),
         requestMediaPermissions: vi.fn().mockResolvedValue(undefined),
         getNotificationSupportHint: vi.fn().mockReturnValue(undefined),
