@@ -17,6 +17,11 @@ import { Selectors } from './selectors';
 import { clickMenuItemById } from './menuActions';
 import { waitForWindowCount, closeCurrentWindow as _closeCurrentWindow } from './windowActions';
 import {
+    waitForIPCRoundTrip,
+    waitForUIState,
+    waitForWindowTransition as waitForWindowTransitionFromUtilities,
+} from './waitUtilities';
+import {
     waitForOptionsWindow,
     closeOptionsWindow,
     switchToOptionsWindow,
@@ -24,6 +29,35 @@ import {
     openOptionsWindowViaHotkey,
 } from './optionsWindowActions';
 import { isMacOS } from './platform';
+
+type WorkflowsElement = {
+    isDisplayed(): Promise<boolean>;
+    isExisting(): Promise<boolean>;
+    waitForDisplayed(options?: { timeout?: number; timeoutMsg?: string; reverse?: boolean }): Promise<void>;
+    waitForExist(options?: { timeout?: number; timeoutMsg?: string }): Promise<void>;
+    click(): Promise<void>;
+    getAttribute(attr: string): Promise<string | null>;
+    parentElement(): Promise<WorkflowsElement>;
+    $(selector: string): Promise<WorkflowsElement>;
+};
+
+type WorkflowsBrowser = {
+    $(selector: string): Promise<WorkflowsElement>;
+    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
+    waitUntil<T>(condition: () => Promise<T> | T, options?: { timeout?: number; timeoutMsg?: string }): Promise<T>;
+    keys(value: string | string[]): Promise<void>;
+    getWindowHandles(): Promise<string[]>;
+    switchToWindow(handle: string): Promise<void>;
+    closeWindow(): Promise<void>;
+    electron: {
+        execute<T, A extends unknown[]>(
+            fn: (electron: typeof import('electron'), ...args: A) => T,
+            ...args: A
+        ): Promise<T>;
+    };
+};
+
+const workflowsBrowser = browser as unknown as WorkflowsBrowser;
 
 // =============================================================================
 // Options Window Workflows
@@ -49,7 +83,13 @@ export async function withOptionsWindowViaMenu<T>(action: () => Promise<T>): Pro
     await clickMenuItemById('menu-file-options');
     await waitForWindowCount(2);
     await switchToOptionsWindow();
-    await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+    await waitForUIState(
+        async () => {
+            const content = await workflowsBrowser.$('[data-testid="options-content"]');
+            return await content.isDisplayed();
+        },
+        { description: 'Options window ready' }
+    );
 
     testLogger.breadcrumb('workflow', 'Options window opened and ready');
 
@@ -105,7 +145,13 @@ export async function withOptionsWindowViaHotkey<T>(action: () => Promise<T>): P
 export async function withOptionsTab<T>(tabName: 'settings' | 'about', action: () => Promise<T>): Promise<T> {
     return withOptionsWindowViaMenu(async () => {
         await navigateToOptionsTab(tabName);
-        await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+        await waitForUIState(
+            async () => {
+                const tab = await workflowsBrowser.$(`[data-testid="options-tab-${tabName}"]`);
+                return (await tab.getAttribute('aria-selected')) === 'true';
+            },
+            { description: `Options tab ${tabName} active` }
+        );
         return await action();
     });
 }
@@ -128,10 +174,18 @@ export async function changeTheme(theme: 'light' | 'dark' | 'system'): Promise<v
     E2ELogger.info('workflows', `Changing theme to: ${theme}`);
 
     await withOptionsWindowViaMenu(async () => {
-        const themeCard = await browser.$(Selectors.themeCard(theme));
+        const themeCard = await workflowsBrowser.$(Selectors.themeCard(theme));
         await themeCard.waitForDisplayed({ timeout: 5000 });
         await themeCard.click();
-        await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+        await waitForUIState(
+            async () => {
+                const currentTheme = await workflowsBrowser.execute(() => {
+                    return document.documentElement.getAttribute('data-theme');
+                });
+                return currentTheme === theme;
+            },
+            { description: `Theme ${theme} applied` }
+        );
     });
 
     E2ELogger.info('workflows', `✓ Theme changed to: ${theme}`);
@@ -149,7 +203,7 @@ export async function changeTheme(theme: 'light' | 'dark' | 'system'): Promise<v
  * await changeTheme(original); // Restore
  */
 export async function changeThemeWithRestore(newTheme: 'light' | 'dark' | 'system'): Promise<'light' | 'dark'> {
-    const originalTheme = (await browser.execute(() => {
+    const originalTheme = (await workflowsBrowser.execute(() => {
         return document.documentElement.getAttribute('data-theme');
     })) as 'light' | 'dark';
 
@@ -175,24 +229,35 @@ export async function recordHotkey(hotkeyId: string, keys: string[]): Promise<vo
     E2ELogger.info('workflows', `Recording hotkey for ${hotkeyId}: ${keys.join('+')}`);
 
     // Find the hotkey row and click the accelerator display
-    const row = await browser.$(`[data-testid="hotkey-toggle-${hotkeyId}"]`);
+    const row = await workflowsBrowser.$(`[data-testid="hotkey-toggle-${hotkeyId}"]`);
     const parentRow = await row.parentElement();
     const acceleratorDisplay = await parentRow.$('.keycap-container');
 
     await acceleratorDisplay.click();
 
     // Wait for recording mode to activate
-    await browser.waitUntil(
+    await workflowsBrowser.waitUntil(
         async () => {
-            const prompt = await browser.$('.recording-prompt');
+            const prompt = await workflowsBrowser.$('.recording-prompt');
             return await prompt.isDisplayed();
         },
         { timeout: 2000, timeoutMsg: 'Recording mode did not activate' }
     );
 
     // Press the new key combination
-    await browser.keys(keys);
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    await waitForIPCRoundTrip(
+        async () => {
+            await workflowsBrowser.keys(keys);
+        },
+        {
+            verification: async () => {
+                const prompt = await workflowsBrowser.$('.recording-prompt');
+                const exists = await prompt.isExisting();
+                if (!exists) return true;
+                return !(await prompt.isDisplayed());
+            },
+        }
+    );
 
     E2ELogger.info('workflows', `✓ Recorded hotkey: ${keys.join('+')}`);
 }
@@ -221,14 +286,24 @@ export async function recordHotkeyViaOptions(hotkeyId: string, keys: string[]): 
 export async function resetHotkeyToDefault(hotkeyId: string): Promise<void> {
     E2ELogger.info('workflows', `Resetting hotkey: ${hotkeyId}`);
 
-    const row = await browser.$(`[data-testid="hotkey-toggle-${hotkeyId}"]`);
+    const row = await workflowsBrowser.$(`[data-testid="hotkey-toggle-${hotkeyId}"]`);
     const parentRow = await row.parentElement();
     const resetButton = await parentRow.$('.reset-button');
 
     if (await resetButton.isExisting()) {
         if (await resetButton.isDisplayed()) {
-            await resetButton.click();
-            await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            await waitForIPCRoundTrip(
+                async () => {
+                    await resetButton.click();
+                },
+                {
+                    verification: async () => {
+                        const exists = await resetButton.isExisting();
+                        if (!exists) return true;
+                        return !(await resetButton.isDisplayed());
+                    },
+                }
+            );
             E2ELogger.info('workflows', `✓ Reset hotkey: ${hotkeyId}`);
         } else {
             E2ELogger.info('workflows', `Hotkey ${hotkeyId} already at default`);
@@ -251,12 +326,18 @@ export async function resetHotkeyToDefault(hotkeyId: string): Promise<void> {
  * await toggleSwitch('[data-testid="auto-update-toggle"]');
  */
 export async function toggleSwitch(toggleSelector: string): Promise<void> {
-    const toggle = await browser.$(toggleSelector);
+    const toggle = await workflowsBrowser.$(toggleSelector);
     await toggle.waitForDisplayed({ timeout: 5000 });
 
     const wasChecked = (await toggle.getAttribute('aria-checked')) === 'true';
-    await toggle.click();
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    await waitForIPCRoundTrip(
+        async () => {
+            await toggle.click();
+        },
+        {
+            verification: async () => (await toggle.getAttribute('aria-checked')) !== String(wasChecked),
+        }
+    );
 
     E2ELogger.info('workflows', `Toggled ${toggleSelector}: ${wasChecked} → ${!wasChecked}`);
 }
@@ -268,14 +349,20 @@ export async function toggleSwitch(toggleSelector: string): Promise<void> {
  * @param enabled - The desired state
  */
 export async function setToggleState(toggleSelector: string, enabled: boolean): Promise<void> {
-    const toggle = await browser.$(toggleSelector);
+    const toggle = await workflowsBrowser.$(toggleSelector);
     await toggle.waitForDisplayed({ timeout: 5000 });
 
     const isCurrentlyEnabled = (await toggle.getAttribute('aria-checked')) === 'true';
 
     if (isCurrentlyEnabled !== enabled) {
-        await toggle.click();
-        await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForIPCRoundTrip(
+            async () => {
+                await toggle.click();
+            },
+            {
+                verification: async () => (await toggle.getAttribute('aria-checked')) === String(enabled),
+            }
+        );
         E2ELogger.info('workflows', `Set toggle ${toggleSelector} to: ${enabled}`);
     } else {
         E2ELogger.info('workflows', `Toggle ${toggleSelector} already in state: ${enabled}`);
@@ -292,7 +379,7 @@ export async function setToggleState(toggleSelector: string, enabled: boolean): 
  */
 export async function ensureSingleWindow(): Promise<void> {
     testLogger.breadcrumb('workflow', 'Ensuring single window state');
-    const handles = await browser.getWindowHandles();
+    const handles = await workflowsBrowser.getWindowHandles();
 
     if (handles.length > 1) {
         E2ELogger.info('workflows', `Closing ${handles.length - 1} extra window(s)`);
@@ -300,12 +387,12 @@ export async function ensureSingleWindow(): Promise<void> {
 
         // Close all windows except the first (main window)
         for (let i = handles.length - 1; i > 0; i--) {
-            await browser.switchToWindow(handles[i]);
-            await browser.closeWindow();
+            await workflowsBrowser.switchToWindow(handles[i]);
+            await workflowsBrowser.closeWindow();
         }
 
         // Switch back to main window
-        await browser.switchToWindow(handles[0]);
+        await workflowsBrowser.switchToWindow(handles[0]);
     }
 
     testLogger.breadcrumb('workflow', 'Single window state confirmed');
@@ -316,9 +403,9 @@ export async function ensureSingleWindow(): Promise<void> {
  * Switches to the main window (first window handle).
  */
 export async function switchToMainWindow(): Promise<void> {
-    const handles = await browser.getWindowHandles();
+    const handles = await workflowsBrowser.getWindowHandles();
     if (handles.length > 0) {
-        await browser.switchToWindow(handles[0]);
+        await workflowsBrowser.switchToWindow(handles[0]);
         E2ELogger.info('workflows', 'Switched to main window');
     }
 }
@@ -329,7 +416,7 @@ export async function switchToMainWindow(): Promise<void> {
  * @returns The number of open windows
  */
 export async function getWindowCount(): Promise<number> {
-    const handles = await browser.getWindowHandles();
+    const handles = await workflowsBrowser.getWindowHandles();
     return handles.length;
 }
 
@@ -348,21 +435,21 @@ export async function getWindowCount(): Promise<number> {
  * const optionsHandle = await openWindowViaMenu('menu-file-options');
  */
 export async function openWindowViaMenu(menuItemId: string): Promise<string> {
-    const initialHandles = await browser.getWindowHandles();
+    const initialHandles = await workflowsBrowser.getWindowHandles();
     const initialCount = initialHandles.length;
 
     await clickMenuItemById(menuItemId);
 
     // Wait for new window
-    await browser.waitUntil(
+    await workflowsBrowser.waitUntil(
         async () => {
-            const handles = await browser.getWindowHandles();
+            const handles = await workflowsBrowser.getWindowHandles();
             return handles.length > initialCount;
         },
         { timeout: 5000, timeoutMsg: `No new window opened after clicking ${menuItemId}` }
     );
 
-    const newHandles = await browser.getWindowHandles();
+    const newHandles = await workflowsBrowser.getWindowHandles();
     const newWindowHandle = newHandles.find((h) => !initialHandles.includes(h));
 
     E2ELogger.info('workflows', `✓ Opened window via menu: ${menuItemId}`);
@@ -392,8 +479,8 @@ export async function pressShortcut(modifierType: 'primary' | 'alt', ...keys: st
         modifier = 'Alt';
     }
 
-    await browser.keys([modifier, ...keys]);
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    await workflowsBrowser.keys([modifier, ...keys]);
+    await waitForIpcDelay(E2E_TIMING.IPC_ROUND_TRIP);
 
     E2ELogger.info('workflows', `Pressed shortcut: ${modifier}+${keys.join('+')}`);
 }
@@ -423,8 +510,8 @@ export async function pressComplexShortcut(modifiers: Array<'primary' | 'shift' 
         }
     });
 
-    await browser.keys([...modifierKeys, key]);
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    await workflowsBrowser.keys([...modifierKeys, key]);
+    await waitForIpcDelay(E2E_TIMING.IPC_ROUND_TRIP);
 
     E2ELogger.info('workflows', `Pressed shortcut: ${modifierKeys.join('+')}+${key}`);
 }
@@ -446,7 +533,7 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
 
     const keyCode = key.length === 1 ? key.toUpperCase() : key;
 
-    await browser.electron.execute(
+    await workflowsBrowser.electron.execute(
         (electron, payload) => {
             const wm = (global as { windowManager?: { getMainWindow?: () => Electron.BrowserWindow | null } })
                 .windowManager;
@@ -467,8 +554,7 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
         },
         { keyCode, modifiers: modifierKeys }
     );
-
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    await waitForIpcDelay(E2E_TIMING.IPC_ROUND_TRIP);
     E2ELogger.info('workflows', `Pressed native shortcut: ${modifierKeys.join('+')}+${key}`);
 }
 
@@ -482,7 +568,7 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
  * @param timeout - Timeout in ms (default: 15000)
  */
 export async function waitForAppReady(timeout = 15000): Promise<void> {
-    const mainLayout = await browser.$(Selectors.mainLayout);
+    const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
     await mainLayout.waitForExist({ timeout });
     E2ELogger.info('workflows', '✓ App is ready');
 }
@@ -492,7 +578,7 @@ export async function waitForAppReady(timeout = 15000): Promise<void> {
  * Use after actions that trigger IPC calls.
  */
 export async function waitForIpcSettle(): Promise<void> {
-    await browser.pause(E2E_TIMING.IPC_ROUND_TRIP);
+    await waitForIpcDelay(E2E_TIMING.IPC_ROUND_TRIP);
 }
 
 /**
@@ -518,22 +604,23 @@ export async function waitForWindowTransition(
     timeout = E2E_TIMING.TIMEOUTS?.WINDOW_TRANSITION ?? 3000
 ): Promise<boolean | void> {
     if (!condition) {
-        // Backwards-compatible: static pause when no condition provided
-        await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
-        return;
+        return waitForWindowTransitionFromUtilities(async () => true, {
+            timeout,
+            stableDuration: E2E_TIMING.WINDOW_TRANSITION,
+            description: 'Window transition (fallback)',
+        });
     }
 
-    // Condition-based polling for CI reliability
+    return waitForWindowTransitionFromUtilities(condition, {
+        timeout,
+        description: 'Window transition',
+    });
+}
+
+async function waitForIpcDelay(delayMs: number): Promise<void> {
     const startTime = Date.now();
-
-    while (Date.now() - startTime < timeout) {
-        if (await condition()) {
-            E2ELogger.info('workflows', `Window transition condition met after ${Date.now() - startTime}ms`);
-            return true;
-        }
-        await browser.pause(100); // Poll every 100ms
-    }
-
-    E2ELogger.info('workflows', `Timeout waiting for window transition condition after ${timeout}ms`);
-    return false;
+    await waitForIPCRoundTrip(async () => undefined, {
+        timeout: Math.max(E2E_TIMING.TIMEOUTS?.IPC_OPERATION ?? 3000, delayMs),
+        verification: async () => Date.now() - startTime >= delayMs,
+    });
 }
