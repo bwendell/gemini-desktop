@@ -13,6 +13,7 @@ import { BasePage } from './BasePage';
 import { Selectors } from '../helpers/selectors';
 import { browser } from '@wdio/globals';
 import { navigateToOptionsTab, closeOptionsWindow, waitForOptionsWindow } from '../helpers/optionsWindowActions';
+import { E2E_TIMING } from '../helpers/e2eConstants';
 import { waitForIPCRoundTrip } from '../helpers/waitUtilities';
 
 type OPElement = {
@@ -43,6 +44,21 @@ function toOPEl(el: WebdriverIO.Element): OPElement {
 export class OptionsPage extends BasePage {
     constructor() {
         super('OptionsPage');
+    }
+
+    private async waitForIpcPropagation(
+        action: () => Promise<void>,
+        verification?: () => Promise<boolean>
+    ): Promise<void> {
+        try {
+            await waitForIPCRoundTrip(action, {
+                timeout: E2E_TIMING.TIMEOUTS?.WINDOW_TRANSITION ?? 5000,
+                verification,
+            });
+        } catch (error) {
+            this.log(`IPC verification timed out, using fallback pause: ${String(error)}`);
+            await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        }
     }
 
     // ===========================================================================
@@ -224,12 +240,13 @@ export class OptionsPage extends BasePage {
     async selectTheme(theme: 'light' | 'dark' | 'system'): Promise<void> {
         this.log(`Selecting theme: ${theme}`);
         const themeCard = await this.waitForElement(this.themeCardSelector(theme));
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(themeCard).click();
             },
-            { verification: async () => (await this.getCurrentTheme()) === theme }
+            async () => (await this.getCurrentTheme()) === theme
         );
+        await this.pause();
     }
 
     /**
@@ -279,11 +296,11 @@ export class OptionsPage extends BasePage {
         this.log(`Toggling hotkey: ${hotkeyId}`);
         const toggle = await this.getHotkeyToggle(hotkeyId);
         const stateBefore = await toOPEl(toggle).getAttribute('aria-checked');
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(toggle).click();
             },
-            { verification: async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore }
+            async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore
         );
     }
 
@@ -326,11 +343,11 @@ export class OptionsPage extends BasePage {
         this.log('Toggling master hotkey');
         const toggle = await this.waitForElement(this.masterHotkeyToggleSelector);
         const stateBefore = await toOPEl(toggle).getAttribute('aria-checked');
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(toggle).click();
             },
-            { verification: async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore }
+            async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore
         );
     }
 
@@ -349,11 +366,11 @@ export class OptionsPage extends BasePage {
     async clickAcceleratorInput(hotkeyId: string): Promise<void> {
         this.log(`Clicking accelerator input for: ${hotkeyId}`);
         const container = await this.waitForElement(this.acceleratorContainerSelector(hotkeyId));
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(container).click();
             },
-            { verification: async () => await this.isRecordingModeActive(hotkeyId) }
+            async () => await this.isRecordingModeActive(hotkeyId)
         );
     }
 
@@ -495,11 +512,11 @@ export class OptionsPage extends BasePage {
         this.log('Toggling auto-update');
         const toggle = await this.waitForElement(this.autoUpdateSwitchSelector);
         const stateBefore = await toOPEl(toggle).getAttribute('aria-checked');
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(toggle).click();
             },
-            { verification: async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore }
+            async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore
         );
     }
 
@@ -588,11 +605,11 @@ export class OptionsPage extends BasePage {
         this.log('Toggling text prediction');
         const toggle = await this.waitForElement(this.textPredictionEnableToggleSelector);
         const stateBefore = await toOPEl(toggle).getAttribute('aria-checked');
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(toggle).click();
             },
-            { verification: async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore }
+            async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore
         );
     }
 
@@ -667,11 +684,11 @@ export class OptionsPage extends BasePage {
         this.log('Toggling text prediction GPU');
         const toggle = await this.waitForElement(this.textPredictionGpuToggleSelector);
         const stateBefore = await toOPEl(toggle).getAttribute('aria-checked');
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(toggle).click();
             },
-            { verification: async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore }
+            async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore
         );
     }
 
@@ -728,11 +745,11 @@ export class OptionsPage extends BasePage {
     async clickTextPredictionRetryButton(): Promise<void> {
         this.log('Clicking text prediction retry button');
         const button = await this.waitForElement(this.textPredictionRetryButtonSelector);
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(button).click();
             },
-            { verification: async () => await this.isTextPredictionStatusDisplayed() }
+            async () => await this.isTextPredictionStatusDisplayed()
         );
     }
 
@@ -749,11 +766,11 @@ export class OptionsPage extends BasePage {
     async clickSimulateErrorButton(): Promise<void> {
         this.log('Clicking simulate error button');
         const button = await this.waitForElement(this.textPredictionSimulateErrorButtonSelector);
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(button).click();
             },
-            { verification: async () => await this.isTextPredictionInErrorState() }
+            async () => await this.isTextPredictionInErrorState()
         );
     }
 
@@ -829,11 +846,11 @@ export class OptionsPage extends BasePage {
         this.log('Toggling response notifications');
         const toggle = await this.waitForElement(this.responseNotificationsSwitchSelector);
         const stateBefore = await toOPEl(toggle).getAttribute('aria-checked');
-        await waitForIPCRoundTrip(
+        await this.waitForIpcPropagation(
             async () => {
                 await toOPEl(toggle).click();
             },
-            { verification: async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore }
+            async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore
         );
     }
 

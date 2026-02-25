@@ -196,14 +196,46 @@ async function clickCustomMenuItemById(id: string): Promise<void> {
     const menuCategory = parts[1]; // 'file', 'view', 'help', etc.
     const menuLabel = menuCategory.charAt(0).toUpperCase() + menuCategory.slice(1); // 'File', 'View', 'Help'
 
-    // Click the menu button to open dropdown
-    const menuBtn = await $(`[data-testid="menu-button-${menuLabel}"]`);
-    await menuBtn.waitForClickable({ timeout: 5000 });
-    await menuBtn.click();
+    const menuButtonSelectors = [
+        `[data-testid="menu-button-${menuLabel}"]`,
+        `[data-testid="menu-button-${menuCategory}"]`,
+    ];
+    let clickedMenuButton = false;
+    for (const selector of menuButtonSelectors) {
+        const menuBtn = await $(selector);
+        if (await menuBtn.isExisting()) {
+            await menuBtn.waitForClickable({ timeout: 5000 });
+            await menuBtn.click();
+            clickedMenuButton = true;
+            break;
+        }
+    }
 
-    // Wait for dropdown (uses class selector as TitlebarMenu doesn't have data-testid on dropdown)
-    const dropdown = await $('.titlebar-menu-dropdown');
-    await dropdown.waitForDisplayed({ timeout: 2000 });
+    if (!clickedMenuButton) {
+        throw new Error(`[E2E] Could not find menu button for category "${menuCategory}"`);
+    }
+
+    const dropdownSelectors = ['.titlebar-menu-dropdown', '[data-testid="menu-dropdown"]'];
+    const dropdownVisible = await waitForUIState(
+        async () => {
+            for (const selector of dropdownSelectors) {
+                const dropdown = await $(selector);
+                if ((await dropdown.isExisting()) && (await dropdown.isDisplayed())) {
+                    return true;
+                }
+            }
+            return false;
+        },
+        {
+            timeout: E2E_TIMING.TIMEOUTS?.UI_STATE ?? 5000,
+            interval: E2E_TIMING.POLLING?.UI_STATE ?? 50,
+            description: `menu dropdown for ${menuCategory}`,
+        }
+    );
+
+    if (!dropdownVisible) {
+        throw new Error(`[E2E] Menu dropdown did not appear for category "${menuCategory}"`);
+    }
 
     // Click the menu item by data-menu-id
     const menuItem = await $(`[data-menu-id="${id}"]`);
@@ -368,7 +400,7 @@ export interface MenuItemState {
     /** Whether the menu item is enabled */
     enabled: boolean;
     /** The accelerator string (e.g., 'CommandOrControl+Shift+P') */
-    accelerator: string | undefined;
+    accelerator: string | null | undefined;
     /** The menu item label */
     label: string | undefined;
 }
@@ -400,7 +432,7 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
             return {
                 exists: true,
                 enabled: item.enabled,
-                accelerator: item.accelerator ?? undefined,
+                accelerator: item.accelerator,
                 label: item.label,
             };
         }, id);
@@ -418,7 +450,7 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
             return {
                 exists: true,
                 enabled: item.enabled,
-                accelerator: item.accelerator ?? undefined,
+                accelerator: item.accelerator,
                 label: item.label,
             };
         }, id);

@@ -85,7 +85,7 @@ export async function getWindowAlwaysOnTopState(): Promise<boolean> {
  * @param enabled - Whether to enable always on top
  * @param waitMs - Maximum time to wait for state confirmation (defaults to E2E_TIMING.IPC_ROUND_TRIP)
  */
-export async function setAlwaysOnTop(enabled: boolean, waitMs: number = E2E_TIMING.IPC_ROUND_TRIP): Promise<void> {
+export async function setAlwaysOnTop(enabled: boolean, waitMs = Number(E2E_TIMING.IPC_ROUND_TRIP)): Promise<void> {
     E2ELogger.info('alwaysOnTopActions', `Setting always-on-top to: ${enabled}`);
 
     // Fire the IPC call
@@ -190,7 +190,7 @@ export async function toggleAlwaysOnTop(method: 'menu' | 'hotkey' | 'api' = 'api
  */
 export async function resetAlwaysOnTopState(): Promise<void> {
     E2ELogger.info('alwaysOnTopActions', 'Resetting always-on-top state to disabled');
-    await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE as number);
+    await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
 }
 
 /**
