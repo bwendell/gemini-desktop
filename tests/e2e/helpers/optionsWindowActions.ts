@@ -12,7 +12,23 @@ import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
 import { isMacOS } from './platform';
 import { E2E_TIMING } from './e2eConstants';
+import { waitForWindowCount } from './waitUtilities';
 
+type OWBrowser = {
+    keys(value: string | string[]): Promise<void>;
+    waitUntil<T>(condition: () => Promise<T> | T, options?: { timeout?: number; timeoutMsg?: string }): Promise<T>;
+    getWindowHandles(): Promise<string[]>;
+    switchToWindow(handle: string): Promise<void>;
+    closeWindow(): Promise<void>;
+    $(
+        selector: string
+    ): Promise<{
+        isExisting(): Promise<boolean>;
+        waitForDisplayed(opts?: { timeout?: number; timeoutMsg?: string }): Promise<void>;
+        click(): Promise<void>;
+    }>;
+};
+const owBrowser = browser as unknown as OWBrowser;
 /**
  * Opens the options window using the keyboard shortcut (Cmd+, or Ctrl+,).
  *
@@ -22,8 +38,8 @@ export async function openOptionsWindowViaHotkey(waitMs = E2E_TIMING.IPC_ROUND_T
     const isMac = await isMacOS();
     const modifier = isMac ? 'Meta' : 'Control';
     E2ELogger.info('optionsWindowActions', `Opening Options window via hotkey: ${modifier}+,`);
-    await browser.keys([modifier, ',']);
-    await browser.pause(waitMs);
+    await owBrowser.keys([modifier, ',']);
+    await waitForWindowCount(2, waitMs);
 }
 
 /**
@@ -36,18 +52,18 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
     E2ELogger.info('optionsWindowActions', 'Waiting for Options window to load');
 
     // Wait for a second window to appear if not already there
-    await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 1, {
+    await owBrowser.waitUntil(async () => (await owBrowser.getWindowHandles()).length > 1, {
         timeout,
         timeoutMsg: 'Options window handle did not appear',
     });
 
-    const handles = await browser.getWindowHandles();
+    const handles = await owBrowser.getWindowHandles();
     // Assume the last window is the new one (Options)
-    await browser.switchToWindow(handles[handles.length - 1]);
+    await owBrowser.switchToWindow(handles[handles.length - 1]);
 
-    await browser.waitUntil(
+    await owBrowser.waitUntil(
         async () => {
-            const content = await browser.$('[data-testid="options-content"]');
+            const content = await owBrowser.$('[data-testid="options-content"]');
             return await content.isExisting();
         },
         {
@@ -62,11 +78,11 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
  */
 export async function closeOptionsWindow(): Promise<void> {
     E2ELogger.info('optionsWindowActions', 'Closing Options window');
-    await browser.closeWindow();
+    await owBrowser.closeWindow();
 
-    const handles = await browser.getWindowHandles();
+    const handles = await owBrowser.getWindowHandles();
     if (handles.length > 0) {
-        await browser.switchToWindow(handles[0]);
+        await owBrowser.switchToWindow(handles[0]);
     }
 }
 
@@ -75,7 +91,7 @@ export async function closeOptionsWindow(): Promise<void> {
  * Assumes the options window is the second window in the list.
  */
 export async function getOptionsWindowHandle(): Promise<string | null> {
-    const handles = await browser.getWindowHandles();
+    const handles = await owBrowser.getWindowHandles();
     return handles.length > 1 ? handles[1] : null;
 }
 
@@ -89,7 +105,7 @@ export async function switchToOptionsWindow(): Promise<void> {
     if (!handle) {
         throw new Error('Options window handle not found');
     }
-    await browser.switchToWindow(handle);
+    await owBrowser.switchToWindow(handle);
 }
 
 /**
@@ -100,7 +116,7 @@ export async function switchToOptionsWindow(): Promise<void> {
 export async function navigateToOptionsTab(tabName: string): Promise<void> {
     E2ELogger.info('optionsWindowActions', `Navigating to options tab: ${tabName}`);
     const tabSelector = `[data-testid="options-tab-${tabName}"]`;
-    const tab = await browser.$(tabSelector);
+    const tab = await owBrowser.$(tabSelector);
 
     await tab.waitForDisplayed({
         timeout: 5000,
