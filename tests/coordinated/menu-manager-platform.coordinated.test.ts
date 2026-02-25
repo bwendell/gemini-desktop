@@ -50,11 +50,23 @@ describe('MenuManager Platform Integration', () => {
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
             expect(template).toBeDefined();
             expect(Array.isArray(template)).toBe(true);
-            expect(template.length).toBeGreaterThanOrEqual(3);
+            expect(template.length).toBeGreaterThanOrEqual(4);
 
             const firstMenu = template[0];
             expect(firstMenu).toBeDefined();
             expect(firstMenu.label).toBe('Gemini Desktop');
+        });
+
+        it('should include Edit menu with clipboard roles on macOS', () => {
+            menuManager.buildMenu();
+
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const editMenu = template.find((m: any) => m.label === 'Edit');
+            expect(editMenu).toBeDefined();
+
+            const submenu = editMenu?.submenu ?? [];
+            const roles = submenu.filter((item: any) => item.role).map((item: any) => item.role);
+            expect(roles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
         });
 
         it('should include About and Settings in app menu on macOS', () => {
@@ -125,6 +137,18 @@ describe('MenuManager Platform Integration', () => {
                 expect(hasExit).toBe(true);
             }
         });
+
+        it('should include Edit menu with clipboard roles on Windows', () => {
+            menuManager.buildMenu();
+
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const editMenu = template.find((m: any) => m.label === 'Edit');
+            expect(editMenu).toBeDefined();
+
+            const submenu = editMenu?.submenu ?? [];
+            const roles = submenu.filter((item: any) => item.role).map((item: any) => item.role);
+            expect(roles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
+        });
     });
 
     describe('on linux', () => {
@@ -158,6 +182,18 @@ describe('MenuManager Platform Integration', () => {
                 );
                 expect(hasQuit).toBe(true);
             }
+        });
+
+        it('should include Edit menu with clipboard roles on Linux', () => {
+            menuManager.buildMenu();
+
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const editMenu = template.find((m: any) => m.label === 'Edit');
+            expect(editMenu).toBeDefined();
+
+            const submenu = editMenu?.submenu ?? [];
+            const roles = submenu.filter((item: any) => item.role).map((item: any) => item.role);
+            expect(roles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
         });
     });
 
