@@ -190,6 +190,7 @@ describe('IPC Round-Trip Integration', () => {
                 alwaysOnTop: true,
                 peekAndHide: true,
                 quickChat: true,
+                voiceChat: true,
                 printToPdf: true,
             });
         });

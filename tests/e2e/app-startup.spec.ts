@@ -13,7 +13,6 @@
 import { browser, $, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
-import { E2ELogger } from './helpers/logger';
 
 describe('Application Startup', () => {
     beforeEach(async () => {
@@ -41,7 +40,6 @@ describe('Application Startup', () => {
             // Verify buttons DON'T exist on macOS
             const minimize = await $(Selectors.minimizeButton);
             await expect(minimize).not.toBeExisting();
-            E2ELogger.info('app-startup', 'Custom controls correctly hidden on macOS');
             return;
         }
 
@@ -61,7 +59,6 @@ describe('Application Startup', () => {
             // Verify menu bar doesn't exist on macOS
             const menuBar = await $(Selectors.menuBar);
             await expect(menuBar).not.toBeExisting();
-            E2ELogger.info('app-startup', 'Custom menu bar correctly hidden on macOS');
             return;
         }
 
@@ -107,7 +104,5 @@ describe('Application Startup', () => {
             return img ? img.naturalWidth > 0 : false;
         });
         expect(isLoaded).toBe(true);
-
-        E2ELogger.info('app-startup', 'App icon loaded successfully in titlebar');
     });
 });

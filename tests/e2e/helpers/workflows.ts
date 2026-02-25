@@ -11,6 +11,7 @@
 
 import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
+import { testLogger } from './testLogger';
 import { E2E_TIMING } from './e2eConstants';
 import { Selectors } from './selectors';
 import { clickMenuItemById } from './menuActions';
@@ -43,16 +44,20 @@ import { isMacOS } from './platform';
  */
 export async function withOptionsWindowViaMenu<T>(action: () => Promise<T>): Promise<T> {
     E2ELogger.info('workflows', 'Opening Options window via menu');
+    testLogger.breadcrumb('workflow', 'Opening Options window via menu');
 
     await clickMenuItemById('menu-file-options');
     await waitForWindowCount(2);
     await switchToOptionsWindow();
     await browser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
 
+    testLogger.breadcrumb('workflow', 'Options window opened and ready');
+
     try {
         return await action();
     } finally {
         E2ELogger.info('workflows', 'Closing Options window');
+        testLogger.breadcrumb('workflow', 'Closing Options window');
         await closeOptionsWindow();
     }
 }
@@ -286,10 +291,12 @@ export async function setToggleState(toggleSelector: string, enabled: boolean): 
  * Useful for test cleanup.
  */
 export async function ensureSingleWindow(): Promise<void> {
+    testLogger.breadcrumb('workflow', 'Ensuring single window state');
     const handles = await browser.getWindowHandles();
 
     if (handles.length > 1) {
         E2ELogger.info('workflows', `Closing ${handles.length - 1} extra window(s)`);
+        testLogger.breadcrumb('workflow', `Closing ${handles.length - 1} extra window(s)`);
 
         // Close all windows except the first (main window)
         for (let i = handles.length - 1; i > 0; i--) {
@@ -301,6 +308,7 @@ export async function ensureSingleWindow(): Promise<void> {
         await browser.switchToWindow(handles[0]);
     }
 
+    testLogger.breadcrumb('workflow', 'Single window state confirmed');
     E2ELogger.info('workflows', '✓ Single window state ensured');
 }
 

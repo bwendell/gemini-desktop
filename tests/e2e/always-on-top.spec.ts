@@ -20,8 +20,7 @@ import { closeAllSecondaryWindows } from './helpers/WindowManagerHelper';
 
 import { MainWindowPage } from './pages/MainWindowPage';
 import { OptionsPage } from './pages/OptionsPage';
-import { E2ELogger } from './helpers/logger';
-import { getPlatform, isMacOS, isWindows, isLinuxCI } from './helpers/platform';
+import { isMacOS, isWindows, isLinuxCI } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForUIState, waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
 import {
@@ -31,7 +30,6 @@ import {
     toggleAlwaysOnTopViaMenu,
     pressAlwaysOnTopHotkey,
     resetAlwaysOnTopState,
-    getModifierKey,
 } from './helpers/alwaysOnTopActions';
 import {
     isWindowMinimized,
@@ -96,18 +94,13 @@ describe('Always On Top', () => {
     const mainWindow = new MainWindowPage();
     const optionsPage = new OptionsPage();
 
-    let platform: string;
-    let modifierKey: 'Meta' | 'Control';
     let mainWindowHandle: string;
     let originalBounds: { x: number; y: number; width: number; height: number };
 
     before(async () => {
-        platform = await getPlatform();
-        modifierKey = await getModifierKey();
         originalBounds = await getWindowBounds();
         const handles = await browser.getWindowHandles();
         mainWindowHandle = handles[0];
-        E2ELogger.info('always-on-top', `Platform: ${platform}, Modifier: ${modifierKey}`);
     });
 
     afterEach(async () => {
@@ -146,11 +139,8 @@ describe('Always On Top', () => {
     describe('Menu Toggle', () => {
         it('should have Always On Top menu item in View menu', async function () {
             if (await isMacOS()) {
-                E2ELogger.info('always-on-top', 'macOS: Skipping menu item visual verification (native menu)');
                 return;
             }
-
-            E2ELogger.info('always-on-top', 'Verifying menu item exists');
 
             await mainWindow.clickMenuById('menu-view-always-on-top');
             await waitForUIState(
@@ -160,7 +150,6 @@ describe('Always On Top', () => {
                 },
                 { description: 'Menu toggle applied' }
             );
-            E2ELogger.info('always-on-top', 'Menu item exists and is clickable');
 
             // Toggle back to original state
             await mainWindow.clickMenuById('menu-view-always-on-top');
@@ -174,8 +163,6 @@ describe('Always On Top', () => {
         });
 
         it('should toggle always on top state when menu item is clicked', async () => {
-            E2ELogger.info('always-on-top', 'Testing menu toggle functionality');
-
             const initialState = await getAlwaysOnTopState();
             const wasEnabled = initialState.enabled;
 
@@ -192,8 +179,6 @@ describe('Always On Top', () => {
         });
 
         it('should toggle state multiple times correctly via menu', async () => {
-            E2ELogger.info('always-on-top', 'Testing multiple toggle operations');
-
             const initialState = await getAlwaysOnTopState();
             const startEnabled = initialState.enabled;
 
@@ -218,8 +203,6 @@ describe('Always On Top', () => {
     // We verify the Feature via Menu clicks and the Registration via hotkey-toggle.spec.ts.
     describe.skip('Hotkey Toggle', () => {
         it('should toggle always-on-top when hotkey is pressed', async () => {
-            E2ELogger.info('always-on-top', 'Testing basic hotkey toggle');
-
             const initialState = await getAlwaysOnTopState();
             const wasEnabled = initialState.enabled;
 
@@ -236,8 +219,6 @@ describe('Always On Top', () => {
         });
 
         it('should toggle state when hotkey is pressed multiple times', async () => {
-            E2ELogger.info('always-on-top', 'Testing multiple hotkey presses');
-
             const initialState = await getAlwaysOnTopState();
             const startEnabled = initialState.enabled;
 
@@ -255,8 +236,6 @@ describe('Always On Top', () => {
         });
 
         it.skip('should handle rapid hotkey presses without desync', async () => {
-            E2ELogger.info('always-on-top', 'Testing rapid toggle stability');
-
             const initialState = await getAlwaysOnTopState();
             const startEnabled = initialState.enabled;
 
@@ -286,8 +265,6 @@ describe('Always On Top', () => {
     // NOTE: Application hotkeys tested via focused window keys.
     describe.skip('Menu-Hotkey Synchronization', () => {
         it('should update state when toggled via hotkey', async () => {
-            E2ELogger.info('always-on-top', 'Testing hotkey -> state sync');
-
             const initialState = await getAlwaysOnTopState();
             const wasEnabled = initialState.enabled;
 
@@ -301,8 +278,6 @@ describe('Always On Top', () => {
         });
 
         it('should update state when toggled via menu', async () => {
-            E2ELogger.info('always-on-top', 'Testing menu -> state sync');
-
             const initialState = await getAlwaysOnTopState();
             const wasEnabled = initialState.enabled;
 
@@ -316,8 +291,6 @@ describe('Always On Top', () => {
         });
 
         it('should remain synced when alternating between menu and hotkey', async () => {
-            E2ELogger.info('always-on-top', 'Testing bidirectional sync');
-
             const initialState = await getAlwaysOnTopState();
             const startEnabled = initialState.enabled;
 
@@ -343,8 +316,6 @@ describe('Always On Top', () => {
         });
 
         it.skip('should handle rapid alternation between input methods', async () => {
-            E2ELogger.info('always-on-top', 'Testing rapid alternation');
-
             const initialState = await getAlwaysOnTopState();
             const startEnabled = initialState.enabled;
 
@@ -367,8 +338,6 @@ describe('Always On Top', () => {
 
     describe('Z-Order Verification', () => {
         it('should report always-on-top as enabled when set', async () => {
-            E2ELogger.info('always-on-top', 'Testing enabled state z-order');
-
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             // Verify via renderer API
@@ -381,8 +350,6 @@ describe('Always On Top', () => {
         });
 
         it('should report always-on-top as disabled when unset', async () => {
-            E2ELogger.info('always-on-top', 'Testing disabled state z-order');
-
             await setAlwaysOnTop(false, E2E_TIMING.IPC_ROUND_TRIP);
 
             const rendererState = await getAlwaysOnTopState();
@@ -393,8 +360,6 @@ describe('Always On Top', () => {
         });
 
         it('should have renderer and main process states synchronized', async () => {
-            E2ELogger.info('always-on-top', 'Testing state synchronization');
-
             // Test enabled
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
             const rendererEnabled = await getAlwaysOnTopState();
@@ -418,10 +383,8 @@ describe('Always On Top', () => {
             it('should maintain always-on-top after minimize/restore', async function () {
                 // Skip on Linux CI - Xvfb doesn't support window minimize detection
                 if (await isLinuxCI()) {
-                    E2ELogger.info('always-on-top', 'Skipping - Linux CI uses headless Xvfb without window manager');
                     this.skip();
                 }
-                E2ELogger.info('always-on-top', 'Testing minimize/restore persistence');
 
                 await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
@@ -451,8 +414,6 @@ describe('Always On Top', () => {
             });
 
             it('should maintain disabled state after minimize/restore', async () => {
-                E2ELogger.info('always-on-top', 'Testing disabled state through minimize/restore');
-
                 await setAlwaysOnTop(false, E2E_TIMING.IPC_ROUND_TRIP);
 
                 await minimizeWindow();
@@ -475,8 +436,6 @@ describe('Always On Top', () => {
             });
 
             it('should maintain state through multiple minimize/restore cycles', async () => {
-                E2ELogger.info('always-on-top', 'Testing multiple minimize/restore cycles');
-
                 await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
                 for (let i = 0; i < 3; i++) {
@@ -503,8 +462,6 @@ describe('Always On Top', () => {
 
         describe('Maximize and Restore', () => {
             it('should maintain always-on-top after maximize/restore', async () => {
-                E2ELogger.info('always-on-top', 'Testing maximize/restore persistence');
-
                 await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
                 await maximizeWindow();
@@ -539,8 +496,6 @@ describe('Always On Top', () => {
 
     describe('Tray Interaction', () => {
         it('should maintain always-on-top after hide/show', async () => {
-            E2ELogger.info('always-on-top', 'Testing hide/show persistence');
-
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             await hideWindow();
@@ -565,8 +520,6 @@ describe('Always On Top', () => {
         });
 
         it('should maintain disabled state after hide/show', async () => {
-            E2ELogger.info('always-on-top', 'Testing disabled state through hide/show');
-
             await setAlwaysOnTop(false, E2E_TIMING.IPC_ROUND_TRIP);
 
             await hideWindow();
@@ -587,8 +540,6 @@ describe('Always On Top', () => {
         });
 
         it('should maintain always-on-top through multiple hide/show cycles', async () => {
-            E2ELogger.info('always-on-top', 'Testing multiple hide/show cycles');
-
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             for (let i = 0; i < 3; i++) {
@@ -631,8 +582,6 @@ describe('Always On Top', () => {
         });
 
         it('should maintain always-on-top after resizing window', async () => {
-            E2ELogger.info('always-on-top', 'Testing resize persistence');
-
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
@@ -655,8 +604,6 @@ describe('Always On Top', () => {
         });
 
         it('should maintain always-on-top after moving window', async () => {
-            E2ELogger.info('always-on-top', 'Testing move persistence');
-
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
@@ -679,8 +626,6 @@ describe('Always On Top', () => {
         });
 
         it('should maintain always-on-top through combined resize and move', async () => {
-            E2ELogger.info('always-on-top', 'Testing combined resize and move');
-
             await setAlwaysOnTop(true, E2E_TIMING.IPC_ROUND_TRIP);
 
             const currentBounds = await getWindowBounds();
@@ -718,8 +663,6 @@ describe('Always On Top', () => {
 
     describe('Settings Persistence', () => {
         it('should save enabled state to settings file', async () => {
-            E2ELogger.info('always-on-top', 'Testing persistence when enabling');
-
             await setAlwaysOnTop(true, E2E_TIMING.WINDOW_TRANSITION);
 
             const settings = await readUserPreferences();
@@ -728,8 +671,6 @@ describe('Always On Top', () => {
         });
 
         it('should save disabled state to settings file', async () => {
-            E2ELogger.info('always-on-top', 'Testing persistence when disabling');
-
             await setAlwaysOnTop(false, E2E_TIMING.WINDOW_TRANSITION);
 
             const settings = await readUserPreferences();
@@ -737,8 +678,6 @@ describe('Always On Top', () => {
         });
 
         it('should update settings file when toggled multiple times', async () => {
-            E2ELogger.info('always-on-top', 'Testing multiple toggle persistence');
-
             // Toggle ON
             await setAlwaysOnTop(true, E2E_TIMING.CYCLE_PAUSE);
             let settings = await readUserPreferences();
@@ -751,8 +690,6 @@ describe('Always On Top', () => {
         });
 
         it('should store alwaysOnTop as boolean in settings.json', async () => {
-            E2ELogger.info('always-on-top', 'Validating settings file format');
-
             await setAlwaysOnTop(true, E2E_TIMING.WINDOW_TRANSITION);
 
             const settings = await readUserPreferences();
@@ -761,8 +698,6 @@ describe('Always On Top', () => {
         });
 
         it('should not corrupt other settings when updating alwaysOnTop', async () => {
-            E2ELogger.info('always-on-top', 'Testing settings file integrity');
-
             const initialSettings = await readUserPreferences();
             const initialTheme = initialSettings?.theme;
             const initialHotkeys = initialSettings?.hotkeyPeekAndHide;
@@ -782,8 +717,6 @@ describe('Always On Top', () => {
     describe('Multi-Window Interactions', () => {
         describe('Options Window', () => {
             it('should maintain always-on-top after opening Options window', async () => {
-                E2ELogger.info('always-on-top', 'Testing Options window interaction');
-
                 await setAlwaysOnTop(true);
 
                 await mainWindow.openOptionsViaMenu();
@@ -795,8 +728,6 @@ describe('Always On Top', () => {
             });
 
             it('should maintain always-on-top after closing Options window', async () => {
-                E2ELogger.info('always-on-top', 'Testing Options close behavior');
-
                 await setAlwaysOnTop(true);
 
                 await mainWindow.openOptionsViaMenu();
@@ -823,8 +754,6 @@ describe('Always On Top', () => {
             });
 
             it('should toggle always-on-top while Options window is open', async () => {
-                E2ELogger.info('always-on-top', 'Testing toggle with Options open');
-
                 await mainWindow.openOptionsViaMenu();
                 await waitForWindowCount(2, 5000);
 
@@ -849,8 +778,6 @@ describe('Always On Top', () => {
 
         describe('About Window', () => {
             it('should maintain always-on-top when About window opens', async () => {
-                E2ELogger.info('always-on-top', 'Testing About window interaction');
-
                 await setAlwaysOnTop(true);
 
                 await mainWindow.openAboutViaMenu();
@@ -862,8 +789,6 @@ describe('Always On Top', () => {
             });
 
             it('should maintain always-on-top after closing About window', async () => {
-                E2ELogger.info('always-on-top', 'Testing About window close behavior');
-
                 await setAlwaysOnTop(true);
 
                 await mainWindow.openAboutViaMenu();
@@ -892,8 +817,6 @@ describe('Always On Top', () => {
 
         describe('Window Independence', () => {
             it('should have main window state independent of Options window', async () => {
-                E2ELogger.info('always-on-top', 'Testing window independence');
-
                 await setAlwaysOnTop(true);
 
                 await mainWindow.openOptionsViaMenu();
@@ -937,18 +860,12 @@ describe('Always On Top', () => {
         describe('Toggle During Minimize', () => {
             it('should toggle always-on-top while window is minimized', async function () {
                 if (await isMacOS()) {
-                    E2ELogger.info(
-                        'always-on-top',
-                        'Skipping: macOS does not support alwaysOnTop changes while minimized'
-                    );
                     this.skip();
                 }
                 // Skip on Linux CI - Xvfb doesn't support window minimize detection
                 if (await isLinuxCI()) {
-                    E2ELogger.info('always-on-top', 'Skipping - Linux CI uses headless Xvfb without window manager');
                     this.skip();
                 }
-                E2ELogger.info('always-on-top', 'Testing toggle during minimize');
 
                 await setAlwaysOnTop(false, E2E_TIMING.CLEANUP_PAUSE);
 
@@ -979,13 +896,8 @@ describe('Always On Top', () => {
 
             it('should toggle off while minimized and persist after restore', async function () {
                 if (await isMacOS()) {
-                    E2ELogger.info(
-                        'always-on-top',
-                        'Skipping: macOS does not support alwaysOnTop changes while minimized'
-                    );
                     this.skip();
                 }
-                E2ELogger.info('always-on-top', 'Testing toggle off during minimize');
 
                 await setAlwaysOnTop(true);
 
@@ -1016,10 +928,8 @@ describe('Always On Top', () => {
             // This is a known platform limitation, not an application bug.
             it('should maintain always-on-top setting through fullscreen toggle', async function () {
                 if (await isWindows()) {
-                    E2ELogger.info('always-on-top', 'Skipping: Windows loses alwaysOnTop through fullscreen');
                     this.skip();
                 }
-                E2ELogger.info('always-on-top', 'Testing fullscreen mode interaction');
 
                 await setAlwaysOnTop(true);
 

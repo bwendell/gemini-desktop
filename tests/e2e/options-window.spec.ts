@@ -10,7 +10,6 @@ import { browser, expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
 import { switchToOptionsWindow } from './helpers/optionsWindowActions';
-import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 
@@ -79,8 +78,6 @@ describe('Options Window Features', () => {
         const handlesAfterFirst = await browser.getWindowHandles();
         expect(handlesAfterFirst.length).toBe(2);
 
-        E2ELogger.info('options-window', 'First Options window opened');
-
         // 2. Switch back to main window
         await browser.switchToWindow(handlesAfterFirst[0]);
         await waitForUIState(
@@ -98,8 +95,6 @@ describe('Options Window Features', () => {
         // 4. Should still be only 2 windows (no duplicate)
         const handlesAfterSecond = await browser.getWindowHandles();
         expect(handlesAfterSecond.length).toBe(2);
-
-        E2ELogger.info('options-window', 'No duplicate Options window created');
 
         // 5. Verify the existing Options window was focused (not a new one)
         // The handles should be the same

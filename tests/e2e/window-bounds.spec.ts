@@ -11,7 +11,6 @@
 
 import { expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
-import { E2ELogger } from './helpers/logger';
 import { waitForAppReady } from './helpers/workflows';
 
 describe('Window State Restoration', () => {
@@ -25,7 +24,6 @@ describe('Window State Restoration', () => {
         it('should save window bounds when window is moved or resized', async () => {
             // 1. Get initial bounds
             const initialBounds = await mainWindow.getWindowBounds();
-            E2ELogger.info('window-bounds', `Initial bounds: ${JSON.stringify(initialBounds)}`);
 
             // 2. Modify bounds (resize window slightly)
             const newBounds = {
@@ -37,8 +35,6 @@ describe('Window State Restoration', () => {
 
             await mainWindow.setWindowBounds(newBounds);
 
-            E2ELogger.info('window-bounds', `New bounds set: ${JSON.stringify(newBounds)}`);
-
             // 3. Wait for settings to be persisted
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -49,13 +45,8 @@ describe('Window State Restoration', () => {
                 // Verify bounds are approximately correct (allowing for platform differences)
                 expect(Math.abs(savedBounds.width - newBounds.width)).toBeLessThanOrEqual(10);
                 expect(Math.abs(savedBounds.height - newBounds.height)).toBeLessThanOrEqual(10);
-                E2ELogger.info('window-bounds', `Saved bounds verified: ${JSON.stringify(savedBounds)}`);
             } else {
                 // Window bounds may not be persisted in this implementation
-                E2ELogger.info(
-                    'window-bounds',
-                    'Window bounds persistence not implemented - this is expected for some configurations'
-                );
             }
 
             // 5. Restore original bounds
@@ -83,8 +74,6 @@ describe('Window State Restoration', () => {
             expect(actualBounds.width).toBeGreaterThanOrEqual(300);
             expect(actualBounds.height).toBeGreaterThanOrEqual(500);
 
-            E2ELogger.info('window-bounds', `Minimum constraints respected: ${JSON.stringify(actualBounds)}`);
-
             // 4. Restore original bounds
             await mainWindow.setWindowBounds(initialBounds);
         });
@@ -107,8 +96,6 @@ describe('Window State Restoration', () => {
             const boundsAfterMove = await mainWindow.getWindowBounds();
             expect(boundsAfterMove.width).toBe(initialBounds.width);
             expect(boundsAfterMove.height).toBe(initialBounds.height);
-
-            E2ELogger.info('window-bounds', 'Position and size tracked independently');
 
             // 4. Restore original bounds
             await mainWindow.setWindowBounds(initialBounds);

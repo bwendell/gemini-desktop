@@ -17,7 +17,6 @@ import { waitForWindowCount } from './helpers/windowActions';
 import { closeWindow, showWindow, waitForAllWindowsHidden } from './helpers/windowStateActions';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
 import { waitForWindowTransition } from './helpers/waitUtilities';
-import { E2ELogger } from './helpers/logger';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const mainEntry = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
@@ -48,7 +47,6 @@ describe('Window Management Edge Cases', () => {
             // 1. Open Auth window using Page Object
             await authWindow.openViaMenu();
             await authWindow.waitForOpen();
-            E2ELogger.info('window-edge-cases', 'Auth window opened');
 
             // 2. Switch to main window and trigger close (hide-to-tray)
             await switchToMainWindow();
@@ -56,7 +54,6 @@ describe('Window Management Edge Cases', () => {
             await waitForAllWindowsHidden(5000);
 
             // 3. Verify both windows are "closed" (main hidden, auth closed)
-            E2ELogger.info('window-edge-cases', 'Both windows closed/hidden as expected');
         });
     });
 

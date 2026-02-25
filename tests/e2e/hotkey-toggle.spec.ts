@@ -13,12 +13,10 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { browser, $, expect } from '@wdio/globals';
+import { $, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount as _waitForWindowCount } from './helpers/windowActions';
 import { waitForOptionsWindow, switchToOptionsWindow, closeOptionsWindow } from './helpers/optionsWindowActions';
 import { getPlatform, E2EPlatform } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
 import { waitForUIState } from './helpers/waitUtilities';
 
 // ============================================================================
@@ -46,16 +44,16 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     {
         id: 'peekAndHide',
         label: 'Peek and Hide',
-        shortcutWin: 'Ctrl+Alt+H',
-        shortcutMac: '⌘+⌥+H', // macOS displays symbols: ⌘ (Cmd), ⌥ (Alt)
+        shortcutWin: 'Ctrl+Shift+␣',
+        shortcutMac: '⌘+⇧+␣', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift), ␣ (Space)
         testId: 'hotkey-toggle-peekAndHide',
         rowTestId: 'hotkey-row-peekAndHide',
     },
     {
         id: 'quickChat',
         label: 'Quick Chat',
-        shortcutWin: 'Ctrl+Shift+␣',
-        shortcutMac: '⌘+⇧+␣', // macOS displays symbols: ⌘ (Cmd), ⇧ (Shift), ␣ (Space)
+        shortcutWin: 'Ctrl+Shift+Alt+␣',
+        shortcutMac: '⌘+⇧+⌥+␣',
         testId: 'hotkey-toggle-quickChat',
         rowTestId: 'hotkey-row-quickChat',
     },
@@ -78,12 +76,9 @@ describe('Individual Hotkey Toggles', () => {
 
     before(async () => {
         platform = await getPlatform();
-        E2ELogger.info('hotkey-toggle', `Platform: ${platform.toUpperCase()}`);
     });
 
     beforeEach(async () => {
-        E2ELogger.info('hotkey-toggle', 'Opening Options window');
-
         // Open Options via menu
         await clickMenuItemById('menu-file-options');
         await waitForOptionsWindow();
@@ -91,7 +86,6 @@ describe('Individual Hotkey Toggles', () => {
     });
 
     afterEach(async () => {
-        E2ELogger.info('hotkey-toggle', 'Cleaning up');
         await closeOptionsWindow();
     });
 
@@ -105,17 +99,17 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}"]`);
                 await expect(toggle).toExist();
                 await expect(toggle).toBeDisplayed();
-                E2ELogger.info('hotkey-toggle', `Found toggle: ${config.label}`);
             }
         });
 
         it('should display correct labels for each toggle', async () => {
             for (const config of HOTKEY_CONFIGS) {
                 const row = await $(`[data-testid="${config.rowTestId}"]`);
-                await browser.waitUntil(async () => (await row.getText()).includes(config.label), {
+                const labelFound = await waitForUIState(async () => (await row.getText()).includes(config.label), {
                     timeout: 5000,
-                    timeoutMsg: `Expected row to contain "${config.label}"`,
+                    description: `Row contains "${config.label}"`,
                 });
+                expect(labelFound).toBe(true);
             }
         });
 
@@ -128,12 +122,12 @@ describe('Individual Hotkey Toggles', () => {
                 // (the display uses separate <kbd> elements, so we check each part individually)
                 const keyParts = expectedShortcut.split('+');
                 for (const part of keyParts) {
-                    await browser.waitUntil(async () => (await row.getText()).includes(part), {
+                    const partFound = await waitForUIState(async () => (await row.getText()).includes(part), {
                         timeout: 5000,
-                        timeoutMsg: `Expected row to contain "${part}" (from shortcut "${expectedShortcut}")`,
+                        description: `Row contains "${part}" for "${expectedShortcut}"`,
                     });
+                    expect(partFound).toBe(true);
                 }
-                E2ELogger.info('hotkey-toggle', `${config.label}: displays "${expectedShortcut}"`);
             }
         });
 
@@ -142,23 +136,29 @@ describe('Individual Hotkey Toggles', () => {
             const row = await $(`[data-testid="${config.rowTestId}"]`);
 
             if (platform === 'macos') {
-                await browser.waitUntil(async () => (await row.getText()).includes('⌘'), {
+                const hasCommand = await waitForUIState(async () => (await row.getText()).includes('⌘'), {
                     timeout: 5000,
-                    timeoutMsg: 'Expected row to contain "⌘" (macOS Command symbol)',
+                    description: 'Row contains "⌘" (macOS Command symbol)',
                 });
-                await browser.waitUntil(async () => !(await row.getText()).includes('Ctrl'), {
+                expect(hasCommand).toBe(true);
+
+                const lacksCtrl = await waitForUIState(async () => !(await row.getText()).includes('Ctrl'), {
                     timeout: 5000,
-                    timeoutMsg: 'Expected row NOT to contain "Ctrl"',
+                    description: 'Row does not contain "Ctrl"',
                 });
+                expect(lacksCtrl).toBe(true);
             } else {
-                await browser.waitUntil(async () => (await row.getText()).includes('Ctrl'), {
+                const hasCtrl = await waitForUIState(async () => (await row.getText()).includes('Ctrl'), {
                     timeout: 5000,
-                    timeoutMsg: 'Expected row to contain "Ctrl"',
+                    description: 'Row contains "Ctrl"',
                 });
-                await browser.waitUntil(async () => !(await row.getText()).includes('⌘'), {
+                expect(hasCtrl).toBe(true);
+
+                const lacksCommand = await waitForUIState(async () => !(await row.getText()).includes('⌘'), {
                     timeout: 5000,
-                    timeoutMsg: 'Expected row NOT to contain "⌘" (macOS Command symbol)',
+                    description: 'Row does not contain "⌘" (macOS Command symbol)',
                 });
+                expect(lacksCommand).toBe(true);
             }
         });
     });
@@ -175,8 +175,6 @@ describe('Individual Hotkey Toggles', () => {
 
                 const role = await toggleSwitch.getAttribute('role');
                 expect(role).toBe('switch');
-
-                E2ELogger.info('hotkey-toggle', `${config.label}: switch exists with role=switch`);
             }
         });
 
@@ -186,7 +184,6 @@ describe('Individual Hotkey Toggles', () => {
                 const checked = await toggleSwitch.getAttribute('aria-checked');
 
                 expect(['true', 'false']).toContain(checked);
-                E2ELogger.info('hotkey-toggle', `${config.label}: aria-checked=${checked}`);
             }
         });
 
@@ -195,7 +192,6 @@ describe('Individual Hotkey Toggles', () => {
             const toggleSwitch = await $(`[data-testid="${config.testId}-switch"]`);
 
             const initialChecked = await toggleSwitch.getAttribute('aria-checked');
-            E2ELogger.info('hotkey-toggle', `Initial state: ${initialChecked}`);
 
             await toggleSwitch.click();
             await waitForUIState(async () => (await toggleSwitch.getAttribute('aria-checked')) !== initialChecked, {
@@ -203,7 +199,6 @@ describe('Individual Hotkey Toggles', () => {
             });
 
             const newChecked = await toggleSwitch.getAttribute('aria-checked');
-            E2ELogger.info('hotkey-toggle', `After click: ${newChecked}`);
 
             expect(newChecked).not.toBe(initialChecked);
 
@@ -257,8 +252,6 @@ describe('Individual Hotkey Toggles', () => {
             await waitForUIState(async () => (await toggle1.getAttribute('aria-checked')) === initial1, {
                 description: 'First hotkey toggle restored',
             });
-
-            E2ELogger.info('hotkey-toggle', 'Independent toggle verified');
         });
     });
 
@@ -270,7 +263,6 @@ describe('Individual Hotkey Toggles', () => {
         it('should report correct platform', async () => {
             const detectedPlatform = await getPlatform();
             expect(['windows', 'macos', 'linux']).toContain(detectedPlatform);
-            E2ELogger.info('hotkey-toggle', `Running on: ${detectedPlatform}`);
         });
     });
 
@@ -313,8 +305,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('false');
-
-                E2ELogger.info('hotkey-toggle', 'Quick Chat toggle disabled - hotkey should not work');
             });
 
             it('should enable Quick Chat action when toggle is ON', async () => {
@@ -325,8 +315,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('true');
-
-                E2ELogger.info('hotkey-toggle', 'Quick Chat toggle enabled - hotkey should work');
             });
         });
 
@@ -350,8 +338,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('false');
-
-                E2ELogger.info('hotkey-toggle', 'Peek and Hide toggle disabled - minimize hotkey should not work');
             });
 
             it('should enable Peek and Hide action when toggle is ON', async () => {
@@ -362,8 +348,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('true');
-
-                E2ELogger.info('hotkey-toggle', 'Peek and Hide toggle enabled - minimize hotkey should work');
             });
         });
 
@@ -387,8 +371,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('false');
-
-                E2ELogger.info('hotkey-toggle', 'Always on Top toggle disabled - z-order hotkey should not work');
             });
 
             it('should enable Always on Top action when toggle is ON', async () => {
@@ -399,8 +381,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('true');
-
-                E2ELogger.info('hotkey-toggle', 'Always on Top toggle enabled - z-order hotkey should work');
             });
         });
     });

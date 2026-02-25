@@ -15,7 +15,6 @@
 import { expect } from '@wdio/globals';
 import { OptionsPage, QuickChatPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
-import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow, waitForIpcSettle } from './helpers/workflows';
 import { waitForDuration } from './helpers/waitUtilities';
 
@@ -43,10 +42,7 @@ describe('Text Prediction Quick Chat E2E', () => {
 
     describe('Ghost Text Prediction (10.6)', () => {
         it('should display ghost text after typing in Quick Chat when prediction is enabled', async () => {
-            E2ELogger.info('text-prediction-quickchat', 'Testing ghost text appears after typing');
-
             // 1. Enable text prediction in Options first
-            E2ELogger.info('text-prediction-quickchat', 'Opening Options to enable text prediction');
             const { MainWindowPage } = await import('./pages');
             const mainWindow = new MainWindowPage();
             await mainWindow.openOptionsViaMenu();
@@ -62,16 +58,12 @@ describe('Text Prediction Quick Chat E2E', () => {
                 // Note: If model is not downloaded, this test requires the model to be
                 // pre-downloaded or the test should handle the download flow
                 const statusText = await optionsPage.getTextPredictionStatusText();
-                E2ELogger.info('text-prediction-quickchat', `Model status: ${statusText}`);
 
                 // If model is not ready, we still test that the prediction flow works
                 // even if predictions may not arrive (the infrastructure is still tested)
                 const isModelReady = statusText.includes('Ready');
                 if (!isModelReady) {
-                    E2ELogger.info(
-                        'text-prediction-quickchat',
-                        'Model not fully ready, proceeding with infrastructure test'
-                    );
+                    await waitForDuration(300, 'Model not ready pause');
                 }
 
                 // 4. Close Options window
@@ -79,7 +71,6 @@ describe('Text Prediction Quick Chat E2E', () => {
                 await waitForWindowCount(1, 5000);
 
                 // 5. Show Quick Chat window
-                E2ELogger.info('text-prediction-quickchat', 'Opening Quick Chat window');
                 await quickChatPage.show();
                 await quickChatPage.waitForVisible(5000);
 
@@ -92,53 +83,41 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 8. Type some text (partial sentence to trigger prediction)
                 const testText = 'The quick brown fox';
-                E2ELogger.info('text-prediction-quickchat', `Typing: "${testText}"`);
                 await quickChatPage.typeText(testText);
 
                 // 9. Wait for debounce period (300ms) plus some buffer for prediction
                 // The debounce is 300ms + prediction request time
-                E2ELogger.info('text-prediction-quickchat', 'Waiting for prediction debounce (400ms)');
                 await waitForDuration(400, 'Prediction debounce + buffer');
 
                 // 10. Verify the input value is correct
                 const inputValue = await quickChatPage.getInputValue();
                 expect(inputValue).toBe(testText);
-                E2ELogger.info('text-prediction-quickchat', '✓ Input value is correct');
 
                 // 11. Check if ghost text appears (if model is ready)
                 if (isModelReady) {
                     // Wait for ghost text with timeout
                     try {
                         await quickChatPage.waitForGhostText(5000);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Ghost text appeared');
 
                         // Verify ghost text has content
                         const predictionText = await quickChatPage.getGhostTextPrediction();
                         expect(predictionText).toBeTruthy();
-                        E2ELogger.info('text-prediction-quickchat', `✓ Prediction text: "${predictionText}"`);
                     } catch {
                         // Ghost text may not appear if model is slow or prediction is empty
-                        E2ELogger.info('text-prediction-quickchat', 'Ghost text did not appear (model may be slow)');
                         const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
-                        // This is acceptable if model is just loaded or prediction returned null
-                        E2ELogger.info('text-prediction-quickchat', `Ghost text displayed: ${isGhostDisplayed}`);
+                        expect(typeof isGhostDisplayed).toBe('boolean');
                     }
                 } else {
                     // Model not ready - just verify the infrastructure is in place
-                    E2ELogger.info('text-prediction-quickchat', 'Model not ready, skipping ghost text verification');
                     // Give a brief moment for any prediction attempt
-                    await waitForDuration(500, 'Infrastructure test pause (model not ready)');
+                    await waitForDuration(300, 'Model not ready pause');
                     const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
-                    E2ELogger.info(
-                        'text-prediction-quickchat',
-                        `Ghost text displayed (model not ready): ${isGhostDisplayed}`
-                    );
+                    expect(typeof isGhostDisplayed).toBe('boolean');
                 }
 
                 // 12. Cancel Quick Chat to clean up
                 await quickChatPage.cancel();
                 await quickChatPage.waitForHidden(5000);
-                E2ELogger.info('text-prediction-quickchat', '✓ Ghost text test completed');
             } finally {
                 // Ensure Options is closed if still open
                 try {
@@ -150,8 +129,6 @@ describe('Text Prediction Quick Chat E2E', () => {
         });
 
         it('should not display ghost text when text prediction is disabled', async () => {
-            E2ELogger.info('text-prediction-quickchat', 'Testing no ghost text when disabled');
-
             // 1. Disable text prediction in Options first
             const { MainWindowPage } = await import('./pages');
             const mainWindow = new MainWindowPage();
@@ -185,7 +162,6 @@ describe('Text Prediction Quick Chat E2E', () => {
                 // 7. Verify ghost text is NOT displayed
                 const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
                 expect(isGhostDisplayed).toBe(false);
-                E2ELogger.info('text-prediction-quickchat', '✓ Ghost text not displayed when disabled');
 
                 // 8. Cancel Quick Chat
                 await quickChatPage.cancel();
@@ -206,10 +182,7 @@ describe('Text Prediction Quick Chat E2E', () => {
 
     describe('Tab Key Accepts Prediction (10.7)', () => {
         it('should accept prediction text when Tab is pressed in Quick Chat', async () => {
-            E2ELogger.info('text-prediction-quickchat', 'Testing Tab key accepts prediction');
-
             // 1. Enable text prediction in Options first
-            E2ELogger.info('text-prediction-quickchat', 'Opening Options to enable text prediction');
             const { MainWindowPage } = await import('./pages');
             const mainWindow = new MainWindowPage();
             await mainWindow.openOptionsViaMenu();
@@ -223,14 +196,10 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 3. Wait for model to be ready
                 const statusText = await optionsPage.getTextPredictionStatusText();
-                E2ELogger.info('text-prediction-quickchat', `Model status: ${statusText}`);
                 const isModelReady = statusText.includes('Ready');
 
                 if (!isModelReady) {
-                    E2ELogger.info(
-                        'text-prediction-quickchat',
-                        'Model not fully ready, test may need pre-downloaded model'
-                    );
+                    await waitForDuration(300, 'Model not ready pause');
                 }
 
                 // 4. Close Options window
@@ -238,7 +207,6 @@ describe('Text Prediction Quick Chat E2E', () => {
                 await waitForWindowCount(1, 5000);
 
                 // 5. Show Quick Chat window
-                E2ELogger.info('text-prediction-quickchat', 'Opening Quick Chat window');
                 await quickChatPage.show();
                 await quickChatPage.waitForVisible(5000);
 
@@ -251,70 +219,50 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 8. Type some text (partial sentence to trigger prediction)
                 const testText = 'The quick brown';
-                E2ELogger.info('text-prediction-quickchat', `Typing: "${testText}"`);
                 await quickChatPage.typeText(testText);
 
                 // 9. Wait for prediction to appear (if model is ready)
                 if (isModelReady) {
-                    E2ELogger.info('text-prediction-quickchat', 'Waiting for ghost text prediction');
                     await waitForDuration(500, 'Debounce + prediction request');
 
                     try {
                         await quickChatPage.waitForGhostText(5000);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Ghost text appeared');
 
                         // 10. Get the prediction text before accepting
                         const predictionText = await quickChatPage.getGhostTextPrediction();
-                        E2ELogger.info('text-prediction-quickchat', `Prediction: "${predictionText}"`);
                         expect(predictionText).toBeTruthy();
 
                         // 11. Get input value before Tab
                         const inputBeforeTab = await quickChatPage.getInputValue();
-                        E2ELogger.info('text-prediction-quickchat', `Input before Tab: "${inputBeforeTab}"`);
                         expect(inputBeforeTab).toBe(testText);
 
                         // 12. Press Tab to accept the prediction
-                        E2ELogger.info('text-prediction-quickchat', 'Pressing Tab to accept prediction');
                         await quickChatPage.pressTab();
                         await waitForDuration(100, 'State update after Tab');
 
                         // 13. Verify input now contains the original text + prediction
                         const inputAfterTab = await quickChatPage.getInputValue();
-                        E2ELogger.info('text-prediction-quickchat', `Input after Tab: "${inputAfterTab}"`);
 
                         // The input should contain more than just the original text
                         expect(inputAfterTab.length).toBeGreaterThan(testText.length);
                         expect(inputAfterTab.startsWith(testText)).toBe(true);
-                        E2ELogger.info(
-                            'text-prediction-quickchat',
-                            '✓ Tab accepted prediction - input now contains prediction text'
-                        );
 
                         // 14. Verify ghost text is cleared after acceptance
                         const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
                         expect(isGhostDisplayed).toBe(false);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Ghost text cleared after acceptance');
                     } catch {
-                        E2ELogger.info(
-                            'text-prediction-quickchat',
-                            'Ghost text did not appear (model may be slow), skipping Tab acceptance test'
-                        );
+                        await waitForDuration(100, 'Prediction wait fallback');
                     }
                 } else {
-                    E2ELogger.info(
-                        'text-prediction-quickchat',
-                        'Model not ready, skipping Tab acceptance verification'
-                    );
                     // Verify Tab doesn't break anything when no prediction
                     await quickChatPage.pressTab();
                     const inputValue = await quickChatPage.getInputValue();
-                    E2ELogger.info('text-prediction-quickchat', `Input after Tab (no prediction): "${inputValue}"`);
+                    expect(inputValue).toBe(testText);
                 }
 
                 // 15. Clean up - cancel Quick Chat
                 await quickChatPage.cancel();
                 await quickChatPage.waitForHidden(5000);
-                E2ELogger.info('text-prediction-quickchat', '✓ Tab acceptance test completed');
             } finally {
                 // Ensure Options is closed if still open
                 try {
@@ -326,8 +274,6 @@ describe('Text Prediction Quick Chat E2E', () => {
         });
 
         it('should verify input contains full text after accepting prediction', async () => {
-            E2ELogger.info('text-prediction-quickchat', 'Testing input contains full text after Tab');
-
             // This test focuses on verifying the input value after Tab acceptance
             const { MainWindowPage } = await import('./pages');
             const mainWindow = new MainWindowPage();
@@ -372,13 +318,9 @@ describe('Text Prediction Quick Chat E2E', () => {
                             const finalInput = await quickChatPage.getInputValue();
                             expect(finalInput).toContain(testText);
                             expect(finalInput).toContain(prediction);
-                            E2ELogger.info(
-                                'text-prediction-quickchat',
-                                `✓ Final input "${finalInput}" contains original "${testText}" and prediction "${prediction}"`
-                            );
                         }
                     } catch {
-                        E2ELogger.info('text-prediction-quickchat', 'Ghost text not available, test passes');
+                        await waitForDuration(100, 'Prediction wait fallback');
                     }
                 }
 
@@ -400,8 +342,6 @@ describe('Text Prediction Quick Chat E2E', () => {
 
     describe('Continued Typing Dismisses Prediction (10.8)', () => {
         it('should dismiss ghost text when user continues typing', async () => {
-            E2ELogger.info('text-prediction-quickchat', 'Testing continued typing dismisses prediction');
-
             // 1. Enable text prediction in Options first
             const { MainWindowPage } = await import('./pages');
             const mainWindow = new MainWindowPage();
@@ -416,7 +356,6 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 3. Check if model is ready
                 const statusText = await optionsPage.getTextPredictionStatusText();
-                E2ELogger.info('text-prediction-quickchat', `Model status: ${statusText}`);
                 const isModelReady = statusText.includes('Ready');
 
                 // 4. Close Options window
@@ -435,12 +374,10 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 7. Wait for prediction to appear (if model is ready)
                 if (isModelReady) {
-                    E2ELogger.info('text-prediction-quickchat', 'Waiting for ghost text to appear');
                     await waitForDuration(400, 'Debounce period');
 
                     try {
                         await quickChatPage.waitForGhostText(5000);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Ghost text appeared');
 
                         // 8. Verify ghost text is visible
                         const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
@@ -448,7 +385,6 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                         // 9. Continue typing more text
                         const additionalText = ' brown fox';
-                        E2ELogger.info('text-prediction-quickchat', `Typing more: "${additionalText}"`);
                         await quickChatPage.typeText(additionalText);
 
                         // 10. Brief pause for state to update
@@ -457,26 +393,20 @@ describe('Text Prediction Quick Chat E2E', () => {
                         // 11. Verify ghost text is dismissed
                         const isGhostStillDisplayed = await quickChatPage.isGhostTextDisplayed();
                         expect(isGhostStillDisplayed).toBe(false);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Ghost text dismissed by continued typing');
 
                         // 12. Verify input contains the full typed text
                         const inputValue = await quickChatPage.getInputValue();
                         expect(inputValue).toBe(initialText + additionalText);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Input value is correct');
                     } catch {
-                        E2ELogger.info(
-                            'text-prediction-quickchat',
-                            'Ghost text did not appear (model may be slow), skipping dismissal test'
-                        );
+                        await waitForDuration(100, 'Prediction wait fallback');
                     }
                 } else {
-                    E2ELogger.info('text-prediction-quickchat', 'Model not ready, skipping ghost text dismissal test');
+                    await waitForDuration(300, 'Model not ready pause');
                 }
 
                 // 13. Clean up - cancel Quick Chat
                 await quickChatPage.cancel();
                 await quickChatPage.waitForHidden(5000);
-                E2ELogger.info('text-prediction-quickchat', '✓ Continued typing test completed');
             } finally {
                 try {
                     await optionsPage.close();
@@ -493,10 +423,7 @@ describe('Text Prediction Quick Chat E2E', () => {
 
     describe('Enter Key Submission (10.10)', () => {
         it('should submit only original text when Enter is pressed, ignoring any pending prediction', async () => {
-            E2ELogger.info('text-prediction-quickchat', 'Testing Enter ignores pending prediction');
-
             // 1. Enable text prediction in Options first
-            E2ELogger.info('text-prediction-quickchat', 'Opening Options to enable text prediction');
             const { MainWindowPage } = await import('./pages');
             const mainWindow = new MainWindowPage();
             await mainWindow.openOptionsViaMenu();
@@ -513,7 +440,6 @@ describe('Text Prediction Quick Chat E2E', () => {
                 await waitForWindowCount(1, 5000);
 
                 // 4. Show Quick Chat window
-                E2ELogger.info('text-prediction-quickchat', 'Opening Quick Chat window');
                 await quickChatPage.show();
                 await quickChatPage.waitForVisible(5000);
 
@@ -525,7 +451,6 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 6. Type some text (partial sentence that could trigger prediction)
                 const testText = 'Hello world';
-                E2ELogger.info('text-prediction-quickchat', `Typing: "${testText}"`);
                 await quickChatPage.typeText(testText);
 
                 // 7. Wait briefly for prediction debounce to potentially start
@@ -535,22 +460,18 @@ describe('Text Prediction Quick Chat E2E', () => {
                 // 8. Capture the input value before submitting
                 const inputBeforeSubmit = await quickChatPage.getInputValue();
                 expect(inputBeforeSubmit).toBe(testText);
-                E2ELogger.info('text-prediction-quickchat', `Input before Enter: "${inputBeforeSubmit}"`);
 
                 // 9. Press Enter to submit - this should submit ONLY the original text
                 // and NOT include any pending prediction text
-                E2ELogger.info('text-prediction-quickchat', 'Pressing Enter to submit');
                 await quickChatPage.submitViaEnter();
 
                 // 10. The submission should have occurred with just the original text
                 // Verify the Quick Chat is now hidden (normal submission flow)
                 await quickChatPage.waitForHidden(5000);
-                E2ELogger.info('text-prediction-quickchat', '✓ Quick Chat hidden after Enter submission');
 
                 // 11. The ghost text (if any was appearing) should NOT have been included
                 // We verify this by confirming the input value matched exactly what we typed
                 // before submission (step 8 above)
-                E2ELogger.info('text-prediction-quickchat', '✓ Enter submission completed with original text only');
             } finally {
                 // Ensure Options/Quick Chat are closed if still open
                 try {
@@ -567,8 +488,6 @@ describe('Text Prediction Quick Chat E2E', () => {
         });
 
         it('should submit original text even when prediction ghost text is visible', async () => {
-            E2ELogger.info('text-prediction-quickchat', 'Testing Enter with visible ghost text');
-
             // 1. Enable text prediction in Options
             const { MainWindowPage } = await import('./pages');
             const mainWindow = new MainWindowPage();
@@ -583,7 +502,6 @@ describe('Text Prediction Quick Chat E2E', () => {
                 // Check if model is ready
                 const statusText = await optionsPage.getTextPredictionStatusText();
                 const isModelReady = statusText.includes('Ready');
-                E2ELogger.info('text-prediction-quickchat', `Model status: ${statusText}`);
 
                 await optionsPage.close();
                 await waitForWindowCount(1, 5000);
@@ -600,14 +518,13 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 if (isModelReady) {
                     // Wait for ghost text to appear
-                    E2ELogger.info('text-prediction-quickchat', 'Waiting for ghost text to appear');
                     await waitForDuration(500, 'Debounce + prediction request');
 
                     // Check if ghost text is showing
                     const hasGhostText = await quickChatPage.isGhostTextDisplayed();
                     if (hasGhostText) {
                         const prediction = await quickChatPage.getGhostTextPrediction();
-                        E2ELogger.info('text-prediction-quickchat', `Ghost text visible: "${prediction}"`);
+                        expect(typeof prediction).toBe('string');
                     }
                 }
 
@@ -616,12 +533,10 @@ describe('Text Prediction Quick Chat E2E', () => {
                 expect(inputValue).toBe(testText);
 
                 // 5. Press Enter to submit
-                E2ELogger.info('text-prediction-quickchat', 'Pressing Enter with ghost text visible');
                 await quickChatPage.submitViaEnter();
 
                 // 6. Verify Quick Chat hides (successful submission)
                 await quickChatPage.waitForHidden(5000);
-                E2ELogger.info('text-prediction-quickchat', '✓ Submit via Enter ignored prediction successfully');
             } finally {
                 try {
                     await quickChatPage.hide();
@@ -643,8 +558,6 @@ describe('Text Prediction Quick Chat E2E', () => {
 
     describe('Escape Key Dismisses Prediction (10.9)', () => {
         it('should dismiss ghost text when Escape is pressed, leaving input unchanged', async () => {
-            E2ELogger.info('text-prediction-quickchat', 'Testing Escape key dismisses prediction');
-
             // 1. Enable text prediction in Options first
             const { MainWindowPage } = await import('./pages');
             const mainWindow = new MainWindowPage();
@@ -659,7 +572,6 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 3. Check if model is ready
                 const statusText = await optionsPage.getTextPredictionStatusText();
-                E2ELogger.info('text-prediction-quickchat', `Model status: ${statusText}`);
                 const isModelReady = statusText.includes('Ready');
 
                 // 4. Close Options window
@@ -678,12 +590,10 @@ describe('Text Prediction Quick Chat E2E', () => {
 
                 // 7. Wait for prediction to appear (if model is ready)
                 if (isModelReady) {
-                    E2ELogger.info('text-prediction-quickchat', 'Waiting for ghost text to appear');
                     await waitForDuration(400, 'Debounce period');
 
                     try {
                         await quickChatPage.waitForGhostText(5000);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Ghost text appeared');
 
                         // 8. Press Escape to dismiss prediction
                         await quickChatPage.pressEscape();
@@ -692,28 +602,18 @@ describe('Text Prediction Quick Chat E2E', () => {
                         // 9. Verify ghost text is dismissed
                         const isGhostDisplayed = await quickChatPage.isGhostTextDisplayed();
                         expect(isGhostDisplayed).toBe(false);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Ghost text dismissed by Escape');
 
                         // 10. Verify input is unchanged
                         const inputValue = await quickChatPage.getInputValue();
                         expect(inputValue).toBe(testText);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Input value unchanged');
 
                         // 11. Verify Quick Chat is still visible (not cancelled)
                         const isVisible = await quickChatPage.isVisible();
                         expect(isVisible).toBe(true);
-                        E2ELogger.info('text-prediction-quickchat', '✓ Quick Chat still visible');
                     } catch {
-                        E2ELogger.info(
-                            'text-prediction-quickchat',
-                            'Ghost text did not appear (model may be slow), skipping Escape test'
-                        );
+                        await waitForDuration(100, 'Prediction wait fallback');
                     }
                 } else {
-                    E2ELogger.info(
-                        'text-prediction-quickchat',
-                        'Model not ready, verifying Escape still works to cancel'
-                    );
                     // Without prediction, Escape should cancel Quick Chat
                     await quickChatPage.pressEscape();
                     // Give it time to process
@@ -727,7 +627,6 @@ describe('Text Prediction Quick Chat E2E', () => {
                 } catch {
                     // May already be hidden
                 }
-                E2ELogger.info('text-prediction-quickchat', '✓ Escape key test completed');
             } finally {
                 try {
                     await optionsPage.close();

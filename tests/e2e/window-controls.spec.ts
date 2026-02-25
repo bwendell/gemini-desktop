@@ -14,7 +14,6 @@
 import { expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { usesCustomControls, isMacOS, isLinuxCI } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForWindowTransition } from './helpers/waitUtilities';
 import {
@@ -54,7 +53,6 @@ describe('Window Controls Functionality', () => {
             if (!errorMessage.includes('Promise was collected')) {
                 throw error;
             }
-            E2ELogger.info('window-controls', 'Cleanup interrupted by test teardown (safe to ignore)');
         }
     });
 
@@ -65,13 +63,11 @@ describe('Window Controls Functionality', () => {
     describe('Custom Window Controls (Windows/Linux)', () => {
         it('should maximize window when maximize button is clicked', async () => {
             if (!(await usesCustomControls())) {
-                E2ELogger.info('window-controls', 'Skipping - macOS uses native controls');
                 return;
             }
 
             // Skip on Linux CI - Xvfb doesn't have a real window manager
             if (await isLinuxCI()) {
-                E2ELogger.info('window-controls', 'Skipping - Linux CI uses headless Xvfb without window manager');
                 return;
             }
 
@@ -87,8 +83,6 @@ describe('Window Controls Functionality', () => {
             // 3. Verify window is now maximized
             const isMaximized = await isWindowMaximized();
             expect(isMaximized).toBe(true);
-
-            E2ELogger.info('window-controls', 'Maximize button click verified');
         });
 
         it('should restore window when maximize button is clicked again', async () => {
@@ -108,8 +102,6 @@ describe('Window Controls Functionality', () => {
             // 3. Verify window is restored (not maximized)
             const isMaximized = await isWindowMaximized();
             expect(isMaximized).toBe(false);
-
-            E2ELogger.info('window-controls', 'Restore via maximize button verified');
         });
 
         it('should minimize window to taskbar when minimize button is clicked', async () => {
@@ -119,7 +111,6 @@ describe('Window Controls Functionality', () => {
 
             // Skip on Linux CI or WSL (no window manager)
             if (await isLinuxCI()) {
-                E2ELogger.info('window-controls', 'Skipping - Linux CI/WSL uses headless Xvfb without window manager');
                 return;
             }
 
@@ -132,8 +123,6 @@ describe('Window Controls Functionality', () => {
 
             // 3. Restore window for subsequent tests
             await restoreWindow();
-
-            E2ELogger.info('window-controls', 'Minimize button click verified');
         });
 
         it('should hide window to tray when close button is clicked', async () => {
@@ -160,8 +149,6 @@ describe('Window Controls Functionality', () => {
             // 4. Restore window via API (simulating tray click)
             await restoreWindow();
             await expect(isWindowVisible()).resolves.toBe(true);
-
-            E2ELogger.info('window-controls', 'Close-to-tray verified');
         });
     });
 
@@ -172,7 +159,6 @@ describe('Window Controls Functionality', () => {
     describe('Native Window Controls via Keyboard (macOS)', () => {
         it('should verify window state API works on macOS', async () => {
             if (!(await isMacOS())) {
-                E2ELogger.info('window-controls', 'Skipping macOS-specific test');
                 return;
             }
 
@@ -182,8 +168,6 @@ describe('Window Controls Functionality', () => {
             expect(typeof state.isMaximized).toBe('boolean');
             expect(typeof state.isMinimized).toBe('boolean');
             expect(typeof state.isFullScreen).toBe('boolean');
-
-            E2ELogger.info('window-controls', `macOS window state: ${JSON.stringify(state)}`);
         });
 
         it.skip('should minimize window via keyboard shortcut on macOS', async () => {
@@ -218,7 +202,7 @@ describe('Window Controls Functionality', () => {
 
             // Log state for debugging
             const stateAfterClose = await getWindowState();
-            E2ELogger.info('window-controls', `macOS state after close: ${JSON.stringify(stateAfterClose)}`);
+            expect(stateAfterClose).toBeTruthy();
 
             // Verify close-to-tray behavior on macOS:
             // - Not destroyed (app still running)
@@ -229,8 +213,6 @@ describe('Window Controls Functionality', () => {
             // Restore window
             await restoreWindow();
             await expect(isWindowVisible()).resolves.toBe(true);
-
-            E2ELogger.info('window-controls', 'macOS close-to-tray verified');
         });
     });
 
@@ -257,14 +239,10 @@ describe('Window Controls Functionality', () => {
             const afterToggleOn = await isWindowFullScreen();
             expect(afterToggleOn).toBe(true);
 
-            E2ELogger.info('window-controls', 'Fullscreen entered via toggleFullscreen()');
-
             // 3. Toggle fullscreen OFF via IPC
             await toggleFullscreen();
             const afterToggleOff = await isWindowFullScreen();
             expect(afterToggleOff).toBe(false);
-
-            E2ELogger.info('window-controls', 'Fullscreen exited via toggleFullscreen()');
         });
     });
 
@@ -280,23 +258,16 @@ describe('Window Controls Functionality', () => {
             expect(state).toHaveProperty('isMaximized');
             expect(state).toHaveProperty('isMinimized');
             expect(state).toHaveProperty('isFullScreen');
-
-            E2ELogger.info('window-controls', `Cross-platform state check: ${JSON.stringify(state)}`);
         });
 
         it('should maximize and restore via API calls', async () => {
             // Skip on macOS - maximize() doesn't work reliably
             if (await isMacOS()) {
-                E2ELogger.info(
-                    'window-controls',
-                    'Skipping maximize test - macOS uses zoom/fullscreen instead of traditional maximize'
-                );
                 return;
             }
 
             // Skip on Linux CI - Xvfb doesn't support window manager operations
             if (await isLinuxCI()) {
-                E2ELogger.info('window-controls', 'Skipping - Linux CI uses headless Xvfb');
                 return;
             }
 
@@ -309,8 +280,6 @@ describe('Window Controls Functionality', () => {
             await restoreWindow();
             const afterRestore = await isWindowMaximized();
             expect(afterRestore).toBe(false);
-
-            E2ELogger.info('window-controls', 'API-based maximize/restore verified');
         });
     });
 });

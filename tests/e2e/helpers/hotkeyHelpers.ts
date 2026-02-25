@@ -17,7 +17,7 @@ import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
  * Hotkey definition for cross-platform testing.
  */
 export interface HotkeyDefinition {
-    /** The Electron accelerator string (e.g., 'CommandOrControl+Alt+H') */
+    /** The Electron accelerator string (e.g., 'CommandOrControl+Shift+Space') */
     accelerator: string;
     /** Human-readable description */
     description: string;
@@ -67,6 +67,11 @@ export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
         description: 'Print conversation to PDF [Application]',
         displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.printToPdf),
     },
+    VOICE_CHAT: {
+        accelerator: DEFAULT_ACCELERATORS.voiceChat,
+        description: 'Activate voice chat [Global]',
+        displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.voiceChat),
+    },
 };
 
 /**
@@ -85,7 +90,7 @@ export function getExpectedAccelerator(hotkeyId: keyof typeof REGISTERED_HOTKEYS
  *
  * @param platform - The current platform ('windows', 'macos', 'linux')
  * @param hotkeyId - The hotkey identifier from REGISTERED_HOTKEYS
- * @returns Platform-specific display string (e.g., 'Ctrl+Alt+H' or 'Cmd+Alt+H')
+ * @returns Platform-specific display string (e.g., 'Ctrl+Shift+Space' or 'Cmd+Shift+Space')
  */
 export function getHotkeyDisplayString(platform: E2EPlatform, hotkeyId: keyof typeof REGISTERED_HOTKEYS): string {
     return REGISTERED_HOTKEYS[hotkeyId].displayFormat[platform];
@@ -328,7 +333,7 @@ export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutR
         try {
             return {
                 quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
-                peekAndHide: globalShortcut.isRegistered('CommandOrControl+Alt+H'),
+                peekAndHide: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
                 status: 'success',
             };
         } catch (error) {

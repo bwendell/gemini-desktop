@@ -38,6 +38,7 @@ import type NotificationManager from './notificationManager';
 import type ExportManager from './exportManager';
 import type { ModelStatus } from './llmManager';
 import type { ThemePreference, Logger } from '../types';
+import { DEFAULT_ACCELERATORS } from '../../shared/types/hotkeys';
 
 /**
  * User preferences structure for settings store.
@@ -49,11 +50,13 @@ interface UserPreferences extends Record<string, unknown> {
     hotkeyAlwaysOnTop: boolean;
     hotkeyPeekAndHide: boolean;
     hotkeyQuickChat: boolean;
+    hotkeyVoiceChat: boolean;
     hotkeyPrintToPdf: boolean;
     // Hotkey accelerators
     acceleratorAlwaysOnTop: string;
     acceleratorPeekAndHide: string;
     acceleratorQuickChat: string;
+    acceleratorVoiceChat: string;
     acceleratorPrintToPdf: string;
     // Auto-update settings
     autoUpdateEnabled: boolean;
@@ -113,7 +116,13 @@ export default class IpcManager {
                     hotkeyAlwaysOnTop: true,
                     hotkeyPeekAndHide: true,
                     hotkeyQuickChat: true,
+                    hotkeyVoiceChat: true,
                     hotkeyPrintToPdf: true,
+                    acceleratorAlwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
+                    acceleratorPeekAndHide: DEFAULT_ACCELERATORS.peekAndHide,
+                    acceleratorQuickChat: DEFAULT_ACCELERATORS.quickChat,
+                    acceleratorVoiceChat: DEFAULT_ACCELERATORS.voiceChat,
+                    acceleratorPrintToPdf: DEFAULT_ACCELERATORS.printToPdf,
                     autoUpdateEnabled: true,
                     textPredictionEnabled: false,
                     textPredictionGpuEnabled: false,

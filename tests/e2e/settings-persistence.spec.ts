@@ -17,7 +17,6 @@
 import { expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
 import { SettingsHelper } from './helpers/SettingsHelper';
-import { E2ELogger } from './helpers/logger';
 import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForSettingValue } from './helpers/persistenceActions';
@@ -54,7 +53,6 @@ describe('Settings Persistence', () => {
             const theme = await settings.getTheme();
 
             expect(theme).toBe('dark');
-            E2ELogger.info('settings-persistence', `Theme saved: ${theme}`);
 
             // 4. Switch to light theme and verify
             await optionsPage.selectTheme('light');
@@ -65,8 +63,6 @@ describe('Settings Persistence', () => {
 
             const themeAfterLight = await settings.getTheme();
             expect(themeAfterLight).toBe('light');
-
-            E2ELogger.info('settings-persistence', `Theme updated to: ${themeAfterLight}`);
 
             // Cleanup: close options window
             await optionsPage.close();
@@ -89,8 +85,6 @@ describe('Settings Persistence', () => {
             const theme = await settings.getTheme();
             expect(theme).toBe('system');
 
-            E2ELogger.info('settings-persistence', `System theme saved: ${theme}`);
-
             // Cleanup
             await optionsPage.close();
         });
@@ -106,11 +100,6 @@ describe('Settings Persistence', () => {
             // 2. Get initial toggle state using individual hotkey (alwaysOnTop as representative)
             const wasEnabled = await optionsPage.isHotkeyEnabled('alwaysOnTop');
 
-            E2ELogger.info(
-                'settings-persistence',
-                `Initial alwaysOnTop hotkey state: ${wasEnabled ? 'enabled' : 'disabled'}`
-            );
-
             // 3. Click toggle to change state
             await optionsPage.toggleHotkey('alwaysOnTop');
 
@@ -122,8 +111,6 @@ describe('Settings Persistence', () => {
             const hotkeysEnabled = await settings.getHotkeyEnabled('alwaysOnTop');
             expect(hotkeysEnabled).toBe(!wasEnabled);
 
-            E2ELogger.info('settings-persistence', `Hotkey state saved: ${hotkeysEnabled}`);
-
             // 6. Toggle back to original state
             await optionsPage.toggleHotkey('alwaysOnTop');
 
@@ -133,8 +120,6 @@ describe('Settings Persistence', () => {
 
             const restoredState = await settings.getHotkeyEnabled('alwaysOnTop');
             expect(restoredState).toBe(wasEnabled);
-
-            E2ELogger.info('settings-persistence', `Hotkey state restored: ${restoredState}`);
 
             // Cleanup
             await optionsPage.close();
@@ -153,11 +138,6 @@ describe('Settings Persistence', () => {
             const initialPeekAndHide = await optionsPage.isHotkeyEnabled('peekAndHide');
             const initialQuickChat = await optionsPage.isHotkeyEnabled('quickChat');
 
-            E2ELogger.info(
-                'settings-persistence',
-                `Initial states - AlwaysOnTop: ${initialAlwaysOnTop}, PeekAndHide: ${initialPeekAndHide}, QuickChat: ${initialQuickChat}`
-            );
-
             // 3. Toggle Always-on-Top hotkey and verify persistence
             await optionsPage.toggleHotkey('alwaysOnTop');
             const alwaysOnTopPersisted = await waitForSettingValue('hotkeyAlwaysOnTop', !initialAlwaysOnTop, 3000);
@@ -165,7 +145,6 @@ describe('Settings Persistence', () => {
 
             let hotkeyState = await settings.getHotkeyEnabled('alwaysOnTop');
             expect(hotkeyState).toBe(!initialAlwaysOnTop);
-            E2ELogger.info('settings-persistence', `AlwaysOnTop saved: ${hotkeyState}`);
 
             // 4. Toggle Peek and Hide hotkey and verify persistence
             await optionsPage.toggleHotkey('peekAndHide');
@@ -174,7 +153,6 @@ describe('Settings Persistence', () => {
 
             hotkeyState = await settings.getHotkeyEnabled('peekAndHide');
             expect(hotkeyState).toBe(!initialPeekAndHide);
-            E2ELogger.info('settings-persistence', `PeekAndHide saved: ${hotkeyState}`);
 
             // 5. Toggle Quick Chat hotkey and verify persistence
             await optionsPage.toggleHotkey('quickChat');
@@ -183,7 +161,6 @@ describe('Settings Persistence', () => {
 
             hotkeyState = await settings.getHotkeyEnabled('quickChat');
             expect(hotkeyState).toBe(!initialQuickChat);
-            E2ELogger.info('settings-persistence', `QuickChat saved: ${hotkeyState}`);
 
             // 6. Restore original states
             await optionsPage.toggleHotkey('alwaysOnTop');
@@ -202,8 +179,6 @@ describe('Settings Persistence', () => {
             expect(await settings.getHotkeyEnabled('alwaysOnTop')).toBe(initialAlwaysOnTop);
             expect(await settings.getHotkeyEnabled('peekAndHide')).toBe(initialPeekAndHide);
             expect(await settings.getHotkeyEnabled('quickChat')).toBe(initialQuickChat);
-
-            E2ELogger.info('settings-persistence', 'All individual hotkey states restored');
 
             // Cleanup
             await optionsPage.close();
@@ -236,8 +211,6 @@ describe('Settings Persistence', () => {
 
             const restoredPeekAndHide = await settings.getHotkeyEnabled('peekAndHide');
             expect(restoredPeekAndHide).toBe(initialPeekAndHide);
-
-            E2ELogger.info('settings-persistence', 'Individual hotkey persistence verified');
 
             // Cleanup
             await optionsPage.close();
@@ -273,8 +246,6 @@ describe('Settings Persistence', () => {
                 const isTestIsolationPath = settingsPath.includes('.org.chromium');
                 expect(isProductionPath || isTestIsolationPath).toBe(true);
             }
-
-            E2ELogger.info('settings-persistence', `Settings file path: ${settingsPath}`);
         });
     });
 });
