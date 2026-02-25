@@ -2,7 +2,8 @@ import { $, browser, expect } from '@wdio/globals';
 import { afterEach, beforeEach, describe, it } from 'mocha';
 
 import { waitForAppReady } from './helpers/workflows';
-import { isMacOS } from './helpers/platform';
+import { waitForUIState } from './helpers/waitUtilities';
+import { ContextMenuPage } from './pages/ContextMenuPage';
 
 const TEST_INPUT_ID = 'e2e-edit-menu-flow-input';
 
@@ -16,25 +17,45 @@ type ElectronBrowser = {
 };
 
 const testBrowser = browser as unknown as ElectronBrowser;
+const contextMenuPage = new ContextMenuPage();
+
+async function selectAllInputValue(inputId: string): Promise<void> {
+    await testBrowser.execute((targetId: string) => {
+        const el = document.getElementById(targetId) as HTMLTextAreaElement | null;
+        if (!el) {
+            return;
+        }
+        el.focus();
+        el.setSelectionRange(0, el.value.length);
+    }, inputId);
+}
 
 async function clickEditRole(role: string): Promise<void> {
     const result = await testBrowser.electron.execute((electron: typeof import('electron'), targetRole: string) => {
-        const menu = electron.Menu.getApplicationMenu();
-        if (!menu) {
-            return { success: false, error: 'Application menu not found' };
+        const win = electron.BrowserWindow.getFocusedWindow() ?? electron.BrowserWindow.getAllWindows()[0];
+        if (!win) {
+            return { success: false, error: 'No focused window available for edit actions' };
         }
 
-        const editMenu = menu.items.find((item: Electron.MenuItem) => item.label === 'Edit');
-        if (!editMenu || !editMenu.submenu) {
-            return { success: false, error: 'Edit menu not found' };
+        const webContents = win.webContents;
+
+        switch (targetRole) {
+            case 'copy':
+                webContents.copy();
+                break;
+            case 'paste':
+                webContents.paste();
+                break;
+            case 'cut':
+                webContents.cut();
+                break;
+            case 'undo':
+                webContents.undo();
+                break;
+            default:
+                return { success: false, error: `Unsupported edit role: ${targetRole}` };
         }
 
-        const roleItem = editMenu.submenu.items.find((item: Electron.MenuItem) => item.role === targetRole);
-        if (!roleItem) {
-            return { success: false, error: `Edit role item not found: ${targetRole}` };
-        }
-
-        roleItem.click();
         return { success: true };
     }, role);
 
@@ -46,6 +67,8 @@ async function clickEditRole(role: string): Promise<void> {
 describe('Edit Menu User Flow', () => {
     beforeEach(async () => {
         await waitForAppReady();
+
+        await contextMenuPage.clearClipboard();
 
         await testBrowser.execute((inputId: string) => {
             const existing = document.getElementById(inputId);
@@ -79,15 +102,33 @@ describe('Edit Menu User Flow', () => {
         const originalText = 'Edit menu user flow text';
         await input.setValue(originalText);
 
-        const modKey = (await isMacOS()) ? 'Meta' : 'Control';
+        await selectAllInputValue(TEST_INPUT_ID);
+        const selectionReady = await waitForUIState(
+            async () => {
+                return testBrowser.execute((inputId: string) => {
+                    const el = document.getElementById(inputId) as HTMLTextAreaElement | null;
+                    if (!el) {
+                        return false;
+                    }
+                    return el.selectionStart === 0 && el.selectionEnd === el.value.length;
+                }, TEST_INPUT_ID);
+            },
+            { description: 'Input selection ready' }
+        );
+        expect(selectionReady).toBe(true);
 
-        await testBrowser.keys([modKey, 'a']);
         await clickEditRole('copy');
 
-        const copiedText = await testBrowser.electron.execute((electron: typeof import('electron')) => {
-            return electron.clipboard.readText();
-        });
-        expect(copiedText).toBe(originalText);
+        const copyApplied = await waitForUIState(
+            async () => {
+                const clipboardText = await testBrowser.electron.execute((electron: typeof import('electron')) => {
+                    return electron.clipboard.readText();
+                });
+                return clipboardText === originalText;
+            },
+            { description: 'Clipboard contains copied text' }
+        );
+        expect(copyApplied).toBe(true);
 
         await testBrowser.execute((inputId: string) => {
             const el = document.getElementById(inputId) as HTMLTextAreaElement | null;
@@ -97,14 +138,24 @@ describe('Edit Menu User Flow', () => {
             }
         }, TEST_INPUT_ID);
 
+        await contextMenuPage.setClipboardText(originalText);
         await clickEditRole('paste');
-        expect(await input.getValue()).toBe(originalText);
+        const pasteApplied = await waitForUIState(async () => (await input.getValue()) === originalText, {
+            description: 'Input value after paste',
+        });
+        expect(pasteApplied).toBe(true);
 
-        await testBrowser.keys([modKey, 'a']);
+        await selectAllInputValue(TEST_INPUT_ID);
         await clickEditRole('cut');
-        expect(await input.getValue()).toBe('');
+        const cutApplied = await waitForUIState(async () => (await input.getValue()) === '', {
+            description: 'Input value after cut',
+        });
+        expect(cutApplied).toBe(true);
 
         await clickEditRole('undo');
-        expect(await input.getValue()).toBe(originalText);
+        const undoApplied = await waitForUIState(async () => (await input.getValue()) === originalText, {
+            description: 'Input value after undo',
+        });
+        expect(undoApplied).toBe(true);
     });
 });

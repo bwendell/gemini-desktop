@@ -22,7 +22,7 @@ describe('Edit Menu Integration', () => {
                 const editMenu = appMenu?.items.find((item) => item.label === 'Edit');
                 const roles = (editMenu?.submenu?.items ?? [])
                     .map((item) => item.role)
-                    .filter((role) => role !== undefined);
+                    .flatMap((role) => (typeof role === 'string' ? [role.toLowerCase()] : []));
 
                 return {
                     hasEditMenu: Boolean(editMenu),
@@ -31,7 +31,9 @@ describe('Edit Menu Integration', () => {
             });
 
             expect(result.hasEditMenu).toBe(true);
-            expect(result.roles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
+            expect(result.roles).toEqual(
+                expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectall'])
+            );
         });
     }
 });
