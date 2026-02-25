@@ -71,6 +71,10 @@ export default class TrayManager {
                 throw new Error(`Failed to load tray icon: ${iconPath}`);
             }
 
+            if (process.platform === 'darwin') {
+                trayIcon.setTemplateImage(true);
+            }
+
             this.tray = new Tray(trayIcon);
 
             // Set tooltip

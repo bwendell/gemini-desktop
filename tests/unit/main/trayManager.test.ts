@@ -77,7 +77,11 @@ describe('TrayManager', () => {
             expect(tray).toBeDefined();
             // TrayManager creates nativeImage, not raw iconPath - assert the tray was created successfully
             expect(tray).toBeInstanceOf(Tray);
+            const trayIcon = vi.mocked(nativeImage.createFromPath).mock.results[0]?.value as {
+                setTemplateImage?: (value: boolean) => void;
+            };
             expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('trayIconTemplate.png');
+            expect(trayIcon.setTemplateImage).toHaveBeenCalledWith(true);
         });
 
         it('creates Tray with .png icon on Linux', async () => {
