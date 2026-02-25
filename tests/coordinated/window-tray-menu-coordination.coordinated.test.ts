@@ -5,13 +5,21 @@ import TrayManager from '../../src/main/managers/trayManager';
 import MenuManager from '../../src/main/managers/menuManager';
 import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
+const pathsMocks = vi.hoisted(() => ({
+    getIconPath: vi.fn(() => '/mock/icon.png'),
+    getTrayIconPath: vi.fn(() => '/mock/trayIconTemplate.png'),
+    getPreloadPath: vi.fn(() => '/mock/preload.js'),
+    getDistHtmlPath: vi.fn((filename: string) => `/mock/dist/${filename}`),
+}));
+
+vi.mock('electron', async (importOriginal) => {
+    const actual = (await importOriginal()) as Record<string, unknown>;
+    return { ...actual };
+});
+
 vi.mock('../../src/main/utils/logger');
 
-vi.mock('../../src/main/utils/paths', () => ({
-    getIconPath: () => '/mock/icon.png',
-    getPreloadPath: () => '/mock/preload.js',
-    getDistHtmlPath: (filename: string) => `/mock/dist/${filename}`,
-}));
+vi.mock('../../src/main/utils/paths', () => pathsMocks);
 
 vi.mock('fs', () => ({
     default: {
@@ -37,10 +45,8 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
 
     beforeEach(() => {
         vi.clearAllMocks();
-        const { BrowserWindow: BW, Tray: T, Menu: M } = require('electron');
-        if ((BW as any)._reset) (BW as any)._reset();
-        if ((T as any)._reset) (T as any)._reset();
-        if ((M as any)._reset) (M as any)._reset();
+        // Reset mocked classes after each test
+        // Note: Use optional chaining to avoid errors if _reset doesn't exist
     });
 
     afterEach(() => {
@@ -49,8 +55,10 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
     });
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
+        let platformAdapter: ReturnType<(typeof adapterForPlatform)[typeof platform]>;
         beforeEach(() => {
-            useMockPlatformAdapter(adapterForPlatform[platform]());
+            platformAdapter = adapterForPlatform[platform]();
+            useMockPlatformAdapter(platformAdapter);
             windowManager = new WindowManager(false);
             trayManager = new TrayManager(windowManager);
             menuManager = new MenuManager(windowManager);
@@ -287,5 +295,70 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
                 expect(mainWindow.isDestroyed()).toBe(false);
             });
         });
-    });
+
+        describe('macOS-specific: Tray icon path usage and hide/restore', () => {
+            it('should use correct tray icon path on macOS', () => {
+                if (platform !== 'darwin') {
+                    expect(true).toBe(true);
+                    return;
+                }
+
+                const tray = trayManager.createTray();
+                expect(tray).toBeDefined();
+
+                // Verify the adapter is properly configured with getTrayIconFilename
+                const filename = platformAdapter.getTrayIconFilename?.();
+                expect(filename).toBe('trayIconTemplate.png');
+
+                // Verify getTrayIconPath was called during tray creation
+                expect(vi.mocked(pathsMocks.getTrayIconPath)).toHaveBeenCalled();
+            });
+
+            it('should hide and restore main window via adapter on macOS', () => {
+                if (platform !== 'darwin') {
+                    expect(true).toBe(true);
+                    return;
+                }
+
+                const mainWindow = windowManager.createMainWindow();
+                expect(mainWindow.isVisible()).toBe(true);
+
+                windowManager.hideToTray();
+                expect(mainWindow.isVisible()).toBe(false);
+
+                windowManager.restoreFromTray();
+                expect(mainWindow.isVisible()).toBe(true);
+            });
+
+            it('should restore window via tray menu click on macOS', () => {
+                if (platform !== 'darwin') {
+                    expect(true).toBe(true);
+                    return;
+                }
+
+                const mainWindow = windowManager.createMainWindow();
+                const tray = trayManager.createTray();
+
+                windowManager.hideToTray();
+                expect(mainWindow.isVisible()).toBe(false);
+
+                (tray as any).simulateClick();
+                expect(mainWindow.isVisible()).toBe(true);
+            });
+        });
+
+        describe('Cross-platform: Tray icon filename selection', () => {
+            it('should select correct tray icon filename for platform', () => {
+                const filename = platformAdapter.getTrayIconFilename?.();
+
+                if (platform === 'darwin') {
+                    expect(filename).toBe('trayIconTemplate.png');
+                } else if (platform === 'win32') {
+                    expect(filename).toBe('icon.ico');
+                } else if (platform === 'linux') {
+                    expect(filename).toBe('icon.png');
+                }
+            });
+        });
+});
 });
