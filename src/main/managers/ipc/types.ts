@@ -24,11 +24,13 @@ export interface UserPreferences extends Record<string, unknown> {
     hotkeyAlwaysOnTop: boolean;
     hotkeyPeekAndHide: boolean;
     hotkeyQuickChat: boolean;
+    hotkeyVoiceChat: boolean;
     hotkeyPrintToPdf: boolean;
     // Hotkey accelerators
     acceleratorAlwaysOnTop: string;
     acceleratorPeekAndHide: string;
     acceleratorQuickChat: string;
+    acceleratorVoiceChat: string;
     acceleratorPrintToPdf: string;
     // Auto-update settings
     autoUpdateEnabled: boolean;

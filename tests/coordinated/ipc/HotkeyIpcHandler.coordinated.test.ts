@@ -98,6 +98,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             storeData['hotkeyAlwaysOnTop'] = false;
             storeData['hotkeyPeekAndHide'] = true;
             storeData['hotkeyQuickChat'] = false;
+            storeData['hotkeyVoiceChat'] = false;
             storeData['hotkeyPrintToPdf'] = true;
 
             handler.register();
@@ -112,6 +113,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
                 alwaysOnTop: false,
                 peekAndHide: true,
                 quickChat: false,
+                voiceChat: false,
                 printToPdf: true,
             });
         });
@@ -120,6 +122,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             // Pre-populate store
             storeData['acceleratorAlwaysOnTop'] = 'Ctrl+T';
             storeData['acceleratorPeekAndHide'] = 'Ctrl+H';
+            storeData['acceleratorVoiceChat'] = 'Ctrl+Shift+M';
 
             handler.register();
 
@@ -132,6 +135,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
                 alwaysOnTop: 'Ctrl+T',
                 peekAndHide: 'Ctrl+H',
                 quickChat: DEFAULT_ACCELERATORS.quickChat,
+                voiceChat: 'Ctrl+Shift+M',
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });
         });
@@ -152,6 +156,27 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             listener!({}, 'printToPdf', 'Ctrl+Shift+P');
 
             expect(mockHotkeyManager.setAccelerator).toHaveBeenCalledWith('printToPdf', 'Ctrl+Shift+P');
+        });
+        it('should persist voiceChat individual setting to store', () => {
+            handler.register();
+
+            const listener = (ipcMain as any)._listeners?.get(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET);
+            expect(listener).toBeDefined();
+
+            listener!({}, 'voiceChat', false);
+
+            expect(storeData['hotkeyVoiceChat']).toBe(false);
+        });
+
+        it('should persist voiceChat accelerator setting to store', () => {
+            handler.register();
+
+            const listener = (ipcMain as any)._listeners?.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET);
+            expect(listener).toBeDefined();
+
+            listener!({}, 'voiceChat', 'Ctrl+M');
+
+            expect(storeData['acceleratorVoiceChat']).toBe('Ctrl+M');
         });
     });
 
@@ -254,6 +279,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             storeData['hotkeyAlwaysOnTop'] = false;
             storeData['hotkeyBossKey'] = true;
             storeData['hotkeyQuickChat'] = false;
+            storeData['hotkeyVoiceChat'] = false;
             storeData['hotkeyPrintToPdf'] = true;
             storeData['acceleratorAlwaysOnTop'] = 'Alt+P';
             storeData['acceleratorBossKey'] = 'Alt+H';
@@ -264,6 +290,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
                 alwaysOnTop: false,
                 peekAndHide: true,
                 quickChat: false,
+                voiceChat: false,
                 printToPdf: true,
             });
 
@@ -290,10 +317,12 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             storeData['hotkeyAlwaysOnTop'] = true;
             storeData['hotkeyPeekAndHide'] = false;
             storeData['hotkeyQuickChat'] = true;
+            storeData['hotkeyVoiceChat'] = false;
             storeData['hotkeyPrintToPdf'] = false;
             storeData['acceleratorAlwaysOnTop'] = 'Alt+T';
             storeData['acceleratorPeekAndHide'] = 'Alt+B';
             storeData['acceleratorQuickChat'] = 'Ctrl+Space';
+            storeData['acceleratorVoiceChat'] = 'Ctrl+Shift+M';
             storeData['acceleratorPrintToPdf'] = 'Ctrl+P';
 
             handler.register();
@@ -305,7 +334,84 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
                 alwaysOnTop: { enabled: true, accelerator: 'Alt+T' },
                 peekAndHide: { enabled: false, accelerator: 'Alt+B' },
                 quickChat: { enabled: true, accelerator: 'Ctrl+Space' },
+                voiceChat: { enabled: false, accelerator: 'Ctrl+Shift+M' },
                 printToPdf: { enabled: false, accelerator: 'Ctrl+P' },
+            });
+        });
+    });
+
+    describe('voiceChat specific integration tests', () => {
+        it('should broadcast voiceChat individual setting change to all windows', () => {
+            const mockWindow = {
+                id: 1,
+                isDestroyed: vi.fn().mockReturnValue(false),
+                webContents: { send: vi.fn() },
+            };
+            (BrowserWindow.getAllWindows as any).mockReturnValue([mockWindow]);
+
+            handler.register();
+
+            const listener = (ipcMain as any)._listeners?.get(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET);
+            listener!({}, 'voiceChat', true);
+
+            expect(mockWindow.webContents.send).toHaveBeenCalledWith(
+                IPC_CHANNELS.HOTKEYS_INDIVIDUAL_CHANGED,
+                expect.objectContaining({
+                    voiceChat: true,
+                })
+            );
+        });
+
+        it('should broadcast voiceChat accelerator change to all windows', () => {
+            const mockWindow = {
+                id: 1,
+                isDestroyed: vi.fn().mockReturnValue(false),
+                webContents: { send: vi.fn() },
+            };
+            (BrowserWindow.getAllWindows as any).mockReturnValue([mockWindow]);
+
+            storeData['acceleratorVoiceChat'] = 'Ctrl+Shift+M';
+
+            handler.register();
+
+            const listener = (ipcMain as any)._listeners?.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET);
+            listener!({}, 'voiceChat', 'Ctrl+Shift+M');
+
+            expect(mockWindow.webContents.send).toHaveBeenCalledWith(
+                IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED,
+                expect.objectContaining({
+                    voiceChat: 'Ctrl+Shift+M',
+                })
+            );
+        });
+
+        it('should call hotkeyManager.setIndividualEnabled when voiceChat is toggled', () => {
+            handler.register();
+
+            const listener = (ipcMain as any)._listeners?.get(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET);
+            listener!({}, 'voiceChat', false);
+
+            expect(mockHotkeyManager.setIndividualEnabled).toHaveBeenCalledWith('voiceChat', false);
+        });
+
+        it('should call hotkeyManager.setAccelerator when voiceChat accelerator changes', () => {
+            handler.register();
+
+            const listener = (ipcMain as any)._listeners?.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET);
+            listener!({}, 'voiceChat', 'CommandOrControl+M');
+
+            expect(mockHotkeyManager.setAccelerator).toHaveBeenCalledWith('voiceChat', 'CommandOrControl+M');
+        });
+
+        it('should include voiceChat in full settings with default accelerator when not set', async () => {
+            handler.register();
+
+            const invokeHandler = (ipcMain as any)._handlers?.get(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET);
+            const result = await invokeHandler!();
+
+            expect(result.voiceChat).toEqual({
+                enabled: true,
+                accelerator: DEFAULT_ACCELERATORS.voiceChat,
             });
         });
     });

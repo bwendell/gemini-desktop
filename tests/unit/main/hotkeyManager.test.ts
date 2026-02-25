@@ -125,8 +125,14 @@ describe('HotkeyManager', () => {
 
         it('should initialize shortcut actions with correct IDs', () => {
             const shortcutActions = (hotkeyManager as unknown as { shortcutActions: { id: string }[] }).shortcutActions;
-            expect(shortcutActions).toHaveLength(4);
-            expect(shortcutActions.map((s) => s.id)).toEqual(['peekAndHide', 'quickChat', 'alwaysOnTop', 'printToPdf']);
+            expect(shortcutActions).toHaveLength(5);
+            expect(shortcutActions.map((s) => s.id)).toEqual([
+                'peekAndHide',
+                'quickChat',
+                'voiceChat',
+                'alwaysOnTop',
+                'printToPdf',
+            ]);
         });
 
         it('should accept initial settings (old style)', () => {
@@ -140,6 +146,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: false,
                 peekAndHide: true,
                 quickChat: false,
+                voiceChat: true,
                 printToPdf: true,
             });
         });
@@ -160,6 +167,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: false,
                 peekAndHide: true,
                 quickChat: false,
+                voiceChat: true,
                 printToPdf: true,
             });
             expect(customManager.getAccelerator('peekAndHide')).toBe('CommandOrControl+Shift+Space');
@@ -183,6 +191,10 @@ describe('HotkeyManager', () => {
                 expect(getHotkeyScope('peekAndHide')).toBe('global');
             });
 
+            it('should return "global" for voiceChat', () => {
+                expect(getHotkeyScope('voiceChat')).toBe('global');
+            });
+
             it('should return "application" for alwaysOnTop', () => {
                 expect(getHotkeyScope('alwaysOnTop')).toBe('application');
             });
@@ -199,6 +211,10 @@ describe('HotkeyManager', () => {
 
             it('should return true for peekAndHide', () => {
                 expect(isGlobalHotkey('peekAndHide')).toBe(true);
+            });
+
+            it('should return true for voiceChat', () => {
+                expect(isGlobalHotkey('voiceChat')).toBe(true);
             });
 
             it('should return false for alwaysOnTop', () => {
@@ -219,6 +235,10 @@ describe('HotkeyManager', () => {
                 expect(isApplicationHotkey('peekAndHide')).toBe(false);
             });
 
+            it('should return false for voiceChat', () => {
+                expect(isApplicationHotkey('voiceChat')).toBe(false);
+            });
+
             it('should return true for alwaysOnTop', () => {
                 expect(isApplicationHotkey('alwaysOnTop')).toBe(true);
             });
@@ -230,7 +250,7 @@ describe('HotkeyManager', () => {
 
         describe('GLOBAL_HOTKEY_IDS and APPLICATION_HOTKEY_IDS', () => {
             it('should have correct global hotkey IDs', () => {
-                expect(GLOBAL_HOTKEY_IDS).toEqual(['quickChat', 'peekAndHide']);
+                expect(GLOBAL_HOTKEY_IDS).toEqual(['quickChat', 'peekAndHide', 'voiceChat']);
             });
 
             it('should have correct application hotkey IDs', () => {
@@ -254,6 +274,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: true,
                 peekAndHide: true,
                 quickChat: true,
+                voiceChat: true,
                 printToPdf: true,
             });
         });
@@ -269,6 +290,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
                 peekAndHide: DEFAULT_ACCELERATORS.peekAndHide,
                 quickChat: DEFAULT_ACCELERATORS.quickChat,
+                voiceChat: DEFAULT_ACCELERATORS.voiceChat,
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });
         });
@@ -279,6 +301,7 @@ describe('HotkeyManager', () => {
             expect(hotkeyManager.getAccelerator('alwaysOnTop')).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
             expect(hotkeyManager.getAccelerator('peekAndHide')).toBe(DEFAULT_ACCELERATORS.peekAndHide);
             expect(hotkeyManager.getAccelerator('quickChat')).toBe(DEFAULT_ACCELERATORS.quickChat);
+            expect(hotkeyManager.getAccelerator('voiceChat')).toBe(DEFAULT_ACCELERATORS.voiceChat);
             expect(hotkeyManager.getAccelerator('printToPdf')).toBe(DEFAULT_ACCELERATORS.printToPdf);
         });
     });
@@ -297,6 +320,10 @@ describe('HotkeyManager', () => {
                 quickChat: {
                     enabled: true,
                     accelerator: DEFAULT_ACCELERATORS.quickChat,
+                },
+                voiceChat: {
+                    enabled: true,
+                    accelerator: DEFAULT_ACCELERATORS.voiceChat,
                 },
                 printToPdf: {
                     enabled: true,
@@ -375,6 +402,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: 'CommandOrControl+Shift+A',
                 peekAndHide: 'CommandOrControl+Alt+B',
                 quickChat: 'CommandOrControl+Shift+Q',
+                voiceChat: DEFAULT_ACCELERATORS.voiceChat,
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });
 
@@ -382,6 +410,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: 'CommandOrControl+Shift+A',
                 peekAndHide: 'CommandOrControl+Alt+B',
                 quickChat: 'CommandOrControl+Shift+Q',
+                voiceChat: DEFAULT_ACCELERATORS.voiceChat,
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });
         });
@@ -392,6 +421,7 @@ describe('HotkeyManager', () => {
             expect(hotkeyManager.isIndividualEnabled('alwaysOnTop')).toBe(true);
             expect(hotkeyManager.isIndividualEnabled('peekAndHide')).toBe(true);
             expect(hotkeyManager.isIndividualEnabled('quickChat')).toBe(true);
+            expect(hotkeyManager.isIndividualEnabled('voiceChat')).toBe(true);
         });
 
         it('should return false for disabled hotkeys', () => {
@@ -455,6 +485,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: false,
                 peekAndHide: true,
                 quickChat: false,
+                voiceChat: true,
                 printToPdf: true,
             });
 
@@ -462,6 +493,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: false,
                 peekAndHide: true,
                 quickChat: false,
+                voiceChat: true,
                 printToPdf: true,
             });
         });
@@ -476,17 +508,20 @@ describe('HotkeyManager', () => {
             mockGlobalShortcut.register.mockReturnValue(true);
         });
 
-        it('should register only global shortcuts (quickChat, peekAndHide)', () => {
+        it('should register only global shortcuts (quickChat, peekAndHide, voiceChat)', () => {
             hotkeyManager.registerShortcuts();
 
-            // Only 2 global hotkeys should be registered via globalShortcut
-            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(3);
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
                 DEFAULT_ACCELERATORS.peekAndHide,
                 expect.any(Function)
             );
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
                 DEFAULT_ACCELERATORS.quickChat,
+                expect.any(Function)
+            );
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+                DEFAULT_ACCELERATORS.voiceChat,
                 expect.any(Function)
             );
             // Application hotkeys should NOT be registered via globalShortcut
@@ -502,14 +537,18 @@ describe('HotkeyManager', () => {
 
         it('should not register disabled global shortcuts', () => {
             hotkeyManager.setIndividualEnabled('quickChat', false);
+            hotkeyManager.setIndividualEnabled('voiceChat', false);
             mockGlobalShortcut.register.mockClear();
 
             hotkeyManager.registerShortcuts();
 
-            // Only peekAndHide should be registered (quickChat disabled)
             expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(1);
             expect(mockGlobalShortcut.register).not.toHaveBeenCalledWith(
                 DEFAULT_ACCELERATORS.quickChat,
+                expect.any(Function)
+            );
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalledWith(
+                DEFAULT_ACCELERATORS.voiceChat,
                 expect.any(Function)
             );
         });
@@ -555,6 +594,19 @@ describe('HotkeyManager', () => {
             hotkeyManager.registerShortcuts();
 
             expect(mockWindowManager.toggleQuickChat).toHaveBeenCalledTimes(1);
+        });
+
+        it('should call activateVoiceChat when voice chat hotkey is triggered', () => {
+            mockGlobalShortcut.register.mockImplementation((accelerator: string, callback: () => void) => {
+                if (accelerator === DEFAULT_ACCELERATORS.voiceChat) {
+                    callback();
+                }
+                return true;
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            expect(mockWindowManager.activateVoiceChat).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -639,8 +691,8 @@ describe('HotkeyManager', () => {
         it('getGlobalHotkeyActions should return only global hotkeys', () => {
             const globalActions = hotkeyManager.getGlobalHotkeyActions();
 
-            expect(globalActions).toHaveLength(2);
-            expect(globalActions.map((a) => a.id)).toEqual(['peekAndHide', 'quickChat']);
+            expect(globalActions).toHaveLength(3);
+            expect(globalActions.map((a) => a.id)).toEqual(['peekAndHide', 'quickChat', 'voiceChat']);
         });
 
         it('getApplicationHotkeyActions should return only application hotkeys', () => {
@@ -668,6 +720,7 @@ describe('HotkeyManager', () => {
             hotkeyManager.setIndividualEnabled('alwaysOnTop', false);
             hotkeyManager.setIndividualEnabled('peekAndHide', false);
             hotkeyManager.setIndividualEnabled('quickChat', false);
+            hotkeyManager.setIndividualEnabled('voiceChat', false);
             hotkeyManager.setIndividualEnabled('printToPdf', false);
 
             expect(hotkeyManager.isEnabled()).toBe(false);
@@ -681,6 +734,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: false,
                 peekAndHide: false,
                 quickChat: false,
+                voiceChat: false,
                 printToPdf: false,
             });
         });
@@ -689,6 +743,7 @@ describe('HotkeyManager', () => {
             hotkeyManager.setIndividualEnabled('alwaysOnTop', false);
             hotkeyManager.setIndividualEnabled('peekAndHide', false);
             hotkeyManager.setIndividualEnabled('quickChat', false);
+            hotkeyManager.setIndividualEnabled('voiceChat', false);
             hotkeyManager.setIndividualEnabled('printToPdf', false);
 
             hotkeyManager.setEnabled(true);
@@ -697,6 +752,7 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: true,
                 peekAndHide: true,
                 quickChat: true,
+                voiceChat: true,
                 printToPdf: true,
             });
         });
@@ -719,6 +775,11 @@ describe('HotkeyManager', () => {
         it('should execute quickChat action', () => {
             hotkeyManager.executeHotkeyAction('quickChat');
             expect(mockWindowManager.toggleQuickChat).toHaveBeenCalled();
+        });
+
+        it('should execute voiceChat action', () => {
+            hotkeyManager.executeHotkeyAction('voiceChat');
+            expect(mockWindowManager.activateVoiceChat).toHaveBeenCalled();
         });
 
         it('should execute alwaysOnTop action', () => {
@@ -1057,8 +1118,8 @@ describe('HotkeyManager', () => {
                 });
 
                 const [shortcuts] = mockDbusFallback.registerViaDBus.mock.calls[0];
-                expect(shortcuts).toHaveLength(1);
-                expect(shortcuts[0]).toEqual(expect.objectContaining({ id: 'peekAndHide' }));
+                expect(shortcuts).toHaveLength(2);
+                expect(shortcuts.map((shortcut) => shortcut.id)).toEqual(['peekAndHide', 'voiceChat']);
             });
 
             it('should set portalMethod to dbus-direct on successful D-Bus direct registration', async () => {
@@ -1091,12 +1152,13 @@ describe('HotkeyManager', () => {
                 mockDbusFallback.registerViaDBus.mockResolvedValue([
                     { hotkeyId: 'peekAndHide', success: true },
                     { hotkeyId: 'quickChat', success: true },
+                    { hotkeyId: 'voiceChat', success: true },
                 ]);
 
                 hotkeyManager.registerShortcuts();
 
                 await vi.waitFor(() => {
-                    expect(hotkeyManager.getPlatformHotkeyStatus().registrationResults).toHaveLength(2);
+                    expect(hotkeyManager.getPlatformHotkeyStatus().registrationResults).toHaveLength(3);
                 });
                 expect(hotkeyManager.getPlatformHotkeyStatus().waylandStatus.portalMethod).toBe('dbus-direct');
 
@@ -1104,6 +1166,7 @@ describe('HotkeyManager', () => {
 
                 hotkeyManager.setIndividualEnabled('quickChat', false);
                 hotkeyManager.setIndividualEnabled('peekAndHide', false);
+                hotkeyManager.setIndividualEnabled('voiceChat', false);
                 createWaylandKdeStatus();
 
                 hotkeyManager.registerShortcuts();
@@ -1306,6 +1369,7 @@ describe('HotkeyManager', () => {
                 resolveRegistration([
                     { hotkeyId: 'quickChat', success: true },
                     { hotkeyId: 'peekAndHide', success: true },
+                    { hotkeyId: 'voiceChat', success: true },
                 ]);
 
                 await vi.waitFor(() => {
@@ -1313,8 +1377,8 @@ describe('HotkeyManager', () => {
                 });
 
                 const secondCallShortcuts = mockDbusFallback.registerViaDBus.mock.calls[1][0];
-                expect(secondCallShortcuts).toHaveLength(1);
-                expect(secondCallShortcuts[0]).toEqual(expect.objectContaining({ id: 'quickChat' }));
+                expect(secondCallShortcuts).toHaveLength(2);
+                expect(secondCallShortcuts.map((shortcut) => shortcut.id)).toEqual(['quickChat', 'voiceChat']);
 
                 // State is consistent
                 expect(hotkeyManager.getIndividualSettings().peekAndHide).toBe(false);
