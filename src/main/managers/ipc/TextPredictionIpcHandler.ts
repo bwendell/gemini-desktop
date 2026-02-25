@@ -92,6 +92,9 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
         if (process.env.NODE_ENV !== 'test') {
             this.deps.llmNativeAvailable = this.deps.llmManager.ensureNativeAvailable('initializeOnStartup');
         }
+        if (this.deps.llmNativeAvailable === undefined) {
+            this.deps.llmNativeAvailable = this.deps.llmManager.isNativeAvailable();
+        }
         if (!this.deps.llmNativeAvailable) {
             this.logger.warn('Text prediction initialization skipped - native module unavailable', {
                 error: this.deps.llmManager.getNativeProbeError(),
@@ -163,18 +166,22 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
                 return;
             }
 
+            if (enabled && this.deps.llmManager) {
+                if (process.env.NODE_ENV !== 'test' && process.type && process.type !== 'browser') {
+                    this.logger.error('Text prediction enable blocked - not in main process', {
+                        processType: process.type,
+                    });
+                    this._broadcastStatusChange();
+                    return;
+                }
+            }
+
             // Persist preference
             this.deps.store.set('textPredictionEnabled', enabled);
             this.logger.log(`Text prediction enabled set to: ${enabled}`);
 
             // If enabling and LlmManager exists, trigger model download/load if needed
             if (enabled && this.deps.llmManager) {
-                if (process.env.NODE_ENV !== 'test' && process.type && process.type !== 'browser') {
-                    this.logger.error('Text prediction enable blocked - not in main process', {
-                        processType: process.type,
-                    });
-                    return;
-                }
                 const skipNativeOperations = process.env.CI === 'true' || process.argv.includes('--integration-test');
 
                 if (skipNativeOperations) {
@@ -185,6 +192,9 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
                 } else {
                     if (process.env.NODE_ENV !== 'test') {
                         this.deps.llmNativeAvailable = this.deps.llmManager.ensureNativeAvailable('setEnabled');
+                    }
+                    if (this.deps.llmNativeAvailable === undefined) {
+                        this.deps.llmNativeAvailable = this.deps.llmManager.isNativeAvailable();
                     }
                     if (!this.deps.llmNativeAvailable) {
                         this.logger.warn('Text prediction enable requested but native module unavailable', {
