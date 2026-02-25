@@ -20,7 +20,15 @@
 import { browser, $ } from '@wdio/globals';
 import { isMacOS } from './platform';
 import { E2ELogger } from './logger';
+import { E2E_TIMING } from './e2eConstants';
+import { waitForUIState } from './waitUtilities';
 
+type MNBrowser = {
+    electron: {
+        execute<R, T extends any[]>(fn: (electron: typeof import('electron'), ...args: T) => R, ...args: T): Promise<R>;
+    };
+};
+const mnBrowser = browser as unknown as MNBrowser;
 // ============================================================================
 // Types
 // ============================================================================
@@ -72,7 +80,7 @@ export async function clickMenuItemById(id: string): Promise<void> {
  * @private
  */
 async function clickNativeMenuItemById(id: string): Promise<void> {
-    const result = await browser.electron.execute((electron, itemId) => {
+    const result = await mnBrowser.electron.execute((electron, itemId) => {
         const menu = electron.Menu.getApplicationMenu();
         if (!menu) {
             return { success: false, error: 'Application menu not found' };
@@ -114,7 +122,7 @@ async function clickNativeMenuItemById(id: string): Promise<void> {
  * await triggerMenuItemViaElectronApi('menu-view-zoom-out');
  */
 export async function triggerMenuItemViaElectronApi(id: string): Promise<void> {
-    const result = await browser.electron.execute((electron, itemId) => {
+    const result = await mnBrowser.electron.execute((electron, itemId) => {
         const menu = electron.Menu.getApplicationMenu();
         if (!menu) {
             return { success: false, error: 'Application menu not found' };
@@ -234,7 +242,7 @@ export async function clickMenuItem(ref: MenuItemRef): Promise<void> {
  */
 async function triggerMenuItemViaMacOS(ref: MenuItemRef): Promise<void> {
     // Search for menu item by label property
-    const result = await browser.electron.execute((electron: typeof import('electron'), label: string) => {
+    const result = await mnBrowser.electron.execute((electron: typeof import('electron'), label: string) => {
         const menu = electron.Menu.getApplicationMenu();
         if (!menu) {
             return { success: false, error: 'Application menu not found' };
@@ -305,17 +313,26 @@ export async function waitForMenuItemEnabled(id: string, timeoutMs = 5000): Prom
 
     if (mac) {
         // For macOS, poll the menu item state
-        const startTime = Date.now();
-        while (Date.now() - startTime < timeoutMs) {
-            const result = await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
-                const menu = electron.Menu.getApplicationMenu();
-                const item = menu?.getMenuItemById(itemId);
-                return item?.enabled ?? false;
-            }, id);
-            if (result === true) return;
-            await browser.pause(100);
-        }
-        throw new Error(`[E2E] Menu item ${id} did not become enabled within ${timeoutMs}ms`);
+        let menuItemIsEnabled = false;
+        const result = await waitForUIState(
+            async () => {
+                menuItemIsEnabled = await mnBrowser.electron.execute(
+                    (electron: typeof import('electron'), itemId: string) => {
+                        const menu = electron.Menu.getApplicationMenu();
+                        const item = menu?.getMenuItemById(itemId);
+                        return item?.enabled ?? false;
+                    },
+                    id
+                );
+                return menuItemIsEnabled;
+            },
+            {
+                timeout: timeoutMs,
+                interval: E2E_TIMING.POLLING?.WINDOW_STATE ?? 100,
+                description: `menu item ${id} enabled`,
+            }
+        );
+        if (!result) throw new Error(`[E2E] Menu item ${id} did not become enabled within ${timeoutMs}ms`);
     } else {
         const menuItem = await $(`[data-menu-id="${id}"]`);
         await menuItem.waitForEnabled({ timeout: timeoutMs });
@@ -332,7 +349,7 @@ export async function menuItemExists(id: string): Promise<boolean> {
     const mac = await isMacOS();
 
     if (mac) {
-        return await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
+        return await mnBrowser.electron.execute((electron: typeof import('electron'), itemId: string) => {
             const menu = electron.Menu.getApplicationMenu();
             return menu?.getMenuItemById(itemId) !== null;
         }, id);
@@ -372,7 +389,7 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
     const mac = await isMacOS();
 
     if (mac) {
-        return await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
+        return await mnBrowser.electron.execute((electron: typeof import('electron'), itemId: string) => {
             const menu = electron.Menu.getApplicationMenu();
             const item = menu?.getMenuItemById(itemId);
 
@@ -383,14 +400,14 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
             return {
                 exists: true,
                 enabled: item.enabled,
-                accelerator: item.accelerator,
+                accelerator: item.accelerator ?? undefined,
                 label: item.label,
             };
         }, id);
     } else {
         // For Windows/Linux, we need to open the menu and check the item's DOM state
         // First check if item exists by querying the menu structure
-        const result = await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
+        const result = await mnBrowser.electron.execute((electron: typeof import('electron'), itemId: string) => {
             const menu = electron.Menu.getApplicationMenu();
             const item = menu?.getMenuItemById(itemId);
 
@@ -401,7 +418,7 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
             return {
                 exists: true,
                 enabled: item.enabled,
-                accelerator: item.accelerator,
+                accelerator: item.accelerator ?? undefined,
                 label: item.label,
             };
         }, id);
