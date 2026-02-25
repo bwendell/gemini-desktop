@@ -7,7 +7,7 @@ import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterFor
 
 const pathsMocks = vi.hoisted(() => ({
     getIconPath: vi.fn(() => '/mock/icon.png'),
-    getTrayIconPath: vi.fn(() => '/mock/trayIconTemplate.png'),
+    getTrayIconPath: vi.fn(() => '/mock/icon.png'),
     getPreloadPath: vi.fn(() => '/mock/preload.js'),
     getDistHtmlPath: vi.fn((filename: string) => `/mock/dist/${filename}`),
 }));
@@ -308,7 +308,7 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
 
                 // Verify the adapter is properly configured with getTrayIconFilename
                 const filename = platformAdapter.getTrayIconFilename?.();
-                expect(filename).toBe('trayIconTemplate.png');
+                expect(filename).toBe('icon.png');
 
                 // Verify getTrayIconPath was called during tray creation
                 expect(vi.mocked(pathsMocks.getTrayIconPath)).toHaveBeenCalled();
@@ -352,7 +352,7 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
                 const filename = platformAdapter.getTrayIconFilename?.();
 
                 if (platform === 'darwin') {
-                    expect(filename).toBe('trayIconTemplate.png');
+                    expect(filename).toBe('icon.png');
                 } else if (platform === 'win32') {
                     expect(filename).toBe('icon.ico');
                 } else if (platform === 'linux') {

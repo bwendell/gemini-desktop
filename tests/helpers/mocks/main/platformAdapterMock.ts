@@ -260,7 +260,7 @@ export const platformAdapterPresets = {
         createMockPlatformAdapter({
             id: 'mac',
             getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
-            getTrayIconFilename: vi.fn().mockReturnValue('trayIconTemplate.png'),
+            getTrayIconFilename: vi.fn().mockReturnValue('icon.png'),
             getHotkeyRegistrationPlan: vi.fn().mockReturnValue(createDefaultPlan()),
             supportsBadges: vi.fn().mockReturnValue(true),
             getWaylandStatus: vi.fn().mockReturnValue(DEFAULT_WAYLAND_STATUS),

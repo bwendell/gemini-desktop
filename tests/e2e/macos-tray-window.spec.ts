@@ -7,7 +7,7 @@
  * when interacting with the system tray.
  *
  * Verifies:
- * 1. Tray icon path contains trayIconTemplate on macOS
+ * 1. Tray icon path exists on macOS
  * 2. Main window content is visible
  * 3. Tab bar is visible and functional
  * 4. Hide to tray and restore cycle works correctly
@@ -67,7 +67,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
     });
 
     describe('Tray Icon Configuration', () => {
-        it('should have tray icon path containing trayIconTemplate on macOS', async () => {
+        it('should have tray icon configured on macOS', async () => {
             if (!(await isMacOS())) {
                 return;
             }
@@ -80,7 +80,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
                     return {
                         exists: false,
                         path: null,
-                        hasTrayIconTemplate: false,
+                        hasExpectedTrayIcon: false,
                         error: 'trayManager not in global',
                     };
                 }
@@ -90,23 +90,19 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
                     return {
                         exists: false,
                         path: null,
-                        hasTrayIconTemplate: false,
+                        hasExpectedTrayIcon: false,
                         error: 'tray not available',
                     };
                 }
 
-                // Attempt to get the tray icon path
-                // On macOS, Electron internally uses trayIconTemplate for the image
+                // Attempt to get the tray icon path (when available)
                 const getImage = (tray as any).getImage;
                 const iconPath = getImage ? getImage() : null;
 
                 return {
                     exists: true,
                     path: iconPath || null,
-                    hasTrayIconTemplate: iconPath
-                        ? iconPath.includes('trayIconTemplate') ||
-                          iconPath.includes('tray')
-                        : false,
+                    hasExpectedTrayIcon: iconPath ? iconPath.includes('icon') : false,
                     error: null,
                 };
             });

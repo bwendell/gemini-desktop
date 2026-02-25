@@ -151,7 +151,7 @@ export interface PlatformAdapter {
 
     /**
      * Get the tray icon filename for this platform.
-     * macOS: 'trayIconTemplate.png' (template for dark/light mode), Windows: 'icon.ico', Linux: 'icon.png'
+     * Windows: 'icon.ico', others: 'icon.png'
      */
     getTrayIconFilename(): TrayIconFilename;
 
