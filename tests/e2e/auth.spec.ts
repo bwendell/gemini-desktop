@@ -12,7 +12,6 @@ import { MainWindowPage, AuthWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForDuration } from './helpers/waitUtilities';
 import { Selectors } from './helpers/selectors';
-import { E2ELogger } from './helpers/logger';
 
 describe('Authentication Flow', () => {
     const _mainWindow = new MainWindowPage();
@@ -50,8 +49,6 @@ describe('Authentication Flow', () => {
         await authWindow.switchTo();
         expect(await authWindow.isOnGoogleAccounts()).toBe(true);
 
-        E2ELogger.info('auth', 'Auth window opened successfully with Google accounts URL');
-
         // 5. Cleanup: close the auth window
         await authWindow.close();
     });
@@ -73,8 +70,6 @@ describe('Authentication Flow', () => {
         // 5. Verify we're back to 1 window (main window)
         const finalHandles = await browser.getWindowHandles();
         expect(finalHandles.length).toBe(1);
-
-        E2ELogger.info('auth', 'Auth window auto-closed after navigation to Gemini');
 
         // 6. Verify main window still works
         const mainUrl = await browser.getUrl();
@@ -98,8 +93,6 @@ describe('Authentication Flow', () => {
         // 5. Verify we're back to main window
         const finalHandles = await browser.getWindowHandles();
         expect(finalHandles.length).toBe(1);
-
-        E2ELogger.info('auth', 'Auth window closed manually, returned to main window');
     });
 
     it('should keep main window functional while auth window is open', async () => {
@@ -117,8 +110,6 @@ describe('Authentication Flow', () => {
         // 4. Verify main window URL hasn't changed to Google accounts
         const mainUrl = await browser.getUrl();
         expect(mainUrl).not.toContain('accounts.google.com');
-
-        E2ELogger.info('auth', 'Main window remains functional while auth window is open');
 
         // 5. Cleanup: Close auth window
         await authWindow.switchTo();
@@ -155,8 +146,6 @@ describe('Authentication Flow', () => {
         // 4. Switch to auth window and verify URL
         await authWindow.switchTo();
         expect(await authWindow.isOnGoogleAccounts()).toBe(true);
-
-        E2ELogger.info('auth', 'OAuth domain link correctly intercepted and opened in auth window');
 
         // 5. Cleanup
         await authWindow.close();
@@ -207,7 +196,6 @@ describe('Authentication Flow', () => {
 
         // 3. Check that we still have exactly one auth window (plus the main window)
         const secondHandles = await browser.getWindowHandles();
-        E2ELogger.info('auth', `Windows after second sign-in click: ${secondHandles.length}`);
 
         expect(secondHandles.length).toBe(2);
 
@@ -225,8 +213,6 @@ describe('Authentication Flow', () => {
 
         // 2. Set a cookie in the auth window session
         await authWindow.setCookie('e2e-test-cookie', 'shared-session-verified');
-
-        E2ELogger.info('auth', 'COOKIE SET: e2e-test-cookie set in AuthWindow');
 
         // 3. Switch back to Main Window
         await authWindow.switchToMainWindow();
@@ -251,8 +237,6 @@ describe('Authentication Flow', () => {
         expect(testCookie).toBeDefined();
         // @ts-expect-error
         expect(testCookie.value).toBe('shared-session-verified');
-
-        E2ELogger.info('auth', 'Verified cookie set in Auth window is visible in Main window');
 
         // Cleanup
         await authWindow.switchTo();

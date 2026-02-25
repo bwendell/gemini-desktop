@@ -15,10 +15,8 @@
 
 import { $, expect } from '@wdio/globals';
 import { clickMenuItemById } from './helpers/menuActions';
-import { waitForWindowCount as _waitForWindowCount } from './helpers/windowActions';
 import { waitForOptionsWindow, switchToOptionsWindow, closeOptionsWindow } from './helpers/optionsWindowActions';
 import { getPlatform, E2EPlatform } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
 import { waitForUIState } from './helpers/waitUtilities';
 
 // ============================================================================
@@ -78,12 +76,9 @@ describe('Individual Hotkey Toggles', () => {
 
     before(async () => {
         platform = await getPlatform();
-        E2ELogger.info('hotkey-toggle', `Platform: ${platform.toUpperCase()}`);
     });
 
     beforeEach(async () => {
-        E2ELogger.info('hotkey-toggle', 'Opening Options window');
-
         // Open Options via menu
         await clickMenuItemById('menu-file-options');
         await waitForOptionsWindow();
@@ -91,7 +86,6 @@ describe('Individual Hotkey Toggles', () => {
     });
 
     afterEach(async () => {
-        E2ELogger.info('hotkey-toggle', 'Cleaning up');
         await closeOptionsWindow();
     });
 
@@ -105,7 +99,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}"]`);
                 await expect(toggle).toExist();
                 await expect(toggle).toBeDisplayed();
-                E2ELogger.info('hotkey-toggle', `Found toggle: ${config.label}`);
             }
         });
 
@@ -135,7 +128,6 @@ describe('Individual Hotkey Toggles', () => {
                     });
                     expect(partFound).toBe(true);
                 }
-                E2ELogger.info('hotkey-toggle', `${config.label}: displays "${expectedShortcut}"`);
             }
         });
 
@@ -183,8 +175,6 @@ describe('Individual Hotkey Toggles', () => {
 
                 const role = await toggleSwitch.getAttribute('role');
                 expect(role).toBe('switch');
-
-                E2ELogger.info('hotkey-toggle', `${config.label}: switch exists with role=switch`);
             }
         });
 
@@ -194,7 +184,6 @@ describe('Individual Hotkey Toggles', () => {
                 const checked = await toggleSwitch.getAttribute('aria-checked');
 
                 expect(['true', 'false']).toContain(checked);
-                E2ELogger.info('hotkey-toggle', `${config.label}: aria-checked=${checked}`);
             }
         });
 
@@ -203,7 +192,6 @@ describe('Individual Hotkey Toggles', () => {
             const toggleSwitch = await $(`[data-testid="${config.testId}-switch"]`);
 
             const initialChecked = await toggleSwitch.getAttribute('aria-checked');
-            E2ELogger.info('hotkey-toggle', `Initial state: ${initialChecked}`);
 
             await toggleSwitch.click();
             await waitForUIState(async () => (await toggleSwitch.getAttribute('aria-checked')) !== initialChecked, {
@@ -211,7 +199,6 @@ describe('Individual Hotkey Toggles', () => {
             });
 
             const newChecked = await toggleSwitch.getAttribute('aria-checked');
-            E2ELogger.info('hotkey-toggle', `After click: ${newChecked}`);
 
             expect(newChecked).not.toBe(initialChecked);
 
@@ -265,8 +252,6 @@ describe('Individual Hotkey Toggles', () => {
             await waitForUIState(async () => (await toggle1.getAttribute('aria-checked')) === initial1, {
                 description: 'First hotkey toggle restored',
             });
-
-            E2ELogger.info('hotkey-toggle', 'Independent toggle verified');
         });
     });
 
@@ -278,7 +263,6 @@ describe('Individual Hotkey Toggles', () => {
         it('should report correct platform', async () => {
             const detectedPlatform = await getPlatform();
             expect(['windows', 'macos', 'linux']).toContain(detectedPlatform);
-            E2ELogger.info('hotkey-toggle', `Running on: ${detectedPlatform}`);
         });
     });
 
@@ -321,8 +305,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('false');
-
-                E2ELogger.info('hotkey-toggle', 'Quick Chat toggle disabled - hotkey should not work');
             });
 
             it('should enable Quick Chat action when toggle is ON', async () => {
@@ -333,8 +315,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('true');
-
-                E2ELogger.info('hotkey-toggle', 'Quick Chat toggle enabled - hotkey should work');
             });
         });
 
@@ -358,8 +338,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('false');
-
-                E2ELogger.info('hotkey-toggle', 'Peek and Hide toggle disabled - minimize hotkey should not work');
             });
 
             it('should enable Peek and Hide action when toggle is ON', async () => {
@@ -370,8 +348,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('true');
-
-                E2ELogger.info('hotkey-toggle', 'Peek and Hide toggle enabled - minimize hotkey should work');
             });
         });
 
@@ -395,8 +371,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('false');
-
-                E2ELogger.info('hotkey-toggle', 'Always on Top toggle disabled - z-order hotkey should not work');
             });
 
             it('should enable Always on Top action when toggle is ON', async () => {
@@ -407,8 +381,6 @@ describe('Individual Hotkey Toggles', () => {
                 const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                 const checked = await toggle.getAttribute('aria-checked');
                 expect(checked).toBe('true');
-
-                E2ELogger.info('hotkey-toggle', 'Always on Top toggle enabled - z-order hotkey should work');
             });
         });
     });

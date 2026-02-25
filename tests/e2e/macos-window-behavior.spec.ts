@@ -12,7 +12,6 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
-import { E2ELogger } from './helpers/logger';
 import { closeCurrentWindow } from './helpers/windowActions';
 import { waitForWindowTransition, waitForUIState } from './helpers/waitUtilities';
 import { isMacOSSync } from './helpers/platform';
@@ -33,9 +32,6 @@ describeMac('macOS Window Behavior', () => {
             // 1. Verify app is running and window is visible
             const initialHandles = await browser.getWindowHandles();
             expect(initialHandles.length).toBeGreaterThanOrEqual(1);
-            E2ELogger.info('macos-window', 'Initial window count:', {
-                count: initialHandles.length,
-            });
 
             // 2. Close the main window using macOS behavior (Cmd+W or close button)
             await closeCurrentWindow();
@@ -46,9 +42,7 @@ describeMac('macOS Window Behavior', () => {
             // 3. On macOS, closing the last window hides it to tray (or just hides it)
             // The app should remain running
             const handlesAfterClose = await browser.getWindowHandles();
-            E2ELogger.info('macos-window', 'Window count after close:', {
-                count: handlesAfterClose.length,
-            });
+            expect(handlesAfterClose.length).toBeGreaterThanOrEqual(0);
 
             // Window should be hidden, not destroyed (count may be 0 for hidden windows)
             // The app is still running, just no visible windows
@@ -60,8 +54,6 @@ describeMac('macOS Window Behavior', () => {
                 return electron.app.isReady();
             });
             expect(appRunning).toBe(true);
-
-            E2ELogger.info('macos-window', 'App still running after closing last window');
 
             // 5. Restore the window for test cleanup
             await browser.execute(() => {
@@ -111,8 +103,6 @@ describeMac('macOS Window Behavior', () => {
 
             const finalHandles = await browser.getWindowHandles();
             expect(finalHandles.length).toBeGreaterThanOrEqual(1);
-
-            E2ELogger.info('macos-window', 'Window recreated/restored after dock icon click simulation');
         });
     });
 
@@ -137,8 +127,6 @@ describeMac('macOS Window Behavior', () => {
                 return menu !== null;
             });
             expect(hasMenu).toBe(true);
-
-            E2ELogger.info('macos-window', 'Menu bar accessible with no windows');
 
             // 4. Cleanup - restore window
             await browser.execute(() => {

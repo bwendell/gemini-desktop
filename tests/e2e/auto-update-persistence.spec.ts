@@ -16,8 +16,7 @@
 import { expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
-import { getPlatform, E2EPlatform } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
+import { getPlatform } from './helpers/platform';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 
 // ============================================================================
@@ -28,19 +27,11 @@ describe('Auto-Update Persistence', () => {
     const mainWindow = new MainWindowPage();
     const optionsPage = new OptionsPage();
 
-    let platform: E2EPlatform;
-
-    before(async () => {
-        platform = await getPlatform();
-        E2ELogger.info('auto-update-persistence', `Platform: ${platform.toUpperCase()}`);
-    });
-
     beforeEach(async () => {
         await waitForAppReady();
     });
 
     afterEach(async () => {
-        E2ELogger.info('auto-update-persistence', 'Cleaning up');
         await ensureSingleWindow();
     });
 
@@ -71,8 +62,6 @@ describe('Auto-Update Persistence', () => {
             // On a fresh install, auto-update should be enabled by default
             // We just verify it's a valid state (true or false)
             const isEnabled = await optionsPage.isAutoUpdateEnabled();
-
-            E2ELogger.info('auto-update-persistence', `Default state: ${isEnabled}`);
             expect([true, false]).toContain(isEnabled);
         });
     });
@@ -95,7 +84,6 @@ describe('Auto-Update Persistence', () => {
 
             const afterDisable = await optionsPage.isAutoUpdateEnabled();
             expect(afterDisable).toBe(false);
-            E2ELogger.info('auto-update-persistence', 'Toggle disabled');
 
             // 2. Close Options window
             await closeOptionsWindow();
@@ -106,8 +94,6 @@ describe('Auto-Update Persistence', () => {
             // 4. Verify state persisted
             const persisted = await optionsPage.isAutoUpdateEnabled();
             expect(persisted).toBe(false);
-
-            E2ELogger.info('auto-update-persistence', 'Disabled state persisted across Options reopen');
 
             // 5. Restore to enabled
             await optionsPage.toggleAutoUpdate();
@@ -126,7 +112,6 @@ describe('Auto-Update Persistence', () => {
 
             const afterEnable = await optionsPage.isAutoUpdateEnabled();
             expect(afterEnable).toBe(true);
-            E2ELogger.info('auto-update-persistence', 'Toggle enabled');
 
             // 2. Close Options window
             await closeOptionsWindow();
@@ -137,8 +122,6 @@ describe('Auto-Update Persistence', () => {
             // 4. Verify state persisted
             const persisted = await optionsPage.isAutoUpdateEnabled();
             expect(persisted).toBe(true);
-
-            E2ELogger.info('auto-update-persistence', 'Enabled state persisted across Options reopen');
         });
     });
 
@@ -157,7 +140,6 @@ describe('Auto-Update Persistence', () => {
 
             // Final state should match initial (even number of toggles)
             const finalState = await optionsPage.isAutoUpdateEnabled();
-            E2ELogger.info('auto-update-persistence', `After 4 toggles: ${finalState}`);
 
             // Close and reopen to verify persistence
             await closeOptionsWindow();
@@ -165,8 +147,6 @@ describe('Auto-Update Persistence', () => {
 
             const persistedState = await optionsPage.isAutoUpdateEnabled();
             expect(persistedState).toBe(finalState);
-
-            E2ELogger.info('auto-update-persistence', 'Multi-toggle persistence verified');
         });
 
         it('should handle rapid toggling without corruption', async () => {
@@ -184,8 +164,6 @@ describe('Auto-Update Persistence', () => {
             const expected = !initial;
             expect(finalState).toBe(expected);
 
-            E2ELogger.info('auto-update-persistence', 'Rapid toggle handling verified');
-
             // Restore initial state
             await optionsPage.toggleAutoUpdate();
         });
@@ -198,7 +176,7 @@ describe('Auto-Update Persistence', () => {
     describe('Cross-Platform Persistence', () => {
         it('should persist settings on current platform', async () => {
             const detectedPlatform = await getPlatform();
-            E2ELogger.info('auto-update-persistence', `Testing on: ${detectedPlatform}`);
+            expect(['windows', 'macos', 'linux']).toContain(detectedPlatform);
 
             await openOptionsWindow();
 
@@ -221,8 +199,6 @@ describe('Auto-Update Persistence', () => {
             if (persisted !== initial) {
                 await optionsPage.toggleAutoUpdate();
             }
-
-            E2ELogger.info('auto-update-persistence', `Persistence verified on ${detectedPlatform}`);
         });
     });
 });

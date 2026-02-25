@@ -18,7 +18,6 @@ import { waitForAppReady, ensureSingleWindow, switchToMainWindow, waitForIpcSett
 import { triggerZoomIn, triggerZoomOut, getMenuItemState } from './helpers/menuActions';
 import { readUserPreferences } from './helpers/persistenceActions';
 import { isMacOS } from './helpers/platform';
-import { E2ELogger } from './helpers/logger';
 import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Zoom Control E2E', () => {
@@ -47,14 +46,11 @@ describe('Zoom Control E2E', () => {
 
     describe('Zoom In via Keyboard Shortcut (7.1)', () => {
         it('should increase zoom level when pressing Ctrl+=', async () => {
-            E2ELogger.info('zoom-control', 'Testing Ctrl+= zoom in keyboard shortcut');
-
             // 1. Verify initial zoom level is 100%
             const initialZoom = await browser.electron.execute(() => {
                 return global.windowManager.getZoomLevel();
             });
             expect(initialZoom).toBe(100);
-            E2ELogger.info('zoom-control', `Initial zoom level: ${initialZoom}%`);
 
             // 2. Verify initial webContents zoom factor
             const initialZoomFactor = await browser.electron.execute(() => {
@@ -65,7 +61,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(initialZoomFactor).toBeCloseTo(1.0, 2);
-            E2ELogger.info('zoom-control', `Initial zoom factor: ${initialZoomFactor}`);
 
             // 3. Trigger zoom in via menu (more reliable than keyboard shortcuts)
             await triggerZoomIn();
@@ -76,7 +71,6 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(newZoom).toBeGreaterThan(initialZoom);
-            E2ELogger.info('zoom-control', `New zoom level after Ctrl+=: ${newZoom}%`);
 
             // 5. Verify the expected step (100% -> 110%)
             expect(newZoom).toBe(110);
@@ -90,14 +84,9 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(newZoomFactor).toBeCloseTo(1.1, 2);
-            E2ELogger.info('zoom-control', `New zoom factor: ${newZoomFactor}`);
-
-            E2ELogger.info('zoom-control', '✓ Ctrl+= zoom in test passed');
         });
 
         it('should zoom in multiple steps with repeated Ctrl+= presses', async () => {
-            E2ELogger.info('zoom-control', 'Testing multiple Ctrl+= presses');
-
             // 1. Get initial zoom level
             const initialZoom = await browser.electron.execute(() => {
                 return global.windowManager.getZoomLevel();
@@ -118,7 +107,6 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(finalZoom).toBe(150);
-            E2ELogger.info('zoom-control', `Final zoom level after 3 presses: ${finalZoom}%`);
 
             // 4. Verify webContents zoom factor matches
             const finalZoomFactor = await browser.electron.execute(() => {
@@ -129,8 +117,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(finalZoomFactor).toBeCloseTo(1.5, 2);
-
-            E2ELogger.info('zoom-control', '✓ Multiple Ctrl+= zoom in test passed');
         });
     });
 
@@ -140,14 +126,11 @@ describe('Zoom Control E2E', () => {
 
     describe('Zoom Out via Keyboard Shortcut (7.1.2)', () => {
         it('should decrease zoom level when pressing Ctrl+-', async () => {
-            E2ELogger.info('zoom-control', 'Testing Ctrl+- zoom out keyboard shortcut');
-
             // 1. Verify initial zoom level is 100%
             const initialZoom = await browser.electron.execute(() => {
                 return global.windowManager.getZoomLevel();
             });
             expect(initialZoom).toBe(100);
-            E2ELogger.info('zoom-control', `Initial zoom level: ${initialZoom}%`);
 
             // 2. Verify initial webContents zoom factor
             const initialZoomFactor = await browser.electron.execute(() => {
@@ -158,7 +141,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(initialZoomFactor).toBeCloseTo(1.0, 2);
-            E2ELogger.info('zoom-control', `Initial zoom factor: ${initialZoomFactor}`);
 
             // 3. Trigger zoom out via menu (more reliable than keyboard shortcuts)
             await triggerZoomOut();
@@ -169,7 +151,6 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(newZoom).toBeLessThan(initialZoom);
-            E2ELogger.info('zoom-control', `New zoom level after Ctrl+-: ${newZoom}%`);
 
             // 5. Verify the expected step (100% -> 90%)
             expect(newZoom).toBe(90);
@@ -183,14 +164,9 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(newZoomFactor).toBeCloseTo(0.9, 2);
-            E2ELogger.info('zoom-control', `New zoom factor: ${newZoomFactor}`);
-
-            E2ELogger.info('zoom-control', '✓ Ctrl+- zoom out test passed');
         });
 
         it('should zoom out multiple steps with repeated Ctrl+- presses', async () => {
-            E2ELogger.info('zoom-control', 'Testing multiple Ctrl+- presses');
-
             // 1. Get initial zoom level
             const initialZoom = await browser.electron.execute(() => {
                 return global.windowManager.getZoomLevel();
@@ -211,7 +187,6 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(finalZoom).toBe(75);
-            E2ELogger.info('zoom-control', `Final zoom level after 3 presses: ${finalZoom}%`);
 
             // 4. Verify webContents zoom factor matches
             const finalZoomFactor = await browser.electron.execute(() => {
@@ -222,8 +197,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(finalZoomFactor).toBeCloseTo(0.75, 2);
-
-            E2ELogger.info('zoom-control', '✓ Multiple Ctrl+- zoom out test passed');
         });
     });
 
@@ -233,8 +206,6 @@ describe('Zoom Control E2E', () => {
 
     describe('Zoom In Cap at 200% (7.1.3)', () => {
         it('should cap zoom at 200% with multiple Ctrl+= presses', async () => {
-            E2ELogger.info('zoom-control', 'Testing zoom in cap at 200%');
-
             // 1. Set zoom to near maximum (175%) to reduce number of key presses
             await browser.electron.execute(() => {
                 global.windowManager.setZoomLevel(175);
@@ -259,7 +230,6 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(finalZoom).toBe(200);
-            E2ELogger.info('zoom-control', `Final zoom level: ${finalZoom}% (capped at 200%)`);
 
             // 4. Verify webContents zoom factor
             const zoomFactor = await browser.electron.execute(() => {
@@ -270,8 +240,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(zoomFactor).toBeCloseTo(2.0, 2);
-
-            E2ELogger.info('zoom-control', '✓ Zoom in cap at 200% test passed');
         });
     });
 
@@ -281,8 +249,6 @@ describe('Zoom Control E2E', () => {
 
     describe('Zoom Out Cap at 50% (7.1.4)', () => {
         it('should cap zoom at 50% with multiple Ctrl+- presses', async () => {
-            E2ELogger.info('zoom-control', 'Testing zoom out cap at 50%');
-
             // 1. Set zoom to near minimum (67%) to reduce number of key presses
             await browser.electron.execute(() => {
                 global.windowManager.setZoomLevel(67);
@@ -307,7 +273,6 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(finalZoom).toBe(50);
-            E2ELogger.info('zoom-control', `Final zoom level: ${finalZoom}% (capped at 50%)`);
 
             // 4. Verify webContents zoom factor
             const zoomFactor = await browser.electron.execute(() => {
@@ -318,8 +283,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(zoomFactor).toBeCloseTo(0.5, 2);
-
-            E2ELogger.info('zoom-control', '✓ Zoom out cap at 50% test passed');
         });
     });
 
@@ -329,8 +292,6 @@ describe('Zoom Control E2E', () => {
 
     describe('Zoom Level Persistence (7.1.5)', () => {
         it('should persist zoom level to settings file', async () => {
-            E2ELogger.info('zoom-control', 'Testing zoom level persistence');
-
             // 1. Set zoom to 150% using menu actions
             await browser.electron.execute(() => {
                 global.windowManager.setZoomLevel(100);
@@ -360,14 +321,9 @@ describe('Zoom Control E2E', () => {
             const persistedZoom = prefs?.zoomLevel;
 
             expect(persistedZoom).toBe(150);
-            E2ELogger.info('zoom-control', `Zoom level persisted to file: ${persistedZoom}%`);
-
-            E2ELogger.info('zoom-control', '✓ Zoom level persistence test passed');
         });
 
         it('should restore zoom level from settings on initialization', async () => {
-            E2ELogger.info('zoom-control', 'Testing zoom level restoration');
-
             // 1. Set a non-default zoom level directly via windowManager
             //    (simulating what ipcManager does on startup)
             await browser.electron.execute(() => {
@@ -391,9 +347,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(zoomFactor).toBeCloseTo(1.25, 2);
-
-            E2ELogger.info('zoom-control', `Zoom restored: ${restoredZoom}%`);
-            E2ELogger.info('zoom-control', '✓ Zoom level restoration test passed');
         });
     });
 
@@ -403,8 +356,6 @@ describe('Zoom Control E2E', () => {
 
     describe('Zoom Shortcuts Require Window Focus (7.1.6)', () => {
         it('should respond to zoom shortcuts when main window is focused', async () => {
-            E2ELogger.info('zoom-control', 'Testing zoom shortcuts with focused window');
-
             // 1. Ensure we're on the main window and it's focused
             await switchToMainWindow();
 
@@ -437,14 +388,9 @@ describe('Zoom Control E2E', () => {
             });
 
             expect(newZoom).toBeGreaterThan(initialZoom);
-            E2ELogger.info('zoom-control', `Zoom changed from ${initialZoom}% to ${newZoom}% with focused window`);
-
-            E2ELogger.info('zoom-control', '✓ Zoom shortcuts with focus test passed');
         });
 
         it('should use application shortcuts (not global) for zoom', async () => {
-            E2ELogger.info('zoom-control', 'Verifying zoom uses app shortcuts, not global');
-
             // This test verifies that zoom shortcuts are registered as application
             // menu accelerators, not as globalShortcut handlers.
             //
@@ -467,7 +413,6 @@ describe('Zoom Control E2E', () => {
             expect(zoomInMenuItem).not.toBeNull();
             expect(zoomInMenuItem?.exists).toBe(true);
             expect(zoomInMenuItem?.hasAccelerator).toBe(true);
-            E2ELogger.info('zoom-control', `Zoom In accelerator: ${zoomInMenuItem?.accelerator}`);
 
             // Check zoom-out menu item exists
             const zoomOutMenuItem = await browser.electron.execute((electron) => {
@@ -485,11 +430,6 @@ describe('Zoom Control E2E', () => {
             expect(zoomOutMenuItem).not.toBeNull();
             expect(zoomOutMenuItem?.exists).toBe(true);
             expect(zoomOutMenuItem?.hasAccelerator).toBe(true);
-            E2ELogger.info('zoom-control', `Zoom Out accelerator: ${zoomOutMenuItem?.accelerator}`);
-
-            E2ELogger.info('zoom-control', 'Verified zoom menu items have application accelerators');
-
-            E2ELogger.info('zoom-control', '✓ App shortcuts verification test passed');
         });
     });
 
@@ -501,35 +441,25 @@ describe('Zoom Control E2E', () => {
         it('7.2.1 should show current zoom percentage in View menu item labels', async () => {
             // Skip on non-macOS platforms
             if (!(await isMacOS())) {
-                E2ELogger.info('zoom-control', 'Skipping macOS-specific test on non-macOS platform');
                 return;
             }
-
-            E2ELogger.info('zoom-control', 'Testing View menu shows zoom percentage (macOS)');
 
             // 1. Get the zoom-in menu item state (should show 100% at default)
             const zoomInState = await getMenuItemState('menu-view-zoom-in');
             expect(zoomInState.exists).toBe(true);
             expect(zoomInState.label).toContain('(100%)');
-            E2ELogger.info('zoom-control', `Zoom In label: ${zoomInState.label}`);
 
             // 2. Get the zoom-out menu item state (should also show 100%)
             const zoomOutState = await getMenuItemState('menu-view-zoom-out');
             expect(zoomOutState.exists).toBe(true);
             expect(zoomOutState.label).toContain('(100%)');
-            E2ELogger.info('zoom-control', `Zoom Out label: ${zoomOutState.label}`);
-
-            E2ELogger.info('zoom-control', '✓ View menu zoom percentage test passed');
         });
 
         it('7.2.2 should increase zoom when clicking View > Zoom In menu item', async () => {
             // Skip on non-macOS platforms
             if (!(await isMacOS())) {
-                E2ELogger.info('zoom-control', 'Skipping macOS-specific test on non-macOS platform');
                 return;
             }
-
-            E2ELogger.info('zoom-control', 'Testing View > Zoom In menu item click (macOS)');
 
             // 1. Verify initial zoom is 100%
             const initialZoom = await browser.electron.execute(() => {
@@ -546,24 +476,17 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(newZoom).toBeGreaterThan(100);
-            E2ELogger.info('zoom-control', `Zoom increased from 100% to ${newZoom}%`);
 
             // 4. Verify menu label updated
             const zoomInState = await getMenuItemState('menu-view-zoom-in');
             expect(zoomInState.label).toContain(`(${newZoom}%)`);
-            E2ELogger.info('zoom-control', `Updated Zoom In label: ${zoomInState.label}`);
-
-            E2ELogger.info('zoom-control', '✓ View > Zoom In menu item test passed');
         });
 
         it('7.2.3 should decrease zoom when clicking View > Zoom Out menu item', async () => {
             // Skip on non-macOS platforms
             if (!(await isMacOS())) {
-                E2ELogger.info('zoom-control', 'Skipping macOS-specific test on non-macOS platform');
                 return;
             }
-
-            E2ELogger.info('zoom-control', 'Testing View > Zoom Out menu item click (macOS)');
 
             // 1. First zoom in to have room to zoom out
             await triggerZoomIn();
@@ -573,7 +496,6 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(zoomAfterIn).toBeGreaterThan(100);
-            E2ELogger.info('zoom-control', `Starting zoom: ${zoomAfterIn}%`);
 
             // 2. Click the Zoom Out menu item
             await triggerZoomOut();
@@ -584,14 +506,10 @@ describe('Zoom Control E2E', () => {
                 return global.windowManager.getZoomLevel();
             });
             expect(newZoom).toBeLessThan(zoomAfterIn);
-            E2ELogger.info('zoom-control', `Zoom decreased from ${zoomAfterIn}% to ${newZoom}%`);
 
             // 4. Verify menu label updated
             const zoomOutState = await getMenuItemState('menu-view-zoom-out');
             expect(zoomOutState.label).toContain(`(${newZoom}%)`);
-            E2ELogger.info('zoom-control', `Updated Zoom Out label: ${zoomOutState.label}`);
-
-            E2ELogger.info('zoom-control', '✓ View > Zoom Out menu item test passed');
         });
     });
 
@@ -601,8 +519,6 @@ describe('Zoom Control E2E', () => {
 
     describe('Visual Verification (7.4)', () => {
         it('7.4.1 should visually reflect zoom change in webContents', async () => {
-            E2ELogger.info('zoom-control', 'Testing visual zoom reflection');
-
             // 1. Verify initial zoom factor is 1.0 (100%)
             const initialFactor = await browser.electron.execute(() => {
                 const mainWin = global.windowManager.getMainWindow();
@@ -612,7 +528,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(initialFactor).toBeCloseTo(1.0, 2);
-            E2ELogger.info('zoom-control', `Initial zoom factor: ${initialFactor}`);
 
             // 2. Zoom in to 150% (100 -> 110 -> 125 -> 150)
             await triggerZoomIn();
@@ -631,14 +546,12 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(zoomInFactor).toBeCloseTo(1.5, 2);
-            E2ELogger.info('zoom-control', `Zoom factor after zoom in: ${zoomInFactor}`);
 
             // 4. Verify zoom level matches
             const zoomLevel = await browser.electron.execute(() => {
                 return global.windowManager.getZoomLevel();
             });
             expect(zoomLevel).toBe(150);
-            E2ELogger.info('zoom-control', `Zoom level: ${zoomLevel}%`);
 
             // 5. Zoom out to verify visual change works both ways
             await triggerZoomOut();
@@ -652,7 +565,6 @@ describe('Zoom Control E2E', () => {
                 return null;
             });
             expect(afterZoomOutFactor).toBeCloseTo(1.25, 2);
-            E2ELogger.info('zoom-control', `Zoom factor after zoom out: ${afterZoomOutFactor}`);
 
             // 6. Verify the zoom factor formula: zoomLevel / 100 = zoomFactor
             const finalZoomLevel = await browser.electron.execute(() => {
@@ -660,12 +572,6 @@ describe('Zoom Control E2E', () => {
             });
             const expectedFactor = finalZoomLevel / 100;
             expect(afterZoomOutFactor).toBeCloseTo(expectedFactor, 2);
-            E2ELogger.info(
-                'zoom-control',
-                `Verified: ${finalZoomLevel}% / 100 = ${expectedFactor} ≈ ${afterZoomOutFactor}`
-            );
-
-            E2ELogger.info('zoom-control', '✓ Visual zoom verification test passed');
         });
     });
 });

@@ -17,7 +17,6 @@
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
 import { browser, $, expect } from '@wdio/globals';
-import { E2ELogger } from './helpers/logger';
 import { waitForAppReady } from './helpers/workflows';
 import { expectElementDisplayed, expectElementNotDisplayed, expectElementContainsText } from './helpers/assertions';
 import { waitForAnimationSettle, waitForUIState } from './helpers/waitUtilities';
@@ -29,7 +28,6 @@ import { waitForAnimationSettle, waitForUIState } from './helpers/waitUtilities'
 describe('Error Boundary Recovery E2E', () => {
     before(async () => {
         await waitForAppReady();
-        E2ELogger.info('error-boundary', 'Test suite initialized');
     });
 
     // ========================================================================
@@ -58,8 +56,6 @@ describe('Error Boundary Recovery E2E', () => {
             // Verify options window is loaded
             const optionsWindow = await $('[data-testid="options-window"]');
             await optionsWindow.waitForDisplayed({ timeout: 5000 });
-
-            E2ELogger.info('error-boundary', 'Options window opened successfully');
         });
 
         /**
@@ -94,8 +90,6 @@ describe('Error Boundary Recovery E2E', () => {
                 }
             });
 
-            E2ELogger.info('error-boundary', 'Triggered error in Options window');
-
             // 2. VERIFY ACTUAL OUTCOME: Error fallback UI should be displayed
             const fallbackSelector = '[data-testid="error-fallback"]';
             await expectElementDisplayed(fallbackSelector, {
@@ -105,8 +99,6 @@ describe('Error Boundary Recovery E2E', () => {
 
             // 3. Verify the error title text
             await expectElementContainsText('[data-testid="error-fallback-title"]', 'Something went wrong');
-
-            E2ELogger.info('error-boundary', '✓ Error fallback UI displayed correctly');
         });
 
         it('should show reload button when error occurs in Options', async () => {
@@ -129,8 +121,6 @@ describe('Error Boundary Recovery E2E', () => {
             const reloadButton = await $('[data-testid="error-fallback-reload"]');
             expect(await reloadButton.isDisplayed()).toBe(true);
             expect(await reloadButton.getText()).toContain('Reload');
-
-            E2ELogger.info('error-boundary', '✓ Reload button is visible with correct text');
         });
 
         it('should recover when user clicks Reload button after Options error', async () => {
@@ -146,8 +136,6 @@ describe('Error Boundary Recovery E2E', () => {
             // 2. SIMULATE REAL USER ACTION: Click the reload button
             const reloadButton = await $('[data-testid="error-fallback-reload"]');
             await reloadButton.click();
-
-            E2ELogger.info('error-boundary', 'Reload button clicked');
 
             // 3. VERIFY ACTUAL OUTCOME: Error fallback should disappear
             // After reload, the options window should be functional again
@@ -167,8 +155,6 @@ describe('Error Boundary Recovery E2E', () => {
             // Verify normal options content is visible
             const optionsContent = await $('[data-testid="options-content"]');
             expect(await optionsContent.isDisplayed()).toBe(true);
-
-            E2ELogger.info('error-boundary', '✓ Options window recovered after reload');
         });
 
         it('should display expandable error details', async () => {
@@ -199,8 +185,6 @@ describe('Error Boundary Recovery E2E', () => {
 
             const messageText = await errorMessage.getText();
             expect(messageText).toContain('E2E Test Error');
-
-            E2ELogger.info('error-boundary', '✓ Error details are expandable and show message');
         });
     });
 
@@ -219,8 +203,6 @@ describe('Error Boundary Recovery E2E', () => {
             // - Verifies [data-testid="gemini-error-fallback"] appears
             // - Verifies "Gemini couldn't load" message
             // - Verifies Reload button works
-
-            E2ELogger.info('error-boundary', 'GeminiErrorBoundary tests exist in fatal-error-recovery.spec.ts');
             expect(true).toBe(true); // Placeholder for documentation purposes
         });
     });

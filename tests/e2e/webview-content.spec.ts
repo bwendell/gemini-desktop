@@ -18,7 +18,6 @@
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
-import { E2ELogger } from './helpers/logger';
 import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 
 /**
@@ -112,8 +111,6 @@ describe('Webview Content Verification', () => {
         it('should have webview container in the main window', async () => {
             const isDisplayed = await mainWindow.isWebviewDisplayed();
             expect(isDisplayed).toBe(true);
-
-            E2ELogger.info('webview', 'Webview container exists');
         });
 
         it('should have at least one frame (for Gemini content)', async () => {
@@ -121,8 +118,6 @@ describe('Webview Content Verification', () => {
 
             expect(info.hasWebview).toBe(true);
             expect(info.frameCount).toBeGreaterThanOrEqual(0); // May be 0 if loading
-
-            E2ELogger.info('webview', `Frame count: ${info.frameCount}`);
         });
     });
 
@@ -140,9 +135,8 @@ describe('Webview Content Verification', () => {
             const info = await getWebviewInfo();
 
             // Log the result regardless of pass/fail for debugging
-            E2ELogger.info('webview', `Gemini frame found: ${info.geminiFrameFound}`);
             if (info.geminiUrl) {
-                E2ELogger.info('webview', `Gemini URL: ${info.geminiUrl}`);
+                expect(info.geminiUrl).toContain('gemini.google.com');
             }
 
             // NOTE: This may fail in CI without network access
@@ -168,10 +162,6 @@ describe('Webview Content Verification', () => {
 
             if (info.geminiFrameFound) {
                 expect(info.geminiUrl).toContain('gemini.google.com');
-                E2ELogger.info('webview', `Validated Gemini URL: ${info.geminiUrl}`);
-            } else {
-                // Skip this assertion if frame not loaded
-                E2ELogger.info('webview', 'Skipping URL validation - frame not loaded');
             }
         });
     });
@@ -183,14 +173,11 @@ describe('Webview Content Verification', () => {
             // Guard against undefined result from browser.electron.execute
             if (!security) {
                 console.warn('[E2E] checkWebviewSecurity returned undefined - test may be flaky');
-                E2ELogger.info('webview', 'Security check skipped - undefined result');
                 return;
             }
 
             // Sandbox should be enabled
             expect(security.sandboxEnabled).toBe(true);
-
-            E2ELogger.info('webview', `Sandbox enabled: ${security.sandboxEnabled}`);
         });
 
         it('should have web security enabled', async () => {
@@ -199,14 +186,11 @@ describe('Webview Content Verification', () => {
             // Guard against undefined result from browser.electron.execute
             if (!security) {
                 console.warn('[E2E] checkWebviewSecurity returned undefined - test may be flaky');
-                E2ELogger.info('webview', 'Security check skipped - undefined result');
                 return;
             }
 
             // Web security should NOT be disabled
             expect(security.webSecurityEnabled).toBe(true);
-
-            E2ELogger.info('webview', `Web security enabled: ${security.webSecurityEnabled}`);
         });
 
         it('should have context isolation enabled', async () => {
@@ -215,14 +199,11 @@ describe('Webview Content Verification', () => {
             // Guard against undefined result from browser.electron.execute
             if (!security) {
                 console.warn('[E2E] checkWebviewSecurity returned undefined - test may be flaky');
-                E2ELogger.info('webview', 'Security check skipped - undefined result');
                 return;
             }
 
             // Context isolation should be enabled
             expect(security.contextIsolationEnabled).toBe(true);
-
-            E2ELogger.info('webview', `Context isolation: ${security.contextIsolationEnabled}`);
         });
     });
 
@@ -241,8 +222,6 @@ describe('Webview Content Verification', () => {
 
             expect(afterInfo.hasWebview).toBe(true);
             expect(afterInfo.frameCount).toBeGreaterThanOrEqual(0);
-
-            E2ELogger.info('webview', 'Webview persists after focus change');
         });
     });
 });
