@@ -176,6 +176,7 @@ export default class MenuManager {
     buildMenu(): void {
         const template: MenuItemConstructorOptions[] = [
             this.buildFileMenu(),
+            this.buildEditMenu(),
             this.buildViewMenu(),
             this.buildHelpMenu(),
         ];
@@ -324,6 +325,22 @@ export default class MenuManager {
         };
 
         return menu;
+    }
+
+    private buildEditMenu(): MenuItemConstructorOptions {
+        return {
+            label: 'Edit',
+            submenu: [
+                { role: 'undo' },
+                { role: 'redo' },
+                { type: 'separator' },
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' },
+                { role: 'delete' },
+                { role: 'selectAll' },
+            ],
+        };
     }
 
     private buildViewMenu(): MenuItemConstructorOptions {

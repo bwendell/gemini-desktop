@@ -4,6 +4,7 @@ const { killOrphanElectronProcesses } = require('./e2e-cleanup.cjs');
 const specs = [
     'tests/e2e/app-startup.spec.ts',
     'tests/e2e/menu_bar.spec.ts',
+    'tests/e2e/edit-menu-user-flow.spec.ts',
     'tests/e2e/hotkeys.spec.ts',
     'tests/e2e/options-window.spec.ts',
     'tests/e2e/menu-interactions.spec.ts',

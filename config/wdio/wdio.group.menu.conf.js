@@ -6,6 +6,7 @@ export const config = {
         '../../tests/e2e/menu_bar.spec.ts',
         '../../tests/e2e/menu-actions.spec.ts',
         '../../tests/e2e/menu-interactions.spec.ts',
+        '../../tests/e2e/edit-menu-user-flow.spec.ts',
         '../../tests/e2e/context-menu.spec.ts',
     ],
 };
