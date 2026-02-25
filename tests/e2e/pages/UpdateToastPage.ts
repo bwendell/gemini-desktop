@@ -12,6 +12,7 @@
 import { BasePage } from './BasePage';
 import { browser as wdioBrowser } from '@wdio/globals';
 import { E2E_TIMING } from '../helpers/e2eConstants';
+import { waitForAnimationSettle, waitForUIState } from '../helpers/waitUtilities';
 
 /**
  * Page Object for the Update Toast component.
@@ -20,7 +21,6 @@ import { E2E_TIMING } from '../helpers/e2eConstants';
 export class UpdateToastPage extends BasePage {
     private readonly browser = wdioBrowser as unknown as {
         execute<R, TArgs extends unknown[]>(script: string | ((...args: TArgs) => R), ...args: TArgs): Promise<R>;
-        pause(ms: number): Promise<void>;
     };
     constructor() {
         super('UpdateToastPage');
@@ -97,7 +97,10 @@ export class UpdateToastPage extends BasePage {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showAvailable(v);
         }, version);
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'update-available toast appear',
+        });
     }
 
     /**
@@ -110,7 +113,10 @@ export class UpdateToastPage extends BasePage {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showDownloaded(v);
         }, version);
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'update-downloaded toast appear',
+        });
     }
 
     /**
@@ -123,7 +129,10 @@ export class UpdateToastPage extends BasePage {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showError(msg);
         }, errorMessage);
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'update-error toast appear',
+        });
     }
 
     /**
@@ -136,7 +145,10 @@ export class UpdateToastPage extends BasePage {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showProgress(p);
         }, percent);
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'update-progress toast appear',
+        });
     }
 
     /**
@@ -149,7 +161,10 @@ export class UpdateToastPage extends BasePage {
             // @ts-expect-error - test helper
             window.__testUpdateToast.showNotAvailable(v);
         }, currentVersion);
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'update-not-available toast appear',
+        });
     }
 
     /**
@@ -164,7 +179,10 @@ export class UpdateToastPage extends BasePage {
                 window.__testUpdateToast.hide();
             }
         });
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => !(await this.isDisplayed()), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'update toast hidden',
+        });
     }
 
     // ===========================================================================
@@ -194,7 +212,7 @@ export class UpdateToastPage extends BasePage {
      * The toast animation takes ~200ms, so we wait 500ms (ANIMATION_SETTLE) to be safe.
      */
     async waitForAnimationComplete(): Promise<void> {
-        await this.browser.pause(E2E_TIMING.ANIMATION_SETTLE);
+        await waitForAnimationSettle(this.toastSelector);
     }
 
     // ===========================================================================
@@ -427,6 +445,5 @@ export class UpdateToastPage extends BasePage {
         this.log('Clearing all toasts and badges');
         await this.clearBadge();
         await this.hide();
-        await this.pause();
     }
 }

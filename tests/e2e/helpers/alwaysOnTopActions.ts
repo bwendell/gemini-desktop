@@ -14,6 +14,22 @@ import { E2ELogger } from './logger';
 import { isMacOS } from './platform';
 import { E2E_TIMING } from './e2eConstants';
 import { clickMenuItemById } from './menuActions';
+import { waitForUIState } from './waitUtilities';
+
+// Local type shim — LSP does not resolve wdio-electron.d.ts augmentation
+type AATBrowser = {
+    execute<R>(fn: (...args: any[]) => R, ...args: any[]): Promise<R>;
+    electron: {
+        execute<R, T extends any[]>(fn: (electron: typeof import('electron'), ...args: T) => R, ...args: T): Promise<R>;
+    };
+    action(type: string): {
+        down(key: string): any;
+        up(key: string): any;
+        pause(ms: number): any;
+        perform(): Promise<void>;
+    };
+};
+const aatBrowser = browser as unknown as AATBrowser;
 
 // ============================================================================
 // Types
@@ -36,7 +52,7 @@ export interface AlwaysOnTopState {
  * @returns Promise<AlwaysOnTopState> - The current state
  */
 export async function getAlwaysOnTopState(): Promise<AlwaysOnTopState> {
-    const result = await browser.execute(() => {
+    const result = await aatBrowser.execute(() => {
         return (window as any).electronAPI?.getAlwaysOnTop?.();
     });
 
@@ -52,7 +68,7 @@ export async function getAlwaysOnTopState(): Promise<AlwaysOnTopState> {
  * @returns Promise<boolean> - True if window is always on top
  */
 export async function getWindowAlwaysOnTopState(): Promise<boolean> {
-    return browser.electron.execute((electron) => {
+    return aatBrowser.electron.execute((electron) => {
         const win = electron.BrowserWindow.getAllWindows()[0];
         return win ? win.isAlwaysOnTop() : false;
     });
@@ -69,30 +85,28 @@ export async function getWindowAlwaysOnTopState(): Promise<boolean> {
  * @param enabled - Whether to enable always on top
  * @param waitMs - Maximum time to wait for state confirmation (defaults to E2E_TIMING.IPC_ROUND_TRIP)
  */
-export async function setAlwaysOnTop(enabled: boolean, waitMs = E2E_TIMING.IPC_ROUND_TRIP): Promise<void> {
+export async function setAlwaysOnTop(enabled: boolean, waitMs = Number(E2E_TIMING.IPC_ROUND_TRIP)): Promise<void> {
     E2ELogger.info('alwaysOnTopActions', `Setting always-on-top to: ${enabled}`);
 
     // Fire the IPC call
-    await browser.execute((enable) => {
+    await aatBrowser.execute((enable) => {
         (window as any).electronAPI?.setAlwaysOnTop?.(enable);
     }, enabled);
 
     // Wait until the state is confirmed via main process
-    const timeout = Math.max(waitMs, 1000); // Minimum 1 second for verification
-    const startTime = Date.now();
+    const timeout = Math.max(waitMs, E2E_TIMING.MULTI_WINDOW_PAUSE ?? 1000);
+    const confirmed = await waitForUIState(async () => (await getWindowAlwaysOnTopState()) === enabled, {
+        timeout,
+        interval: E2E_TIMING.POLLING?.UI_STATE ?? 50,
+        description: `always-on-top state = ${enabled}`,
+    });
 
-    while (Date.now() - startTime < timeout) {
-        const actualState = await getWindowAlwaysOnTopState();
-        if (actualState === enabled) {
-            E2ELogger.info('alwaysOnTopActions', `State confirmed: ${enabled}`);
-            return;
-        }
-        await browser.pause(50); // Poll every 50ms
+    if (!confirmed) {
+        const finalState = await getWindowAlwaysOnTopState();
+        E2ELogger.info('alwaysOnTopActions', `State verification timeout: expected ${enabled}, got ${finalState}`);
+    } else {
+        E2ELogger.info('alwaysOnTopActions', `State confirmed: ${enabled}`);
     }
-
-    // Log warning if timeout but state not confirmed (don't throw to avoid breaking existing tests)
-    const finalState = await getWindowAlwaysOnTopState();
-    E2ELogger.info('alwaysOnTopActions', `State verification timeout: expected ${enabled}, got ${finalState}`);
 }
 
 /**
@@ -102,8 +116,12 @@ export async function setAlwaysOnTop(enabled: boolean, waitMs = E2E_TIMING.IPC_R
  */
 export async function toggleAlwaysOnTopViaMenu(waitMs = E2E_TIMING.IPC_ROUND_TRIP): Promise<void> {
     E2ELogger.info('alwaysOnTopActions', 'Toggling via menu');
+    const stateBefore = await getWindowAlwaysOnTopState();
     await clickMenuItemById('menu-view-always-on-top');
-    await browser.pause(waitMs);
+    await waitForUIState(async () => (await getWindowAlwaysOnTopState()) !== stateBefore, {
+        timeout: waitMs,
+        description: 'always-on-top menu toggle',
+    });
 }
 
 /**
@@ -114,8 +132,9 @@ export async function toggleAlwaysOnTopViaMenu(waitMs = E2E_TIMING.IPC_ROUND_TRI
 export async function pressAlwaysOnTopHotkey(waitMs = E2E_TIMING.IPC_ROUND_TRIP): Promise<void> {
     const modifierKey = (await isMacOS()) ? 'Meta' : 'Control';
     E2ELogger.info('alwaysOnTopActions', `Pressing hotkey: ${modifierKey}+Alt+P`);
+    const stateBefore = await getWindowAlwaysOnTopState();
 
-    await browser
+    await aatBrowser
         .action('key')
         .down(modifierKey)
         .down('Alt')
@@ -126,7 +145,10 @@ export async function pressAlwaysOnTopHotkey(waitMs = E2E_TIMING.IPC_ROUND_TRIP)
         .up(modifierKey)
         .perform();
 
-    await browser.pause(waitMs);
+    await waitForUIState(async () => (await getWindowAlwaysOnTopState()) !== stateBefore, {
+        timeout: waitMs,
+        description: 'always-on-top hotkey toggle',
+    });
 }
 
 /**

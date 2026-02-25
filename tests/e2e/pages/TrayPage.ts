@@ -10,6 +10,7 @@
 /// <reference path="../helpers/wdio-electron.d.ts" />
 
 import { browser } from '@wdio/globals';
+import { waitForMacOSWindowStabilize } from '../helpers/waitUtilities';
 import { BasePage } from './BasePage';
 import {
     getTrayState,
@@ -21,10 +22,25 @@ import {
     TrayState,
 } from '../helpers/trayActions';
 import { isWindowVisible, isWindowMinimized, closeWindow } from '../helpers/windowStateActions';
-import { isLinuxCI, isMacOS, isWindowsSync } from '../helpers/platform';
+import { isLinuxCI, isWindowsSync } from '../helpers/platform';
 import { Selectors } from '../helpers/selectors';
 import { E2E_TIMING } from '../helpers/e2eConstants';
 
+type TRElement = {
+    waitForClickable(options?: { timeout?: number }): Promise<void>;
+    click(): Promise<void>;
+};
+type TRBrowser = {
+    waitUntil<T>(
+        condition: () => Promise<T> | T,
+        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
+    ): Promise<T>;
+    electron: {
+        execute<R>(fn: (...args: any[]) => R, ...args: any[]): Promise<R>;
+    };
+    $(selector: string): Promise<TRElement>;
+};
+const trBrowser = browser as unknown as TRBrowser;
 /**
  * Page Object for the System Tray.
  * Provides methods for tray icon interaction, state queries, and context menu actions.
@@ -77,7 +93,7 @@ export class TrayPage extends BasePage {
      * @param timeout - Timeout in milliseconds (default: 5000)
      */
     async waitForCreation(timeout = 5000): Promise<void> {
-        await browser.waitUntil(
+        await trBrowser.waitUntil(
             async () => {
                 return await verifyTrayCreated();
             },
@@ -116,7 +132,7 @@ export class TrayPage extends BasePage {
      */
     async clickAndWaitForWindow(timeout = 5000): Promise<void> {
         await this.click();
-        await browser.waitUntil(
+        await trBrowser.waitUntil(
             async () => {
                 return await isWindowVisible();
             },
@@ -148,7 +164,7 @@ export class TrayPage extends BasePage {
      */
     async clickShowMenuItemAndWait(timeout = 5000): Promise<void> {
         await this.clickShowMenuItem();
-        await browser.waitUntil(
+        await trBrowser.waitUntil(
             async () => {
                 return await isWindowVisible();
             },
@@ -209,14 +225,14 @@ export class TrayPage extends BasePage {
      * @returns True if window is set to skip taskbar
      */
     async isSkipTaskbar(): Promise<boolean> {
-        return browser.electron.execute((electron: typeof import('electron')) => {
+        return trBrowser.electron.execute((electron: typeof import('electron')) => {
             const windows = electron.BrowserWindow.getAllWindows();
             const mainWindow = windows[0];
 
             if (!mainWindow) return false;
 
             // This property is only meaningful on Windows/Linux
-            return mainWindow.isSkipTaskbar?.() ?? false;
+            return (mainWindow as unknown as { isSkipTaskbar?: () => boolean }).isSkipTaskbar?.() ?? false;
         });
     }
 
@@ -235,10 +251,12 @@ export class TrayPage extends BasePage {
      */
     async hideViaCloseButton(): Promise<void> {
         this.log('Hiding window to tray via close button');
-        const closeBtn = await browser.$(Selectors.closeButton);
+        const closeBtn = await trBrowser.$(Selectors.closeButton);
         await closeBtn.waitForClickable({ timeout: 5000 });
         await closeBtn.click();
-        await this.pause(300);
+        await waitForMacOSWindowStabilize(async () => !(await isWindowVisible()), {
+            description: 'window hide via close button',
+        });
     }
 
     /**
@@ -251,7 +269,7 @@ export class TrayPage extends BasePage {
         await closeWindow();
 
         // Wait for window to actually become hidden
-        await browser.waitUntil(async () => !(await isWindowVisible()), {
+        await trBrowser.waitUntil(async () => !(await isWindowVisible()), {
             timeout: E2E_TIMING.WINDOW_STATE_TIMEOUT,
             interval: 100,
             timeoutMsg: `[${this.pageName}] Window did not hide within timeout`,
@@ -259,10 +277,10 @@ export class TrayPage extends BasePage {
 
         // Additional stabilization pause for macOS to prevent WebSocket issues
         // macOS window state transitions can affect Electron's IPC stability
-        const onMac = await isMacOS();
-        await browser.pause(onMac ? E2E_TIMING.MACOS_WINDOW_STABILIZE : E2E_TIMING.UI_STATE_PAUSE_MS);
+        await waitForMacOSWindowStabilize(async () => !(await isWindowVisible()));
     }
 
+    /**
     /**
      * Restore the main window from tray via tray click.
      * Waits for window to be visible and adds stabilization pause for macOS.
@@ -271,15 +289,14 @@ export class TrayPage extends BasePage {
         await this.click();
 
         // Wait for window to actually become visible
-        await browser.waitUntil(async () => await isWindowVisible(), {
+        await trBrowser.waitUntil(async () => await isWindowVisible(), {
             timeout: E2E_TIMING.WINDOW_STATE_TIMEOUT,
             interval: 100,
             timeoutMsg: `[${this.pageName}] Window did not become visible after tray click`,
         });
 
         // Additional stabilization pause for macOS
-        const onMac = await isMacOS();
-        await browser.pause(onMac ? E2E_TIMING.WINDOW_HIDE_SHOW : E2E_TIMING.UI_STATE_PAUSE_MS);
+        await waitForMacOSWindowStabilize(async () => await isWindowVisible());
         this.log('Window restored via tray click');
     }
 
@@ -291,15 +308,14 @@ export class TrayPage extends BasePage {
         await this.clickShowMenuItem();
 
         // Wait for window to actually become visible
-        await browser.waitUntil(async () => await isWindowVisible(), {
+        await trBrowser.waitUntil(async () => await isWindowVisible(), {
             timeout: E2E_TIMING.WINDOW_STATE_TIMEOUT,
             interval: 100,
             timeoutMsg: `[${this.pageName}] Window did not become visible after Show menu`,
         });
 
         // Additional stabilization pause for macOS
-        const onMac = await isMacOS();
-        await browser.pause(onMac ? E2E_TIMING.WINDOW_HIDE_SHOW : E2E_TIMING.UI_STATE_PAUSE_MS);
+        await waitForMacOSWindowStabilize(async () => await isWindowVisible());
         this.log('Window restored via Show menu item');
     }
 
@@ -375,7 +391,7 @@ export class TrayPage extends BasePage {
         tooltip: string | null;
         error: string | null;
     }> {
-        return browser.electron.execute(() => {
+        return trBrowser.electron.execute(() => {
             const trayManager = (global as any).trayManager;
 
             if (!trayManager) {
@@ -411,7 +427,7 @@ export class TrayPage extends BasePage {
     }> {
         const isWin = isWindowsSync();
         const iconFilename = isWin ? 'icon.ico' : 'icon.png';
-        return browser.electron.execute((_electron: typeof import('electron'), file: string) => {
+        return trBrowser.electron.execute((_electron: typeof import('electron'), file: string) => {
             const iconPath = require('path').join(process.resourcesPath, file);
             const exists = require('fs').existsSync(iconPath);
 
@@ -436,7 +452,7 @@ export class TrayPage extends BasePage {
     }> {
         const isWin = isWindowsSync();
         const iconFilename = isWin ? 'icon.ico' : 'icon.png';
-        return browser.electron.execute((_electron: typeof import('electron'), file: string) => {
+        return trBrowser.electron.execute((_electron: typeof import('electron'), file: string) => {
             const iconPath = require('path').join(process.resourcesPath, file);
 
             try {
@@ -462,7 +478,7 @@ export class TrayPage extends BasePage {
      * @returns True if the tray exists and has click handler (implied by existence)
      */
     async hasClickHandler(): Promise<boolean> {
-        return browser.electron.execute(() => {
+        return trBrowser.electron.execute(() => {
             const trayManager = (global as any).trayManager;
             const tray = trayManager?.getTray();
             // Tray existence implies click handler was registered in createTray()
@@ -475,7 +491,7 @@ export class TrayPage extends BasePage {
      * @returns True if the tray exists (context menu is always set in createTray())
      */
     async hasContextMenu(): Promise<boolean> {
-        return browser.electron.execute(() => {
+        return trBrowser.electron.execute(() => {
             const trayManager = (global as any).trayManager;
             const tray = trayManager?.getTray();
             // Context menu is always set if tray was created successfully

@@ -20,7 +20,15 @@
 import { browser, $ } from '@wdio/globals';
 import { isMacOS } from './platform';
 import { E2ELogger } from './logger';
+import { E2E_TIMING } from './e2eConstants';
+import { waitForUIState } from './waitUtilities';
 
+type MNBrowser = {
+    electron: {
+        execute<R, T extends any[]>(fn: (electron: typeof import('electron'), ...args: T) => R, ...args: T): Promise<R>;
+    };
+};
+const mnBrowser = browser as unknown as MNBrowser;
 // ============================================================================
 // Types
 // ============================================================================
@@ -72,7 +80,7 @@ export async function clickMenuItemById(id: string): Promise<void> {
  * @private
  */
 async function clickNativeMenuItemById(id: string): Promise<void> {
-    const result = await browser.electron.execute((electron, itemId) => {
+    const result = await mnBrowser.electron.execute((electron, itemId) => {
         const menu = electron.Menu.getApplicationMenu();
         if (!menu) {
             return { success: false, error: 'Application menu not found' };
@@ -114,7 +122,7 @@ async function clickNativeMenuItemById(id: string): Promise<void> {
  * await triggerMenuItemViaElectronApi('menu-view-zoom-out');
  */
 export async function triggerMenuItemViaElectronApi(id: string): Promise<void> {
-    const result = await browser.electron.execute((electron, itemId) => {
+    const result = await mnBrowser.electron.execute((electron, itemId) => {
         const menu = electron.Menu.getApplicationMenu();
         if (!menu) {
             return { success: false, error: 'Application menu not found' };
@@ -188,14 +196,46 @@ async function clickCustomMenuItemById(id: string): Promise<void> {
     const menuCategory = parts[1]; // 'file', 'view', 'help', etc.
     const menuLabel = menuCategory.charAt(0).toUpperCase() + menuCategory.slice(1); // 'File', 'View', 'Help'
 
-    // Click the menu button to open dropdown
-    const menuBtn = await $(`[data-testid="menu-button-${menuLabel}"]`);
-    await menuBtn.waitForClickable({ timeout: 5000 });
-    await menuBtn.click();
+    const menuButtonSelectors = [
+        `[data-testid="menu-button-${menuLabel}"]`,
+        `[data-testid="menu-button-${menuCategory}"]`,
+    ];
+    let clickedMenuButton = false;
+    for (const selector of menuButtonSelectors) {
+        const menuBtn = await $(selector);
+        if (await menuBtn.isExisting()) {
+            await menuBtn.waitForClickable({ timeout: 5000 });
+            await menuBtn.click();
+            clickedMenuButton = true;
+            break;
+        }
+    }
 
-    // Wait for dropdown (uses class selector as TitlebarMenu doesn't have data-testid on dropdown)
-    const dropdown = await $('.titlebar-menu-dropdown');
-    await dropdown.waitForDisplayed({ timeout: 2000 });
+    if (!clickedMenuButton) {
+        throw new Error(`[E2E] Could not find menu button for category "${menuCategory}"`);
+    }
+
+    const dropdownSelectors = ['.titlebar-menu-dropdown', '[data-testid="menu-dropdown"]'];
+    const dropdownVisible = await waitForUIState(
+        async () => {
+            for (const selector of dropdownSelectors) {
+                const dropdown = await $(selector);
+                if ((await dropdown.isExisting()) && (await dropdown.isDisplayed())) {
+                    return true;
+                }
+            }
+            return false;
+        },
+        {
+            timeout: E2E_TIMING.TIMEOUTS?.UI_STATE ?? 5000,
+            interval: E2E_TIMING.POLLING?.UI_STATE ?? 50,
+            description: `menu dropdown for ${menuCategory}`,
+        }
+    );
+
+    if (!dropdownVisible) {
+        throw new Error(`[E2E] Menu dropdown did not appear for category "${menuCategory}"`);
+    }
 
     // Click the menu item by data-menu-id
     const menuItem = await $(`[data-menu-id="${id}"]`);
@@ -234,7 +274,7 @@ export async function clickMenuItem(ref: MenuItemRef): Promise<void> {
  */
 async function triggerMenuItemViaMacOS(ref: MenuItemRef): Promise<void> {
     // Search for menu item by label property
-    const result = await browser.electron.execute((electron: typeof import('electron'), label: string) => {
+    const result = await mnBrowser.electron.execute((electron: typeof import('electron'), label: string) => {
         const menu = electron.Menu.getApplicationMenu();
         if (!menu) {
             return { success: false, error: 'Application menu not found' };
@@ -305,17 +345,26 @@ export async function waitForMenuItemEnabled(id: string, timeoutMs = 5000): Prom
 
     if (mac) {
         // For macOS, poll the menu item state
-        const startTime = Date.now();
-        while (Date.now() - startTime < timeoutMs) {
-            const result = await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
-                const menu = electron.Menu.getApplicationMenu();
-                const item = menu?.getMenuItemById(itemId);
-                return item?.enabled ?? false;
-            }, id);
-            if (result === true) return;
-            await browser.pause(100);
-        }
-        throw new Error(`[E2E] Menu item ${id} did not become enabled within ${timeoutMs}ms`);
+        let menuItemIsEnabled = false;
+        const result = await waitForUIState(
+            async () => {
+                menuItemIsEnabled = await mnBrowser.electron.execute(
+                    (electron: typeof import('electron'), itemId: string) => {
+                        const menu = electron.Menu.getApplicationMenu();
+                        const item = menu?.getMenuItemById(itemId);
+                        return item?.enabled ?? false;
+                    },
+                    id
+                );
+                return menuItemIsEnabled;
+            },
+            {
+                timeout: timeoutMs,
+                interval: E2E_TIMING.POLLING?.WINDOW_STATE ?? 100,
+                description: `menu item ${id} enabled`,
+            }
+        );
+        if (!result) throw new Error(`[E2E] Menu item ${id} did not become enabled within ${timeoutMs}ms`);
     } else {
         const menuItem = await $(`[data-menu-id="${id}"]`);
         await menuItem.waitForEnabled({ timeout: timeoutMs });
@@ -332,7 +381,7 @@ export async function menuItemExists(id: string): Promise<boolean> {
     const mac = await isMacOS();
 
     if (mac) {
-        return await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
+        return await mnBrowser.electron.execute((electron: typeof import('electron'), itemId: string) => {
             const menu = electron.Menu.getApplicationMenu();
             return menu?.getMenuItemById(itemId) !== null;
         }, id);
@@ -351,7 +400,7 @@ export interface MenuItemState {
     /** Whether the menu item is enabled */
     enabled: boolean;
     /** The accelerator string (e.g., 'CommandOrControl+Shift+P') */
-    accelerator: string | undefined;
+    accelerator: string | null | undefined;
     /** The menu item label */
     label: string | undefined;
 }
@@ -372,7 +421,7 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
     const mac = await isMacOS();
 
     if (mac) {
-        return await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
+        return await mnBrowser.electron.execute((electron: typeof import('electron'), itemId: string) => {
             const menu = electron.Menu.getApplicationMenu();
             const item = menu?.getMenuItemById(itemId);
 
@@ -390,7 +439,7 @@ export async function getMenuItemState(id: string): Promise<MenuItemState> {
     } else {
         // For Windows/Linux, we need to open the menu and check the item's DOM state
         // First check if item exists by querying the menu structure
-        const result = await browser.electron.execute((electron: typeof import('electron'), itemId: string) => {
+        const result = await mnBrowser.electron.execute((electron: typeof import('electron'), itemId: string) => {
             const menu = electron.Menu.getApplicationMenu();
             const item = menu?.getMenuItemById(itemId);
 
