@@ -14,6 +14,22 @@ import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
 import { E2E_TIMING } from './e2eConstants';
 
+type WdioBrowser = {
+    pause(ms: number): Promise<void>;
+    $(selector: string): Promise<WebdriverIO.Element>;
+    execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
+    getWindowHandles(): Promise<string[]>;
+};
+
+type WdioElement = {
+    isExisting(): Promise<boolean>;
+    getCSSProperty(prop: string): Promise<{ value: string; parsed?: { value: unknown } }>;
+    waitForDisplayed(options?: { timeout?: number; timeoutMsg?: string }): Promise<boolean>;
+    waitForClickable(options?: { timeout?: number; timeoutMsg?: string }): Promise<boolean>;
+};
+
+const wdioBrowser = browser as unknown as WdioBrowser;
+
 // =============================================================================
 // Type Definitions
 // =============================================================================
@@ -64,6 +80,8 @@ export interface WaitForAnimationSettleOptions {
     property?: string;
     /** Polling interval in milliseconds (default: 50) */
     interval?: number;
+    allowMissing?: boolean;
+    stableChecks?: number;
 }
 
 /**
@@ -153,7 +171,7 @@ export async function waitForUIState(
             E2ELogger.info('waitUtilities', `${logPrefix}Condition check error: ${error}`);
         }
 
-        await browser.pause(interval);
+        await wdioBrowser.pause(interval);
     }
 
     E2ELogger.info('waitUtilities', `${logPrefix}✗ Timeout waiting for UI state after ${timeout}ms`);
@@ -186,7 +204,7 @@ export async function waitForIPCRoundTrip(
 
     // If no verification provided, use a brief safety delay (legacy behavior)
     if (!verification) {
-        await browser.pause(Math.min(100, timeout));
+        await wdioBrowser.pause(Math.min(100, timeout));
         return;
     }
 
@@ -205,7 +223,7 @@ export async function waitForIPCRoundTrip(
             // Verification threw error, continue polling
         }
 
-        await browser.pause(pollInterval);
+        await wdioBrowser.pause(pollInterval);
     }
 
     E2ELogger.info('waitUtilities', `✗ IPC verification timeout after ${timeout}ms`);
@@ -273,7 +291,7 @@ export async function waitForWindowTransition(
             conditionMetTime = null;
         }
 
-        await browser.pause(interval);
+        await wdioBrowser.pause(interval);
     }
 
     E2ELogger.info('waitUtilities', `[${description}] ✗ Window transition timeout after ${timeout}ms`);
@@ -296,15 +314,17 @@ export async function waitForAnimationSettle(
     options: WaitForAnimationSettleOptions = {}
 ): Promise<boolean> {
     const {
-        timeout = E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE ?? 3000,
+        timeout = E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE ?? 8000,
         property = 'transform',
         interval = E2E_TIMING.POLLING?.ANIMATION ?? 50,
+        allowMissing = false,
+        stableChecks = 3,
     } = options;
 
     const startTime = Date.now();
     let lastValue: string | null = null;
     let stableCount = 0;
-    const requiredStableChecks = 3; // Must be stable for 3 consecutive checks
+    const requiredStableChecks = Math.max(1, stableChecks);
 
     E2ELogger.info(
         'waitUtilities',
@@ -313,11 +333,51 @@ export async function waitForAnimationSettle(
 
     while (Date.now() - startTime < timeout) {
         try {
-            const element = await browser.$(selector);
-            const currentValue = await element.getCSSProperty(property);
-            const currentValueStr = currentValue?.value ?? 'null';
+            const element = (await wdioBrowser.$(selector)) as unknown as WdioElement;
+            const exists = await element.isExisting();
 
-            if (currentValueStr === lastValue) {
+            if (!exists) {
+                if (allowMissing) {
+                    const elapsed = Date.now() - startTime;
+                    E2ELogger.info(
+                        'waitUtilities',
+                        `✓ Animation settled after ${elapsed}ms (element "${selector}" not found)`
+                    );
+                    return true;
+                }
+
+                stableCount = 0;
+                lastValue = null;
+                await wdioBrowser.pause(interval);
+                continue;
+            }
+
+            const [currentValue, domSignature] = await Promise.all([
+                element.getCSSProperty(property),
+                wdioBrowser.execute((selector: string) => {
+                    const root = document.querySelector(selector);
+                    if (!root) return { hasMotion: false, signature: '' };
+                    const elements = root.querySelectorAll('*');
+                    const hasMotion = (el: Element) => {
+                        const style = window.getComputedStyle(el);
+                        const durations = (value: string) =>
+                            value
+                                .split(',')
+                                .map((entry) => parseFloat(entry.trim()))
+                                .some((entry) => entry > 0);
+                        return durations(style.transitionDuration) || durations(style.animationDuration);
+                    };
+                    const text = (root as HTMLElement).innerText ?? '';
+                    return {
+                        hasMotion: Array.from(elements).some(hasMotion),
+                        signature: `${text.length}:${root.childElementCount}`,
+                    };
+                }, selector),
+            ]);
+            const currentValueStr = currentValue?.value ?? 'null';
+            const currentSnapshot = `${currentValueStr}:${domSignature.signature}`;
+
+            if (!domSignature.hasMotion && currentSnapshot === lastValue) {
                 stableCount++;
 
                 if (stableCount >= requiredStableChecks) {
@@ -330,7 +390,7 @@ export async function waitForAnimationSettle(
                 }
             } else {
                 stableCount = 0;
-                lastValue = currentValueStr;
+                lastValue = currentSnapshot;
             }
         } catch (_error) {
             // Element not found or error getting property
@@ -338,7 +398,7 @@ export async function waitForAnimationSettle(
             lastValue = null;
         }
 
-        await browser.pause(interval);
+        await wdioBrowser.pause(interval);
     }
 
     E2ELogger.info('waitUtilities', `✗ Animation settle timeout after ${timeout}ms`);
@@ -408,7 +468,7 @@ export async function waitForFullscreenTransition(
             stableStartTime = null;
         }
 
-        await browser.pause(interval);
+        await wdioBrowser.pause(interval);
     }
 
     E2ELogger.info('waitUtilities', `✗ Fullscreen transition timeout after ${timeout}ms`);
@@ -437,7 +497,7 @@ export async function waitForMacOSWindowStabilize(
     const { timeout = E2E_TIMING.TIMEOUTS?.MACOS_WINDOW_STABILIZE ?? 5000, description = 'macOS window' } = options;
 
     // Check if we're on macOS
-    const isMacOS = await browser.execute(() => {
+    const isMacOS = await wdioBrowser.execute(() => {
         return navigator.platform.toLowerCase().includes('mac');
     });
 
@@ -450,7 +510,7 @@ export async function waitForMacOSWindowStabilize(
     if (!condition) {
         const stabilizationDelay = Math.min(500, timeout);
         E2ELogger.info('waitUtilities', `[${description}] Waiting ${stabilizationDelay}ms for macOS stabilization`);
-        await browser.pause(stabilizationDelay);
+        await wdioBrowser.pause(stabilizationDelay);
         return true;
     }
 
@@ -464,7 +524,7 @@ export async function waitForMacOSWindowStabilize(
     if (result) {
         // Additional stabilization delay after condition met
         const extraDelay = Math.min(250, timeout * 0.1);
-        await browser.pause(extraDelay);
+        await wdioBrowser.pause(extraDelay);
     }
 
     return result;
@@ -579,7 +639,7 @@ export async function waitForCycle(
 
                 if (attempt < maxRetries) {
                     // Brief pause before retry
-                    await browser.pause(100);
+                    await wdioBrowser.pause(100);
                 }
             }
         }
@@ -613,16 +673,19 @@ export async function waitForCycle(
  * await button.click();
  */
 export async function waitForElementClickable(selector: string, timeout = 5000): Promise<WebdriverIO.Element> {
-    const element = await browser.$(selector);
+    const element = (await wdioBrowser.$(selector)) as unknown as WdioElement;
 
-    await element.waitForDisplayed({ timeout, timeoutMsg: `Element "${selector}" not displayed within ${timeout}ms` });
+    await element.waitForDisplayed({
+        timeout,
+        timeoutMsg: `Element "${selector}" not displayed within ${timeout}ms`,
+    });
     await element.waitForClickable({
         timeout,
         timeoutMsg: `Element "${selector}" not clickable within ${timeout}ms`,
     });
 
     E2ELogger.info('waitUtilities', `✓ Element "${selector}" is displayed and clickable`);
-    return element;
+    return element as unknown as WebdriverIO.Element;
 }
 
 /**
@@ -644,7 +707,7 @@ export async function waitForWindowCount(expectedCount: number, timeout = 5000):
     E2ELogger.info('waitUtilities', `Waiting for window count to be ${expectedCount} (timeout: ${timeout}ms)`);
 
     while (Date.now() - startTime < timeout) {
-        const handles = await browser.getWindowHandles();
+        const handles = await wdioBrowser.getWindowHandles();
 
         if (handles.length === expectedCount) {
             const elapsed = Date.now() - startTime;
@@ -652,10 +715,10 @@ export async function waitForWindowCount(expectedCount: number, timeout = 5000):
             return true;
         }
 
-        await browser.pause(interval);
+        await wdioBrowser.pause(interval);
     }
 
-    const finalCount = (await browser.getWindowHandles()).length;
+    const finalCount = (await wdioBrowser.getWindowHandles()).length;
     E2ELogger.info(
         'waitUtilities',
         `✗ Timeout waiting for window count. Expected ${expectedCount}, found ${finalCount}`
@@ -678,7 +741,7 @@ export async function waitForDuration(durationMs: number, description?: string):
     const logPrefix = description ? `[${description}] ` : '';
     E2ELogger.info('waitUtilities', `${logPrefix}Waiting ${durationMs}ms (intentional duration wait)`);
 
-    await browser.pause(durationMs);
+    await wdioBrowser.pause(durationMs);
 
     E2ELogger.info('waitUtilities', `${logPrefix}✓ Duration wait complete`);
 }
