@@ -5,10 +5,10 @@
  * @module TrayManager
  */
 
-import { Tray, Menu, app } from 'electron';
+import { Tray, Menu, app, nativeImage } from 'electron';
 import * as fs from 'fs';
 import type { MenuItemConstructorOptions } from 'electron';
-import { getIconPath } from '../utils/paths';
+import { getIconPath, getTrayIconPath } from '../utils/paths';
 import { TRAY_MENU_ITEMS, TRAY_TOOLTIP } from '../utils/constants';
 import { createLogger } from '../utils/logger';
 import type WindowManager from './windowManager';
@@ -56,12 +56,22 @@ export default class TrayManager {
                 return this.tray;
             }
 
-            const iconPath = getIconPath();
+            let iconPath = getTrayIconPath();
             if (!fs.existsSync(iconPath)) {
-                throw new Error(`Tray icon not found: ${iconPath}`);
+                logger.warn(`Tray icon not found: ${iconPath}, falling back to app icon`);
+                iconPath = getIconPath();
+                if (!fs.existsSync(iconPath)) {
+                    throw new Error(`Icon not found: ${iconPath}`);
+                }
             }
 
-            this.tray = new Tray(iconPath);
+            // Create nativeImage for tray (required for proper icon handling)
+            const trayIcon = nativeImage.createFromPath(iconPath);
+            if (trayIcon.isEmpty()) {
+                throw new Error(`Failed to load tray icon: ${iconPath}`);
+            }
+
+            this.tray = new Tray(trayIcon);
 
             // Set tooltip
             this.tray.setToolTip(this.currentToolTip);

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Tray, Menu, app } from 'electron';
+import { Tray, Menu, app, nativeImage } from 'electron';
 import TrayManager from '../../../src/main/managers/trayManager';
 import type WindowManager from '../../../src/main/managers/windowManager';
 import {
@@ -14,6 +14,15 @@ import {
     platformAdapterPresets,
     createMockPlatformAdapter,
 } from '../../helpers/mocks';
+
+
+// Mock fs module to control file existence
+vi.mock('fs', () => ({
+    existsSync: vi.fn((path: string) => {
+        // Return false for nonexistent paths, true for others
+        return !path.includes('nonexistent');
+    }),
+}));
 
 describe('TrayManager', () => {
     let trayManager: TrayManager;
@@ -53,7 +62,8 @@ describe('TrayManager', () => {
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
-            expect((tray as any).iconPath).toContain('icon.ico');
+            expect(tray).toBeInstanceOf(Tray);
+            expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('icon.ico');
         });
 
         it('creates Tray with .png icon on macOS', async () => {
@@ -65,7 +75,9 @@ describe('TrayManager', () => {
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
-            expect((tray as any).iconPath).toContain('icon.png');
+            // TrayManager creates nativeImage, not raw iconPath - assert the tray was created successfully
+            expect(tray).toBeInstanceOf(Tray);
+            expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('trayIconTemplate.png');
         });
 
         it('creates Tray with .png icon on Linux', async () => {
@@ -77,7 +89,8 @@ describe('TrayManager', () => {
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
-            expect((tray as any).iconPath).toContain('icon.png');
+            expect(tray).toBeInstanceOf(Tray);
+            expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('icon.png');
         });
 
         it('sets tooltip correctly', () => {
@@ -119,14 +132,31 @@ describe('TrayManager', () => {
             expect((Tray as any)._instances.length).toBe(1);
         });
 
+        it('falls back to app icon when tray icon is missing', async () => {
+            useMockPlatformAdapter(
+                createMockPlatformAdapter({
+                    getTrayIconFilename: vi.fn().mockReturnValue('nonexistent-tray.png'),
+                    getAppIconFilename: vi.fn().mockReturnValue('icon.png'),
+                })
+            );
+
+            const { default: TrayManager } = await import('../../../src/main/managers/trayManager');
+            const manager = new TrayManager(mockWindowManager);
+            manager.createTray();
+
+            const lastCall = vi.mocked(nativeImage.createFromPath).mock.calls.slice(-1)[0]?.[0];
+            expect(lastCall).toContain('icon.png');
+        });
+
         it('throws error when icon file is not found', async () => {
             useMockPlatformAdapter(
                 createMockPlatformAdapter({
                     getAppIconFilename: vi.fn().mockReturnValue('nonexistent-icon.png'),
+                    getTrayIconFilename: vi.fn().mockReturnValue('nonexistent-tray.png'),
                 })
             );
 
-            expect(() => trayManager.createTray()).toThrow('Tray icon not found');
+            expect(() => trayManager.createTray()).toThrow('Icon not found');
         });
     });
 
