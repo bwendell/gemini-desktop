@@ -73,11 +73,11 @@ describe('macOS Window Frame Integration Tests', () => {
         expect(webviewSize.height).toBeGreaterThan(0);
 
         // Check gemini-iframe (inside webview-container) exists and has size
-        const geminIframe = await browserWithElectron.$('.webview-container gemini-iframe');
-        await expect(geminIframe).toBeExisting();
+        const geminiIframe = await browserWithElectron.$('.webview-container .gemini-iframe');
+        await expect(geminiIframe).toBeExisting();
 
         const iframeSize = await browserWithElectron.execute(() => {
-            const iframe = document.querySelector('gemini-iframe');
+            const iframe = document.querySelector('iframe.gemini-iframe');
             if (!iframe) return { width: 0, height: 0 };
             return {
                 width: (iframe as HTMLElement).offsetWidth,
