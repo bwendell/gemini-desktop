@@ -356,20 +356,10 @@ export async function waitForAnimationSettle(
                 element.getCSSProperty(property),
                 wdioBrowser.execute((selector: string) => {
                     const root = document.querySelector(selector);
-                    if (!root) return { hasMotion: false, signature: '' };
-                    const elements = root.querySelectorAll('*');
-                    const hasMotion = (el: Element) => {
-                        const style = window.getComputedStyle(el);
-                        const durations = (value: string) =>
-                            value
-                                .split(',')
-                                .map((entry) => parseFloat(entry.trim()))
-                                .some((entry) => entry > 0);
-                        return durations(style.transitionDuration) || durations(style.animationDuration);
-                    };
+                    if (!root) return { signature: '' };
+
                     const text = (root as HTMLElement).innerText ?? '';
                     return {
-                        hasMotion: Array.from(elements).some(hasMotion),
                         signature: `${text.length}:${root.childElementCount}`,
                     };
                 }, selector),
@@ -377,7 +367,7 @@ export async function waitForAnimationSettle(
             const currentValueStr = currentValue?.value ?? 'null';
             const currentSnapshot = `${currentValueStr}:${domSignature.signature}`;
 
-            if (!domSignature.hasMotion && currentSnapshot === lastValue) {
+            if (currentSnapshot === lastValue) {
                 stableCount++;
 
                 if (stableCount >= requiredStableChecks) {
@@ -393,7 +383,6 @@ export async function waitForAnimationSettle(
                 lastValue = currentSnapshot;
             }
         } catch (_error) {
-            // Element not found or error getting property
             stableCount = 0;
             lastValue = null;
         }
