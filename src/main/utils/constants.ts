@@ -230,7 +230,8 @@ export const MAIN_WINDOW_CONFIG: BrowserWindowConstructorOptions = {
     height: 800,
     minWidth: 350,
     minHeight: 600,
-    frame: false,
+    // macOS requires frame: true when titleBarStyle is 'hidden'
+    frame: process.platform === 'darwin',
     ...BASE_WINDOW_CONFIG,
 };
 
