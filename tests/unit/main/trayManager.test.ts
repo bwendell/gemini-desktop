@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Tray, Menu, app, nativeImage } from 'electron';
+import { Menu, app, nativeImage } from 'electron';
 import TrayManager from '../../../src/main/managers/trayManager';
 import type WindowManager from '../../../src/main/managers/windowManager';
 import {
@@ -210,7 +210,7 @@ describe('TrayManager', () => {
 
     describe('tray click handler', () => {
         it('calls restoreFromTray on WindowManager when tray is clicked', () => {
-            const tray = trayManager.createTray() as any;
+            trayManager.createTray();
 
             // Simulate click
             const clickHandler = vi.mocked(mockTrayInstance.on).mock.calls.find((call) => call[0] === 'click')?.[1];

@@ -30,7 +30,14 @@ The project uses **npm** for package management and **Vitest** + **WebdriverIO**
 **Running a Single Test:**
 
 - **Vitest:** `npx vitest tests/unit/shared/hotkeys.test.ts` (or any path)
-- **WDIO (E2E):** `npx wdio run config/wdio/wdio.conf.js --spec tests/e2e/auth.spec.ts`
+- **WDIO (E2E):** `npm run test:e2e:spec -- --spec=tests/e2e/auth.spec.ts`
+- **WDIO (Integration):** `npm run test:integration -- --spec=tests/integration/your-test.integration.test.ts`
+
+**Headless ARM Linux Notes:**
+
+- On Linux, headless mode is detected when `DISPLAY` is unset; WDIO auto-manages Xvfb in this case. Do **not** force `DISPLAY` for headless runs.
+- Use `CHROMEDRIVER_PATH` only if you need to override the chromedriver binary (e.g., custom ARM builds).
+- See `docs/ARM_LINUX_TESTING.md` for package prerequisites and runbook steps.
 
 ---
 

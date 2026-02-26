@@ -9,7 +9,13 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import {
+    chromedriverCapabilities,
+    ensureArmChromedriver,
+    getAppArgs,
+    linuxServiceConfig,
+    killOrphanElectronProcesses,
+} from './electron-args.js';
 import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -38,7 +44,10 @@ export const baseConfig = {
     capabilities: [
         {
             browserName: 'electron',
-            'wdio:chromedriverOptions': chromedriverOptions,
+            'wdio:chromedriverOptions': {
+                ...chromedriverOptions,
+                ...(chromedriverCapabilities['wdio:chromedriverOptions'] ?? {}),
+            },
             maxInstances: 1,
         },
     ],
@@ -58,7 +67,8 @@ export const baseConfig = {
     specFileRetriesDeferred: false,
 
     // Build the frontend and Electron backend before tests
-    onPrepare: () => {
+    onPrepare: async () => {
+        await ensureArmChromedriver();
         if (process.env.SKIP_BUILD) {
             console.log('Skipping build (SKIP_BUILD is set)...');
             return;

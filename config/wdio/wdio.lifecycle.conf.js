@@ -10,7 +10,13 @@
 import path from 'path';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import {
+    chromedriverCapabilities,
+    ensureArmChromedriver,
+    getAppArgs,
+    linuxServiceConfig,
+    killOrphanElectronProcesses,
+} from './electron-args.js';
 import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -37,7 +43,10 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
-            'wdio:chromedriverOptions': chromedriverOptions,
+            'wdio:chromedriverOptions': {
+                ...chromedriverOptions,
+                ...(chromedriverCapabilities['wdio:chromedriverOptions'] ?? {}),
+            },
         },
     ],
 
@@ -50,7 +59,8 @@ export const config = {
     },
 
     // Build the frontend and Electron backend before tests
-    onPrepare: () => {
+    onPrepare: async () => {
+        await ensureArmChromedriver();
         console.log('Building frontend for E2E tests...');
         let result = spawnSync('npm', ['run', 'build'], {
             stdio: 'inherit',

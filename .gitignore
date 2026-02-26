@@ -48,3 +48,4 @@ prompts/
 .worktrees/.sisyphus/
 .worktrees/
 .sisyphus/
+.cache/

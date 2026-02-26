@@ -17,7 +17,6 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ElectronAPI, HotkeyId } from '../shared/types';
-
 /** Whether to expose test-only D-Bus activation signal APIs */
 const TEST_ONLY_DBUS_SIGNALS_ENABLED = process.env.NODE_ENV === 'test' || process.env.DEBUG_DBUS === '1';
 /**
