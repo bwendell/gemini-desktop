@@ -178,6 +178,23 @@ describe('LlmManager', () => {
             expect(llmManager.isNativeAvailable()).toBe(true);
             expect(llmManager.getNativeProbeError()).toBeNull();
         });
+
+        it('treats missing package.json export as non-fatal', () => {
+            process.env.NODE_ENV = 'production';
+            delete process.env.CI;
+            const exportError = new Error(
+                'Package subpath \'./package.json\' is not defined by "exports" in node-llama-cpp'
+            );
+            const mockResolveFn = ((module: string) => {
+                throw exportError;
+            }) as unknown as NodeRequire['resolve'];
+            mockResolveFn.paths = (request: string) => originalRequireResolve.paths?.(request) ?? null;
+            (require as NodeRequire).resolve = mockResolveFn;
+
+            expect(llmManager.ensureNativeAvailable('probe')).toBe(true);
+            expect(llmManager.isNativeAvailable()).toBe(true);
+            expect(llmManager.getNativeProbeError()).toBeNull();
+        });
     });
 
     describe('getModelsDirectory', () => {

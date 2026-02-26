@@ -192,6 +192,15 @@ export default class LlmManager {
             });
             return true;
         } catch (error) {
+            if (error instanceof Error && error.message.includes('Package subpath')) {
+                this.nativeAvailable = true;
+                this.nativeVersion = null;
+                logger.warn('Native module probe skipped (package.json not exported)', {
+                    context,
+                    error: error.message,
+                });
+                return true;
+            }
             this.nativeAvailable = false;
             this.nativeProbeError = error instanceof Error ? error.message : 'node-llama-cpp not found';
             const appPath = typeof app.getAppPath === 'function' ? app.getAppPath() : 'unknown';
