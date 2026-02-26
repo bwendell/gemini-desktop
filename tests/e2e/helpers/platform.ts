@@ -114,7 +114,7 @@ export async function isWSL(): Promise<boolean> {
  * - WSL (Windows Subsystem for Linux)
  * - Headless Linux (no DISPLAY variable)
  *
- * @returns {Promise<boolean>} True if running on Linux CI or WSL
+ * @returns {Promise<boolean>} True if running on Linux CI, WSL, or headless Linux
  */
 export async function isLinuxCI(): Promise<boolean> {
     if (!(await isLinux())) return false;
