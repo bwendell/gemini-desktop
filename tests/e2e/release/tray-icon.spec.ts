@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Test: System Tray Icon (Release Build Only)
  *
@@ -14,9 +13,17 @@
 import { browser, expect } from '@wdio/globals';
 import { E2ELogger } from '../helpers/logger';
 
+type ElectronBrowser = typeof browser & {
+    electron: {
+        execute<T>(fn: (...args: any[]) => T, ...args: any[]): Promise<T>;
+    };
+};
+
+const electronBrowser = browser as ElectronBrowser;
+
 describe('Release Build: System Tray', () => {
     it('should have system tray manager initialized', async () => {
-        const trayInfo = await browser.electron.execute(() => {
+        const trayInfo = await electronBrowser.electron.execute(() => {
             const trayManager = (global as any).trayManager;
 
             if (!trayManager) {
@@ -49,7 +56,7 @@ describe('Release Build: System Tray', () => {
     it('should have tray icon displayed (implicit via tray creation)', async () => {
         // If the tray was created successfully, it means the icon was loaded
         // This is a more reliable check than trying to verify file paths
-        const trayCreated = await browser.electron.execute(() => {
+        const trayCreated = await electronBrowser.electron.execute(() => {
             const trayManager = (global as any).trayManager;
             if (!trayManager) return false;
 
@@ -61,7 +68,7 @@ describe('Release Build: System Tray', () => {
     });
 
     it('should have tray click handler registered', async () => {
-        const hasClickHandler = await browser.electron.execute(() => {
+        const hasClickHandler = await electronBrowser.electron.execute(() => {
             const trayManager = (global as any).trayManager;
             if (!trayManager) return false;
 
@@ -78,7 +85,7 @@ describe('Release Build: System Tray', () => {
     it('should be able to show/hide via tray', async () => {
         // This tests that the tray click functionality works, which validates
         // the tray icon and handlers are properly set up
-        const testResult = await browser.electron.execute(() => {
+        const testResult = await electronBrowser.electron.execute(() => {
             const trayManager = (global as any).trayManager;
             if (!trayManager) return { success: false, error: 'no trayManager' };
 
