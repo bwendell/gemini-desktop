@@ -34,15 +34,32 @@ const mockTrayInstance = {
     getTooltip: vi.fn().mockReturnValue('Gemini Desktop'),
 };
 
-const mockNativeImage = {
-    isEmpty: vi.fn().mockReturnValue(false),
-    setTemplateImage: vi.fn(),
+type MockNativeImage = {
+    isEmpty: ReturnType<typeof vi.fn>;
+    setTemplateImage: ReturnType<typeof vi.fn>;
+    getSize: ReturnType<typeof vi.fn>;
+    resize: ReturnType<typeof vi.fn>;
+    isTemplateImage: ReturnType<typeof vi.fn>;
 };
 
+const createMockNativeImage = (): MockNativeImage => ({
+    isEmpty: vi.fn().mockReturnValue(false),
+    setTemplateImage: vi.fn(),
+    getSize: vi.fn().mockReturnValue({ width: 16, height: 16 }),
+    resize: vi.fn(),
+    isTemplateImage: vi.fn().mockReturnValue(false),
+});
+
+const mockNativeImage = createMockNativeImage();
+const resizedNativeImage = createMockNativeImage();
+const mockTrayConstructor = vi.fn((_trayIcon?: Electron.NativeImage) => {
+    trayInstances.push(mockTrayInstance);
+    return mockTrayInstance;
+});
+
 vi.mock('electron', async () => ({
-    Tray: function Tray() {
-        trayInstances.push(mockTrayInstance);
-        return mockTrayInstance;
+    Tray: function Tray(trayIcon?: Electron.NativeImage) {
+        return mockTrayConstructor(trayIcon);
     },
     Menu: {
         buildFromTemplate: vi.fn(() => ({ items: [] })),
@@ -51,7 +68,9 @@ vi.mock('electron', async () => ({
         quit: vi.fn(),
     },
     nativeImage: {
-        createFromPath: vi.fn(() => mockNativeImage),
+        createFromPath: vi.fn(() => mockNativeImage as unknown as Electron.NativeImage) as unknown as (
+            path: string
+        ) => Electron.NativeImage,
     },
 }));
 
@@ -73,6 +92,12 @@ describe('TrayManager', () => {
         mockNativeImage.isEmpty.mockClear();
         mockNativeImage.isEmpty.mockReturnValue(false);
         mockNativeImage.setTemplateImage.mockClear();
+        mockNativeImage.getSize.mockClear();
+        mockNativeImage.getSize.mockReturnValue({ width: 16, height: 16 });
+        mockNativeImage.resize.mockClear();
+        mockNativeImage.resize.mockReturnValue(resizedNativeImage);
+        mockNativeImage.isTemplateImage.mockClear();
+        mockTrayConstructor.mockClear();
         vi.mocked(Menu.buildFromTemplate).mockClear();
         vi.mocked(app.quit).mockClear();
         vi.mocked(nativeImage.createFromPath).mockClear();
@@ -110,23 +135,65 @@ describe('TrayManager', () => {
         });
 
         it('creates Tray with macOS-specific tray icon on macOS', async () => {
-            useMockPlatformAdapter(
-                createMockPlatformAdapter({
-                    getTrayIconFilename: vi.fn().mockReturnValue('icon-mac-tray.png'),
-                })
-            );
+            useMockPlatformAdapter(platformAdapterPresets.mac());
 
             // Reimport TrayManager after platform mock
             const { default: TrayManager } = await import('../../../src/main/managers/trayManager');
             const manager = new TrayManager(mockWindowManager);
+            mockNativeImage.getSize.mockReturnValue({ width: 128, height: 128 });
             const tray = manager.createTray();
 
             expect(tray).toBeDefined();
             const trayIcon = vi.mocked(nativeImage.createFromPath).mock.results[0]?.value as {
+                resize?: (options: { width: number; height: number }) => unknown;
+            };
+            const resizedIcon = vi.mocked(mockNativeImage.resize).mock.results[0]?.value as {
                 setTemplateImage?: (value: boolean) => void;
             };
-            expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('icon-mac-tray.png');
-            expect(trayIcon.setTemplateImage).not.toHaveBeenCalled();
+            expect(vi.mocked(nativeImage.createFromPath).mock.calls[0]?.[0]).toContain('icon-mac-trayTemplate.png');
+            expect(resizedIcon.setTemplateImage).toHaveBeenCalledWith(true);
+            expect(trayIcon.resize).toHaveBeenCalledWith({ width: 16, height: 16 });
+        });
+
+        it('applies macOS normalization before Tray construction', async () => {
+            useMockPlatformAdapter(platformAdapterPresets.mac());
+
+            const callOrder: string[] = [];
+            vi.mocked(nativeImage.createFromPath).mockImplementation(() => {
+                callOrder.push('createFromPath');
+                return mockNativeImage as unknown as Electron.NativeImage;
+            });
+            resizedNativeImage.setTemplateImage.mockImplementation(() => {
+                callOrder.push('setTemplateImage');
+            });
+            mockNativeImage.resize.mockImplementation(() => {
+                callOrder.push('resize');
+                return resizedNativeImage as unknown as Electron.NativeImage;
+            });
+            mockTrayConstructor.mockImplementation(() => {
+                callOrder.push('newTray');
+                trayInstances.push(mockTrayInstance);
+                return mockTrayInstance;
+            });
+            mockNativeImage.getSize.mockReturnValue({ width: 64, height: 64 });
+
+            const { default: TrayManager } = await import('../../../src/main/managers/trayManager');
+            const manager = new TrayManager(mockWindowManager);
+            manager.createTray();
+
+            expect(callOrder).toEqual(['createFromPath', 'resize', 'setTemplateImage', 'newTray']);
+            expect(mockTrayConstructor).toHaveBeenCalled();
+        });
+
+        it('does not apply macOS normalization on Windows/Linux', async () => {
+            useMockPlatformAdapter(platformAdapterPresets.windows());
+
+            const { default: TrayManager } = await import('../../../src/main/managers/trayManager');
+            const manager = new TrayManager(mockWindowManager);
+            manager.createTray();
+
+            expect(mockNativeImage.setTemplateImage).not.toHaveBeenCalled();
+            expect(mockNativeImage.resize).not.toHaveBeenCalled();
         });
 
         it('creates Tray with .png icon on Linux', async () => {
