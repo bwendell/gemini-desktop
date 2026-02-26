@@ -14,12 +14,13 @@
 import fs from 'fs';
 import https from 'https';
 import path from 'path';
+import { createHash } from 'crypto';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const require = createRequire(import.meta.url);
+const esmRequire = createRequire(import.meta.url);
 
 const isLinux = process.platform === 'linux';
 const isWin32 = process.platform === 'win32';
@@ -28,7 +29,7 @@ const isHeadless = isLinux && !process.env.DISPLAY;
 const isArm64 = process.arch === 'arm64';
 
 function resolveElectronVersion() {
-    const electronPackage = require('electron/package.json');
+    const electronPackage = esmRequire('electron/package.json');
     if (!electronPackage?.version) {
         throw new Error('Unable to resolve Electron version for chromedriver download.');
     }
@@ -143,6 +144,87 @@ async function downloadFile(url, destination, options = {}) {
     }
 }
 
+async function readTextFromUrl(url, options = {}) {
+    const { retries = 2, timeoutMs = 30000 } = options;
+    let attempt = 0;
+
+    while (true) {
+        try {
+            return await new Promise((resolve, reject) => {
+                const request = https.get(url, (response) => {
+                    if (
+                        response.statusCode &&
+                        response.statusCode >= 300 &&
+                        response.statusCode < 400 &&
+                        response.headers.location
+                    ) {
+                        response.resume();
+                        readTextFromUrl(response.headers.location, { retries, timeoutMs }).then(resolve).catch(reject);
+                        return;
+                    }
+                    if (response.statusCode !== 200) {
+                        reject(new Error(`Failed to download ${url}. Status code: ${response.statusCode}`));
+                        response.resume();
+                        return;
+                    }
+                    let data = '';
+                    response.setEncoding('utf8');
+                    response.on('data', (chunk) => {
+                        data += chunk;
+                    });
+                    response.on('end', () => resolve(data));
+                    response.on('error', reject);
+                });
+                request.setTimeout(timeoutMs, () => {
+                    request.destroy(new Error(`Timed out while downloading ${url}`));
+                });
+                request.on('error', reject);
+            });
+        } catch (error) {
+            if (attempt >= retries) {
+                throw error;
+            }
+            const backoffMs = 1000 * (attempt + 1);
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            attempt += 1;
+        }
+    }
+}
+
+function resolveElectronSha256() {
+    const shasumsPath = path.join(armChromedriverDir, 'SHASUMS256.txt');
+    if (!fs.existsSync(shasumsPath)) return null;
+    const content = fs.readFileSync(shasumsPath, 'utf8');
+    const targetName = `chromedriver-v${electronVersion}-linux-arm64.zip`;
+    const line = content
+        .split('\n')
+        .map((entry) => entry.trim())
+        .find((entry) => entry.endsWith(` ${targetName}`) || entry.endsWith(` *${targetName}`));
+    if (!line) return null;
+    const [hash] = line.split(/\s+/);
+    return hash?.trim() ?? null;
+}
+
+function hashFileSha256(filePath) {
+    const hash = createHash('sha256');
+    const data = fs.readFileSync(filePath);
+    hash.update(data);
+    return hash.digest('hex');
+}
+
+function verifyDownloadedChromedriver(zipPath) {
+    const expectedHash = resolveElectronSha256();
+    if (!expectedHash) {
+        throw new Error(
+            'Unable to locate SHA256 for Electron chromedriver asset. SHASUMS256.txt is missing or incomplete.'
+        );
+    }
+    const actualHash = hashFileSha256(zipPath);
+    if (actualHash !== expectedHash) {
+        throw new Error(`Chromedriver SHA256 mismatch. Expected ${expectedHash} but got ${actualHash}.`);
+    }
+}
+
 function resolveZipExtractor() {
     let hasUnzip = false;
 
@@ -184,9 +266,14 @@ async function ensureChromedriverFromElectronRelease() {
     fs.mkdirSync(armChromedriverDir, { recursive: true });
     const zipName = `chromedriver-v${electronVersion}-linux-arm64.zip`;
     const downloadUrl = `https://github.com/electron/electron/releases/download/v${electronVersion}/${zipName}`;
+    const shasumsUrl = `https://github.com/electron/electron/releases/download/v${electronVersion}/SHASUMS256.txt`;
     const zipPath = path.join(armChromedriverDir, zipName);
+    const shasumsPath = path.join(armChromedriverDir, 'SHASUMS256.txt');
 
     await downloadFile(downloadUrl, zipPath, { retries: 2, timeoutMs: 30000 });
+    const shasumsContent = await readTextFromUrl(shasumsUrl, { retries: 2, timeoutMs: 30000 });
+    fs.writeFileSync(shasumsPath, shasumsContent, 'utf8');
+    verifyDownloadedChromedriver(zipPath);
     extractZip(zipPath, armChromedriverDir);
 
     if (!fs.existsSync(armChromedriverPath)) {
