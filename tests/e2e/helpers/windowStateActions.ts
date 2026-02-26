@@ -14,13 +14,19 @@
 /// <reference path="./wdio-electron.d.ts" />
 
 import { browser } from '@wdio/globals';
+
 import { E2ELogger } from './logger';
 import { E2E_TIMING } from './e2eConstants';
+import {
+    waitForUIState,
+    waitForWindowTransition,
+    waitForFullscreenTransition,
+    waitForMacOSWindowStabilize,
+} from './waitUtilities';
 
 // ============================================================================
 // Types
 // ============================================================================
-
 export interface WindowState {
     isMaximized: boolean;
     isMinimized: boolean;
@@ -130,7 +136,10 @@ export async function maximizeWindow(): Promise<void> {
     });
 
     // Give the window time to transition
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(async () => {
+        const state = await getWindowState();
+        return state.isMaximized;
+    }, { description: 'Window maximize' });
 }
 
 /**
@@ -143,7 +152,10 @@ export async function minimizeWindow(): Promise<void> {
         (window as any).electronAPI?.minimizeWindow?.();
     });
 
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(async () => {
+        const state = await getWindowState();
+        return state.isMinimized;
+    }, { description: 'Window minimize' });
 }
 
 /**
@@ -168,7 +180,13 @@ export async function restoreWindow(): Promise<void> {
         }
     });
 
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(
+        async () => {
+            const state = await getWindowState();
+            return !state.isMaximized && !state.isMinimized && state.isVisible;
+        },
+        { description: 'Window restore' }
+    );
 }
 
 /**
@@ -195,7 +213,10 @@ export async function hideWindow(): Promise<void> {
         }
     });
 
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    await waitForWindowTransition(async () => {
+        const state = await getWindowState();
+        return !state.isVisible;
+    }, { description: 'Window hide' });
 }
 
 /**
@@ -212,7 +233,12 @@ export async function showWindow(): Promise<void> {
         }
     });
 
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    // On macOS, window operations need extra stabilization time
+    await waitForMacOSWindowStabilize(undefined, { description: 'Window show (macOS)' });
+    await waitForWindowTransition(async () => {
+        const state = await getWindowState();
+        return state.isVisible;
+    }, { description: 'Window show' });
 }
 
 /**
@@ -225,7 +251,13 @@ export async function toggleFullscreen(): Promise<void> {
         (window as any).electronAPI?.toggleFullscreen?.();
     });
 
-    await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+    // Get current fullscreen state before toggle
+    const wasFullscreen = await isWindowFullScreen();
+    const targetState = !wasFullscreen;
+
+    await waitForFullscreenTransition(targetState, isWindowFullScreen, {
+        timeout: E2E_TIMING.TIMEOUTS?.FULLSCREEN_TRANSITION,
+    });
 }
 
 /**
@@ -244,7 +276,9 @@ export async function setFullScreen(fullscreen: boolean): Promise<void> {
         fullscreen
     );
 
-    await browser.pause(E2E_TIMING.WINDOW_TRANSITION);
+    await waitForFullscreenTransition(fullscreen, isWindowFullScreen, {
+        timeout: E2E_TIMING.TIMEOUTS?.FULLSCREEN_TRANSITION,
+    });
 }
 
 /**
@@ -267,20 +301,26 @@ export async function focusWindow(): Promise<boolean> {
         }
     });
 
-    // Give time for focus to take effect
-    await browser.pause(E2E_TIMING.QUICK_RESTORE);
+    // Wait for focus to be gained using condition-based wait
+    const focusGained = await waitForUIState(
+        async () => {
+            return await browser.execute(() => document.hasFocus());
+        },
+        {
+            timeout: E2E_TIMING.TIMEOUTS?.UI_STATE,
+            description: 'Window focus',
+        }
+    );
 
     // Verify focus was gained
-    const hasFocus = await browser.execute(() => document.hasFocus());
-
-    if (!hasFocus) {
+    if (!focusGained) {
         E2ELogger.info(
             'windowStateActions',
             'Window focus not gained - environment may not support programmatic focus'
         );
     }
 
-    return hasFocus;
+    return focusGained;
 }
 
 // ============================================================================
