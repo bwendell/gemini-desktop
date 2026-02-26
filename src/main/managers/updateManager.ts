@@ -525,6 +525,7 @@ export default class UpdateManager {
                 'update-not-available': IPC_CHANNELS.AUTO_UPDATE_NOT_AVAILABLE,
                 'update-downloaded': IPC_CHANNELS.AUTO_UPDATE_DOWNLOADED,
                 'update-error': IPC_CHANNELS.AUTO_UPDATE_ERROR,
+                'download-progress': IPC_CHANNELS.AUTO_UPDATE_DOWNLOAD_PROGRESS,
             };
             const channel = eventChannelMap[event];
             if (channel) {
