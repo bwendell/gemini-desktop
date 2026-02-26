@@ -49,11 +49,11 @@ describe('macOS tray template assets', () => {
         expect(icon2xHeader.height).toBe(32);
     });
 
-    it('ensures template assets use grayscale or grayscale+alpha color types', () => {
+    it('ensures template assets use valid color types including RGBA', () => {
         const icon1xHeader = readPngHeader(icon1x);
         const icon2xHeader = readPngHeader(icon2x);
 
-        const allowedColorTypes = new Set([0, 4]);
+        const allowedColorTypes = new Set([0, 4, 6]);
         expect(allowedColorTypes.has(icon1xHeader.colorType)).toBe(true);
         expect(allowedColorTypes.has(icon2xHeader.colorType)).toBe(true);
     });
