@@ -56,11 +56,12 @@ export class OptionsPage extends BasePage {
                 verification,
             });
         } catch (error) {
-            this.log(`IPC verification timed out, using fallback pause: ${String(error)}`);
-            await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            this.log(`IPC verification timed out: ${String(error)}`);
         }
     }
 
+    // ===========================================================================
+    // LOCATORS
     // ===========================================================================
     // LOCATORS
     // ===========================================================================
@@ -246,7 +247,6 @@ export class OptionsPage extends BasePage {
             },
             async () => (await this.getCurrentTheme()) === theme
         );
-        await this.pause();
     }
 
     /**
