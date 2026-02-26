@@ -179,21 +179,88 @@ describe('LlmManager', () => {
             expect(llmManager.getNativeProbeError()).toBeNull();
         });
 
-        it('treats missing package.json export as non-fatal', () => {
+        it('treats missing package.json export as non-fatal when entrypoint resolves', () => {
             process.env.NODE_ENV = 'production';
             delete process.env.CI;
+            const moduleWithResolve = require('module') as typeof import('module') & {
+                _resolveFilename: (
+                    request: string,
+                    parent: NodeModule | null | undefined,
+                    isMain: boolean,
+                    options?: unknown
+                ) => string;
+            };
+            const originalResolveFilename = moduleWithResolve._resolveFilename;
             const exportError = new Error(
                 'Package subpath \'./package.json\' is not defined by "exports" in node-llama-cpp'
-            );
-            const mockResolveFn = ((module: string) => {
-                throw exportError;
-            }) as unknown as NodeRequire['resolve'];
-            mockResolveFn.paths = (request: string) => originalRequireResolve.paths?.(request) ?? null;
-            (require as NodeRequire).resolve = mockResolveFn;
+            ) as NodeJS.ErrnoException;
+            exportError.code = 'ERR_PACKAGE_PATH_NOT_EXPORTED';
+
+            moduleWithResolve._resolveFilename = (request, parent, isMain, options) => {
+                if (request === 'node-llama-cpp/package.json') {
+                    throw exportError;
+                }
+                if (request === 'node-llama-cpp') {
+                    return '/mock/node-llama-cpp/index.js';
+                }
+                return originalResolveFilename(request, parent, isMain, options);
+            };
 
             expect(llmManager.ensureNativeAvailable('probe')).toBe(true);
             expect(llmManager.isNativeAvailable()).toBe(true);
             expect(llmManager.getNativeProbeError()).toBeNull();
+
+            moduleWithResolve._resolveFilename = originalResolveFilename;
+        });
+
+        it('returns false when package.json export fails and entrypoint resolve fails', () => {
+            process.env.NODE_ENV = 'production';
+            delete process.env.CI;
+            const moduleWithResolve = require('module') as typeof import('module') & {
+                _resolveFilename: (
+                    request: string,
+                    parent: NodeModule | null | undefined,
+                    isMain: boolean,
+                    options?: unknown
+                ) => string;
+            };
+            const originalResolveFilename = moduleWithResolve._resolveFilename;
+            const exportError = new Error(
+                'Package subpath \'./package.json\' is not defined by "exports" in node-llama-cpp'
+            ) as NodeJS.ErrnoException;
+            exportError.code = 'ERR_PACKAGE_PATH_NOT_EXPORTED';
+            const resolveError = new Error('Cannot find module node-llama-cpp');
+
+            moduleWithResolve._resolveFilename = (request, parent, isMain, options) => {
+                if (request === 'node-llama-cpp/package.json') {
+                    throw exportError;
+                }
+                if (request === 'node-llama-cpp') {
+                    throw resolveError;
+                }
+                return originalResolveFilename(request, parent, isMain, options);
+            };
+
+            expect(llmManager.ensureNativeAvailable('probe')).toBe(false);
+            expect(llmManager.isNativeAvailable()).toBe(false);
+            expect(llmManager.getNativeProbeError()).toContain('Cannot find module');
+
+            moduleWithResolve._resolveFilename = originalResolveFilename;
+        });
+    });
+
+    describe('predict test mode', () => {
+        const originalArgv = process.argv;
+
+        afterEach(() => {
+            process.argv = originalArgv;
+        });
+
+        it('returns stub prediction when test flag is set', async () => {
+            process.argv = [...originalArgv, '--test-text-prediction'];
+
+            const result = await llmManager.predict('Hello');
+            expect(result).toBe('test prediction');
         });
     });
 
