@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
 import UpdateManager from '../../../../src/main/managers/updateManager';
-import SettingsStore from '../../../../src/store';
+import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
+import SettingsStore from '../../../../src/main/store';
 
 // Mock electron-log
 vi.mock('electron-log', () => ({
@@ -96,10 +97,13 @@ describe('UpdateManager', () => {
 
         // Verify valid generic message was sent
         expect(mockWebContents.send).toHaveBeenCalledWith(
-            'update-error',
+            IPC_CHANNELS.AUTO_UPDATE_ERROR,
             'The auto-update service encountered an error. Please try again later.'
         );
-        expect(mockWebContents.send).not.toHaveBeenCalledWith('update-error', expect.stringContaining('Refused'));
+        expect(mockWebContents.send).not.toHaveBeenCalledWith(
+            IPC_CHANNELS.AUTO_UPDATE_ERROR,
+            expect.stringContaining('Refused')
+        );
     });
 
     it('should suppress error and treat as "not-available" when 404/unreachable', async () => {
@@ -111,7 +115,7 @@ describe('UpdateManager', () => {
         await updateManager.checkForUpdates(false);
 
         // Should NOT broadcast update-error
-        expect(mockWebContents.send).not.toHaveBeenCalledWith('update-error', expect.any(String));
+        expect(mockWebContents.send).not.toHaveBeenCalledWith(IPC_CHANNELS.AUTO_UPDATE_ERROR, expect.any(String));
     });
 
     it('should SHOW error when manual check fails with 404/unreachable', async () => {
@@ -122,7 +126,7 @@ describe('UpdateManager', () => {
         await updateManager.checkForUpdates(true);
 
         // Should broadcast update-error because it's manual
-        expect(mockWebContents.send).toHaveBeenCalledWith('update-error', expect.any(String));
+        expect(mockWebContents.send).toHaveBeenCalledWith(IPC_CHANNELS.AUTO_UPDATE_ERROR, expect.any(String));
     });
 
     describe('update-not-available toast suppression', () => {
