@@ -7,7 +7,7 @@ This document covers running End-to-End (E2E) tests on headless ARM Linux system
 To run tests on these systems, you need to install several required RPM packages. You can install all of them using this single command:
 
 ```bash
-sudo dnf install -y xorg-x11-server-Xvfb mesa-libgbm libgtk-3 libnotify libXScrnSaver nss atk at-spi2-atk cups-libs libdrm mesa-libGL alsa-lib
+sudo dnf install -y xorg-x11-server-Xvfb mesa-libgbm gtk3 libnotify libXScrnSaver nss atk at-spi2-atk cups-libs libdrm mesa-libGL alsa-lib
 ```
 
 > **Note:** `libappindicator-gtk3` is optional and only required if you need to run tray icon tests.
@@ -18,7 +18,7 @@ Follow these steps to set up your environment and run the integration tests:
 
 ```bash
 # 1. Install dependencies
-sudo dnf install -y xorg-x11-server-Xvfb mesa-libgbm libgtk-3 libnotify libXScrnSaver nss atk at-spi2-atk cups-libs libdrm mesa-libGL alsa-lib
+sudo dnf install -y xorg-x11-server-Xvfb mesa-libgbm gtk3 libnotify libXScrnSaver nss atk at-spi2-atk cups-libs libdrm mesa-libGL alsa-lib
 
 # 2. Install npm dependencies
 npm install
@@ -54,6 +54,7 @@ npm run test:e2e:group:startup  # Run only the startup test group
 - **DRI permission warnings**: You may see warnings about DRI permissions in the console. These are cosmetic and can be safely ignored; they are related to GPU acceleration attempts in a headless environment.
 - **Tray tests failing**: If tray icon tests fail, ensure you have installed the optional `libappindicator-gtk3` package.
 - **SELinux notes**: On Oracle Linux and RHEL, the system will use SELinux. The test suite's AppArmor auto-configuration logic will detect this and skip AppArmor-specific steps without causing failures.
+- **Chromedriver download**: The ARM chromedriver is downloaded from Electron releases. Ensure outbound HTTPS is available, and that either `unzip` or `python3` is installed to extract the archive.
 
 ## Package Mapping Table
 

@@ -427,6 +427,14 @@ npm run test:e2e        # Runs all specs in the sequential runner
 npm run test:e2e:all    # Runs all specs including lifecycle tests
 ```
 
+### ARM Headless Linux Notes (AI Agents)
+
+If you are running tests on headless ARM Linux (aarch64):
+
+- **Headless detection**: The WDIO configuration treats Linux as headless when `DISPLAY` is **unset**. In this case, `autoXvfb` is enabled automatically. Do **not** manually set `DISPLAY` for headless runs.
+- **Chromedriver override**: Only set `CHROMEDRIVER_PATH` if you need to override the driver binary (e.g., custom ARM chromedriver). Otherwise, use the default runner behavior.
+- **Reference runbook**: See `docs/ARM_LINUX_TESTING.md` for package prerequisites, RPM mapping, and troubleshooting.
+
 ### Running Integration Tests (Single Spec)
 
 Integration tests support the `--spec` flag correctly:
