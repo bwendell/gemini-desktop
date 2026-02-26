@@ -282,7 +282,7 @@ export default class UpdateManager {
             if (manual || !isNetworkOrConfigError) {
                 // MASKED ERROR: Do NOT send the raw error message to the renderer/user.
                 this.broadcastToWindows(
-                    'update-error',
+                    IPC_CHANNELS.AUTO_UPDATE_ERROR,
                     'The auto-update service encountered an error. Please try again later.'
                 );
             } else {
