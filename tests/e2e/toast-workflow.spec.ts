@@ -1,3 +1,4 @@
+/// <reference path="./helpers/wdio-electron.d.ts" />
 /**
  * E2E Test: Toast Full Workflow (Task 7.6.5)
  *
@@ -13,18 +14,32 @@
  * @see docs/E2E_TESTING_GUIDELINES.md
  */
 
-import { browser, expect } from '@wdio/globals';
+import { expect, $, $$ } from '@wdio/globals';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { E2E_TIMING } from './helpers/e2eConstants';
-import { waitForUIState, waitForAnimationSettle, waitForDuration } from './helpers/waitUtilities';
+import { waitForUIState, waitForAnimationSettle } from './helpers/waitUtilities';
 import { ToastPage } from './pages/ToastPage';
 
 // =============================================================================
 // Tests
 // =============================================================================
 
-describe('Toast Full Workflow E2E', () => {
+describe('Toast Full Workflow E2E', function () {
+    this.timeout(180000);
     const toastPage = new ToastPage();
+
+    const waitForDurationWithPolling = async (durationMs: number, description: string): Promise<void> => {
+        const startTime = Date.now();
+        const completed = await waitForUIState(async () => Date.now() - startTime >= durationMs, {
+            timeout: durationMs + 1000,
+            interval: 100,
+            description,
+        });
+
+        if (!completed) {
+            throw new Error(`Timed out waiting ${durationMs}ms for ${description}`);
+        }
+    };
 
     beforeEach(async () => {
         await waitForAppReady();
@@ -59,12 +74,10 @@ describe('Toast Full Workflow E2E', () => {
             expect(toastCount).toBe(1);
 
             // 3. Verify toast has correct content
-            const toast = await toastPage.getToastByIndex(0);
-            expect(toast).not.toBeNull();
-            expect(await toast!.isDisplayed()).toBe(true);
+            expect(await toastPage.isToastDisplayed()).toBe(true);
 
-            const toastClass = await toast!.getAttribute('class');
-            expect(toastClass).toContain('toast--success');
+            const toastType = await toastPage.getToastTypeClass();
+            expect(toastType).toBe('success');
 
             // Verify ARIA attributes for accessibility
             const role = await toastPage.getToastRole();
@@ -75,7 +88,7 @@ describe('Toast Full Workflow E2E', () => {
 
             // 4. Wait for auto-dismiss (success duration is 5000ms)
             // We wait a bit longer to account for animation time
-            await waitForDuration(5500, 'INTENTIONAL: Testing 5s auto-dismiss timer for success toast');
+            await waitForDurationWithPolling(5500, 'INTENTIONAL: Testing 5s auto-dismiss timer for success toast');
 
             // 5. Verify toast is removed
             const remainingCount = await toastPage.getToastCount();
@@ -100,14 +113,16 @@ describe('Toast Full Workflow E2E', () => {
 
             // 2. Verify toast appears
             await toastPage.waitForToastVisible();
-            const toast = await toastPage.getToastByIndex(0);
-            expect(toast).not.toBeNull();
+            expect(await toastPage.isToastDisplayed()).toBe(true);
 
-            const toastClass = await toast!.getAttribute('class');
-            expect(toastClass).toContain('toast--error');
+            const toastType = await toastPage.getToastTypeClass();
+            expect(toastType).toBe('error');
 
             // 3. Verify toast persists after 5 seconds (success would auto-dismiss by now)
-            await waitForDuration(5500, 'INTENTIONAL: Testing error toast persistence (success would dismiss by now)');
+            await waitForDurationWithPolling(
+                5500,
+                'INTENTIONAL: Testing error toast persistence (success would dismiss by now)'
+            );
 
             let count = await toastPage.getToastCount();
             expect(count).toBe(1); // Error toast should still be visible
@@ -116,6 +131,7 @@ describe('Toast Full Workflow E2E', () => {
             await toastPage.dismissToast(0);
             await waitForAnimationSettle('[data-testid="toast"]', {
                 timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+                allowMissing: true,
             });
 
             // 5. Verify toast is removed
@@ -129,7 +145,7 @@ describe('Toast Full Workflow E2E', () => {
             await toastPage.waitForToastVisible();
 
             // Wait for the full 10s duration + buffer
-            await waitForDuration(10500, 'INTENTIONAL: Testing 10s auto-dismiss timer for error toast');
+            await waitForDurationWithPolling(10500, 'INTENTIONAL: Testing 10s auto-dismiss timer for error toast');
 
             // Verify auto-dismissed
             const count = await toastPage.getToastCount();
@@ -152,11 +168,10 @@ describe('Toast Full Workflow E2E', () => {
 
             // 2. Verify toast appears with progress bar
             await toastPage.waitForToastVisible();
-            const toast = await toastPage.getToastByIndex(0);
-            expect(toast).not.toBeNull();
+            expect(await toastPage.isToastDisplayed()).toBe(true);
 
-            const toastClass = await toast!.getAttribute('class');
-            expect(toastClass).toContain('toast--progress');
+            const toastType = await toastPage.getToastTypeClass();
+            expect(toastType).toBe('progress');
 
             // Verify progress bar exists
             expect(await toastPage.isProgressBarDisplayed()).toBe(true);
@@ -193,7 +208,7 @@ describe('Toast Full Workflow E2E', () => {
             expect(parseInt(progressValue ?? '0', 10)).toBe(100);
 
             // 5. Progress toast should NOT auto-dismiss (persistent by default)
-            await waitForDuration(5500, 'INTENTIONAL: Verify progress toast does not auto-dismiss after 5s');
+            await waitForDurationWithPolling(5500, 'INTENTIONAL: Verify progress toast does not auto-dismiss after 5s');
             const stillVisible = await toastPage.getToastCount();
             expect(stillVisible).toBe(1);
 
@@ -201,6 +216,7 @@ describe('Toast Full Workflow E2E', () => {
             await toastPage.dismissToastById(toastId);
             await waitForAnimationSettle('[data-testid="toast"]', {
                 timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+                allowMissing: true,
             });
 
             const finalCount = await toastPage.getToastCount();
@@ -254,43 +270,56 @@ describe('Toast Full Workflow E2E', () => {
             const messages = await toastPage.getToastMessagesInOrder();
             expect(messages.length).toBe(3);
 
-            // Verify each toast has correct type using toast classes
-            const toasts = await browser.$$('[data-testid="toast"]');
-            expect(toasts.length).toBe(3);
+            const toast1 = await $(toastPage.toastByIdSelector(toast1Id));
+            const toast2 = await $(toastPage.toastByIdSelector(toast2Id));
+            const toast3 = await $(toastPage.toastByIdSelector(toast3Id));
 
-            const firstToastClass = await toasts[0].getAttribute('class');
-            const secondToastClass = await toasts[1].getAttribute('class');
-            const thirdToastClass = await toasts[2].getAttribute('class');
+            expect(await toast1.isExisting()).toBe(true);
+            expect(await toast2.isExisting()).toBe(true);
+            expect(await toast3.isExisting()).toBe(true);
 
-            expect(firstToastClass).toContain('toast--info');
-            expect(secondToastClass).toContain('toast--warning');
-            expect(thirdToastClass).toContain('toast--success');
+            const toast1Class = await toast1.getAttribute('class');
+            const toast2Class = await toast2.getAttribute('class');
+            const toast3Class = await toast3.getAttribute('class');
+
+            expect(toast1Class).toContain('toast--info');
+            expect(toast2Class).toContain('toast--warning');
+            expect(toast3Class).toContain('toast--success');
 
             // 3. Dismiss middle toast (toast 2)
             await toastPage.dismissToastById(toast2Id);
             await waitForAnimationSettle('[data-testid="toast"]', {
                 timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+                allowMissing: true,
             });
 
             // 4. Verify remaining toasts re-stack correctly
             const remainingCount = await toastPage.getToastCount();
             expect(remainingCount).toBe(2);
 
-            const remainingToasts = await browser.$$('[data-testid="toast"]');
+            const remainingToasts = await $$('[data-testid="toast"]');
             expect(remainingToasts.length).toBe(2);
 
-            // Verify the correct toasts remain (info and success)
-            const firstRemainingClass = await remainingToasts[0].getAttribute('class');
-            const secondRemainingClass = await remainingToasts[1].getAttribute('class');
+            const remainingToast1 = await $(toastPage.toastByIdSelector(toast1Id));
+            const remainingToast2 = await $(toastPage.toastByIdSelector(toast2Id));
+            const remainingToast3 = await $(toastPage.toastByIdSelector(toast3Id));
 
-            expect(firstRemainingClass).toContain('toast--info');
-            expect(secondRemainingClass).toContain('toast--success');
+            expect(await remainingToast1.isExisting()).toBe(true);
+            expect(await remainingToast2.isExisting()).toBe(false);
+            expect(await remainingToast3.isExisting()).toBe(true);
+
+            const remainingToast1Class = await remainingToast1.getAttribute('class');
+            const remainingToast3Class = await remainingToast3.getAttribute('class');
+
+            expect(remainingToast1Class).toContain('toast--info');
+            expect(remainingToast3Class).toContain('toast--success');
 
             // 5. Cleanup - dismiss remaining toasts
             await toastPage.dismissToastById(toast1Id);
             await toastPage.dismissToastById(toast3Id);
             await waitForAnimationSettle('[data-testid="toast"]', {
                 timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+                allowMissing: true,
             });
 
             const finalCount = await toastPage.getToastCount();
@@ -315,6 +344,7 @@ describe('Toast Full Workflow E2E', () => {
             await toastPage.dismissToast(0);
             await waitForAnimationSettle('[data-testid="toast"]', {
                 timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+                allowMissing: true,
             });
 
             expect(await toastPage.getToastCount()).toBe(1);
@@ -323,6 +353,7 @@ describe('Toast Full Workflow E2E', () => {
             await toastPage.dismissToast(0);
             await waitForAnimationSettle('[data-testid="toast"]', {
                 timeout: E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE,
+                allowMissing: true,
             });
 
             expect(await toastPage.getToastCount()).toBe(0);

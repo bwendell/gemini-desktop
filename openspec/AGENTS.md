@@ -11,6 +11,7 @@ Instructions for AI coding assistants using OpenSpec for spec-driven development
 - Write deltas: use `## ADDED|MODIFIED|REMOVED|RENAMED Requirements`; include at least one `#### Scenario:` per requirement
 - Validate: `openspec validate [change-id] --strict` and fix issues
 - Request approval: Do not start implementation until proposal is approved
+- If your change touches WDIO/E2E or Linux platform behavior, update AI guidance docs (see `docs/E2E_TESTING_GUIDELINES.md`) and include ARM/headless verification steps (`docs/ARM_LINUX_TESTING.md`).
 
 ## Three-Stage Workflow
 
