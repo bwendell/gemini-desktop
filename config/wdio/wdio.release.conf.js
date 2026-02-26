@@ -15,7 +15,13 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import {
+    chromedriverCapabilities,
+    ensureArmChromedriver,
+    getAppArgs,
+    linuxServiceConfig,
+    killOrphanElectronProcesses,
+} from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
@@ -51,10 +57,16 @@ function getReleaseBinaryPath() {
             }
             break;
         case 'linux':
-            binaryPath = path.join(releaseDir, 'linux-unpacked', 'gemini-desktop');
-            // Also check for arm64 build
+            binaryPath =
+                process.arch === 'arm64'
+                    ? path.join(releaseDir, 'linux-arm64-unpacked', 'gemini-desktop')
+                    : path.join(releaseDir, 'linux-unpacked', 'gemini-desktop');
             if (!fs.existsSync(binaryPath)) {
-                binaryPath = path.join(releaseDir, 'linux-arm64-unpacked', 'gemini-desktop');
+                binaryPath = path.join(
+                    releaseDir,
+                    process.arch === 'arm64' ? 'linux-unpacked' : 'linux-arm64-unpacked',
+                    'gemini-desktop'
+                );
             }
             break;
         default:
@@ -129,6 +141,7 @@ export const config = {
         {
             browserName: 'electron',
             maxInstances: 1,
+            ...chromedriverCapabilities,
         },
     ],
 
@@ -147,7 +160,8 @@ export const config = {
     specFileRetriesDeferred: false,
 
     // No build step needed - we're testing the already-built package
-    onPrepare: () => {
+    onPrepare: async () => {
+        await ensureArmChromedriver();
         console.log('[Release E2E] Testing packaged release build...');
     },
 

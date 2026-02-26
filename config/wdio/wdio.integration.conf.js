@@ -1,7 +1,13 @@
 import { config as dotenvConfig } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import {
+    chromedriverCapabilities,
+    ensureArmChromedriver,
+    getAppArgs,
+    linuxServiceConfig,
+    killOrphanElectronProcesses,
+} from './electron-args.js';
 
 dotenvConfig();
 
@@ -26,6 +32,7 @@ export const config = {
         {
             browserName: 'electron',
             maxInstances: 1, // Force sequential execution
+            ...chromedriverCapabilities,
         },
     ],
     logLevel: 'debug',
@@ -62,6 +69,7 @@ export const config = {
      * Build the Electron app before running tests.
      */
     onPrepare: async function () {
+        await ensureArmChromedriver();
         const { execSync } = await import('child_process');
         console.log('Building Electron app for integration tests...');
         execSync(`vite build --mode ${VITE_TEST_MODE} && npm run build:electron`, { stdio: 'inherit' });
