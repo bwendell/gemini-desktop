@@ -44,9 +44,11 @@ export const baseConfig = {
     capabilities: [
         {
             browserName: 'electron',
-            'wdio:chromedriverOptions': chromedriverOptions,
+            'wdio:chromedriverOptions': {
+                ...chromedriverOptions,
+                ...(chromedriverCapabilities['wdio:chromedriverOptions'] ?? {}),
+            },
             maxInstances: 1,
-            ...chromedriverCapabilities,
         },
     ],
 

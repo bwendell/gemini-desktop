@@ -43,8 +43,10 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
-            'wdio:chromedriverOptions': chromedriverOptions,
-            ...chromedriverCapabilities,
+            'wdio:chromedriverOptions': {
+                ...chromedriverOptions,
+                ...(chromedriverCapabilities['wdio:chromedriverOptions'] ?? {}),
+            },
         },
     ],
 

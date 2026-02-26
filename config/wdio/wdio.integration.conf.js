@@ -33,9 +33,11 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
-            'wdio:chromedriverOptions': chromedriverOptions,
+            'wdio:chromedriverOptions': {
+                ...chromedriverOptions,
+                ...(chromedriverCapabilities['wdio:chromedriverOptions'] ?? {}),
+            },
             maxInstances: 1, // Force sequential execution
-            ...chromedriverCapabilities,
         },
     ],
     logLevel: 'debug',
