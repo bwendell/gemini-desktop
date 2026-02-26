@@ -17,6 +17,7 @@ import { app, BrowserWindow } from 'electron';
 // when there's no D-Bus session (headless Linux/CI environment).
 import type { UpdateInfo, AppUpdater } from 'electron-updater';
 import log from 'electron-log';
+import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import { createLogger } from '../utils/logger';
 import type SettingsStore from '../store';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
@@ -519,7 +520,18 @@ export default class UpdateManager {
         } else if (event === 'checking-for-update') {
             this.broadcastToWindows('auto-update:checking', null);
         } else {
-            this.broadcastToWindows(`auto-update:${event.replace('update-', '')}`, data);
+            // Map update events to their corresponding IPC channels
+            const eventChannelMap: Record<string, string> = {
+                'update-available': IPC_CHANNELS.AUTO_UPDATE_AVAILABLE,
+                'update-not-available': IPC_CHANNELS.AUTO_UPDATE_NOT_AVAILABLE,
+                'update-downloaded': IPC_CHANNELS.AUTO_UPDATE_DOWNLOADED,
+                'update-error': IPC_CHANNELS.AUTO_UPDATE_ERROR,
+                'download-progress': IPC_CHANNELS.AUTO_UPDATE_DOWNLOAD_PROGRESS,
+            };
+            const channel = eventChannelMap[event];
+            if (channel) {
+                this.broadcastToWindows(channel, data);
+            }
         }
 
         // Also update internal state if needed
