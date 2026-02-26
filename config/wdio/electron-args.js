@@ -7,19 +7,20 @@
  * Linux (local + CI):
  *   --no-sandbox, --disable-setuid-sandbox, --disable-dev-shm-usage, --disable-gpu
  *
- * CI-only (Linux):
+ * Headless Linux (CI or no DISPLAY):
  *   --enable-logging, autoXvfb, AppArmor auto-install
  */
 
 const isLinux = process.platform === 'linux';
 const isWin32 = process.platform === 'win32';
 const isCI = Boolean(process.env.CI);
+const isHeadless = isLinux && !process.env.DISPLAY;
 
 const linuxArgs = isLinux
     ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     : [];
 const windowsArgs = isWin32 && isCI ? ['--disable-gpu', '--disable-software-rasterizer', '--no-sandbox'] : [];
-const ciArgs = isCI ? ['--enable-logging'] : [];
+const ciArgs = isCI || isHeadless ? ['--enable-logging'] : [];
 const baseAppArgs = [...linuxArgs, ...windowsArgs, ...ciArgs];
 
 /**
@@ -49,11 +50,11 @@ export function getAppArgs(...extraArgs) {
 export const linuxServiceConfig = {
     // Ubuntu 24.04+ requires AppArmor profile for Electron (Linux only)
     // See: https://github.com/electron/electron/issues/41066
-    ...(isLinux && isCI ? { apparmorAutoInstall: 'sudo' } : { apparmorAutoInstall: false }),
+    ...(isLinux && (isCI || isHeadless) ? { apparmorAutoInstall: 'sudo' } : { apparmorAutoInstall: false }),
     // Enable wdio-electron-service's built-in Xvfb management for Linux CI
     // This is required for headless test execution - do NOT use xvfb-run wrapper
     // as it sets DISPLAY which prevents autoXvfb from working properly with workers
-    ...(isLinux && isCI
+    ...(isLinux && (isCI || isHeadless)
         ? {
               autoXvfb: true,
               xvfbAutoInstall: true,

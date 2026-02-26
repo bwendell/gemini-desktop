@@ -33,6 +33,12 @@ const IS_WSL_ENVIRONMENT = (() => {
 const IS_CI_ENVIRONMENT = !!(process.env.CI || process.env.GITHUB_ACTIONS);
 
 /**
+ * Detect headless Linux at module load time (no DISPLAY variable).
+ * Used to skip window-manager-dependent tests on headless ARM servers.
+ */
+const IS_HEADLESS_ENVIRONMENT = process.platform === 'linux' && !process.env.DISPLAY;
+
+/**
  * Gets the current platform from the browser context.
  * @returns {Promise<E2EPlatform>} 'windows', 'linux', or 'macos'
  */
@@ -106,12 +112,13 @@ export async function isWSL(): Promise<boolean> {
  * Environments detected:
  * - CI (via CI or GITHUB_ACTIONS env vars)
  * - WSL (Windows Subsystem for Linux)
+ * - Headless Linux (no DISPLAY variable)
  *
  * @returns {Promise<boolean>} True if running on Linux CI or WSL
  */
 export async function isLinuxCI(): Promise<boolean> {
     if (!(await isLinux())) return false;
-    return IS_CI_ENVIRONMENT || IS_WSL_ENVIRONMENT;
+    return IS_CI_ENVIRONMENT || IS_WSL_ENVIRONMENT || IS_HEADLESS_ENVIRONMENT;
 }
 
 /**

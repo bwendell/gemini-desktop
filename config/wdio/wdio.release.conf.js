@@ -6,7 +6,7 @@
  *
  * Platform Support:
  * - Windows: release/win-unpacked/Gemini Desktop.exe
- * - Linux: release/linux-unpacked/gemini-desktop
+ * - Linux: release/linux-unpacked/gemini-desktop (or linux-arm64-unpacked for ARM)
  * - macOS: release/mac/Gemini Desktop.app/Contents/MacOS/Gemini Desktop
  *
  * @see https://webdriver.io/docs/desktop-testing/electron
@@ -52,6 +52,10 @@ function getReleaseBinaryPath() {
             break;
         case 'linux':
             binaryPath = path.join(releaseDir, 'linux-unpacked', 'gemini-desktop');
+            // Also check for arm64 build
+            if (!fs.existsSync(binaryPath)) {
+                binaryPath = path.join(releaseDir, 'linux-arm64-unpacked', 'gemini-desktop');
+            }
             break;
         default:
             throw new Error(`Unsupported platform: ${platform}`);
