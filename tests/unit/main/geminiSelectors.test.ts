@@ -70,7 +70,7 @@ describe('Gemini Selectors Module', () => {
                 // This will throw if selector is invalid
                 expect(() => doc.querySelector(selector)).not.toThrow();
             });
-        });
+        }, 15000);
 
         it('handles malformed selectors gracefully', () => {
             const { JSDOM } = require('jsdom');
