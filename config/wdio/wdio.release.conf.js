@@ -22,6 +22,7 @@ import {
     linuxServiceConfig,
     killOrphanElectronProcesses,
 } from './electron-args.js';
+import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
@@ -84,6 +85,8 @@ function getReleaseBinaryPath() {
     return binaryPath;
 }
 
+const chromedriverOptions = getChromedriverOptions();
+
 export const config = {
     specs: [
         // Core functionality tests that work with packaged builds
@@ -140,6 +143,7 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': chromedriverOptions,
             maxInstances: 1,
             ...chromedriverCapabilities,
         },

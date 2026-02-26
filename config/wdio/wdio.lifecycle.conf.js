@@ -17,8 +17,10 @@ import {
     linuxServiceConfig,
     killOrphanElectronProcesses,
 } from './electron-args.js';
+import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const chromedriverOptions = getChromedriverOptions();
 
 const electronMainPath = path.resolve(__dirname, '../../dist-electron/main/main.cjs');
 
@@ -41,6 +43,7 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': chromedriverOptions,
             ...chromedriverCapabilities,
         },
     ],

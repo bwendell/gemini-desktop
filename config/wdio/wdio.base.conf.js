@@ -16,8 +16,10 @@ import {
     linuxServiceConfig,
     killOrphanElectronProcesses,
 } from './electron-args.js';
+import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const chromedriverOptions = getChromedriverOptions();
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
@@ -42,6 +44,7 @@ export const baseConfig = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': chromedriverOptions,
             maxInstances: 1,
             ...chromedriverCapabilities,
         },

@@ -14,10 +14,17 @@
 
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
-import { browser, expect } from '@wdio/globals';
+import { $, browser, expect } from '@wdio/globals';
 import { ToastPage } from './pages';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForUIState, waitForAnimationSettle, waitForDuration } from './helpers/waitUtilities';
+
+type ToastBrowser = {
+    execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
+    keys(keys: string | string[]): Promise<void>;
+};
+
+const toastBrowser = browser as unknown as ToastBrowser;
 
 // Note: Action click tracking helpers (getLastActionClicked, clearActionClickTracking,
 // showToastWithActions) are now part of ToastPage for reusability.
@@ -60,7 +67,7 @@ describe('Toast User Interactions E2E', () => {
 
             // WHEN user clicks the dismiss button
             await toastPage.clickDismiss();
-            await waitForAnimationSettle('[data-testid="toast"]');
+            await waitForAnimationSettle('[data-testid="toast"]', { allowMissing: true });
 
             // THEN the toast should be removed from DOM
             expect(await toastPage.isToastDisplayed()).toBe(false);
@@ -89,7 +96,7 @@ describe('Toast User Interactions E2E', () => {
 
             // WHEN user clicks dismiss on the first toast
             await toastPage.clickDismiss();
-            await waitForAnimationSettle('[data-testid="toast"]');
+            await waitForAnimationSettle('[data-testid="toast"]', { allowMissing: true });
 
             // THEN only 2 toasts should remain
             expect(await toastPage.getToastCount()).toBe(2);
@@ -109,7 +116,7 @@ describe('Toast User Interactions E2E', () => {
             await toastPage.waitForToastVisible();
 
             // Verify button is displayed
-            const actionBtn = await browser.$('[data-testid="toast-action-0"]');
+            const actionBtn = await $('[data-testid="toast-action-0"]');
             expect(await actionBtn.isDisplayed()).toBe(true);
 
             // WHEN user clicks the action button
@@ -139,7 +146,7 @@ describe('Toast User Interactions E2E', () => {
             await toastPage.waitForToastVisible();
 
             // WHEN user clicks the secondary action button (index 1)
-            const secondaryBtn = await browser.$('[data-testid="toast-action-1"]');
+            const secondaryBtn = await $('[data-testid="toast-action-1"]');
             expect(await secondaryBtn.isDisplayed()).toBe(true);
             await secondaryBtn.waitForClickable({ timeout: 2000 });
             await secondaryBtn.click();
@@ -237,7 +244,7 @@ describe('Toast User Interactions E2E', () => {
             await toastPage.waitForToastVisible();
 
             // Hover over the toast
-            const toast = await browser.$('[data-testid="toast"]');
+            const toast = await $('[data-testid="toast"]');
             await toast.moveTo();
             await waitForUIState(async () => await toast.isDisplayed(), {
                 description: 'Toast still visible after hover',
@@ -261,11 +268,11 @@ describe('Toast User Interactions E2E', () => {
 
             // WHEN user tabs to the dismiss button
             // First click on toast to bring focus into the toast area
-            const toast = await browser.$('[data-testid="toast"]');
+            const toast = await $('[data-testid="toast"]');
             await toast.click();
             await waitForUIState(
                 async () => {
-                    const activeElement = await browser.execute(() => {
+                    const activeElement = await toastBrowser.execute(() => {
                         return document.activeElement?.tagName;
                     });
                     return activeElement !== null;
@@ -274,10 +281,10 @@ describe('Toast User Interactions E2E', () => {
             );
 
             // Tab to navigate (dismiss button should be focusable)
-            await browser.keys('Tab');
+            await toastBrowser.keys('Tab');
             await waitForUIState(
                 async () => {
-                    const activeElement = await browser.execute(() => {
+                    const activeElement = await toastBrowser.execute(() => {
                         return document.activeElement?.getAttribute('data-testid');
                     });
                     return activeElement !== null;
@@ -286,7 +293,7 @@ describe('Toast User Interactions E2E', () => {
             );
 
             // THEN the dismiss button should be focused
-            const activeElement = await browser.execute(() => {
+            const activeElement = await toastBrowser.execute(() => {
                 return document.activeElement?.getAttribute('data-testid');
             });
             expect(activeElement).toBeTruthy();
@@ -294,7 +301,7 @@ describe('Toast User Interactions E2E', () => {
             // The toast dismiss button should receive focus
 
             // Verify dismiss button exists and is focusable
-            const dismissBtn = await browser.$('[data-testid="toast-dismiss"]');
+            const dismissBtn = await $('[data-testid="toast-dismiss"]');
             expect(await dismissBtn.isExisting()).toBe(true);
         });
 
@@ -306,11 +313,11 @@ describe('Toast User Interactions E2E', () => {
             await toastPage.waitForToastVisible();
 
             // WHEN user focuses and activates the action button with Enter
-            const actionBtn = await browser.$('[data-testid="toast-action-0"]');
+            const actionBtn = await $('[data-testid="toast-action-0"]');
             await actionBtn.click(); // Focus
             await waitForUIState(
                 async () => {
-                    const activeElement = await browser.execute(() => {
+                    const activeElement = await toastBrowser.execute(() => {
                         return document.activeElement?.getAttribute('data-testid');
                     });
                     return activeElement === 'toast-action-0';
@@ -320,7 +327,7 @@ describe('Toast User Interactions E2E', () => {
 
             // Clear tracking and use keyboard to activate
             await toastPage.clearActionClickTracking();
-            await browser.keys('Enter');
+            await toastBrowser.keys('Enter');
             await waitForUIState(
                 async () => {
                     const lastClick = await toastPage.getLastActionClicked();
@@ -348,7 +355,7 @@ describe('Toast User Interactions E2E', () => {
             expect(ariaLive).toBe('polite');
 
             // AND the dismiss button should have an aria-label
-            const dismissBtn = await browser.$('[data-testid="toast-dismiss"]');
+            const dismissBtn = await $('[data-testid="toast-dismiss"]');
             const ariaLabel = await dismissBtn.getAttribute('aria-label');
             expect(ariaLabel).toBeTruthy();
             expect(ariaLabel).toContain('Dismiss');
