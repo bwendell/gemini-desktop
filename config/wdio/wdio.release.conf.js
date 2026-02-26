@@ -16,6 +16,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
@@ -67,6 +68,8 @@ function getReleaseBinaryPath() {
     console.log(`[Release E2E] Using binary: ${binaryPath}`);
     return binaryPath;
 }
+
+const chromedriverOptions = getChromedriverOptions();
 
 export const config = {
     specs: [
@@ -124,6 +127,7 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': chromedriverOptions,
             maxInstances: 1,
         },
     ],

@@ -2,6 +2,7 @@ import { config as dotenvConfig } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import { getChromedriverOptions } from './chromedriver-options.js';
 
 dotenvConfig();
 
@@ -9,6 +10,7 @@ dotenvConfig();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
+const chromedriverOptions = getChromedriverOptions();
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
 const VITE_TEST_MODE = 'integration';
@@ -25,6 +27,7 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': chromedriverOptions,
             maxInstances: 1, // Force sequential execution
         },
     ],
@@ -91,7 +94,9 @@ export const config = {
     after: async function () {
         try {
             await browser.electron.execute((electron) => electron.app.quit());
-        } catch (error) {}
+        } catch (error) {
+            console.warn('Failed to quit Electron app:', error);
+        }
     },
 
     /**
