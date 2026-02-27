@@ -17,6 +17,7 @@ import {
     hideQuickChatWindow,
     getQuickChatState,
     submitQuickChatText,
+    hideAndFocusMainWindow,
 } from '../helpers/quickChatActions';
 
 type WdioBrowser = {
@@ -247,6 +248,14 @@ export class QuickChatPage extends BasePage {
     async cancel(): Promise<void> {
         await wdioBrowser.keys(['Escape']);
         this.log('Cancelled via Escape key');
+
+        try {
+            await this.waitForHidden(5000);
+        } catch (error) {
+            this.log(`Cancel via Escape did not hide window; falling back to IPC hide. ${String(error)}`);
+            await hideAndFocusMainWindow();
+            await this.waitForHidden(5000);
+        }
     }
 
     /**
