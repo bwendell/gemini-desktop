@@ -126,13 +126,13 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
                     return;
                 }
 
-                pathsMocks.getTrayIconPath.mockReturnValueOnce('/mock/icon-mac-tray.png');
+                pathsMocks.getTrayIconPath.mockReturnValueOnce('/mock/icon-mac-trayTemplate.png');
 
                 trayManager.createTray();
 
                 expect(pathsMocks.getTrayIconPath).toHaveBeenCalled();
                 const lastResult = pathsMocks.getTrayIconPath.mock.results.slice(-1)[0]?.value as string | undefined;
-                expect(lastResult).toContain('icon-mac-tray.png');
+                expect(lastResult).toContain('icon-mac-trayTemplate.png');
             });
 
             it('should use default tray icon asset on non-macOS platforms', () => {
@@ -338,7 +338,7 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
 
                 // Verify the adapter is properly configured with getTrayIconFilename
                 const filename = platformAdapter.getTrayIconFilename?.();
-                expect(filename).toBe('icon.png');
+                expect(filename).toBe('icon-mac-trayTemplate.png');
 
                 // Verify getTrayIconPath was called during tray creation
                 expect(vi.mocked(pathsMocks.getTrayIconPath)).toHaveBeenCalled();
@@ -382,7 +382,7 @@ describe('WindowManager ↔ TrayManager ↔ MenuManager State Coordination', () 
                 const filename = platformAdapter.getTrayIconFilename?.();
 
                 if (platform === 'darwin') {
-                    expect(filename).toBe('icon.png');
+                    expect(filename).toBe('icon-mac-trayTemplate.png');
                 } else if (platform === 'win32') {
                     expect(filename).toBe('icon.ico');
                 } else if (platform === 'linux') {

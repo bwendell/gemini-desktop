@@ -19,10 +19,7 @@
 
 import { expect, browser, $ } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
-import {
-    waitForAppReady,
-    ensureSingleWindow,
-} from './helpers/workflows';
+import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForMacOSWindowStabilize } from './helpers/waitUtilities';
 import { isMacOS } from './helpers/platform';
 import { TrayPage } from './pages';
@@ -59,10 +56,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
             }
             await ensureSingleWindow();
         } catch (error) {
-            E2ELogger.warn(
-                'macos-tray-window',
-                `afterEach cleanup error (may be harmless): ${error}`
-            );
+            E2ELogger.warn('macos-tray-window', `afterEach cleanup error (may be harmless): ${error}`);
         }
     });
 
@@ -95,14 +89,15 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
                     };
                 }
 
-                // Attempt to get the tray icon path (when available)
                 const getImage = (tray as any).getImage;
-                const iconPath = getImage ? getImage() : null;
+                const image = getImage ? getImage() : null;
+                const isTemplateImage = image?.isTemplateImage?.() ?? null;
+                const size = image?.getSize?.() ?? null;
 
                 return {
                     exists: true,
-                    path: iconPath || null,
-                    hasExpectedTrayIcon: iconPath ? iconPath.includes('icon') : false,
+                    isTemplateImage,
+                    size,
                     error: null,
                 };
             });
@@ -110,10 +105,15 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
             expect(trayIconInfo.exists).toBe(true);
             // Path may be null in some contexts, but tray must exist
             expect(trayIconInfo.error).toBeNull();
+            expect(trayIconInfo.isTemplateImage).toBe(true);
+            expect(trayIconInfo.size?.width ?? 0).toBeLessThanOrEqual(32);
+            expect(trayIconInfo.size?.height ?? 0).toBeLessThanOrEqual(32);
 
             E2ELogger.info(
                 'macos-tray-window',
-                `Tray icon path: ${trayIconInfo.path || '(not accessible in test context)'}`
+                `Tray icon metadata: template=${trayIconInfo.isTemplateImage}, size=${
+                    trayIconInfo.size ? `${trayIconInfo.size.width}x${trayIconInfo.size.height}` : '(unknown)'
+                }`
             );
         });
     });
@@ -156,10 +156,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
             const windowVisible = await isWindowVisible();
             expect(windowVisible).toBe(true);
 
-            E2ELogger.info(
-                'macos-tray-window',
-                'Main window rendered correctly after tray restore'
-            );
+            E2ELogger.info('macos-tray-window', 'Main window rendered correctly after tray restore');
         });
     });
 
@@ -188,9 +185,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
 
             // Get initial tab bar state
             const tabBarBefore = await $(Selectors.tabBar).catch(() => null);
-            const visibleBefore = tabBarBefore
-                ? await tabBarBefore.isDisplayed().catch(() => false)
-                : false;
+            const visibleBefore = tabBarBefore ? await tabBarBefore.isDisplayed().catch(() => false) : false;
 
             // Perform hide/restore cycle
             await tray.hideWindowToTray();
@@ -205,16 +200,11 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
 
             // Verify tab bar state after restore
             const tabBarAfter = await $(Selectors.tabBar).catch(() => null);
-            const visibleAfter = tabBarAfter
-                ? await tabBarAfter.isDisplayed().catch(() => false)
-                : false;
+            const visibleAfter = tabBarAfter ? await tabBarAfter.isDisplayed().catch(() => false) : false;
 
             if (visibleBefore) {
                 expect(visibleAfter).toBe(true);
-                E2ELogger.info(
-                    'macos-tray-window',
-                    'Tab bar remains visible after hide/restore cycle'
-                );
+                E2ELogger.info('macos-tray-window', 'Tab bar remains visible after hide/restore cycle');
             }
         });
     });
@@ -249,10 +239,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
             windowVisible = await isWindowVisible();
             expect(windowVisible).toBe(true);
 
-            E2ELogger.info(
-                'macos-tray-window',
-                'Hide to tray and restore via tray click successful'
-            );
+            E2ELogger.info('macos-tray-window', 'Hide to tray and restore via tray click successful');
         });
 
         it('should hide window to tray and restore via Show menu item', async () => {
@@ -284,10 +271,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
             windowVisible = await isWindowVisible();
             expect(windowVisible).toBe(true);
 
-            E2ELogger.info(
-                'macos-tray-window',
-                'Hide to tray and restore via Show menu successful'
-            );
+            E2ELogger.info('macos-tray-window', 'Hide to tray and restore via Show menu successful');
         });
 
         it('should support multiple hide/restore cycles', async () => {
@@ -325,10 +309,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
             windowVisible = await isWindowVisible();
             expect(windowVisible).toBe(true);
 
-            E2ELogger.info(
-                'macos-tray-window',
-                'Multiple hide/restore cycles completed successfully'
-            );
+            E2ELogger.info('macos-tray-window', 'Multiple hide/restore cycles completed successfully');
         });
     });
 });
