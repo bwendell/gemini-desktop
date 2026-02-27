@@ -13,6 +13,18 @@ import { browser } from '@wdio/globals';
 import type { E2EPlatform } from './platform';
 import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
 
+type HotkeyBrowser = {
+    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
+    electron: {
+        execute<T, A extends unknown[]>(
+            fn: (electron: typeof import('electron'), ...args: A) => T,
+            ...args: A
+        ): Promise<T>;
+    };
+};
+
+const hotkeyBrowser = browser as unknown as HotkeyBrowser;
+
 /**
  * Hotkey definition for cross-platform testing.
  */
@@ -103,10 +115,12 @@ export function getHotkeyDisplayString(platform: E2EPlatform, hotkeyId: keyof ty
  * @returns Promise<boolean> - True if the shortcut is registered
  */
 export async function isHotkeyRegistered(accelerator: string): Promise<boolean> {
-    return browser.electron.execute(
-        (electron: typeof import('electron'), acc: string) => electron.globalShortcut.isRegistered(acc),
-        accelerator
-    );
+    return hotkeyBrowser.electron.execute((electron: typeof import('electron'), acc: string) => {
+        if (!electron.app.isReady()) {
+            return false;
+        }
+        return electron.globalShortcut.isRegistered(acc);
+    }, accelerator);
 }
 
 /**
@@ -310,7 +324,7 @@ export interface GlobalShortcutRegistrationStatus {
  * @returns Promise with platform status or null if IPC not available
  */
 export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | null> {
-    return browser.execute(() => {
+    return hotkeyBrowser.execute(() => {
         // Access the preload API from renderer context
         const api = (window as any).electronAPI;
         if (!api?.getPlatformHotkeyStatus) {
@@ -328,7 +342,7 @@ export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | 
  * @returns Promise with registration status or null if execution fails
  */
 export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutRegistrationStatus | null> {
-    return browser.electron.execute((_electron: typeof import('electron')) => {
+    return hotkeyBrowser.electron.execute((_electron: typeof import('electron')) => {
         const { globalShortcut } = _electron;
         try {
             return {
@@ -379,7 +393,7 @@ export interface DbusActivationSignalStats {
  * @returns Promise with signal stats or null if IPC not available
  */
 export async function getDbusActivationSignalStats(): Promise<DbusActivationSignalStats | null> {
-    return browser.execute(() => {
+    return hotkeyBrowser.execute(() => {
         const api = (window as any).electronAPI;
         if (!api?.getDbusActivationSignalStats) {
             console.log('[E2E] getDbusActivationSignalStats not available on electronAPI');
@@ -394,7 +408,7 @@ export async function getDbusActivationSignalStats(): Promise<DbusActivationSign
  * Useful for test isolation between test cases.
  */
 export async function clearDbusActivationSignalHistory(): Promise<void> {
-    await browser.execute(() => {
+    await hotkeyBrowser.execute(() => {
         const api = (window as any).electronAPI;
         if (api?.clearDbusActivationSignalHistory) {
             api.clearDbusActivationSignalHistory();
@@ -414,12 +428,12 @@ export async function getWaylandStatusForSkipping(): Promise<{
     portalAvailable: boolean;
     desktopEnvironment: string;
 }> {
-    const status = await browser.electron.execute(() => {
+    const status = await hotkeyBrowser.electron.execute(() => {
         // @ts-expect-error - accessing global manager
         return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
     });
 
-    const isLinux = await browser.electron.execute(() => process.platform === 'linux');
+    const isLinux = await hotkeyBrowser.electron.execute(() => process.platform === 'linux');
 
     if (!status) {
         return {

@@ -538,7 +538,7 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
     const keyCode = key.length === 1 ? key.toUpperCase() : key;
 
     await workflowsBrowser.electron.execute(
-        (electron, payload) => {
+        (_electron, payload) => {
             const wm = (global as { windowManager?: { getMainWindow?: () => Electron.BrowserWindow | null } })
                 .windowManager;
             if (!wm?.getMainWindow) throw new Error('WindowManager not found on global');
@@ -575,6 +575,29 @@ export async function waitForAppReady(timeout = 15000): Promise<void> {
     const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
     await mainLayout.waitForExist({ timeout });
     E2ELogger.info('workflows', '✓ App is ready');
+}
+
+export async function waitForElectronBridgeReady(timeout = 15000): Promise<void> {
+    const ready = await waitForUIState(
+        async () => {
+            try {
+                await workflowsBrowser.electron.execute(() => true);
+                return true;
+            } catch (error) {
+                E2ELogger.debug('workflows', 'Electron bridge not ready', error);
+                return false;
+            }
+        },
+        {
+            timeout,
+            interval: E2E_TIMING.POLLING?.IPC ?? 50,
+            description: 'Electron bridge ready',
+        }
+    );
+
+    if (!ready) {
+        throw new Error('Electron bridge did not become ready');
+    }
 }
 
 /**
