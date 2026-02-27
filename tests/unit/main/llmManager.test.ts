@@ -178,6 +178,32 @@ describe('LlmManager', () => {
             expect(llmManager.isNativeAvailable()).toBe(true);
             expect(llmManager.getNativeProbeError()).toBeNull();
         });
+
+        it('captures export-subpath errors in production mode probe', () => {
+            process.env.NODE_ENV = 'production';
+            process.env.CI = 'false';
+            process.argv = ['node', 'electron'];
+
+            const exportError = Object.assign(
+                new Error('Package subpath \'./package.json\' is not defined by "exports"'),
+                {
+                    code: 'ERR_PACKAGE_PATH_NOT_EXPORTED',
+                }
+            );
+
+            const mockResolve: NodeRequire['resolve'] = Object.assign(
+                (specifier: string) => {
+                    throw exportError;
+                },
+                { paths: vi.fn(() => []) }
+            );
+
+            (require as NodeRequire).resolve = mockResolve;
+
+            expect(llmManager.ensureNativeAvailable('probe')).toBe(false);
+            expect(llmManager.getNativeProbeError()).toContain("Package subpath './package.json'");
+            expect(llmManager.getNativeProbeError()).toContain('ERR_PACKAGE_PATH_NOT_EXPORTED');
+        });
     });
 
     describe('getModelsDirectory', () => {
