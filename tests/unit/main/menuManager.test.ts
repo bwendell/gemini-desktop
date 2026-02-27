@@ -97,7 +97,7 @@ describe('MenuManager', () => {
             menuManager.buildMenu();
 
             const buildCall = (Menu.buildFromTemplate as any).mock.calls[0][0];
-            expect(buildCall.length).toBe(4); // App, File, View, Help
+            expect(buildCall.length).toBe(5);
             expect(buildCall[0].label).toBe('Gemini Desktop');
         });
 
@@ -106,8 +106,49 @@ describe('MenuManager', () => {
             menuManager.buildMenu();
 
             const buildCall = (Menu.buildFromTemplate as any).mock.calls[0][0];
-            expect(buildCall.length).toBe(3); // File, View, Help
+            expect(buildCall.length).toBe(4);
             expect(buildCall[0].label).toBe('File');
+        });
+    });
+
+    describe('Edit Menu', () => {
+        it('includes Edit menu in template', () => {
+            setPlatform('win32');
+            menuManager.buildMenu();
+
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const editMenu = findMenuItem(template, 'Edit');
+
+            expect(editMenu).toBeTruthy();
+        });
+
+        it('includes expected role items in Edit submenu', () => {
+            setPlatform('darwin');
+            menuManager.buildMenu();
+
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const editMenu = findMenuItem(template, 'Edit');
+            expect(editMenu).toBeTruthy();
+
+            const submenuRoles = (editMenu?.submenu ?? [])
+                .filter((item: any) => item.role)
+                .map((item: any) => item.role);
+
+            expect(submenuRoles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
+        });
+
+        it('positions Edit menu between File and View', () => {
+            setPlatform('linux');
+            menuManager.buildMenu();
+
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const fileIndex = template.findIndex((item: any) => item.label === 'File');
+            const editIndex = template.findIndex((item: any) => item.label === 'Edit');
+            const viewIndex = template.findIndex((item: any) => item.label === 'View');
+
+            expect(fileIndex).toBeGreaterThanOrEqual(0);
+            expect(editIndex).toBeGreaterThan(fileIndex);
+            expect(viewIndex).toBeGreaterThan(editIndex);
         });
     });
 

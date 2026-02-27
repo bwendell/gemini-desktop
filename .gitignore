@@ -41,6 +41,7 @@ electron-builder.env
 .wdio-test-data/
 tests/e2e/screenshots/*.png
 tests/e2e/screenshots/*.html
+tests/e2e/screenshots/*.failure-context.json
 
 prompts/
 
@@ -48,3 +49,4 @@ prompts/
 .worktrees/.sisyphus/
 .worktrees/
 .sisyphus/
+.cache/

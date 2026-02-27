@@ -6,6 +6,7 @@ import { isApplicationHotkey, type HotkeyId } from '../types';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 import { getReleaseNotesUrl } from '../../shared/utils/releaseNotes';
+import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 
 /**
  * Manages the application native menu and context menus.
@@ -176,6 +177,7 @@ export default class MenuManager {
     buildMenu(): void {
         const template: MenuItemConstructorOptions[] = [
             this.buildFileMenu(),
+            this.buildEditMenu(),
             this.buildViewMenu(),
             this.buildHelpMenu(),
         ];
@@ -230,7 +232,7 @@ export default class MenuManager {
                     click: () => {
                         const win = this.windowManager.getMainWindow();
                         if (win && !win.isDestroyed()) {
-                            win.webContents.send('debug-trigger-error');
+                            win.webContents.send(IPC_CHANNELS.DEBUG_TRIGGER_ERROR);
                         }
                     },
                 },
@@ -324,6 +326,22 @@ export default class MenuManager {
         };
 
         return menu;
+    }
+
+    private buildEditMenu(): MenuItemConstructorOptions {
+        return {
+            label: 'Edit',
+            submenu: [
+                { role: 'undo' },
+                { role: 'redo' },
+                { type: 'separator' },
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' },
+                { role: 'delete' },
+                { role: 'selectAll' },
+            ],
+        };
     }
 
     private buildViewMenu(): MenuItemConstructorOptions {

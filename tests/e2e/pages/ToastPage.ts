@@ -12,6 +12,7 @@
 import { BasePage } from './BasePage';
 import { browser } from '@wdio/globals';
 import { E2E_TIMING } from '../helpers/e2eConstants';
+import { waitForUIState, waitForIPCRoundTrip } from '../helpers/waitUtilities';
 
 type TPBrowser = {
     execute<R>(fn: (...args: any[]) => R, ...args: any[]): Promise<R>;
@@ -130,7 +131,10 @@ export class ToastPage extends BasePage {
             // @ts-expect-error - test helper
             return window.__toastTestHelpers.showToast(opts);
         }, options);
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isToastDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'toast to appear',
+        });
         return id;
     }
 
@@ -150,7 +154,10 @@ export class ToastPage extends BasePage {
             message,
             options
         );
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isToastDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'success toast to appear',
+        });
         return id;
     }
 
@@ -170,7 +177,10 @@ export class ToastPage extends BasePage {
             message,
             options
         );
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isToastDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'error toast to appear',
+        });
         return id;
     }
 
@@ -190,7 +200,10 @@ export class ToastPage extends BasePage {
             message,
             options
         );
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isToastDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'info toast to appear',
+        });
         return id;
     }
 
@@ -210,7 +223,10 @@ export class ToastPage extends BasePage {
             message,
             options
         );
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isToastDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'warning toast to appear',
+        });
         return id;
     }
 
@@ -238,7 +254,10 @@ export class ToastPage extends BasePage {
             progress,
             options
         );
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isToastDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'progress toast to appear',
+        });
         return id;
     }
 
@@ -252,7 +271,10 @@ export class ToastPage extends BasePage {
             // @ts-expect-error - test helper
             window.__toastTestHelpers.dismissToast(toastId);
         }, id);
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => !(await this.isToastInDOM()), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'toast to be dismissed',
+        });
     }
 
     /**
@@ -264,7 +286,10 @@ export class ToastPage extends BasePage {
             // @ts-expect-error - test helper
             window.__toastTestHelpers.dismissAll();
         });
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => !(await this.isToastInDOM()), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'all toasts to be dismissed',
+        });
     }
 
     /**
@@ -618,7 +643,6 @@ export class ToastPage extends BasePage {
     async clearAll(): Promise<void> {
         this.log('Clearing all toasts');
         await this.dismissAll();
-        await this.pause();
     }
 
     // ===========================================================================
@@ -710,7 +734,10 @@ export class ToastPage extends BasePage {
         }
 
         // Wait for final toast to render
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => (await this.getToastCount()) === count, {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'all toasts to appear',
+        });
         return ids;
     }
 
@@ -735,8 +762,10 @@ export class ToastPage extends BasePage {
             this.dismissButtonSelector,
             index
         );
-
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => (await this.getToastCount()) < index + 1, {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'toast to be dismissed',
+        });
     }
 
     /**
@@ -844,7 +873,10 @@ export class ToastPage extends BasePage {
             options
         );
 
-        await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+        await waitForUIState(async () => await this.isToastDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'toast with actions to appear',
+        });
         return id;
     }
 }

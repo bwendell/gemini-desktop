@@ -83,7 +83,7 @@ export class MacAdapter implements PlatformAdapter {
     }
 
     getTrayIconFilename(): TrayIconFilename {
-        return 'icon-mac-tray.png';
+        return 'icon-mac-trayTemplate.png';
     }
 
     shouldDisableUpdates(_env: NodeJS.ProcessEnv): boolean {

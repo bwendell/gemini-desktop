@@ -189,9 +189,17 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 - **Tabbed conversations** to keep multiple chats open at once. ([#72](https://github.com/bwendell/gemini-desktop/issues/72))
 - **Release notes discoverability** via Help menu entry and update toast action buttons.
 
-### v0.9.0 — Peek & Hide
+### v0.9.0 — Peek & Hide, Hotkeys & Fixes
 
 - **Peek and Hide toggle** to quickly show/hide the app without losing context. ([#91](https://github.com/bwendell/gemini-desktop/issues/91))
+- **Voice chat hotkey** wired to active tab mic. ([#117](https://github.com/bwendell/gemini-desktop/issues/117))
+- **Updated default hotkeys** — Quick Chat and Peek and Hide use new, conflict-free defaults.
+- **macOS fixes** — native Edit menu for copy/paste, tray icon handling, and window frame.
+
+### v0.9.1 — Bugfix Release
+
+- **macOS menubar icon fix** — use template tray assets to avoid stretching. ([#132](https://github.com/bwendell/gemini-desktop/issues/132), [#134](https://github.com/bwendell/gemini-desktop/pull/134))
+- **Text prediction setup fix** — handle packaged LLM fallback without export errors. ([#133](https://github.com/bwendell/gemini-desktop/issues/133), [#135](https://github.com/bwendell/gemini-desktop/pull/135))
 
 ### Future Work
 

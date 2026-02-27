@@ -74,6 +74,21 @@ describe('MenuManager Coordinated Tests', () => {
                     expect(buildCall).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'File' })]));
                 }
             });
+
+            it('should include Edit menu in application menu between File and View', () => {
+                menuManager.buildMenu();
+
+                const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+                const fileIndex = template.findIndex((item: any) => item.label === 'File');
+                const editIndex = template.findIndex((item: any) => item.label === 'Edit');
+                const viewIndex = template.findIndex((item: any) => item.label === 'View');
+
+                expect(editIndex).toBeGreaterThanOrEqual(0);
+                expect(fileIndex).toBeGreaterThanOrEqual(0);
+                expect(viewIndex).toBeGreaterThanOrEqual(0);
+                expect(editIndex).toBeGreaterThan(fileIndex);
+                expect(viewIndex).toBeGreaterThan(editIndex);
+            });
         });
 
         describe('Context Menu', () => {

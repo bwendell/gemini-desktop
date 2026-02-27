@@ -6,7 +6,7 @@
  *
  * Platform Support:
  * - Windows: release/win-unpacked/Gemini Desktop.exe
- * - Linux: release/linux-unpacked/gemini-desktop
+ * - Linux: release/linux-unpacked/gemini-desktop (or linux-arm64-unpacked for ARM)
  * - macOS: release/mac/Gemini Desktop.app/Contents/MacOS/Gemini Desktop
  *
  * @see https://webdriver.io/docs/desktop-testing/electron
@@ -15,7 +15,14 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import {
+    chromedriverCapabilities,
+    ensureArmChromedriver,
+    getAppArgs,
+    linuxServiceConfig,
+    killOrphanElectronProcesses,
+} from './electron-args.js';
+import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
@@ -51,7 +58,17 @@ function getReleaseBinaryPath() {
             }
             break;
         case 'linux':
-            binaryPath = path.join(releaseDir, 'linux-unpacked', 'gemini-desktop');
+            binaryPath =
+                process.arch === 'arm64'
+                    ? path.join(releaseDir, 'linux-arm64-unpacked', 'gemini-desktop')
+                    : path.join(releaseDir, 'linux-unpacked', 'gemini-desktop');
+            if (!fs.existsSync(binaryPath)) {
+                binaryPath = path.join(
+                    releaseDir,
+                    process.arch === 'arm64' ? 'linux-unpacked' : 'linux-arm64-unpacked',
+                    'gemini-desktop'
+                );
+            }
             break;
         default:
             throw new Error(`Unsupported platform: ${platform}`);
@@ -67,6 +84,8 @@ function getReleaseBinaryPath() {
     console.log(`[Release E2E] Using binary: ${binaryPath}`);
     return binaryPath;
 }
+
+const chromedriverOptions = getChromedriverOptions();
 
 export const config = {
     specs: [
@@ -114,7 +133,7 @@ export const config = {
             'electron',
             {
                 appBinaryPath: getReleaseBinaryPath(),
-                appArgs: getAppArgs('--test-auto-update'),
+                appArgs: getAppArgs('--test-auto-update', '--test-text-prediction'),
                 ...linuxServiceConfig,
             },
         ],
@@ -124,6 +143,10 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': {
+                ...chromedriverOptions,
+                ...(chromedriverCapabilities['wdio:chromedriverOptions'] ?? {}),
+            },
             maxInstances: 1,
         },
     ],
@@ -143,7 +166,8 @@ export const config = {
     specFileRetriesDeferred: false,
 
     // No build step needed - we're testing the already-built package
-    onPrepare: () => {
+    onPrepare: async () => {
+        await ensureArmChromedriver();
         console.log('[Release E2E] Testing packaged release build...');
     },
 

@@ -13,9 +13,17 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { getAppArgs, linuxServiceConfig, killOrphanElectronProcesses } from './electron-args.js';
+import {
+    chromedriverCapabilities,
+    ensureArmChromedriver,
+    getAppArgs,
+    linuxServiceConfig,
+    killOrphanElectronProcesses,
+} from './electron-args.js';
+import { getChromedriverOptions } from './chromedriver-options.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const chromedriverOptions = getChromedriverOptions();
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
@@ -50,6 +58,7 @@ export const config = {
         '../../tests/e2e/menu_bar.spec.ts',
         '../../tests/e2e/menu-actions.spec.ts',
         '../../tests/e2e/menu-interactions.spec.ts',
+        '../../tests/e2e/edit-menu-user-flow.spec.ts',
         '../../tests/e2e/context-menu.spec.ts',
 
         // =========================================================================
@@ -152,6 +161,10 @@ export const config = {
     capabilities: [
         {
             browserName: 'electron',
+            'wdio:chromedriverOptions': {
+                ...chromedriverOptions,
+                ...(chromedriverCapabilities['wdio:chromedriverOptions'] ?? {}),
+            },
             maxInstances: 1, // Force sequential execution
         },
     ],
@@ -171,7 +184,8 @@ export const config = {
     specFileRetriesDeferred: false,
 
     // Build the frontend and Electron backend before tests
-    onPrepare: () => {
+    onPrepare: async () => {
+        await ensureArmChromedriver();
         if (process.env.SKIP_BUILD) {
             console.log('Skipping build (SKIP_BUILD is set)...');
             return;
@@ -233,6 +247,14 @@ export const config = {
             testLogger = { clear: () => {}, dump: () => '' };
         }
         testLogger.clear();
+
+        try {
+            const imported = await import('../../tests/e2e/helpers/failureContext.ts');
+            if (typeof imported.installRendererErrorInterceptor === 'function') {
+                await imported.installRendererErrorInterceptor();
+            }
+        } catch (error) {
+        }
     },
 
     // Ensure the app quits after tests
@@ -269,6 +291,8 @@ export const config = {
         }
 
         if (!passed) {
+            let screenshotPath;
+            let domPath;
             try {
                 const sanitizeSegment = (value, fallback) =>
                     String(value ?? fallback)
@@ -282,8 +306,8 @@ export const config = {
                 const attemptNum = retryAttempt + 1;
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                 const baseFilename = `${sanitizedSpecName}-${sanitizedTestTitle}-attempt-${attemptNum}-${timestamp}`;
-                const screenshotPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.png`);
-                const domPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.html`);
+                screenshotPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.png`);
+                domPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.html`);
 
                 await fs.mkdir(path.dirname(screenshotPath), { recursive: true });
 
@@ -295,6 +319,28 @@ export const config = {
                 console.log(`DOM snapshot saved: ${domPath}`);
             } catch (captureError) {
                 console.warn('Failed to capture test failure artifacts:', captureError?.message);
+            }
+
+            if (screenshotPath && domPath) {
+                try {
+                    const imported = await import('../../tests/e2e/helpers/failureContext.ts');
+                    if (typeof imported.captureFailureContext === 'function') {
+                        const contextData = await imported.captureFailureContext(
+                            test,
+                            context ?? {},
+                            { error, result, duration, passed, retries },
+                            {
+                                screenshotPath,
+                                domSnapshotPath: domPath,
+                            }
+                        );
+                        const contextPath = screenshotPath.replace('.png', '.failure-context.json');
+                        await fs.writeFile(contextPath, JSON.stringify(contextData, null, 2), 'utf8');
+                        console.log(`Failure context saved: ${contextPath}`);
+                    }
+                } catch (contextError) {
+                    console.warn('Failed to capture failure context:', contextError?.message);
+                }
             }
         }
     },

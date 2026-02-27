@@ -80,6 +80,15 @@ describe('useMenuDefinitions', () => {
         delete (window as unknown as { electronAPI?: MockElectronAPI }).electronAPI;
     });
 
+    it('should not include Edit menu in custom titlebar definitions', async () => {
+        const { result } = renderHook(() => useMenuDefinitions());
+
+        await act(async () => {});
+
+        const editMenu = result.current.find((menu) => menu.label === 'Edit');
+        expect(editMenu).toBeUndefined();
+    });
+
     describe('9.2.1 - Zoom menu items are present in View menu', () => {
         it('includes Zoom In item with correct ID in View menu', async () => {
             const { result } = renderHook(() => useMenuDefinitions());
