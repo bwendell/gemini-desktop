@@ -32,11 +32,8 @@ const IS_WSL_ENVIRONMENT = (() => {
  */
 const IS_CI_ENVIRONMENT = !!(process.env.CI || process.env.GITHUB_ACTIONS);
 
-/**
- * Detect headless Linux at module load time (no DISPLAY variable).
- * Used to skip window-manager-dependent tests on headless ARM servers.
- */
-const IS_HEADLESS_ENVIRONMENT = process.platform === 'linux' && !process.env.DISPLAY;
+const IS_HEADLESS_ENVIRONMENT =
+    process.platform === 'linux' && (!process.env.DISPLAY || process.env.XDG_SESSION_TYPE === 'tty');
 
 /**
  * Gets the current platform from the browser context.
