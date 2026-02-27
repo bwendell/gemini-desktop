@@ -10,7 +10,7 @@ export const config = {
             'electron',
             {
                 appEntryPoint: electronMainPath,
-                appArgs: getAppArgs(),
+                appArgs: getAppArgs('--test-auto-update', '--e2e-disable-auto-submit'),
                 ...linuxServiceConfig,
             },
         ],
