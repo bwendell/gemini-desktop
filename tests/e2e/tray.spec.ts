@@ -1,150 +1,275 @@
-/**
- * E2E Test: System Tray Functionality
- *
- * Tests the system tray icon and context menu behavior across platforms.
- *
- * Verifies:
- * 1. Tray icon is created on app startup
- * 2. Tray click restores window from tray
- * 3. Tray has correct tooltip
- * 4. Tray "Show" action restores window
- * 5. Tray "Quit" action exits app (skipped - causes session issues)
- *
- * Cross-platform: Windows, macOS, Linux
- *
- * @module tray.spec
- */
+import { browser, expect } from '@wdio/globals';
 
-import { expect } from '@wdio/globals';
 import { E2ELogger } from './helpers/logger';
+import { isMacOS } from './helpers/platform';
 import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForMacOSWindowStabilize } from './helpers/waitUtilities';
+import { clickTrayMenuItem, verifyTrayCreated } from './helpers/trayActions';
+import { Selectors } from './helpers/selectors';
 import { TrayPage } from './pages';
 
-describe('System Tray Functionality', () => {
-    const tray = new TrayPage();
+type TrayBrowser = {
+    getWindowHandles(): Promise<string[]>;
+    $(selector: string): Promise<{ waitForExist(options?: { timeout?: number }): Promise<void> }>;
+};
 
-    beforeEach(async () => {
-        await waitForAppReady();
-    });
+const trayBrowser = browser as unknown as TrayBrowser;
 
-    afterEach(async () => {
-        // Wrap cleanup in try-catch to prevent cascading failures from WebSocket issues
-        try {
-            // Ensure tray click restored the window and clean up
-            const isVisible = await tray.isWindowVisible();
-            if (!isVisible) {
-                // Restore window if it's hidden to allow next test to work
-                await tray.restoreWindowViaTrayClick();
+describe('Tray', () => {
+    describe('Tray Icon', () => {
+        const tray = new TrayPage();
+
+        beforeEach(async () => {
+            await waitForAppReady();
+        });
+
+        afterEach(async () => {
+            try {
+                const isVisible = await tray.isWindowVisible();
+                if (!isVisible) {
+                    await tray.restoreWindowViaTrayClick();
+                }
+                await ensureSingleWindow();
+            } catch (error) {
+                E2ELogger.warn('tray', `afterEach cleanup error (may be harmless): ${error}`);
             }
-            await ensureSingleWindow();
-        } catch (error) {
-            // Log but don't fail - WebSocket issues in cleanup shouldn't cascade
-            E2ELogger.warn('tray', `afterEach cleanup error (may be harmless): ${error}`);
-        }
-    });
+        });
 
-    describe('Tray Icon Creation', () => {
         it('should create tray icon on app startup', async () => {
             const trayExists = await tray.isCreated();
-
             expect(trayExists).toBe(true);
         });
 
-        // Skip: Electron Tray API has no getToolTip() method - we can only setToolTip().
-        // The tooltip is verified implicitly by the tray existing (tooltip is set in createTray()).
         it.skip('should have correct tooltip on tray icon', async () => {
             const tooltip = await tray.getTooltip();
-
-            // Tooltip should be set (from TRAY_TOOLTIP constant)
             expect(tooltip).not.toBeNull();
             expect(tooltip).toContain('Gemini');
         });
 
         it('should report tray state correctly', async () => {
             const state = await tray.getState();
-
             expect(state.exists).toBe(true);
             expect(state.isDestroyed).toBe(false);
-            // Note: state.tooltip will be null because Electron has no getToolTip() API
-            // The tooltip being set is verified implicitly by tray creation working.
         });
     });
 
-    describe('Tray Click Behavior', () => {
-        it('should restore window when tray icon is clicked', async () => {
-            // 1. First hide window to tray
-            await tray.hideWindowToTray();
+    describe('Tray Quit', () => {
+        beforeEach(async () => {
+            const mainLayout = await trayBrowser.$(Selectors.mainLayout);
+            await mainLayout.waitForExist({ timeout: 15000 });
+        });
 
-            // Verify window is hidden
-            const visibleAfterClose = await tray.isWindowVisible();
-            expect(visibleAfterClose).toBe(false);
+        it('should quit the application when "Quit" menu item is clicked', async () => {
+            const trayExists = await verifyTrayCreated();
+            expect(trayExists).toBe(true);
 
-            // 2. Click the tray icon and wait for window
-            await tray.clickAndWaitForWindow();
+            const initialHandles = await trayBrowser.getWindowHandles();
+            expect(initialHandles.length).toBeGreaterThan(0);
 
-            // 3. Window should be visible again
-            const visibleAfterTrayClick = await tray.isWindowVisible();
-            expect(visibleAfterTrayClick).toBe(true);
+            await clickTrayMenuItem('quit');
         });
     });
 
-    describe('Tray Context Menu Actions', () => {
-        it('should restore window when "Show" menu item is clicked', async () => {
-            // 1. Hide window to tray
-            await tray.hideWindowToTray();
+    describe('Minimize to Tray', () => {
+        const tray = new TrayPage();
 
-            // Verify hidden
-            const visibleAfterClose = await tray.isWindowVisible();
-            expect(visibleAfterClose).toBe(false);
+        async function hideWindow(): Promise<void> {
+            if (await isMacOS()) {
+                await tray.hideWindowToTray();
+            } else {
+                await tray.hideViaCloseButton();
+            }
+        }
 
-            // 2. Click "Show" menu item and wait
-            await tray.clickShowMenuItemAndWait();
+        beforeEach(async () => {
+            await waitForAppReady();
 
-            // 3. Window should be visible
-            const visibleAfterShow = await tray.isWindowVisible();
-            expect(visibleAfterShow).toBe(true);
+            const visible = await tray.isWindowVisible();
+            if (!visible) {
+                await tray.clickAndWaitForWindow();
+            }
         });
 
-        // Note: We skip testing "Quit" because it would terminate the app
-        // and break the E2E session. The quit functionality is tested
-        // via unit tests in trayManager.test.ts
-        it.skip('should quit app when "Quit" menu item is clicked', async () => {
-            // This would call: await tray.clickQuitMenuItem();
-            // But we can't test this without ending the session
+        afterEach(async () => {
+            try {
+                const visible = await tray.isWindowVisible();
+                if (!visible) {
+                    await tray.restoreWindowViaTrayClick();
+                }
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (!errorMessage.includes('Promise was collected')) {
+                    throw error;
+                }
+            }
+        });
+
+        describe('Close Action Triggers Hide-to-Tray', () => {
+            it('should hide window to tray when close action is triggered', async () => {
+                const initialVisible = await tray.isWindowVisible();
+                expect(initialVisible).toBe(true);
+
+                await hideWindow();
+
+                const hiddenToTray = await tray.isHiddenToTray();
+                expect(hiddenToTray).toBe(true);
+            });
+
+            it('should not be minimized to taskbar (hidden vs minimized)', async () => {
+                await hideWindow();
+
+                const isMinimized = await tray.isWindowMinimized();
+                expect(isMinimized).toBe(false);
+
+                const isVisible = await tray.isWindowVisible();
+                expect(isVisible).toBe(false);
+            });
+
+            it.skip('should skip taskbar on Windows/Linux when hidden to tray', async () => {
+                if (await isMacOS()) {
+                    return;
+                }
+
+                if (await tray.isLinuxCI()) {
+                    return;
+                }
+
+                await hideWindow();
+
+                const skipTaskbar = await tray.isSkipTaskbar();
+                expect(skipTaskbar).toBe(true);
+            });
+        });
+
+        describe('Restore from Tray After Hiding', () => {
+            it('should restore window from tray after hiding', async () => {
+                await hideWindow();
+
+                const hiddenAfterMinimize = await tray.isHiddenToTray();
+                expect(hiddenAfterMinimize).toBe(true);
+
+                await tray.clickAndWaitForWindow();
+
+                const visibleAfterRestore = await tray.isWindowVisible();
+                expect(visibleAfterRestore).toBe(true);
+            });
+
+            it('should restore taskbar visibility on Windows/Linux', async () => {
+                if (await isMacOS()) {
+                    return;
+                }
+
+                if (await tray.isLinuxCI()) {
+                    return;
+                }
+
+                await hideWindow();
+                await tray.clickAndWaitForWindow();
+
+                const skipTaskbar = await tray.isSkipTaskbar();
+                expect(skipTaskbar).toBe(false);
+            });
+        });
+
+        describe('Tray Icon Persists', () => {
+            it('should keep tray icon visible after hiding to tray', async () => {
+                await hideWindow();
+
+                const trayExists = await tray.isCreated();
+                expect(trayExists).toBe(true);
+            });
+        });
+
+        describe('Multiple Hide/Restore Cycles', () => {
+            it('should handle multiple hide/restore cycles', async () => {
+                await hideWindow();
+                let hidden = await tray.isHiddenToTray();
+                expect(hidden).toBe(true);
+
+                await tray.restoreWindowViaTrayClick();
+                let visible = await tray.isWindowVisible();
+                expect(visible).toBe(true);
+
+                await hideWindow();
+                hidden = await tray.isHiddenToTray();
+                expect(hidden).toBe(true);
+
+                await tray.restoreWindowViaTrayClick();
+                visible = await tray.isWindowVisible();
+                expect(visible).toBe(true);
+            });
         });
     });
 
     describe('Tray Integration with Window State', () => {
+        const tray = new TrayPage();
+
+        beforeEach(async () => {
+            await waitForAppReady();
+        });
+
+        afterEach(async () => {
+            try {
+                const isVisible = await tray.isWindowVisible();
+                if (!isVisible) {
+                    await tray.restoreWindowViaTrayClick();
+                }
+                await ensureSingleWindow();
+            } catch (error) {
+                E2ELogger.warn('tray', `afterEach cleanup error (may be harmless): ${error}`);
+            }
+        });
+
+        it('should restore window when tray icon is clicked', async () => {
+            await tray.hideWindowToTray();
+
+            const visibleAfterClose = await tray.isWindowVisible();
+            expect(visibleAfterClose).toBe(false);
+
+            await tray.clickAndWaitForWindow();
+
+            const visibleAfterTrayClick = await tray.isWindowVisible();
+            expect(visibleAfterTrayClick).toBe(true);
+        });
+
+        it('should restore window when "Show" menu item is clicked', async () => {
+            await tray.hideWindowToTray();
+
+            const visibleAfterClose = await tray.isWindowVisible();
+            expect(visibleAfterClose).toBe(false);
+
+            await tray.clickShowMenuItemAndWait();
+
+            const visibleAfterShow = await tray.isWindowVisible();
+            expect(visibleAfterShow).toBe(true);
+        });
+
+        it.skip('should quit app when "Quit" menu item is clicked', async () => {
+            await tray.clickQuitMenuItem();
+        });
+
         it('should work correctly after multiple hide/restore cycles', async () => {
-            // Cycle 1: Hide and restore via tray click
             await tray.hideAndRestoreViaTrayClick();
             let isVisible = await tray.isWindowVisible();
             expect(isVisible).toBe(true);
 
-            // Cycle 2: Hide and restore via menu
             await tray.hideAndRestoreViaShowMenu();
             isVisible = await tray.isWindowVisible();
             expect(isVisible).toBe(true);
 
-            // Cycle 3: Hide and restore via click again
             await tray.hideAndRestoreViaTrayClick();
             isVisible = await tray.isWindowVisible();
             expect(isVisible).toBe(true);
         });
 
         it('should keep tray icon after window is hidden', async () => {
-            // Hide window
             await tray.hideWindowToTray();
 
-            // Tray should still exist
             const trayExists = await tray.isCreated();
             expect(trayExists).toBe(true);
 
-            // Restore window for cleanup
             await tray.restoreWindowViaTrayClick();
 
-            // Extra stabilization for macOS WebSocket stability
             await waitForMacOSWindowStabilize(async () => await tray.isWindowVisible(), {
                 description: 'Window stabilization after tray restore',
             });
