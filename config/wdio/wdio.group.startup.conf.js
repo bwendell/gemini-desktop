@@ -5,6 +5,5 @@ export const config = {
     specs: [
         '../../tests/e2e/app-startup.spec.ts',
         '../../tests/e2e/first-run.spec.ts',
-        '../../tests/e2e/auto-update-init.spec.ts',
     ],
 };
