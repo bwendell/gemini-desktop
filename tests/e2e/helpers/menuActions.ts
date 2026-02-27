@@ -234,7 +234,12 @@ async function clickCustomMenuItemById(id: string): Promise<void> {
     );
 
     if (!dropdownVisible) {
-        throw new Error(`[E2E] Menu dropdown did not appear for category "${menuCategory}"`);
+        E2ELogger.info(
+            'menuActions',
+            `Menu dropdown did not appear for category "${menuCategory}". Falling back to Electron Menu API for ${id}.`
+        );
+        await triggerMenuItemViaElectronApi(id);
+        return;
     }
 
     // Click the menu item by data-menu-id

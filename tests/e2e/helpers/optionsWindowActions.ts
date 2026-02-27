@@ -20,9 +20,7 @@ type OWBrowser = {
     getWindowHandles(): Promise<string[]>;
     switchToWindow(handle: string): Promise<void>;
     closeWindow(): Promise<void>;
-    $(
-        selector: string
-    ): Promise<{
+    $(selector: string): Promise<{
         isExisting(): Promise<boolean>;
         waitForDisplayed(opts?: { timeout?: number; timeoutMsg?: string }): Promise<void>;
         click(): Promise<void>;
@@ -78,11 +76,16 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
  */
 export async function closeOptionsWindow(): Promise<void> {
     E2ELogger.info('optionsWindowActions', 'Closing Options window');
-    await owBrowser.closeWindow();
+    const optionsHandle = await getOptionsWindowHandle();
 
-    const handles = await owBrowser.getWindowHandles();
-    if (handles.length > 0) {
-        await owBrowser.switchToWindow(handles[0]);
+    if (optionsHandle) {
+        await owBrowser.switchToWindow(optionsHandle);
+        await owBrowser.closeWindow();
+    }
+
+    const remainingHandles = await owBrowser.getWindowHandles();
+    if (remainingHandles.length > 0) {
+        await owBrowser.switchToWindow(remainingHandles[0]);
     }
 }
 
@@ -92,7 +95,7 @@ export async function closeOptionsWindow(): Promise<void> {
  */
 export async function getOptionsWindowHandle(): Promise<string | null> {
     const handles = await owBrowser.getWindowHandles();
-    return handles.length > 1 ? handles[1] : null;
+    return handles.length > 1 ? handles[handles.length - 1] : null;
 }
 
 /**

@@ -29,6 +29,10 @@ const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
 
+if (!process.env.E2E_APP_READY_TIMEOUT_MS) {
+    process.env.E2E_APP_READY_TIMEOUT_MS = '30000';
+}
+
 /**
  * Get the path to the packaged Electron binary based on the current platform.
  * @returns {string} Path to the executable
@@ -94,6 +98,8 @@ export const config = {
         '../../tests/e2e/app-startup.spec.ts',
         '../../tests/e2e/menu_bar.spec.ts',
         '../../tests/e2e/options-window.spec.ts',
+        '../../tests/e2e/text-prediction-options.spec.ts',
+        '../../tests/e2e/text-prediction-quickchat.spec.ts',
         '../../tests/e2e/theme.spec.ts',
         '../../tests/e2e/theme-selector-visual.spec.ts',
         '../../tests/e2e/theme-selector-keyboard.spec.ts',

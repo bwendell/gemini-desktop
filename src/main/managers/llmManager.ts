@@ -227,7 +227,17 @@ export default class LlmManager {
                 }
             }
             this.nativeAvailable = false;
-            this.nativeProbeError = error instanceof Error ? error.message : 'node-llama-cpp not found';
+            const errorMessage = error instanceof Error ? error.message : 'node-llama-cpp not found';
+            let probeError = errorMessage;
+
+            if (error && typeof error === 'object' && 'code' in error) {
+                const { code } = error as { code?: unknown };
+                if (typeof code === 'string' && code.length > 0) {
+                    probeError = `${errorMessage} (${code})`;
+                }
+            }
+
+            this.nativeProbeError = probeError;
             const appPath = typeof app.getAppPath === 'function' ? app.getAppPath() : 'unknown';
             const isPackaged = typeof app.isPackaged === 'boolean' ? app.isPackaged : false;
             logger.warn('Native module probe failed', {

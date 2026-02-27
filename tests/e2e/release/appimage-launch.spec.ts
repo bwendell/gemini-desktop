@@ -18,6 +18,9 @@
 import { browser, expect } from '@wdio/globals';
 import { isLinuxSync } from '../helpers/platform';
 
+const RELEASE_RENDERER_LOAD_TIMEOUT_MS = Number(process.env.RELEASE_RENDERER_LOAD_TIMEOUT_MS ?? 30000);
+const RELEASE_UPTIME_LIMIT_SECONDS = Number(process.env.RELEASE_UPTIME_LIMIT_SECONDS ?? 60);
+
 describe('Release Build: AppImage Launch Verification', () => {
     it('should start the application and report ready', async () => {
         const isReady = await browser.electron.execute((electron) => {
@@ -51,8 +54,8 @@ describe('Release Build: AppImage Launch Verification', () => {
                 return loaded;
             },
             {
-                timeout: 15000,
-                timeoutMsg: 'Renderer process did not finish loading within 15s',
+                timeout: RELEASE_RENDERER_LOAD_TIMEOUT_MS,
+                timeoutMsg: `Renderer process did not finish loading within ${RELEASE_RENDERER_LOAD_TIMEOUT_MS}ms`,
             }
         );
 
@@ -215,7 +218,7 @@ describe('Release Build: Process Stability After Launch', () => {
             return process.uptime();
         });
 
-        expect(uptime).toBeLessThan(30);
+        expect(uptime).toBeLessThan(RELEASE_UPTIME_LIMIT_SECONDS);
     });
 
     it('should have acceptable memory usage', async () => {

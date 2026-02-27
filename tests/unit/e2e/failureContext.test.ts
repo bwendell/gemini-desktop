@@ -41,9 +41,7 @@ describe('failureContext', () => {
         });
         mockGetWindowHandles.mockResolvedValue(['handle-1']);
         mockGetWindowHandle.mockResolvedValue('handle-1');
-        mockGetAll.mockReturnValue([
-            { timestamp: 1, scope: 'workflow', message: 'step', deltaMs: 0 },
-        ]);
+        mockGetAll.mockReturnValue([{ timestamp: 1, scope: 'workflow', message: 'step', deltaMs: 0 }]);
     });
 
     it('parses locator from common error messages', () => {

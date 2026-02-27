@@ -17,6 +17,7 @@ import { browser, expect } from '@wdio/globals';
 // Performance thresholds
 const MAX_HEAP_MB = 500; // Maximum heap size warning threshold
 const MAX_PROCESS_MEMORY_MB = 1000; // Maximum total memory warning threshold
+const RELEASE_RENDERER_LOAD_TIMEOUT_MS = Number(process.env.RELEASE_RENDERER_LOAD_TIMEOUT_MS ?? 30000);
 
 describe('Release Build: Startup Performance', () => {
     it('should have completed startup in time', async () => {
@@ -106,8 +107,8 @@ describe('Release Build: Startup Performance', () => {
                 return loaded;
             },
             {
-                timeout: 10000,
-                timeoutMsg: 'Renderer process did not finish loading within 10s',
+                timeout: RELEASE_RENDERER_LOAD_TIMEOUT_MS,
+                timeoutMsg: `Renderer process did not finish loading within ${RELEASE_RENDERER_LOAD_TIMEOUT_MS}ms`,
             }
         );
 

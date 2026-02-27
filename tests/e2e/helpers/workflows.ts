@@ -377,26 +377,48 @@ export async function setToggleState(toggleSelector: string, enabled: boolean): 
 // Window State Workflows
 // =============================================================================
 
+async function findMainWindowHandle(): Promise<string | null> {
+    const handles = await workflowsBrowser.getWindowHandles();
+
+    for (const handle of handles) {
+        await workflowsBrowser.switchToWindow(handle);
+        const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
+        if (await mainLayout.isExisting()) {
+            return handle;
+        }
+    }
+
+    return null;
+}
+
 /**
  * Ensures only the main window is open by closing all secondary windows.
  * Useful for test cleanup.
  */
-export async function ensureSingleWindow(): Promise<void> {
+export async function ensureSingleWindow(mainWindowHandle?: string): Promise<void> {
     testLogger.breadcrumb('workflow', 'Ensuring single window state');
     const handles = await workflowsBrowser.getWindowHandles();
 
     if (handles.length > 1) {
+        const mainHandle = mainWindowHandle ?? (await findMainWindowHandle());
+        if (!mainHandle) {
+            E2ELogger.info('workflows', 'Main window handle not identified; skipping window close');
+            testLogger.breadcrumb('workflow', 'Main window handle not identified; skipping window close');
+            return;
+        }
+
         E2ELogger.info('workflows', `Closing ${handles.length - 1} extra window(s)`);
         testLogger.breadcrumb('workflow', `Closing ${handles.length - 1} extra window(s)`);
 
-        // Close all windows except the first (main window)
-        for (let i = handles.length - 1; i > 0; i--) {
-            await workflowsBrowser.switchToWindow(handles[i]);
+        for (const handle of handles) {
+            if (handle === mainHandle) {
+                continue;
+            }
+            await workflowsBrowser.switchToWindow(handle);
             await workflowsBrowser.closeWindow();
         }
 
-        // Switch back to main window
-        await workflowsBrowser.switchToWindow(handles[0]);
+        await workflowsBrowser.switchToWindow(mainHandle);
     }
 
     testLogger.breadcrumb('workflow', 'Single window state confirmed');
@@ -407,6 +429,13 @@ export async function ensureSingleWindow(): Promise<void> {
  * Switches to the main window (first window handle).
  */
 export async function switchToMainWindow(): Promise<void> {
+    const mainHandle = await findMainWindowHandle();
+    if (mainHandle) {
+        await workflowsBrowser.switchToWindow(mainHandle);
+        E2ELogger.info('workflows', 'Switched to main window');
+        return;
+    }
+
     const handles = await workflowsBrowser.getWindowHandles();
     if (handles.length > 0) {
         await workflowsBrowser.switchToWindow(handles[0]);
@@ -571,9 +600,36 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
  *
  * @param timeout - Timeout in ms (default: 15000)
  */
-export async function waitForAppReady(timeout = 15000): Promise<void> {
+export async function waitForAppReady(timeout?: number): Promise<void> {
+    const envTimeout = Number(process.env.E2E_APP_READY_TIMEOUT_MS ?? 15000);
+    const resolvedTimeout = typeof timeout === 'number' ? timeout : Number.isFinite(envTimeout) ? envTimeout : 15000;
+
+    const mainWindowHandle = await workflowsBrowser.waitUntil(
+        async () => {
+            const handles = await workflowsBrowser.getWindowHandles();
+            for (const handle of handles) {
+                await workflowsBrowser.switchToWindow(handle);
+                const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
+                if (await mainLayout.isExisting()) {
+                    return handle;
+                }
+            }
+            return false;
+        },
+        {
+            timeout: resolvedTimeout,
+            timeoutMsg: `[workflows] Main layout not found within ${resolvedTimeout}ms`,
+        }
+    );
+
+    if (typeof mainWindowHandle === 'string') {
+        await workflowsBrowser.switchToWindow(mainWindowHandle);
+    }
+
+    await ensureSingleWindow(typeof mainWindowHandle === 'string' ? mainWindowHandle : undefined);
+
     const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout });
+    await mainLayout.waitForExist({ timeout: resolvedTimeout });
     const bridgeReady = await waitForUIState(
         async () => {
             try {
