@@ -140,6 +140,10 @@ export default class LlmManager {
         logger.log('LlmManager created');
     }
 
+    private isTextPredictionTestMode(): boolean {
+        return process.argv.includes('--test-text-prediction');
+    }
+
     ensureNativeAvailable(context: string): boolean {
         if (this.nativeAvailable !== null) {
             return this.nativeAvailable;
@@ -185,6 +189,7 @@ export default class LlmManager {
                 return false;
             }
             this.nativeAvailable = true;
+            this.nativeProbeError = null;
             logger.log('Native module probe succeeded', {
                 context,
                 version: this.nativeVersion,
@@ -192,6 +197,35 @@ export default class LlmManager {
             });
             return true;
         } catch (error) {
+            const errorCode = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
+            const isPackageJsonExportError =
+                error instanceof Error &&
+                (errorCode === 'ERR_PACKAGE_PATH_NOT_EXPORTED' ||
+                    error.message.includes("Package subpath './package.json'"));
+
+            if (isPackageJsonExportError) {
+                try {
+                    const moduleEntry = require.resolve('node-llama-cpp');
+                    this.nativeAvailable = true;
+                    this.nativeVersion = null;
+                    this.nativeProbeError = null;
+                    logger.log('Native module probe using entrypoint fallback', {
+                        context,
+                        moduleEntry,
+                    });
+                    return true;
+                } catch (resolveError) {
+                    this.nativeAvailable = false;
+                    this.nativeProbeError =
+                        resolveError instanceof Error ? resolveError.message : 'node-llama-cpp not found';
+                    logger.warn('Native module probe failed (entrypoint resolve failed)', {
+                        context,
+                        error: this.nativeProbeError,
+                        originalError: error instanceof Error ? error.message : String(error),
+                    });
+                    return false;
+                }
+            }
             this.nativeAvailable = false;
             this.nativeProbeError = error instanceof Error ? error.message : 'node-llama-cpp not found';
             const appPath = typeof app.getAppPath === 'function' ? app.getAppPath() : 'unknown';
@@ -547,6 +581,10 @@ export default class LlmManager {
      * @returns The predicted continuation, or null if model not ready or timeout
      */
     async predict(partialText: string, timeoutMs?: number): Promise<string | null> {
+        if (this.isTextPredictionTestMode()) {
+            logger.log('Text prediction test mode active; returning stub prediction');
+            return 'test prediction';
+        }
         // Return null if model not ready
         if (!this.isModelLoaded() || !this.completion) {
             logger.warn('Predict called but model not ready');
