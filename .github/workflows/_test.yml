@@ -226,7 +226,7 @@ jobs:
         strategy:
             fail-fast: ${{ inputs.e2e-fail-fast }}
             matrix:
-                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
+                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, toast, update, stability]
 
         steps:
             - name: Checkout Code
@@ -285,7 +285,22 @@ jobs:
         strategy:
             fail-fast: ${{ inputs.e2e-fail-fast }}
             matrix:
-                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability, macos]
+                group:
+                    [
+                        startup,
+                        window,
+                        menu,
+                        hotkeys,
+                        quickchat,
+                        options,
+                        theme,
+                        auth,
+                        tray,
+                        toast,
+                        update,
+                        stability,
+                        macos,
+                    ]
 
         steps:
             - name: Checkout Code
@@ -344,7 +359,7 @@ jobs:
         strategy:
             fail-fast: ${{ inputs.e2e-fail-fast }}
             matrix:
-                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
+                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, toast, update, stability]
 
         steps:
             - name: Checkout Code

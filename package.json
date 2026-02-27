@@ -52,6 +52,7 @@
         "test:e2e:group:theme": "wdio run config/wdio/wdio.group.theme.conf.js",
         "test:e2e:group:auth": "wdio run config/wdio/wdio.group.auth.conf.js",
         "test:e2e:group:tray": "wdio run config/wdio/wdio.group.tray.conf.js",
+        "test:e2e:group:toast": "wdio run config/wdio/wdio.group.toast.conf.js",
         "test:e2e:group:update": "wdio run config/wdio/wdio.group.update.conf.js",
         "test:e2e:group:stability": "wdio run config/wdio/wdio.group.stability.conf.js",
         "test:e2e:group:macos": "wdio run config/wdio/wdio.group.macos.conf.js",

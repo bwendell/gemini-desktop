@@ -3,19 +3,16 @@ const { killOrphanElectronProcesses } = require('./e2e-cleanup.cjs');
 
 const specs = [
     'tests/e2e/app-startup.spec.ts',
-    'tests/e2e/menu_bar.spec.ts',
-    'tests/e2e/edit-menu-user-flow.spec.ts',
+    'tests/e2e/menu.spec.ts',
     'tests/e2e/hotkeys.spec.ts',
-    'tests/e2e/options-window.spec.ts',
-    'tests/e2e/menu-interactions.spec.ts',
+    'tests/e2e/options.spec.ts',
     'tests/e2e/theme.spec.ts',
-    'tests/e2e/theme-selector-visual.spec.ts',
-    'tests/e2e/theme-selector-keyboard.spec.ts',
+    'tests/e2e/toast.spec.ts',
     'tests/e2e/external-links.spec.ts',
     'tests/e2e/quick-chat.spec.ts',
     'tests/e2e/auth.spec.ts',
-    'tests/e2e/macos-dock.spec.ts',
-    'tests/e2e/window-controls.spec.ts',
+    'tests/e2e/macos.spec.ts',
+    'tests/e2e/window.spec.ts',
 ];
 
 console.log('Building app once for all tests...');

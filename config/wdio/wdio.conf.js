@@ -38,55 +38,37 @@ export const config = {
         // =========================================================================
         '../../tests/e2e/app-startup.spec.ts',
         '../../tests/e2e/first-run.spec.ts',
-        '../../tests/e2e/auto-update-init.spec.ts',
+        '../../tests/e2e/auto-update.spec.ts',
 
         // =========================================================================
         // Window Management
         // =========================================================================
-        '../../tests/e2e/always-on-top.spec.ts',
-        '../../tests/e2e/peek-and-hide.spec.ts',
-        '../../tests/e2e/dependent-windows.spec.ts',
-        '../../tests/e2e/window-bounds.spec.ts',
-        '../../tests/e2e/window-controls.spec.ts',
-        '../../tests/e2e/window-state.spec.ts',
-        '../../tests/e2e/window-titlebar.spec.ts',
-        '../../tests/e2e/window-management-edge-cases.spec.ts',
+        '../../tests/e2e/window.spec.ts',
 
         // =========================================================================
         // Menu & Context Menu
         // =========================================================================
-        '../../tests/e2e/menu_bar.spec.ts',
-        '../../tests/e2e/menu-actions.spec.ts',
-        '../../tests/e2e/menu-interactions.spec.ts',
-        '../../tests/e2e/edit-menu-user-flow.spec.ts',
-        '../../tests/e2e/context-menu.spec.ts',
+        '../../tests/e2e/menu.spec.ts',
 
         // =========================================================================
         // Hotkeys
         // =========================================================================
         '../../tests/e2e/hotkeys.spec.ts',
-        '../../tests/e2e/hotkey-registration.spec.ts',
-        '../../tests/e2e/hotkey-toggle.spec.ts',
 
         // =========================================================================
         // Quick Chat
         // =========================================================================
         '../../tests/e2e/quick-chat.spec.ts',
-        '../../tests/e2e/quick-chat-full-workflow.spec.ts',
 
         // =========================================================================
         // Options & Settings
         // =========================================================================
-        '../../tests/e2e/options-window.spec.ts',
-        '../../tests/e2e/options-tabs.spec.ts',
-        '../../tests/e2e/settings-persistence.spec.ts',
+        '../../tests/e2e/options.spec.ts',
 
         // =========================================================================
         // Theme
         // =========================================================================
         '../../tests/e2e/theme.spec.ts',
-        '../../tests/e2e/theme-selector-visual.spec.ts',
-        '../../tests/e2e/theme-selector-keyboard.spec.ts',
 
         // =========================================================================
         // Authentication & External Links
@@ -99,20 +81,11 @@ export const config = {
         // Tray & Minimize
         // =========================================================================
         '../../tests/e2e/tray.spec.ts',
-        '../../tests/e2e/tray-quit.spec.ts',
-        '../../tests/e2e/minimize-to-tray.spec.ts',
 
         // =========================================================================
         // Auto-Update
         // =========================================================================
-        '../../tests/e2e/auto-update-error-recovery.spec.ts',
-        '../../tests/e2e/auto-update-happy-path.spec.ts',
-        '../../tests/e2e/auto-update-interactions.spec.ts',
-        '../../tests/e2e/auto-update-persistence.spec.ts',
-        '../../tests/e2e/auto-update-platform.spec.ts',
-        '../../tests/e2e/auto-update-startup.spec.ts',
-        '../../tests/e2e/auto-update-toggle.spec.ts',
-        '../../tests/e2e/auto-update-tray.spec.ts',
+        '../../tests/e2e/auto-update.spec.ts',
 
         // =========================================================================
         // Error Recovery & Stability
@@ -134,9 +107,7 @@ export const config = {
         // =========================================================================
         // Platform-Specific (macOS) - Self-skip on other platforms
         // =========================================================================
-        '../../tests/e2e/macos-dock.spec.ts',
-        '../../tests/e2e/macos-menu.spec.ts',
-        '../../tests/e2e/macos-window-behavior.spec.ts',
+        '../../tests/e2e/macos.spec.ts',
 
         // =========================================================================
         // System Integration
