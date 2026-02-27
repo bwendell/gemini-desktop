@@ -139,7 +139,7 @@ export const config = {
             'electron',
             {
                 appBinaryPath: getReleaseBinaryPath(),
-                appArgs: getAppArgs('--test-auto-update'),
+                appArgs: getAppArgs('--test-auto-update', '--test-text-prediction'),
                 ...linuxServiceConfig,
             },
         ],

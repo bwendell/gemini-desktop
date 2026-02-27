@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { app, BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import UpdateManager from '../../../src/main/managers/updateManager';
+import { IPC_CHANNELS } from '../../../src/shared/constants/ipc-channels';
 import type SettingsStore from '../../../src/main/store';
 import { useFakeTimers, useRealTimers } from '../../helpers/harness';
 
@@ -394,7 +395,7 @@ describe('UpdateManager', () => {
 
             await updateManager.checkForUpdates();
             expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
-                'update-error',
+                IPC_CHANNELS.AUTO_UPDATE_ERROR,
                 'The auto-update service encountered an error. Please try again later.'
             );
         });
@@ -406,7 +407,7 @@ describe('UpdateManager', () => {
 
             await updateManager.checkForUpdates();
             expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
-                'update-error',
+                IPC_CHANNELS.AUTO_UPDATE_ERROR,
                 'The auto-update service encountered an error. Please try again later.'
             );
         });
@@ -418,7 +419,7 @@ describe('UpdateManager', () => {
 
             await updateManager.checkForUpdates();
             expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
-                'update-error',
+                IPC_CHANNELS.AUTO_UPDATE_ERROR,
                 'The auto-update service encountered an error. Please try again later.'
             );
         });
@@ -434,7 +435,7 @@ describe('UpdateManager', () => {
 
             await updateManager.checkForUpdates();
             expect(mockWindows[0].webContents.send).toHaveBeenCalledWith(
-                'update-error',
+                IPC_CHANNELS.AUTO_UPDATE_ERROR,
                 'The auto-update service encountered an error. Please try again later.'
             );
         });
