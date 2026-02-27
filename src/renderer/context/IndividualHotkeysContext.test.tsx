@@ -9,6 +9,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { IndividualHotkeysProvider, useIndividualHotkeys } from './IndividualHotkeysContext';
+import '@testing-library/jest-dom';
+
+const windowApi = window as unknown as { electronAPI?: unknown };
 
 // ============================================================================
 // Test Helper Component
@@ -22,7 +25,7 @@ function TestConsumer() {
             <span data-testid="peekAndHide">{settings.peekAndHide.toString()}</span>
             <span data-testid="quickChat">{settings.quickChat.toString()}</span>
             <span data-testid="voiceChat">{settings.voiceChat.toString()}</span>
-            <button onClick={() => setEnabled('quickChat', false)} data-testid="disable-quickchat">
+            <button type="button" onClick={() => setEnabled('quickChat', false)} data-testid="disable-quickchat">
                 Disable Quick Chat
             </button>
         </div>
@@ -34,20 +37,20 @@ function TestConsumer() {
 // ============================================================================
 
 describe('IndividualHotkeysContext', () => {
-    let originalElectronAPI: typeof window.electronAPI;
+    let originalElectronAPI: unknown;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        originalElectronAPI = window.electronAPI;
+        originalElectronAPI = windowApi.electronAPI;
     });
 
     afterEach(() => {
-        window.electronAPI = originalElectronAPI;
+        windowApi.electronAPI = originalElectronAPI;
     });
 
     describe('initialization', () => {
         it('should initialize with defaults when Electron API is unavailable', async () => {
-            window.electronAPI = undefined;
+            windowApi.electronAPI = undefined;
 
             render(
                 <IndividualHotkeysProvider>
@@ -63,8 +66,8 @@ describe('IndividualHotkeysContext', () => {
         });
 
         it('should initialize from Electron API when available', async () => {
-            window.electronAPI = {
-                ...window.electronAPI,
+            windowApi.electronAPI = {
+                ...(windowApi.electronAPI ?? {}),
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: false,
                     peekAndHide: true,
@@ -90,8 +93,8 @@ describe('IndividualHotkeysContext', () => {
         });
 
         it('should handle API errors gracefully', async () => {
-            window.electronAPI = {
-                ...window.electronAPI,
+            windowApi.electronAPI = {
+                ...(windowApi.electronAPI ?? {}),
                 getIndividualHotkeys: vi.fn().mockRejectedValue(new Error('API error')),
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
             } as any;
@@ -109,8 +112,8 @@ describe('IndividualHotkeysContext', () => {
         });
 
         it('should handle invalid settings format from API', async () => {
-            window.electronAPI = {
-                ...window.electronAPI,
+            windowApi.electronAPI = {
+                ...(windowApi.electronAPI ?? {}),
                 getIndividualHotkeys: vi.fn().mockResolvedValue({ invalid: 'data' }),
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
             } as any;
@@ -133,8 +136,8 @@ describe('IndividualHotkeysContext', () => {
     describe('setEnabled', () => {
         it('should call Electron API when setting individual hotkey', async () => {
             const mockSetIndividualHotkey = vi.fn();
-            window.electronAPI = {
-                ...window.electronAPI,
+            windowApi.electronAPI = {
+                ...(windowApi.electronAPI ?? {}),
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
                     peekAndHide: true,
@@ -166,8 +169,8 @@ describe('IndividualHotkeysContext', () => {
 
         it('should handle setEnabled errors gracefully', async () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-            window.electronAPI = {
-                ...window.electronAPI,
+            windowApi.electronAPI = {
+                ...(windowApi.electronAPI ?? {}),
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
                     peekAndHide: true,
@@ -201,7 +204,7 @@ describe('IndividualHotkeysContext', () => {
         });
 
         it('should work when Electron API is unavailable', async () => {
-            window.electronAPI = undefined;
+            windowApi.electronAPI = undefined;
 
             render(
                 <IndividualHotkeysProvider>
@@ -226,8 +229,8 @@ describe('IndividualHotkeysContext', () => {
         it('should update when receiving external changes', async () => {
             let changeCallback: ((settings: any) => void) | null = null;
 
-            window.electronAPI = {
-                ...window.electronAPI,
+            windowApi.electronAPI = {
+                ...(windowApi.electronAPI ?? {}),
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
                     peekAndHide: true,
@@ -268,8 +271,8 @@ describe('IndividualHotkeysContext', () => {
         it('should ignore invalid data from change events', async () => {
             let changeCallback: ((settings: any) => void) | null = null;
 
-            window.electronAPI = {
-                ...window.electronAPI,
+            windowApi.electronAPI = {
+                ...(windowApi.electronAPI ?? {}),
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
                     peekAndHide: true,
@@ -312,7 +315,7 @@ describe('IndividualHotkeysContext', () => {
 
             expect(() => {
                 render(<TestConsumer />);
-            }).toThrow('useIndividualHotkeys must be used within an IndividualHotkeysProvider');
+            }).toThrow('useIndividualHotkeys must be used within a IndividualHotkeysProvider');
 
             consoleError.mockRestore();
         });
@@ -321,8 +324,8 @@ describe('IndividualHotkeysContext', () => {
     describe('cleanup', () => {
         it('should cleanup subscription on unmount', async () => {
             const mockCleanup = vi.fn();
-            window.electronAPI = {
-                ...window.electronAPI,
+            windowApi.electronAPI = {
+                ...(windowApi.electronAPI ?? {}),
                 getIndividualHotkeys: vi.fn().mockResolvedValue({
                     alwaysOnTop: true,
                     peekAndHide: true,
