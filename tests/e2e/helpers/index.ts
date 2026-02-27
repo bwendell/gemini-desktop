@@ -7,6 +7,7 @@
 export * from './platform';
 export * from './logger';
 export * from './testLogger';
+export * from './failureContext';
 export * from './testUtils';
 export * from './selectors';
 export * from './e2eConstants';
