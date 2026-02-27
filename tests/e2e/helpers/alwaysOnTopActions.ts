@@ -31,6 +31,35 @@ type AATBrowser = {
 };
 const aatBrowser = browser as unknown as AATBrowser;
 
+async function executeElectronWithRetry<T>(action: () => Promise<T>): Promise<T> {
+    let result!: T;
+    let lastError: unknown;
+    let succeeded = false;
+    const ready = await waitForUIState(
+        async () => {
+            try {
+                result = await action();
+                succeeded = true;
+                return true;
+            } catch (error) {
+                lastError = error;
+                return false;
+            }
+        },
+        {
+            timeout: E2E_TIMING.TIMEOUTS?.IPC_OPERATION ?? 3000,
+            interval: E2E_TIMING.POLLING?.IPC ?? 50,
+            description: 'always-on-top electron execute',
+        }
+    );
+
+    if (!ready || !succeeded) {
+        throw lastError instanceof Error ? lastError : new Error('Electron bridge execute failed');
+    }
+
+    return result;
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -68,10 +97,12 @@ export async function getAlwaysOnTopState(): Promise<AlwaysOnTopState> {
  * @returns Promise<boolean> - True if window is always on top
  */
 export async function getWindowAlwaysOnTopState(): Promise<boolean> {
-    return aatBrowser.electron.execute((electron) => {
-        const win = electron.BrowserWindow.getAllWindows()[0];
-        return win ? win.isAlwaysOnTop() : false;
-    });
+    return executeElectronWithRetry(() =>
+        aatBrowser.electron.execute((electron: typeof import('electron')) => {
+            const win = electron.BrowserWindow.getAllWindows()[0];
+            return win ? win.isAlwaysOnTop() : false;
+        })
+    );
 }
 
 // ============================================================================
