@@ -176,7 +176,7 @@ const MAX_STRING_LENGTH = 2000;
 const MAX_SERIALIZE_DEPTH = 3;
 
 export async function installRendererErrorInterceptor(): Promise<void> {
-    await wdioBrowser.execute(() => {
+    await wdioBrowser.execute((maxConsoleErrors) => {
         if (window.__consoleErrors && window.__consoleErrorHookInstalled) {
             window.__consoleErrors = [];
             return;
@@ -195,7 +195,10 @@ export async function installRendererErrorInterceptor(): Promise<void> {
                 timestamp: Date.now(),
             });
 
-            if (window.__consoleErrors && window.__consoleErrors.length > MAX_CONSOLE_ERRORS) {
+            if (
+                window.__consoleErrors &&
+                window.__consoleErrors.length > (typeof maxConsoleErrors === 'number' ? maxConsoleErrors : 0)
+            ) {
                 window.__consoleErrors.shift();
             }
         };
@@ -231,7 +234,7 @@ export async function installRendererErrorInterceptor(): Promise<void> {
             const stack = typeof reason === 'object' && reason && 'stack' in reason ? String(reason.stack) : '';
             pushEntry('unhandledrejection', message, stack);
         });
-    });
+    }, MAX_CONSOLE_ERRORS);
 }
 
 export async function captureFailureContext(
@@ -721,11 +724,24 @@ const inferDisplayServer = (
 const redactUrl = (input: string) => {
     try {
         const url = new URL(input);
-        const redactedKeys = new Set(['code', 'token', 'state', 'session']);
+        const redactedKeys = new Set([
+            'code',
+            'token',
+            'state',
+            'session',
+            'access_token',
+            'id_token',
+            'refresh_token',
+        ]);
         for (const [key, value] of url.searchParams.entries()) {
             if (redactedKeys.has(key.toLowerCase())) {
                 url.searchParams.set(key, value ? 'REDACTED' : '');
             }
+        }
+        url.hash = '';
+        if (url.username || url.password) {
+            url.username = '';
+            url.password = '';
         }
         return url.toString();
     } catch {
