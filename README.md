@@ -196,6 +196,11 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 - **Updated default hotkeys** — Quick Chat and Peek and Hide use new, conflict-free defaults.
 - **macOS fixes** — native Edit menu for copy/paste, tray icon handling, and window frame.
 
+### v0.9.1 — Bugfix Release
+
+- **macOS menubar icon fix** — use template tray assets to avoid stretching. ([#132](https://github.com/bwendell/gemini-desktop/issues/132), [#134](https://github.com/bwendell/gemini-desktop/pull/134))
+- **Text prediction setup fix** — handle packaged LLM fallback without export errors. ([#133](https://github.com/bwendell/gemini-desktop/issues/133), [#135](https://github.com/bwendell/gemini-desktop/pull/135))
+
 ### Future Work
 
 - **Investigate AI Studio support** and feasibility for a better Gemini Live experience. ([#90](https://github.com/bwendell/gemini-desktop/issues/90))
