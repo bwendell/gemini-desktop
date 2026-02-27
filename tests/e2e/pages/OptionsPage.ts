@@ -14,7 +14,7 @@ import { Selectors } from '../helpers/selectors';
 import { browser } from '@wdio/globals';
 import { navigateToOptionsTab, closeOptionsWindow, waitForOptionsWindow } from '../helpers/optionsWindowActions';
 import { E2E_TIMING } from '../helpers/e2eConstants';
-import { waitForIPCRoundTrip } from '../helpers/waitUtilities';
+import { waitForIPCRoundTrip, waitForAnimationSettle } from '../helpers/waitUtilities';
 
 type OPElement = {
     getAttribute(attr: string): Promise<string | null>;
@@ -56,11 +56,12 @@ export class OptionsPage extends BasePage {
                 verification,
             });
         } catch (error) {
-            this.log(`IPC verification timed out, using fallback pause: ${String(error)}`);
-            await this.pause(E2E_TIMING.IPC_ROUND_TRIP);
+            this.log(`IPC verification timed out: ${String(error)}`);
         }
     }
 
+    // ===========================================================================
+    // LOCATORS
     // ===========================================================================
     // LOCATORS
     // ===========================================================================
@@ -246,7 +247,8 @@ export class OptionsPage extends BasePage {
             },
             async () => (await this.getCurrentTheme()) === theme
         );
-        await this.pause();
+        // Wait for checkmark animation to settle (Framer Motion exit/enter)
+        await waitForAnimationSettle(this.themeCardSelector(theme));
     }
 
     /**
