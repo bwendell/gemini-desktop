@@ -20,10 +20,10 @@ export interface CoreManagers {
     ipcManager: IpcManager;
 }
 
-export interface ReadyManagers {
-    menuManager: MenuManager | null;
-    notificationManager: NotificationManager | null;
-}
+export type ReadyManagers = {
+    menuManager?: MenuManager;
+    notificationManager?: NotificationManager;
+};
 
 export interface ApplicationContext extends CoreManagers, ReadyManagers {}
 

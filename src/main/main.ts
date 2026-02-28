@@ -105,8 +105,6 @@ const ctx: ApplicationContext = {
     llmManager: undefined as unknown as LlmManager,
     exportManager: undefined as unknown as ExportManager,
     ipcManager: undefined as unknown as IpcManager,
-    menuManager: null,
-    notificationManager: null,
 };
 
 /** Handler for response-complete events (stored for cleanup) */
@@ -200,12 +198,27 @@ function exposeForE2E(context: ApplicationContext): void {
     g.notificationManager = context.notificationManager ?? undefined;
 }
 
-function setReadyManager<K extends keyof ReadyManagers>(
+function setReadyManager(
     context: ApplicationContext,
-    key: K,
-    value: NonNullable<ReadyManagers[K]>
+    key: 'menuManager',
+    value: NonNullable<ReadyManagers['menuManager']>
+): void;
+function setReadyManager(
+    context: ApplicationContext,
+    key: 'notificationManager',
+    value: NonNullable<ReadyManagers['notificationManager']>
+): void;
+function setReadyManager(
+    context: ApplicationContext,
+    key: keyof ReadyManagers,
+    value: NonNullable<ReadyManagers[keyof ReadyManagers]>
 ): void {
-    (context as unknown as Record<string, unknown>)[key] = value;
+    if (key === 'menuManager') {
+        context.menuManager = value as ReadyManagers['menuManager'];
+        return;
+    }
+
+    context.notificationManager = value as ReadyManagers['notificationManager'];
 }
 
 /** Guard to prevent double cleanup (gracefulShutdown → process.exit → will-quit). */
@@ -294,14 +307,7 @@ function gracefulShutdown(exitCode: number = 0): void {
 // Initialize managers before requesting instance lock
 logger.debug('About to call initializeManagers()');
 const coreManagers = initializeManagers();
-(ctx as unknown as Record<string, unknown>).windowManager = coreManagers.windowManager;
-(ctx as unknown as Record<string, unknown>).hotkeyManager = coreManagers.hotkeyManager;
-(ctx as unknown as Record<string, unknown>).trayManager = coreManagers.trayManager;
-(ctx as unknown as Record<string, unknown>).badgeManager = coreManagers.badgeManager;
-(ctx as unknown as Record<string, unknown>).updateManager = coreManagers.updateManager;
-(ctx as unknown as Record<string, unknown>).llmManager = coreManagers.llmManager;
-(ctx as unknown as Record<string, unknown>).exportManager = coreManagers.exportManager;
-(ctx as unknown as Record<string, unknown>).ipcManager = coreManagers.ipcManager;
+Object.assign(ctx, coreManagers);
 logger.debug('initializeManagers() completed');
 
 // Single Instance Lock
