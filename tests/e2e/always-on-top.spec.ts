@@ -38,7 +38,12 @@ import { MainWindowPage } from './pages/MainWindowPage';
 import { OptionsPage } from './pages/OptionsPage';
 import { isMacOS, isWindows, isLinuxCI } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
-import { waitForUIState, waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
+import {
+    executeElectronWithRetry,
+    waitForUIState,
+    waitForWindowTransition,
+    waitForFullscreenTransition,
+} from './helpers/waitUtilities';
 import {
     getAlwaysOnTopState,
     getWindowAlwaysOnTopState,
@@ -64,46 +69,19 @@ import { readUserPreferences } from './helpers/persistenceActions';
 // Local Helper Functions
 // ============================================================================
 
-async function executeElectronWithRetry<T>(action: () => Promise<T>): Promise<T> {
-    let result!: T;
-    let lastError: unknown;
-    let succeeded = false;
-    const ready = await waitForUIState(
-        async () => {
-            try {
-                result = await action();
-                succeeded = true;
-                return true;
-            } catch (error) {
-                lastError = error;
-                return false;
-            }
-        },
-        {
-            timeout: E2E_TIMING.TIMEOUTS?.IPC_OPERATION ?? 3000,
-            interval: E2E_TIMING.POLLING?.IPC ?? 50,
-            description: 'always-on-top electron execute',
-        }
-    );
-
-    if (!ready || !succeeded) {
-        throw lastError instanceof Error ? lastError : new Error('Electron bridge execute failed');
-    }
-
-    return result;
-}
-
 /**
  * Set fullscreen mode.
  */
 async function setFullScreen(fullscreen: boolean): Promise<void> {
-    await executeElectronWithRetry(() =>
-        wdioBrowser.electron.execute((electron: typeof import('electron'), isFullScreen: boolean) => {
-            const mainWindow = electron.BrowserWindow.getAllWindows()[0];
-            if (mainWindow) {
-                mainWindow.setFullScreen(isFullScreen);
-            }
-        }, fullscreen)
+    await executeElectronWithRetry(
+        () =>
+            wdioBrowser.electron.execute((electron: typeof import('electron'), isFullScreen: boolean) => {
+                const mainWindow = electron.BrowserWindow.getAllWindows()[0];
+                if (mainWindow) {
+                    mainWindow.setFullScreen(isFullScreen);
+                }
+            }, fullscreen),
+        { description: 'always-on-top electron execute' }
     );
 }
 
@@ -111,15 +89,17 @@ async function setFullScreen(fullscreen: boolean): Promise<void> {
  * Get current window bounds.
  */
 async function getWindowBounds(): Promise<{ x: number; y: number; width: number; height: number }> {
-    return executeElectronWithRetry(() =>
-        wdioBrowser.electron.execute((electron: typeof import('electron')) => {
-            const mainWindow = electron.BrowserWindow.getAllWindows()[0];
-            if (!mainWindow) {
-                return { x: 0, y: 0, width: 800, height: 600 };
-            }
-            const bounds = mainWindow.getBounds();
-            return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
-        })
+    return executeElectronWithRetry(
+        () =>
+            wdioBrowser.electron.execute((electron: typeof import('electron')) => {
+                const mainWindow = electron.BrowserWindow.getAllWindows()[0];
+                if (!mainWindow) {
+                    return { x: 0, y: 0, width: 800, height: 600 };
+                }
+                const bounds = mainWindow.getBounds();
+                return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+            }),
+        { description: 'always-on-top electron execute' }
     );
 }
 
@@ -127,19 +107,21 @@ async function getWindowBounds(): Promise<{ x: number; y: number; width: number;
  * Set window bounds.
  */
 async function setWindowBounds(bounds: { x?: number; y?: number; width?: number; height?: number }): Promise<void> {
-    await executeElectronWithRetry(() =>
-        wdioBrowser.electron.execute(
-            (
-                electron: typeof import('electron'),
-                boundsParam: { x?: number; y?: number; width?: number; height?: number }
-            ) => {
-                const mainWindow = electron.BrowserWindow.getAllWindows()[0];
-                if (mainWindow) {
-                    mainWindow.setBounds(boundsParam);
-                }
-            },
-            bounds
-        )
+    await executeElectronWithRetry(
+        () =>
+            wdioBrowser.electron.execute(
+                (
+                    electron: typeof import('electron'),
+                    boundsParam: { x?: number; y?: number; width?: number; height?: number }
+                ) => {
+                    const mainWindow = electron.BrowserWindow.getAllWindows()[0];
+                    if (mainWindow) {
+                        mainWindow.setBounds(boundsParam);
+                    }
+                },
+                bounds
+            ),
+        { description: 'always-on-top electron execute' }
     );
 }
 

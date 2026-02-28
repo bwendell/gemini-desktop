@@ -19,6 +19,7 @@ import { getPlatformHotkeyStatus, isHotkeyRegistered, REGISTERED_HOTKEYS } from 
 import { waitForAppReady, waitForElectronBridgeReady, ensureSingleWindow } from './helpers/workflows';
 import { isLinuxCI } from './helpers/platform';
 import { isWindowVisible, hideWindow, restoreWindow, showWindow } from './helpers/windowStateActions';
+import type { E2EGlobals } from '../../src/main/ApplicationContext';
 
 type PeekAndHideBrowser = typeof browser & {
     waitUntil(
@@ -30,16 +31,6 @@ type PeekAndHideBrowser = typeof browser & {
             fn: (electron: typeof import('electron'), ...args: A) => T,
             ...args: A
         ): Promise<T>;
-    };
-};
-
-type E2EGlobals = {
-    hotkeyManager?: {
-        executeHotkeyAction: (id: string) => void;
-    };
-    windowManager?: {
-        isMainWindowVisible: () => boolean;
-        toggleMainWindowVisibility: () => void;
     };
 };
 
