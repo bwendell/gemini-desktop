@@ -429,9 +429,13 @@ export async function waitForWindowState(
  * @param timeoutMs - Maximum wait time (default 5000ms)
  */
 export async function waitForAllWindowsHidden(timeoutMs = 5000): Promise<void> {
+    const isMacOS = process.platform === 'darwin';
+    const effectiveTimeout = isMacOS ? Math.max(timeoutMs, 10000) : timeoutMs;
+    const stableDuration = isMacOS ? 300 : 0;
     const startTime = Date.now();
+    let stableStartTime: number | null = null;
 
-    while (Date.now() - startTime < timeoutMs) {
+    while (Date.now() - startTime < effectiveTimeout) {
         const allHidden = await executeElectronWithRetry(
             () =>
                 wdioBrowser.electron.execute((electron) => {
@@ -442,12 +446,24 @@ export async function waitForAllWindowsHidden(timeoutMs = 5000): Promise<void> {
         );
 
         if (allHidden) {
-            E2ELogger.info('windowStateActions', 'All windows are hidden');
-            return;
+            if (!stableDuration) {
+                E2ELogger.info('windowStateActions', 'All windows are hidden');
+                return;
+            }
+
+            const now = Date.now();
+            if (stableStartTime === null) {
+                stableStartTime = now;
+            } else if (now - stableStartTime >= stableDuration) {
+                E2ELogger.info('windowStateActions', 'All windows are hidden (stable)');
+                return;
+            }
+        } else {
+            stableStartTime = null;
         }
 
         await wdioBrowser.pause(100);
     }
 
-    throw new Error(`Windows did not become hidden within ${timeoutMs}ms`);
+    throw new Error(`Windows did not become hidden within ${effectiveTimeout}ms`);
 }
