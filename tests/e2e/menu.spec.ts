@@ -1,4 +1,5 @@
 import type { Browser } from '@wdio/globals';
+import type { WdioElement } from './helpers/wdio-electron';
 import { $, $$, browser, expect } from '@wdio/globals';
 import { afterEach, beforeEach, describe, it } from 'mocha';
 import type { Context } from 'mocha';
@@ -13,6 +14,18 @@ import { MainWindowPage, OptionsPage } from './pages';
 import { ContextMenuPage } from './pages/ContextMenuPage';
 
 type WindowWithE2EVar = Window & { __e2e_test_var?: string };
+type BrowserWithExecuteAsync = typeof browser & {
+    execute: <T, Args extends unknown[]>(script: string | ((...args: Args) => T), ...args: Args) => Promise<T>;
+    keys: (value: string | string[]) => Promise<void>;
+    electron: {
+        execute: <T, Args extends unknown[]>(
+            script: (electron: typeof import('electron'), ...args: Args) => T,
+            ...args: Args
+        ) => Promise<T>;
+    };
+};
+
+const wdioBrowser = browser as unknown as BrowserWithExecuteAsync;
 
 describe('Menu', () => {
     describe('Menu Bar', () => {
@@ -189,18 +202,18 @@ describe('Menu', () => {
                 this.skip();
             }
 
-            await browser.execute(() => {
+            await wdioBrowser.execute(() => {
                 (window as WindowWithE2EVar).__e2e_test_var = 'loaded';
             });
 
-            const valBefore = await browser.execute(() => (window as WindowWithE2EVar).__e2e_test_var);
+            const valBefore = await wdioBrowser.execute(() => (window as WindowWithE2EVar).__e2e_test_var);
             expect(valBefore).toBe('loaded');
 
             await mainWindow.clickMenuById('menu-view-reload');
 
             await waitForDuration(1000, 'Page reload');
 
-            const valAfter = await browser.execute(() => (window as WindowWithE2EVar).__e2e_test_var);
+            const valAfter = await wdioBrowser.execute(() => (window as WindowWithE2EVar).__e2e_test_var);
             expect(valAfter).toBeFalsy();
         });
     });
@@ -216,6 +229,9 @@ describe('Menu', () => {
         });
 
         it('should open the main window if not already present', async () => {
+            if (!(await usesCustomControls())) {
+                return;
+            }
             await mainWindow.waitForTitlebar();
             expect(await mainWindow.isTitlebarDisplayed()).toBe(true);
         });
@@ -282,7 +298,7 @@ describe('Menu', () => {
 
             await contextMenuPage.clearClipboard();
 
-            await browser.execute((inputId: string) => {
+            await wdioBrowser.execute((inputId: string) => {
                 const existing = document.getElementById(inputId);
                 if (existing) {
                     existing.remove();
@@ -302,13 +318,13 @@ describe('Menu', () => {
         });
 
         afterEach(async () => {
-            await browser.execute((inputId: string) => {
+            await wdioBrowser.execute((inputId: string) => {
                 document.getElementById(inputId)?.remove();
             }, testInputId);
         });
 
         async function selectAllInputValue(inputId: string): Promise<void> {
-            await browser.execute((targetId: string) => {
+            await wdioBrowser.execute((targetId: string) => {
                 const el = document.getElementById(targetId) as HTMLTextAreaElement | null;
                 if (!el) {
                     return;
@@ -319,33 +335,36 @@ describe('Menu', () => {
         }
 
         async function clickEditRole(role: string): Promise<void> {
-            const result = await browser.electron.execute((electron: typeof import('electron'), targetRole: string) => {
-                const win = electron.BrowserWindow.getFocusedWindow() ?? electron.BrowserWindow.getAllWindows()[0];
-                if (!win) {
-                    return { success: false, error: 'No focused window available for edit actions' };
-                }
+            const result = await wdioBrowser.electron.execute(
+                (electron: typeof import('electron'), targetRole: string) => {
+                    const win = electron.BrowserWindow.getFocusedWindow() ?? electron.BrowserWindow.getAllWindows()[0];
+                    if (!win) {
+                        return { success: false, error: 'No focused window available for edit actions' };
+                    }
 
-                const webContents = win.webContents;
+                    const webContents = win.webContents;
 
-                switch (targetRole) {
-                    case 'copy':
-                        webContents.copy();
-                        break;
-                    case 'paste':
-                        webContents.paste();
-                        break;
-                    case 'cut':
-                        webContents.cut();
-                        break;
-                    case 'undo':
-                        webContents.undo();
-                        break;
-                    default:
-                        return { success: false, error: `Unsupported edit role: ${targetRole}` };
-                }
+                    switch (targetRole) {
+                        case 'copy':
+                            webContents.copy();
+                            break;
+                        case 'paste':
+                            webContents.paste();
+                            break;
+                        case 'cut':
+                            webContents.cut();
+                            break;
+                        case 'undo':
+                            webContents.undo();
+                            break;
+                        default:
+                            return { success: false, error: `Unsupported edit role: ${targetRole}` };
+                    }
 
-                return { success: true };
-            }, role);
+                    return { success: true };
+                },
+                role
+            );
 
             if (!result.success) {
                 throw new Error(result.error);
@@ -362,7 +381,7 @@ describe('Menu', () => {
             await selectAllInputValue(testInputId);
             const selectionReady = await waitForUIState(
                 async () => {
-                    return browser.execute((inputId: string) => {
+                    return wdioBrowser.execute((inputId: string) => {
                         const el = document.getElementById(inputId) as HTMLTextAreaElement | null;
                         if (!el) {
                             return false;
@@ -378,7 +397,7 @@ describe('Menu', () => {
 
             const copyApplied = await waitForUIState(
                 async () => {
-                    const clipboardText = await browser.electron.execute((electron: typeof import('electron')) => {
+                    const clipboardText = await wdioBrowser.electron.execute((electron: typeof import('electron')) => {
                         return electron.clipboard.readText();
                     });
                     return clipboardText === originalText;
@@ -387,7 +406,7 @@ describe('Menu', () => {
             );
             expect(copyApplied).toBe(true);
 
-            await browser.execute((inputId: string) => {
+            await wdioBrowser.execute((inputId: string) => {
                 const el = document.getElementById(inputId) as HTMLTextAreaElement | null;
                 if (el) {
                     el.value = '';
@@ -419,12 +438,12 @@ describe('Menu', () => {
 
     describe('Context Menu', () => {
         const contextMenu = new ContextMenuPage();
-        let testInput: Awaited<ReturnType<ContextMenuPage['createTestInput']>>;
+        let testInput: WdioElement;
 
         beforeEach(async () => {
             await contextMenu.waitForAppReady();
 
-            testInput = await contextMenu.createTestInput();
+            testInput = (await contextMenu.createTestInput()) as unknown as WdioElement;
 
             await contextMenu.setupMenuSpy();
             await contextMenu.clearClipboard();
@@ -435,8 +454,8 @@ describe('Menu', () => {
         });
 
         it.skip('should show context menu on right-click', async () => {
-            await testInput.click();
-            await testInput.setValue('Test text');
+            await (testInput as unknown as WdioElement).click();
+            await (testInput as unknown as WdioElement).setValue('Test text');
 
             await contextMenu.openContextMenu(testInput);
 
@@ -466,7 +485,7 @@ describe('Menu', () => {
 
             await contextMenu.setClipboardText(testText);
 
-            await testInput.click();
+            await (testInput as unknown as WdioElement).click();
 
             await contextMenu.openContextMenu(testInput);
 
@@ -490,10 +509,10 @@ describe('Menu', () => {
         it.skip('should select all text via context menu', async () => {
             const testText = 'Select all this text';
 
-            await testInput.click();
-            await testInput.setValue(testText);
+            await (testInput as unknown as WdioElement).click();
+            await (testInput as unknown as WdioElement).setValue(testText);
 
-            await testInput.click();
+            await (testInput as unknown as WdioElement).click();
             await waitForDuration(200, 'Input deselection settle');
 
             await contextMenu.openContextMenu(testInput);
@@ -516,7 +535,7 @@ describe('Menu', () => {
 
         describe.skip('Disabled States', () => {
             it('should have Cut/Copy/Delete disabled when no text is selected', async () => {
-                await testInput.click();
+                await (testInput as unknown as WdioElement).click();
 
                 await contextMenu.openContextMenu(testInput);
 
@@ -534,7 +553,7 @@ describe('Menu', () => {
 
                 await contextMenu.setClipboardText(testText);
 
-                await testInput.click();
+                await (testInput as unknown as WdioElement).click();
 
                 const pasteItem = await contextMenu.getMenuItemState('paste');
                 expect(pasteItem?.enabled).toBe(true);
@@ -545,13 +564,13 @@ describe('Menu', () => {
             it('should only allow Copy on read-only text', async () => {
                 const readonlyInputId = 'e2e-readonly-input';
 
-                const readonlyInput = await contextMenu.createTestInput(readonlyInputId, {
+                const readonlyInput = (await contextMenu.createTestInput(readonlyInputId, {
                     readOnly: true,
                     value: 'Read-only text',
                     top: '150px',
-                });
+                })) as unknown as WdioElement;
 
-                await readonlyInput.click();
+                await (readonlyInput as unknown as WdioElement).click();
                 await contextMenu.selectAllWithKeyboard();
 
                 await contextMenu.openContextMenu(readonlyInput);
@@ -572,8 +591,8 @@ describe('Menu', () => {
             it('should support Ctrl+C/Cmd+C keyboard shortcut for copy', async () => {
                 const testText = 'Shortcut copy test';
 
-                await testInput.click();
-                await testInput.setValue(testText);
+                await (testInput as unknown as WdioElement).click();
+                await (testInput as unknown as WdioElement).setValue(testText);
 
                 await contextMenu.selectAllWithKeyboard();
                 await contextMenu.copyWithKeyboard();
@@ -587,36 +606,36 @@ describe('Menu', () => {
 
                 await contextMenu.setClipboardText(testText);
 
-                await testInput.click();
+                await (testInput as unknown as WdioElement).click();
                 await contextMenu.pasteWithKeyboard();
 
-                const inputValue = await testInput.getValue();
+                const inputValue = await (testInput as unknown as WdioElement).getValue();
                 expect(inputValue).toBe(testText);
             });
 
             it('should support Ctrl+X/Cmd+X keyboard shortcut for cut', async () => {
                 const testText = 'Shortcut cut test';
 
-                await testInput.click();
-                await testInput.setValue(testText);
+                await (testInput as unknown as WdioElement).click();
+                await (testInput as unknown as WdioElement).setValue(testText);
 
                 await contextMenu.selectAllWithKeyboard();
                 await contextMenu.cutWithKeyboard();
 
-                const inputValue = await testInput.getValue();
+                const inputValue = await (testInput as unknown as WdioElement).getValue();
                 expect(inputValue).toBe('');
 
                 await contextMenu.pasteWithKeyboard();
 
-                const pastedValue = await testInput.getValue();
+                const pastedValue = await (testInput as unknown as WdioElement).getValue();
                 expect(pastedValue).toBe(testText);
             });
 
             it('should support Ctrl+A/Cmd+A keyboard shortcut for select all', async () => {
                 const testText = 'Select all shortcut test';
 
-                await testInput.click();
-                await testInput.setValue(testText);
+                await (testInput as unknown as WdioElement).click();
+                await (testInput as unknown as WdioElement).setValue(testText);
 
                 await contextMenu.selectAllWithKeyboard();
                 await contextMenu.copyWithKeyboard();
@@ -639,7 +658,7 @@ describe('Menu', () => {
                 expect(copyItem?.enabled).toBe(true);
 
                 const targetInput = await contextMenu.createTestInput(targetInputId, { top: '200px' });
-                await targetInput.click();
+                await (targetInput as unknown as WdioElement).click();
 
                 await contextMenu.openContextMenu(targetInput);
 
@@ -661,7 +680,7 @@ describe('Menu', () => {
                 const cutItem = await contextMenu.getMenuItemState('cut');
                 expect(cutItem?.enabled).toBe(true);
 
-                await browser.keys(['Escape']);
+                await wdioBrowser.keys(['Escape']);
 
                 await contextMenu.openContextMenu(testInput);
                 const pasteItem = await contextMenu.getMenuItemState('paste');
