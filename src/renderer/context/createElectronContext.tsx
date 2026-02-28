@@ -1,14 +1,47 @@
-import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+/**
+ * Electron-backed React context factory.
+ *
+ * Provides a typed, reusable pattern for contexts that synchronize state with
+ * the Electron main process via window.electronAPI, including validation,
+ * optional adapters for legacy payloads, and subscription cleanup.
+ *
+ * @module createElectronContext
+ * @example
+ * const { Provider: ThemeProvider, useContextHook: useTheme } = createElectronContext({
+ *     displayName: 'Theme',
+ *     channels: {
+ *         theme: {
+ *             defaultValue: { preference: 'system', effectiveTheme: 'light' },
+ *             getter: (api) => api.getTheme,
+ *             onChange: (api) => api.onThemeChanged,
+ *             validate: (data): data is ThemeData => isThemeData(data),
+ *             adapter: (data) => normalizeThemeData(data),
+ *         },
+ *     },
+ *     buildContextValue: (state, setters) => ({
+ *         theme: state.theme.preference,
+ *         setTheme: (next) => setters.theme({ ...state.theme, preference: next }),
+ *         currentEffectiveTheme: state.theme.effectiveTheme,
+ *     }),
+ * });
+ */
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { createRendererLogger } from '../utils';
 
 type ElectronApi = NonNullable<typeof window.electronAPI>;
 
+/**
+ * Channel configuration for an Electron-backed value.
+ * @template TValue - The resolved value type for this channel.
+ */
 export interface ElectronChannel<TValue> {
     defaultValue: TValue;
     getter: (api: ElectronApi) => (() => Promise<TValue>) | undefined;
     onChange: (api: ElectronApi) => ((cb: (value: TValue) => void) => () => void) | undefined;
+    /** Optional runtime validator for payloads received from Electron. */
     validate?: (data: unknown) => data is TValue;
+    /** Optional adapter for legacy payloads (runs before validation). */
     adapter?: (data: unknown) => unknown;
 }
 
@@ -22,6 +55,11 @@ type ChannelSetters<TChannels extends ElectronChannels> = {
     [K in keyof TChannels]: React.Dispatch<React.SetStateAction<ChannelState<TChannels>[K]>>;
 };
 
+/**
+ * Configuration for creating a typed Electron-backed context.
+ * @template TChannels - Record of channel definitions.
+ * @template TContextValue - The value exposed by the context hook.
+ */
 export interface CreateElectronContextConfig<TChannels extends ElectronChannels, TContextValue> {
     displayName: string;
     channels: TChannels;
@@ -29,6 +67,10 @@ export interface CreateElectronContextConfig<TChannels extends ElectronChannels,
     onStateChange?: <K extends keyof TChannels>(channelName: K, value: ChannelState<TChannels>[K]) => void;
 }
 
+/**
+ * Result of createElectronContext factory.
+ * @template TContextValue - The value exposed by the context hook.
+ */
 export interface ElectronContextResult<TContextValue> {
     Provider: React.FC<{ children: ReactNode }>;
     useContextHook: () => TContextValue;
@@ -56,7 +98,7 @@ export function createElectronContext<TChannels extends ElectronChannels, TConte
             key: K,
             value: React.SetStateAction<ChannelState<TChannels>[K]>
         ) => {
-            setStateMap((prev) => {
+            setStateMap((prev: ChannelState<TChannels>) => {
                 const nextValue =
                     typeof value === 'function'
                         ? (value as (prevValue: ChannelState<TChannels>[K]) => ChannelState<TChannels>[K])(prev[key])
@@ -77,7 +119,7 @@ export function createElectronContext<TChannels extends ElectronChannels, TConte
         if (!setterMapRef.current) {
             const setters = {} as ChannelSetters<TChannels>;
             for (const [name] of channelEntries) {
-                setters[name] = (value) => {
+                setters[name] = (value: React.SetStateAction<ChannelState<TChannels>[typeof name]>) => {
                     setChannelValue(name, value as ChannelState<TChannels>[typeof name]);
                 };
             }
@@ -108,6 +150,8 @@ export function createElectronContext<TChannels extends ElectronChannels, TConte
                         if (resolvedValue !== null) {
                             setterMapRef.current?.[name](resolvedValue);
                             onStateChange?.(name, resolvedValue);
+                        } else {
+                            logger.warn(`Invalid ${String(name)} data:`, channel.defaultValue);
                         }
                     }
                     logger.log('No Electron API, using defaults');
@@ -121,13 +165,15 @@ export function createElectronContext<TChannels extends ElectronChannels, TConte
                             const result = await getterFn();
                             if (signal.aborted) return;
 
-                            const resolvedValue = resolveValue(channel, result);
-                            if (resolvedValue !== null) {
-                                setterMapRef.current?.[name](resolvedValue);
-                                onStateChange?.(name, resolvedValue);
-                                logger.log(`${String(name)} initialized:`, resolvedValue);
-                            } else {
-                                logger.warn(`Invalid ${String(name)} data:`, result);
+                            if (result !== undefined) {
+                                const resolvedValue = resolveValue(channel, result);
+                                if (resolvedValue !== null) {
+                                    setterMapRef.current?.[name](resolvedValue);
+                                    onStateChange?.(name, resolvedValue);
+                                    logger.log(`${String(name)} initialized:`, resolvedValue);
+                                } else {
+                                    logger.warn(`Invalid ${String(name)} data:`, result);
+                                }
                             }
                         } catch (error) {
                             logger.error(`Failed to initialize ${String(name)}:`, error);
@@ -163,9 +209,9 @@ export function createElectronContext<TChannels extends ElectronChannels, TConte
             };
         }, []); // eslint-disable-line react-hooks/exhaustive-deps -- channel config is static per factory instance
 
-        const contextValue = config.buildContextValue(
-            stateMap,
-            setterMapRef.current ?? ({} as ChannelSetters<TChannels>)
+        const contextValue = useMemo(
+            () => config.buildContextValue(stateMap, setterMapRef.current ?? ({} as ChannelSetters<TChannels>)),
+            [stateMap]
         );
 
         return <Context.Provider value={contextValue}>{children}</Context.Provider>;
