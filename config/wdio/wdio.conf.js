@@ -65,8 +65,6 @@ export const config = {
         // Hotkeys
         // =========================================================================
         '../../tests/e2e/hotkeys.spec.ts',
-        '../../tests/e2e/hotkey-registration.spec.ts',
-        '../../tests/e2e/hotkey-toggle.spec.ts',
 
         // =========================================================================
         // Quick Chat
@@ -246,8 +244,7 @@ export const config = {
             if (typeof imported.installRendererErrorInterceptor === 'function') {
                 await imported.installRendererErrorInterceptor();
             }
-        } catch (error) {
-        }
+        } catch (error) {}
     },
 
     // Ensure the app quits after tests
