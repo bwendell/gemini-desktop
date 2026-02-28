@@ -81,15 +81,19 @@ describe('Theme', () => {
                 };
             });
 
-            console.log('=== DEBUG: Light Theme Title Bar Info ===');
-            console.log(JSON.stringify(lightDebugInfo, null, 2));
+            if (process.env.DEBUG_E2E_THEME) {
+                console.log('=== DEBUG: Light Theme Title Bar Info ===');
+                console.log(JSON.stringify(lightDebugInfo, null, 2));
+            }
 
             const lightTheme = await optionsPage.getCurrentTheme();
             expect(lightTheme).toBe('light');
 
-            console.log(`Light mode - Title computed color: ${lightDebugInfo.titleColor}`);
-            console.log(`Light mode - CSS var --text-primary: ${lightDebugInfo.cssVarTextPrimary}`);
-            console.log(`Light mode - Body color: ${lightDebugInfo.bodyColor}`);
+            if (process.env.DEBUG_E2E_THEME) {
+                console.log(`Light mode - Title computed color: ${lightDebugInfo.titleColor}`);
+                console.log(`Light mode - CSS var --text-primary: ${lightDebugInfo.cssVarTextPrimary}`);
+                console.log(`Light mode - Body color: ${lightDebugInfo.bodyColor}`);
+            }
 
             expect(lightDebugInfo.titleColor).not.toBe('rgb(232, 234, 237)');
             expect(lightDebugInfo.titleColor).not.toBe('rgb(204, 204, 204)');
@@ -115,9 +119,11 @@ describe('Theme', () => {
                 };
             });
 
-            console.log('=== DEBUG: Dark Theme Title Bar Info ===');
-            console.log(JSON.stringify(darkDebugInfo, null, 2));
-            console.log(`Dark mode - Title computed color: ${darkDebugInfo.titleColor}`);
+            if (process.env.DEBUG_E2E_THEME) {
+                console.log('=== DEBUG: Dark Theme Title Bar Info ===');
+                console.log(JSON.stringify(darkDebugInfo, null, 2));
+                console.log(`Dark mode - Title computed color: ${darkDebugInfo.titleColor}`);
+            }
 
             const darkTheme = await optionsPage.getCurrentTheme();
             expect(darkTheme).toBe('dark');
@@ -391,7 +397,7 @@ describe('Theme', () => {
                     return hasOutline || hasBoxShadow;
                 });
 
-                expect(hasFocusStyles).toBeDefined();
+                expect(hasFocusStyles).toBe(true);
             });
         });
 
