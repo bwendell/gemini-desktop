@@ -135,6 +135,13 @@ export const baseConfig = {
             testLogger = { clear: () => {}, dump: () => '' };
         }
         testLogger.clear();
+
+        try {
+            const imported = await import('../../tests/e2e/helpers/failureContext.ts');
+            if (typeof imported.installRendererErrorInterceptor === 'function') {
+                await imported.installRendererErrorInterceptor();
+            }
+        } catch (error) {}
     },
 
     // Ensure the app quits after tests
@@ -171,6 +178,8 @@ export const baseConfig = {
         }
 
         if (!passed) {
+            let screenshotPath;
+            let domPath;
             try {
                 const sanitizeSegment = (value, fallback) =>
                     String(value ?? fallback)
@@ -184,8 +193,8 @@ export const baseConfig = {
                 const attemptNum = retryAttempt + 1;
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                 const baseFilename = `${sanitizedSpecName}-${sanitizedTestTitle}-attempt-${attemptNum}-${timestamp}`;
-                const screenshotPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.png`);
-                const domPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.html`);
+                screenshotPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.png`);
+                domPath = path.join(__dirname, '../../tests/e2e/screenshots', `${baseFilename}.html`);
 
                 await fs.mkdir(path.dirname(screenshotPath), { recursive: true });
 
@@ -197,6 +206,28 @@ export const baseConfig = {
                 console.log(`DOM snapshot saved: ${domPath}`);
             } catch (captureError) {
                 console.warn('Failed to capture test failure artifacts:', captureError?.message);
+            }
+
+            if (screenshotPath && domPath) {
+                try {
+                    const imported = await import('../../tests/e2e/helpers/failureContext.ts');
+                    if (typeof imported.captureFailureContext === 'function') {
+                        const contextData = await imported.captureFailureContext(
+                            test,
+                            context ?? {},
+                            { error, result, duration, passed, retries },
+                            {
+                                screenshotPath,
+                                domSnapshotPath: domPath,
+                            }
+                        );
+                        const contextPath = screenshotPath.replace('.png', '.failure-context.json');
+                        await fs.writeFile(contextPath, JSON.stringify(contextData, null, 2), 'utf8');
+                        console.log(`Failure context saved: ${contextPath}`);
+                    }
+                } catch (contextError) {
+                    console.warn('Failed to capture failure context:', contextError?.message);
+                }
             }
         }
     },

@@ -574,6 +574,25 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
 export async function waitForAppReady(timeout = 15000): Promise<void> {
     const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
     await mainLayout.waitForExist({ timeout });
+    const bridgeReady = await waitForUIState(
+        async () => {
+            try {
+                return await workflowsBrowser.execute(() => {
+                    return typeof (window as { electronAPI?: unknown }).electronAPI !== 'undefined';
+                });
+            } catch {
+                return false;
+            }
+        },
+        {
+            timeout: 30000,
+            interval: 500,
+            description: 'Preload bridge ready',
+        }
+    );
+    if (!bridgeReady) {
+        throw new Error('electronAPI not available after 30 seconds');
+    }
     E2ELogger.info('workflows', '✓ App is ready');
 }
 

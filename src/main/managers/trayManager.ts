@@ -11,6 +11,7 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { getIconPath, getTrayIconPath } from '../utils/paths';
 import { TRAY_MENU_ITEMS, TRAY_TOOLTIP } from '../utils/constants';
 import { createLogger } from '../utils/logger';
+import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 import type WindowManager from './windowManager';
 
 const logger = createLogger('[TrayManager]');
@@ -66,9 +67,16 @@ export default class TrayManager {
             }
 
             // Create nativeImage for tray (required for proper icon handling)
-            const trayIcon = nativeImage.createFromPath(iconPath);
+            let trayIcon = nativeImage.createFromPath(iconPath);
             if (trayIcon.isEmpty()) {
                 throw new Error(`Failed to load tray icon: ${iconPath}`);
+            }
+
+            if (getPlatformAdapter().id === 'mac') {
+                trayIcon = this.normalizeMacTrayImage(trayIcon);
+                if (trayIcon.isEmpty()) {
+                    throw new Error(`Failed to normalize tray icon: ${iconPath}`);
+                }
             }
 
             this.tray = new Tray(trayIcon);
@@ -215,5 +223,12 @@ export default class TrayManager {
             this.tray.setToolTip(this.currentToolTip);
             logger.log('Tray tooltip reset to default');
         }
+    }
+    private normalizeMacTrayImage(image: Electron.NativeImage): Electron.NativeImage {
+        const size = image.getSize();
+        const normalized = size.width > 32 || size.height > 32 ? image.resize({ width: 16, height: 16 }) : image;
+
+        normalized.setTemplateImage(true);
+        return normalized;
     }
 }

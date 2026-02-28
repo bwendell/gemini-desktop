@@ -17,7 +17,6 @@ import { app, BrowserWindow } from 'electron';
 // when there's no D-Bus session (headless Linux/CI environment).
 import type { UpdateInfo, AppUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import { createLogger } from '../utils/logger';
 import type SettingsStore from '../store';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
@@ -27,7 +26,7 @@ import { MacAdapter } from '../platform/adapters/MacAdapter';
 import { WindowsAdapter } from '../platform/adapters/WindowsAdapter';
 import type BadgeManager from './badgeManager';
 import type TrayManager from './trayManager';
-
+import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 const logger = createLogger('[UpdateManager]');
 
 // Re-export UpdateInfo for use in other modules
@@ -283,7 +282,7 @@ export default class UpdateManager {
             if (manual || !isNetworkOrConfigError) {
                 // MASKED ERROR: Do NOT send the raw error message to the renderer/user.
                 this.broadcastToWindows(
-                    'update-error',
+                    IPC_CHANNELS.AUTO_UPDATE_ERROR,
                     'The auto-update service encountered an error. Please try again later.'
                 );
             } else {
@@ -397,7 +396,7 @@ export default class UpdateManager {
             // cause UI rendering issues (toasts going off-screen).
             // We log the real error above for debugging, but tell the user a generic message.
             this.broadcastToWindows(
-                'auto-update:error',
+                IPC_CHANNELS.AUTO_UPDATE_ERROR,
                 'The auto-update service encountered an error. Please try again later.'
             );
         });
@@ -405,12 +404,12 @@ export default class UpdateManager {
         updater.on('checking-for-update', () => {
             logger.log('Checking for update...');
             this.lastCheckTime = Date.now();
-            this.broadcastToWindows('auto-update:checking', null);
+            this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_CHECKING, null);
         });
 
         updater.on('update-available', (info: UpdateInfo) => {
             logger.log(`Update available: ${info.version}`);
-            this.broadcastToWindows('auto-update:available', info);
+            this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_AVAILABLE, info);
             this.isFirstCheck = false;
             this.isManualCheck = false;
         });
@@ -418,7 +417,7 @@ export default class UpdateManager {
         updater.on('update-not-available', (info: UpdateInfo) => {
             logger.log(`No update available (current: ${info.version})`);
             if (this.isFirstCheck || this.isManualCheck) {
-                this.broadcastToWindows('auto-update:not-available', info);
+                this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_NOT_AVAILABLE, info);
             } else {
                 logger.log('Suppressing "up to date" notification (periodic background check)');
             }
@@ -428,7 +427,7 @@ export default class UpdateManager {
 
         updater.on('download-progress', (progress) => {
             logger.log(`Download progress: ${progress.percent.toFixed(1)}%`);
-            this.broadcastToWindows('auto-update:download-progress', progress);
+            this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_DOWNLOAD_PROGRESS, progress);
         });
 
         updater.on('update-downloaded', (info: UpdateInfo) => {
@@ -438,7 +437,7 @@ export default class UpdateManager {
             this.badgeManager?.showUpdateBadge();
             this.trayManager?.setUpdateTooltip(info.version);
 
-            this.broadcastToWindows('auto-update:downloaded', info);
+            this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_DOWNLOADED, info);
         });
     }
 
@@ -525,6 +524,7 @@ export default class UpdateManager {
                 'update-available': IPC_CHANNELS.AUTO_UPDATE_AVAILABLE,
                 'update-not-available': IPC_CHANNELS.AUTO_UPDATE_NOT_AVAILABLE,
                 'update-downloaded': IPC_CHANNELS.AUTO_UPDATE_DOWNLOADED,
+                'update-error': IPC_CHANNELS.AUTO_UPDATE_ERROR,
                 error: IPC_CHANNELS.AUTO_UPDATE_ERROR,
                 'download-progress': IPC_CHANNELS.AUTO_UPDATE_DOWNLOAD_PROGRESS,
             };
