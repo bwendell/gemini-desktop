@@ -99,8 +99,7 @@ export const config = {
         '../../tests/e2e/theme-selector-keyboard.spec.ts',
 
         // Window management tests
-        '../../tests/e2e/window-controls.spec.ts',
-        '../../tests/e2e/window-bounds.spec.ts',
+        '../../tests/e2e/window.spec.ts',
 
         // Tray functionality tests
         '../../tests/e2e/tray.spec.ts',

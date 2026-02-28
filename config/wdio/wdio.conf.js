@@ -43,14 +43,7 @@ export const config = {
         // =========================================================================
         // Window Management
         // =========================================================================
-        '../../tests/e2e/always-on-top.spec.ts',
-        '../../tests/e2e/peek-and-hide.spec.ts',
-        '../../tests/e2e/dependent-windows.spec.ts',
-        '../../tests/e2e/window-bounds.spec.ts',
-        '../../tests/e2e/window-controls.spec.ts',
-        '../../tests/e2e/window-state.spec.ts',
-        '../../tests/e2e/window-titlebar.spec.ts',
-        '../../tests/e2e/window-management-edge-cases.spec.ts',
+        '../../tests/e2e/window.spec.ts',
 
         // =========================================================================
         // Menu & Context Menu
@@ -246,8 +239,7 @@ export const config = {
             if (typeof imported.installRendererErrorInterceptor === 'function') {
                 await imported.installRendererErrorInterceptor();
             }
-        } catch (error) {
-        }
+        } catch (error) {}
     },
 
     // Ensure the app quits after tests
