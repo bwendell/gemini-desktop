@@ -85,8 +85,6 @@ export const config = {
         // Theme
         // =========================================================================
         '../../tests/e2e/theme.spec.ts',
-        '../../tests/e2e/theme-selector-visual.spec.ts',
-        '../../tests/e2e/theme-selector-keyboard.spec.ts',
 
         // =========================================================================
         // Authentication & External Links
@@ -105,14 +103,7 @@ export const config = {
         // =========================================================================
         // Auto-Update
         // =========================================================================
-        '../../tests/e2e/auto-update-error-recovery.spec.ts',
-        '../../tests/e2e/auto-update-happy-path.spec.ts',
-        '../../tests/e2e/auto-update-interactions.spec.ts',
-        '../../tests/e2e/auto-update-persistence.spec.ts',
-        '../../tests/e2e/auto-update-platform.spec.ts',
-        '../../tests/e2e/auto-update-startup.spec.ts',
-        '../../tests/e2e/auto-update-toggle.spec.ts',
-        '../../tests/e2e/auto-update-tray.spec.ts',
+        '../../tests/e2e/auto-update.spec.ts',
 
         // =========================================================================
         // Error Recovery & Stability
@@ -254,6 +245,9 @@ export const config = {
                 await imported.installRendererErrorInterceptor();
             }
         } catch (error) {
+            if (process.env.WDIO_DEBUG) {
+                console.warn('Failed to install renderer error interceptor:', error);
+            }
         }
     },
 
