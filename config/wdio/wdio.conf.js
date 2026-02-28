@@ -55,11 +55,7 @@ export const config = {
         // =========================================================================
         // Menu & Context Menu
         // =========================================================================
-        '../../tests/e2e/menu_bar.spec.ts',
-        '../../tests/e2e/menu-actions.spec.ts',
-        '../../tests/e2e/menu-interactions.spec.ts',
-        '../../tests/e2e/edit-menu-user-flow.spec.ts',
-        '../../tests/e2e/context-menu.spec.ts',
+        '../../tests/e2e/menu.spec.ts',
 
         // =========================================================================
         // Hotkeys
@@ -246,8 +242,7 @@ export const config = {
             if (typeof imported.installRendererErrorInterceptor === 'function') {
                 await imported.installRendererErrorInterceptor();
             }
-        } catch (error) {
-        }
+        } catch (error) {}
     },
 
     // Ensure the app quits after tests
