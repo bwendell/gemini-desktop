@@ -36,9 +36,6 @@ type BrowserWithExecuteAsync = typeof browser & {
 
 const wdioBrowser = browser as unknown as BrowserWithExecuteAsync;
 
-const getElectronAPI = (): ElectronAPI | undefined =>
-    (window as unknown as WindowWithElectronAPI).electronAPI;
-
 // ============================================================================
 // Test Suite
 // ============================================================================
@@ -55,6 +52,14 @@ describe('Auto-Update', () => {
 
     beforeEach(async () => {
         await updateToast.clearAll();
+        await waitForIPCRoundTrip(async () => {
+            await wdioBrowser.execute(() => {
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
+                api?.devClearBadge();
+                api?.devMockPlatform(null, null);
+                api?.setAutoUpdateEnabled(true);
+            });
+        });
     });
 
     describe('Initialization', () => {
@@ -68,7 +73,7 @@ describe('Auto-Update', () => {
             const errorPromise = await wdioBrowser.executeAsync((done: (error: string | null) => void) => {
                 let captured = false;
 
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 const cleanup = api?.onUpdateError((error: string) => {
                     if (!captured) {
                         captured = true;
@@ -108,7 +113,7 @@ describe('Auto-Update', () => {
             // We can verify this by checking that auto-update is enabled
             // (it would be disabled if config couldn't be read)
             const enabled = await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 return api?.getAutoUpdateEnabled();
             });
 
@@ -273,7 +278,7 @@ describe('Auto-Update', () => {
 
             // Disable auto-updates settings via IPC to stop the startup check
             await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 api?.setAutoUpdateEnabled(false);
             });
 
@@ -788,11 +793,10 @@ describe('Auto-Update', () => {
     });
 
     describe('Platform Logic', () => {
-        // Disable auto-updates updates initially to prevent interference
         before(async () => {
             await wdioBrowser.pause(2000);
             await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 api?.setAutoUpdateEnabled(false);
                 // Clear mocks
                 api?.devMockPlatform(null, null);
@@ -803,34 +807,28 @@ describe('Auto-Update', () => {
         afterEach(async () => {
             // Reset mocks
             await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 api?.devMockPlatform(null, null);
             });
         });
-
-        // Note: The following two tests are skipped because they test platform restriction
-        // behavior where getAutoUpdateEnabled() should return false even when the user
-        // explicitly enables updates. This behavior would require UpdateManager.setEnabled()
-        // to re-check shouldDisableUpdates() after the user sets the value, which isn't
-        // currently implemented. The platform restriction is only applied at startup.
 
         it.skip('should disable updates on Linux non-AppImage', async () => {
             // GIVEN: We act as Linux without AppImage env
             // passing undefined for APPIMAGE key. Note: mockEnv replaces process.env so just {} misses APPIMAGE usually.
             await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 api?.devMockPlatform('linux', { MOCK: 'true' });
             });
 
             // AND: We ensure updates are "enabled" in settings
             await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 api?.setAutoUpdateEnabled(true);
             });
 
             // THEN: getAutoUpdateEnabled() should return false (because platform restriction overrides setting)
             const enabled = await wdioBrowser.execute(async () => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 const result = await api?.getAutoUpdateEnabled();
                 return result ?? false;
             });
@@ -840,18 +838,18 @@ describe('Auto-Update', () => {
 
         it('should enable updates on Linux AppImage', async () => {
             await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 api?.devMockPlatform('linux', {
                     APPIMAGE: '/path/to/app.AppImage',
                 });
             });
             await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 api?.setAutoUpdateEnabled(true);
             });
 
             const enabled = await wdioBrowser.execute(async () => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 const result = await api?.getAutoUpdateEnabled();
                 return result ?? false;
             });
@@ -971,7 +969,7 @@ describe('Auto-Update', () => {
             // Reset state: Clear any existing badges/tooltips
             await waitForIPCRoundTrip(async () => {
                 await wdioBrowser.execute(() => {
-                    const api = getElectronAPI();
+                    const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                     api?.devClearBadge();
                 });
             });
@@ -985,7 +983,7 @@ describe('Auto-Update', () => {
                     // Simulate update downloaded event via dev helper (assumes we have a way to trigger logic)
                     // Since we don't have a direct "simulate update downloaded" on electronAPI,
                     // we use the devShowBadge which internally calls BadgeManager.showUpdateBadge AND TrayManager.setUpdateTooltip
-                    const api = getElectronAPI();
+                    const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                     const [v] = args as [string];
                     api?.devShowBadge(v);
                 }, version);
@@ -994,7 +992,7 @@ describe('Auto-Update', () => {
             // WHEN the user hovers over the system tray icon (Simulated by checking tooltip text)
             // THEN tooltip should show "Gemini Desktop - Update vX.X.X available"
             const tooltip = await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 return api?.getTrayTooltip() ?? '';
             });
 
@@ -1003,14 +1001,14 @@ describe('Auto-Update', () => {
             // AND when user dismisses update (simulated by clearing badge)
             await waitForIPCRoundTrip(async () => {
                 await wdioBrowser.execute(() => {
-                    const api = getElectronAPI();
+                    const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                     api?.devClearBadge();
                 });
             });
 
             // THEN tooltip should revert to "Gemini Desktop"
             const finalTooltip = await wdioBrowser.execute(() => {
-                const api = getElectronAPI();
+                const api = (window as unknown as WindowWithElectronAPI).electronAPI;
                 return api?.getTrayTooltip() ?? '';
             });
 
