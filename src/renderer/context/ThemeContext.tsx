@@ -21,6 +21,8 @@
  * const { theme, setTheme, currentEffectiveTheme } = useTheme();
  */
 
+import { useEffect, type ReactNode } from 'react';
+
 import { createRendererLogger } from '../utils';
 import { createElectronContext } from './createElectronContext';
 
@@ -37,6 +39,7 @@ export type Theme = 'light' | 'dark' | 'system';
 interface ThemeData {
     preference: Theme;
     effectiveTheme: 'light' | 'dark';
+    source?: 'ipc' | 'default' | 'local';
 }
 
 /** Theme context value exposed to consumers */
@@ -59,6 +62,9 @@ interface ThemeContextType {
  * @returns 'dark' if system prefers dark mode, 'light' otherwise
  */
 function getSystemThemePreference(): 'light' | 'dark' {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+        return 'light';
+    }
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return isDark ? 'dark' : 'light';
 }
@@ -80,7 +86,10 @@ function isThemeData(data: unknown): data is ThemeData {
 
 function normalizeThemeData(data: unknown): ThemeData | null {
     if (isThemeData(data)) {
-        return data;
+        return {
+            ...data,
+            source: 'ipc',
+        };
     }
     if (typeof data === 'string') {
         const preference = data as Theme;
@@ -88,16 +97,22 @@ function normalizeThemeData(data: unknown): ThemeData | null {
         return {
             preference,
             effectiveTheme: effective,
+            source: 'ipc',
         };
     }
-    return null;
+    return {
+        preference: 'system',
+        effectiveTheme: getSystemThemePreference(),
+        source: 'default',
+    };
 }
 
 const themeChannels = {
     theme: {
         defaultValue: {
             preference: 'system' as Theme,
-            effectiveTheme: getSystemThemePreference(),
+            effectiveTheme: 'light',
+            source: 'default',
         },
         getter: (api: NonNullable<typeof window.electronAPI>) => api.getTheme,
         onChange: (api: NonNullable<typeof window.electronAPI>) => api.onThemeChanged,
@@ -106,22 +121,32 @@ const themeChannels = {
     },
 } as const;
 
-const { Provider: ThemeProvider, useContextHook: useTheme } = createElectronContext({
+const { Provider: BaseThemeProvider, useContextHook: useTheme } = createElectronContext({
     displayName: 'Theme',
     channels: themeChannels,
     buildContextValue: (state, setters): ThemeContextType => {
+        const fallbackTheme = getSystemThemePreference();
+        const safeState = isThemeData(state.theme)
+            ? state.theme
+            : {
+                  preference: 'system' as Theme,
+                  effectiveTheme: fallbackTheme,
+              };
         const resolvedEffectiveTheme =
-            window.electronAPI || state.theme.preference !== 'system'
-                ? state.theme.effectiveTheme
-                : getSystemThemePreference();
+            safeState.preference === 'system'
+                ? safeState.source === 'default'
+                    ? fallbackTheme
+                    : (safeState.effectiveTheme ?? fallbackTheme)
+                : (safeState.effectiveTheme ?? safeState.preference);
 
         return {
-            theme: state.theme.preference,
+            theme: safeState.preference,
             setTheme: (newTheme: Theme) => {
                 const effectiveTheme = newTheme === 'system' ? getSystemThemePreference() : newTheme;
                 const nextData: ThemeData = {
                     preference: newTheme,
                     effectiveTheme,
+                    source: 'local',
                 };
                 setters.theme(nextData);
                 applyThemeToDom(effectiveTheme);
@@ -134,11 +159,23 @@ const { Provider: ThemeProvider, useContextHook: useTheme } = createElectronCont
             currentEffectiveTheme: resolvedEffectiveTheme,
         };
     },
-    onStateChange: (_name, value) => {
-        const resolvedEffectiveTheme =
-            window.electronAPI || value.preference !== 'system' ? value.effectiveTheme : getSystemThemePreference();
-        applyThemeToDom(resolvedEffectiveTheme);
-    },
 });
+
+function ThemeDomSync() {
+    const { currentEffectiveTheme } = useTheme();
+
+    useEffect(() => {
+        applyThemeToDom(currentEffectiveTheme);
+    }, [currentEffectiveTheme]);
+
+    return null;
+}
+
+const ThemeProvider = ({ children }: { children: ReactNode }) => (
+    <BaseThemeProvider>
+        <ThemeDomSync />
+        {children}
+    </BaseThemeProvider>
+);
 
 export { ThemeProvider, useTheme };
