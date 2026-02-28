@@ -34,6 +34,7 @@ describe('Theme Full Round-Trip Coordination', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         themeChangeCallback = null;
+        document.documentElement.removeAttribute('data-theme');
 
         // Mock electronAPI
         mockGetTheme = vi.fn().mockResolvedValue({
@@ -241,6 +242,7 @@ describe('Theme Full Round-Trip Coordination', () => {
     describe('Error Handling', () => {
         it('should fallback to system theme on IPC error', async () => {
             mockGetTheme.mockRejectedValueOnce(new Error('IPC failed'));
+            vi.mocked(document.documentElement.setAttribute).mockClear();
 
             const { result } = renderHook(() => useTheme(), { wrapper });
 
@@ -255,6 +257,7 @@ describe('Theme Full Round-Trip Coordination', () => {
 
         it('should handle invalid theme data gracefully', async () => {
             mockGetTheme.mockResolvedValueOnce({ invalid: 'data' });
+            vi.mocked(document.documentElement.setAttribute).mockClear();
 
             const { result: _result } = renderHook(() => useTheme(), { wrapper });
 
