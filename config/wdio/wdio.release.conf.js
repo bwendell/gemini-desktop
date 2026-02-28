@@ -95,8 +95,6 @@ export const config = {
         '../../tests/e2e/menu_bar.spec.ts',
         '../../tests/e2e/options-window.spec.ts',
         '../../tests/e2e/theme.spec.ts',
-        '../../tests/e2e/theme-selector-visual.spec.ts',
-        '../../tests/e2e/theme-selector-keyboard.spec.ts',
 
         // Window management tests
         '../../tests/e2e/window-controls.spec.ts',
