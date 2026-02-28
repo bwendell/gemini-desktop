@@ -107,6 +107,8 @@ export const config = {
         // =========================================================================
         '../../tests/e2e/auto-update.spec.ts',
 
+        '../../tests/e2e/toast.spec.ts',
+
         // =========================================================================
         // Error Recovery & Stability
         // =========================================================================
@@ -246,8 +248,7 @@ export const config = {
             if (typeof imported.installRendererErrorInterceptor === 'function') {
                 await imported.installRendererErrorInterceptor();
             }
-        } catch (error) {
-        }
+        } catch (error) {}
     },
 
     // Ensure the app quits after tests
