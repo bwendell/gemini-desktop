@@ -63,6 +63,8 @@ jobs:
 
             - name: Install Dependencies
               run: npm ci
+              env:
+                  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
@@ -127,6 +129,8 @@ jobs:
 
             - name: Install Dependencies
               run: npm ci
+              env:
+                  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
@@ -181,6 +185,8 @@ jobs:
 
             - name: Install Dependencies
               run: npm ci
+              env:
+                  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
@@ -240,6 +246,8 @@ jobs:
 
             - name: Install Dependencies
               run: npm ci
+              env:
+                  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
@@ -299,6 +307,8 @@ jobs:
 
             - name: Install Dependencies
               run: npm ci
+              env:
+                  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
@@ -367,6 +377,8 @@ jobs:
 
             - name: Install Dependencies
               run: npm ci
+              env:
+                  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7

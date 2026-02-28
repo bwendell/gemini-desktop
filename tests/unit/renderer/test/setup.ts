@@ -9,6 +9,8 @@ import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 import React from 'react';
 
+vi.mock('electron', () => import('../../../helpers/mocks/renderer/electron'));
+
 // ============================================================================
 // Mock: framer-motion (animations don't work well in JSDOM)
 // ============================================================================
