@@ -15,14 +15,35 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+
+type E2EBrowser = typeof browser & {
+    electron: {
+        execute<R, T extends unknown[]>(
+            fn: (electron: typeof import('electron'), ...args: T) => R,
+            ...args: T
+        ): Promise<R>;
+    };
+    getWindowHandle(): Promise<string>;
+    getWindowHandles(): Promise<string[]>;
+    switchToWindow(handle: string): Promise<void>;
+    pause(ms: number): Promise<void>;
+};
+
+const wdioBrowser = browser as unknown as E2EBrowser;
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
-import { closeAllSecondaryWindows } from './helpers/WindowManagerHelper';
+import { closeAllSecondaryWindows, switchToMainWindowSafely } from './helpers/WindowManagerHelper';
+import { waitForAppReady, waitForElectronBridgeReady } from './helpers/workflows';
 
 import { MainWindowPage } from './pages/MainWindowPage';
 import { OptionsPage } from './pages/OptionsPage';
 import { isMacOS, isWindows, isLinuxCI } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
-import { waitForUIState, waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
+import {
+    executeElectronWithRetry,
+    waitForUIState,
+    waitForWindowTransition,
+    waitForFullscreenTransition,
+} from './helpers/waitUtilities';
 import {
     getAlwaysOnTopState,
     getWindowAlwaysOnTopState,
@@ -52,38 +73,56 @@ import { readUserPreferences } from './helpers/persistenceActions';
  * Set fullscreen mode.
  */
 async function setFullScreen(fullscreen: boolean): Promise<void> {
-    await browser.electron.execute((electron, fs) => {
-        const mainWindow = electron.BrowserWindow.getAllWindows()[0];
-        if (mainWindow) {
-            mainWindow.setFullScreen(fs);
-        }
-    }, fullscreen);
+    await executeElectronWithRetry(
+        () =>
+            wdioBrowser.electron.execute((electron: typeof import('electron'), isFullScreen: boolean) => {
+                const mainWindow = electron.BrowserWindow.getAllWindows()[0];
+                if (mainWindow) {
+                    mainWindow.setFullScreen(isFullScreen);
+                }
+            }, fullscreen),
+        { description: 'always-on-top electron execute' }
+    );
 }
 
 /**
  * Get current window bounds.
  */
 async function getWindowBounds(): Promise<{ x: number; y: number; width: number; height: number }> {
-    return browser.electron.execute((electron) => {
-        const mainWindow = electron.BrowserWindow.getAllWindows()[0];
-        if (!mainWindow) {
-            return { x: 0, y: 0, width: 800, height: 600 };
-        }
-        const bounds = mainWindow.getBounds();
-        return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
-    });
+    return executeElectronWithRetry(
+        () =>
+            wdioBrowser.electron.execute((electron: typeof import('electron')) => {
+                const mainWindow = electron.BrowserWindow.getAllWindows()[0];
+                if (!mainWindow) {
+                    return { x: 0, y: 0, width: 800, height: 600 };
+                }
+                const bounds = mainWindow.getBounds();
+                return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+            }),
+        { description: 'always-on-top electron execute' }
+    );
 }
 
 /**
  * Set window bounds.
  */
 async function setWindowBounds(bounds: { x?: number; y?: number; width?: number; height?: number }): Promise<void> {
-    await browser.electron.execute((electron, boundsParam) => {
-        const mainWindow = electron.BrowserWindow.getAllWindows()[0];
-        if (mainWindow) {
-            mainWindow.setBounds(boundsParam);
-        }
-    }, bounds);
+    await executeElectronWithRetry(
+        () =>
+            wdioBrowser.electron.execute(
+                (
+                    electron: typeof import('electron'),
+                    boundsParam: { x?: number; y?: number; width?: number; height?: number }
+                ) => {
+                    const mainWindow = electron.BrowserWindow.getAllWindows()[0];
+                    if (mainWindow) {
+                        mainWindow.setBounds(boundsParam);
+                    }
+                },
+                bounds
+            ),
+        { description: 'always-on-top electron execute' }
+    );
 }
 
 // ============================================================================
@@ -98,12 +137,26 @@ describe('Always On Top', () => {
     let originalBounds: { x: number; y: number; width: number; height: number };
 
     before(async () => {
+        await waitForAppReady();
+        await waitForElectronBridgeReady();
         originalBounds = await getWindowBounds();
-        const handles = await browser.getWindowHandles();
+        const handles = await wdioBrowser.getWindowHandles();
         mainWindowHandle = handles[0];
     });
 
     afterEach(async () => {
+        await wdioBrowser.pause(E2E_TIMING.UI_STATE_PAUSE_MS);
+        const handles = await wdioBrowser.getWindowHandles();
+        if (handles.length === 0) {
+            return;
+        }
+
+        if (!handles.includes(mainWindowHandle)) {
+            mainWindowHandle = handles[0];
+        }
+
+        await switchToMainWindowSafely(mainWindowHandle);
+
         // Ensure window is visible and restored
         await showWindow();
         await restoreWindow();
@@ -183,7 +236,7 @@ describe('Always On Top', () => {
             const startEnabled = initialState.enabled;
 
             for (let i = 0; i < 3; i++) {
-                await toggleAlwaysOnTopViaMenu(E2E_TIMING.CLEANUP_PAUSE);
+                await toggleAlwaysOnTopViaMenu(E2E_TIMING.IPC_ROUND_TRIP);
 
                 const expectedEnabled = i % 2 === 0 ? !startEnabled : startEnabled;
                 const currentState = await getAlwaysOnTopState();
@@ -191,7 +244,7 @@ describe('Always On Top', () => {
             }
 
             // Toggle back to original
-            await toggleAlwaysOnTopViaMenu(E2E_TIMING.CLEANUP_PAUSE);
+            await toggleAlwaysOnTopViaMenu(E2E_TIMING.IPC_ROUND_TRIP);
         });
     });
 
@@ -223,7 +276,7 @@ describe('Always On Top', () => {
             const startEnabled = initialState.enabled;
 
             for (let i = 0; i < 4; i++) {
-                await pressAlwaysOnTopHotkey(250);
+                await pressAlwaysOnTopHotkey(E2E_TIMING.IPC_ROUND_TRIP);
 
                 const currentState = await getAlwaysOnTopState();
                 const expectedEnabled = i % 2 === 0 ? !startEnabled : startEnabled;
@@ -241,7 +294,7 @@ describe('Always On Top', () => {
 
             // Rapidly press hotkey 5 times
             for (let i = 0; i < 5; i++) {
-                await pressAlwaysOnTopHotkey(100);
+                await pressAlwaysOnTopHotkey(E2E_TIMING.IPC_ROUND_TRIP);
             }
 
             await waitForUIState(
@@ -320,10 +373,10 @@ describe('Always On Top', () => {
             const startEnabled = initialState.enabled;
 
             // Rapidly alternate: hotkey, menu, hotkey, menu, hotkey
-            await pressAlwaysOnTopHotkey(E2E_TIMING.CLEANUP_PAUSE);
-            await toggleAlwaysOnTopViaMenu(E2E_TIMING.CLEANUP_PAUSE);
-            await pressAlwaysOnTopHotkey(E2E_TIMING.CLEANUP_PAUSE);
-            await toggleAlwaysOnTopViaMenu(E2E_TIMING.CLEANUP_PAUSE);
+            await pressAlwaysOnTopHotkey(E2E_TIMING.IPC_ROUND_TRIP);
+            await toggleAlwaysOnTopViaMenu(E2E_TIMING.IPC_ROUND_TRIP);
+            await pressAlwaysOnTopHotkey(E2E_TIMING.IPC_ROUND_TRIP);
+            await toggleAlwaysOnTopViaMenu(E2E_TIMING.IPC_ROUND_TRIP);
             await pressAlwaysOnTopHotkey();
 
             // After 5 toggles, should be opposite of start
@@ -722,7 +775,7 @@ describe('Always On Top', () => {
                 await mainWindow.openOptionsViaMenu();
                 await waitForWindowCount(2, 5000);
 
-                await browser.switchToWindow(mainWindowHandle);
+                await wdioBrowser.switchToWindow(mainWindowHandle);
                 const state = await getAlwaysOnTopState();
                 expect(state.enabled).toBe(true);
             });
@@ -733,13 +786,13 @@ describe('Always On Top', () => {
                 await mainWindow.openOptionsViaMenu();
                 await waitForWindowCount(2, 5000);
 
-                const handles = await browser.getWindowHandles();
-                const optionsHandle = handles.find((h) => h !== mainWindowHandle) || handles[1];
+                const handles = await wdioBrowser.getWindowHandles();
+                const optionsHandle = handles.find((h: string) => h !== mainWindowHandle) || handles[1];
 
-                await browser.switchToWindow(optionsHandle);
+                await wdioBrowser.switchToWindow(optionsHandle);
                 await waitForUIState(
                     async () => {
-                        const handles = await browser.getWindowHandles();
+                        const handles = await wdioBrowser.getWindowHandles();
                         return handles.length === 2;
                     },
                     { description: 'Options window ready' }
@@ -747,7 +800,7 @@ describe('Always On Top', () => {
                 await closeCurrentWindow();
                 await waitForWindowCount(1, 5000);
 
-                await browser.switchToWindow(mainWindowHandle);
+                await wdioBrowser.switchToWindow(mainWindowHandle);
 
                 const state = await getAlwaysOnTopState();
                 expect(state.enabled).toBe(true);
@@ -757,10 +810,10 @@ describe('Always On Top', () => {
                 await mainWindow.openOptionsViaMenu();
                 await waitForWindowCount(2, 5000);
 
-                await browser.switchToWindow(mainWindowHandle);
+                await wdioBrowser.switchToWindow(mainWindowHandle);
                 await waitForUIState(
                     async () => {
-                        const handle = await browser.getWindowHandle();
+                        const handle = await wdioBrowser.getWindowHandle();
                         return handle === mainWindowHandle;
                     },
                     { description: 'Main window focused after switch' }
@@ -783,7 +836,7 @@ describe('Always On Top', () => {
                 await mainWindow.openAboutViaMenu();
                 await waitForWindowCount(2, 5000);
 
-                await browser.switchToWindow(mainWindowHandle);
+                await wdioBrowser.switchToWindow(mainWindowHandle);
                 const state = await getAlwaysOnTopState();
                 expect(state.enabled).toBe(true);
             });
@@ -794,13 +847,13 @@ describe('Always On Top', () => {
                 await mainWindow.openAboutViaMenu();
                 await waitForWindowCount(2, 5000);
 
-                const handles = await browser.getWindowHandles();
-                const aboutHandle = handles.find((h) => h !== mainWindowHandle) || handles[1];
+                const handles = await wdioBrowser.getWindowHandles();
+                const aboutHandle = handles.find((h: string) => h !== mainWindowHandle) || handles[1];
 
-                await browser.switchToWindow(aboutHandle);
+                await wdioBrowser.switchToWindow(aboutHandle);
                 await waitForUIState(
                     async () => {
-                        const handle = await browser.getWindowHandle();
+                        const handle = await wdioBrowser.getWindowHandle();
                         return handle === aboutHandle;
                     },
                     { description: 'About window focused' }
@@ -808,7 +861,7 @@ describe('Always On Top', () => {
                 await closeCurrentWindow();
                 await waitForWindowCount(1, 5000);
 
-                await browser.switchToWindow(mainWindowHandle);
+                await wdioBrowser.switchToWindow(mainWindowHandle);
 
                 const state = await getAlwaysOnTopState();
                 expect(state.enabled).toBe(true);
@@ -822,13 +875,13 @@ describe('Always On Top', () => {
                 await mainWindow.openOptionsViaMenu();
                 await waitForWindowCount(2, 5000);
 
-                const handles = await browser.getWindowHandles();
-                const optionsHandle = handles.find((h) => h !== mainWindowHandle) || handles[1];
+                const handles = await wdioBrowser.getWindowHandles();
+                const optionsHandle = handles.find((h: string) => h !== mainWindowHandle) || handles[1];
 
-                await browser.switchToWindow(optionsHandle);
+                await wdioBrowser.switchToWindow(optionsHandle);
                 await waitForUIState(
                     async () => {
-                        const handle = await browser.getWindowHandle();
+                        const handle = await wdioBrowser.getWindowHandle();
                         return handle === optionsHandle;
                     },
                     { description: 'Options window focused' }
@@ -843,7 +896,7 @@ describe('Always On Top', () => {
                 await closeCurrentWindow();
                 await waitForWindowCount(1, 5000);
 
-                await browser.switchToWindow(mainWindowHandle);
+                await wdioBrowser.switchToWindow(mainWindowHandle);
                 const state = await getAlwaysOnTopState();
                 expect(state.enabled).toBe(true);
             });

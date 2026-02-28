@@ -596,6 +596,29 @@ export async function waitForAppReady(timeout = 15000): Promise<void> {
     E2ELogger.info('workflows', '✓ App is ready');
 }
 
+export async function waitForElectronBridgeReady(timeout = 15000): Promise<void> {
+    const ready = await waitForUIState(
+        async () => {
+            try {
+                await workflowsBrowser.electron.execute(() => true);
+                return true;
+            } catch (error) {
+                E2ELogger.debug('workflows', 'Electron bridge not ready', error);
+                return false;
+            }
+        },
+        {
+            timeout,
+            interval: E2E_TIMING.POLLING?.IPC ?? 50,
+            description: 'Electron bridge ready',
+        }
+    );
+
+    if (!ready) {
+        throw new Error('Electron bridge did not become ready');
+    }
+}
+
 /**
  * Waits for any pending IPC operations to complete.
  * Use after actions that trigger IPC calls.

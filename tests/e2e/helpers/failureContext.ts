@@ -268,7 +268,7 @@ export async function captureFailureContext(
         testAttempt: retryAttempt + 1,
         testMaxRetries: Number(process.env.WDIO_TEST_RETRIES ?? 0),
         specFileMaxRetries: Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 0),
-        workerId: typeof context.workerId === 'string' ? context.workerId : process.env.WDIO_WORKER_ID ?? null,
+        workerId: typeof context.workerId === 'string' ? context.workerId : (process.env.WDIO_WORKER_ID ?? null),
     };
 
     const environment = await captureEnvironment(recordFailure);
@@ -477,7 +477,7 @@ const captureErrorDetails = (
     try {
         const message = getErrorMessage(error) ?? '';
         const type = error instanceof Error ? error.name : 'Error';
-        const stack = error instanceof Error ? error.stack ?? '' : '';
+        const stack = error instanceof Error ? (error.stack ?? '') : '';
         const locator = parseLocatorFromError(error);
         const assertion = parseAssertionDetails(error);
         const expected = assertion.expected;
@@ -703,9 +703,7 @@ const getErrorMessage = (error: unknown) => {
     return undefined;
 };
 
-const inferDisplayServer = (
-    platform: string
-): FailureContext['environment']['display']['inferredServer'] => {
+const inferDisplayServer = (platform: string): FailureContext['environment']['display']['inferredServer'] => {
     if (platform !== 'linux') {
         return 'unknown';
     }

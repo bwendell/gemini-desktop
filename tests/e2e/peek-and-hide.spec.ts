@@ -15,16 +15,33 @@
 
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage } from './pages';
-import { isHotkeyRegistered, REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
-import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { getPlatformHotkeyStatus, isHotkeyRegistered, REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
+import { waitForAppReady, waitForElectronBridgeReady, ensureSingleWindow } from './helpers/workflows';
 import { isLinuxCI } from './helpers/platform';
 import { isWindowVisible, hideWindow, restoreWindow, showWindow } from './helpers/windowStateActions';
+import type { E2EGlobals } from '../../src/main/ApplicationContext';
+
+type PeekAndHideBrowser = typeof browser & {
+    waitUntil(
+        condition: () => Promise<boolean> | boolean,
+        options?: { timeout?: number; timeoutMsg?: string }
+    ): Promise<void>;
+    electron: {
+        execute<T, A extends unknown[]>(
+            fn: (electron: typeof import('electron'), ...args: A) => T,
+            ...args: A
+        ): Promise<T>;
+    };
+};
+
+const wdioBrowser = browser as unknown as PeekAndHideBrowser;
 
 describe('Peek and Hide (Hide All Windows)', () => {
     const mainWindow = new MainWindowPage();
 
     beforeEach(async () => {
         await waitForAppReady();
+        await waitForElectronBridgeReady();
     });
 
     afterEach(async () => {
@@ -35,6 +52,11 @@ describe('Peek and Hide (Hide All Windows)', () => {
         it('should have Peek and Hide hotkey registered by default', async function () {
             // Skip on Linux CI - global hotkeys are disabled due to Wayland limitations
             if (await isLinuxCI()) {
+                this.skip();
+            }
+
+            const platformStatus = await getPlatformHotkeyStatus();
+            if (platformStatus && !platformStatus.globalHotkeysEnabled) {
                 this.skip();
             }
 
@@ -129,16 +151,22 @@ describe('Peek and Hide (Hide All Windows)', () => {
             const initiallyVisible = await isWindowVisible();
             expect(initiallyVisible).toBe(true);
 
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            await wdioBrowser.electron.execute(() => {
+                const globals = global as unknown as E2EGlobals;
+                if (!globals.hotkeyManager) {
+                    throw new Error('HotkeyManager not available on global');
+                }
+                globals.hotkeyManager.executeHotkeyAction('peekAndHide');
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return !global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        const globals = global as unknown as E2EGlobals;
+                        if (!globals.windowManager) {
+                            throw new Error('WindowManager not available on global');
+                        }
+                        return !globals.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide after hotkeyManager.executeHotkeyAction' }
@@ -161,16 +189,22 @@ describe('Peek and Hide (Hide All Windows)', () => {
             const isHiddenBefore = await isWindowVisible();
             expect(isHiddenBefore).toBe(false);
 
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            await wdioBrowser.electron.execute(() => {
+                const globals = global as unknown as E2EGlobals;
+                if (!globals.hotkeyManager) {
+                    throw new Error('HotkeyManager not available on global');
+                }
+                globals.hotkeyManager.executeHotkeyAction('peekAndHide');
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        const globals = global as unknown as E2EGlobals;
+                        if (!globals.windowManager) {
+                            throw new Error('WindowManager not available on global');
+                        }
+                        return globals.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore after hotkeyManager.executeHotkeyAction' }
@@ -188,16 +222,22 @@ describe('Peek and Hide (Hide All Windows)', () => {
             const initiallyVisible = await isWindowVisible();
             expect(initiallyVisible).toBe(true);
 
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            await wdioBrowser.electron.execute(() => {
+                const globals = global as unknown as E2EGlobals;
+                if (!globals.hotkeyManager) {
+                    throw new Error('HotkeyManager not available on global');
+                }
+                globals.hotkeyManager.executeHotkeyAction('peekAndHide');
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return !global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        const globals = global as unknown as E2EGlobals;
+                        if (!globals.windowManager) {
+                            throw new Error('WindowManager not available on global');
+                        }
+                        return !globals.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide on first hotkeyManager dispatch' }
@@ -205,16 +245,22 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             expect(await isWindowVisible()).toBe(false);
 
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            await wdioBrowser.electron.execute(() => {
+                const globals = global as unknown as E2EGlobals;
+                if (!globals.hotkeyManager) {
+                    throw new Error('HotkeyManager not available on global');
+                }
+                globals.hotkeyManager.executeHotkeyAction('peekAndHide');
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        const globals = global as unknown as E2EGlobals;
+                        if (!globals.windowManager) {
+                            throw new Error('WindowManager not available on global');
+                        }
+                        return globals.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore on second hotkeyManager dispatch' }
@@ -236,17 +282,23 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(initiallyVisible).toBe(true);
 
             // Trigger toggle via windowManager (visible → hidden)
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.toggleMainWindowVisibility();
+            await wdioBrowser.electron.execute(() => {
+                const globals = global as unknown as E2EGlobals;
+                if (!globals.windowManager) {
+                    throw new Error('WindowManager not available on global');
+                }
+                globals.windowManager.toggleMainWindowVisibility();
             });
 
             // Wait for window to hide
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return !global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        const globals = global as unknown as E2EGlobals;
+                        if (!globals.windowManager) {
+                            throw new Error('WindowManager not available on global');
+                        }
+                        return !globals.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide after toggleMainWindowVisibility' }
@@ -274,17 +326,23 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(isHiddenBefore).toBe(false);
 
             // Trigger toggle (hidden → visible)
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.toggleMainWindowVisibility();
+            await wdioBrowser.electron.execute(() => {
+                const globals = global as unknown as E2EGlobals;
+                if (!globals.windowManager) {
+                    throw new Error('WindowManager not available on global');
+                }
+                globals.windowManager.toggleMainWindowVisibility();
             });
 
             // Wait for window to show
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        const globals = global as unknown as E2EGlobals;
+                        if (!globals.windowManager) {
+                            throw new Error('WindowManager not available on global');
+                        }
+                        return globals.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore after toggleMainWindowVisibility' }
@@ -305,16 +363,22 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(initiallyVisible).toBe(true);
 
             // First toggle: visible → hidden
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.toggleMainWindowVisibility();
+            await wdioBrowser.electron.execute(() => {
+                const globals = global as unknown as E2EGlobals;
+                if (!globals.windowManager) {
+                    throw new Error('WindowManager not available on global');
+                }
+                globals.windowManager.toggleMainWindowVisibility();
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return !global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        const globals = global as unknown as E2EGlobals;
+                        if (!globals.windowManager) {
+                            throw new Error('WindowManager not available on global');
+                        }
+                        return !globals.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide on first toggle' }
@@ -323,16 +387,22 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(await isWindowVisible()).toBe(false);
 
             // Second toggle: hidden → visible
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.toggleMainWindowVisibility();
+            await wdioBrowser.electron.execute(() => {
+                const globals = global as unknown as E2EGlobals;
+                if (!globals.windowManager) {
+                    throw new Error('WindowManager not available on global');
+                }
+                globals.windowManager.toggleMainWindowVisibility();
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        const globals = global as unknown as E2EGlobals;
+                        if (!globals.windowManager) {
+                            throw new Error('WindowManager not available on global');
+                        }
+                        return globals.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore on second toggle' }

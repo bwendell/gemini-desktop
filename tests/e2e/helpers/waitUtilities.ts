@@ -46,6 +46,12 @@ export interface WaitForUIStateOptions {
     description?: string;
 }
 
+export interface ExecuteElectronWithRetryOptions {
+    timeout?: number;
+    interval?: number;
+    description?: string;
+}
+
 /**
  * Options for waitForIPCRoundTrip.
  */
@@ -176,6 +182,45 @@ export async function waitForUIState(
 
     E2ELogger.info('waitUtilities', `${logPrefix}✗ Timeout waiting for UI state after ${timeout}ms`);
     return false;
+}
+
+export async function executeElectronWithRetry<T>(
+    action: () => Promise<T>,
+    options: ExecuteElectronWithRetryOptions = {}
+): Promise<T> {
+    const {
+        timeout = E2E_TIMING.TIMEOUTS?.IPC_OPERATION ?? 3000,
+        interval = E2E_TIMING.POLLING?.IPC ?? 50,
+        description = 'Electron bridge execute',
+    } = options;
+
+    let result!: T;
+    let lastError: unknown;
+    let succeeded = false;
+
+    const ready = await waitForUIState(
+        async () => {
+            try {
+                result = await action();
+                succeeded = true;
+                return true;
+            } catch (error) {
+                lastError = error;
+                return false;
+            }
+        },
+        {
+            timeout,
+            interval,
+            description,
+        }
+    );
+
+    if (!ready || !succeeded) {
+        throw lastError instanceof Error ? lastError : new Error('Electron bridge execute failed');
+    }
+
+    return result;
 }
 
 /**
@@ -487,7 +532,7 @@ export async function waitForMacOSWindowStabilize(
 
     // Check if we're on macOS
     const isMacOS = await wdioBrowser.execute(() => {
-        return navigator.platform.toLowerCase().includes('mac');
+        return navigator.userAgent.toLowerCase().includes('mac');
     });
 
     if (!isMacOS) {
@@ -636,7 +681,6 @@ export async function waitForCycle(
         results.push(success);
     }
 
-    const _allSucceeded = results.every((r) => r);
     E2ELogger.info(
         'waitUtilities',
         `✓ Cycle complete: ${results.filter((r) => r).length}/${operations.length} operations succeeded`

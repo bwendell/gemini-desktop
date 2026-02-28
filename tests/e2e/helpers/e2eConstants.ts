@@ -119,7 +119,7 @@ export const E2E_TIMING = {
         /** Max time to wait for UI state change (e.g., toggle, theme update) */
         UI_STATE: 5000,
         /** Max time to wait for IPC operation to complete */
-        IPC_OPERATION: 3000,
+        IPC_OPERATION: 10000,
         /** Max time to wait for window transition (minimize/maximize/restore) */
         WINDOW_TRANSITION: 5000,
         /** Max time to wait for CSS animation to settle */

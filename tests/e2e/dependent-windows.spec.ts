@@ -10,12 +10,18 @@
 
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage, TrayPage, AuthWindowPage } from './pages';
-import { waitForWindowCount } from './helpers/windowActions';
-import { waitForAllWindowsHidden, closeWindow } from './helpers/windowStateActions';
-import { waitForAppReady, ensureSingleWindow } from './helpers/workflows';
+import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
+import { waitForAllWindowsHidden } from './helpers/windowStateActions';
+import { waitForAppReady, waitForElectronBridgeReady, ensureSingleWindow } from './helpers/workflows';
 import { waitForUIState, waitForWindowTransition } from './helpers/waitUtilities';
 
 describe('Dependent Windows', () => {
+    type E2EBrowser = typeof browser & {
+        getWindowHandles(): Promise<string[]>;
+        switchToWindow(handle: string): Promise<void>;
+    };
+
+    const wdioBrowser = browser as unknown as E2EBrowser;
     const mainWindow = new MainWindowPage();
     const optionsPage = new OptionsPage();
     const tray = new TrayPage();
@@ -23,6 +29,7 @@ describe('Dependent Windows', () => {
 
     beforeEach(async () => {
         await waitForAppReady();
+        await waitForElectronBridgeReady();
     });
 
     afterEach(async () => {
@@ -36,21 +43,20 @@ describe('Dependent Windows', () => {
         // 2. Wait for options window to appear (2 windows total)
         await waitForWindowCount(2, 5000);
 
-        const handles = await browser.getWindowHandles();
+        const handles = await wdioBrowser.getWindowHandles();
         expect(handles.length).toBe(2);
 
         // 3. Switch to main window and close it (triggers hide-to-tray behavior)
         const mainHandle = handles[0];
-        await browser.switchToWindow(mainHandle);
+        await wdioBrowser.switchToWindow(mainHandle);
 
-        // 4. Close main window via IPC API (works on all platforms including macOS with native controls)
-        await closeWindow();
+        await closeCurrentWindow();
 
         // 5. Wait for both windows to close/hide
         // When main window hides to tray, options window should also close
         await waitForWindowTransition(
             async () => {
-                const handles = await browser.getWindowHandles();
+                const handles = await wdioBrowser.getWindowHandles();
                 return handles.length === 0;
             },
             { description: 'All windows hidden after main window close' }
@@ -69,15 +75,14 @@ describe('Dependent Windows', () => {
         await mainWindow.openOptionsViaMenu();
         await waitForWindowCount(2, 5000);
 
-        const handles = await browser.getWindowHandles();
+        const handles = await wdioBrowser.getWindowHandles();
         const mainHandle = handles[0];
-        await browser.switchToWindow(mainHandle);
+        await wdioBrowser.switchToWindow(mainHandle);
 
-        // Close to tray via IPC API (works on all platforms including macOS with native controls)
-        await closeWindow();
+        await closeCurrentWindow();
         await waitForWindowTransition(
             async () => {
-                const handles = await browser.getWindowHandles();
+                const handles = await wdioBrowser.getWindowHandles();
                 return handles.length === 0;
             },
             { description: 'Windows hidden during close-to-tray' }
@@ -97,11 +102,11 @@ describe('Dependent Windows', () => {
 
         // 6. Verify options window opens successfully
         await waitForWindowCount(2, 5000);
-        const newHandles = await browser.getWindowHandles();
+        const newHandles = await wdioBrowser.getWindowHandles();
         expect(newHandles.length).toBe(2);
 
         // 7. Switch to options window and verify it's functional
-        await browser.switchToWindow(newHandles[1]);
+        await wdioBrowser.switchToWindow(newHandles[1]);
         await optionsPage.waitForLoad();
 
         // 8. Clean up - close options window
@@ -115,32 +120,31 @@ describe('Dependent Windows', () => {
         await waitForWindowCount(2, 5000);
 
         // 2. Switch to main window and open Auth window via menu
-        const handles = await browser.getWindowHandles();
+        const handles = await wdioBrowser.getWindowHandles();
         const mainHandle = handles[0];
-        await browser.switchToWindow(mainHandle);
+        await wdioBrowser.switchToWindow(mainHandle);
         await authWindow.openViaMenu();
 
         // Wait for auth window to appear (might already be open from Options)
         await waitForUIState(
             async () => {
-                const allHandles = await browser.getWindowHandles();
+                const allHandles = await wdioBrowser.getWindowHandles();
                 return allHandles.length >= 2;
             },
             { description: 'Auth window appears' }
         );
-        const allHandles = await browser.getWindowHandles();
+        const allHandles = await wdioBrowser.getWindowHandles();
 
         // Should have at least 2 windows (main + options, auth may merge or not)
         expect(allHandles.length).toBeGreaterThanOrEqual(2);
 
-        // 3. Switch back to main window and close it via IPC API (works on all platforms)
-        await browser.switchToWindow(mainHandle);
-        await closeWindow();
+        await wdioBrowser.switchToWindow(mainHandle);
+        await closeCurrentWindow();
 
         // 4. Wait for all windows to close/hide
         await waitForWindowTransition(
             async () => {
-                const handles = await browser.getWindowHandles();
+                const handles = await wdioBrowser.getWindowHandles();
                 return handles.length === 0;
             },
             { description: 'All windows closed with main window', timeout: 7000 }

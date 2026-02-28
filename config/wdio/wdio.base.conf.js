@@ -35,6 +35,9 @@ export const baseConfig = {
             {
                 appEntryPoint: electronMainPath,
                 appArgs: getAppArgs('--test-auto-update', '--e2e-disable-auto-submit'),
+                cdpBridgeTimeout: 120000,
+                cdpBridgeWaitInterval: 1000,
+                cdpBridgeRetryCount: 12,
                 ...linuxServiceConfig,
             },
         ],
@@ -138,8 +141,7 @@ export const baseConfig = {
             if (typeof imported.installRendererErrorInterceptor === 'function') {
                 await imported.installRendererErrorInterceptor();
             }
-        } catch (error) {
-        }
+        } catch (error) {}
     },
 
     // Ensure the app quits after tests
