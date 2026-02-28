@@ -77,6 +77,14 @@ type ElectronModule = {
     globalShortcut: ElectronGlobalShortcut;
 };
 
+type ElectronBrowser = typeof browser & {
+    electron: {
+        execute: <T>(fn: (electron: ElectronModule) => T) => Promise<T>;
+    };
+};
+
+const electronBrowser = browser as ElectronBrowser;
+
 const isHotkeyRegistrationStatus = (value: unknown): value is HotkeyRegistrationStatus => {
     if (!value || typeof value !== 'object') {
         return false;
@@ -88,7 +96,8 @@ const isHotkeyRegistrationStatus = (value: unknown): value is HotkeyRegistration
     }
 
     if (status === 'success') {
-        return typeof (value as { quickChat?: unknown }).quickChat === 'boolean';
+        const successValue = value as { quickChat?: unknown; peekAndHide?: unknown };
+        return typeof successValue.quickChat === 'boolean' && typeof successValue.peekAndHide === 'boolean';
     }
 
     return typeof (value as { error?: unknown }).error === 'string';
@@ -107,7 +116,7 @@ describe('Hotkeys', () => {
                 return;
             }
 
-            const registrationStatus = await browser.electron.execute<HotkeyRegistrationStatus | null>(
+            const registrationStatus = await electronBrowser.electron.execute<HotkeyRegistrationStatus | null>(
                 (_electron: ElectronModule): HotkeyRegistrationStatus => {
                     const { globalShortcut } = _electron;
 
@@ -167,7 +176,7 @@ describe('Hotkeys', () => {
 
         describe('Quick Chat Hotkey', () => {
             it('should toggle Quick Chat window visibility when pressing CommandOrControl+Shift+Alt+Space', async () => {
-                const hotkeyStatus = await browser.electron.execute((_electron: ElectronModule) => {
+                const hotkeyStatus = await electronBrowser.electron.execute((_electron: ElectronModule) => {
                     try {
                         const { globalShortcut } = _electron;
                         return {
@@ -229,7 +238,7 @@ describe('Hotkeys', () => {
         });
 
         describe('Rendering', () => {
-            it('should display all three hotkey toggles', async () => {
+            it('should display all hotkey toggles', async () => {
                 for (const config of HOTKEY_CONFIGS) {
                     const toggle = await $(`[data-testid="${config.testId}"]`);
                     await expect(toggle).toExist();
@@ -397,7 +406,11 @@ describe('Hotkeys', () => {
                 const config = HOTKEY_CONFIGS.find((c) => c.id === 'quickChat')!;
 
                 afterEach(async () => {
-                    await setToggleTo(config.testId, 'true');
+                    try {
+                        await setToggleTo(config.testId, 'true');
+                    } catch (error) {
+                        console.warn('Hotkey toggle cleanup failed:', error);
+                    }
                 });
 
                 it('should disable Quick Chat action when toggle is OFF', async () => {
@@ -421,7 +434,11 @@ describe('Hotkeys', () => {
                 const config = HOTKEY_CONFIGS.find((c) => c.id === 'peekAndHide')!;
 
                 afterEach(async () => {
-                    await setToggleTo(config.testId, 'true');
+                    try {
+                        await setToggleTo(config.testId, 'true');
+                    } catch (error) {
+                        console.warn('Hotkey toggle cleanup failed:', error);
+                    }
                 });
 
                 it('should disable Peek and Hide action when toggle is OFF', async () => {
@@ -445,7 +462,11 @@ describe('Hotkeys', () => {
                 const config = HOTKEY_CONFIGS.find((c) => c.id === 'alwaysOnTop')!;
 
                 afterEach(async () => {
-                    await setToggleTo(config.testId, 'true');
+                    try {
+                        await setToggleTo(config.testId, 'true');
+                    } catch (error) {
+                        console.warn('Hotkey toggle cleanup failed:', error);
+                    }
                 });
 
                 it('should disable Always on Top action when toggle is OFF', async () => {
