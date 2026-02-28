@@ -12,6 +12,7 @@
 import { render, screen, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ThemeProvider, useTheme } from './ThemeContext';
+import '@testing-library/jest-dom';
 
 // ============================================================================
 // Test Component
@@ -24,9 +25,15 @@ const TestComponent = () => {
         <div>
             <span data-testid="current-theme">{theme}</span>
             <span data-testid="effective-theme">{currentEffectiveTheme}</span>
-            <button onClick={() => setTheme('light')}>Set Light</button>
-            <button onClick={() => setTheme('dark')}>Set Dark</button>
-            <button onClick={() => setTheme('system')}>Set System</button>
+            <button type="button" onClick={() => setTheme('light')}>
+                Set Light
+            </button>
+            <button type="button" onClick={() => setTheme('dark')}>
+                Set Dark
+            </button>
+            <button type="button" onClick={() => setTheme('system')}>
+                Set System
+            </button>
         </div>
     );
 };

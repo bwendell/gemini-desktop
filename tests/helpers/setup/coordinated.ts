@@ -12,6 +12,23 @@
  */
 import { vi, beforeEach, afterEach } from 'vitest';
 
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+    Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: (query: string) => ({
+            matches: false,
+            media: query,
+            onchange: null,
+            addListener: () => {},
+            removeListener: () => {},
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => false,
+        }),
+    });
+}
+
 // Reset and restore mocks between tests
 beforeEach(() => {
     vi.clearAllMocks();

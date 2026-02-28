@@ -5,6 +5,7 @@
 
 import { render, screen, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import '@testing-library/jest-dom';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
 // ============================================================================
@@ -15,12 +16,7 @@ const mockGetTheme = vi.fn();
 const mockSetTheme = vi.fn();
 const mockOnThemeChanged = vi.fn();
 
-// Augment window type for testing
-declare global {
-    interface Window {
-        electronAPI: any;
-    }
-}
+const windowApi = window as unknown as { electronAPI?: unknown };
 
 // ============================================================================
 // Test Components
@@ -33,9 +29,15 @@ const TestComponent = () => {
         <div>
             <span data-testid="current-theme">{theme}</span>
             <span data-testid="effective-theme">{currentEffectiveTheme}</span>
-            <button onClick={() => setTheme('light')}>Set Light</button>
-            <button onClick={() => setTheme('dark')}>Set Dark</button>
-            <button onClick={() => setTheme('system')}>Set System</button>
+            <button type="button" onClick={() => setTheme('light')}>
+                Set Light
+            </button>
+            <button type="button" onClick={() => setTheme('dark')}>
+                Set Dark
+            </button>
+            <button type="button" onClick={() => setTheme('system')}>
+                Set System
+            </button>
         </div>
     );
 };
@@ -53,7 +55,7 @@ describe('ThemeContext', () => {
         document.documentElement.removeAttribute('data-theme');
 
         // Restore electronAPI
-        window.electronAPI = {
+        windowApi.electronAPI = {
             getTheme: mockGetTheme,
             setTheme: mockSetTheme,
             onThemeChanged: mockOnThemeChanged,
@@ -95,8 +97,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-expect-error - Explicitly set electronAPI to undefined to test browser fallback
-            window.electronAPI = undefined;
+            windowApi.electronAPI = undefined;
 
             await act(async () => {
                 render(
@@ -159,8 +160,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-expect-error - Delete electronAPI to test browser fallback
-            delete window.electronAPI;
+            windowApi.electronAPI = undefined;
 
             await act(async () => {
                 render(
@@ -313,6 +313,8 @@ describe('ThemeContext', () => {
                 </ThemeProvider>
             );
 
+            await act(async () => {});
+
             await act(async () => {
                 unmount();
             });
@@ -336,8 +338,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-expect-error - Set electronAPI to undefined to test browser fallback
-            window.electronAPI = undefined;
+            windowApi.electronAPI = undefined;
 
             await act(async () => {
                 render(
@@ -381,8 +382,7 @@ describe('ThemeContext', () => {
                 dispatchEvent: vi.fn(),
             }));
 
-            // @ts-expect-error - Set electronAPI to undefined to test browser fallback
-            window.electronAPI = undefined;
+            windowApi.electronAPI = undefined;
 
             await act(async () => {
                 render(
