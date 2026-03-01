@@ -55,18 +55,12 @@ export const config = {
         // =========================================================================
         // Menu & Context Menu
         // =========================================================================
-        '../../tests/e2e/menu_bar.spec.ts',
-        '../../tests/e2e/menu-actions.spec.ts',
-        '../../tests/e2e/menu-interactions.spec.ts',
-        '../../tests/e2e/edit-menu-user-flow.spec.ts',
-        '../../tests/e2e/context-menu.spec.ts',
+        '../../tests/e2e/menu.spec.ts',
 
         // =========================================================================
         // Hotkeys
         // =========================================================================
         '../../tests/e2e/hotkeys.spec.ts',
-        '../../tests/e2e/hotkey-registration.spec.ts',
-        '../../tests/e2e/hotkey-toggle.spec.ts',
 
         // =========================================================================
         // Quick Chat
@@ -85,8 +79,6 @@ export const config = {
         // Theme
         // =========================================================================
         '../../tests/e2e/theme.spec.ts',
-        '../../tests/e2e/theme-selector-visual.spec.ts',
-        '../../tests/e2e/theme-selector-keyboard.spec.ts',
 
         // =========================================================================
         // Authentication & External Links
@@ -248,7 +240,11 @@ export const config = {
             if (typeof imported.installRendererErrorInterceptor === 'function') {
                 await imported.installRendererErrorInterceptor();
             }
-        } catch (error) {}
+        } catch (error) {
+            if (process.env.WDIO_DEBUG) {
+                console.warn('Failed to install renderer error interceptor:', error);
+            }
+        }
     },
 
     // Ensure the app quits after tests
