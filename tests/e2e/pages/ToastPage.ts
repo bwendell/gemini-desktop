@@ -12,7 +12,7 @@
 import { BasePage } from './BasePage';
 import { browser } from '@wdio/globals';
 import { E2E_TIMING } from '../helpers/e2eConstants';
-import { waitForUIState, waitForIPCRoundTrip } from '../helpers/waitUtilities';
+import { waitForUIState } from '../helpers/waitUtilities';
 
 type TPBrowser = {
     execute<R>(fn: (...args: any[]) => R, ...args: any[]): Promise<R>;
@@ -580,8 +580,11 @@ export class ToastPage extends BasePage {
      * Get the toast icon text (emoji).
      */
     async getToastIcon(): Promise<string> {
-        const iconElement = await this.$('.toast__icon');
-        return toTPEl(iconElement).getText();
+        const iconText = await tpBrowser.execute((selector: string) => {
+            const iconElement = document.querySelector(selector);
+            return iconElement?.textContent ?? '';
+        }, '.toast__icon');
+        return iconText.trim();
     }
 
     /**
@@ -733,10 +736,11 @@ export class ToastPage extends BasePage {
             }
         }
 
-        // Wait for final toast to render
-        await waitForUIState(async () => (await this.getToastCount()) === count, {
+        const expectedVisible = Math.min(count, 5);
+
+        await waitForUIState(async () => (await this.getToastCount()) === expectedVisible, {
             timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
-            description: 'all toasts to appear',
+            description: 'visible toasts to appear',
         });
         return ids;
     }
@@ -750,6 +754,9 @@ export class ToastPage extends BasePage {
         this.log(`Dismissing toast at index ${index}`);
         await this.waitForAnimationComplete();
 
+        const previousIds = await this.getToastIdsInOrder();
+        const dismissedId = previousIds[index] ?? '';
+
         await tpBrowser.execute(
             (toastSelector: string, dismissSelector: string, idx: number) => {
                 const toasts = document.querySelectorAll(toastSelector);
@@ -762,10 +769,24 @@ export class ToastPage extends BasePage {
             this.dismissButtonSelector,
             index
         );
-        await waitForUIState(async () => (await this.getToastCount()) < index + 1, {
-            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
-            description: 'toast to be dismissed',
-        });
+
+        const dismissed = await waitForUIState(
+            async () => {
+                const currentIds = await this.getToastIdsInOrder();
+                if (dismissedId) {
+                    return !currentIds.includes(dismissedId);
+                }
+                return currentIds.length < previousIds.length;
+            },
+            {
+                timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+                description: 'toast to be dismissed',
+            }
+        );
+
+        if (!dismissed) {
+            throw new Error(`Toast at index ${index} still visible after ${E2E_TIMING.TIMEOUTS.UI_STATE}ms`);
+        }
     }
 
     /**
