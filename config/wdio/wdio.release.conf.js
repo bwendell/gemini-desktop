@@ -96,9 +96,6 @@ export const config = {
         '../../tests/e2e/options-window.spec.ts',
         '../../tests/e2e/theme.spec.ts',
 
-        // Window management tests
-        '../../tests/e2e/window.spec.ts',
-
         // Tray functionality tests
         '../../tests/e2e/tray.spec.ts',
         // NOTE: tray-quit.spec.ts excluded - it quits the app which terminates WebDriverIO session

@@ -232,9 +232,7 @@ export const config = {
                 await imported.installRendererErrorInterceptor();
             }
         } catch (error) {
-            if (process.env.WDIO_DEBUG) {
-                console.warn('Failed to install renderer error interceptor:', error);
-            }
+            console.warn('Failed to install renderer error interceptor:', error);
         }
     },
 
