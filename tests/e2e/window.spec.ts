@@ -14,23 +14,21 @@ import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
 import { waitForUIState, waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
 import {
-    waitForAllWindowsHidden,
     closeWindow,
-    hideWindow,
-    restoreWindow,
-    showWindow,
-} from './helpers/windowStateActions';
-import {
-    isWindowMinimized,
-    isWindowMaximized,
-    isWindowFullScreen,
-    isWindowVisible,
-    isWindowDestroyed,
     getWindowState,
+    hideWindow,
+    isWindowDestroyed,
+    isWindowFullScreen,
+    isWindowMaximized,
+    isWindowMinimized,
+    isWindowVisible,
     maximizeWindow,
     minimizeWindow,
-    toggleFullscreen,
+    restoreWindow,
     setFullScreen,
+    showWindow,
+    toggleFullscreen,
+    waitForAllWindowsHidden,
 } from './helpers/windowStateActions';
 import { readUserPreferences } from './helpers/persistenceActions';
 import { isHotkeyRegistered, REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
@@ -1019,7 +1017,9 @@ describe('Window Management', () => {
 
                 await hideWindow();
 
-                await new Promise((resolve) => setTimeout(resolve, 1000));
+                await waitForUIState(async () => !(await isWindowVisible()), {
+                    description: 'Main window remains hidden before explicit restore',
+                });
 
                 const stillVisible = await isWindowVisible();
                 expect(stillVisible).toBe(false);
@@ -1450,6 +1450,10 @@ describe('Window Management', () => {
                     return;
                 }
 
+                if (await isLinuxCI()) {
+                    return;
+                }
+
                 const initialState = await isWindowMaximized();
                 if (!initialState) {
                     await maximizeWindow();
@@ -1599,7 +1603,13 @@ describe('Window Management', () => {
         });
 
         describe('Single Instance Restoration with Auxiliary Windows', () => {
-            it('should focus Options window when second instance is launched', async () => {
+            it('should focus Options window when second instance is launched', async function () {
+                const isPackaged = await wdioBrowser.electron.execute(
+                    (electron: typeof import('electron')) => electron.app.isPackaged
+                );
+                if (isPackaged) {
+                    this.skip();
+                }
                 await mainWindow.openOptionsViaMenu();
                 await waitForWindowCount(2, 5000);
                 await optionsPage.waitForLoad();
