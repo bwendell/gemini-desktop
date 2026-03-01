@@ -736,10 +736,11 @@ export class ToastPage extends BasePage {
             }
         }
 
-        // Wait for final toast to render
-        await waitForUIState(async () => (await this.getToastCount()) === count, {
+        const expectedVisible = Math.min(count, 5);
+
+        await waitForUIState(async () => (await this.getToastCount()) === expectedVisible, {
             timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
-            description: 'all toasts to appear',
+            description: 'visible toasts to appear',
         });
         return ids;
     }

@@ -5,7 +5,7 @@ import { $, $$, browser, expect } from '@wdio/globals';
 import { ToastPage, UpdateToastPage } from './pages';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import { ensureSingleWindow, waitForAppReady } from './helpers/workflows';
-import { waitForAnimationSettle, waitForDuration, waitForIPCRoundTrip, waitForUIState } from './helpers/waitUtilities';
+import { waitForDuration, waitForIPCRoundTrip, waitForUIState } from './helpers/waitUtilities';
 
 type ToastBrowser = {
     execute<TReturn, TArgs extends unknown[]>(
@@ -327,7 +327,6 @@ describe('Toast Notifications', () => {
         let toastPage: ToastPage;
 
         beforeEach(async () => {
-            await waitForAppReady();
             toastPage = new ToastPage();
             await toastPage.clearAll();
             await toastPage.clearActionClickTracking();
@@ -338,7 +337,6 @@ describe('Toast Notifications', () => {
 
         afterEach(async () => {
             await toastPage.clearAll();
-            await ensureSingleWindow();
         });
 
         describe('Dismiss Button (7.6.2.2)', () => {
@@ -1184,7 +1182,6 @@ describe('Toast Notifications', () => {
         const toastPage = new ToastPage();
 
         beforeEach(async () => {
-            await waitForAppReady();
             await toastPage.dismissAll();
             await waitForUIState(async () => true, {
                 timeout: E2E_TIMING.UI_STATE_PAUSE_MS,
@@ -1194,7 +1191,6 @@ describe('Toast Notifications', () => {
 
         afterEach(async () => {
             await toastPage.dismissAll();
-            await ensureSingleWindow();
         });
 
         describe('Success Toast Workflow (7.6.5.1)', () => {
@@ -1219,7 +1215,7 @@ describe('Toast Notifications', () => {
                 const ariaLive = await toastPage.getToastAriaLive();
                 expect(ariaLive).toBe('polite');
 
-                await toastPage.waitForAllToastsDismissed(AUTO_DISMISS_TIMEOUTS.error);
+                await toastPage.waitForAllToastsDismissed(AUTO_DISMISS_TIMEOUTS.success);
 
                 const remainingCount = await toastPage.getToastCount();
                 expect(remainingCount).toBe(0);
@@ -1251,7 +1247,10 @@ describe('Toast Notifications', () => {
                 expect(count).toBe(1);
 
                 await toastPage.dismissToast(0);
-                await toastPage.waitForAllToastsDismissed(AUTO_DISMISS_TIMEOUTS.error);
+                await waitForUIState(async () => (await toastPage.getToastCount()) === 0, {
+                    timeout: 2000,
+                    description: 'Toast dismissed via click',
+                });
 
                 count = await toastPage.getToastCount();
                 expect(count).toBe(0);
