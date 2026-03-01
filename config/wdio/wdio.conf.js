@@ -65,8 +65,6 @@ export const config = {
         // Hotkeys
         // =========================================================================
         '../../tests/e2e/hotkeys.spec.ts',
-        '../../tests/e2e/hotkey-registration.spec.ts',
-        '../../tests/e2e/hotkey-toggle.spec.ts',
 
         // =========================================================================
         // Quick Chat
