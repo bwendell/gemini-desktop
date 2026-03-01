@@ -55,11 +55,7 @@ export const config = {
         // =========================================================================
         // Menu & Context Menu
         // =========================================================================
-        '../../tests/e2e/menu_bar.spec.ts',
-        '../../tests/e2e/menu-actions.spec.ts',
-        '../../tests/e2e/menu-interactions.spec.ts',
-        '../../tests/e2e/edit-menu-user-flow.spec.ts',
-        '../../tests/e2e/context-menu.spec.ts',
+        '../../tests/e2e/menu.spec.ts',
 
         // =========================================================================
         // Hotkeys
