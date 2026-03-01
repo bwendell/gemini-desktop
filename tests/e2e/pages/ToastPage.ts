@@ -12,7 +12,7 @@
 import { BasePage } from './BasePage';
 import { browser } from '@wdio/globals';
 import { E2E_TIMING } from '../helpers/e2eConstants';
-import { waitForUIState, waitForIPCRoundTrip } from '../helpers/waitUtilities';
+import { waitForUIState } from '../helpers/waitUtilities';
 
 type TPBrowser = {
     execute<R>(fn: (...args: any[]) => R, ...args: any[]): Promise<R>;

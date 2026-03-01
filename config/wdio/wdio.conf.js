@@ -43,14 +43,7 @@ export const config = {
         // =========================================================================
         // Window Management
         // =========================================================================
-        '../../tests/e2e/always-on-top.spec.ts',
-        '../../tests/e2e/peek-and-hide.spec.ts',
-        '../../tests/e2e/dependent-windows.spec.ts',
-        '../../tests/e2e/window-bounds.spec.ts',
-        '../../tests/e2e/window-controls.spec.ts',
-        '../../tests/e2e/window-state.spec.ts',
-        '../../tests/e2e/window-titlebar.spec.ts',
-        '../../tests/e2e/window-management-edge-cases.spec.ts',
+        '../../tests/e2e/window.spec.ts',
 
         // =========================================================================
         // Menu & Context Menu
@@ -239,9 +232,7 @@ export const config = {
                 await imported.installRendererErrorInterceptor();
             }
         } catch (error) {
-            if (process.env.WDIO_DEBUG) {
-                console.warn('Failed to install renderer error interceptor:', error);
-            }
+            console.warn('Failed to install renderer error interceptor:', error);
         }
     },
 
