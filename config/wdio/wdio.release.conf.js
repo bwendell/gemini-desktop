@@ -92,11 +92,9 @@ export const config = {
         // Core functionality tests that work with packaged builds
         // These tests don't spawn additional Electron processes or require dev paths
         '../../tests/e2e/app-startup.spec.ts',
-        '../../tests/e2e/menu_bar.spec.ts',
+        '../../tests/e2e/menu.spec.ts',
         '../../tests/e2e/options-window.spec.ts',
         '../../tests/e2e/theme.spec.ts',
-        '../../tests/e2e/theme-selector-visual.spec.ts',
-        '../../tests/e2e/theme-selector-keyboard.spec.ts',
 
         // Window management tests
         '../../tests/e2e/window.spec.ts',
@@ -111,7 +109,6 @@ export const config = {
         '../../tests/e2e/settings-persistence.spec.ts',
 
         // Other core functionality
-        '../../tests/e2e/context-menu.spec.ts',
         '../../tests/e2e/external-links.spec.ts',
 
         // Release-specific tests (packaging verification)
