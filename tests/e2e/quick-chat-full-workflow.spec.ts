@@ -166,7 +166,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
                 async () => {
                     const syncResult = await wdioBrowser.electron.execute(
                         async (_electron: typeof import('electron'), activeTabId: string, title: string) => {
-                            const windowManager = (global as any).windowManager as
+                            const windowManager = (global as { appContext?: any }).appContext?.windowManager as
                                 | {
                                       getMainWindow?: () => Electron.BrowserWindow | null;
                                       getMainWindowInstance?: () => { emit?: (event: string) => void } | null;
@@ -412,7 +412,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
                 async () => {
                     const readyResult = await wdioBrowser.electron.execute(
                         async (electron: typeof import('electron'), activeTabId: string) => {
-                            const windowManager = (global as any).windowManager as
+                            const windowManager = (global as { appContext?: any }).appContext?.windowManager as
                                 | {
                                       getMainWindow?: () => Electron.BrowserWindow | null;
                                   }
@@ -458,7 +458,7 @@ describe('Quick Chat Full Workflow (E2E)', () => {
 
             const injectionResult = await wdioBrowser.electron.execute(
                 async (electron: typeof import('electron'), activeTabId: string) => {
-                    const windowManager = (global as any).windowManager as
+                    const windowManager = (global as { appContext?: any }).appContext?.windowManager as
                         | {
                               getMainWindow?: () => Electron.BrowserWindow | null;
                           }
