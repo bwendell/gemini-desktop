@@ -172,6 +172,8 @@ describe('IpcManager', () => {
             expect(hasListener('always-on-top:set')).toBe(true);
             expect(hasListener('open-options-window')).toBe(true);
             expect(hasHandler('open-google-signin')).toBe(true);
+            expect(hasListener('print:trigger')).toBe(true);
+            expect(hasListener('print:cancel')).toBe(true);
             // Auto-update handlers
             expect(hasHandler('auto-update:get-enabled')).toBe(true);
             expect(hasListener('auto-update:set-enabled')).toBe(true);
@@ -183,12 +185,6 @@ describe('IpcManager', () => {
         });
     });
 
-    // ... (Keep existing Window Handlers, Theme Handlers, etc. - I will paste the rest of the file content below but condensed or just overwrite the whole file to be safe)
-
-    // Actually, overwriting the whole file is safer given the issues. I'll read the original file again to copy the middle parts perfectly?
-    // No, I'll use the content I viewed in Step 261, but with my modifications.
-
-    // ... Window Handlers ...
     describe('Window Handlers', () => {
         let mockWindow: any;
         let mockEvent: any;
