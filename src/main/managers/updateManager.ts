@@ -143,7 +143,6 @@ export default class UpdateManager {
             updater.autoInstallOnAppQuit = true;
 
             if (process.platform === 'win32') {
-                updater.channel = process.arch === 'arm64' ? 'latest-arm64' : 'latest-x64';
                 updater.allowDowngrade = false;
             }
 

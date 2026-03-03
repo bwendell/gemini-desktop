@@ -20,6 +20,8 @@ vi.mock('electron-updater', () => ({
     autoUpdater: {
         autoDownload: false,
         autoInstallOnAppQuit: false,
+        channel: null,
+        allowDowngrade: false,
         logger: null,
         checkForUpdatesAndNotify: vi.fn(),
         quitAndInstall: vi.fn(),
@@ -187,24 +189,13 @@ describe('UpdateManager', () => {
         expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
     });
 
-    it('selects the correct update channel on Windows x64', async () => {
+    it('uses the default update channel on Windows', async () => {
         (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettingsStore);
 
         await updateManager.checkForUpdates();
 
-        expect(autoUpdater.channel).toBe('latest-x64');
-        expect(autoUpdater.allowDowngrade).toBe(false);
-    });
-
-    it('selects the arm64 update channel on Windows arm64', async () => {
-        Object.defineProperty(process, 'arch', { value: 'arm64', configurable: true });
-        (app as any).isPackaged = true;
-        updateManager = new UpdateManager(mockSettingsStore);
-
-        await updateManager.checkForUpdates();
-
-        expect(autoUpdater.channel).toBe('latest-arm64');
+        expect(autoUpdater.channel).toBeNull();
         expect(autoUpdater.allowDowngrade).toBe(false);
     });
 
