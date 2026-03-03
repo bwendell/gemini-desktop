@@ -21,6 +21,24 @@ import { isLinuxCI } from './helpers/platform';
 import { isWindowVisible, hideWindow, restoreWindow, showWindow } from './helpers/windowStateActions';
 
 describe('Peek and Hide (Hide All Windows)', () => {
+    type WdioBrowser = typeof browser & {
+        electron: {
+            execute<R, T extends unknown[]>(
+                fn: (electron: typeof import('electron'), ...args: T) => R,
+                ...args: T
+            ): Promise<R>;
+        };
+        waitUntil<T>(
+            condition: () => Promise<T> | T,
+            options?: {
+                timeout?: number;
+                timeoutMsg?: string;
+                interval?: number;
+            }
+        ): Promise<T>;
+    };
+
+    const wdioBrowser = browser as WdioBrowser;
     const mainWindow = new MainWindowPage();
 
     beforeEach(async () => {
@@ -129,16 +147,14 @@ describe('Peek and Hide (Hide All Windows)', () => {
             const initiallyVisible = await isWindowVisible();
             expect(initiallyVisible).toBe(true);
 
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction('peekAndHide');
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return !global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        return !(global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide after hotkeyManager.executeHotkeyAction' }
@@ -161,16 +177,14 @@ describe('Peek and Hide (Hide All Windows)', () => {
             const isHiddenBefore = await isWindowVisible();
             expect(isHiddenBefore).toBe(false);
 
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction('peekAndHide');
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        return (global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore after hotkeyManager.executeHotkeyAction' }
@@ -188,16 +202,14 @@ describe('Peek and Hide (Hide All Windows)', () => {
             const initiallyVisible = await isWindowVisible();
             expect(initiallyVisible).toBe(true);
 
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction('peekAndHide');
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return !global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        return !(global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide on first hotkeyManager dispatch' }
@@ -205,16 +217,14 @@ describe('Peek and Hide (Hide All Windows)', () => {
 
             expect(await isWindowVisible()).toBe(false);
 
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction('peekAndHide');
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        return (global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore on second hotkeyManager dispatch' }
@@ -236,20 +246,18 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(initiallyVisible).toBe(true);
 
             // Trigger toggle via windowManager (visible → hidden)
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.toggleMainWindowVisibility();
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.toggleMainWindowVisibility();
             });
 
             // Wait for window to hide
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return !global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        return (global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                     });
                 },
-                { timeout: 5000, timeoutMsg: 'Window did not hide after toggleMainWindowVisibility' }
+                { timeout: 5000, timeoutMsg: 'Window did not restore after toggleMainWindowVisibility' }
             );
 
             const isHiddenAfterToggle = await isWindowVisible();
@@ -274,20 +282,18 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(isHiddenBefore).toBe(false);
 
             // Trigger toggle (hidden → visible)
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.toggleMainWindowVisibility();
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.toggleMainWindowVisibility();
             });
 
             // Wait for window to show
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        return !(global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                     });
                 },
-                { timeout: 5000, timeoutMsg: 'Window did not restore after toggleMainWindowVisibility' }
+                { timeout: 5000, timeoutMsg: 'Window did not hide after toggleMainWindowVisibility' }
             );
 
             const isVisibleAfterToggle = await isWindowVisible();
@@ -305,16 +311,14 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(initiallyVisible).toBe(true);
 
             // First toggle: visible → hidden
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.toggleMainWindowVisibility();
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.toggleMainWindowVisibility();
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return !global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        return !(global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide on first toggle' }
@@ -323,16 +327,14 @@ describe('Peek and Hide (Hide All Windows)', () => {
             expect(await isWindowVisible()).toBe(false);
 
             // Second toggle: hidden → visible
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                global.windowManager.toggleMainWindowVisibility();
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.toggleMainWindowVisibility();
             });
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    return await browser.electron.execute(() => {
-                        // @ts-expect-error
-                        return global.windowManager.isMainWindowVisible();
+                    return await wdioBrowser.electron.execute(() => {
+                        return (global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore on second toggle' }
