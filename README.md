@@ -4,7 +4,7 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
 [![GitHub last commit](https://img.shields.io/github/last-commit/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/commits/main)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
+[![Platform](<https://img.shields.io/badge/platform-Windows%20(x64%2C%20ARM64)%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square>)](https://github.com/bwendell/gemini-desktop/releases)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bwendell/gemini-desktop/badge)](https://securityscorecards.dev/viewer/?uri=github.com/bwendell/gemini-desktop)
 [![CodeQL](https://img.shields.io/badge/CodeQL-enabled-brightgreen?logo=github)](https://github.com/bwendell/gemini-desktop/security/code-scanning)
 
@@ -83,11 +83,12 @@ Keep Gemini visible while you work. Toggle "Always On Top" mode with **`Ctrl+Shi
 
 ### Windows
 
-Download the latest `.exe` installer from [Releases](https://github.com/bwendell/gemini-desktop/releases).
+Download the latest `.exe` installer for your architecture from [Releases](https://github.com/bwendell/gemini-desktop/releases):
 
-```
-Gemini Desktop-x.x.x-x64-installer.exe
-```
+- **x64 (Intel/AMD)**: `Gemini Desktop-x.x.x-x64-installer.exe`
+- **ARM64 (Snapdragon/Qualcomm)**: `Gemini Desktop-x.x.x-arm64-installer.exe`
+
+> 💡 **Not sure which to download?** Open Settings → System → About and check "System type". If it says "ARM-based processor", download the ARM64 version.
 
 ### macOS
 
