@@ -2,19 +2,23 @@
  * @type {import('electron-builder').Configuration}
  * @see https://www.electron.build/configuration/configuration
  */
-const buildArch = process.env.npm_config_arch || process.env.BUILD_ARCH || process.arch;
+const explicitBuildArch = process.env.npm_config_arch || process.env.BUILD_ARCH;
+const buildArch = explicitBuildArch || process.arch;
 const buildPlatform = process.env.BUILD_PLATFORM || process.platform;
 const isWindowsBuild = buildPlatform === 'win32';
+const isMultiArchWindowsBuild = isWindowsBuild && !explicitBuildArch;
 
 const windowsBinaryExclusions = isWindowsBuild
-    ? buildArch === 'arm64'
-        ? [
-              '!node_modules/@node-llama-cpp/win-x64',
-              '!node_modules/@node-llama-cpp/win-x64-cuda',
-              '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
-              '!node_modules/@node-llama-cpp/win-x64-vulkan',
-          ]
-        : ['!node_modules/@node-llama-cpp/win-arm64']
+    ? isMultiArchWindowsBuild
+        ? []
+        : buildArch === 'arm64'
+          ? [
+                '!node_modules/@node-llama-cpp/win-x64',
+                '!node_modules/@node-llama-cpp/win-x64-cuda',
+                '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+                '!node_modules/@node-llama-cpp/win-x64-vulkan',
+            ]
+          : ['!node_modules/@node-llama-cpp/win-arm64']
     : [
           '!node_modules/@node-llama-cpp/win-arm64',
           '!node_modules/@node-llama-cpp/win-x64',
