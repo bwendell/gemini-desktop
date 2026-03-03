@@ -437,7 +437,7 @@ jobs:
                       emoji: '🐧'
                       platform: 'Ubuntu'
                     - os: windows-latest
-                      dist-script: 'dist:win'
+                      dist-script: 'dist:win-x64'
                       emoji: '🪟'
                       platform: 'Windows'
                     - os: macos-latest
