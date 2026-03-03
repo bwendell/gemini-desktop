@@ -99,6 +99,8 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         getIndividualHotkeys: vi.fn().mockResolvedValue({
             quickChat: true,
             alwaysOnTop: true,
+            peekAndHide: true,
+            voiceChat: true,
             printToPdf: true,
         }),
         setIndividualHotkey: vi.fn(),
@@ -109,20 +111,17 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         // =========================================================================
         getHotkeyAccelerators: vi.fn().mockResolvedValue({
             quickChat: 'CommandOrControl+Shift+Alt+Space',
-            alwaysOnTop: 'CommandOrControl+Alt+T',
-            printToPdf: 'CommandOrControl+Alt+P',
+            peekAndHide: 'CommandOrControl+Shift+Space',
+            voiceChat: 'CommandOrControl+Shift+M',
+            alwaysOnTop: 'CommandOrControl+Alt+P',
+            printToPdf: 'CommandOrControl+Shift+P',
         }),
         getFullHotkeySettings: vi.fn().mockResolvedValue({
-            individualHotkeys: {
-                quickChat: true,
-                alwaysOnTop: true,
-                printToPdf: true,
-            },
-            accelerators: {
-                quickChat: 'CommandOrControl+Shift+Alt+Space',
-                alwaysOnTop: 'CommandOrControl+Alt+T',
-                printToPdf: 'CommandOrControl+Alt+P',
-            },
+            alwaysOnTop: { enabled: true, accelerator: 'CommandOrControl+Alt+P' },
+            peekAndHide: { enabled: true, accelerator: 'CommandOrControl+Shift+Space' },
+            quickChat: { enabled: true, accelerator: 'CommandOrControl+Shift+Alt+Space' },
+            voiceChat: { enabled: true, accelerator: 'CommandOrControl+Shift+M' },
+            printToPdf: { enabled: true, accelerator: 'CommandOrControl+Shift+P' },
         }),
         setHotkeyAccelerator: vi.fn(),
         onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
@@ -200,10 +199,15 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         predictText: vi.fn().mockResolvedValue(null),
 
         getPlatformHotkeyStatus: vi.fn().mockResolvedValue({
-            enabled: false,
-            supported: false,
-            reason: 'not-implemented',
-            mode: 'unknown',
+            waylandStatus: {
+                isWayland: false,
+                desktopEnvironment: 'unknown',
+                deVersion: null,
+                portalAvailable: false,
+                portalMethod: 'none',
+            },
+            registrationResults: [],
+            globalHotkeysEnabled: false,
         }),
         onPlatformHotkeyStatusChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
 
