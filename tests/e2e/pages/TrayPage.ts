@@ -392,7 +392,7 @@ export class TrayPage extends BasePage {
         error: string | null;
     }> {
         return trBrowser.electron.execute(() => {
-            const trayManager = (global as any).trayManager;
+            const trayManager = (global as { appContext?: any }).appContext?.trayManager;
 
             if (!trayManager) {
                 return { exists: false, tooltip: null, error: 'trayManager not in global' };
@@ -479,7 +479,7 @@ export class TrayPage extends BasePage {
      */
     async hasClickHandler(): Promise<boolean> {
         return trBrowser.electron.execute(() => {
-            const trayManager = (global as any).trayManager;
+            const trayManager = (global as { appContext?: any }).appContext?.trayManager;
             const tray = trayManager?.getTray();
             // Tray existence implies click handler was registered in createTray()
             return tray && !tray.isDestroyed();
@@ -492,7 +492,7 @@ export class TrayPage extends BasePage {
      */
     async hasContextMenu(): Promise<boolean> {
         return trBrowser.electron.execute(() => {
-            const trayManager = (global as any).trayManager;
+            const trayManager = (global as { appContext?: any }).appContext?.trayManager;
             const tray = trayManager?.getTray();
             // Context menu is always set if tray was created successfully
             return tray && !tray.isDestroyed();
