@@ -83,6 +83,9 @@ export const IPC_CHANNELS = {
     // Tray
     TRAY_GET_TOOLTIP: 'tray:get-tooltip',
 
+    PRINT_TRIGGER: 'print:trigger',
+    PRINT_CANCEL: 'print:cancel',
+
     EXPORT_CHAT_PDF: 'export-chat:pdf',
     EXPORT_CHAT_MARKDOWN: 'export-chat:markdown',
 

@@ -18,6 +18,7 @@ export { WindowIpcHandler } from './WindowIpcHandler';
 export { ThemeIpcHandler } from './ThemeIpcHandler';
 export { ZoomIpcHandler } from './ZoomIpcHandler';
 export { AlwaysOnTopIpcHandler } from './AlwaysOnTopIpcHandler';
+export { PrintIpcHandler } from './PrintIpcHandler';
 export { HotkeyIpcHandler } from './HotkeyIpcHandler';
 export { AppIpcHandler } from './AppIpcHandler';
 export { AutoUpdateIpcHandler } from './AutoUpdateIpcHandler';
