@@ -2,6 +2,27 @@
  * @type {import('electron-builder').Configuration}
  * @see https://www.electron.build/configuration/configuration
  */
+const buildArch = process.env.npm_config_arch || process.env.BUILD_ARCH || process.arch;
+const buildPlatform = process.env.BUILD_PLATFORM || process.platform;
+const isWindowsBuild = buildPlatform === 'win32';
+
+const windowsBinaryExclusions = isWindowsBuild
+    ? buildArch === 'arm64'
+        ? [
+              '!node_modules/@node-llama-cpp/win-x64',
+              '!node_modules/@node-llama-cpp/win-x64-cuda',
+              '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+              '!node_modules/@node-llama-cpp/win-x64-vulkan',
+          ]
+        : ['!node_modules/@node-llama-cpp/win-arm64']
+    : [
+          '!node_modules/@node-llama-cpp/win-arm64',
+          '!node_modules/@node-llama-cpp/win-x64',
+          '!node_modules/@node-llama-cpp/win-x64-cuda',
+          '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+          '!node_modules/@node-llama-cpp/win-x64-vulkan',
+      ];
+
 module.exports = {
     appId: 'com.benwendell.gemini-desktop',
     productName: 'Gemini Desktop',
@@ -25,11 +46,7 @@ module.exports = {
         '!node_modules/@node-llama-cpp/linux-x64',
         '!node_modules/@node-llama-cpp/mac-arm64-metal',
         '!node_modules/@node-llama-cpp/mac-x64',
-        '!node_modules/@node-llama-cpp/win-arm64',
-        '!node_modules/@node-llama-cpp/win-x64',
-        '!node_modules/@node-llama-cpp/win-x64-cuda',
-        '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
-        '!node_modules/@node-llama-cpp/win-x64-vulkan',
+        ...windowsBinaryExclusions,
     ],
     // Native .node binaries must be unpacked from asar for node-llama-cpp to load them
     asarUnpack: ['node_modules/@node-llama-cpp/**/*.node', 'node_modules/node-llama-cpp/**/*'],
@@ -44,11 +61,11 @@ module.exports = {
         target: [
             {
                 target: 'nsis',
-                arch: ['x64'],
+                arch: ['x64', 'arm64'],
             },
             {
                 target: 'msi',
-                arch: ['x64'],
+                arch: ['x64', 'arm64'],
             },
         ],
         icon: 'build/icon.png',
