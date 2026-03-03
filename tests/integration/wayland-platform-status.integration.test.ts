@@ -45,7 +45,7 @@ describe('Platform Hotkey Status IPC', () => {
         isLinux: boolean;
     }> {
         const status = await browserWithElectron.electron.execute(() => {
-            return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
+            return global.appContext.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
         });
 
         const isLinux = await browserWithElectron.electron.execute(() => process.platform === 'linux');
@@ -79,7 +79,7 @@ describe('Platform Hotkey Status IPC', () => {
         it('main process returns correctly typed PlatformHotkeyStatus object', async () => {
             // Query directly via main process to bypass renderer
             const status = await browserWithElectron.electron.execute(() => {
-                return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
+                return global.appContext.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
             });
 
             // Verify response has required fields
@@ -95,7 +95,7 @@ describe('Platform Hotkey Status IPC', () => {
             if (isLinuxCI || isWinCI) this.skip();
             // Get platform status from main process
             const status = await browserWithElectron.electron.execute(() => {
-                return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
+                return global.appContext.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
             });
 
             // Check if quickChat is registered via globalShortcut
