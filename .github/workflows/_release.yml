@@ -71,6 +71,13 @@ jobs:
                   cd release
                   shasum -a 256 *.dmg *.zip > checksums-macos-x64.txt
 
+            - name: Prepare macOS update metadata (x64)
+              run: |
+                  cd release
+                  if [ -f latest-mac.yml ]; then
+                    mv latest-mac.yml latest-mac-x64.yml
+                  fi
+
             - name: Upload to GitHub Release
               uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
               with:
@@ -80,8 +87,8 @@ jobs:
                       release/*.dmg
                       release/*.zip
                       release/*.zip.blockmap
-                      release/latest-mac.yml
                       release/checksums-macos-x64.txt
+                      release/latest-mac-x64.yml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -136,6 +143,13 @@ jobs:
                   cd release
                   shasum -a 256 *.dmg *.zip > checksums-macos-arm64.txt
 
+            - name: Prepare macOS update metadata (arm64)
+              run: |
+                  cd release
+                  if [ -f latest-mac.yml ]; then
+                    mv latest-mac.yml latest-mac-arm64.yml
+                  fi
+
             - name: Upload to GitHub Release
               uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
               with:
@@ -145,8 +159,8 @@ jobs:
                       release/*.dmg
                       release/*.zip
                       release/*.zip.blockmap
-                      release/latest-mac.yml
                       release/checksums-macos-arm64.txt
+                      release/latest-mac-arm64.yml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -210,7 +224,9 @@ jobs:
             - name: Generate Checksums
               run: |
                   cd release
-                  Get-FileHash *.exe *.msi -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
+                  $files = @(Get-ChildItem -Path *.exe -File) + @(Get-ChildItem -Path *.msi -File)
+                  if ($files.Count -eq 0) { throw 'No .exe or .msi files found in release/ for checksum generation.' }
+                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
               shell: pwsh
 
             - name: Upload to GitHub Release
