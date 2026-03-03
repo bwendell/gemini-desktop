@@ -201,9 +201,17 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 - **macOS menubar icon fix** — use template tray assets to avoid stretching. ([#132](https://github.com/bwendell/gemini-desktop/issues/132), [#134](https://github.com/bwendell/gemini-desktop/pull/134))
 - **Text prediction setup fix** — handle packaged LLM fallback without export errors. ([#133](https://github.com/bwendell/gemini-desktop/issues/133), [#135](https://github.com/bwendell/gemini-desktop/pull/135))
 
+### v0.10.0 — Fixes & Updates
+
+- **Bug fix** for issue [#150](https://github.com/bwendell/gemini-desktop/issues/150).
+- **Feature** for issue [#151](https://github.com/bwendell/gemini-desktop/issues/151). ([#170](https://github.com/bwendell/gemini-desktop/pull/170))
+- **Bug fix** for issue [#158](https://github.com/bwendell/gemini-desktop/issues/158).
+- **Docs change** for issue [#169](https://github.com/bwendell/gemini-desktop/issues/169).
+
 ### Future Work
 
 - **Investigate AI Studio support** and feasibility for a better Gemini Live experience. ([#90](https://github.com/bwendell/gemini-desktop/issues/90))
+- **Feature** for issue [#159](https://github.com/bwendell/gemini-desktop/issues/159).
 
 ---
 
