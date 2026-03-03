@@ -81,8 +81,10 @@ describe('Window Controls Functionality', () => {
             await mainWindow.clickMaximize();
 
             // 3. Verify window is now maximized
-            const isMaximized = await isWindowMaximized();
-            expect(isMaximized).toBe(true);
+            const didMaximize = await waitForWindowTransition(async () => await isWindowMaximized(), {
+                description: 'Window maximize',
+            });
+            expect(didMaximize).toBe(true);
         });
 
         it('should restore window when maximize button is clicked again', async () => {
@@ -100,8 +102,10 @@ describe('Window Controls Functionality', () => {
             await mainWindow.clickMaximize();
 
             // 3. Verify window is restored (not maximized)
-            const isMaximized = await isWindowMaximized();
-            expect(isMaximized).toBe(false);
+            const didRestore = await waitForWindowTransition(async () => !(await isWindowMaximized()), {
+                description: 'Window restore',
+            });
+            expect(didRestore).toBe(true);
         });
 
         it('should minimize window to taskbar when minimize button is clicked', async () => {
@@ -118,11 +122,16 @@ describe('Window Controls Functionality', () => {
             await mainWindow.clickMinimize();
 
             // 2. Verify window is minimized (Standard behavior)
-            const isMinimized = await isWindowMinimized();
-            expect(isMinimized).toBe(true);
+            const didMinimize = await waitForWindowTransition(async () => await isWindowMinimized(), {
+                description: 'Window minimize',
+            });
+            expect(didMinimize).toBe(true);
 
             // 3. Restore window for subsequent tests
             await restoreWindow();
+            await waitForWindowTransition(async () => !(await isWindowMinimized()), {
+                description: 'Window restore after minimize',
+            });
         });
 
         it('should hide window to tray when close button is clicked', async () => {
@@ -273,13 +282,17 @@ describe('Window Controls Functionality', () => {
 
             // 2. Maximize via API
             await maximizeWindow();
-            const afterMaximize = await isWindowMaximized();
-            expect(afterMaximize).toBe(true);
+            const didMaximize = await waitForWindowTransition(async () => await isWindowMaximized(), {
+                description: 'API maximize',
+            });
+            expect(didMaximize).toBe(true);
 
             // 3. Restore via API
             await restoreWindow();
-            const afterRestore = await isWindowMaximized();
-            expect(afterRestore).toBe(false);
+            const didRestore = await waitForWindowTransition(async () => !(await isWindowMaximized()), {
+                description: 'API restore',
+            });
+            expect(didRestore).toBe(true);
         });
     });
 });
