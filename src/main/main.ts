@@ -110,17 +110,11 @@ let responseCompleteHandler: (() => void) | null = null;
  */
 function exposeForE2E(context: ApplicationContext | null): void {
     const g = global as typeof globalThis & E2EGlobals;
-
     g.appContext = context ?? undefined;
-    g.windowManager = context?.windowManager;
-    g.ipcManager = context?.ipcManager;
-    g.trayManager = context?.trayManager;
-    g.updateManager = context?.updateManager;
-    g.badgeManager = context?.badgeManager;
-    g.hotkeyManager = context?.hotkeyManager;
-    g.llmManager = context?.llmManager;
-    g.menuManager = context?.menuManager ?? undefined;
-    g.notificationManager = context?.notificationManager ?? undefined;
+    if (!context) {
+        g.__e2eGeminiReadyBuffer = undefined;
+        g.__e2eQuickChatHandler = undefined;
+    }
 }
 
 function setReadyManagers(partial: Partial<ReadyManagers>): void {

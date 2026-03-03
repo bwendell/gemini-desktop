@@ -29,15 +29,6 @@ export interface ApplicationContext extends CoreManagers, ReadyManagers {}
 
 export interface E2EGlobals {
     appContext?: ApplicationContext;
-    windowManager?: WindowManager;
-    ipcManager?: IpcManager;
-    trayManager?: TrayManager;
-    updateManager?: UpdateManager;
-    badgeManager?: BadgeManager;
-    hotkeyManager?: HotkeyManager;
-    llmManager?: LlmManager;
-    menuManager?: MenuManager;
-    notificationManager?: NotificationManager;
     __e2eGeminiReadyBuffer?: { enabled: boolean; pending: unknown[] };
     __e2eQuickChatHandler?: unknown;
 }
