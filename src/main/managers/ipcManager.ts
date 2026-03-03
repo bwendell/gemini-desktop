@@ -18,6 +18,7 @@ import {
     ThemeIpcHandler,
     ZoomIpcHandler,
     AlwaysOnTopIpcHandler,
+    PrintIpcHandler,
     HotkeyIpcHandler,
     AppIpcHandler,
     AutoUpdateIpcHandler,
@@ -81,6 +82,7 @@ export default class IpcManager {
     private readonly responseNotificationHandler: ResponseNotificationIpcHandler;
     private readonly quickChatHandler: QuickChatIpcHandler;
     private readonly logger: Logger;
+    private readonly handlerDeps: IpcHandlerDependencies;
     /** Settings store exposed for integration tests */
     public readonly store: SettingsStore<UserPreferences>;
 
@@ -147,6 +149,7 @@ export default class IpcManager {
             notificationManager: notificationManager || null,
             exportManager: exportManager || null,
         };
+        this.handlerDeps = handlerDeps;
 
         // Create TextPredictionIpcHandler first (we need reference for initializeTextPrediction)
         this.textPredictionHandler = new TextPredictionIpcHandler(handlerDeps);
@@ -170,6 +173,7 @@ export default class IpcManager {
             new ZoomIpcHandler(handlerDeps),
             new AlwaysOnTopIpcHandler(handlerDeps),
             // Phase 3 handlers
+            new PrintIpcHandler(handlerDeps),
             new HotkeyIpcHandler(handlerDeps),
             new AppIpcHandler(handlerDeps),
             // Phase 4 handlers
@@ -221,6 +225,7 @@ export default class IpcManager {
      * @param manager - The NotificationManager instance to use
      */
     setNotificationManager(manager: NotificationManager | null): void {
+        this.handlerDeps.notificationManager = manager;
         this.responseNotificationHandler.setNotificationManager(manager);
         this.logger.log(`NotificationManager ${manager ? 'injected' : 'cleared'}`);
     }
