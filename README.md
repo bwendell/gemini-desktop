@@ -243,7 +243,7 @@ Built with [Electron](https://www.electronjs.org/) + [React](https://react.dev) 
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - npm 9+
 
 ### Quick Start
