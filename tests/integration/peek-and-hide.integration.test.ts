@@ -42,8 +42,8 @@ describe('Peek and Hide Integration', () => {
 
     beforeEach(async () => {
         await browserWithElectron.electron.execute(() => {
-            if (!global.windowManager.getMainWindow()) {
-                global.windowManager.createMainWindow();
+            if (!global.appContext.windowManager.getMainWindow()) {
+                global.appContext.windowManager.createMainWindow();
             }
         });
 
@@ -51,14 +51,14 @@ describe('Peek and Hide Integration', () => {
         // This is necessary because the window may not be visible yet after the before() hook
         // or may have been hidden by a previous test
         await browserWithElectron.electron.execute(() => {
-            global.windowManager.restoreFromTray();
+            global.appContext.windowManager.restoreFromTray();
         });
 
         // Wait for window to be visible
         await browserWithElectron.waitUntil(
             async () => {
                 return await browserWithElectron.electron.execute(() => {
-                    const win = global.windowManager.getMainWindow();
+                    const win = global.appContext.windowManager.getMainWindow();
                     return win && win.isVisible();
                 });
             },
@@ -68,12 +68,12 @@ describe('Peek and Hide Integration', () => {
 
     afterEach(async () => {
         await browserWithElectron.electron.execute(() => {
-            if (!global.windowManager.getMainWindow()) {
-                global.windowManager.createMainWindow();
+            if (!global.appContext.windowManager.getMainWindow()) {
+                global.appContext.windowManager.createMainWindow();
             }
 
-            global.windowManager.restoreFromTray();
-            global.hotkeyManager.setIndividualEnabled('peekAndHide', true);
+            global.appContext.windowManager.restoreFromTray();
+            global.appContext.hotkeyManager.setIndividualEnabled('peekAndHide', true);
         });
 
         await browserWithElectron.pause(300);
@@ -83,21 +83,21 @@ describe('Peek and Hide Integration', () => {
         it('should hide main window when hideToTray is called', async () => {
             // Verify window is visible initially
             const initiallyVisible = await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 return win && win.isVisible();
             });
             expect(initiallyVisible).toBe(true);
 
             // Hide to tray
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.hideToTray();
+                global.appContext.windowManager.hideToTray();
             });
 
             // Wait for window to hide
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
                 },
@@ -105,7 +105,7 @@ describe('Peek and Hide Integration', () => {
             );
 
             const isHidden = await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 return win && !win.isVisible();
             });
 
@@ -115,13 +115,13 @@ describe('Peek and Hide Integration', () => {
         it('should restore main window from tray', async () => {
             // First hide to tray
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.hideToTray();
+                global.appContext.windowManager.hideToTray();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
                 },
@@ -130,14 +130,14 @@ describe('Peek and Hide Integration', () => {
 
             // Now restore
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.restoreFromTray();
+                global.appContext.windowManager.restoreFromTray();
             });
 
             // Wait for window to show
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && win.isVisible();
                     });
                 },
@@ -145,7 +145,7 @@ describe('Peek and Hide Integration', () => {
             );
 
             const isVisible = await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 return win && win.isVisible();
             });
 
@@ -163,13 +163,13 @@ describe('Peek and Hide Integration', () => {
 
             // Hide to tray
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.hideToTray();
+                global.appContext.windowManager.hideToTray();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
                 },
@@ -178,7 +178,7 @@ describe('Peek and Hide Integration', () => {
 
             // On Windows, skipTaskbar should be true when hidden
             const skipTaskbar = await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 // When hidden, the window is not on taskbar
                 return win && !win.isVisible();
             });
@@ -199,7 +199,7 @@ describe('Peek and Hide Integration', () => {
 
             // Verify disabled in main process
             let isEnabled = await browserWithElectron.electron.execute(() => {
-                return global.hotkeyManager.isIndividualEnabled('peekAndHide');
+                return global.appContext.hotkeyManager.isIndividualEnabled('peekAndHide');
             });
             expect(isEnabled).toBe(false);
 
@@ -213,7 +213,7 @@ describe('Peek and Hide Integration', () => {
 
             // Verify enabled
             isEnabled = await browserWithElectron.electron.execute(() => {
-                return global.hotkeyManager.isIndividualEnabled('peekAndHide');
+                return global.appContext.hotkeyManager.isIndividualEnabled('peekAndHide');
             });
             expect(isEnabled).toBe(true);
         });
@@ -237,7 +237,7 @@ describe('Peek and Hide Integration', () => {
 
             // Verify disabled
             const isEnabled = await browserWithElectron.electron.execute(() => {
-                return global.hotkeyManager.isIndividualEnabled('peekAndHide');
+                return global.appContext.hotkeyManager.isIndividualEnabled('peekAndHide');
             });
             expect(isEnabled).toBe(false);
         });
@@ -276,7 +276,7 @@ describe('Peek and Hide Integration', () => {
         it('should hide even when window is maximized', async () => {
             // Maximize window first
             await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 if (win) win.maximize();
             });
 
@@ -284,13 +284,13 @@ describe('Peek and Hide Integration', () => {
 
             // Hide to tray
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.hideToTray();
+                global.appContext.windowManager.hideToTray();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
                 },
@@ -298,7 +298,7 @@ describe('Peek and Hide Integration', () => {
             );
 
             const isHidden = await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 return win && !win.isVisible();
             });
 
@@ -308,27 +308,27 @@ describe('Peek and Hide Integration', () => {
         it('should restore to previous state after hiding', async () => {
             // Get initial bounds
             const initialBounds = await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 return win ? win.getBounds() : null;
             });
 
             // Hide to tray
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.hideToTray();
+                global.appContext.windowManager.hideToTray();
             });
 
             await browserWithElectron.pause(500);
 
             // Restore
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.restoreFromTray();
+                global.appContext.windowManager.restoreFromTray();
             });
 
             await browserWithElectron.pause(300);
 
             // Get final bounds
             const finalBounds = await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 return win ? win.getBounds() : null;
             });
 
@@ -349,7 +349,7 @@ describe('Peek and Hide Integration', () => {
 
             // First hide to tray
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.hideToTray();
+                global.appContext.windowManager.hideToTray();
             });
 
             // On macOS, BrowserWindow.hide() after restore() doesn't work properly due to
@@ -363,7 +363,7 @@ describe('Peek and Hide Integration', () => {
                 await browserWithElectron.waitUntil(
                     async () => {
                         return await browserWithElectron.electron.execute(() => {
-                            const win = global.windowManager.getMainWindow();
+                            const win = global.appContext.windowManager.getMainWindow();
                             return win && !win.isVisible();
                         });
                     },
@@ -371,7 +371,7 @@ describe('Peek and Hide Integration', () => {
                 );
 
                 const isHidden = await browserWithElectron.electron.execute(() => {
-                    const win = global.windowManager.getMainWindow();
+                    const win = global.appContext.windowManager.getMainWindow();
                     return win && !win.isVisible();
                 });
 
@@ -379,13 +379,13 @@ describe('Peek and Hide Integration', () => {
             }
 
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.restoreFromTray();
+                global.appContext.windowManager.restoreFromTray();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && win.isVisible();
                     });
                 },
@@ -396,18 +396,18 @@ describe('Peek and Hide Integration', () => {
     describe('Peek & Hide Toggle via HotkeyManager Dispatch', () => {
         it('should hide visible window via hotkeyManager.executeHotkeyAction', async () => {
             const initiallyVisible = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.isMainWindowVisible();
+                return global.appContext.windowManager.isMainWindowVisible();
             });
             expect(initiallyVisible).toBe(true);
 
             await browserWithElectron.electron.execute(() => {
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+                global.appContext.hotkeyManager.executeHotkeyAction('peekAndHide');
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
                 },
@@ -415,20 +415,20 @@ describe('Peek and Hide Integration', () => {
             );
 
             const isHidden = await browserWithElectron.electron.execute(() => {
-                return !global.windowManager.isMainWindowVisible();
+                return !global.appContext.windowManager.isMainWindowVisible();
             });
             expect(isHidden).toBe(true);
         });
 
         it('should restore hidden window via hotkeyManager.executeHotkeyAction', async () => {
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.hideToTray();
+                global.appContext.windowManager.hideToTray();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
                 },
@@ -436,58 +436,58 @@ describe('Peek and Hide Integration', () => {
             );
 
             await browserWithElectron.electron.execute(() => {
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+                global.appContext.hotkeyManager.executeHotkeyAction('peekAndHide');
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        return global.windowManager.isMainWindowVisible();
+                        return global.appContext.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore after hotkeyManager.executeHotkeyAction' }
             );
 
             const isVisible = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.isMainWindowVisible();
+                return global.appContext.windowManager.isMainWindowVisible();
             });
             expect(isVisible).toBe(true);
         });
 
         it('should complete a full toggle cycle via hotkeyManager.executeHotkeyAction', async () => {
             const initiallyVisible = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.isMainWindowVisible();
+                return global.appContext.windowManager.isMainWindowVisible();
             });
             expect(initiallyVisible).toBe(true);
 
             await browserWithElectron.electron.execute(() => {
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+                global.appContext.hotkeyManager.executeHotkeyAction('peekAndHide');
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        return !global.windowManager.isMainWindowVisible();
+                        return !global.appContext.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide on first executeHotkeyAction' }
             );
 
             await browserWithElectron.electron.execute(() => {
-                global.hotkeyManager.executeHotkeyAction('peekAndHide');
+                global.appContext.hotkeyManager.executeHotkeyAction('peekAndHide');
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        return global.windowManager.isMainWindowVisible();
+                        return global.appContext.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore on second executeHotkeyAction' }
             );
 
             const finallyVisible = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.isMainWindowVisible();
+                return global.appContext.windowManager.isMainWindowVisible();
             });
             expect(finallyVisible).toBe(true);
         });
@@ -497,20 +497,20 @@ describe('Peek and Hide Integration', () => {
         it('should toggle: hide visible window via toggleMainWindowVisibility', async () => {
             // Verify window is visible initially (beforeEach ensures this)
             const initiallyVisible = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.isMainWindowVisible();
+                return global.appContext.windowManager.isMainWindowVisible();
             });
             expect(initiallyVisible).toBe(true);
 
             // Trigger toggle (visible → hidden)
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.toggleMainWindowVisibility();
+                global.appContext.windowManager.toggleMainWindowVisibility();
             });
 
             // Wait for window to hide
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
                 },
@@ -518,7 +518,7 @@ describe('Peek and Hide Integration', () => {
             );
 
             const isHidden = await browserWithElectron.electron.execute(() => {
-                return !global.windowManager.isMainWindowVisible();
+                return !global.appContext.windowManager.isMainWindowVisible();
             });
             expect(isHidden).toBe(true);
         });
@@ -526,13 +526,13 @@ describe('Peek and Hide Integration', () => {
         it('should toggle: restore hidden window via toggleMainWindowVisibility', async () => {
             // First hide the window
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.hideToTray();
+                global.appContext.windowManager.hideToTray();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return win && !win.isVisible();
                     });
                 },
@@ -541,21 +541,21 @@ describe('Peek and Hide Integration', () => {
 
             // Trigger toggle (hidden → visible)
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.toggleMainWindowVisibility();
+                global.appContext.windowManager.toggleMainWindowVisibility();
             });
 
             // Wait for window to show
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        return global.windowManager.isMainWindowVisible();
+                        return global.appContext.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore after toggle' }
             );
 
             const isVisible = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.isMainWindowVisible();
+                return global.appContext.windowManager.isMainWindowVisible();
             });
             expect(isVisible).toBe(true);
         });
@@ -563,19 +563,19 @@ describe('Peek and Hide Integration', () => {
         it('should complete a full toggle cycle: visible → hidden → visible', async () => {
             // Verify initially visible
             const initiallyVisible = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.isMainWindowVisible();
+                return global.appContext.windowManager.isMainWindowVisible();
             });
             expect(initiallyVisible).toBe(true);
 
             // First toggle: visible → hidden
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.toggleMainWindowVisibility();
+                global.appContext.windowManager.toggleMainWindowVisibility();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        return !global.windowManager.isMainWindowVisible();
+                        return !global.appContext.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not hide on first toggle' }
@@ -583,20 +583,20 @@ describe('Peek and Hide Integration', () => {
 
             // Second toggle: hidden → visible
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.toggleMainWindowVisibility();
+                global.appContext.windowManager.toggleMainWindowVisibility();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        return global.windowManager.isMainWindowVisible();
+                        return global.appContext.windowManager.isMainWindowVisible();
                     });
                 },
                 { timeout: 5000, timeoutMsg: 'Window did not restore on second toggle' }
             );
 
             const finallyVisible = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.isMainWindowVisible();
+                return global.appContext.windowManager.isMainWindowVisible();
             });
             expect(finallyVisible).toBe(true);
         });
@@ -608,7 +608,7 @@ describe('Peek and Hide Integration', () => {
 
             // Verify window exists
             const windowExists = await browserWithElectron.electron.execute(() => {
-                return global.windowManager.getMainWindow() !== null;
+                return global.appContext.windowManager.getMainWindow() !== null;
             });
             expect(windowExists).toBe(true);
 
@@ -616,7 +616,7 @@ describe('Peek and Hide Integration', () => {
             const originalHandle = originalHandles[0];
 
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.createOptionsWindow();
+                global.appContext.windowManager.createOptionsWindow();
             });
 
             await browserWithElectron.waitUntil(
@@ -630,14 +630,14 @@ describe('Peek and Hide Integration', () => {
 
             // Destroy the main window
             await browserWithElectron.electron.execute(() => {
-                const win = global.windowManager.getMainWindow();
+                const win = global.appContext.windowManager.getMainWindow();
                 if (win) win.destroy();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return !win || win.isDestroyed();
                     });
                 },
@@ -645,13 +645,13 @@ describe('Peek and Hide Integration', () => {
             );
 
             await browserWithElectron.electron.execute(() => {
-                global.windowManager.toggleMainWindowVisibility();
+                global.appContext.windowManager.toggleMainWindowVisibility();
             });
 
             await browserWithElectron.waitUntil(
                 async () => {
                     return await browserWithElectron.electron.execute(() => {
-                        const win = global.windowManager.getMainWindow();
+                        const win = global.appContext.windowManager.getMainWindow();
                         return !!win && win.isVisible();
                     });
                 },
@@ -660,8 +660,8 @@ describe('Peek and Hide Integration', () => {
 
             const recreateResult = await browserWithElectron.electron.execute(() => {
                 return {
-                    recreated: global.windowManager.getMainWindow() !== null,
-                    visible: global.windowManager.isMainWindowVisible(),
+                    recreated: global.appContext.windowManager.getMainWindow() !== null,
+                    visible: global.appContext.windowManager.isMainWindowVisible(),
                 };
             });
 
@@ -674,7 +674,7 @@ describe('Peek and Hide Integration', () => {
 
             await browserWithElectron.electron.execute(async () => {
                 const { BrowserWindow } = await import('electron');
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = global.appContext.windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win) => {
                     if (win !== mainWin && !win.isDestroyed()) {
                         win.close();

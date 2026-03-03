@@ -110,7 +110,7 @@ describe('Toast IPC Integration', () => {
             // Send toast from main process
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWindow = (global as any).windowManager?.getMainWindow();
+                const mainWindow = (global as { appContext?: any }).appContext.windowManager?.getMainWindow();
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('toast:show', {
                         type: 'success',
@@ -145,7 +145,7 @@ describe('Toast IPC Integration', () => {
             // Send toast with all properties from main process
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWindow = (global as any).windowManager?.getMainWindow();
+                const mainWindow = (global as { appContext?: any }).appContext.windowManager?.getMainWindow();
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('toast:show', {
                         type: 'progress',
@@ -198,7 +198,7 @@ describe('Toast IPC Integration', () => {
                 // Send toast of this type
                 await browser.electron.execute((type: string) => {
                     // @ts-expect-error
-                    const winManager = (global as any).windowManager;
+                    const winManager = (global as { appContext?: any }).appContext.windowManager;
                     if (!winManager) {
                         console.error('WindowManager not found in global');
                         return;
@@ -252,7 +252,7 @@ describe('Toast IPC Integration', () => {
             // Verify listener works before cleanup
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWindow = (global as any).windowManager?.getMainWindow();
+                const mainWindow = (global as { appContext?: any }).appContext.windowManager?.getMainWindow();
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('toast:show', {
                         type: 'info',
@@ -279,7 +279,7 @@ describe('Toast IPC Integration', () => {
             // Try to send another toast
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWindow = (global as any).windowManager?.getMainWindow();
+                const mainWindow = (global as { appContext?: any }).appContext.windowManager?.getMainWindow();
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('toast:show', {
                         type: 'info',
@@ -376,7 +376,7 @@ describe('Toast IPC Integration', () => {
             await browser.electron.execute(() => {
                 // @ts-expect-error
                 const { BrowserWindow } = require('electron');
-                const mainWin = (global as any).windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {
                     if (win !== mainWin && !win.isDestroyed()) {
                         win.close();
@@ -427,7 +427,7 @@ describe('Toast IPC Integration', () => {
             // Send toast ONLY to main window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWindow = (global as any).windowManager?.getMainWindow();
+                const mainWindow = (global as { appContext?: any }).appContext.windowManager?.getMainWindow();
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('toast:show', {
                         type: 'success',
@@ -497,7 +497,7 @@ describe('Toast IPC Integration', () => {
             const optionsWebContentsId = await browser.electron.execute(() => {
                 // @ts-expect-error
                 const { BrowserWindow } = require('electron');
-                const mainWin = (global as any).windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 const allWindows = BrowserWindow.getAllWindows();
                 const optionsWin = allWindows.find((win: any) => win !== mainWin && !win.isDestroyed());
                 return optionsWin?.webContents?.id ?? null;
@@ -577,7 +577,7 @@ describe('Toast IPC Integration', () => {
 
                 try {
                     const { showToast } = require(toastUtilsPath);
-                    const mainWindow = (global as any).windowManager?.getMainWindow();
+                    const mainWindow = (global as { appContext?: any }).appContext.windowManager?.getMainWindow();
 
                     if (mainWindow) {
                         showToast(mainWindow, {
