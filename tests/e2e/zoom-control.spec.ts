@@ -336,7 +336,7 @@ describe('Zoom Control E2E', () => {
             // 1. Set a non-default zoom level directly via windowManager
             //    (simulating what ipcManager does on startup)
             await wdioBrowser.electron.execute(() => {
-                (global as { appContext?: any }).appContext?.windowManager?.initializeZoomLevel();
+                (global as { appContext?: any }).appContext?.windowManager?.initializeZoomLevel(125);
                 (global as { appContext?: any }).appContext?.windowManager?.applyZoomLevel();
             });
             await waitForIpcSettle();
