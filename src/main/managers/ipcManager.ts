@@ -18,7 +18,6 @@ import {
     ThemeIpcHandler,
     ZoomIpcHandler,
     AlwaysOnTopIpcHandler,
-    PrintIpcHandler,
     HotkeyIpcHandler,
     AppIpcHandler,
     AutoUpdateIpcHandler,
@@ -173,7 +172,6 @@ export default class IpcManager {
             new ZoomIpcHandler(handlerDeps),
             new AlwaysOnTopIpcHandler(handlerDeps),
             // Phase 3 handlers
-            new PrintIpcHandler(handlerDeps),
             new HotkeyIpcHandler(handlerDeps),
             new AppIpcHandler(handlerDeps),
             // Phase 4 handlers

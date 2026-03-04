@@ -172,8 +172,6 @@ describe('IpcManager', () => {
             expect(hasListener('always-on-top:set')).toBe(true);
             expect(hasListener('open-options-window')).toBe(true);
             expect(hasHandler('open-google-signin')).toBe(true);
-            expect(hasListener('print:trigger')).toBe(true);
-            expect(hasListener('print:cancel')).toBe(true);
             // Auto-update handlers
             expect(hasHandler('auto-update:get-enabled')).toBe(true);
             expect(hasListener('auto-update:set-enabled')).toBe(true);
