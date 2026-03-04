@@ -66,13 +66,13 @@ jobs:
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -129,13 +129,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -183,13 +183,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -242,13 +242,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -316,13 +316,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -384,13 +384,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -470,13 +470,13 @@ jobs:
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/

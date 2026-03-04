@@ -508,7 +508,7 @@ The application uses a layered toast system to provide non-intrusive feedback:
 **Local Setup:**
 
 ```bash
-# Prerequisites: Node.js 18+, npm 9+
+# Prerequisites: Node.js 20+, npm 9+
 git clone https://github.com/bwendell/gemini-desktop.git
 cd gemini-desktop
 npm install
