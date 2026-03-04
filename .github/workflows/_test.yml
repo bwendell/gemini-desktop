@@ -437,9 +437,13 @@ jobs:
                       emoji: '🐧'
                       platform: 'Ubuntu'
                     - os: windows-latest
-                      dist-script: 'dist:win'
+                      dist-script: 'dist:win-x64'
                       emoji: '🪟'
-                      platform: 'Windows'
+                      platform: 'Windows x64'
+                    - os: windows-latest
+                      dist-script: 'dist:win-arm64'
+                      emoji: '🪟'
+                      platform: 'Windows arm64'
                     - os: macos-latest
                       dist-script: 'dist:mac-arm64'
                       emoji: '🍎'
