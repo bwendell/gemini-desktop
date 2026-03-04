@@ -146,7 +146,7 @@ npm run test:all
 
 ```bash
 # Vitest single test file
-npx vitest tests/unit/shared/hotkeys.test.ts
+npm run test -- tests/unit/shared/hotkeys.test.ts
 
 # WDIO E2E single spec
 npm run test:e2e:spec -- --spec=tests/e2e/auth.spec.ts
