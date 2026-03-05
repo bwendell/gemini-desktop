@@ -79,6 +79,7 @@ export const IPC_CHANNELS = {
     AUTO_UPDATE_CHECKING: 'auto-update:checking',
     AUTO_UPDATE_NOT_AVAILABLE: 'auto-update:not-available',
     AUTO_UPDATE_DOWNLOAD_PROGRESS: 'auto-update:download-progress',
+    AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE: 'auto-update:manual-update-available',
 
     // Tray
     TRAY_GET_TOOLTIP: 'tray:get-tooltip',
