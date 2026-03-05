@@ -10,7 +10,7 @@ This runbook covers automated and local verification for Wayland global hotkeys 
 | Wayland session  | `echo $XDG_SESSION_TYPE` (should print "wayland") |
 | KDE Plasma 5.27+ | `plasmashell --version`                           |
 | D-Bus running    | `dbus-daemon --version`                           |
-| Node.js 18+      | `node --version`                                  |
+| Node.js 20+      | `node --version`                                  |
 | npm 9+           | `npm --version`                                   |
 
 ## Environment Setup
@@ -28,15 +28,15 @@ echo "KDE Version: $KDE_SESSION_VERSION"
 
 ```bash
 npm run test
-npx vitest tests/unit/main/utils/dbusFallback.test.ts
-npx vitest tests/unit/main/utils/waylandDetector.test.ts
+npm run test -- tests/unit/main/utils/dbusFallback.test.ts
+npm run test -- tests/unit/main/utils/waylandDetector.test.ts
 ```
 
 ### Coordinated Tests
 
 ```bash
 npm run test:coordinated
-npx vitest tests/coordinated/wayland-hotkey-coordination.coordinated.test.ts
+npm run test:coordinated -- tests/coordinated/wayland-hotkey-coordination.coordinated.test.ts
 ```
 
 ### Integration Tests (Linux)

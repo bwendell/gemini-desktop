@@ -83,9 +83,8 @@ export async function showQuickChatWindow(): Promise<void> {
 
     await wdioBrowser.electron.execute(() => {
         // Trigger via hotkeyManager action execution - same path as real hotkey press
-        const hotkeyManager = (global as any).hotkeyManager as
-            | { executeHotkeyAction?: (id: string) => void }
-            | undefined;
+        const ctx = (global as { appContext?: any }).appContext;
+        const hotkeyManager = ctx?.hotkeyManager as { executeHotkeyAction?: (id: string) => void } | undefined;
 
         if (hotkeyManager?.executeHotkeyAction) {
             // Execute the quickChat action - this calls windowManager.toggleQuickChat()
@@ -94,7 +93,7 @@ export async function showQuickChatWindow(): Promise<void> {
         } else {
             // Fallback: Use windowManager directly (less ideal but necessary for older code)
             console.warn('[E2E] hotkeyManager.executeHotkeyAction not available, using fallback');
-            const windowManager = (global as any).windowManager;
+            const windowManager = ctx?.windowManager;
             if (windowManager?.showQuickChat) {
                 windowManager.showQuickChat();
             }
@@ -110,7 +109,8 @@ export async function showQuickChatWindow(): Promise<void> {
     // where ready-to-show event may not fire reliably). This ensures tests can
     // proceed even when Electron's visibility events are delayed.
     await wdioBrowser.electron.execute(() => {
-        const windowManager = (global as any).windowManager;
+        const ctx = (global as { appContext?: any }).appContext;
+        const windowManager = ctx?.windowManager;
         const quickChatWindow = windowManager?.getQuickChatWindow?.();
         if (quickChatWindow && !quickChatWindow.isVisible() && !quickChatWindow.isDestroyed()) {
             quickChatWindow.show();
@@ -153,16 +153,15 @@ export async function toggleQuickChatWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Toggling Quick Chat via hotkey action trigger');
 
     await wdioBrowser.electron.execute(() => {
-        const hotkeyManager = (global as any).hotkeyManager as
-            | { executeHotkeyAction?: (id: string) => void }
-            | undefined;
+        const ctx = (global as { appContext?: any }).appContext;
+        const hotkeyManager = ctx?.hotkeyManager as { executeHotkeyAction?: (id: string) => void } | undefined;
 
         if (hotkeyManager?.executeHotkeyAction) {
             hotkeyManager.executeHotkeyAction('quickChat');
         } else {
             // Fallback
             console.warn('[E2E] hotkeyManager.executeHotkeyAction not available, using fallback');
-            const windowManager = (global as any).windowManager;
+            const windowManager = ctx?.windowManager;
             if (windowManager?.toggleQuickChat) {
                 windowManager.toggleQuickChat();
             }
@@ -178,7 +177,8 @@ export async function toggleQuickChatWindow(): Promise<void> {
 export async function getQuickChatState(): Promise<QuickChatState> {
     return wdioBrowser.electron.execute((electron: typeof import('electron')) => {
         const { BrowserWindow } = electron;
-        const windowManager = (global as any).windowManager;
+        const ctx = (global as { appContext?: any }).appContext;
+        const windowManager = ctx?.windowManager;
 
         const quickChatWindow = windowManager?.getQuickChatWindow?.();
         const allWindows = BrowserWindow.getAllWindows();
@@ -265,7 +265,8 @@ export async function getGeminiIframeState(): Promise<{
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
     return wdioBrowser.electron.execute((_electron: typeof import('electron'), domains: string[]) => {
-        const windowManager = (global as any).windowManager as
+        const ctx = (global as { appContext?: any }).appContext;
+        const windowManager = ctx?.windowManager as
             | {
                   getMainWindow?: () => Electron.BrowserWindow | null;
               }
@@ -366,7 +367,8 @@ export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
             buttonSels: string[],
             domains: string[]
         ): GeminiEditorState => {
-            const windowManager = (global as any).windowManager as
+            const ctx = (global as { appContext?: any }).appContext;
+            const windowManager = ctx?.windowManager as
                 | { getMainWindow?: () => Electron.BrowserWindow | null }
                 | undefined;
 
@@ -554,7 +556,8 @@ export async function getGeminiConversationTitle(tabId?: string): Promise<string
 
     return wdioBrowser.electron.execute(
         async (electron: typeof import('electron'), selectors: string[], domains: string[], activeTabId?: string) => {
-            const windowManager = (global as any).windowManager as
+            const ctx = (global as { appContext?: any }).appContext;
+            const windowManager = ctx?.windowManager as
                 | { getMainWindow?: () => Electron.BrowserWindow | null }
                 | undefined;
 
@@ -640,7 +643,8 @@ async function readGeminiEditorDirect(expectedText?: string, activeTabId?: strin
             expected: string | null,
             tabId?: string
         ) => {
-            const windowManager = (global as any).windowManager as
+            const ctx = (global as { appContext?: any }).appContext;
+            const windowManager = ctx?.windowManager as
                 | { getMainWindow?: () => Electron.BrowserWindow | null }
                 | undefined;
 

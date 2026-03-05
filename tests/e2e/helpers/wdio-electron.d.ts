@@ -23,11 +23,25 @@ export interface WdioCookie {
     sameSite?: 'Lax' | 'Strict' | 'None';
 }
 
-export type WdioElement = WebdriverIO.Element;
+export type WdioElement = WebdriverIO.Element & {
+    getCSSProperty(propertyName: string): Promise<{ property: string; value: string } | { value: string }>;
+    moveTo(): Promise<void>;
+    parentElement(): Promise<WebdriverIO.Element>;
+    getLocation(): Promise<{ x: number; y: number }>;
+    getSize(): Promise<{ width: number; height: number }>;
+};
+
+declare namespace WebdriverIO {
+    interface Element {
+        getCSSProperty(propertyName: string): Promise<{ property: string; value: string } | { value: string }>;
+        moveTo(): Promise<void>;
+        parentElement(): Promise<Element>;
+    }
+}
 
 declare global {
     const describe: (title: string, fn: () => void) => void;
-    const it: (title: string, fn?: (() => void | Promise<void>)) => void;
+    const it: (title: string, fn?: () => void | Promise<void>) => void;
     const before: (fn: () => void | Promise<void>) => void;
     const beforeEach: (fn: () => void | Promise<void>) => void;
     const after: (fn: () => void | Promise<void>) => void;
@@ -230,5 +244,11 @@ declare namespace WebdriverIO {
         isExisting(): Promise<boolean>;
         isEnabled(): Promise<boolean>;
         $$(selector: string): Promise<WebdriverIO.Element[]>;
+        $(selector: string): Promise<WebdriverIO.Element>;
+        getCSSProperty(propertyName: string): Promise<{ property: string; value: string } | { value: string }>;
+        moveTo(): Promise<void>;
+        parentElement(): Promise<WebdriverIO.Element>;
+        getLocation(): Promise<{ x: number; y: number }>;
+        getSize(): Promise<{ width: number; height: number }>;
     }
 }

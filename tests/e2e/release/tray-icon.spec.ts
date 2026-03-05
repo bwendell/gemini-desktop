@@ -24,7 +24,7 @@ const electronBrowser = browser as ElectronBrowser;
 describe('Release Build: System Tray', () => {
     it('should have system tray manager initialized', async () => {
         const trayInfo = await electronBrowser.electron.execute(() => {
-            const trayManager = (global as any).trayManager;
+            const trayManager = (global as { appContext?: any }).appContext?.trayManager;
 
             if (!trayManager) {
                 return { exists: false, tooltip: null, error: 'trayManager not in global' };
@@ -57,7 +57,7 @@ describe('Release Build: System Tray', () => {
         // If the tray was created successfully, it means the icon was loaded
         // This is a more reliable check than trying to verify file paths
         const trayCreated = await electronBrowser.electron.execute(() => {
-            const trayManager = (global as any).trayManager;
+            const trayManager = (global as { appContext?: any }).appContext?.trayManager;
             if (!trayManager) return false;
 
             const tray = trayManager.getTray();
@@ -69,7 +69,7 @@ describe('Release Build: System Tray', () => {
 
     it('should have tray click handler registered', async () => {
         const hasClickHandler = await electronBrowser.electron.execute(() => {
-            const trayManager = (global as any).trayManager;
+            const trayManager = (global as { appContext?: any }).appContext?.trayManager;
             if (!trayManager) return false;
 
             const tray = trayManager.getTray();
@@ -86,7 +86,7 @@ describe('Release Build: System Tray', () => {
         // This tests that the tray click functionality works, which validates
         // the tray icon and handlers are properly set up
         const testResult = await electronBrowser.electron.execute(() => {
-            const trayManager = (global as any).trayManager;
+            const trayManager = (global as { appContext?: any }).appContext?.trayManager;
             if (!trayManager) return { success: false, error: 'no trayManager' };
 
             const tray = trayManager.getTray();

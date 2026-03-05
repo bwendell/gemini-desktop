@@ -81,6 +81,7 @@ import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
 import ExportManager from './managers/exportManager';
 import LlmManager from './managers/llmManager';
 import SettingsStore from './store';
+import type { ApplicationContext, E2EGlobals, ReadyManagers } from './ApplicationContext';
 
 // Path to the production build
 const distIndexPath = getDistHtmlPath('index.html');
@@ -98,15 +99,7 @@ const isDev = !useProductionBuild;
 /**
  * Manager instances - initialized lazily to allow for declarative pattern.
  */
-let windowManager: WindowManager;
-let hotkeyManager: HotkeyManager;
-let ipcManager: IpcManager;
-let trayManager: TrayManager;
-let updateManager: UpdateManager;
-let badgeManager: BadgeManager;
-let llmManager: LlmManager;
-let notificationManager: NotificationManager;
-let exportManager: ExportManager;
+let appContext: ApplicationContext | null = null;
 
 /** Handler for response-complete events (stored for cleanup) */
 let responseCompleteHandler: (() => void) | null = null;
@@ -115,22 +108,45 @@ let responseCompleteHandler: (() => void) | null = null;
  * Initialize all application managers.
  * This function encapsulates manager creation for better testability and clarity.
  */
+function exposeForE2E(context: ApplicationContext | null): void {
+    const g = global as typeof globalThis & E2EGlobals;
+    g.appContext = context ?? undefined;
+    if (!context) {
+        g.__e2eGeminiReadyBuffer = undefined;
+        g.__e2eQuickChatHandler = undefined;
+    }
+}
+
+function setReadyManagers(partial: Partial<ReadyManagers>): void {
+    if (!appContext) {
+        return;
+    }
+
+    const nextContext: ApplicationContext = {
+        ...appContext,
+        ...partial,
+    };
+
+    appContext = nextContext;
+    exposeForE2E(nextContext);
+}
+
 function initializeManagers(): void {
     logger.debug('initializeManagers() - creating WindowManager');
-    windowManager = new WindowManager(isDev);
+    const windowManager = new WindowManager(isDev);
     logger.debug('initializeManagers() - WindowManager created');
 
     logger.debug('initializeManagers() - creating HotkeyManager');
-    hotkeyManager = new HotkeyManager(windowManager);
+    const hotkeyManager = new HotkeyManager(windowManager);
     logger.debug('initializeManagers() - HotkeyManager created');
 
     // Create tray and badge managers
     logger.debug('initializeManagers() - creating TrayManager');
-    trayManager = new TrayManager(windowManager);
+    const trayManager = new TrayManager(windowManager);
     logger.debug('initializeManagers() - TrayManager created');
 
     logger.debug('initializeManagers() - creating BadgeManager');
-    badgeManager = new BadgeManager();
+    const badgeManager = new BadgeManager();
     logger.debug('initializeManagers() - BadgeManager created');
 
     // Create settings store for auto-update preferences
@@ -145,7 +161,7 @@ function initializeManagers(): void {
 
     // Create update manager with optional badge/tray dependencies
     logger.debug('initializeManagers() - creating UpdateManager');
-    updateManager = new UpdateManager(updateSettings, {
+    const updateManager = new UpdateManager(updateSettings, {
         badgeManager,
         trayManager,
     });
@@ -153,43 +169,33 @@ function initializeManagers(): void {
 
     logger.debug('initializeManagers() - creating LlmManager');
 
-    llmManager = new LlmManager();
+    const llmManager = new LlmManager();
     logger.debug('initializeManagers() - LlmManager created');
 
     logger.debug('initializeManagers() - creating ExportManager');
-    exportManager = new ExportManager();
+    const exportManager = new ExportManager();
     logger.debug('initializeManagers() - ExportManager created');
 
     logger.debug('initializeManagers() - creating IpcManager');
-    ipcManager = new IpcManager(
-        windowManager,
-        hotkeyManager,
-        updateManager,
-        exportManager,
-        llmManager,
-        notificationManager
-    );
+    const ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, exportManager, llmManager, null);
     logger.debug('initializeManagers() - IpcManager created');
 
-    // Expose managers globally for E2E testing
-    // Type-safe global exposure for E2E tests
-    logger.debug('initializeManagers() - exposing managers globally');
-    const globalWithManagers = global as typeof globalThis & {
-        windowManager: WindowManager;
-        ipcManager: IpcManager;
-        trayManager: TrayManager;
-        updateManager: UpdateManager;
-        badgeManager: BadgeManager;
-        hotkeyManager: HotkeyManager;
-        llmManager: LlmManager;
+    appContext = {
+        windowManager,
+        hotkeyManager,
+        trayManager,
+        badgeManager,
+        updateManager,
+        llmManager,
+        exportManager,
+        ipcManager,
+        menuManager: null,
+        notificationManager: null,
     };
-    globalWithManagers.windowManager = windowManager;
-    globalWithManagers.ipcManager = ipcManager;
-    globalWithManagers.trayManager = trayManager;
-    globalWithManagers.updateManager = updateManager;
-    globalWithManagers.badgeManager = badgeManager;
-    globalWithManagers.hotkeyManager = hotkeyManager;
-    globalWithManagers.llmManager = llmManager;
+
+    // Expose managers globally for E2E testing
+    logger.debug('initializeManagers() - exposing managers globally');
+    exposeForE2E(appContext);
 
     logger.debug('initializeManagers() - All managers initialized successfully');
 }
@@ -206,58 +212,44 @@ function cleanupAllManagers(): void {
 
     try {
         // Unregister hotkeys first to prevent new interactions
-        if (hotkeyManager) {
-            hotkeyManager.unregisterAll();
+        const context = appContext;
+        if (!context) {
+            cleanupDone = true;
+            return;
         }
+
+        context.hotkeyManager.unregisterAll();
 
         // Destroy tray
-        if (trayManager) {
-            trayManager.destroyTray();
-        }
+        context.trayManager.destroyTray();
 
         // Destroy update manager (stops periodic checks)
-        if (updateManager) {
-            updateManager.destroy();
-        }
+        context.updateManager.destroy();
 
         // Dispose LLM manager to free model resources
-        if (llmManager) {
-            llmManager.dispose();
-        }
+        context.llmManager.dispose();
 
         // Dispose IPC handlers to remove all listeners
-        if (ipcManager) {
-            ipcManager.dispose();
-        }
+        context.ipcManager.dispose();
 
         // Clean up response-complete listener
-        const mainWindowInstance = windowManager?.getMainWindowInstance();
+        const mainWindowInstance = context.windowManager.getMainWindowInstance();
         if (mainWindowInstance && responseCompleteHandler) {
             mainWindowInstance.off('response-complete', responseCompleteHandler);
             responseCompleteHandler = null;
         }
 
         // Clean up NotificationManager event listeners
-        if (notificationManager) {
-            notificationManager.dispose();
+        if (context.notificationManager) {
+            context.notificationManager.dispose();
         }
 
         // Set quitting flag so windows don't try to prevent close
-        if (windowManager) {
-            windowManager.setQuitting(true);
-        }
+        context.windowManager.setQuitting(true);
 
         // Null out global manager references to allow garbage collection
-        const g = global as Record<string, unknown>;
-        g.windowManager = undefined;
-        g.ipcManager = undefined;
-        g.trayManager = undefined;
-        g.updateManager = undefined;
-        g.badgeManager = undefined;
-        g.hotkeyManager = undefined;
-        g.llmManager = undefined;
-        g.menuManager = undefined;
-        g.notificationManager = undefined;
+        appContext = null;
+        exposeForE2E(null);
 
         // Mark cleanup as done only after all cleanup steps complete successfully
         cleanupDone = true;
@@ -309,11 +301,11 @@ if (!gotTheLock) {
     app.on('second-instance', () => {
         // Someone tried to run a second instance, we should focus our window.
         logger.log('Second instance detected. Focusing existing window...');
-        if (windowManager) {
-            if (windowManager.getMainWindow()) {
-                windowManager.restoreFromTray();
+        if (appContext) {
+            if (appContext.windowManager.getMainWindow()) {
+                appContext.windowManager.restoreFromTray();
             } else {
-                windowManager.createMainWindow();
+                appContext.windowManager.createMainWindow();
             }
         }
     });
@@ -343,7 +335,7 @@ if (!gotTheLock) {
         setupHeaderStripping(session.defaultSession);
         setupMediaPermissions(session.defaultSession);
 
-        ipcManager.setupIpcHandlers();
+        appContext?.ipcManager.setupIpcHandlers();
 
         if (process.argv.includes('--e2e-disable-auto-submit')) {
             (
@@ -354,23 +346,27 @@ if (!gotTheLock) {
         }
 
         // Setup native application menu (critical for macOS)
-        const menuManager = new MenuManager(windowManager, hotkeyManager);
+        if (!appContext) {
+            return;
+        }
+
+        const menuManager = new MenuManager(appContext.windowManager, appContext.hotkeyManager);
         menuManager.buildMenu();
         menuManager.setupContextMenu();
-        (global as any).menuManager = menuManager;
+        setReadyManagers({ menuManager });
         logger.log('Menu setup complete');
 
         logger.debug('About to create main window');
-        windowManager.createMainWindow();
+        appContext.windowManager.createMainWindow();
         logger.debug('createMainWindow() returned');
         logger.log('Main window created');
 
         // Set main window reference for badge manager (needed for Windows overlay)
-        badgeManager.setMainWindow(windowManager.getMainWindow());
+        appContext.badgeManager.setMainWindow(appContext.windowManager.getMainWindow());
         logger.log('Badge manager configured');
 
         // Create notification manager for response notifications
-        const mainWindow = windowManager.getMainWindow();
+        const mainWindow = appContext.windowManager.getMainWindow();
         if (mainWindow) {
             const notificationSettings = new SettingsStore<NotificationSettings>({
                 configName: 'notification-settings',
@@ -378,15 +374,15 @@ if (!gotTheLock) {
                     responseNotificationsEnabled: true,
                 },
             });
-            notificationManager = new NotificationManager(
+            const notificationManager = new NotificationManager(
                 mainWindow,
-                badgeManager,
+                appContext.badgeManager,
                 notificationSettings,
                 platformAdapter
             );
 
             // Subscribe to response-complete events from MainWindow
-            const mainWindowInstance = windowManager.getMainWindowInstance();
+            const mainWindowInstance = appContext.windowManager.getMainWindowInstance();
             if (mainWindowInstance) {
                 // Store handler reference for cleanup in will-quit
                 responseCompleteHandler = () => {
@@ -401,18 +397,16 @@ if (!gotTheLock) {
                 logger.log('NotificationManager subscribed to response-complete events');
             }
 
-            // Expose notification manager globally for E2E testing
-            (global as typeof globalThis & { notificationManager: NotificationManager }).notificationManager =
-                notificationManager;
+            setReadyManagers({ notificationManager });
             logger.log('NotificationManager configured');
 
             // Inject NotificationManager into IpcManager for response notification IPC handlers
-            ipcManager.setNotificationManager(notificationManager);
+            appContext.ipcManager.setNotificationManager(notificationManager);
         }
 
         // Create system tray icon (may fail on headless Linux environments)
         try {
-            trayManager.createTray();
+            appContext.trayManager.createTray();
             logger.log('System tray created successfully');
         } catch (error) {
             // Tray creation can fail on headless Linux (e.g., Ubuntu CI with Xvfb)
@@ -422,24 +416,24 @@ if (!gotTheLock) {
 
         // Security: Block webview creation attempts from renderer content
         setupWebviewSecurity(app);
-        hotkeyManager.registerShortcuts();
+        appContext.hotkeyManager.registerShortcuts();
         logger.log('Hotkeys registered');
 
         // Initialize text prediction (auto-load model if enabled)
         // This is async but we don't need to block startup on it
-        ipcManager.initializeTextPrediction().catch((error) => {
+        appContext.ipcManager.initializeTextPrediction().catch((error) => {
             logger.error('Failed to initialize text prediction:', error);
         });
 
         // Start auto-update checks (only in production)
         if (app.isPackaged) {
-            updateManager.startPeriodicChecks();
+            appContext.updateManager.startPeriodicChecks();
         }
 
         app.on('activate', () => {
             // On macOS, recreate window when dock icon is clicked
-            if (BrowserWindow.getAllWindows().length === 0) {
-                windowManager.createMainWindow();
+            if (BrowserWindow.getAllWindows().length === 0 && appContext) {
+                appContext.windowManager.createMainWindow();
             }
         });
     });
@@ -453,7 +447,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-    windowManager.setQuitting(true);
+    if (appContext) {
+        appContext.windowManager.setQuitting(true);
+    }
 });
 
 app.on('will-quit', () => {

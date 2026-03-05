@@ -71,6 +71,15 @@ jobs:
                   cd release
                   shasum -a 256 *.dmg *.zip > checksums-macos-x64.txt
 
+            - name: Prepare macOS update metadata (x64)
+              run: |
+                  cd release
+                  if [ ! -f latest-mac.yml ]; then
+                    echo "Error: expected latest-mac.yml to be generated, but it was not found in the release directory."
+                    exit 1
+                  fi
+                  mv latest-mac.yml latest-mac-x64.yml
+
             - name: Upload to GitHub Release
               uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
               with:
@@ -80,13 +89,13 @@ jobs:
                       release/*.dmg
                       release/*.zip
                       release/*.zip.blockmap
-                      release/latest-mac.yml
                       release/checksums-macos-x64.txt
+                      release/latest-mac-x64.yml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               with:
                   name: release-artifacts-macos-x64
                   path: release/
@@ -136,6 +145,15 @@ jobs:
                   cd release
                   shasum -a 256 *.dmg *.zip > checksums-macos-arm64.txt
 
+            - name: Prepare macOS update metadata (arm64)
+              run: |
+                  cd release
+                  if [ ! -f latest-mac.yml ]; then
+                    echo "Error: expected latest-mac.yml to be generated, but it was not found in the release directory."
+                    exit 1
+                  fi
+                  mv latest-mac.yml latest-mac-arm64.yml
+
             - name: Upload to GitHub Release
               uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
               with:
@@ -145,27 +163,26 @@ jobs:
                       release/*.dmg
                       release/*.zip
                       release/*.zip.blockmap
-                      release/latest-mac.yml
                       release/checksums-macos-arm64.txt
+                      release/latest-mac-arm64.yml
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               with:
                   name: release-artifacts-macos-arm64
                   path: release/
                   retention-days: 7
                   if-no-files-found: error
 
-    # ==========================================================================
-    # Windows Build
-    # ==========================================================================
-    windows:
+    windows-x64:
         name: Windows (x64)
         runs-on: windows-latest
         permissions:
             contents: write # Required for release upload
+        env:
+            npm_config_arch: x64
         steps:
             - name: Checkout Code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
@@ -192,10 +209,9 @@ jobs:
                   path: dist-electron/
 
             - name: Build (without publish)
-              run: npm run dist:win
+              run: npm run dist:win-x64
               shell: bash
               env:
-                  # Azure Trusted Signing configuration
                   AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
                   AZURE_PUBLISHER_NAME: ${{ secrets.AZURE_PUBLISHER_NAME }}
                   AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
@@ -208,10 +224,19 @@ jobs:
               run: npm run test:e2e:release
               shell: bash
 
+            - name: Prepare Windows update metadata (x64)
+              run: |
+                  cd release
+                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
+                  Copy-Item -Path latest.yml -Destination latest-x64.yml -Force
+              shell: pwsh
+
             - name: Generate Checksums
               run: |
                   cd release
-                  Get-FileHash *.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
+                  $files = @(Get-ChildItem -Path *.exe -File) + @(Get-ChildItem -Path *.msi -File)
+                  if ($files.Count -eq 0) { throw 'No .exe or .msi files found in release/ for checksum generation.' }
+                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
               shell: pwsh
 
             - name: Upload to GitHub Release
@@ -221,16 +246,103 @@ jobs:
                   fail_on_unmatched_files: true
                   files: |
                       release/*.exe
+                      release/*.msi
                       release/*.exe.blockmap
                       release/latest.yml
+                      release/latest-x64.yml
                       release/checksums-windows.txt
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Upload Build Artifacts
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
+              with:
+                  name: release-artifacts-windows-x64
+                  path: release/
+                  retention-days: 7
+                  if-no-files-found: error
+
+    windows-arm64:
+        name: Windows (arm64)
+        runs-on: windows-latest
+        permissions:
+            contents: write # Required for release upload
+        env:
+            npm_config_arch: arm64
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Download Frontend Build
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              with:
+                  name: frontend-dist
+                  path: dist/
+
+            - name: Download Electron Build
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              with:
+                  name: electron-dist
+                  path: dist-electron/
+
+            - name: Build (without publish)
+              run: npm run dist:win-arm64
+              shell: bash
+              env:
+                  AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
+                  AZURE_PUBLISHER_NAME: ${{ secrets.AZURE_PUBLISHER_NAME }}
+                  AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
+                  AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+                  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+            - name: Run Release E2E Tests
+              run: npm run test:e2e:release
+              shell: bash
+
+            - name: Prepare Windows update metadata (arm64)
+              run: |
+                  cd release
+                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
+                  Move-Item -Path latest.yml -Destination latest-arm64.yml -Force
+              shell: pwsh
+
+            - name: Generate Checksums
+              run: |
+                  cd release
+                  $files = @(Get-ChildItem -Path *.exe -File) + @(Get-ChildItem -Path *.msi -File)
+                  if ($files.Count -eq 0) { throw 'No .exe or .msi files found in release/ for checksum generation.' }
+                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows-arm64.txt
+              shell: pwsh
+
+            - name: Upload to GitHub Release
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
+              with:
+                  draft: true
+                  fail_on_unmatched_files: true
+                  files: |
+                      release/*.exe
+                      release/*.msi
+                      release/*.exe.blockmap
+                      release/latest-arm64.yml
+                      release/checksums-windows-arm64.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
               with:
-                  name: release-artifacts-windows
+                  name: release-artifacts-windows-arm64
                   path: release/
                   retention-days: 7
                   if-no-files-found: error
@@ -295,7 +407,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               with:
                   name: release-artifacts-linux
                   path: release/

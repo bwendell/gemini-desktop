@@ -24,7 +24,6 @@ gemini-desktop/
 │   │   │   │   ├── ThemeIpcHandler.ts    # Theme management
 │   │   │   │   ├── ZoomIpcHandler.ts     # Zoom level control
 │   │   │   │   ├── AlwaysOnTopIpcHandler.ts  # Window pin state
-│   │   │   │   ├── PrintIpcHandler.ts    # Print to PDF
 │   │   │   │   ├── HotkeyIpcHandler.ts   # Hotkey settings
 │   │   │   │   ├── AppIpcHandler.ts      # App-level operations
 │   │   │   │   ├── AutoUpdateIpcHandler.ts   # Auto-update controls
@@ -236,7 +235,6 @@ IpcManager (orchestrator)
             ├── ThemeIpcHandler     - theme:get/set + broadcast
             ├── ZoomIpcHandler      - zoom:get-level/zoom-in/zoom-out
             ├── AlwaysOnTopIpcHandler - always-on-top:get/set
-            ├── PrintIpcHandler     - print:trigger/cancel
             ├── HotkeyIpcHandler    - hotkeys:individual/accelerator settings
             ├── AppIpcHandler       - open-options/open-google-signin
             ├── AutoUpdateIpcHandler - auto-update:get/set/check/install
@@ -508,7 +506,7 @@ The application uses a layered toast system to provide non-intrusive feedback:
 **Local Setup:**
 
 ```bash
-# Prerequisites: Node.js 18+, npm 9+
+# Prerequisites: Node.js 20+, npm 9+
 git clone https://github.com/bwendell/gemini-desktop.git
 cd gemini-desktop
 npm install

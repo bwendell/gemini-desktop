@@ -35,6 +35,8 @@ const IS_CI_ENVIRONMENT = !!(process.env.CI || process.env.GITHUB_ACTIONS);
 const IS_TTY_SESSION = (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'tty';
 const IS_HEADLESS_ENVIRONMENT = process.platform === 'linux' && (!process.env.DISPLAY || IS_TTY_SESSION);
 
+const IS_TTY_SESSION = process.platform === 'linux' && (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'tty';
+
 /**
  * Gets the current platform from the browser context.
  * @returns {Promise<E2EPlatform>} 'windows', 'linux', or 'macos'
@@ -115,7 +117,7 @@ export async function isWSL(): Promise<boolean> {
  */
 export async function isLinuxCI(): Promise<boolean> {
     if (!(await isLinux())) return false;
-    return IS_CI_ENVIRONMENT || IS_WSL_ENVIRONMENT || IS_HEADLESS_ENVIRONMENT;
+    return IS_CI_ENVIRONMENT || IS_WSL_ENVIRONMENT || IS_HEADLESS_ENVIRONMENT || IS_TTY_SESSION;
 }
 
 /**

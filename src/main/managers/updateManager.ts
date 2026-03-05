@@ -157,6 +157,15 @@ export default class UpdateManager {
             updater.autoDownload = true;
             updater.autoInstallOnAppQuit = true;
 
+            if (process.platform === 'win32') {
+                updater.channel = process.arch === 'arm64' ? 'arm64' : 'x64';
+                updater.allowDowngrade = false;
+            }
+
+            if (process.platform === 'darwin') {
+                updater.channel = process.arch === 'arm64' ? 'arm64' : 'x64';
+            }
+
             if (process.argv.includes('--test-auto-update')) {
                 updater.forceDevUpdateConfig = true;
             }

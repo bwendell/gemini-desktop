@@ -41,6 +41,8 @@ const { mockAutoUpdater } = vi.hoisted(() => {
     mock.autoDownload = true;
     mock.autoInstallOnAppQuit = true;
     mock.forceDevUpdateConfig = false;
+    mock.channel = null;
+    mock.allowDowngrade = false;
     mock.removeAllListeners = vi.fn();
     return { mockAutoUpdater: mock };
 });

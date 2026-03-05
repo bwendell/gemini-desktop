@@ -183,12 +183,6 @@ describe('IpcManager', () => {
         });
     });
 
-    // ... (Keep existing Window Handlers, Theme Handlers, etc. - I will paste the rest of the file content below but condensed or just overwrite the whole file to be safe)
-
-    // Actually, overwriting the whole file is safer given the issues. I'll read the original file again to copy the middle parts perfectly?
-    // No, I'll use the content I viewed in Step 261, but with my modifications.
-
-    // ... Window Handlers ...
     describe('Window Handlers', () => {
         let mockWindow: any;
         let mockEvent: any;

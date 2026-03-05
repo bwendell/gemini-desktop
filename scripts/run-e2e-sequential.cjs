@@ -15,6 +15,10 @@ const specs = [
     'tests/e2e/window.spec.ts',
 ];
 
+const argv = process.argv.slice(2);
+const specIndex = argv.indexOf('--spec');
+const specsToRun = specIndex >= 0 && argv[specIndex + 1] ? [argv[specIndex + 1]] : specs;
+
 console.log('Building app once for all tests...');
 const buildResult = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', shell: true });
 if (buildResult.status !== 0) {
@@ -38,7 +42,7 @@ console.log('Starting Sequential E2E Tests...');
 
 let failed = false;
 
-for (const spec of specs) {
+for (const spec of specsToRun) {
     console.log(`\n---------------------------------------------------------`);
     console.log(`Running spec: ${spec}`);
     console.log(`---------------------------------------------------------\n`);

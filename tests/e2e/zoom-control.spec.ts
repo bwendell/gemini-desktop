@@ -21,21 +21,30 @@ import { isMacOS } from './helpers/platform';
 import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Zoom Control E2E', () => {
+    const wdioBrowser = browser as typeof browser & {
+        electron: {
+            execute<R, T extends unknown[]>(
+                fn: (electron: typeof import('electron'), ...args: T) => R,
+                ...args: T
+            ): Promise<R>;
+        };
+    };
+
     beforeEach(async () => {
         await waitForAppReady();
         await switchToMainWindow();
 
         // Reset zoom to 100% before each test for clean state
-        await browser.electron.execute(() => {
-            global.windowManager.setZoomLevel(100);
+        await wdioBrowser.electron.execute(() => {
+            (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(100);
         });
         await waitForIpcSettle();
     });
 
     afterEach(async () => {
         // Reset zoom level to 100% after tests
-        await browser.electron.execute(() => {
-            global.windowManager.setZoomLevel(100);
+        await wdioBrowser.electron.execute(() => {
+            (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(100);
         });
         await ensureSingleWindow();
     });
@@ -47,14 +56,14 @@ describe('Zoom Control E2E', () => {
     describe('Zoom In via Keyboard Shortcut (7.1)', () => {
         it('should increase zoom level when pressing Ctrl+=', async () => {
             // 1. Verify initial zoom level is 100%
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(initialZoom).toBe(100);
 
             // 2. Verify initial webContents zoom factor
-            const initialZoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const initialZoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -67,8 +76,8 @@ describe('Zoom Control E2E', () => {
             await waitForIpcSettle();
 
             // 4. Verify zoom level increased
-            const newZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const newZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(newZoom).toBeGreaterThan(initialZoom);
 
@@ -76,8 +85,8 @@ describe('Zoom Control E2E', () => {
             expect(newZoom).toBe(110);
 
             // 6. Verify webContents zoom factor was actually applied
-            const newZoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const newZoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -88,8 +97,8 @@ describe('Zoom Control E2E', () => {
 
         it('should zoom in multiple steps with repeated Ctrl+= presses', async () => {
             // 1. Get initial zoom level
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(initialZoom).toBe(100);
 
@@ -103,14 +112,14 @@ describe('Zoom Control E2E', () => {
 
             // 3. Verify zoom level increased through multiple steps
             // 100% -> 110% -> 125% -> 150%
-            const finalZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const finalZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(finalZoom).toBe(150);
 
             // 4. Verify webContents zoom factor matches
-            const finalZoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const finalZoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -127,14 +136,14 @@ describe('Zoom Control E2E', () => {
     describe('Zoom Out via Keyboard Shortcut (7.1.2)', () => {
         it('should decrease zoom level when pressing Ctrl+-', async () => {
             // 1. Verify initial zoom level is 100%
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(initialZoom).toBe(100);
 
             // 2. Verify initial webContents zoom factor
-            const initialZoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const initialZoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -147,8 +156,8 @@ describe('Zoom Control E2E', () => {
             await waitForIpcSettle();
 
             // 4. Verify zoom level decreased
-            const newZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const newZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(newZoom).toBeLessThan(initialZoom);
 
@@ -156,8 +165,8 @@ describe('Zoom Control E2E', () => {
             expect(newZoom).toBe(90);
 
             // 6. Verify webContents zoom factor was actually applied
-            const newZoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const newZoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -168,8 +177,8 @@ describe('Zoom Control E2E', () => {
 
         it('should zoom out multiple steps with repeated Ctrl+- presses', async () => {
             // 1. Get initial zoom level
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(initialZoom).toBe(100);
 
@@ -183,14 +192,14 @@ describe('Zoom Control E2E', () => {
 
             // 3. Verify zoom level decreased through multiple steps
             // 100% -> 90% -> 80% -> 75%
-            const finalZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const finalZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(finalZoom).toBe(75);
 
             // 4. Verify webContents zoom factor matches
-            const finalZoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const finalZoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -207,14 +216,14 @@ describe('Zoom Control E2E', () => {
     describe('Zoom In Cap at 200% (7.1.3)', () => {
         it('should cap zoom at 200% with multiple Ctrl+= presses', async () => {
             // 1. Set zoom to near maximum (175%) to reduce number of key presses
-            await browser.electron.execute(() => {
-                global.windowManager.setZoomLevel(175);
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(175);
             });
             await waitForIpcSettle();
 
             // Verify we're at 175%
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(initialZoom).toBe(175);
 
@@ -226,14 +235,14 @@ describe('Zoom Control E2E', () => {
             }
 
             // 3. Verify zoom is capped at 200%
-            const finalZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const finalZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(finalZoom).toBe(200);
 
             // 4. Verify webContents zoom factor
-            const zoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const zoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -250,14 +259,14 @@ describe('Zoom Control E2E', () => {
     describe('Zoom Out Cap at 50% (7.1.4)', () => {
         it('should cap zoom at 50% with multiple Ctrl+- presses', async () => {
             // 1. Set zoom to near minimum (67%) to reduce number of key presses
-            await browser.electron.execute(() => {
-                global.windowManager.setZoomLevel(67);
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(67);
             });
             await waitForIpcSettle();
 
             // Verify we're at 67%
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(initialZoom).toBe(67);
 
@@ -269,14 +278,14 @@ describe('Zoom Control E2E', () => {
             }
 
             // 3. Verify zoom is capped at 50%
-            const finalZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const finalZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(finalZoom).toBe(50);
 
             // 4. Verify webContents zoom factor
-            const zoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const zoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -293,8 +302,8 @@ describe('Zoom Control E2E', () => {
     describe('Zoom Level Persistence (7.1.5)', () => {
         it('should persist zoom level to settings file', async () => {
             // 1. Set zoom to 150% using menu actions
-            await browser.electron.execute(() => {
-                global.windowManager.setZoomLevel(100);
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(100);
             });
             await waitForIpcSettle();
 
@@ -308,8 +317,8 @@ describe('Zoom Control E2E', () => {
             await waitForIpcSettle();
 
             // Verify zoom is at 150%
-            const zoomLevel = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const zoomLevel = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(zoomLevel).toBe(150);
 
@@ -326,21 +335,21 @@ describe('Zoom Control E2E', () => {
         it('should restore zoom level from settings on initialization', async () => {
             // 1. Set a non-default zoom level directly via windowManager
             //    (simulating what ipcManager does on startup)
-            await browser.electron.execute(() => {
-                global.windowManager.initializeZoomLevel(125);
-                global.windowManager.applyZoomLevel();
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.initializeZoomLevel(125);
+                (global as { appContext?: any }).appContext?.windowManager?.applyZoomLevel();
             });
             await waitForIpcSettle();
 
             // 2. Verify zoom level was set
-            const restoredZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const restoredZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(restoredZoom).toBe(125);
 
             // 3. Verify webContents has the restored zoom
-            const zoomFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const zoomFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -360,8 +369,8 @@ describe('Zoom Control E2E', () => {
             await switchToMainWindow();
 
             // 2. Focus the main window via Electron
-            await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     mainWin.focus();
                 }
@@ -369,22 +378,22 @@ describe('Zoom Control E2E', () => {
             await waitForIpcSettle();
 
             // 3. Verify window is focused
-            const isFocused = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const isFocused = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 return mainWin && !mainWin.isDestroyed() && mainWin.isFocused();
             });
             expect(isFocused).toBe(true);
 
             // 4. Trigger zoom in via menu and verify zoom changes
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
 
             await triggerZoomIn();
             await waitForIpcSettle();
 
-            const newZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const newZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
 
             expect(newZoom).toBeGreaterThan(initialZoom);
@@ -398,7 +407,7 @@ describe('Zoom Control E2E', () => {
             // accelerators in menuManager.ts buildViewMenu().
 
             // Check zoom-in menu item exists
-            const zoomInMenuItem = await browser.electron.execute((electron) => {
+            const zoomInMenuItem = await wdioBrowser.electron.execute((electron) => {
                 const appMenu = electron.Menu.getApplicationMenu();
                 if (!appMenu) return null;
                 const item = appMenu.getMenuItemById('menu-view-zoom-in');
@@ -415,7 +424,7 @@ describe('Zoom Control E2E', () => {
             expect(zoomInMenuItem?.hasAccelerator).toBe(true);
 
             // Check zoom-out menu item exists
-            const zoomOutMenuItem = await browser.electron.execute((electron) => {
+            const zoomOutMenuItem = await wdioBrowser.electron.execute((electron) => {
                 const appMenu = electron.Menu.getApplicationMenu();
                 if (!appMenu) return null;
                 const item = appMenu.getMenuItemById('menu-view-zoom-out');
@@ -462,8 +471,8 @@ describe('Zoom Control E2E', () => {
             }
 
             // 1. Verify initial zoom is 100%
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(initialZoom).toBe(100);
 
@@ -472,8 +481,8 @@ describe('Zoom Control E2E', () => {
             await waitForIpcSettle();
 
             // 3. Verify zoom increased
-            const newZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const newZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(newZoom).toBeGreaterThan(100);
 
@@ -492,8 +501,8 @@ describe('Zoom Control E2E', () => {
             await triggerZoomIn();
             await waitForIpcSettle();
 
-            const zoomAfterIn = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const zoomAfterIn = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(zoomAfterIn).toBeGreaterThan(100);
 
@@ -502,8 +511,8 @@ describe('Zoom Control E2E', () => {
             await waitForIpcSettle();
 
             // 3. Verify zoom decreased
-            const newZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const newZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(newZoom).toBeLessThan(zoomAfterIn);
 
@@ -520,8 +529,8 @@ describe('Zoom Control E2E', () => {
     describe('Visual Verification (7.4)', () => {
         it('7.4.1 should visually reflect zoom change in webContents', async () => {
             // 1. Verify initial zoom factor is 1.0 (100%)
-            const initialFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const initialFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -538,8 +547,8 @@ describe('Zoom Control E2E', () => {
             await waitForIpcSettle();
 
             // 3. Verify zoom factor is now 1.5 (150%)
-            const zoomInFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const zoomInFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -548,8 +557,8 @@ describe('Zoom Control E2E', () => {
             expect(zoomInFactor).toBeCloseTo(1.5, 2);
 
             // 4. Verify zoom level matches
-            const zoomLevel = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const zoomLevel = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(zoomLevel).toBe(150);
 
@@ -557,8 +566,8 @@ describe('Zoom Control E2E', () => {
             await triggerZoomOut();
             await waitForIpcSettle();
 
-            const afterZoomOutFactor = await browser.electron.execute(() => {
-                const mainWin = global.windowManager.getMainWindow();
+            const afterZoomOutFactor = await wdioBrowser.electron.execute(() => {
+                const mainWin = (global as { appContext?: any }).appContext?.windowManager?.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -567,8 +576,8 @@ describe('Zoom Control E2E', () => {
             expect(afterZoomOutFactor).toBeCloseTo(1.25, 2);
 
             // 6. Verify the zoom factor formula: zoomLevel / 100 = zoomFactor
-            const finalZoomLevel = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const finalZoomLevel = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             const expectedFactor = finalZoomLevel / 100;
             expect(afterZoomOutFactor).toBeCloseTo(expectedFactor, 2);

@@ -36,7 +36,7 @@ describe('Options Window Integration', () => {
         await browser.electron.execute(() => {
             // @ts-expect-error - Close all windows except main
             const { BrowserWindow } = require('electron');
-            const mainWin = global.windowManager.getMainWindow();
+            const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
             BrowserWindow.getAllWindows().forEach((win: any) => {
                 if (win !== mainWin && !win.isDestroyed()) {
                     win.close();
@@ -58,7 +58,7 @@ describe('Options Window Integration', () => {
             // Open options window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             // Wait for window to appear
@@ -100,7 +100,7 @@ describe('Options Window Integration', () => {
             // Open options window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
@@ -128,7 +128,7 @@ describe('Options Window Integration', () => {
             // Open to settings tab
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow('settings');
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow('settings');
             });
 
             await browser.waitUntil(
@@ -156,7 +156,7 @@ describe('Options Window Integration', () => {
             // Open to about tab
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow('about');
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow('about');
             });
 
             await browser.waitUntil(
@@ -206,7 +206,7 @@ describe('Options Window Integration', () => {
             // Open first options window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
@@ -220,7 +220,7 @@ describe('Options Window Integration', () => {
             // Try to open again
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.pause(500);
@@ -234,7 +234,7 @@ describe('Options Window Integration', () => {
             // Open to settings tab
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow('settings');
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow('settings');
             });
 
             await browser.waitUntil(
@@ -248,7 +248,7 @@ describe('Options Window Integration', () => {
             // Now open to about tab
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow('about');
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow('about');
             });
 
             await browser.pause(500);
@@ -273,7 +273,7 @@ describe('Options Window Integration', () => {
             // Open options window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
@@ -298,7 +298,7 @@ describe('Options Window Integration', () => {
             await browser.electron.execute((electron) => {
                 const { BrowserWindow } = electron;
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {
                     if (win !== mainWin && !win.isDestroyed()) {
                         win.close();
@@ -325,7 +325,7 @@ describe('Options Window Integration', () => {
             // Open options window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
@@ -357,7 +357,7 @@ describe('Options Window Integration', () => {
             // Open options window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
@@ -394,7 +394,7 @@ describe('Options Window Integration', () => {
             // Open options window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
@@ -434,7 +434,7 @@ describe('Options Window Integration', () => {
             // Open options window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
