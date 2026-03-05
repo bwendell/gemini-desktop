@@ -49,15 +49,18 @@ describe('UpdateManager Error Coordination', () => {
             set: vi.fn(),
         };
 
+        process.argv = process.argv.filter((arg) => arg !== '--test-auto-update');
+        process.env.APPIMAGE = '/tmp/app.AppImage';
+        delete process.env.TEST_AUTO_UPDATE;
+        (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettings as any);
 
-        // IMPORTANT: Trigger lazy loading of autoUpdater to register event handlers
-        // This is necessary because autoUpdater is now lazily loaded
-        await updateManager.checkForUpdates(false);
+        await updateManager.checkForUpdates(true);
     });
 
     afterEach(() => {
         updateManager.destroy();
+        delete process.env.APPIMAGE;
     });
 
     it('should broadcast masked error to ALL open windows', () => {
