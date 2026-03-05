@@ -20,7 +20,9 @@ interface UpdateToastProviderProps {
 /**
  * Map UpdateNotificationType to generic ToastType
  */
-function mapToToastType(type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress'): ToastType {
+function mapToToastType(
+    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | 'manual-available'
+): ToastType {
     switch (type) {
         case 'available':
             return 'info';
@@ -32,13 +34,17 @@ function mapToToastType(type: 'available' | 'downloaded' | 'error' | 'not-availa
             return 'info';
         case 'progress':
             return 'progress';
+        case 'manual-available':
+            return 'info';
     }
 }
 
 /**
  * Get title for notification type
  */
-function getTitle(type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress'): string {
+function getTitle(
+    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | 'manual-available'
+): string {
     switch (type) {
         case 'available':
             return 'Update Available';
@@ -50,6 +56,8 @@ function getTitle(type: 'available' | 'downloaded' | 'error' | 'not-available' |
             return 'Up to Date';
         case 'progress':
             return 'Downloading Update';
+        case 'manual-available':
+            return 'Update Available';
     }
 }
 
@@ -57,7 +65,7 @@ function getTitle(type: 'available' | 'downloaded' | 'error' | 'not-available' |
  * Get message for notification type
  */
 function getMessage(
-    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress',
+    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | 'manual-available',
     version: string | undefined,
     errorMessage: string | null,
     downloadProgress: number | null
@@ -75,6 +83,8 @@ function getMessage(
             return typeof downloadProgress === 'number'
                 ? `Downloading... ${Math.round(downloadProgress)}%`
                 : 'Downloading...';
+        case 'manual-available':
+            return `Version ${version} is available. Download it from the releases page.`;
     }
 }
 
@@ -91,7 +101,7 @@ function getMessage(
  * - Exposes update state (including hasPendingUpdate for badge)
  */
 export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
-    const { showToast, dismissToast } = useToast();
+    const { showToast, dismissToast, toasts } = useToast();
     const [currentToastId, setCurrentToastId] = useState<string | null>(null);
 
     // Use ref to track callbacks for actions to avoid stale closures
@@ -100,6 +110,8 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         onLater: () => void;
         onDismiss: () => void;
     } | null>(null);
+
+    const pendingToastRef = useRef(false);
 
     const {
         type,
@@ -164,10 +176,19 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
                 dismissToast(currentToastId);
                 queueMicrotask(() => setCurrentToastId(null));
             }
+            pendingToastRef.current = false;
             return;
         }
 
         const actions: ToastAction[] = [];
+        const version = updateInfo?.version;
+        if (type === 'manual-available') {
+            actions.push({
+                label: 'Download',
+                onClick: () => window.open(getReleaseNotesUrl(version)),
+                primary: true,
+            });
+        }
         if (type === 'downloaded') {
             actions.push({
                 label: 'Restart Now',
@@ -181,7 +202,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             });
         }
 
-        const version = updateInfo?.version;
         const message = getMessage(type, version, errorMessage, downloadProgress);
 
         if (type === 'available' || type === 'downloaded' || type === 'not-available') {
@@ -198,6 +218,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             dismissToast(currentToastId);
         }
 
+        pendingToastRef.current = true;
         const id = showToast({
             id: UPDATE_TOAST_ID,
             type: mapToToastType(type),
@@ -209,7 +230,27 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         });
 
         queueMicrotask(() => setCurrentToastId(id));
-    }, [type, visible, updateInfo, errorMessage, downloadProgress, showToast, dismissToast]);
+    }, [type, visible, updateInfo, errorMessage, downloadProgress, showToast, dismissToast, currentToastId]);
+
+    useEffect(() => {
+        if (!visible || !type) {
+            return;
+        }
+
+        const hasUpdateToast = toasts.some((toast) => toast.id === UPDATE_TOAST_ID);
+
+        if (pendingToastRef.current) {
+            if (hasUpdateToast) {
+                pendingToastRef.current = false;
+            }
+            return;
+        }
+
+        if (!hasUpdateToast) {
+            setCurrentToastId(null);
+            baseDismissNotification();
+        }
+    }, [visible, type, toasts, baseDismissNotification]);
 
     const contextValue: UpdateToastContextType = {
         type,

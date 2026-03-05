@@ -68,6 +68,7 @@ export const IPC_CHANNELS = {
     AUTO_UPDATE_CHECKING: 'auto-update:checking',
     AUTO_UPDATE_NOT_AVAILABLE: 'auto-update:not-available',
     AUTO_UPDATE_DOWNLOAD_PROGRESS: 'auto-update:download-progress',
+    AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE: 'auto-update:manual-update-available',
     TRAY_GET_TOOLTIP: 'tray:get-tooltip',
     PLATFORM_HOTKEY_STATUS_GET: 'platform:hotkey-status:get',
     PLATFORM_HOTKEY_STATUS_CHANGED: 'platform:hotkey-status:changed',
@@ -537,6 +538,15 @@ const electronAPI: ElectronAPI = {
 
         return () => {
             ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_ERROR, subscription);
+        };
+    },
+    onManualUpdateAvailable: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, info: Parameters<typeof callback>[0]) =>
+            callback(info);
+        ipcRenderer.on(IPC_CHANNELS.AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE, subscription);
         };
     },
 

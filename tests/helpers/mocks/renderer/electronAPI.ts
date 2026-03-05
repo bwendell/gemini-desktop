@@ -150,6 +150,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         onUpdateDownloaded: vi.fn().mockReturnValue(defaultUnsubscribe),
         onUpdateError: vi.fn().mockReturnValue(defaultUnsubscribe),
         onUpdateNotAvailable: vi.fn().mockReturnValue(defaultUnsubscribe),
+        onManualUpdateAvailable: vi.fn().mockReturnValue(defaultUnsubscribe),
         onDownloadProgress: vi.fn().mockReturnValue(defaultUnsubscribe),
 
         // =========================================================================
