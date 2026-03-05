@@ -161,7 +161,7 @@ export class QuickChatPage extends BasePage {
             this.log(`Quick Chat window state before focus: ${JSON.stringify(state)}`);
 
             await wdioBrowser.electron.execute(() => {
-                const windowManager = (global as any).windowManager;
+                const windowManager = (global as { appContext?: any }).appContext?.windowManager;
                 const quickChatWindow = windowManager?.getQuickChatWindow?.();
 
                 if (quickChatWindow && !quickChatWindow.isDestroyed()) {

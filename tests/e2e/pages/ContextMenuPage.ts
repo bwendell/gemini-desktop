@@ -25,6 +25,22 @@ const DEFAULT_TEST_INPUT_ID = 'e2e-context-menu-test-input';
  * and perform clipboard operations.
  */
 export class ContextMenuPage extends BasePage {
+    private readonly wdioBrowser = browser as typeof browser & {
+        electron: {
+            execute<R, T extends unknown[]>(
+                fn: (electron: typeof import('electron'), ...args: T) => R,
+                ...args: T
+            ): Promise<R>;
+        };
+        execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
+        keys(keys: string | string[]): Promise<void>;
+        waitUntil<T>(
+            condition: () => Promise<T> | T,
+            options?: { timeout?: number; timeoutMsg?: string; interval?: number }
+        ): Promise<T>;
+        pause(ms: number): Promise<void>;
+    };
+
     constructor() {
         super('ContextMenuPage');
     }
@@ -81,8 +97,8 @@ export class ContextMenuPage extends BasePage {
 
         this.log(`Creating test input: ${id}`);
 
-        await browser.execute(
-            (inputId, isReadOnly, initialValue, topPosition) => {
+        await this.wdioBrowser.execute(
+            (inputId: string, isReadOnly: boolean, initialValue: string, topPosition: string) => {
                 // Remove existing input if present
                 const existingInput = document.getElementById(inputId);
                 if (existingInput) {
@@ -127,7 +143,7 @@ export class ContextMenuPage extends BasePage {
      */
     async removeTestInput(id: string = DEFAULT_TEST_INPUT_ID): Promise<void> {
         this.log(`Removing test input: ${id}`);
-        await browser.execute((inputId) => {
+        await this.wdioBrowser.execute((inputId: string) => {
             const input = document.getElementById(inputId);
             if (input) {
                 input.remove();
@@ -157,8 +173,8 @@ export class ContextMenuPage extends BasePage {
         this.log('Opening context menu via native sendInputEvent');
 
         // Get element position for accurate click coordinates
-        const location = await element.getLocation();
-        const size = await element.getSize();
+        const location = await (element as unknown as import('../helpers/wdio-electron').WdioElement).getLocation();
+        const size = await (element as unknown as import('../helpers/wdio-electron').WdioElement).getSize();
 
         // Calculate center of element
         const x = Math.round(location.x + size.width / 2);
@@ -183,9 +199,9 @@ export class ContextMenuPage extends BasePage {
     async triggerContextMenuViaInputEvent(x: number, y: number): Promise<void> {
         this.log(`Sending native right-click at (${x}, ${y})`);
 
-        await browser.electron.execute(
-            (electron, coords) => {
-                const wm = (global as any).windowManager;
+        await this.wdioBrowser.electron.execute(
+            (electron: typeof import('electron'), coords: { x: number; y: number }) => {
+                const wm = (global as { appContext?: any }).appContext?.windowManager;
                 if (!wm) throw new Error('WindowManager not found on global');
                 const win = wm.getMainWindow();
                 if (!win) throw new Error('MainWindow not found');
@@ -212,7 +228,7 @@ export class ContextMenuPage extends BasePage {
         );
 
         // Small pause to let Electron process the input events
-        await this.pause(100);
+        await this.pause(300);
     }
 
     /**
@@ -220,30 +236,33 @@ export class ContextMenuPage extends BasePage {
      * Kept for compatibility but sendInputEvent is preferred.
      */
     async simulateWebContentsContextMenu(flags: { [key: string]: boolean }): Promise<void> {
-        await browser.electron.execute((electron, flags) => {
-            const wm = (global as any).windowManager;
-            if (!wm) throw new Error('WindowManager not found on global');
-            const win = wm.getMainWindow();
-            if (!win) throw new Error('MainWindow not found');
+        await this.wdioBrowser.electron.execute(
+            (electron: typeof import('electron'), flags: { [key: string]: boolean }) => {
+                const wm = (global as { appContext?: any }).appContext?.windowManager;
+                if (!wm) throw new Error('WindowManager not found on global');
+                const win = wm.getMainWindow();
+                if (!win) throw new Error('MainWindow not found');
 
-            // Emit context-menu event with mocked params
-            win.webContents.emit('context-menu', new Event('context-menu'), {
-                x: 0,
-                y: 0,
-                editFlags: flags,
-                selectionText: flags.canCopy ? 'mock selection' : '',
-                isEditable: true,
-            });
-        }, flags as any);
+                // Emit context-menu event with mocked params
+                win.webContents.emit('context-menu', new Event('context-menu'), {
+                    x: 0,
+                    y: 0,
+                    editFlags: flags,
+                    selectionText: flags.canCopy ? 'mock selection' : '',
+                    isEditable: true,
+                });
+            },
+            flags as any
+        );
     }
 
     /**
      * Wait for the context menu to be captured by the menu spy.
      */
     async waitForMenuOpen(): Promise<void> {
-        await browser.waitUntil(
+        await this.wdioBrowser.waitUntil(
             async () => {
-                return browser.electron.execute(() => {
+                return this.wdioBrowser.electron.execute(() => {
                     return !!(global as any).lastContextMenu;
                 });
             },
@@ -260,16 +279,16 @@ export class ContextMenuPage extends BasePage {
      */
     async closeContextMenu(): Promise<void> {
         this.log('Closing context menu');
-        await browser.keys(['Escape']);
-        await this.pause(200);
+        await this.wdioBrowser.keys(['Escape']);
+        await this.pause(300);
     }
 
     async setupMenuSpy(): Promise<void> {
-        await browser.electron.execute(() => {
+        await this.wdioBrowser.electron.execute(() => {
             const { Menu } = require('electron');
             if (!(global as any).originalPopup) {
                 (global as any).originalPopup = Menu.prototype.popup;
-                Menu.prototype.popup = function (_options) {
+                Menu.prototype.popup = function (_options: Electron.PopupOptions | undefined) {
                     (global as any).lastContextMenu = this;
                     console.log('[E2E] Menu.popup mocked - menu captured, native popup suppressed');
                     // Do NOT call originalPopup to avoid blocking the main process
@@ -280,27 +299,29 @@ export class ContextMenuPage extends BasePage {
     }
 
     async getMenuItemState(roleOrLabel: string): Promise<{ enabled: boolean; visible: boolean; label: string } | null> {
-        return browser.electron.execute((electron, filter) => {
-            const menu = (global as any).lastContextMenu;
+        return this.wdioBrowser.electron.execute((electron: typeof import('electron'), filter: string) => {
+            const menu = (global as any).lastContextMenu as
+                | { items: Array<{ label?: string; role?: string; enabled?: boolean; visible?: boolean }> }
+                | undefined;
             if (!menu) return null;
 
-            let item = menu.items.find((i: any) => i.role === filter || i.label === filter);
+            let item = menu.items.find((i) => i.role === filter || i.label === filter);
             if (!item) {
-                item = menu.items.find((i: any) => i.label && i.label.toLowerCase() === filter.toLowerCase());
+                item = menu.items.find((i) => i.label && i.label.toLowerCase() === filter.toLowerCase());
             }
 
             if (!item) {
                 console.log(`[E2E] Item "${filter}" not found in menu. Available items:`);
-                menu.items.forEach((i: any) =>
-                    console.log(` - Label: "${i.label}", Role: "${i.role}", Enabled: ${i.enabled}`)
-                );
+                menu.items.forEach((i) => {
+                    console.log(` - Label: "${i.label}", Role: "${i.role}", Enabled: ${i.enabled}`);
+                });
                 return null;
             }
 
             return {
-                enabled: item.enabled,
-                visible: item.visible,
-                label: item.label,
+                enabled: item.enabled ?? false,
+                visible: item.visible ?? false,
+                label: item.label ?? '',
             };
         }, roleOrLabel);
     }
@@ -350,8 +371,8 @@ export class ContextMenuPage extends BasePage {
      */
     async selectAllWithKeyboard(): Promise<void> {
         const modKey = await this.getModifierKey();
-        await browser.keys([modKey, 'a']);
-        await this.pause(100);
+        await this.wdioBrowser.keys([modKey, 'a']);
+        await this.pause(300);
     }
 
     /**
@@ -359,8 +380,8 @@ export class ContextMenuPage extends BasePage {
      */
     async copyWithKeyboard(): Promise<void> {
         const modKey = await this.getModifierKey();
-        await browser.keys([modKey, 'c']);
-        await this.pause(200);
+        await this.wdioBrowser.keys([modKey, 'c']);
+        await this.pause(300);
     }
 
     /**
@@ -368,8 +389,8 @@ export class ContextMenuPage extends BasePage {
      */
     async pasteWithKeyboard(): Promise<void> {
         const modKey = await this.getModifierKey();
-        await browser.keys([modKey, 'v']);
-        await this.pause(200);
+        await this.wdioBrowser.keys([modKey, 'v']);
+        await this.pause(300);
     }
 
     /**
@@ -377,8 +398,8 @@ export class ContextMenuPage extends BasePage {
      */
     async cutWithKeyboard(): Promise<void> {
         const modKey = await this.getModifierKey();
-        await browser.keys([modKey, 'x']);
-        await this.pause(200);
+        await this.wdioBrowser.keys([modKey, 'x']);
+        await this.pause(300);
     }
 
     // ===========================================================================
@@ -391,10 +412,10 @@ export class ContextMenuPage extends BasePage {
      */
     async setClipboardText(text: string): Promise<void> {
         this.log(`Setting clipboard text: "${text}"`);
-        await browser.electron.execute((electron, data) => {
+        await this.wdioBrowser.electron.execute((electron: typeof import('electron'), data: string) => {
             electron.clipboard.writeText(data);
         }, text);
-        await this.pause(200);
+        await this.pause(300);
     }
 
     /**
@@ -415,13 +436,13 @@ export class ContextMenuPage extends BasePage {
 
         // Create a verify input
         const verifyInput = await this.createTestInput(verifyInputId, { top: '200px' });
-        await verifyInput.click();
+        await (verifyInput as unknown as import('../helpers/wdio-electron').WdioElement).click();
 
         // Paste into it
         await this.pasteWithKeyboard();
 
         // Get the value
-        const pastedValue = await verifyInput.getValue();
+        const pastedValue = await (verifyInput as unknown as import('../helpers/wdio-electron').WdioElement).getValue();
 
         // Cleanup
         await this.removeTestInput(verifyInputId);
@@ -440,8 +461,8 @@ export class ContextMenuPage extends BasePage {
      * @param selectAll - Whether to select all after typing
      */
     async typeAndSelect(element: WebdriverIO.Element, text: string, selectAll: boolean = true): Promise<void> {
-        await element.click();
-        await element.setValue(text);
+        await (element as unknown as import('../helpers/wdio-electron').WdioElement).click();
+        await (element as unknown as import('../helpers/wdio-electron').WdioElement).setValue(text);
         if (selectAll) {
             await this.selectAllWithKeyboard();
         }

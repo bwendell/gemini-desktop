@@ -539,8 +539,9 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
 
     await workflowsBrowser.electron.execute(
         (_electron, payload) => {
-            const wm = (global as { windowManager?: { getMainWindow?: () => Electron.BrowserWindow | null } })
-                .windowManager;
+            const wm = (
+                global as { appContext?: { windowManager?: { getMainWindow?: () => Electron.BrowserWindow | null } } }
+            ).appContext?.windowManager;
             if (!wm?.getMainWindow) throw new Error('WindowManager not found on global');
             const win = wm.getMainWindow();
             if (!win) throw new Error('MainWindow not found');

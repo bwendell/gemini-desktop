@@ -39,7 +39,7 @@ describe('Zoom Control Integration', () => {
         // Reset zoom level to default after each test
         await browser.electron.execute((defaultZoom) => {
             // @ts-expect-error
-            global.windowManager.setZoomLevel(defaultZoom);
+            (global as { appContext?: any }).appContext.windowManager.setZoomLevel(defaultZoom);
         }, DEFAULT_ZOOM);
 
         await browser.pause(100);
@@ -49,7 +49,7 @@ describe('Zoom Control Integration', () => {
         await browser.electron.execute(() => {
             // @ts-expect-error
             const { BrowserWindow } = require('electron');
-            const mainWin = global.windowManager.getMainWindow();
+            const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
             BrowserWindow.getAllWindows().forEach((win: any) => {
                 if (win !== mainWin && !win.isDestroyed()) {
                     try {
@@ -68,7 +68,7 @@ describe('Zoom Control Integration', () => {
         await browser.electron.execute(() => {
             // @ts-expect-error
             const { BrowserWindow } = require('electron');
-            const mainWin = global.windowManager.getMainWindow();
+            const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
             BrowserWindow.getAllWindows().forEach((win: any) => {
                 if (win !== mainWin && !win.isDestroyed()) {
                     try {
@@ -95,11 +95,11 @@ describe('Zoom Control Integration', () => {
         // Also update the store value to ensure complete isolation
         await browser.electron.execute((defaultZoom) => {
             // @ts-expect-error
-            global.windowManager.initializeZoomLevel(defaultZoom);
+            (global as { appContext?: any }).appContext.windowManager.initializeZoomLevel(defaultZoom);
             // @ts-expect-error
-            global.windowManager.applyZoomLevel();
+            (global as { appContext?: any }).appContext.windowManager.applyZoomLevel();
             // @ts-expect-error - Also reset the store value
-            global.ipcManager.store.set('zoomLevel', defaultZoom);
+            (global as { appContext?: any }).appContext.ipcManager.store.set('zoomLevel', defaultZoom);
         }, DEFAULT_ZOOM);
 
         await browser.pause(200);
@@ -110,7 +110,7 @@ describe('Zoom Control Integration', () => {
             // Set zoom level to 150%
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(150);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(150);
             });
 
             // Wait for zoom to be applied
@@ -119,7 +119,7 @@ describe('Zoom Control Integration', () => {
             // Verify webContents.getZoomFactor() matches set level
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -134,14 +134,14 @@ describe('Zoom Control Integration', () => {
         it('should apply 50% zoom correctly', async () => {
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(50);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(50);
             });
 
             await browser.pause(100);
 
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -154,14 +154,14 @@ describe('Zoom Control Integration', () => {
         it('should apply 200% zoom correctly', async () => {
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(200);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(200);
             });
 
             await browser.pause(100);
 
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -174,14 +174,14 @@ describe('Zoom Control Integration', () => {
         it('should clamp zoom below 50% to 50%', async () => {
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(25);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(25);
             });
 
             await browser.pause(100);
 
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -195,14 +195,14 @@ describe('Zoom Control Integration', () => {
         it('should clamp zoom above 200% to 200%', async () => {
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(300);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(300);
             });
 
             await browser.pause(100);
 
             const actualZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -220,7 +220,7 @@ describe('Zoom Control Integration', () => {
             // Set zoom level to 150%
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(150);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(150);
             });
 
             await browser.pause(100);
@@ -228,7 +228,7 @@ describe('Zoom Control Integration', () => {
             // Read via getZoomLevel()
             const zoomLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(zoomLevel).toBe(150);
@@ -238,14 +238,14 @@ describe('Zoom Control Integration', () => {
             // Explicitly set to 100% for this test
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(100);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(100);
             });
 
             await browser.pause(100);
 
             const zoomLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(zoomLevel).toBe(DEFAULT_ZOOM);
@@ -255,14 +255,14 @@ describe('Zoom Control Integration', () => {
             // Set to minimum
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(50);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(50);
             });
 
             await browser.pause(100);
 
             const minZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(minZoom).toBe(50);
@@ -270,14 +270,14 @@ describe('Zoom Control Integration', () => {
             // Set to maximum
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(200);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(200);
             });
 
             await browser.pause(100);
 
             const maxZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(maxZoom).toBe(200);
@@ -290,7 +290,7 @@ describe('Zoom Control Integration', () => {
             // Reset to 100% first
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(100);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(100);
             });
 
             await browser.pause(100);
@@ -298,7 +298,7 @@ describe('Zoom Control Integration', () => {
             // Get initial zoom factor
             const initialZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -310,7 +310,7 @@ describe('Zoom Control Integration', () => {
             // Call zoomIn()
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomIn();
+                (global as { appContext?: any }).appContext.windowManager.zoomIn();
             });
 
             await browser.pause(100);
@@ -318,7 +318,7 @@ describe('Zoom Control Integration', () => {
             // Get new zoom factor
             const newZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -335,26 +335,26 @@ describe('Zoom Control Integration', () => {
             // Reset to 100% first
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(100);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(100);
             });
 
             await browser.pause(100);
 
             const initialLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomIn();
+                (global as { appContext?: any }).appContext.windowManager.zoomIn();
             });
 
             await browser.pause(100);
 
             const newLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(newLevel).toBe(110);
@@ -365,7 +365,7 @@ describe('Zoom Control Integration', () => {
             // Set to near maximum
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(175);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(175);
             });
 
             await browser.pause(100);
@@ -373,23 +373,23 @@ describe('Zoom Control Integration', () => {
             // Zoom in twice (175 -> 200 -> 200)
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomIn();
+                (global as { appContext?: any }).appContext.windowManager.zoomIn();
                 // @ts-expect-error
-                global.windowManager.zoomIn();
+                (global as { appContext?: any }).appContext.windowManager.zoomIn();
             });
 
             await browser.pause(100);
 
             const zoomLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(zoomLevel).toBe(200);
 
             const zoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -406,7 +406,7 @@ describe('Zoom Control Integration', () => {
             // Reset to 100% first
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(100);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(100);
             });
 
             await browser.pause(100);
@@ -414,7 +414,7 @@ describe('Zoom Control Integration', () => {
             // Get initial zoom factor
             const initialZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -426,7 +426,7 @@ describe('Zoom Control Integration', () => {
             // Call zoomOut()
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomOut();
+                (global as { appContext?: any }).appContext.windowManager.zoomOut();
             });
 
             await browser.pause(100);
@@ -434,7 +434,7 @@ describe('Zoom Control Integration', () => {
             // Get new zoom factor
             const newZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -451,26 +451,26 @@ describe('Zoom Control Integration', () => {
             // Reset to 100% first
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(100);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(100);
             });
 
             await browser.pause(100);
 
             const initialLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomOut();
+                (global as { appContext?: any }).appContext.windowManager.zoomOut();
             });
 
             await browser.pause(100);
 
             const newLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(newLevel).toBe(90);
@@ -481,7 +481,7 @@ describe('Zoom Control Integration', () => {
             // Set to near minimum
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(67);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(67);
             });
 
             await browser.pause(100);
@@ -489,23 +489,23 @@ describe('Zoom Control Integration', () => {
             // Zoom out twice (67 -> 50 -> 50)
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomOut();
+                (global as { appContext?: any }).appContext.windowManager.zoomOut();
                 // @ts-expect-error
-                global.windowManager.zoomOut();
+                (global as { appContext?: any }).appContext.windowManager.zoomOut();
             });
 
             await browser.pause(100);
 
             const zoomLevel = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(zoomLevel).toBe(50);
 
             const zoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -522,7 +522,7 @@ describe('Zoom Control Integration', () => {
             // Set zoom level
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(125);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(125);
             });
 
             await browser.pause(200);
@@ -530,7 +530,7 @@ describe('Zoom Control Integration', () => {
             // Check stored value via ipcManager.store
             const storedZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.ipcManager.store.get('zoomLevel');
+                return (global as { appContext?: any }).appContext.ipcManager.store.get('zoomLevel');
             });
 
             expect(storedZoom).toBe(125);
@@ -540,21 +540,21 @@ describe('Zoom Control Integration', () => {
             // Reset to 100% first
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(100);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(100);
             });
 
             await browser.pause(100);
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomIn();
+                (global as { appContext?: any }).appContext.windowManager.zoomIn();
             });
 
             await browser.pause(200);
 
             const storedZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.ipcManager.store.get('zoomLevel');
+                return (global as { appContext?: any }).appContext.ipcManager.store.get('zoomLevel');
             });
 
             // 100% -> 110%
@@ -565,21 +565,21 @@ describe('Zoom Control Integration', () => {
             // Reset to 100% first
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(100);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(100);
             });
 
             await browser.pause(100);
 
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomOut();
+                (global as { appContext?: any }).appContext.windowManager.zoomOut();
             });
 
             await browser.pause(200);
 
             const storedZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.ipcManager.store.get('zoomLevel');
+                return (global as { appContext?: any }).appContext.ipcManager.store.get('zoomLevel');
             });
 
             // 100% -> 90%
@@ -595,7 +595,7 @@ describe('Zoom Control Integration', () => {
             // First, set a zoom level and ensure it's persisted
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(150);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(150);
             });
 
             await browser.pause(200);
@@ -603,7 +603,7 @@ describe('Zoom Control Integration', () => {
             // Verify it's stored
             const storedZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.ipcManager.store.get('zoomLevel');
+                return (global as { appContext?: any }).appContext.ipcManager.store.get('zoomLevel');
             });
 
             expect(storedZoom).toBe(150);
@@ -611,9 +611,9 @@ describe('Zoom Control Integration', () => {
             // Re-initialize zoom from store (simulating what happens on app start)
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                const savedZoom = global.ipcManager.store.get('zoomLevel');
+                const savedZoom = (global as { appContext?: any }).appContext.ipcManager.store.get('zoomLevel');
                 // @ts-expect-error
-                global.windowManager.initializeZoomLevel(savedZoom);
+                (global as { appContext?: any }).appContext.windowManager.initializeZoomLevel(savedZoom);
             });
 
             await browser.pause(100);
@@ -621,14 +621,14 @@ describe('Zoom Control Integration', () => {
             // Verify zoom is restored
             const currentZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(currentZoom).toBe(150);
 
             const zoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -647,14 +647,14 @@ describe('Zoom Control Integration', () => {
             // Re-initialize with undefined (simulating fresh install)
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.initializeZoomLevel(undefined);
+                (global as { appContext?: any }).appContext.windowManager.initializeZoomLevel(undefined);
             });
 
             await browser.pause(100);
 
             const currentZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                return global.windowManager.getZoomLevel();
+                return (global as { appContext?: any }).appContext.windowManager.getZoomLevel();
             });
 
             expect(currentZoom).toBe(100);
@@ -673,7 +673,7 @@ describe('Zoom Control Integration', () => {
             // Set main window zoom to 150%
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(150);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(150);
             });
 
             await browser.pause(100);
@@ -681,7 +681,7 @@ describe('Zoom Control Integration', () => {
             // Open options window and capture its ID
             const _optionsWinId = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const win = global.windowManager.createOptionsWindow();
+                const win = (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
                 return win ? win.id : null;
             });
 
@@ -701,7 +701,7 @@ describe('Zoom Control Integration', () => {
             const optionsZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
                 const { BrowserWindow } = require('electron');
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 const mainWinId = mainWin ? mainWin.id : -1;
                 const allWindows = BrowserWindow.getAllWindows();
 
@@ -721,7 +721,7 @@ describe('Zoom Control Integration', () => {
             // Verify main window is still at 150%
             const mainZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -741,7 +741,7 @@ describe('Zoom Control Integration', () => {
             // Set main window zoom to 150%
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.setZoomLevel(150);
+                (global as { appContext?: any }).appContext.windowManager.setZoomLevel(150);
             });
 
             await browser.pause(100);
@@ -749,7 +749,7 @@ describe('Zoom Control Integration', () => {
             // Open quick chat window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createQuickChatWindow();
+                (global as { appContext?: any }).appContext.windowManager.createQuickChatWindow();
             });
 
             // Wait for quick chat window to appear (check for increase, not exact count)
@@ -768,7 +768,7 @@ describe('Zoom Control Integration', () => {
             const quickChatZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
                 const { BrowserWindow } = require('electron');
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 const mainWinId = mainWin ? mainWin.id : -1;
                 const allWindows = BrowserWindow.getAllWindows();
 
@@ -788,7 +788,7 @@ describe('Zoom Control Integration', () => {
             // Verify main window is still at 150%
             const mainZoomFactor = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }
@@ -808,7 +808,7 @@ describe('Zoom Control Integration', () => {
             // Open options window first
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.createOptionsWindow();
+                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
@@ -826,7 +826,7 @@ describe('Zoom Control Integration', () => {
             const initialOptionsZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
                 const { BrowserWindow } = require('electron');
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 const mainWinId = mainWin ? mainWin.id : -1;
                 const allWindows = BrowserWindow.getAllWindows();
 
@@ -844,7 +844,7 @@ describe('Zoom Control Integration', () => {
             // Zoom in main window
             await browser.electron.execute(() => {
                 // @ts-expect-error
-                global.windowManager.zoomIn();
+                (global as { appContext?: any }).appContext.windowManager.zoomIn();
             });
 
             await browser.pause(100);
@@ -853,7 +853,7 @@ describe('Zoom Control Integration', () => {
             const afterZoomOptionsZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
                 const { BrowserWindow } = require('electron');
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 const mainWinId = mainWin ? mainWin.id : -1;
                 const allWindows = BrowserWindow.getAllWindows();
 
@@ -871,7 +871,7 @@ describe('Zoom Control Integration', () => {
             // Main window should be zoomed
             const mainZoom = await browser.electron.execute(() => {
                 // @ts-expect-error
-                const mainWin = global.windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 if (mainWin && !mainWin.isDestroyed()) {
                     return mainWin.webContents.getZoomFactor();
                 }

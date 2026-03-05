@@ -33,6 +33,22 @@ import { E2E_TIMING } from './helpers/e2eConstants';
 // ============================================================================
 
 describe('Response Notifications', () => {
+    type WdioBrowser = typeof browser & {
+        electron: {
+            execute<R, T extends unknown[]>(
+                fn: (electron: typeof import('electron'), ...args: T) => R,
+                ...args: T
+            ): Promise<R>;
+        };
+        execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
+        waitUntil<T>(
+            condition: () => Promise<T> | T,
+            options?: { timeout?: number; timeoutMsg?: string; interval?: number }
+        ): Promise<T>;
+        pause(ms: number): Promise<void>;
+    };
+
+    const wdioBrowser = browser as WdioBrowser;
     const mainWindow = new MainWindowPage();
     const optionsPage = new OptionsPage();
 
@@ -195,8 +211,9 @@ describe('Response Notifications', () => {
 
         it('should clear notification badge when window is focused', async () => {
             // 1. Set window as unfocused in the main process
-            await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
+            await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 if (notificationManager) {
                     notificationManager['_isWindowFocused'] = false;
                 }
@@ -205,8 +222,9 @@ describe('Response Notifications', () => {
             // 2. Trigger response-complete via production event path
             // (The network detection → emit chain is tested at unit level;
             // here we test the emit → notification → badge E2E flow)
-            await browser.electron.execute(() => {
-                const windowManager = (global as any).windowManager;
+            await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const windowManager = appContext?.windowManager;
                 const mainWindowInstance = windowManager?.getMainWindowInstance();
                 if (mainWindowInstance) {
                     mainWindowInstance.emit('response-complete');
@@ -216,8 +234,9 @@ describe('Response Notifications', () => {
             // 3. Wait for notification/badge to be triggered via async processing
             await waitForUIState(
                 async () => {
-                    const result = await browser.electron.execute(() => {
-                        const badgeManager = (global as any).badgeManager;
+                    const result = await wdioBrowser.electron.execute(() => {
+                        const appContext = (global as { appContext?: any }).appContext;
+                        const badgeManager = appContext?.badgeManager;
                         return badgeManager?.hasNotificationBadge ?? false;
                     });
                     return result;
@@ -226,23 +245,26 @@ describe('Response Notifications', () => {
             );
 
             // 4. Verify badge was shown via production code path
-            const badgeShown = await browser.electron.execute(() => {
-                const badgeManager = (global as any).badgeManager;
+            const badgeShown = await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const badgeManager = appContext?.badgeManager;
                 return badgeManager?.hasNotificationBadge ?? false;
             });
 
             expect(badgeShown).toBe(true);
 
             // 5. Now focus the window via production method
-            await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
+            await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 notificationManager?.onWindowFocus();
             });
 
             await waitForUIState(
                 async () => {
-                    const cleared = await browser.electron.execute(() => {
-                        const badgeManager = (global as any).badgeManager;
+                    const cleared = await wdioBrowser.electron.execute(() => {
+                        const appContext = (global as { appContext?: any }).appContext;
+                        const badgeManager = appContext?.badgeManager;
                         return !(badgeManager?.hasNotificationBadge ?? false);
                     });
                     return cleared;
@@ -251,8 +273,9 @@ describe('Response Notifications', () => {
             );
 
             // 6. Verify badge was cleared
-            const badgeCleared = await browser.electron.execute(() => {
-                const badgeManager = (global as any).badgeManager;
+            const badgeCleared = await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const badgeManager = appContext?.badgeManager;
                 return !(badgeManager?.hasNotificationBadge ?? false);
             });
 
@@ -275,8 +298,9 @@ describe('Response Notifications', () => {
 
         it('should show notification when response completes and window is unfocused', async () => {
             // 1. Prepare to track notifications in main process
-            await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
+            await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 if (!notificationManager) return;
 
                 notificationManager['_isWindowFocused'] = false;
@@ -285,7 +309,6 @@ describe('Response Notifications', () => {
                 const originalShow = notificationManager.showNotification;
                 notificationManager.showNotification = function () {
                     this['_lastNotificationShown'] = true;
-                    // Don't actually show native notification in test env if possible
                 };
                 notificationManager['_originalShow'] = originalShow;
             });
@@ -293,8 +316,9 @@ describe('Response Notifications', () => {
             // 2. Trigger response-complete via production event path
             // (The network detection → emit chain is tested at unit level;
             // here we test the emit → notification → badge E2E flow)
-            await browser.electron.execute(() => {
-                const windowManager = (global as any).windowManager;
+            await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const windowManager = appContext?.windowManager;
                 const mainWindowInstance = windowManager?.getMainWindowInstance();
                 if (mainWindowInstance) {
                     mainWindowInstance.emit('response-complete');
@@ -304,9 +328,10 @@ describe('Response Notifications', () => {
             // 3. Wait for notification to be triggered
             await waitForUIState(
                 async () => {
-                    const result = await browser.electron.execute(() => {
-                        const notificationManager = (global as any).notificationManager;
-                        const badgeManager = (global as any).badgeManager;
+                    const result = await wdioBrowser.electron.execute(() => {
+                        const appContext = (global as { appContext?: any }).appContext;
+                        const notificationManager = appContext?.notificationManager;
+                        const badgeManager = appContext?.badgeManager;
                         const shown = notificationManager?.['_lastNotificationShown'] ?? false;
                         const hasBadge = badgeManager?.hasNotificationBadge ?? false;
                         return shown || hasBadge;
@@ -317,14 +342,14 @@ describe('Response Notifications', () => {
             );
 
             // 4. Verify notification and badge state
-            const result = await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
+            const result = await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
+                const badgeManager = appContext?.badgeManager;
 
                 const shown = notificationManager?.['_lastNotificationShown'] ?? false;
                 const hasBadge = badgeManager?.hasNotificationBadge ?? false;
 
-                // Cleanup our hook
                 if (notificationManager && notificationManager['_originalShow']) {
                     notificationManager.showNotification = notificationManager['_originalShow'];
                     delete notificationManager['_originalShow'];
@@ -358,19 +383,18 @@ describe('Response Notifications', () => {
 
         it('should focus main window when notification is clicked', async () => {
             // This test verifies the notification click handler
-            const result = await browser.electron.execute(async () => {
-                const notificationManager = (global as any).notificationManager;
+            const result = await wdioBrowser.electron.execute(async () => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 if (!notificationManager) {
                     return { error: 'NotificationManager not available' };
                 }
 
-                // Get main window reference
                 const mainWindow = notificationManager['mainWindow'];
                 if (!mainWindow || mainWindow.isDestroyed()) {
                     return { error: 'Main window not available' };
                 }
 
-                // Track if focus methods were called
                 let showCalled = false;
                 let focusCalled = false;
 
@@ -386,11 +410,8 @@ describe('Response Notifications', () => {
                     originalFocus();
                 };
 
-                // Trigger the notification click handler directly
-                // This simulates what happens when user clicks the notification
                 notificationManager['focusMainWindow']();
 
-                // Restore original methods
                 mainWindow.show = originalShow;
                 mainWindow.focus = originalFocus;
 
@@ -407,19 +428,18 @@ describe('Response Notifications', () => {
 
         it('should restore minimized window when notification is clicked', async () => {
             // First minimize the window, then verify notification click restores it
-            const result = await browser.electron.execute(async () => {
-                const notificationManager = (global as any).notificationManager;
+            const result = await wdioBrowser.electron.execute(async () => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 if (!notificationManager) {
                     return { error: 'NotificationManager not available' };
                 }
 
-                // Get main window reference
                 const mainWindow = notificationManager['mainWindow'];
                 if (!mainWindow || mainWindow.isDestroyed()) {
                     return { error: 'Main window not available' };
                 }
 
-                // Track if restore/show/focus was called
                 let restoreCalled = false;
                 let showCalled = false;
                 let focusCalled = false;
@@ -441,25 +461,18 @@ describe('Response Notifications', () => {
                     originalFocus();
                 };
 
-                // Try to minimize the window
                 mainWindow.minimize();
 
-                // Give a moment for minimize to take effect
                 await new Promise((resolve) => setTimeout(resolve, 200));
 
-                // Check if it was actually minimized (may not work in all environments)
                 const wasMinimized = mainWindow.isMinimized();
 
-                // Trigger the notification click handler
                 notificationManager['focusMainWindow']();
 
-                // Give a moment for window operations
                 await new Promise((resolve) => setTimeout(resolve, 200));
 
-                // Check if window is now visible
                 const isNowVisible = mainWindow.isVisible();
 
-                // Restore original methods
                 mainWindow.restore = originalRestore;
                 mainWindow.show = originalShow;
                 mainWindow.focus = originalFocus;
@@ -498,8 +511,9 @@ describe('Response Notifications', () => {
 
         it('should NOT show notification when window is focused', async () => {
             // 1. Set window as focused in the main process
-            await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
+            await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 if (notificationManager) {
                     notificationManager['_isWindowFocused'] = true;
                     notificationManager['_lastNotificationShown'] = false;
@@ -512,9 +526,10 @@ describe('Response Notifications', () => {
             // 3. Wait briefly to verify NO notification occurs (negative test)
             await waitForDuration(500, 'Verify no spurious notification when focused');
 
-            const check = await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
+            const check = await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
+                const badgeManager = appContext?.badgeManager;
 
                 const shown = notificationManager?.['_lastNotificationShown'] ?? false;
                 const hasBadge = badgeManager?.hasNotificationBadge ?? false;
@@ -555,8 +570,9 @@ describe('Response Notifications', () => {
             await waitForWindowCount(1, 5000);
 
             // 2. Set window as unfocused
-            await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
+            await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 if (notificationManager) {
                     notificationManager['_isWindowFocused'] = false;
                     notificationManager['_lastNotificationShown'] = false;
@@ -569,9 +585,10 @@ describe('Response Notifications', () => {
             // 4. Wait briefly to verify NO notification occurs (negative test)
             await waitForDuration(500, 'Verify no spurious notification when disabled');
 
-            const check = await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
+            const check = await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
+                const badgeManager = appContext?.badgeManager;
 
                 const shown = notificationManager?.['_lastNotificationShown'] ?? false;
                 const hasBadge = badgeManager?.hasNotificationBadge ?? false;
@@ -585,8 +602,9 @@ describe('Response Notifications', () => {
 
         it('should NOT show notification for non-matching URLs (e.g. log / analytics)', async () => {
             // 1. Set window as unfocused
-            await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
+            await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 if (notificationManager) {
                     notificationManager['_isWindowFocused'] = false;
                     notificationManager['_lastNotificationShown'] = false;
@@ -601,9 +619,10 @@ describe('Response Notifications', () => {
             // 3. Wait briefly to verify NO notification occurs for non-matching URL (negative test)
             await waitForDuration(500, 'Verify no spurious notification for log endpoint');
 
-            const check = await browser.electron.execute(() => {
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
+            const check = await wdioBrowser.electron.execute(() => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
+                const badgeManager = appContext?.badgeManager;
 
                 const shown = notificationManager?.['_lastNotificationShown'] ?? false;
                 const hasBadge = badgeManager?.hasNotificationBadge ?? false;
@@ -634,8 +653,9 @@ describe('Response Notifications', () => {
             expect(['windows', 'macos', 'linux']).toContain(detectedPlatform);
 
             // Verify notification manager exists and is functional
-            const result = await browser.electron.execute(async () => {
-                const notificationManager = (global as any).notificationManager;
+            const result = await wdioBrowser.electron.execute(async () => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const notificationManager = appContext?.notificationManager;
                 if (!notificationManager) {
                     return { exists: false };
                 }
@@ -657,8 +677,9 @@ describe('Response Notifications', () => {
         });
 
         it('should handle badge on current platform', async () => {
-            const result = await browser.electron.execute(async () => {
-                const badgeManager = (global as any).badgeManager;
+            const result = await wdioBrowser.electron.execute(async () => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const badgeManager = appContext?.badgeManager;
                 if (!badgeManager) {
                     return { exists: false };
                 }
@@ -681,11 +702,11 @@ describe('Response Notifications', () => {
         it('should show notification on current platform via full production wiring', async () => {
             // This test uses FULL production wiring via mainWindow.emit('response-complete')
             // to verify notification works on current platform (platform-agnostic check)
-            const result = await browser.electron.execute(async () => {
-                // Get the mainWindow instance from windowManager (production code path)
-                const windowManager = (global as any).windowManager;
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
+            const result = await wdioBrowser.electron.execute(async () => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const windowManager = appContext?.windowManager;
+                const notificationManager = appContext?.notificationManager;
+                const badgeManager = appContext?.badgeManager;
 
                 if (!windowManager || !notificationManager || !badgeManager) {
                     return { error: 'Required managers not available' };
@@ -696,40 +717,29 @@ describe('Response Notifications', () => {
                     return { error: 'MainWindow instance not available' };
                 }
 
-                // Detect current platform
                 const currentPlatform = process.platform;
 
-                // Set window as unfocused (per acceptance criteria)
                 notificationManager['_isWindowFocused'] = false;
 
-                // Track if notification was called
                 let notificationCalled = false;
 
                 const originalShowNotification = notificationManager.showNotification?.bind(notificationManager);
                 if (originalShowNotification) {
                     notificationManager.showNotification = () => {
                         notificationCalled = true;
-                        // Don't actually show notification in test
                     };
                 }
 
-                // Trigger response-complete via MainWindow emit (FULL production code path)
-                // This tests the wiring: MainWindow → NotificationManager
-                // Test MUST fail if this wiring is broken
                 mainWindowInstance.emit('response-complete');
 
-                // Give a brief moment for async processing
                 await new Promise((resolve) => setTimeout(resolve, 100));
 
-                // Restore original methods
                 if (originalShowNotification) {
                     notificationManager.showNotification = originalShowNotification;
                 }
 
-                // Get badge state - may be false on Linux (no native support)
                 const hasBadge = badgeManager.hasNotificationBadge ?? false;
 
-                // Cleanup: clear badge
                 notificationManager.onWindowFocus();
 
                 return {
@@ -770,7 +780,7 @@ describe('Response Notifications', () => {
             const detectedPlatform = await getPlatform();
 
             // This test logs platform-specific behavior for debugging
-            const result = await browser.electron.execute(async (electron, _platform) => {
+            const result = await wdioBrowser.electron.execute(async (electron, _platform) => {
                 const { Notification } = electron;
 
                 return {
@@ -793,11 +803,11 @@ describe('Response Notifications', () => {
 
             // This test uses FULL production wiring via mainWindow.emit('response-complete')
             // to verify Windows toast notification and taskbar overlay work correctly
-            const result = await browser.electron.execute(async () => {
-                // Get the mainWindow instance from windowManager (production code path)
-                const windowManager = (global as any).windowManager;
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
+            const result = await wdioBrowser.electron.execute(async () => {
+                const appContext = (global as { appContext?: any }).appContext;
+                const windowManager = appContext?.windowManager;
+                const notificationManager = appContext?.notificationManager;
+                const badgeManager = appContext?.badgeManager;
 
                 if (!windowManager || !notificationManager || !badgeManager) {
                     return { error: 'Required managers not available' };
@@ -808,13 +818,10 @@ describe('Response Notifications', () => {
                     return { error: 'MainWindow instance not available' };
                 }
 
-                // Verify Windows overlay icon support exists
                 const hasOverlayIconSupport = typeof badgeManager['mainWindow']?.setOverlayIcon === 'function';
 
-                // Set window as unfocused (per acceptance criteria)
                 notificationManager['_isWindowFocused'] = false;
 
-                // Track if notification and badge were called
                 let notificationCalled = false;
                 let overlayIconSet = false;
                 let overlayDescription = '';
@@ -823,39 +830,29 @@ describe('Response Notifications', () => {
                 if (originalShowNotification) {
                     notificationManager.showNotification = () => {
                         notificationCalled = true;
-                        // Don't actually show notification in test
                     };
                 }
 
-                // Track setOverlayIcon calls on Windows
                 const mainWindowRef = badgeManager['mainWindow'];
                 if (mainWindowRef && typeof mainWindowRef.setOverlayIcon === 'function') {
                     const originalSetOverlayIcon = mainWindowRef.setOverlayIcon.bind(mainWindowRef);
                     mainWindowRef.setOverlayIcon = (icon: any, description: string) => {
                         overlayIconSet = true;
                         overlayDescription = description;
-                        // Call original to actually set the overlay
                         return originalSetOverlayIcon(icon, description);
                     };
                 }
 
-                // Trigger response-complete via MainWindow emit (FULL production code path)
-                // This tests the wiring: MainWindow → NotificationManager → BadgeManager
-                // Test MUST fail if this wiring is broken
                 mainWindowInstance.emit('response-complete');
 
-                // Give a brief moment for async processing
                 await new Promise((resolve) => setTimeout(resolve, 100));
 
-                // Restore original methods
                 if (originalShowNotification) {
                     notificationManager.showNotification = originalShowNotification;
                 }
 
-                // Get badge state
                 const hasBadge = badgeManager.hasNotificationBadge ?? false;
 
-                // Cleanup: clear badge
                 notificationManager.onWindowFocus();
 
                 return {
@@ -889,13 +886,12 @@ describe('Response Notifications', () => {
 
             // This test uses FULL production wiring via mainWindow.emit('response-complete')
             // to verify macOS Notification Center and dock badge work correctly
-            const result = await browser.electron.execute(async (electron) => {
+            const result = await wdioBrowser.electron.execute(async (electron) => {
                 const { app } = electron;
-
-                // Get the mainWindow instance from windowManager (production code path)
-                const windowManager = (global as any).windowManager;
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
+                const appContext = (global as { appContext?: any }).appContext;
+                const windowManager = appContext?.windowManager;
+                const notificationManager = appContext?.notificationManager;
+                const badgeManager = appContext?.badgeManager;
 
                 if (!windowManager || !notificationManager || !badgeManager) {
                     return { error: 'Required managers not available' };
@@ -906,13 +902,10 @@ describe('Response Notifications', () => {
                     return { error: 'MainWindow instance not available' };
                 }
 
-                // Verify macOS dock badge support
                 const hasDockBadgeSupport = typeof app.dock?.setBadge === 'function';
 
-                // Set window as unfocused (per acceptance criteria)
                 notificationManager['_isWindowFocused'] = false;
 
-                // Track if notification and dock badge were called
                 let notificationCalled = false;
                 let dockBadgeSet = false;
                 let dockBadgeText = '';
@@ -921,38 +914,28 @@ describe('Response Notifications', () => {
                 if (originalShowNotification) {
                     notificationManager.showNotification = () => {
                         notificationCalled = true;
-                        // Don't actually show notification in test
                     };
                 }
 
-                // Track app.dock.setBadge calls on macOS
                 if (app.dock && typeof app.dock.setBadge === 'function') {
                     const originalSetBadge = app.dock.setBadge.bind(app.dock);
                     app.dock.setBadge = (text: string) => {
                         dockBadgeSet = true;
                         dockBadgeText = text;
-                        // Call original to actually set the badge
                         return originalSetBadge(text);
                     };
                 }
 
-                // Trigger response-complete via MainWindow emit (FULL production code path)
-                // This tests the wiring: MainWindow → NotificationManager → BadgeManager
-                // Test MUST fail if this wiring is broken
                 mainWindowInstance.emit('response-complete');
 
-                // Give a brief moment for async processing
                 await new Promise((resolve) => setTimeout(resolve, 100));
 
-                // Restore original methods
                 if (originalShowNotification) {
                     notificationManager.showNotification = originalShowNotification;
                 }
 
-                // Get badge state
                 const hasBadge = badgeManager.hasNotificationBadge ?? false;
 
-                // Cleanup: clear badge
                 notificationManager.onWindowFocus();
 
                 return {
@@ -983,13 +966,12 @@ describe('Response Notifications', () => {
 
             // This test uses FULL production wiring via mainWindow.emit('response-complete')
             // to verify Linux notification works correctly and badge is gracefully skipped
-            const result = await browser.electron.execute(async (electron) => {
+            const result = await wdioBrowser.electron.execute(async (electron) => {
                 const { Notification } = electron;
-
-                // Get the mainWindow instance from windowManager (production code path)
-                const windowManager = (global as any).windowManager;
-                const notificationManager = (global as any).notificationManager;
-                const badgeManager = (global as any).badgeManager;
+                const appContext = (global as { appContext?: any }).appContext;
+                const windowManager = appContext?.windowManager;
+                const notificationManager = appContext?.notificationManager;
+                const badgeManager = appContext?.badgeManager;
 
                 if (!windowManager || !notificationManager || !badgeManager) {
                     return { error: 'Required managers not available' };
@@ -1000,37 +982,27 @@ describe('Response Notifications', () => {
                     return { error: 'MainWindow instance not available' };
                 }
 
-                // Verify libnotify notification support (Electron uses libnotify on Linux)
                 const isNotificationSupported = Notification.isSupported();
 
-                // Set window as unfocused (per acceptance criteria)
                 notificationManager['_isWindowFocused'] = false;
 
-                // Track if notification was called
                 let notificationCalled = false;
 
                 const originalShowNotification = notificationManager.showNotification?.bind(notificationManager);
                 if (originalShowNotification) {
                     notificationManager.showNotification = () => {
                         notificationCalled = true;
-                        // Don't actually show notification in test
                     };
                 }
 
-                // Trigger response-complete via MainWindow emit (FULL production code path)
-                // This tests the wiring: MainWindow → NotificationManager
-                // Test MUST fail if this wiring is broken
                 mainWindowInstance.emit('response-complete');
 
-                // Give a brief moment for async processing
                 await new Promise((resolve) => setTimeout(resolve, 100));
 
-                // Restore original methods
                 if (originalShowNotification) {
                     notificationManager.showNotification = originalShowNotification;
                 }
 
-                // On Linux, badge operations should not throw (gracefully skipped)
                 let badgeNoError = true;
                 try {
                     badgeManager.showNotificationBadge();
@@ -1039,7 +1011,6 @@ describe('Response Notifications', () => {
                     badgeNoError = false;
                 }
 
-                // Cleanup: clear badge state
                 notificationManager.onWindowFocus();
 
                 return {

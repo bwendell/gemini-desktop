@@ -28,6 +28,7 @@ describe('Voice Chat Hotkey Feature', () => {
 
     const browserWithElectron = browser as unknown as {
         pause: (ms: number) => Promise<void>;
+        execute: <T>(script: string | ((...args: any[]) => T), ...args: any[]) => Promise<T>;
         electron: {
             execute: <T, A extends unknown[]>(
                 fn: (electron: typeof import('electron'), ...args: A) => T,
@@ -112,12 +113,12 @@ describe('Voice Chat Hotkey Feature', () => {
             E2ELogger.info('voice-chat', `Initial state: ${initialChecked ? 'enabled' : 'disabled'}`);
 
             await voiceChatToggle.click();
-            await browser.pause(300);
+            await browserWithElectron.pause(300);
 
             E2ELogger.info('voice-chat', 'Voice Chat toggle clicked successfully');
 
             await voiceChatToggle.click();
-            await browser.pause(300);
+            await browserWithElectron.pause(300);
 
             E2ELogger.info('voice-chat', 'Voice Chat toggle restored to original state');
         });
@@ -153,7 +154,7 @@ describe('Voice Chat Hotkey Feature', () => {
     describe('Voice Chat Action Verification', () => {
         it('should have voiceChat action registered in HotkeyManager', async () => {
             const hasAction = await browserWithElectron.electron.execute(async () => {
-                const hotkeyManager = (global as any).hotkeyManager;
+                const hotkeyManager = (global as { appContext?: any }).appContext?.hotkeyManager;
                 if (!hotkeyManager) return false;
 
                 const isEnabled = hotkeyManager.isIndividualEnabled?.('voiceChat');
@@ -166,7 +167,7 @@ describe('Voice Chat Hotkey Feature', () => {
 
         it('should have correct default accelerator for Voice Chat', async () => {
             const defaultAccelerator = await browserWithElectron.electron.execute(async () => {
-                const hotkeyManager = (global as any).hotkeyManager;
+                const hotkeyManager = (global as { appContext?: any }).appContext?.hotkeyManager;
                 if (!hotkeyManager) return null;
 
                 return hotkeyManager.getAccelerator?.('voiceChat');
@@ -179,7 +180,7 @@ describe('Voice Chat Hotkey Feature', () => {
         it('should enable/disable voiceChat via IPC', async () => {
             // Check initial state
             let isEnabled = await browserWithElectron.electron.execute(async () => {
-                const hotkeyManager = (global as any).hotkeyManager;
+                const hotkeyManager = (global as { appContext?: any }).appContext?.hotkeyManager;
                 return hotkeyManager?.isIndividualEnabled?.('voiceChat') ?? false;
             });
 
@@ -187,13 +188,13 @@ describe('Voice Chat Hotkey Feature', () => {
             E2ELogger.info('voice-chat', `Initial voiceChat state: ${initialState}`);
 
             // Disable
-            await browser.execute(async () => {
+            await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 await api.setIndividualHotkey('voiceChat', false);
             });
 
             isEnabled = await browserWithElectron.electron.execute(async () => {
-                const hotkeyManager = (global as any).hotkeyManager;
+                const hotkeyManager = (global as { appContext?: any }).appContext?.hotkeyManager;
                 return hotkeyManager?.isIndividualEnabled?.('voiceChat') ?? false;
             });
 
@@ -201,13 +202,13 @@ describe('Voice Chat Hotkey Feature', () => {
             E2ELogger.info('voice-chat', 'voiceChat successfully disabled via IPC');
 
             // Re-enable
-            await browser.execute(async () => {
+            await browserWithElectron.execute(async () => {
                 const api = (window as any).electronAPI;
                 await api.setIndividualHotkey('voiceChat', true);
             });
 
             isEnabled = await browserWithElectron.electron.execute(async () => {
-                const hotkeyManager = (global as any).hotkeyManager;
+                const hotkeyManager = (global as { appContext?: any }).appContext?.hotkeyManager;
                 return hotkeyManager?.isIndividualEnabled?.('voiceChat') ?? false;
             });
 

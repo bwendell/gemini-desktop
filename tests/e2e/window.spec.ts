@@ -1049,19 +1049,13 @@ describe('Window Management', () => {
                 expect(initiallyVisible).toBe(true);
 
                 await wdioBrowser.electron.execute((_electron: typeof import('electron')) => {
-                    const hotkeyManager = (
-                        globalThis as unknown as { hotkeyManager?: { executeHotkeyAction: (a: string) => void } }
-                    ).hotkeyManager;
-                    hotkeyManager?.executeHotkeyAction('peekAndHide');
+                    (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction('peekAndHide');
                 });
 
                 await wdioBrowser.waitUntil(
                     async () => {
                         return await wdioBrowser.electron.execute(() => {
-                            const windowManager = (
-                                globalThis as unknown as { windowManager?: { isMainWindowVisible: () => boolean } }
-                            ).windowManager;
-                            return !windowManager?.isMainWindowVisible();
+                            return !(global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                         });
                     },
                     { timeout: 5000, timeoutMsg: 'Window did not hide after hotkeyManager.executeHotkeyAction' }
@@ -1085,19 +1079,13 @@ describe('Window Management', () => {
                 expect(isHiddenBefore).toBe(false);
 
                 await wdioBrowser.electron.execute(() => {
-                    const hotkeyManager = (
-                        globalThis as unknown as { hotkeyManager?: { executeHotkeyAction: (a: string) => void } }
-                    ).hotkeyManager;
-                    hotkeyManager?.executeHotkeyAction('peekAndHide');
+                    (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction('peekAndHide');
                 });
 
                 await wdioBrowser.waitUntil(
                     async () => {
                         return await wdioBrowser.electron.execute(() => {
-                            const windowManager = (
-                                globalThis as unknown as { windowManager?: { isMainWindowVisible: () => boolean } }
-                            ).windowManager;
-                            return windowManager?.isMainWindowVisible();
+                            return (global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                         });
                     },
                     { timeout: 5000, timeoutMsg: 'Window did not restore after hotkeyManager.executeHotkeyAction' }
@@ -1116,19 +1104,13 @@ describe('Window Management', () => {
                 expect(initiallyVisible).toBe(true);
 
                 await wdioBrowser.electron.execute(() => {
-                    const hotkeyManager = (
-                        globalThis as unknown as { hotkeyManager?: { executeHotkeyAction: (a: string) => void } }
-                    ).hotkeyManager;
-                    hotkeyManager?.executeHotkeyAction('peekAndHide');
+                    (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction('peekAndHide');
                 });
 
                 await wdioBrowser.waitUntil(
                     async () => {
                         return await wdioBrowser.electron.execute(() => {
-                            const windowManager = (
-                                globalThis as unknown as { windowManager?: { isMainWindowVisible: () => boolean } }
-                            ).windowManager;
-                            return !windowManager?.isMainWindowVisible();
+                            return !(global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                         });
                     },
                     { timeout: 5000, timeoutMsg: 'Window did not hide on first hotkeyManager dispatch' }
@@ -1137,19 +1119,13 @@ describe('Window Management', () => {
                 expect(await isWindowVisible()).toBe(false);
 
                 await wdioBrowser.electron.execute(() => {
-                    const hotkeyManager = (
-                        globalThis as unknown as { hotkeyManager?: { executeHotkeyAction: (a: string) => void } }
-                    ).hotkeyManager;
-                    hotkeyManager?.executeHotkeyAction('peekAndHide');
+                    (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction('peekAndHide');
                 });
 
                 await wdioBrowser.waitUntil(
                     async () => {
                         return await wdioBrowser.electron.execute(() => {
-                            const windowManager = (
-                                globalThis as unknown as { windowManager?: { isMainWindowVisible: () => boolean } }
-                            ).windowManager;
-                            return windowManager?.isMainWindowVisible();
+                            return (global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                         });
                     },
                     { timeout: 5000, timeoutMsg: 'Window did not restore on second hotkeyManager dispatch' }
@@ -1169,19 +1145,13 @@ describe('Window Management', () => {
                 expect(initiallyVisible).toBe(true);
 
                 await wdioBrowser.electron.execute(() => {
-                    const windowManager = (
-                        globalThis as unknown as { windowManager?: { toggleMainWindowVisibility: () => void } }
-                    ).windowManager;
-                    windowManager?.toggleMainWindowVisibility();
+                    (global as { appContext?: any }).appContext?.windowManager?.toggleMainWindowVisibility();
                 });
 
                 await wdioBrowser.waitUntil(
                     async () => {
                         return await wdioBrowser.electron.execute(() => {
-                            const windowManager = (
-                                globalThis as unknown as { windowManager?: { isMainWindowVisible: () => boolean } }
-                            ).windowManager;
-                            return !windowManager?.isMainWindowVisible();
+                            return !(global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                         });
                     },
                     { timeout: 5000, timeoutMsg: 'Window did not hide after toggleMainWindowVisibility' }
@@ -1205,19 +1175,13 @@ describe('Window Management', () => {
                 expect(isHiddenBefore).toBe(false);
 
                 await wdioBrowser.electron.execute(() => {
-                    const windowManager = (
-                        globalThis as unknown as { windowManager?: { toggleMainWindowVisibility: () => void } }
-                    ).windowManager;
-                    windowManager?.toggleMainWindowVisibility();
+                    (global as { appContext?: any }).appContext?.windowManager?.toggleMainWindowVisibility();
                 });
 
                 await wdioBrowser.waitUntil(
                     async () => {
                         return await wdioBrowser.electron.execute(() => {
-                            const windowManager = (
-                                globalThis as unknown as { windowManager?: { isMainWindowVisible: () => boolean } }
-                            ).windowManager;
-                            return windowManager?.isMainWindowVisible();
+                            return (global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                         });
                     },
                     { timeout: 5000, timeoutMsg: 'Window did not restore after toggleMainWindowVisibility' }
@@ -1236,19 +1200,13 @@ describe('Window Management', () => {
                 expect(initiallyVisible).toBe(true);
 
                 await wdioBrowser.electron.execute(() => {
-                    const windowManager = (
-                        globalThis as unknown as { windowManager?: { toggleMainWindowVisibility: () => void } }
-                    ).windowManager;
-                    windowManager?.toggleMainWindowVisibility();
+                    (global as { appContext?: any }).appContext?.windowManager?.toggleMainWindowVisibility();
                 });
 
                 await wdioBrowser.waitUntil(
                     async () => {
                         return await wdioBrowser.electron.execute(() => {
-                            const windowManager = (
-                                globalThis as unknown as { windowManager?: { isMainWindowVisible: () => boolean } }
-                            ).windowManager;
-                            return !windowManager?.isMainWindowVisible();
+                            return !(global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                         });
                     },
                     { timeout: 5000, timeoutMsg: 'Window did not hide on first toggle' }
@@ -1257,19 +1215,13 @@ describe('Window Management', () => {
                 expect(await isWindowVisible()).toBe(false);
 
                 await wdioBrowser.electron.execute(() => {
-                    const windowManager = (
-                        globalThis as unknown as { windowManager?: { toggleMainWindowVisibility: () => void } }
-                    ).windowManager;
-                    windowManager?.toggleMainWindowVisibility();
+                    (global as { appContext?: any }).appContext?.windowManager?.toggleMainWindowVisibility();
                 });
 
                 await wdioBrowser.waitUntil(
                     async () => {
                         return await wdioBrowser.electron.execute(() => {
-                            const windowManager = (
-                                globalThis as unknown as { windowManager?: { isMainWindowVisible: () => boolean } }
-                            ).windowManager;
-                            return windowManager?.isMainWindowVisible();
+                            return (global as { appContext?: any }).appContext?.windowManager?.isMainWindowVisible();
                         });
                     },
                     { timeout: 5000, timeoutMsg: 'Window did not restore on second toggle' }

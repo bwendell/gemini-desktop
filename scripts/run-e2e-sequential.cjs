@@ -3,20 +3,21 @@ const { killOrphanElectronProcesses } = require('./e2e-cleanup.cjs');
 
 const specs = [
     'tests/e2e/app-startup.spec.ts',
-    'tests/e2e/menu_bar.spec.ts',
-    'tests/e2e/edit-menu-user-flow.spec.ts',
+    'tests/e2e/menu.spec.ts',
     'tests/e2e/hotkeys.spec.ts',
     'tests/e2e/options-window.spec.ts',
-    'tests/e2e/menu-interactions.spec.ts',
+    'tests/e2e/macos-menu.spec.ts',
     'tests/e2e/theme.spec.ts',
-    'tests/e2e/theme-selector-visual.spec.ts',
-    'tests/e2e/theme-selector-keyboard.spec.ts',
     'tests/e2e/external-links.spec.ts',
     'tests/e2e/quick-chat.spec.ts',
     'tests/e2e/auth.spec.ts',
     'tests/e2e/macos-dock.spec.ts',
-    'tests/e2e/window-controls.spec.ts',
+    'tests/e2e/window.spec.ts',
 ];
+
+const argv = process.argv.slice(2);
+const specIndex = argv.indexOf('--spec');
+const specsToRun = specIndex >= 0 && argv[specIndex + 1] ? [argv[specIndex + 1]] : specs;
 
 console.log('Building app once for all tests...');
 const buildResult = spawnSync('npm', ['run', 'build'], { stdio: 'inherit', shell: true });
@@ -41,7 +42,7 @@ console.log('Starting Sequential E2E Tests...');
 
 let failed = false;
 
-for (const spec of specs) {
+for (const spec of specsToRun) {
     console.log(`\n---------------------------------------------------------`);
     console.log(`Running spec: ${spec}`);
     console.log(`---------------------------------------------------------\n`);
