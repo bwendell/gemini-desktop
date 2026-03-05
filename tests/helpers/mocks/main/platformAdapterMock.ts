@@ -75,6 +75,10 @@ export function createMockPlatformAdapter(overrides: Partial<MockPlatformAdapter
         getAppIconFilename: vi.fn().mockReturnValue('icon.ico'),
         getTrayIconFilename: vi.fn().mockReturnValue('icon-mac-trayTemplate.png'),
         shouldDisableUpdates: vi.fn().mockReturnValue(false),
+        supportsAutoUpdate: vi.fn().mockImplementation((env?: NodeJS.ProcessEnv) => {
+            void env;
+            return true;
+        }),
         requestMediaPermissions: vi.fn().mockResolvedValue(undefined),
         getNotificationSupportHint: vi.fn().mockReturnValue(undefined),
         ...overrides,
