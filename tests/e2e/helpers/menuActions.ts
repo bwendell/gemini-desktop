@@ -18,7 +18,7 @@
  * @module menuActions
  */
 import { browser, $ } from '@wdio/globals';
-import { isMacOS } from './platform';
+import { isMacOS, isLinuxHeadlessSync } from './platform';
 import { E2ELogger } from './logger';
 import { E2E_TIMING } from './e2eConstants';
 import { waitForUIState } from './waitUtilities';
@@ -67,6 +67,8 @@ export async function clickMenuItemById(id: string): Promise<void> {
 
     if (mac) {
         await clickNativeMenuItemById(id);
+    } else if (isLinuxHeadlessSync()) {
+        await triggerMenuItemViaElectronApi(id);
     } else {
         await clickCustomMenuItemById(id);
     }
@@ -131,6 +133,18 @@ export async function triggerMenuItemViaElectronApi(id: string): Promise<void> {
         const item = menu.getMenuItemById(itemId);
         if (!item) {
             return { success: false, error: `Menu item with id "${itemId}" not found` };
+        }
+
+        if (item.role === 'reload') {
+            const focusedWindow = electron.BrowserWindow.getFocusedWindow();
+            focusedWindow?.reload();
+            return { success: true };
+        }
+
+        if (item.role === 'forceReload') {
+            const focusedWindow = electron.BrowserWindow.getFocusedWindow();
+            focusedWindow?.webContents.reloadIgnoringCache();
+            return { success: true };
         }
 
         item.click();

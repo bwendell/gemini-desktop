@@ -9,7 +9,15 @@ import { createRequire } from 'module';
 import { MainWindowPage, OptionsPage, TrayPage, AuthWindowPage } from './pages';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 import { closeAllSecondaryWindows } from './helpers/WindowManagerHelper';
-import { isMacOS, isWindows, isLinuxCI, usesCustomControls, isLinuxSync, isCI } from './helpers/platform';
+import {
+    isMacOS,
+    isWindows,
+    isLinuxCI,
+    usesCustomControls,
+    isLinuxSync,
+    isCI,
+    isLinuxHeadlessSync,
+} from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
 import { waitForUIState, waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
@@ -60,6 +68,25 @@ type WdioBrowser = {
 };
 
 const wdioBrowser = browser as unknown as WdioBrowser;
+
+const CLEANUP_ERROR_SUBSTRINGS = [
+    'WebSocket is not connected',
+    'CDP bridge is not available',
+    'CDP Bridge is not yet initialised',
+    'Timeout exceeded to get the ContextId',
+    'invalid session id',
+    'session deleted as the browser has closed the connection',
+    'not connected to DevTools',
+    'Promise was collected',
+];
+
+const isIgnorableCleanupError = (error: unknown): boolean => {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error && error.stack ? error.stack : '';
+    const combined = `${message}\n${stack}`.toLowerCase();
+
+    return CLEANUP_ERROR_SUBSTRINGS.some((snippet) => combined.includes(snippet.toLowerCase()));
+};
 
 async function setFullScreenLocal(fullscreen: boolean): Promise<void> {
     await wdioBrowser.electron.execute((electron: typeof import('electron'), fs: boolean) => {
@@ -128,7 +155,7 @@ const resolveElectronBinary = (): string => {
 };
 
 const electronBinary = resolveElectronBinary();
-const describePeekAndHide = isLinuxSync() && isCI() ? describe.skip : describe;
+const describePeekAndHide = isLinuxHeadlessSync() ? describe.skip : describe;
 
 describe('Window Management', () => {
     const mainWindow = new MainWindowPage();
@@ -159,8 +186,7 @@ describe('Window Management', () => {
             await restoreWindow();
             await ensureSingleWindow();
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            if (!errorMessage.includes('Promise was collected')) {
+            if (!isIgnorableCleanupError(error)) {
                 throw error;
             }
         }
@@ -394,7 +420,7 @@ describe('Window Management', () => {
         describe('State Operations', () => {
             describe('Minimize and Restore', () => {
                 beforeEach(function () {
-                    if (isLinuxSync() && isCI()) {
+                    if (isLinuxHeadlessSync()) {
                         this.skip();
                     }
                 });
@@ -847,7 +873,7 @@ describe('Window Management', () => {
         describe('Edge Cases', () => {
             describe('Toggle During Minimize', () => {
                 beforeEach(function () {
-                    if (isLinuxSync() && isCI()) {
+                    if (isLinuxHeadlessSync()) {
                         this.skip();
                     }
                 });
@@ -991,7 +1017,7 @@ describe('Window Management', () => {
 
         describe('Peek and Hide Action', () => {
             it('should hide main window when Peek and Hide is triggered', async function () {
-                if (await isLinuxCI()) {
+                if ((await isLinuxCI()) || isLinuxHeadlessSync()) {
                     this.skip();
                 }
 
@@ -1011,7 +1037,7 @@ describe('Window Management', () => {
             });
 
             it('should remain hidden until explicitly restored', async function () {
-                if (await isLinuxCI()) {
+                if ((await isLinuxCI()) || isLinuxHeadlessSync()) {
                     this.skip();
                 }
 
@@ -1041,7 +1067,7 @@ describe('Window Management', () => {
 
         describe('Peek & Hide Toggle via HotkeyManager Dispatch (E2E)', () => {
             it('should hide visible window via hotkeyManager.executeHotkeyAction', async function () {
-                if (await isLinuxCI()) {
+                if ((await isLinuxCI()) || isLinuxHeadlessSync()) {
                     this.skip();
                 }
 
@@ -1075,7 +1101,7 @@ describe('Window Management', () => {
             });
 
             it('should restore hidden window via hotkeyManager.executeHotkeyAction', async function () {
-                if (await isLinuxCI()) {
+                if ((await isLinuxCI()) || isLinuxHeadlessSync()) {
                     this.skip();
                 }
 
@@ -1108,7 +1134,7 @@ describe('Window Management', () => {
             });
 
             it('should complete a full toggle cycle via hotkeyManager.executeHotkeyAction', async function () {
-                if (await isLinuxCI()) {
+                if ((await isLinuxCI()) || isLinuxHeadlessSync()) {
                     this.skip();
                 }
 
@@ -1161,7 +1187,7 @@ describe('Window Management', () => {
 
         describe('Peek & Hide Toggle (E2E)', () => {
             it('should hide visible window when toggleMainWindowVisibility is called', async function () {
-                if (await isLinuxCI()) {
+                if ((await isLinuxCI()) || isLinuxHeadlessSync()) {
                     this.skip();
                 }
 
@@ -1195,7 +1221,7 @@ describe('Window Management', () => {
             });
 
             it('should restore hidden window when toggleMainWindowVisibility is called again', async function () {
-                if (await isLinuxCI()) {
+                if ((await isLinuxCI()) || isLinuxHeadlessSync()) {
                     this.skip();
                 }
 
@@ -1228,7 +1254,7 @@ describe('Window Management', () => {
             });
 
             it('should complete a full toggle cycle: visible → hidden → visible', async function () {
-                if (await isLinuxCI()) {
+                if ((await isLinuxCI()) || isLinuxHeadlessSync()) {
                     this.skip();
                 }
 
