@@ -111,7 +111,7 @@ export default class UpdateManager {
             logger.log('Manual-update-only mode enabled');
             logger.log(`UpdateManager initialized (enabled: ${this.enabled}, manualUpdateOnly: true)`);
 
-            if (this.enabled && !process.argv.includes('--test-auto-update')) {
+            if (this.enabled && app.isPackaged && !process.argv.includes('--test-auto-update')) {
                 this.startPeriodicChecks();
             }
             return;
