@@ -35,10 +35,16 @@ vi.mock('electron-updater', () => ({
 describe('UpdateManager Error Coordination', () => {
     let updateManager: UpdateManager;
     let mockSettings: any;
+    let originalArgv: string[];
+    let originalAppImage: string | undefined;
+    let originalTestAutoUpdate: string | undefined;
 
     beforeEach(async () => {
         vi.clearAllMocks();
         (app as any).isPackaged = true;
+        originalArgv = [...process.argv];
+        originalAppImage = process.env.APPIMAGE;
+        originalTestAutoUpdate = process.env.TEST_AUTO_UPDATE;
 
         // Reset window mocks
         if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
@@ -62,7 +68,17 @@ describe('UpdateManager Error Coordination', () => {
 
     afterEach(() => {
         updateManager.destroy();
-        delete process.env.APPIMAGE;
+        process.argv = originalArgv;
+        if (originalAppImage === undefined) {
+            delete process.env.APPIMAGE;
+        } else {
+            process.env.APPIMAGE = originalAppImage;
+        }
+        if (originalTestAutoUpdate === undefined) {
+            delete process.env.TEST_AUTO_UPDATE;
+        } else {
+            process.env.TEST_AUTO_UPDATE = originalTestAutoUpdate;
+        }
     });
 
     it('should broadcast masked error to ALL open windows', () => {

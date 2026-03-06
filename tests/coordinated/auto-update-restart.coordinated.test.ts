@@ -102,11 +102,17 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
     let updateManager: UpdateManager;
     let ipcManager: IpcManager;
     let mockLogger: ReturnType<typeof createLogger>;
+    let originalArgv: string[];
+    let originalAppImage: string | undefined;
+    let originalTestAutoUpdate: string | undefined;
 
     beforeEach(async () => {
         vi.clearAllMocks();
         // Clear listeners manually since mock is reused
         mockIpcMain.removeAllListeners('auto-update:install');
+        originalArgv = [...process.argv];
+        originalAppImage = process.env.APPIMAGE;
+        originalTestAutoUpdate = process.env.TEST_AUTO_UPDATE;
         process.env.APPIMAGE = '/tmp/app.AppImage';
         delete process.env.TEST_AUTO_UPDATE;
         process.argv = process.argv.filter((arg) => arg !== '--integration-test');
@@ -171,9 +177,18 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
     });
 
     afterEach(() => {
+        process.argv = originalArgv;
+        if (originalAppImage === undefined) {
+            delete process.env.APPIMAGE;
+        } else {
+            process.env.APPIMAGE = originalAppImage;
+        }
+        if (originalTestAutoUpdate === undefined) {
+            delete process.env.TEST_AUTO_UPDATE;
+        } else {
+            process.env.TEST_AUTO_UPDATE = originalTestAutoUpdate;
+        }
         vi.restoreAllMocks();
-        delete process.env.APPIMAGE;
-        delete process.env.TEST_AUTO_UPDATE;
     });
 
     it('should trigger full restart sequence when IPC signal is received', () => {
