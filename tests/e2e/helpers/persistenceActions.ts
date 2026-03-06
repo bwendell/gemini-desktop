@@ -166,6 +166,8 @@ export interface UserPreferencesData {
     acceleratorQuickChat?: string;
     autoUpdateEnabled?: boolean;
     zoomLevel?: number;
+    launchAtStartup?: boolean;
+    startMinimized?: boolean;
     [key: string]: unknown;
 }
 

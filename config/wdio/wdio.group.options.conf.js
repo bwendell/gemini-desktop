@@ -6,5 +6,6 @@ export const config = {
         '../../tests/e2e/options-window.spec.ts',
         '../../tests/e2e/options-tabs.spec.ts',
         '../../tests/e2e/settings-persistence.spec.ts',
+        '../../tests/e2e/startup-settings.spec.ts',
     ],
 };
