@@ -32,8 +32,8 @@ module.exports = {
         buildResources: 'build',
     },
     files: [
-        'dist-electron/**/*',
-        'dist/**/*',
+        'dist-electron',
+        'dist',
         'package.json',
         // Exclude non-current-platform node-llama-cpp native binaries to prevent
         // bundling ~677MB of unused platform-specific .node files.
