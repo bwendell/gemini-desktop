@@ -176,6 +176,72 @@
     outline-offset: 2px;
 }
 
+.text-prediction-restart {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 183, 77, 0.6);
+    background: rgba(255, 183, 77, 0.08);
+    color: var(--text-primary, #eaeaea);
+}
+
+.text-prediction-restart__icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.text-prediction-restart__content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.text-prediction-restart__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--warning-color, #ffb74d);
+}
+
+.text-prediction-restart__message {
+    font-size: 12px;
+    color: var(--text-secondary, #b0b0b0);
+    line-height: 1.4;
+}
+
+.text-prediction-restart__button {
+    align-self: flex-start;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: var(--warning-color, #ffb74d);
+    color: #1a1a1a;
+    transition:
+        opacity 0.2s ease,
+        transform 0.1s ease;
+}
+
+.text-prediction-restart__button:hover {
+    opacity: 0.9;
+}
+
+.text-prediction-restart__button:active {
+    transform: scale(0.98);
+}
+
+.text-prediction-restart__button:focus {
+    outline: none;
+}
+
+.text-prediction-restart__button:focus-visible {
+    outline: 2px solid var(--warning-color, #ffb74d);
+    outline-offset: 2px;
+}
+
 /* === Debug Mode === */
 
 .text-prediction-debug {

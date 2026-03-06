@@ -38,6 +38,15 @@ vi.mock('../../../src/main/utils/logger');
 const mockCreateModelDownloader = vi.fn();
 const _mockGetLlama = vi.fn();
 const _mockLlamaChatSession = vi.fn();
+class MockLlamaCompletion {
+    generateCompletion = vi.fn();
+}
+
+vi.mock('node-llama-cpp', () => ({
+    createModelDownloader: mockCreateModelDownloader,
+    getLlama: _mockGetLlama,
+    LlamaCompletion: MockLlamaCompletion,
+}));
 
 // We need to mock the importNodeLlamaCpp function which is internal
 // For testing, we'll mock the entire node-llama-cpp module behavior
@@ -82,6 +91,7 @@ describe('LlmManager', () => {
         mockContextInstance.getSequence.mockReturnValue({});
         mockSessionInstance.prompt.mockResolvedValue('test prediction');
         _mockLlamaChatSession.mockImplementation(() => mockSessionInstance);
+        _mockGetLlama.mockResolvedValue(mockLlamaInstance);
 
         llmManager = new LlmManager();
     });
@@ -421,6 +431,108 @@ describe('LlmManager', () => {
 
             // When GPU load fails, it should retry with CPU
             // This is handled internally by the fallback logic
+        });
+
+        describe('V8 sandbox error detection', () => {
+            const originalImport = (
+                globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
+            ).__import__;
+            const originalNodeEnv = process.env.NODE_ENV;
+
+            afterEach(() => {
+                process.argv = process.argv.filter((arg) => arg !== '--test-text-prediction');
+                if (originalNodeEnv === undefined) {
+                    delete process.env.NODE_ENV;
+                } else {
+                    process.env.NODE_ENV = originalNodeEnv;
+                }
+                if (originalImport === undefined) {
+                    delete (globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> })
+                        .__import__;
+                } else {
+                    (
+                        globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
+                    ).__import__ = originalImport;
+                }
+            });
+
+            it('detects V8 sandbox ArrayBuffer error and provides actionable message', async () => {
+                process.env.NODE_ENV = 'test';
+                process.argv = [...process.argv, '--test-text-prediction'];
+                (
+                    globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
+                ).__import__ = async (specifier: string) => {
+                    if (specifier === 'node-llama-cpp') {
+                        return {
+                            getLlama: _mockGetLlama,
+                            LlamaCompletion: MockLlamaCompletion,
+                        };
+                    }
+                    throw new Error(`Unexpected import: ${specifier}`);
+                };
+                existsSync.mockReturnValue(true);
+                readFileSync.mockReturnValue('{"version":"0.0.0-test"}');
+
+                _mockGetLlama.mockRejectedValueOnce(
+                    new Error(
+                        'Fatal error in V8: v8_ArrayBuffer_NewBackingStore When the V8 Sandbox is enabled, ArrayBuffer backing stores must be allocated inside the sandbox address space.'
+                    )
+                );
+
+                await expect(llmManager.loadModel()).rejects.toThrow('V8 sandbox');
+                expect(llmManager.getStatus()).toBe('error');
+                expect(llmManager.getErrorMessage()).toContain('V8 sandbox');
+                expect(llmManager.isNativeAvailable()).toBe(false);
+            });
+
+            it('detects V8 sandbox error variant and suggests restart', async () => {
+                process.env.NODE_ENV = 'test';
+                process.argv = [...process.argv, '--test-text-prediction'];
+                (
+                    globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
+                ).__import__ = async (specifier: string) => {
+                    if (specifier === 'node-llama-cpp') {
+                        return {
+                            getLlama: _mockGetLlama,
+                            LlamaCompletion: MockLlamaCompletion,
+                        };
+                    }
+                    throw new Error(`Unexpected import: ${specifier}`);
+                };
+                existsSync.mockReturnValue(true);
+                readFileSync.mockReturnValue('{"version":"0.0.0-test"}');
+
+                _mockGetLlama.mockRejectedValueOnce(
+                    new Error('v8_ArrayBuffer_NewBackingStore: sandbox address space violation')
+                );
+
+                await expect(llmManager.loadModel()).rejects.toThrow('V8 sandbox');
+                expect(llmManager.getStatus()).toBe('error');
+                expect(llmManager.getErrorMessage()).toContain('restart');
+            });
+
+            it('re-throws non-V8 errors without modification', async () => {
+                process.env.NODE_ENV = 'test';
+                process.argv = [...process.argv, '--test-text-prediction'];
+                (
+                    globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
+                ).__import__ = async (specifier: string) => {
+                    if (specifier === 'node-llama-cpp') {
+                        return {
+                            getLlama: _mockGetLlama,
+                            LlamaCompletion: MockLlamaCompletion,
+                        };
+                    }
+                    throw new Error(`Unexpected import: ${specifier}`);
+                };
+                existsSync.mockReturnValue(true);
+                readFileSync.mockReturnValue('{"version":"0.0.0-test"}');
+
+                _mockGetLlama.mockRejectedValueOnce(new Error('Cannot find module'));
+
+                await expect(llmManager.loadModel()).rejects.toThrow('Cannot find module');
+                expect(llmManager.getErrorMessage()).toContain('Cannot find module');
+            });
         });
     });
 

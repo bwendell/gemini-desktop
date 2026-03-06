@@ -17,7 +17,7 @@
  * @module ipc/TextPredictionIpcHandler
  */
 
-import { ipcMain, BrowserWindow } from 'electron';
+import { app, ipcMain, BrowserWindow } from 'electron';
 import { BaseIpcHandler } from './BaseIpcHandler';
 import { IPC_CHANNELS } from '../../utils/constants';
 import type { TextPredictionSettings } from '../../../shared/types';
@@ -182,6 +182,15 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
 
             // If enabling and LlmManager exists, trigger model download/load if needed
             if (enabled && this.deps.llmManager) {
+                if (process.platform === 'linux') {
+                    const jsFlags = app.commandLine.getSwitchValue('js-flags') ?? '';
+                    const v8SandboxDisabled = jsFlags.includes('--no-v8-sandbox');
+                    if (!v8SandboxDisabled) {
+                        this.logger.log('Linux: V8 sandbox still active, restart required for text prediction');
+                        this._broadcastStatusChange();
+                        return;
+                    }
+                }
                 const skipNativeOperations = process.env.CI === 'true' || process.argv.includes('--integration-test');
 
                 if (skipNativeOperations) {
@@ -352,15 +361,36 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
      * Get the current text prediction status.
      */
     private _getStatus(): TextPredictionSettings {
+        const enabled = this.deps.store.get('textPredictionEnabled') ?? false;
         const nativeAvailable = this.deps.llmNativeAvailable ?? this.deps.llmManager?.isNativeAvailable() ?? false;
         const modelStatus = this.deps.llmManager?.getStatus();
         const storedStatus = this.deps.store.get('textPredictionModelStatus') as ModelStatus | undefined;
+        let requiresRestart = false;
+
+        if (enabled && process.platform === 'linux') {
+            const jsFlags = app.commandLine.getSwitchValue('js-flags') ?? '';
+            requiresRestart = !jsFlags.includes('--no-v8-sandbox');
+        }
+
+        if (requiresRestart) {
+            return {
+                enabled,
+                gpuEnabled: this.deps.store.get('textPredictionGpuEnabled') ?? false,
+                status: 'requires-restart',
+                requiresRestart: true,
+                restartReason:
+                    'Text prediction on Linux requires disabling the V8 memory sandbox. ' +
+                    'This is a security feature that conflicts with the local AI engine. ' +
+                    'The app needs to restart to apply this change.',
+            };
+        }
+
         const status = nativeAvailable ? (modelStatus ?? storedStatus ?? 'not-downloaded') : 'error';
         const errorMessage =
             this.deps.llmManager?.getErrorMessage() ??
             (!nativeAvailable ? (this.deps.llmManager?.getNativeProbeError() ?? undefined) : undefined);
         const settings: TextPredictionSettings = {
-            enabled: this.deps.store.get('textPredictionEnabled') ?? false,
+            enabled,
             gpuEnabled: this.deps.store.get('textPredictionGpuEnabled') ?? false,
             status,
             downloadProgress: this.deps.llmManager?.getDownloadProgress(),

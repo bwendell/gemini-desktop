@@ -9,15 +9,7 @@ import { createRequire } from 'module';
 import { MainWindowPage, OptionsPage, TrayPage, AuthWindowPage } from './pages';
 import { waitForWindowCount, closeCurrentWindow } from './helpers/windowActions';
 import { closeAllSecondaryWindows } from './helpers/WindowManagerHelper';
-import {
-    isMacOS,
-    isWindows,
-    isLinuxCI,
-    usesCustomControls,
-    isLinuxSync,
-    isCI,
-    isLinuxHeadlessSync,
-} from './helpers/platform';
+import { isMacOS, isWindows, isLinuxCI, usesCustomControls, isLinuxHeadlessSync } from './helpers/platform';
 import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
 import { waitForUIState, waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
@@ -39,7 +31,7 @@ import {
     waitForAllWindowsHidden,
 } from './helpers/windowStateActions';
 import { readUserPreferences } from './helpers/persistenceActions';
-import { isHotkeyRegistered, REGISTERED_HOTKEYS } from './helpers/hotkeyHelpers';
+import { REGISTERED_HOTKEYS, waitForHotkeyRegistered } from './helpers/hotkeyHelpers';
 import {
     getAlwaysOnTopState,
     getWindowAlwaysOnTopState,
@@ -156,6 +148,7 @@ const resolveElectronBinary = (): string => {
 
 const electronBinary = resolveElectronBinary();
 const describePeekAndHide = isLinuxHeadlessSync() ? describe.skip : describe;
+const describeMinimizeRestore = isLinuxHeadlessSync() ? describe.skip : describe;
 
 describe('Window Management', () => {
     const mainWindow = new MainWindowPage();
@@ -418,7 +411,7 @@ describe('Window Management', () => {
             });
         });
         describe('State Operations', () => {
-            describe('Minimize and Restore', () => {
+            describeMinimizeRestore('Minimize and Restore', () => {
                 beforeEach(function () {
                     if (isLinuxHeadlessSync()) {
                         this.skip();
@@ -871,7 +864,7 @@ describe('Window Management', () => {
         });
 
         describe('Edge Cases', () => {
-            describe('Toggle During Minimize', () => {
+            describeMinimizeRestore('Toggle During Minimize', () => {
                 beforeEach(function () {
                     if (isLinuxHeadlessSync()) {
                         this.skip();
@@ -994,9 +987,7 @@ describe('Window Management', () => {
                     this.skip();
                 }
 
-                const accelerator = REGISTERED_HOTKEYS.MINIMIZE_WINDOW.accelerator;
-                const isRegistered = await isHotkeyRegistered(accelerator);
-
+                const isRegistered = await waitForHotkeyRegistered('MINIMIZE_WINDOW');
                 expect(isRegistered).toBe(true);
             });
 
@@ -1402,7 +1393,7 @@ describe('Window Management', () => {
     });
 
     describe('Window Controls Functionality', () => {
-        describe('Custom Window Controls (Windows/Linux)', () => {
+        describeMinimizeRestore('Custom Window Controls (Windows/Linux)', () => {
             it('should maximize window when maximize button is clicked', async () => {
                 if (!(await usesCustomControls())) {
                     return;

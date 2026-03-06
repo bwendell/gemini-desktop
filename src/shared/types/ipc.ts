@@ -53,6 +53,8 @@ export interface ElectronAPI {
     /** Open Google sign-in window */
     openGoogleSignIn: () => Promise<void>;
 
+    restartApp: () => Promise<void>;
+
     // =========================================================================
     // Platform Detection
     // =========================================================================

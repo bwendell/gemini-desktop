@@ -13,18 +13,6 @@ import { browser } from '@wdio/globals';
 import type { E2EPlatform } from './platform';
 import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
 
-type WdioBrowser = typeof browser & {
-    electron: {
-        execute<R, T extends unknown[]>(
-            fn: (electron: typeof import('electron'), ...args: T) => R,
-            ...args: T
-        ): Promise<R>;
-    };
-    execute: <T>(script: string | ((...args: any[]) => T), ...args: any[]) => Promise<T>;
-};
-
-const wdioBrowser = browser as WdioBrowser;
-
 /**
  * Hotkey definition for cross-platform testing.
  */
@@ -40,6 +28,22 @@ export interface HotkeyDefinition {
         linux: string;
     };
 }
+
+type WdioBrowser = {
+    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
+    waitUntil<T>(
+        condition: () => Promise<T> | T,
+        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
+    ): Promise<T>;
+    electron: {
+        execute<R, T extends unknown[]>(
+            fn: (electron: typeof import('electron'), ...args: T) => R,
+            ...args: T
+        ): Promise<R>;
+    };
+};
+
+const wdioBrowser = browser as unknown as WdioBrowser;
 
 /**
  * Helper to convert an Electron accelerator to platform-specific display format.
@@ -86,6 +90,14 @@ export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
     },
 };
 
+const HOTKEY_ID_MAP: Record<keyof typeof REGISTERED_HOTKEYS, string> = {
+    MINIMIZE_WINDOW: 'peekAndHide',
+    QUICK_CHAT: 'quickChat',
+    ALWAYS_ON_TOP: 'alwaysOnTop',
+    PRINT_TO_PDF: 'printToPdf',
+    VOICE_CHAT: 'voiceChat',
+};
+
 /**
  * Gets the expected accelerator string for the current platform.
  * Electron uses 'CommandOrControl' which maps to Ctrl on Windows/Linux and Cmd on macOS.
@@ -118,6 +130,42 @@ export async function isHotkeyRegistered(accelerator: string): Promise<boolean> 
     return wdioBrowser.electron.execute(
         (electron: typeof import('electron'), acc: string) => electron.globalShortcut.isRegistered(acc),
         accelerator
+    );
+}
+
+export async function waitForHotkeyRegistered(
+    hotkeyId: keyof typeof REGISTERED_HOTKEYS,
+    options: { timeout?: number; interval?: number } = {}
+): Promise<boolean> {
+    const timeout = options.timeout ?? 10000;
+    const interval = options.interval ?? 250;
+    const accelerator = REGISTERED_HOTKEYS[hotkeyId].accelerator;
+    const internalId = HOTKEY_ID_MAP[hotkeyId];
+
+    return wdioBrowser.waitUntil(
+        async () => {
+            const status = await getPlatformHotkeyStatus();
+            if (status?.waylandStatus?.isWayland) {
+                const result = status.registrationResults?.find((entry) => entry.hotkeyId === internalId);
+                if (result) {
+                    return result.success;
+                }
+                if (status.globalHotkeysEnabled) {
+                    return true;
+                }
+            }
+
+            try {
+                return await isHotkeyRegistered(accelerator);
+            } catch {
+                return false;
+            }
+        },
+        {
+            timeout,
+            interval,
+            timeoutMsg: `Hotkey ${hotkeyId} not registered within ${timeout}ms`,
+        }
     );
 }
 

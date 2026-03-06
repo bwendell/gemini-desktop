@@ -197,6 +197,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         } as TextPredictionSettings),
         onTextPredictionStatusChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
         onTextPredictionDownloadProgress: vi.fn().mockReturnValue(defaultUnsubscribe),
+        restartApp: vi.fn().mockResolvedValue(undefined),
         predictText: vi.fn().mockResolvedValue(null),
 
         getPlatformHotkeyStatus: vi.fn().mockResolvedValue({

@@ -30,6 +30,7 @@ export const IPC_CHANNELS = {
     THEME_CHANGED: 'theme:changed',
     OPEN_OPTIONS: 'open-options-window',
     OPEN_GOOGLE_SIGNIN: 'open-google-signin',
+    APP_RESTART: 'app:restart',
     QUICK_CHAT_SUBMIT: 'quick-chat:submit',
     QUICK_CHAT_HIDE: 'quick-chat:hide',
     QUICK_CHAT_CANCEL: 'quick-chat:cancel',
@@ -147,6 +148,7 @@ const electronAPI: ElectronAPI = {
      * @returns Promise that resolves when sign-in window closes
      */
     openGoogleSignIn: () => ipcRenderer.invoke(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN),
+    restartApp: () => ipcRenderer.invoke(IPC_CHANNELS.APP_RESTART),
 
     // =========================================================================
     // Platform Detection
@@ -603,7 +605,16 @@ const electronAPI: ElectronAPI = {
     /**
      * Emit simulated update event.
      */
-    devEmitUpdateEvent: (event, data) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, event, data),
+    devEmitUpdateEvent: (event, data) => {
+        const safeData =
+            data instanceof Error
+                ? {
+                      name: data.name,
+                      message: data.message,
+                  }
+                : data;
+        ipcRenderer.send(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, event, safeData);
+    },
 
     /**
      * Mock platform/env for testing.

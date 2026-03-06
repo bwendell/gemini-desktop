@@ -70,7 +70,9 @@ export class AutoUpdateIpcHandler extends BaseIpcHandler {
 
         // Dev Testing: Emit Update Event
         ipcMain.on(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, (_event, eventName: string, data: unknown) => {
-            this._handleDevEmitUpdateEvent(eventName, data);
+            setImmediate(() => {
+                this._handleDevEmitUpdateEvent(eventName, data);
+            });
         });
 
         // Dev Testing: Mock Platform/Env

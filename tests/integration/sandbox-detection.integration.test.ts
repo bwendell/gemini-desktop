@@ -120,4 +120,33 @@ describe('Sandbox Detection Integration', () => {
             expect(typeof isMaximized).toBe('boolean');
         });
     });
+
+    describe('V8 Sandbox Settings', () => {
+        it('should expose text prediction IPC API', async () => {
+            const hasApi = await browser.execute(() => {
+                return typeof (window as any).electronAPI?.getTextPredictionStatus === 'function';
+            });
+            expect(hasApi).toBe(true);
+        });
+
+        it('should report text prediction status without crashing', async () => {
+            const status = await browser.execute(async () => {
+                try {
+                    return await (window as any).electronAPI.getTextPredictionStatus();
+                } catch (error: any) {
+                    return { error: error?.message ?? String(error) };
+                }
+            });
+
+            expect(status).toBeDefined();
+            expect(typeof status.enabled).toBe('boolean');
+        });
+
+        it('should expose restartApp IPC method', async () => {
+            const hasRestart = await browser.execute(() => {
+                return typeof (window as any).electronAPI?.restartApp === 'function';
+            });
+            expect(hasRestart).toBe(true);
+        });
+    });
 });
