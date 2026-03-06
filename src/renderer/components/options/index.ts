@@ -9,3 +9,4 @@ export { ThemeSelector } from './ThemeSelector';
 export { AboutSection } from './AboutSection';
 export { TextPredictionSettings } from './TextPredictionSettings';
 export { NotificationSettings } from './NotificationSettings';
+export { StartupSettings } from './StartupSettings';

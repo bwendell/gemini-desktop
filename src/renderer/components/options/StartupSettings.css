@@ -1,0 +1,13 @@
+.startup-settings {
+    padding: 0;
+}
+
+.startup-settings.loading {
+    padding: 8px 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.startup-settings__start-minimized {
+    margin-top: 8px;
+}

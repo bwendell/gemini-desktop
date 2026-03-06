@@ -18,6 +18,7 @@ import { AutoUpdateToggle } from './AutoUpdateToggle';
 import { AboutSection } from './AboutSection';
 import { TextPredictionSettings } from './TextPredictionSettings';
 import { NotificationSettings } from './NotificationSettings';
+import { StartupSettings } from './StartupSettings';
 import './options-window.css';
 
 // ============================================================================
@@ -68,6 +69,7 @@ function TabButton({ id, label, activeTab, onClick }: TabButtonProps) {
 
     return (
         <button
+            type="button"
             className={`options-tab-button ${isActive ? 'active' : ''}`}
             onClick={() => onClick(id)}
             aria-selected={isActive}
@@ -156,10 +158,10 @@ export function OptionsWindow() {
                 <OptionsWindowTitlebar title={titlebarText} />
 
                 {/* Tab Navigation */}
-                <nav className="options-tabs" role="tablist" data-testid="options-tabs">
+                <div className="options-tabs" role="tablist" data-testid="options-tabs">
                     <TabButton id="settings" label="Settings" activeTab={activeTab} onClick={handleTabChange} />
                     <TabButton id="about" label="About" activeTab={activeTab} onClick={handleTabChange} />
-                </nav>
+                </div>
 
                 {/* Tab Content */}
                 <main className="options-content" data-testid="options-content">
@@ -188,6 +190,10 @@ export function OptionsWindow() {
                             {/* Notifications Settings */}
                             <OptionsSection title="Notifications" testId="options-notifications">
                                 <NotificationSettings />
+                            </OptionsSection>
+
+                            <OptionsSection title="Startup" testId="options-startup">
+                                <StartupSettings />
                             </OptionsSection>
                         </>
                     )}

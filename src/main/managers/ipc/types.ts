@@ -43,6 +43,9 @@ export interface UserPreferences extends Record<string, unknown> {
     zoomLevel: number;
     // Response notification settings
     responseNotificationsEnabled: boolean;
+    // Launch at startup settings
+    launchAtStartup: boolean;
+    startMinimized: boolean;
 }
 
 /**
