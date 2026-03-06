@@ -508,7 +508,7 @@ export default class LlmManager {
             if (isV8SandboxError) {
                 const v8Message =
                     'V8 sandbox conflict detected while loading the local AI engine. ' +
-                    'On Linux, enable text prediction requires disabling the V8 memory sandbox and restarting the app.';
+                    'On Linux, enabling text prediction requires disabling the V8 memory sandbox and restarting the app.';
                 this.nativeAvailable = false;
                 this.nativeProbeError = v8Message;
                 this.setStatus('error', v8Message);

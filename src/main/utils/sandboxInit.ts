@@ -29,8 +29,12 @@ if (process.platform === 'linux') {
             app.commandLine.appendSwitch('js-flags', '--no-v8-sandbox');
         }
     } catch (error) {
-        if (process.env.NODE_ENV !== 'test') {
-            void error;
+        const err = error as NodeJS.ErrnoException;
+        if (err?.code !== 'ENOENT' && process.env.NODE_ENV !== 'test') {
+            console.warn(
+                '[sandboxInit] Failed to read or parse settings.json; V8 sandbox may not be disabled as expected.',
+                err
+            );
         }
     }
 }
