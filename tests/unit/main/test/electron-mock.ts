@@ -18,6 +18,7 @@ export const app = {
     commandLine: {
         appendSwitch: vi.fn(),
         hasSwitch: vi.fn().mockReturnValue(false),
+        getSwitchValue: vi.fn().mockReturnValue(''),
     },
     dock: {
         setBadge: vi.fn(),

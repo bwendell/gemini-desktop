@@ -91,6 +91,16 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
         }
     }, []);
 
+    const requiresRestart = settings.requiresRestart ?? settings.status === 'requires-restart';
+
+    const handleRestart = useCallback(async () => {
+        try {
+            await window.electronAPI?.restartApp();
+        } catch (error) {
+            logger.error('Failed to restart app:', error);
+        }
+    }, []);
+
     // Handle GPU toggle change
     const handleGpuChange = useCallback(async (newEnabled: boolean) => {
         logger.log('GPU toggle changed:', newEnabled);
@@ -159,56 +169,82 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
                 testId="text-prediction-enable-toggle"
             />
 
-            {/* GPU toggle - only visible when enabled */}
-            {settings.enabled && (
-                <CapsuleToggle
-                    checked={settings.gpuEnabled}
-                    onChange={handleGpuChange}
-                    label="Use GPU Acceleration"
-                    description="Enable for faster predictions (requires GPU)"
-                    testId="text-prediction-gpu-toggle"
-                />
-            )}
-
-            {/* Download progress bar - only visible when downloading */}
-            {settings.status === 'downloading' && (
-                <div className="text-prediction-progress" data-testid="text-prediction-progress">
-                    <div className="text-prediction-progress__bar">
-                        <div
-                            className="text-prediction-progress__fill"
-                            style={{ width: `${settings.downloadProgress ?? 0}%` }}
-                            data-testid="text-prediction-progress-fill"
-                        />
+            {requiresRestart ? (
+                <div className="text-prediction-restart" data-testid="text-prediction-restart-notice">
+                    <div className="text-prediction-restart__icon" aria-hidden="true">
+                        ⚠️
                     </div>
-                    <span className="text-prediction-progress__text">
-                        Downloading model... {Math.round(settings.downloadProgress ?? 0)}%
-                    </span>
-                </div>
-            )}
-
-            {/* Status indicator - shows current model status */}
-            {settings.enabled && (
-                <div className="text-prediction-status" data-testid="text-prediction-status">
-                    <span
-                        className={`text-prediction-status__text text-prediction-status--${settings.status}`}
-                        data-testid="text-prediction-status-text"
-                    >
-                        {settings.status === 'not-downloaded' && 'Not downloaded'}
-                        {settings.status === 'downloading' && 'Downloading...'}
-                        {settings.status === 'initializing' && 'Initializing...'}
-                        {settings.status === 'ready' && 'Ready'}
-                        {settings.status === 'error' && `Error: ${settings.errorMessage ?? 'Unknown error'}`}
-                    </span>
-                    {settings.status === 'error' && (
+                    <div className="text-prediction-restart__content">
+                        <div className="text-prediction-restart__title">Restart Required</div>
+                        <div className="text-prediction-restart__message">
+                            {settings.restartReason ??
+                                'Text prediction requires a restart to apply security-related changes.'}
+                        </div>
                         <button
-                            className="text-prediction-status__retry"
-                            onClick={() => handleEnableChange(true)}
-                            data-testid="text-prediction-retry-button"
+                            className="text-prediction-restart__button"
+                            onClick={handleRestart}
+                            type="button"
+                            data-testid="text-prediction-restart-button"
                         >
-                            Retry
+                            Restart Now
                         </button>
-                    )}
+                    </div>
                 </div>
+            ) : (
+                <>
+                    {/* GPU toggle - only visible when enabled */}
+                    {settings.enabled && (
+                        <CapsuleToggle
+                            checked={settings.gpuEnabled}
+                            onChange={handleGpuChange}
+                            label="Use GPU Acceleration"
+                            description="Enable for faster predictions (requires GPU)"
+                            testId="text-prediction-gpu-toggle"
+                        />
+                    )}
+
+                    {/* Download progress bar - only visible when downloading */}
+                    {settings.status === 'downloading' && (
+                        <div className="text-prediction-progress" data-testid="text-prediction-progress">
+                            <div className="text-prediction-progress__bar">
+                                <div
+                                    className="text-prediction-progress__fill"
+                                    style={{ width: `${settings.downloadProgress ?? 0}%` }}
+                                    data-testid="text-prediction-progress-fill"
+                                />
+                            </div>
+                            <span className="text-prediction-progress__text">
+                                Downloading model... {Math.round(settings.downloadProgress ?? 0)}%
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Status indicator - shows current model status */}
+                    {settings.enabled && (
+                        <div className="text-prediction-status" data-testid="text-prediction-status">
+                            <span
+                                className={`text-prediction-status__text text-prediction-status--${settings.status}`}
+                                data-testid="text-prediction-status-text"
+                            >
+                                {settings.status === 'not-downloaded' && 'Not downloaded'}
+                                {settings.status === 'downloading' && 'Downloading...'}
+                                {settings.status === 'initializing' && 'Initializing...'}
+                                {settings.status === 'ready' && 'Ready'}
+                                {settings.status === 'error' && `Error: ${settings.errorMessage ?? 'Unknown error'}`}
+                            </span>
+                            {settings.status === 'error' && (
+                                <button
+                                    className="text-prediction-status__retry"
+                                    onClick={() => handleEnableChange(true)}
+                                    type="button"
+                                    data-testid="text-prediction-retry-button"
+                                >
+                                    Retry
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Debug: Simulate download button - only in dev mode */}
@@ -218,6 +254,7 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
                         className="text-prediction-debug__button"
                         onClick={handleSimulateDownload}
                         disabled={isSimulating}
+                        type="button"
                         data-testid="text-prediction-simulate-button"
                     >
                         {isSimulating ? `Simulating... ${debugProgress}%` : 'Simulate Download'}
@@ -233,6 +270,7 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
                             }))
                         }
                         disabled={isSimulating}
+                        type="button"
                         data-testid="text-prediction-simulate-error-button"
                     >
                         Simulate Error

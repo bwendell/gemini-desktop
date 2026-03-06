@@ -23,6 +23,9 @@ const logger = createLogger('[LlmManager]');
  * This is necessary because node-llama-cpp is ESM-only with top-level await.
  */
 async function importNodeLlamaCpp(): Promise<typeof import('node-llama-cpp')> {
+    if (process.env.NODE_ENV === 'test') {
+        return import('node-llama-cpp');
+    }
     // Using Function constructor prevents TypeScript from transpiling this to require()
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
     const dynamicImport = new Function('specifier', 'return import(specifier)');
@@ -176,6 +179,8 @@ export default class LlmManager {
         }
 
         try {
+            this.nativeAvailable = true;
+            this.nativeProbeError = null;
             const pkgPath = require.resolve('node-llama-cpp/package.json');
             const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { version?: string };
             this.nativeVersion = pkg.version ?? null;
@@ -494,6 +499,23 @@ export default class LlmManager {
             });
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to load model';
+            const isV8SandboxError =
+                typeof message === 'string' &&
+                (message.includes('v8_ArrayBuffer_NewBackingStore') ||
+                    message.includes('V8 Sandbox') ||
+                    message.includes('sandbox address space'));
+
+            if (isV8SandboxError) {
+                const v8Message =
+                    'V8 sandbox conflict detected while loading the local AI engine. ' +
+                    'On Linux, enable text prediction requires disabling the V8 memory sandbox and restarting the app.';
+                this.nativeAvailable = false;
+                this.nativeProbeError = v8Message;
+                this.setStatus('error', v8Message);
+                logger.error('Failed to load model due to V8 sandbox conflict', { error });
+                throw new Error(v8Message);
+            }
+
             logger.error('Failed to load model', { error });
 
             // If GPU failed, try CPU fallback

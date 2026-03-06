@@ -3,13 +3,13 @@
  *
  * Tests the open-options and open-google-signin IPC handlers.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AppIpcHandler } from '../../../../src/main/managers/ipc/AppIpcHandler';
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';
 
 // Mock Electron
-const { mockIpcMain } = vi.hoisted(() => {
+const { mockIpcMain, mockApp } = vi.hoisted(() => {
     const mockIpcMain = {
         on: vi.fn((channel: string, listener: (...args: unknown[]) => void) => {
             mockIpcMain._listeners.set(channel, listener);
@@ -17,19 +17,29 @@ const { mockIpcMain } = vi.hoisted(() => {
         handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
             mockIpcMain._handlers.set(channel, handler);
         }),
+        removeAllListeners: vi.fn(),
+        removeHandler: vi.fn(),
         _listeners: new Map<string, (...args: unknown[]) => void>(),
         _handlers: new Map<string, (...args: unknown[]) => unknown>(),
         _reset: () => {
             mockIpcMain._listeners.clear();
             mockIpcMain._handlers.clear();
+            mockIpcMain.removeAllListeners.mockReset();
+            mockIpcMain.removeHandler.mockReset();
         },
     };
 
-    return { mockIpcMain };
+    const mockApp = {
+        relaunch: vi.fn(),
+        exit: vi.fn(),
+    };
+
+    return { mockIpcMain, mockApp };
 });
 
 vi.mock('electron', () => ({
     ipcMain: mockIpcMain,
+    app: mockApp,
 }));
 
 describe('AppIpcHandler', () => {
@@ -45,12 +55,16 @@ describe('AppIpcHandler', () => {
         mockLogger = createMockLogger();
         mockWindowManager = createMockWindowManager();
         mockDeps = {
-            store: createMockStore({}),
-            logger: mockLogger,
-            windowManager: mockWindowManager,
+            store: createMockStore({}) as unknown as IpcHandlerDependencies['store'],
+            logger: mockLogger as unknown as IpcHandlerDependencies['logger'],
+            windowManager: mockWindowManager as unknown as IpcHandlerDependencies['windowManager'],
         };
 
         handler = new AppIpcHandler(mockDeps);
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
     describe('register', () => {
@@ -66,6 +80,13 @@ describe('AppIpcHandler', () => {
 
             expect(mockIpcMain.handle).toHaveBeenCalledWith('open-google-signin', expect.any(Function));
             expect(mockIpcMain._handlers.has('open-google-signin')).toBe(true);
+        });
+
+        it('registers app:restart handler', () => {
+            handler.register();
+
+            expect(mockIpcMain.handle).toHaveBeenCalledWith('app:restart', expect.any(Function));
+            expect(mockIpcMain._handlers.has('app:restart')).toBe(true);
         });
     });
 
@@ -169,6 +190,35 @@ describe('AppIpcHandler', () => {
 
             await expect(ipcHandler!({})).rejects.toThrow('Failed to create auth window');
             expect(mockLogger.error).toHaveBeenCalledWith('Error opening Google sign-in:', error);
+        });
+    });
+
+    describe('app:restart handler', () => {
+        let originalArgv: string[];
+
+        beforeEach(() => {
+            originalArgv = [...process.argv];
+            process.argv = ['node', 'app.js', '--test-flag'];
+            handler.register();
+        });
+
+        afterEach(() => {
+            process.argv = originalArgv;
+        });
+
+        it('invokes app.relaunch and app.exit when called', async () => {
+            const restartHandler = mockIpcMain._handlers.get('app:restart');
+
+            await restartHandler!();
+
+            expect(mockApp.relaunch).toHaveBeenCalledWith({ args: ['app.js', '--test-flag'] });
+            expect(mockApp.exit).toHaveBeenCalledWith(0);
+        });
+
+        it('unregisters app:restart handler on unregister', () => {
+            handler.unregister();
+
+            expect(mockIpcMain.removeHandler).toHaveBeenCalledWith('app:restart');
         });
     });
 });

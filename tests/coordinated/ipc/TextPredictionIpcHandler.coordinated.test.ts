@@ -4,6 +4,7 @@
  * Tests startup initialization flow (4.3.23) and full enable/disable cycle (4.3.24).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { App } from 'electron';
 import { ipcMain, BrowserWindow } from 'electron';
 import IpcManager from '../../../src/main/managers/ipcManager';
 import WindowManager from '../../../src/main/managers/windowManager';
@@ -26,22 +27,26 @@ vi.mock('electron-updater', () => ({
 describe('TextPredictionIpcHandler Coordinated Tests', () => {
     let mockStore: any;
     let mockLlmManager: any;
+    let app: App;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
         if ((ipcMain as any)._reset) (ipcMain as any)._reset();
         if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
+        const electron = await import('electron');
+        app = electron.app;
+
+        const storeData: Record<string, any> = {
+            textPredictionEnabled: false,
+            textPredictionGpuEnabled: false,
+        };
 
         mockStore = {
-            get: vi.fn((key: string) => {
-                const data: Record<string, any> = {
-                    textPredictionEnabled: false,
-                    textPredictionGpuEnabled: false,
-                };
-                return data[key];
+            get: vi.fn((key: string) => storeData[key]),
+            set: vi.fn((key: string, value: unknown) => {
+                storeData[key] = value;
             }),
-            set: vi.fn(),
-            getAll: vi.fn(() => ({})),
+            getAll: vi.fn(() => ({ ...storeData })),
         };
 
         mockLlmManager = {
@@ -163,6 +168,8 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
         });
 
         it('should coordinate full enable -> disable cycle', async () => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('--no-v8-sandbox');
             const windowManager = new WindowManager(false);
             const ipcManager = new IpcManager(
                 windowManager,
@@ -251,6 +258,105 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
 
             expect(mockLlmManager.predict).toHaveBeenCalledWith('Hello');
             expect(result).toBe('Hello world!');
+        });
+    });
+
+    describe('Linux V8 Sandbox Restart Flow (Coordinated)', () => {
+        let originalPlatform: PropertyDescriptor | undefined;
+        let originalCI: string | undefined;
+
+        beforeEach(() => {
+            originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+            originalCI = process.env.CI;
+            delete process.env.CI;
+        });
+
+        afterEach(() => {
+            if (originalPlatform) {
+                Object.defineProperty(process, 'platform', originalPlatform);
+            }
+            if (originalCI === undefined) {
+                delete process.env.CI;
+            } else {
+                process.env.CI = originalCI;
+            }
+        });
+
+        it('returns requires-restart status on Linux when V8 sandbox is active', async () => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('');
+
+            const windowManager = new WindowManager(false);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
+            ipcManager.setupIpcHandlers();
+
+            const setEnabledHandler = (ipcMain as any)._handlers.get('text-prediction:set-enabled');
+            expect(setEnabledHandler).toBeDefined();
+
+            await setEnabledHandler({}, true);
+
+            expect(mockStore.set).toHaveBeenCalledWith('textPredictionEnabled', true);
+            expect(mockLlmManager.loadModel).not.toHaveBeenCalled();
+
+            const statusHandler = (ipcMain as any)._handlers.get('text-prediction:get-status');
+            const status = await statusHandler({});
+            expect(status.status).toBe('requires-restart');
+            expect(status.requiresRestart).toBe(true);
+        });
+
+        it('proceeds with normal flow on Linux after V8 sandbox disabled', async () => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('--no-v8-sandbox');
+
+            const windowManager = new WindowManager(false);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
+            ipcManager.setupIpcHandlers();
+
+            const setEnabledHandler = (ipcMain as any)._handlers.get('text-prediction:set-enabled');
+            await setEnabledHandler({}, true);
+
+            expect(mockLlmManager.loadModel).toHaveBeenCalled();
+        });
+
+        it('does not gate enable flow on non-Linux platforms', async () => {
+            Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('');
+
+            const windowManager = new WindowManager(false);
+            const ipcManager = new IpcManager(
+                windowManager,
+                null,
+                null,
+                null,
+                mockLlmManager,
+                null,
+                mockStore,
+                mockLogger
+            );
+            ipcManager.setupIpcHandlers();
+
+            const setEnabledHandler = (ipcMain as any)._handlers.get('text-prediction:set-enabled');
+            await setEnabledHandler({}, true);
+
+            expect(mockLlmManager.loadModel).toHaveBeenCalled();
         });
     });
 });

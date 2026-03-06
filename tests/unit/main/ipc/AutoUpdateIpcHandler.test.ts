@@ -373,10 +373,11 @@ describe('AutoUpdateIpcHandler', () => {
             expect(mockUpdateManager.setEnabled).toHaveBeenCalledWith(true);
         });
 
-        it('handles dev:test:emit-update-event', () => {
+        it('handles dev:test:emit-update-event', async () => {
             const listener = mockIpcMain._listeners.get(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT);
             listener!({}, 'update-available', { version: '2.0.0' });
 
+            await new Promise((resolve) => setImmediate(resolve));
             expect(mockUpdateManager.devEmitUpdateEvent).toHaveBeenCalledWith('update-available', {
                 version: '2.0.0',
             });

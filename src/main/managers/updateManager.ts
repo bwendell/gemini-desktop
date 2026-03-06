@@ -530,16 +530,33 @@ export default class UpdateManager {
             };
             const channel = eventChannelMap[event];
             if (channel) {
-                this.broadcastToWindows(channel, data);
+                const payload =
+                    event === 'update-downloaded'
+                        ? {
+                              version:
+                                  typeof data === 'object' && data !== null && 'version' in data
+                                      ? String((data as { version: string }).version)
+                                      : '',
+                          }
+                        : data;
+                setImmediate(() => {
+                    this.broadcastToWindows(channel, payload);
+                });
             } else {
-                this.broadcastToWindows(`auto-update:${event}`, data);
+                setImmediate(() => {
+                    this.broadcastToWindows(`auto-update:${event}`, data);
+                });
             }
         }
 
         // Also update internal state if needed
         if (event === 'update-downloaded') {
             this.badgeManager?.showUpdateBadge();
-            this.trayManager?.setUpdateTooltip(data.version);
+            const tooltipVersion =
+                typeof data === 'object' && data !== null && 'version' in data
+                    ? String((data as { version: string }).version)
+                    : '';
+            this.trayManager?.setUpdateTooltip(tooltipVersion || '');
         }
     }
 

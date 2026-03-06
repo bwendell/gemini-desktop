@@ -11,8 +11,30 @@
  */
 
 import { app } from 'electron';
+import * as fs from 'fs';
+import * as path from 'path';
 import { shouldDisableSandbox } from './sandboxDetector';
 
 if (shouldDisableSandbox()) {
     app.commandLine.appendSwitch('no-sandbox');
+}
+
+if (process.platform === 'linux') {
+    try {
+        const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+        const raw = fs.readFileSync(settingsPath, 'utf-8');
+        const settings = JSON.parse(raw) as { textPredictionEnabled?: boolean };
+
+        if (settings?.textPredictionEnabled === true) {
+            app.commandLine.appendSwitch('js-flags', '--no-v8-sandbox');
+        }
+    } catch (error) {
+        if (process.env.NODE_ENV !== 'test') {
+            void error;
+        }
+    }
+}
+
+if (process.platform === 'linux' && process.argv.includes('--test-text-prediction')) {
+    app.commandLine.appendSwitch('js-flags', '--no-v8-sandbox');
 }

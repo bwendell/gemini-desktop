@@ -14,7 +14,7 @@ import { IPC_CHANNELS } from '../../../src/shared/constants/ipc-channels';
 import { getTabFrameName } from '../../../src/shared/types/tabs';
 
 // Mock Electron
-const { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell } = vi.hoisted(() => {
+const { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell, mockApp } = vi.hoisted(() => {
     const mockIpcMain = {
         on: vi.fn((channel, listener) => {
             mockIpcMain._listeners.set(channel, listener);
@@ -63,7 +63,13 @@ const { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell } = vi.hoiste
         },
     };
 
-    return { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell };
+    const mockApp = {
+        commandLine: {
+            getSwitchValue: vi.fn().mockReturnValue(''),
+        },
+    };
+
+    return { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell, mockApp };
 });
 
 vi.mock('electron', () => ({
@@ -71,6 +77,7 @@ vi.mock('electron', () => ({
     nativeTheme: mockNativeTheme,
     BrowserWindow: mockBrowserWindow,
     shell: mockShell,
+    app: mockApp,
 }));
 
 // Mock SettingsStore to prevent side effects during import
@@ -1658,10 +1665,11 @@ describe('IpcManager', () => {
             // Should not crash
         });
 
-        it('handles dev:test:emit-update-event', () => {
+        it('handles dev:test:emit-update-event', async () => {
             mockUpdateManager.devEmitUpdateEvent = vi.fn();
             const handler = (ipcMain as any)._listeners.get('dev:test:emit-update-event');
             handler({}, 'update-available', { version: '2.0.0' });
+            await new Promise((resolve) => setImmediate(resolve));
             expect(mockUpdateManager.devEmitUpdateEvent).toHaveBeenCalledWith('update-available', {
                 version: '2.0.0',
             });
@@ -1968,9 +1976,10 @@ describe('IpcManager', () => {
             expect(result).toEqual({
                 enabled: true,
                 gpuEnabled: false,
-                status: 'ready',
-                downloadProgress: 100,
-                errorMessage: undefined,
+                status: 'requires-restart',
+                requiresRestart: true,
+                restartReason:
+                    'Text prediction on Linux requires disabling the V8 memory sandbox. This is a security feature that conflicts with the local AI engine. The app needs to restart to apply this change.',
             });
         });
 

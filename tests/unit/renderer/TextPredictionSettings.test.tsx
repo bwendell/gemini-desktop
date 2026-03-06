@@ -29,6 +29,7 @@ describe('TextPredictionSettings', () => {
     const mockSetTextPredictionGpuEnabled = vi.fn();
     const mockOnTextPredictionStatusChanged = vi.fn();
     const mockOnTextPredictionDownloadProgress = vi.fn();
+    const mockRestartApp = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -43,6 +44,7 @@ describe('TextPredictionSettings', () => {
         mockSetTextPredictionGpuEnabled.mockResolvedValue(undefined);
         mockOnTextPredictionStatusChanged.mockReturnValue(() => {});
         mockOnTextPredictionDownloadProgress.mockReturnValue(() => {});
+        mockRestartApp.mockResolvedValue(undefined);
 
         // Use shared factory with test-specific overrides
         setupMockElectronAPI({
@@ -51,6 +53,7 @@ describe('TextPredictionSettings', () => {
             setTextPredictionGpuEnabled: mockSetTextPredictionGpuEnabled,
             onTextPredictionStatusChanged: mockOnTextPredictionStatusChanged,
             onTextPredictionDownloadProgress: mockOnTextPredictionDownloadProgress,
+            restartApp: mockRestartApp,
         });
     });
 
@@ -379,6 +382,128 @@ describe('TextPredictionSettings', () => {
             });
 
             expect(screen.queryByTestId('text-prediction-status')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('Restart Notice', () => {
+        it('shows restart notice when status is requires-restart', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'requires-restart',
+                requiresRestart: true,
+                restartReason: 'Text prediction on Linux requires disabling the V8 memory sandbox.',
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('text-prediction-restart-notice')).toBeInTheDocument();
+            });
+        });
+
+        it('displays the restart reason text', async () => {
+            const reason = 'Text prediction on Linux requires disabling the V8 memory sandbox.';
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'requires-restart',
+                requiresRestart: true,
+                restartReason: reason,
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByText(reason)).toBeInTheDocument();
+            });
+        });
+
+        it('displays Restart Now button', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'requires-restart',
+                requiresRestart: true,
+                restartReason: 'Needs restart',
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('text-prediction-restart-button')).toBeInTheDocument();
+            });
+        });
+
+        it('calls restartApp when Restart Now button is clicked', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'requires-restart',
+                requiresRestart: true,
+                restartReason: 'Needs restart',
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                const restartBtn = screen.getByTestId('text-prediction-restart-button');
+                fireEvent.click(restartBtn);
+            });
+
+            expect(mockRestartApp).toHaveBeenCalled();
+        });
+
+        it('hides GPU toggle when restart is required', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'requires-restart',
+                requiresRestart: true,
+                restartReason: 'Needs restart',
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('text-prediction-restart-notice')).toBeInTheDocument();
+            });
+
+            expect(screen.queryByTestId('text-prediction-gpu-toggle')).not.toBeInTheDocument();
+        });
+
+        it('hides status indicator when restart is required', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'requires-restart',
+                requiresRestart: true,
+                restartReason: 'Needs restart',
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('text-prediction-restart-notice')).toBeInTheDocument();
+            });
+
+            expect(screen.queryByTestId('text-prediction-status')).not.toBeInTheDocument();
+        });
+
+        it('does NOT show restart notice for normal statuses', async () => {
+            mockGetTextPredictionStatus.mockResolvedValue({
+                enabled: true,
+                gpuEnabled: false,
+                status: 'ready',
+            });
+
+            render(<TextPredictionSettings />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('text-prediction-settings')).toBeInTheDocument();
+            });
+
+            expect(screen.queryByTestId('text-prediction-restart-notice')).not.toBeInTheDocument();
         });
     });
 
