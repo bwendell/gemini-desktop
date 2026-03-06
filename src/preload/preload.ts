@@ -30,6 +30,7 @@ export const IPC_CHANNELS = {
     THEME_CHANGED: 'theme:changed',
     OPEN_OPTIONS: 'open-options-window',
     OPEN_GOOGLE_SIGNIN: 'open-google-signin',
+    APP_RESTART: 'app:restart',
     QUICK_CHAT_SUBMIT: 'quick-chat:submit',
     QUICK_CHAT_HIDE: 'quick-chat:hide',
     QUICK_CHAT_CANCEL: 'quick-chat:cancel',
@@ -68,6 +69,7 @@ export const IPC_CHANNELS = {
     AUTO_UPDATE_CHECKING: 'auto-update:checking',
     AUTO_UPDATE_NOT_AVAILABLE: 'auto-update:not-available',
     AUTO_UPDATE_DOWNLOAD_PROGRESS: 'auto-update:download-progress',
+    AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE: 'auto-update:manual-update-available',
     TRAY_GET_TOOLTIP: 'tray:get-tooltip',
     PLATFORM_HOTKEY_STATUS_GET: 'platform:hotkey-status:get',
     PLATFORM_HOTKEY_STATUS_CHANGED: 'platform:hotkey-status:changed',
@@ -146,6 +148,7 @@ const electronAPI: ElectronAPI = {
      * @returns Promise that resolves when sign-in window closes
      */
     openGoogleSignIn: () => ipcRenderer.invoke(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN),
+    restartApp: () => ipcRenderer.invoke(IPC_CHANNELS.APP_RESTART),
 
     // =========================================================================
     // Platform Detection
@@ -539,6 +542,15 @@ const electronAPI: ElectronAPI = {
             ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_ERROR, subscription);
         };
     },
+    onManualUpdateAvailable: (callback) => {
+        const subscription = (_event: Electron.IpcRendererEvent, info: Parameters<typeof callback>[0]) =>
+            callback(info);
+        ipcRenderer.on(IPC_CHANNELS.AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE, subscription);
+
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE, subscription);
+        };
+    },
 
     /**
      * Subscribe to update-not-available events.
@@ -593,7 +605,16 @@ const electronAPI: ElectronAPI = {
     /**
      * Emit simulated update event.
      */
-    devEmitUpdateEvent: (event, data) => ipcRenderer.send(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, event, data),
+    devEmitUpdateEvent: (event, data) => {
+        const safeData =
+            data instanceof Error
+                ? {
+                      name: data.name,
+                      message: data.message,
+                  }
+                : data;
+        ipcRenderer.send(IPC_CHANNELS.DEV_TEST_EMIT_UPDATE_EVENT, event, safeData);
+    },
 
     /**
      * Mock platform/env for testing.

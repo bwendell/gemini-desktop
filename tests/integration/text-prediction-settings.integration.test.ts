@@ -433,7 +433,7 @@ describe('Text Prediction Settings IPC Integration', () => {
             // Close options window if open
             await browser.electron.execute(() => {
                 const { BrowserWindow } = require('electron');
-                const mainWin = (global as any).windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {
                     if (win !== mainWin && !win.isDestroyed()) {
                         win.close();

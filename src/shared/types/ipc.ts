@@ -53,6 +53,8 @@ export interface ElectronAPI {
     /** Open Google sign-in window */
     openGoogleSignIn: () => Promise<void>;
 
+    restartApp: () => Promise<void>;
+
     // =========================================================================
     // Platform Detection
     // =========================================================================
@@ -198,6 +200,9 @@ export interface ElectronAPI {
 
     /** Listen for update not available. Returns unsubscribe function. */
     onUpdateNotAvailable: (callback: (info: UpdateInfo) => void) => () => void;
+
+    /** Listen for manual update available. Returns unsubscribe function. */
+    onManualUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
 
     /** Listen for download progress. Returns unsubscribe function. */
     onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;

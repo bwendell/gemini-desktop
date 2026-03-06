@@ -43,30 +43,17 @@ export const config = {
         // =========================================================================
         // Window Management
         // =========================================================================
-        '../../tests/e2e/always-on-top.spec.ts',
-        '../../tests/e2e/peek-and-hide.spec.ts',
-        '../../tests/e2e/dependent-windows.spec.ts',
-        '../../tests/e2e/window-bounds.spec.ts',
-        '../../tests/e2e/window-controls.spec.ts',
-        '../../tests/e2e/window-state.spec.ts',
-        '../../tests/e2e/window-titlebar.spec.ts',
-        '../../tests/e2e/window-management-edge-cases.spec.ts',
+        '../../tests/e2e/window.spec.ts',
 
         // =========================================================================
         // Menu & Context Menu
         // =========================================================================
-        '../../tests/e2e/menu_bar.spec.ts',
-        '../../tests/e2e/menu-actions.spec.ts',
-        '../../tests/e2e/menu-interactions.spec.ts',
-        '../../tests/e2e/edit-menu-user-flow.spec.ts',
-        '../../tests/e2e/context-menu.spec.ts',
+        '../../tests/e2e/menu.spec.ts',
 
         // =========================================================================
         // Hotkeys
         // =========================================================================
         '../../tests/e2e/hotkeys.spec.ts',
-        '../../tests/e2e/hotkey-registration.spec.ts',
-        '../../tests/e2e/hotkey-toggle.spec.ts',
 
         // =========================================================================
         // Quick Chat
@@ -104,6 +91,8 @@ export const config = {
         // Auto-Update
         // =========================================================================
         '../../tests/e2e/auto-update.spec.ts',
+
+        '../../tests/e2e/toast.spec.ts',
 
         // =========================================================================
         // Error Recovery & Stability
@@ -245,9 +234,7 @@ export const config = {
                 await imported.installRendererErrorInterceptor();
             }
         } catch (error) {
-            if (process.env.WDIO_DEBUG) {
-                console.warn('Failed to install renderer error interceptor:', error);
-            }
+            console.warn('Failed to install renderer error interceptor:', error);
         }
     },
 

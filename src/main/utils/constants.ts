@@ -4,15 +4,17 @@
  */
 
 import type { BrowserWindowConstructorOptions } from 'electron';
+import * as electron from 'electron';
 import { getWaylandStatus } from './waylandDetector';
 import type { WaylandStatus } from '../../shared/types/hotkeys';
 
 // Import app separately — some test mocks may not define it.
-let app: Electron.App | undefined;
+let app: typeof electron.app | undefined;
+
 try {
-    app = require('electron').app;
+    app = electron.app;
 } catch {
-    // In test environments with incomplete mocks, app may not be available.
+    app = undefined;
 }
 
 // =========================================================================

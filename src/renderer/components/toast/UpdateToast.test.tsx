@@ -50,6 +50,13 @@ describe('UpdateToast', () => {
             expect(screen.getByTestId('toast-message')).toHaveTextContent('Download failed');
         });
 
+        it('renders manual update available toast', () => {
+            render(<UpdateToast {...defaultProps} type="manual-available" />);
+
+            expect(screen.getByTestId('toast-title')).toHaveTextContent('Update Available');
+            expect(screen.getByTestId('toast-message')).toHaveTextContent('Version 1.2.3 is available for download.');
+        });
+
         it('renders default error message when no errorMessage provided', () => {
             render(<UpdateToast {...defaultProps} type="error" />);
 

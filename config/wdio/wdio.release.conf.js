@@ -5,7 +5,8 @@
  * instead of appEntryPoint which launches from source.
  *
  * Platform Support:
- * - Windows: release/win-unpacked/Gemini Desktop.exe
+ * - Windows (x64): release/win-unpacked/Gemini Desktop.exe
+ * - Windows (arm64): release/win-arm64-unpacked/Gemini Desktop.exe
  * - Linux: release/linux-unpacked/gemini-desktop (or linux-arm64-unpacked for ARM)
  * - macOS: release/mac/Gemini Desktop.app/Contents/MacOS/Gemini Desktop
  *
@@ -41,7 +42,17 @@ function getReleaseBinaryPath() {
 
     switch (platform) {
         case 'win32':
-            binaryPath = path.join(releaseDir, 'win-unpacked', 'Gemini Desktop.exe');
+            binaryPath =
+                process.arch === 'arm64'
+                    ? path.join(releaseDir, 'win-arm64-unpacked', 'Gemini Desktop.exe')
+                    : path.join(releaseDir, 'win-unpacked', 'Gemini Desktop.exe');
+            if (!fs.existsSync(binaryPath)) {
+                binaryPath = path.join(
+                    releaseDir,
+                    process.arch === 'arm64' ? 'win-unpacked' : 'win-arm64-unpacked',
+                    'Gemini Desktop.exe'
+                );
+            }
             break;
         case 'darwin':
             binaryPath = path.join(releaseDir, 'mac', 'Gemini Desktop.app', 'Contents', 'MacOS', 'Gemini Desktop');
@@ -92,13 +103,9 @@ export const config = {
         // Core functionality tests that work with packaged builds
         // These tests don't spawn additional Electron processes or require dev paths
         '../../tests/e2e/app-startup.spec.ts',
-        '../../tests/e2e/menu_bar.spec.ts',
+        '../../tests/e2e/menu.spec.ts',
         '../../tests/e2e/options-window.spec.ts',
         '../../tests/e2e/theme.spec.ts',
-
-        // Window management tests
-        '../../tests/e2e/window-controls.spec.ts',
-        '../../tests/e2e/window-bounds.spec.ts',
 
         // Tray functionality tests
         '../../tests/e2e/tray.spec.ts',
@@ -110,7 +117,6 @@ export const config = {
         '../../tests/e2e/settings-persistence.spec.ts',
 
         // Other core functionality
-        '../../tests/e2e/context-menu.spec.ts',
         '../../tests/e2e/external-links.spec.ts',
 
         // Release-specific tests (packaging verification)

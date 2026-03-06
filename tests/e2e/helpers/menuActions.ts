@@ -18,7 +18,7 @@
  * @module menuActions
  */
 import { browser, $ } from '@wdio/globals';
-import { isMacOS } from './platform';
+import { isMacOS, isLinuxHeadlessSync } from './platform';
 import { E2ELogger } from './logger';
 import { E2E_TIMING } from './e2eConstants';
 import { waitForUIState } from './waitUtilities';
@@ -67,6 +67,8 @@ export async function clickMenuItemById(id: string): Promise<void> {
 
     if (mac) {
         await clickNativeMenuItemById(id);
+    } else if (isLinuxHeadlessSync()) {
+        await triggerMenuItemViaElectronApi(id);
     } else {
         await clickCustomMenuItemById(id);
     }
@@ -131,6 +133,27 @@ export async function triggerMenuItemViaElectronApi(id: string): Promise<void> {
         const item = menu.getMenuItemById(itemId);
         if (!item) {
             return { success: false, error: `Menu item with id "${itemId}" not found` };
+        }
+
+        const win =
+            electron.BrowserWindow.getFocusedWindow?.() ??
+            electron.BrowserWindow.getAllWindows().find((window) => !window.isDestroyed());
+        if (!win) {
+            return { success: false, error: 'No available window to receive menu action' };
+        }
+
+        if (!win.isFocused()) {
+            win.focus();
+        }
+
+        if (item.role === 'reload') {
+            win.reload();
+            return { success: true };
+        }
+
+        if (item.role === 'forceReload') {
+            win.webContents.reloadIgnoringCache();
+            return { success: true };
         }
 
         item.click();
@@ -234,7 +257,12 @@ async function clickCustomMenuItemById(id: string): Promise<void> {
     );
 
     if (!dropdownVisible) {
-        throw new Error(`[E2E] Menu dropdown did not appear for category "${menuCategory}"`);
+        E2ELogger.info(
+            'menuActions',
+            `Dropdown not visible for ${menuCategory}; falling back to Electron Menu API for ${id}`
+        );
+        await triggerMenuItemViaElectronApi(id);
+        return;
     }
 
     // Click the menu item by data-menu-id

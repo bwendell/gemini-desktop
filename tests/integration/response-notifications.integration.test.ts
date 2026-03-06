@@ -151,7 +151,7 @@ describe('Response Notifications IPC Integration', () => {
             await browser.electron.execute(() => {
                 // @ts-expect-error - Electron require in main process
                 const { BrowserWindow } = require('electron');
-                const mainWin = (global as any).windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {
                     if (win !== mainWin && !win.isDestroyed()) {
                         win.close();
@@ -256,7 +256,7 @@ describe('Response Notifications IPC Integration', () => {
             await browser.electron.execute(() => {
                 // @ts-expect-error - Electron require in main process
                 const { BrowserWindow } = require('electron');
-                const mainWin = (global as any).windowManager.getMainWindow();
+                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {
                     if (win !== mainWin && !win.isDestroyed()) {
                         win.close();

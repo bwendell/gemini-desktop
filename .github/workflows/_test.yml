@@ -66,13 +66,13 @@ jobs:
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -84,7 +84,7 @@ jobs:
 
             # Optionally upload coverage (CI workflow only)
             - name: Upload Frontend Coverage Report
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               if: inputs.upload-coverage
               with:
                   name: coverage-frontend
@@ -92,7 +92,7 @@ jobs:
                   retention-days: 7
 
             - name: Upload Electron Coverage Report
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               if: inputs.upload-coverage
               with:
                   name: coverage-electron
@@ -129,13 +129,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -183,13 +183,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -226,7 +226,7 @@ jobs:
         strategy:
             fail-fast: ${{ inputs.e2e-fail-fast }}
             matrix:
-                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
+                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability, toast]
 
         steps:
             - name: Checkout Code
@@ -242,13 +242,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -261,7 +261,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-windows-latest
@@ -285,7 +285,22 @@ jobs:
         strategy:
             fail-fast: ${{ inputs.e2e-fail-fast }}
             matrix:
-                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability, macos]
+                group:
+                    [
+                        startup,
+                        window,
+                        menu,
+                        hotkeys,
+                        quickchat,
+                        options,
+                        theme,
+                        auth,
+                        tray,
+                        update,
+                        stability,
+                        toast,
+                        macos,
+                    ]
 
         steps:
             - name: Checkout Code
@@ -301,13 +316,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -320,7 +335,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-macos-latest
@@ -344,7 +359,7 @@ jobs:
         strategy:
             fail-fast: ${{ inputs.e2e-fail-fast }}
             matrix:
-                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability]
+                group: [startup, window, menu, hotkeys, quickchat, options, theme, auth, tray, update, stability, toast]
 
         steps:
             - name: Checkout Code
@@ -369,13 +384,13 @@ jobs:
               run: npm ci
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -390,7 +405,7 @@ jobs:
                   DEBUG: 'wdio:*'
 
             - name: Upload E2E Screenshots (on failure)
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               if: failure()
               with:
                   name: e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.group }}-ubuntu-latest
@@ -422,9 +437,13 @@ jobs:
                       emoji: '🐧'
                       platform: 'Ubuntu'
                     - os: windows-latest
-                      dist-script: 'dist:win'
+                      dist-script: 'dist:win-x64'
                       emoji: '🪟'
-                      platform: 'Windows'
+                      platform: 'Windows x64'
+                    - os: windows-latest
+                      dist-script: 'dist:win-arm64'
+                      emoji: '🪟'
+                      platform: 'Windows arm64'
                     - os: macos-latest
                       dist-script: 'dist:mac-arm64'
                       emoji: '🍎'
@@ -455,13 +474,13 @@ jobs:
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -481,7 +500,7 @@ jobs:
 
             # Upload artifacts on failure for debugging
             - name: Upload Release E2E Screenshots (on failure)
-              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
               if: failure()
               with:
                   name: release-e2e-screenshots${{ inputs.artifact-suffix }}-${{ matrix.os }}

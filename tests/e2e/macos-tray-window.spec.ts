@@ -68,7 +68,7 @@ describe('macOS Tray Icon Display and Window Rendering', () => {
 
             // Query the tray icon path from the main process
             const trayIconInfo = await (browser as WebdriverIO.Browser & { electron: any }).electron.execute(() => {
-                const trayManager = (global as any).trayManager;
+                const trayManager = (global as { appContext?: any }).appContext?.trayManager;
 
                 if (!trayManager) {
                     return {

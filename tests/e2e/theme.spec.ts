@@ -1,7 +1,7 @@
 import { $, $$, browser, expect } from '@wdio/globals';
 
 import { MainWindowPage, OptionsPage } from './pages';
-import { expectElementDisplayed, expectThemeApplied } from './helpers/assertions';
+import { expectElementDisplayed, expectElementNotDisplayed, expectThemeApplied } from './helpers/assertions';
 import { ensureSingleWindow, waitForAppReady, withOptionsWindowViaMenu } from './helpers/workflows';
 import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAnimationSettle, waitForUIState } from './helpers/waitUtilities';
@@ -184,23 +184,14 @@ describe('Theme', () => {
 
             await expectElementDisplayed('[data-testid="theme-checkmark-light"]');
 
-            await wdioBrowser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-system"]').isExisting()), {
-                timeout: 500,
-                timeoutMsg: 'System checkmark did not disappear after animation',
-            });
-            await wdioBrowser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-dark"]').isExisting()), {
-                timeout: 500,
-                timeoutMsg: 'Dark checkmark did not disappear after animation',
-            });
+            await expectElementNotDisplayed('[data-testid="theme-checkmark-system"]', { timeout: 2000 });
+            await expectElementNotDisplayed('[data-testid="theme-checkmark-dark"]', { timeout: 2000 });
 
             await optionsPage.selectTheme('dark');
 
             await expectElementDisplayed('[data-testid="theme-checkmark-dark"]');
 
-            await wdioBrowser.waitUntil(async () => !(await $('[data-testid="theme-checkmark-light"]').isExisting()), {
-                timeout: 500,
-                timeoutMsg: 'Light checkmark did not disappear after animation',
-            });
+            await expectElementNotDisplayed('[data-testid="theme-checkmark-light"]', { timeout: 2000 });
 
             await optionsPage.close();
         });

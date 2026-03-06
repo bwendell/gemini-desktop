@@ -127,6 +127,7 @@ const mockElectronAPI = {
     onUpdateDownloaded: vi.fn().mockReturnValue(() => {}),
     onUpdateError: vi.fn().mockReturnValue(() => {}),
     onUpdateNotAvailable: vi.fn().mockReturnValue(() => {}),
+    onManualUpdateAvailable: vi.fn().mockReturnValue(() => {}),
     onDownloadProgress: vi.fn().mockReturnValue(() => {}),
     onCheckingForUpdate: vi.fn().mockReturnValue(() => {}),
     getLastUpdateCheckTime: vi.fn().mockResolvedValue(Date.now()),

@@ -21,7 +21,13 @@ import './UpdateToast.css';
 /**
  * Update notification types
  */
-export type UpdateNotificationType = 'available' | 'downloaded' | 'error' | 'not-available' | 'progress';
+export type UpdateNotificationType =
+    | 'available'
+    | 'downloaded'
+    | 'error'
+    | 'not-available'
+    | 'progress'
+    | 'manual-available';
 
 /**
  * Update information from electron-updater
@@ -97,6 +103,8 @@ function mapToToastType(type: UpdateNotificationType): ToastType {
             return 'info';
         case 'progress':
             return 'progress';
+        case 'manual-available':
+            return 'info';
     }
 }
 
@@ -115,6 +123,8 @@ function getIcon(type: UpdateNotificationType): string {
             return 'ℹ️';
         case 'progress':
             return '⏳';
+        case 'manual-available':
+            return '📦';
     }
 }
 
@@ -133,6 +143,8 @@ function getTitle(type: UpdateNotificationType): string {
             return 'Up to Date';
         case 'progress':
             return 'Downloading Update';
+        case 'manual-available':
+            return 'Update Available';
     }
 }
 
@@ -168,6 +180,8 @@ export function UpdateToast({
                 return typeof downloadProgress === 'number'
                     ? `Downloading... ${Math.round(downloadProgress)}%`
                     : 'Downloading...';
+            case 'manual-available':
+                return `Version ${version} is available for download.`;
         }
     };
 

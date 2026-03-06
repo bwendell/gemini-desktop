@@ -102,6 +102,10 @@ export class LinuxX11Adapter implements PlatformAdapter {
         return !env.APPIMAGE;
     }
 
+    supportsAutoUpdate(env: NodeJS.ProcessEnv = process.env): boolean {
+        return Boolean(env.APPIMAGE);
+    }
+
     async requestMediaPermissions(_logger: Logger): Promise<void> {
         return;
     }

@@ -7,7 +7,7 @@
  * @module ipc/AppIpcHandler
  */
 
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import { BaseIpcHandler } from './BaseIpcHandler';
 import { IPC_CHANNELS, GOOGLE_ACCOUNTS_URL } from '../../utils/constants';
 
@@ -46,11 +46,22 @@ export class AppIpcHandler extends BaseIpcHandler {
                 throw error;
             }
         });
+
+        ipcMain.handle(IPC_CHANNELS.APP_RESTART, async (): Promise<void> => {
+            try {
+                app.relaunch({ args: process.argv.slice(1) });
+                app.exit(0);
+            } catch (error) {
+                this.logger.error('Error restarting app:', error);
+                throw error;
+            }
+        });
     }
 
     /** Unregister all IPC handlers. */
     unregister(): void {
         ipcMain.removeAllListeners(IPC_CHANNELS.OPEN_OPTIONS);
         ipcMain.removeHandler(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN);
+        ipcMain.removeHandler(IPC_CHANNELS.APP_RESTART);
     }
 }

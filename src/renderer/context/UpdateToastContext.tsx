@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useRef } from 'react';
 import { useToast } from './ToastContext';
 import { useUpdateNotifications } from '../hooks/useUpdateNotifications';
 import type { UpdateNotificationState } from '../hooks/useUpdateNotifications';
@@ -20,7 +20,9 @@ interface UpdateToastProviderProps {
 /**
  * Map UpdateNotificationType to generic ToastType
  */
-function mapToToastType(type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress'): ToastType {
+function mapToToastType(
+    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | 'manual-available'
+): ToastType {
     switch (type) {
         case 'available':
             return 'info';
@@ -32,13 +34,17 @@ function mapToToastType(type: 'available' | 'downloaded' | 'error' | 'not-availa
             return 'info';
         case 'progress':
             return 'progress';
+        case 'manual-available':
+            return 'info';
     }
 }
 
 /**
  * Get title for notification type
  */
-function getTitle(type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress'): string {
+function getTitle(
+    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | 'manual-available'
+): string {
     switch (type) {
         case 'available':
             return 'Update Available';
@@ -50,6 +56,8 @@ function getTitle(type: 'available' | 'downloaded' | 'error' | 'not-available' |
             return 'Up to Date';
         case 'progress':
             return 'Downloading Update';
+        case 'manual-available':
+            return 'Update Available';
     }
 }
 
@@ -57,7 +65,7 @@ function getTitle(type: 'available' | 'downloaded' | 'error' | 'not-available' |
  * Get message for notification type
  */
 function getMessage(
-    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress',
+    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | 'manual-available',
     version: string | undefined,
     errorMessage: string | null,
     downloadProgress: number | null
@@ -75,6 +83,8 @@ function getMessage(
             return typeof downloadProgress === 'number'
                 ? `Downloading... ${Math.round(downloadProgress)}%`
                 : 'Downloading...';
+        case 'manual-available':
+            return `Version ${version} is available. Download it from the releases page.`;
     }
 }
 
@@ -91,8 +101,7 @@ function getMessage(
  * - Exposes update state (including hasPendingUpdate for badge)
  */
 export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
-    const { showToast, dismissToast } = useToast();
-    const [currentToastId, setCurrentToastId] = useState<string | null>(null);
+    const { showToast, dismissToast, toasts } = useToast();
 
     // Use ref to track callbacks for actions to avoid stale closures
     const callbacksRef = useRef<{
@@ -100,6 +109,8 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         onLater: () => void;
         onDismiss: () => void;
     } | null>(null);
+
+    const pendingToastRef = useRef(false);
 
     const {
         type,
@@ -122,7 +133,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     const dismissNotification = useCallback(() => {
         // Always dismiss using the stable ID to avoid race condition with queueMicrotask
         dismissToast(UPDATE_TOAST_ID);
-        setCurrentToastId(null);
         baseDismissNotification();
     }, [dismissToast, baseDismissNotification]);
 
@@ -132,7 +142,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     const handleLater = useCallback(() => {
         // Always dismiss using the stable ID to avoid race condition with queueMicrotask
         dismissToast(UPDATE_TOAST_ID);
-        setCurrentToastId(null);
         baseHandleLater();
     }, [dismissToast, baseHandleLater]);
 
@@ -142,7 +151,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     const installUpdate = useCallback(() => {
         // Always dismiss using the stable ID to avoid race condition with queueMicrotask
         dismissToast(UPDATE_TOAST_ID);
-        setCurrentToastId(null);
         baseInstallUpdate();
     }, [dismissToast, baseInstallUpdate]);
 
@@ -160,14 +168,20 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
      */
     useEffect(() => {
         if (!visible || !type) {
-            if (currentToastId) {
-                dismissToast(currentToastId);
-                queueMicrotask(() => setCurrentToastId(null));
-            }
+            dismissToast(UPDATE_TOAST_ID);
+            pendingToastRef.current = false;
             return;
         }
 
         const actions: ToastAction[] = [];
+        const version = updateInfo?.version;
+        if (type === 'manual-available') {
+            actions.push({
+                label: 'Download',
+                onClick: () => window.open(getReleaseNotesUrl(version)),
+                primary: true,
+            });
+        }
         if (type === 'downloaded') {
             actions.push({
                 label: 'Restart Now',
@@ -181,7 +195,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             });
         }
 
-        const version = updateInfo?.version;
         const message = getMessage(type, version, errorMessage, downloadProgress);
 
         if (type === 'available' || type === 'downloaded' || type === 'not-available') {
@@ -194,11 +207,8 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             actions.push(releaseNotesAction);
         }
 
-        if (currentToastId && currentToastId !== UPDATE_TOAST_ID) {
-            dismissToast(currentToastId);
-        }
-
-        const id = showToast({
+        pendingToastRef.current = true;
+        showToast({
             id: UPDATE_TOAST_ID,
             type: mapToToastType(type),
             title: getTitle(type),
@@ -207,9 +217,26 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             actions: actions.length > 0 ? actions : undefined,
             persistent: true,
         });
-
-        queueMicrotask(() => setCurrentToastId(id));
     }, [type, visible, updateInfo, errorMessage, downloadProgress, showToast, dismissToast]);
+
+    useEffect(() => {
+        if (!visible || !type) {
+            return;
+        }
+
+        const hasUpdateToast = toasts.some((toast) => toast.id === UPDATE_TOAST_ID);
+
+        if (pendingToastRef.current) {
+            if (hasUpdateToast) {
+                pendingToastRef.current = false;
+            }
+            return;
+        }
+
+        if (!hasUpdateToast) {
+            baseDismissNotification();
+        }
+    }, [visible, type, toasts, baseDismissNotification]);
 
     const contextValue: UpdateToastContextType = {
         type,

@@ -18,6 +18,7 @@ export const app = {
     commandLine: {
         appendSwitch: vi.fn(),
         hasSwitch: vi.fn().mockReturnValue(false),
+        getSwitchValue: vi.fn().mockReturnValue(''),
     },
     dock: {
         setBadge: vi.fn(),
@@ -192,6 +193,10 @@ export const screen = {
 
 export const shell = {
     openExternal: vi.fn().mockResolvedValue(undefined),
+};
+
+export const net = {
+    fetch: vi.fn(),
 };
 
 export const dialog = {
@@ -386,6 +391,7 @@ export default {
     nativeImage,
     screen,
     shell,
+    net,
     dialog,
     contextBridge,
     globalShortcut,

@@ -32,11 +32,8 @@ const IS_WSL_ENVIRONMENT = (() => {
  */
 const IS_CI_ENVIRONMENT = !!(process.env.CI || process.env.GITHUB_ACTIONS);
 
-/**
- * Detect headless Linux at module load time (no DISPLAY variable).
- * Used to skip window-manager-dependent tests on headless ARM servers.
- */
-const IS_HEADLESS_ENVIRONMENT = process.platform === 'linux' && !process.env.DISPLAY;
+const IS_TTY_SESSION = process.platform === 'linux' && (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'tty';
+const IS_HEADLESS_ENVIRONMENT = process.platform === 'linux' && (!process.env.DISPLAY || IS_TTY_SESSION);
 
 /**
  * Gets the current platform from the browser context.
@@ -118,7 +115,7 @@ export async function isWSL(): Promise<boolean> {
  */
 export async function isLinuxCI(): Promise<boolean> {
     if (!(await isLinux())) return false;
-    return IS_CI_ENVIRONMENT || IS_WSL_ENVIRONMENT || IS_HEADLESS_ENVIRONMENT;
+    return IS_CI_ENVIRONMENT || IS_WSL_ENVIRONMENT || IS_HEADLESS_ENVIRONMENT || IS_TTY_SESSION;
 }
 
 /**
@@ -158,6 +155,10 @@ export function isWindowsSync(): boolean {
  */
 export function isLinuxSync(): boolean {
     return process.platform === 'linux';
+}
+
+export function isLinuxHeadlessSync(): boolean {
+    return isLinuxSync() && (IS_CI_ENVIRONMENT || IS_WSL_ENVIRONMENT || IS_HEADLESS_ENVIRONMENT);
 }
 
 export function isWayland(): boolean {
