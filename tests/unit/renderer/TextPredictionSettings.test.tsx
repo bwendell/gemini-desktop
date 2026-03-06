@@ -446,10 +446,8 @@ describe('TextPredictionSettings', () => {
 
             render(<TextPredictionSettings />);
 
-            await waitFor(() => {
-                const restartBtn = screen.getByTestId('text-prediction-restart-button');
-                fireEvent.click(restartBtn);
-            });
+            const restartBtn = await screen.findByTestId('text-prediction-restart-button');
+            fireEvent.click(restartBtn);
 
             expect(mockRestartApp).toHaveBeenCalled();
         });

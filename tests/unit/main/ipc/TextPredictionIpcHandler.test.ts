@@ -184,11 +184,7 @@ describe('TextPredictionIpcHandler', () => {
             mockStore.get.mockReturnValue(true);
 
             const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_GET_ENABLED);
-            const result = (await handlerFn!()) as {
-                status: string;
-                requiresRestart?: boolean;
-                restartReason?: string;
-            };
+            const result = (await handlerFn!()) as boolean;
 
             expect(mockStore.get).toHaveBeenCalledWith('textPredictionEnabled');
             expect(result).toBe(true);
@@ -198,11 +194,7 @@ describe('TextPredictionIpcHandler', () => {
             mockStore.get.mockReturnValue(undefined);
 
             const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_GET_ENABLED);
-            const result = (await handlerFn!()) as {
-                status: string;
-                requiresRestart?: boolean;
-                restartReason?: string;
-            };
+            const result = (await handlerFn!()) as boolean;
 
             expect(result).toBe(false);
         });
