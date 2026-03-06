@@ -10,6 +10,7 @@ import { useFakeTimers, useRealTimers } from '../../helpers/harness';
 vi.mock('electron', () => ({
     app: {
         isPackaged: true,
+        getVersion: vi.fn().mockReturnValue('0.9.1'),
     },
     BrowserWindow: {
         getAllWindows: vi.fn(),
