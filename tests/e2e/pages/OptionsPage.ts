@@ -249,6 +249,7 @@ export class OptionsPage extends BasePage {
         );
         // Wait for checkmark animation to settle (Framer Motion exit/enter)
         await waitForAnimationSettle(this.themeCardSelector(theme));
+        await this.waitForElementToExist(`[data-testid="theme-checkmark-${theme}"]`, 2000);
     }
 
     /**

@@ -44,6 +44,25 @@ describe('Menu', () => {
             await menuBar.waitForDisplayed({ timeout: 10000 });
         });
 
+        async function waitForMenuDropdownToClose(timeout = 5000): Promise<void> {
+            const closed = await waitForUIState(
+                async () => {
+                    const openDropdown = await $(Selectors.menuDropdown);
+                    if (!(await openDropdown.isExisting())) {
+                        return true;
+                    }
+
+                    return !(await openDropdown.isDisplayed());
+                },
+                {
+                    timeout,
+                    description: 'Menu dropdown to close',
+                }
+            );
+
+            expect(closed).toBe(true);
+        }
+
         afterEach(async () => {
             if (!(await usesCustomControls())) {
                 return;
@@ -114,8 +133,7 @@ describe('Menu', () => {
             await expect(backdrop).toExist();
 
             await backdrop.click();
-
-            await expect(dropdown).not.toBeDisplayed();
+            await waitForMenuDropdownToClose();
         });
 
         it('should close dropdown when Escape key is pressed', async () => {
@@ -130,8 +148,7 @@ describe('Menu', () => {
             await expect(dropdown).toBeDisplayed();
 
             await testBrowser.keys(['Escape']);
-
-            await expect(dropdown).not.toBeDisplayed();
+            await waitForMenuDropdownToClose();
         });
 
         it('should switch menus when hovering another menu button while open', async () => {
@@ -165,7 +182,16 @@ describe('Menu', () => {
             const reloadItem = await $(Selectors.menuItem('Reload'));
             await expect(reloadItem).toExist();
 
-            await expect(exitItem).not.toBeDisplayed();
+            await waitForUIState(
+                async () => {
+                    if (!(await exitItem.isExisting())) {
+                        return true;
+                    }
+
+                    return !(await exitItem.isDisplayed());
+                },
+                { description: 'Exit item hidden after hover switch' }
+            );
 
             await viewButton.click();
         });

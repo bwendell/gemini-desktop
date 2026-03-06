@@ -6,6 +6,7 @@
  * Platform-aware: Uses Page Objects and workflow helpers for cross-platform consistency.
  */
 
+import type { Browser } from '@wdio/globals';
 import { browser, expect } from '@wdio/globals';
 import { MainWindowPage, OptionsPage } from './pages';
 import { waitForWindowCount } from './helpers/windowActions';
@@ -16,6 +17,7 @@ import { waitForUIState, waitForDuration } from './helpers/waitUtilities';
 describe('Options Window Features', () => {
     const mainWindow = new MainWindowPage();
     const optionsPage = new OptionsPage();
+    const wdioBrowser = browser as unknown as WebdriverIO.Browser & Browser;
 
     beforeEach(async () => {
         await waitForAppReady();
@@ -61,12 +63,12 @@ describe('Options Window Features', () => {
         // 6. Verify correct window closing behavior
         await waitForWindowCount(1, 5000);
 
-        const finalHandles = await browser.getWindowHandles();
+        const finalHandles = await wdioBrowser.getWindowHandles();
         expect(finalHandles.length).toBe(1);
 
         // Switch back to main window
-        await browser.switchToWindow(finalHandles[0]);
-        const title = await browser.getTitle();
+        await wdioBrowser.switchToWindow(finalHandles[0]);
+        const title = await wdioBrowser.getTitle();
         expect(title).toBeDefined();
     });
 
@@ -75,14 +77,14 @@ describe('Options Window Features', () => {
         await mainWindow.openOptionsViaMenu();
         await waitForWindowCount(2, 5000);
 
-        const handlesAfterFirst = await browser.getWindowHandles();
+        const handlesAfterFirst = await wdioBrowser.getWindowHandles();
         expect(handlesAfterFirst.length).toBe(2);
 
         // 2. Switch back to main window
-        await browser.switchToWindow(handlesAfterFirst[0]);
+        await wdioBrowser.switchToWindow(handlesAfterFirst[0]);
         await waitForUIState(
             async () => {
-                const handles = await browser.getWindowHandles();
+                const handles = await wdioBrowser.getWindowHandles();
                 return handles[0] === handlesAfterFirst[0];
             },
             { description: 'Main window ready after switch' }
@@ -93,7 +95,7 @@ describe('Options Window Features', () => {
         await waitForDuration(1000, 'Allow time to verify no duplicate window creation');
 
         // 4. Should still be only 2 windows (no duplicate)
-        const handlesAfterSecond = await browser.getWindowHandles();
+        const handlesAfterSecond = await wdioBrowser.getWindowHandles();
         expect(handlesAfterSecond.length).toBe(2);
 
         // 5. Verify the existing Options window was focused (not a new one)

@@ -11,13 +11,14 @@
  * @module UpdateManager
  */
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, net } from 'electron';
 // NOTE: electron-updater is imported DYNAMICALLY to prevent D-Bus hang on Linux CI.
 // Static imports cause electron-updater to initialize on module load, which hangs
 // when there's no D-Bus session (headless Linux/CI environment).
 import type { UpdateInfo, AppUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createLogger } from '../utils/logger';
+import { coerce, compare, valid } from 'semver';
 import type SettingsStore from '../store';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
@@ -79,6 +80,7 @@ export default class UpdateManager {
     private readonly badgeManager?: BadgeManager;
     private readonly trayManager?: TrayManager;
     private readonly updatesDisabled: boolean;
+    private manualUpdateOnly: boolean;
 
     /**
      * Creates a new UpdateManager instance.
@@ -95,11 +97,30 @@ export default class UpdateManager {
         // CRITICAL: This MUST happen synchronously in constructor to prevent D-Bus hang on Linux CI
         this.updatesDisabled = this.shouldDisableUpdates();
 
-        if (this.updatesDisabled) {
+        const platformAdapter = this.getAdapterForUpdateChecks(this.mockPlatform || process.platform);
+        this.manualUpdateOnly = !platformAdapter.supportsAutoUpdate(this.mockEnv || process.env);
+
+        if (this.updatesDisabled && !this.manualUpdateOnly) {
             this.enabled = false;
             logger.log('Auto-updates disabled for this platform/install type');
             logger.log(`UpdateManager initialized (enabled: ${this.enabled})`);
             return; // Exit early - autoUpdater will never be loaded
+        }
+
+        if (this.manualUpdateOnly) {
+            this.enabled = this.settings.get('autoUpdateEnabled') ?? true;
+            logger.log('Manual-update-only mode enabled');
+            logger.log(`UpdateManager initialized (enabled: ${this.enabled}, manualUpdateOnly: true)`);
+
+            if (
+                this.enabled &&
+                app.isPackaged &&
+                !process.argv.includes('--test-auto-update') &&
+                !process.env.TEST_AUTO_UPDATE
+            ) {
+                this.startPeriodicChecks();
+            }
+            return;
         }
 
         // Load user preference (default to enabled)
@@ -111,7 +132,7 @@ export default class UpdateManager {
         // because CI environments cannot reach GitHub releases. The test flag is
         // specifically for verifying initialization works (dev-app-update.yml is found),
         // not for testing actual network update checks.
-        if (this.enabled && !process.argv.includes('--test-auto-update')) {
+        if (this.enabled && !process.argv.includes('--test-auto-update') && !process.env.TEST_AUTO_UPDATE) {
             this.startPeriodicChecks();
         }
     }
@@ -262,6 +283,48 @@ export default class UpdateManager {
             return;
         }
 
+        if (this.manualUpdateOnly) {
+            try {
+                this.isManualCheck = manual;
+                this.lastCheckTime = Date.now();
+                logger.log(manual ? 'Manual update check (GitHub API)...' : 'Checking for updates (GitHub API)...');
+                this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_CHECKING, null);
+
+                const updateInfo = await this.checkGitHubForLatestRelease();
+
+                if (updateInfo) {
+                    logger.log(`Manual update available: ${updateInfo.version}`);
+                    this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE, updateInfo);
+                } else {
+                    logger.log('No update available (GitHub API)');
+                    if (this.isFirstCheck || this.isManualCheck) {
+                        this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_NOT_AVAILABLE, {
+                            version: app.getVersion(),
+                        });
+                    }
+                }
+            } catch (error) {
+                if (error instanceof Error && error.message === 'GITHUB_API_RESPONSE_NOT_OK') {
+                    logger.warn('GitHub API returned non-OK response');
+                } else {
+                    logger.error('GitHub update check failed:', error);
+                }
+
+                if (manual) {
+                    this.broadcastToWindows(
+                        IPC_CHANNELS.AUTO_UPDATE_ERROR,
+                        'Could not check for updates. Please check your internet connection.'
+                    );
+                } else {
+                    logger.log('Suppressing manual-update-only error notification (background check)');
+                }
+            } finally {
+                this.isFirstCheck = false;
+                this.isManualCheck = false;
+            }
+            return;
+        }
+
         try {
             logger.log(manual ? 'Manual update check...' : 'Checking for updates...');
             this.isManualCheck = manual;
@@ -366,7 +429,8 @@ export default class UpdateManager {
         if (
             this.mockEnv?.TEST_AUTO_UPDATE ||
             process.env.TEST_AUTO_UPDATE ||
-            process.argv.includes('--test-auto-update')
+            process.argv.includes('--test-auto-update') ||
+            process.argv.includes('--integration-test')
         ) {
             logger.log('Test auto-update mode detected - skipping quitAndInstall');
             return;
@@ -417,6 +481,17 @@ export default class UpdateManager {
         });
 
         updater.on('update-available', (info: UpdateInfo) => {
+            const currentVersion = this.normalizeVersion(app.getVersion());
+            const incomingVersion = this.normalizeVersion(info.version);
+
+            if (currentVersion && incomingVersion) {
+                const comparison = compare(currentVersion, incomingVersion);
+                if (comparison != null && comparison >= 0) {
+                    logger.warn(`Ignoring update-available for version ${info.version} (current: ${app.getVersion()})`);
+                    return;
+                }
+            }
+
             logger.log(`Update available: ${info.version}`);
             this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_AVAILABLE, info);
             this.isFirstCheck = false;
@@ -466,6 +541,33 @@ export default class UpdateManager {
                 }
             }
         }
+    }
+
+    private normalizeVersion(version: string): string | null {
+        const trimmed = version.trim();
+        if (!trimmed) return null;
+        const cleaned = trimmed.startsWith('v') ? trimmed.slice(1) : trimmed;
+        const parsed = valid(cleaned);
+        if (parsed) {
+            return parsed;
+        }
+
+        const coerced = coerce(cleaned)?.version ?? null;
+        if (!coerced) {
+            logger.warn(`Unable to parse version string: ${version}`);
+        }
+        return coerced;
+    }
+
+    private isNewerVersion(versionA: string | null, versionB: string | null): boolean {
+        if (!versionA || !versionB) {
+            if (versionA && !versionB) {
+                logger.warn('Unable to compare versions (missing current version)', { versionA, versionB });
+            }
+            return false;
+        }
+
+        return compare(versionA, versionB) > 0;
     }
 
     // =========================================================================
@@ -531,6 +633,7 @@ export default class UpdateManager {
             // Map update events to their corresponding IPC channels
             const eventChannelMap: Record<string, string> = {
                 'update-available': IPC_CHANNELS.AUTO_UPDATE_AVAILABLE,
+                'manual-update-available': IPC_CHANNELS.AUTO_UPDATE_MANUAL_UPDATE_AVAILABLE,
                 'update-not-available': IPC_CHANNELS.AUTO_UPDATE_NOT_AVAILABLE,
                 'update-downloaded': IPC_CHANNELS.AUTO_UPDATE_DOWNLOADED,
                 'update-error': IPC_CHANNELS.AUTO_UPDATE_ERROR,
@@ -556,12 +659,66 @@ export default class UpdateManager {
      * Re-evaluate enabled state based on current (potentially mocked) platform/env.
      */
     private devReevaluate(): void {
-        if (this.shouldDisableUpdates()) {
+        const updatesDisabled = this.shouldDisableUpdates();
+        const platformAdapter = this.getAdapterForUpdateChecks(this.mockPlatform || process.platform);
+        this.manualUpdateOnly = !platformAdapter.supportsAutoUpdate(this.mockEnv || process.env);
+
+        if (updatesDisabled && !this.manualUpdateOnly) {
             this.enabled = false;
-        } else {
-            // Restore enabled from settings if valid platform
-            this.enabled = this.settings.get('autoUpdateEnabled') ?? true;
+            return;
         }
+
+        if (this.manualUpdateOnly) {
+            this.enabled = this.settings.get('autoUpdateEnabled') ?? true;
+            return;
+        }
+
+        this.enabled = this.settings.get('autoUpdateEnabled') ?? true;
+    }
+
+    private async checkGitHubForLatestRelease(): Promise<UpdateInfo | null> {
+        const response = await net.fetch('https://api.github.com/repos/bwendell/gemini-desktop/releases/latest', {
+            headers: { 'User-Agent': 'gemini-desktop-updater' },
+        });
+
+        if (!response.ok) {
+            logger.warn(`GitHub API returned ${response.status}`);
+            throw new Error('GITHUB_API_RESPONSE_NOT_OK');
+        }
+
+        const release = (await response.json()) as unknown;
+        const tagName = this.getGitHubReleaseField(release, 'tag_name');
+        const releaseName = this.getGitHubReleaseField(release, 'name');
+        const releaseNotes = this.getGitHubReleaseField(release, 'body');
+        const latestVersion = this.normalizeVersion(tagName || '');
+        const currentVersion = this.normalizeVersion(app.getVersion());
+
+        if (!latestVersion) {
+            return null;
+        }
+
+        if (this.isNewerVersion(latestVersion, currentVersion)) {
+            return {
+                version: latestVersion,
+                releaseName: releaseName || undefined,
+                releaseNotes: releaseNotes || undefined,
+                files: [],
+                path: '',
+                sha512: '',
+                releaseDate: '',
+            };
+        }
+
+        return null;
+    }
+
+    private getGitHubReleaseField(release: unknown, field: 'tag_name' | 'name' | 'body'): string | undefined {
+        if (!release || typeof release !== 'object') {
+            return undefined;
+        }
+
+        const value = (release as Record<string, unknown>)[field];
+        return typeof value === 'string' ? value : undefined;
     }
 
     /**

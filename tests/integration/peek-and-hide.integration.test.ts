@@ -26,18 +26,38 @@ const browserWithElectron = browser as unknown as {
     };
 };
 
+const ensureAppReady = async (attempts: number = 2): Promise<void> => {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+        try {
+            await browserWithElectron.waitUntil(async () => (await browserWithElectron.getWindowHandles()).length > 0, {
+                timeout: 30000,
+                timeoutMsg: 'App window did not initialize in time',
+            });
+
+            await browserWithElectron.execute(async () => {
+                return await new Promise<void>((resolve) => {
+                    if (document.readyState === 'complete') return resolve();
+                    window.addEventListener('load', () => resolve());
+                });
+            });
+
+            return;
+        } catch (error) {
+            lastError = error;
+            if (attempt < attempts - 1) {
+                await browser.reloadSession();
+            }
+        }
+    }
+
+    throw lastError;
+};
+
 describe('Peek and Hide Integration', () => {
     before(async () => {
-        // Wait for app ready
-        await browserWithElectron.waitUntil(async () => (await browserWithElectron.getWindowHandles()).length > 0);
-
-        // Ensure renderer is ready
-        await browserWithElectron.execute(async () => {
-            return await new Promise<void>((resolve) => {
-                if (document.readyState === 'complete') return resolve();
-                window.addEventListener('load', () => resolve());
-            });
-        });
+        await ensureAppReady();
     });
 
     beforeEach(async () => {

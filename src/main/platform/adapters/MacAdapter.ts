@@ -87,6 +87,10 @@ export class MacAdapter implements PlatformAdapter {
     }
 
     shouldDisableUpdates(_env: NodeJS.ProcessEnv): boolean {
+        return true;
+    }
+
+    supportsAutoUpdate(_env: NodeJS.ProcessEnv = process.env): boolean {
         return false;
     }
 

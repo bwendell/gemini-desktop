@@ -385,18 +385,48 @@ export async function ensureSingleWindow(): Promise<void> {
     testLogger.breadcrumb('workflow', 'Ensuring single window state');
     const handles = await workflowsBrowser.getWindowHandles();
 
+    if (handles.length === 0) {
+        throw new Error('No window handles found while ensuring single window state');
+    }
+
     if (handles.length > 1) {
         E2ELogger.info('workflows', `Closing ${handles.length - 1} extra window(s)`);
         testLogger.breadcrumb('workflow', `Closing ${handles.length - 1} extra window(s)`);
 
         // Close all windows except the first (main window)
         for (let i = handles.length - 1; i > 0; i--) {
-            await workflowsBrowser.switchToWindow(handles[i]);
-            await workflowsBrowser.closeWindow();
+            try {
+                await workflowsBrowser.switchToWindow(handles[i]);
+                await workflowsBrowser.closeWindow();
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                if (
+                    /invalid session id/i.test(message) ||
+                    /no such window/i.test(message) ||
+                    /not connected to devtools/i.test(message)
+                ) {
+                    E2ELogger.info(
+                        'workflows',
+                        `Transient window cleanup error for handle ${handles[i]}: ${message}. Continuing cleanup.`
+                    );
+                    continue;
+                }
+
+                throw error;
+            }
+        }
+
+        const finalHandles = await workflowsBrowser.getWindowHandles();
+        if (finalHandles.length > 1) {
+            throw new Error(`[E2E] Failed to close extra windows. Remaining: ${finalHandles.length}`);
+        }
+
+        if (finalHandles.length === 0) {
+            throw new Error('No window handles found after closing extra windows');
         }
 
         // Switch back to main window
-        await workflowsBrowser.switchToWindow(handles[0]);
+        await workflowsBrowser.switchToWindow(finalHandles[0]);
     }
 
     testLogger.breadcrumb('workflow', 'Single window state confirmed');

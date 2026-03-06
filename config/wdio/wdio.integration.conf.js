@@ -51,7 +51,12 @@ export const config = {
             'electron',
             {
                 appEntryPoint: electronMainPath,
-                appArgs: getAppArgs('--disable-web-security', '--integration-test'),
+                appArgs: getAppArgs(
+                    '--disable-web-security',
+                    '--integration-test',
+                    '--test-auto-update',
+                    '--remote-debugging-address=127.0.0.1'
+                ),
                 ...linuxServiceConfig,
             },
         ],

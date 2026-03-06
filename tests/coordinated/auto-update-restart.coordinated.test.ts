@@ -9,13 +9,13 @@
  * 4. electron-updater's autoUpdater.quitAndInstall() is invoked with correct args
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ipcMain } from 'electron';
+import { ipcMain, net } from 'electron';
 import { IPC_CHANNELS } from '../../src/shared/constants/ipc-channels';
 import UpdateManager from '../../src/main/managers/updateManager';
 import IpcManager from '../../src/main/managers/ipcManager';
 import BadgeManager from '../../src/main/managers/badgeManager';
 import TrayManager from '../../src/main/managers/trayManager';
-import SettingsStore from '../../src/store';
+import SettingsStore from '../../src/main/store';
 
 // Mock electron-updater
 const mockQuitAndInstall = vi.fn();
@@ -48,7 +48,7 @@ vi.mock('electron-log', () => ({
 
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { createLogger } from '../../src/main/utils/logger';
 
 // Mock Electron ipcMain
 const mockIpcMain = vi.hoisted(() => {
@@ -60,7 +60,9 @@ const mockIpcMain = vi.hoisted(() => {
         }),
         emit: vi.fn((channel, ...args) => {
             if (listeners[channel]) {
-                listeners[channel].forEach((l) => l(null, ...args));
+                listeners[channel].forEach((l) => {
+                    l(null, ...args);
+                });
                 return true;
             }
             return false;
@@ -69,7 +71,9 @@ const mockIpcMain = vi.hoisted(() => {
             if (channel) {
                 delete listeners[channel];
             } else {
-                Object.keys(listeners).forEach((key) => delete listeners[key]);
+                Object.keys(listeners).forEach((key) => {
+                    delete listeners[key];
+                });
             }
         }),
         removeListener: vi.fn(),
@@ -80,11 +84,15 @@ vi.mock('electron', () => ({
     app: {
         isPackaged: true,
         getPath: vi.fn().mockReturnValue('/tmp'),
+        getVersion: vi.fn().mockReturnValue('1.0.0'),
     },
     BrowserWindow: {
         getAllWindows: vi.fn().mockReturnValue([]),
     },
     ipcMain: mockIpcMain,
+    net: {
+        fetch: vi.fn(),
+    },
 }));
 
 describe('Auto-Update Restart Flow Coordinated Test', () => {
@@ -93,15 +101,31 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
     let trayManager: TrayManager;
     let updateManager: UpdateManager;
     let ipcManager: IpcManager;
+    let mockLogger: ReturnType<typeof createLogger>;
+    let originalArgv: string[];
+    let originalAppImage: string | undefined;
+    let originalTestAutoUpdate: string | undefined;
 
     beforeEach(async () => {
         vi.clearAllMocks();
         // Clear listeners manually since mock is reused
-        mockIpcMain.removeAllListeners();
+        mockIpcMain.removeAllListeners('auto-update:install');
+        originalArgv = [...process.argv];
+        originalAppImage = process.env.APPIMAGE;
+        originalTestAutoUpdate = process.env.TEST_AUTO_UPDATE;
+        process.env.APPIMAGE = '/tmp/app.AppImage';
+        delete process.env.TEST_AUTO_UPDATE;
+        process.argv = process.argv.filter((arg) => arg !== '--integration-test');
+        mockLogger = createLogger('[test]');
 
         // 1. Setup Mock Dependencies
         settingsStore = {
-            get: vi.fn().mockReturnValue(true),
+            get: vi.fn().mockImplementation((key: string) => {
+                if (key === 'autoUpdateEnabled') {
+                    return true;
+                }
+                return undefined;
+            }),
             set: vi.fn(),
             onDidChange: vi.fn(),
         } as any;
@@ -122,13 +146,23 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
             badgeManager,
             trayManager,
         });
+        updateManager.devMockPlatform('win32');
 
-        // IMPORTANT: Trigger lazy loading of autoUpdater so quitAndInstall works
-        // This is necessary because autoUpdater is now lazily loaded
-        await updateManager.checkForUpdates(true); // Use manual=true to bypass isPackaged check
+        process.argv = process.argv.filter((arg) => arg !== '--test-auto-update');
+        await updateManager.checkForUpdates(true);
 
         // 3. Initialize IPC Manager
-        ipcManager = new IpcManager();
+        ipcManager = new IpcManager(
+            null as any,
+            null as any,
+            updateManager,
+            null as any,
+            null as any,
+            null as any,
+            settingsStore,
+            mockLogger
+        );
+        (net.fetch as any).mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue({ tag_name: 'v1.0.0' }) });
         // Inject the updateManager (mimicking what happens in main.ts/container)
         (ipcManager as any).updateManager = updateManager;
 
@@ -143,6 +177,17 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
     });
 
     afterEach(() => {
+        process.argv = originalArgv;
+        if (originalAppImage === undefined) {
+            delete process.env.APPIMAGE;
+        } else {
+            process.env.APPIMAGE = originalAppImage;
+        }
+        if (originalTestAutoUpdate === undefined) {
+            delete process.env.TEST_AUTO_UPDATE;
+        } else {
+            process.env.TEST_AUTO_UPDATE = originalTestAutoUpdate;
+        }
         vi.restoreAllMocks();
     });
 

@@ -55,6 +55,10 @@ export class UpdateToastPage extends BasePage {
         return '[data-testid="toast-action-0"]';
     }
 
+    get downloadButtonSelector(): string {
+        return '[data-testid="toast-action-0"]';
+    }
+
     /** Later button selector (for downloaded toast) */
     get laterButtonSelector(): string {
         return '[data-testid="toast-action-1"]';
@@ -164,6 +168,20 @@ export class UpdateToastPage extends BasePage {
         await waitForUIState(async () => await this.isDisplayed(), {
             timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
             description: 'update-not-available toast appear',
+        });
+    }
+
+    async showManualAvailable(version: string): Promise<void> {
+        this.log(`Showing manual-available toast for version ${version}`);
+        await this.browser.execute((v: string) => {
+            const win = window as Window & {
+                __testUpdateToast?: { showManualAvailable: (version: string) => void };
+            };
+            win.__testUpdateToast?.showManualAvailable(v);
+        }, version);
+        await waitForUIState(async () => await this.isDisplayed(), {
+            timeout: E2E_TIMING.TIMEOUTS.UI_STATE,
+            description: 'manual-available toast appear',
         });
     }
 
@@ -332,6 +350,16 @@ export class UpdateToastPage extends BasePage {
      */
     async isLaterButtonExisting(): Promise<boolean> {
         return this.isElementExisting(this.laterButtonSelector);
+    }
+
+    async isDownloadButtonDisplayed(): Promise<boolean> {
+        if (!(await this.isElementExisting(this.downloadButtonSelector))) return false;
+        const text = await this.getElementText(this.downloadButtonSelector);
+        return /download/i.test(text);
+    }
+
+    async getDownloadButtonText(): Promise<string> {
+        return this.getElementText(this.downloadButtonSelector);
     }
 
     async isReleaseNotesPrimaryExisting(): Promise<boolean> {

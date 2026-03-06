@@ -425,8 +425,7 @@ if (!gotTheLock) {
             logger.error('Failed to initialize text prediction:', error);
         });
 
-        // Start auto-update checks (only in production)
-        if (app.isPackaged) {
+        if (app.isPackaged && !process.argv.includes('--test-auto-update') && !process.env.TEST_AUTO_UPDATE) {
             appContext.updateManager.startPeriodicChecks();
         }
 
