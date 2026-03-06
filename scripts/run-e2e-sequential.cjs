@@ -11,7 +11,7 @@ const specs = [
     'tests/e2e/quick-chat.spec.ts',
     'tests/e2e/auth.spec.ts',
     'tests/e2e/macos-dock.spec.ts',
-    'tests/e2e/window-controls.spec.ts',
+    'tests/e2e/window.spec.ts',
 ];
 
 console.log('Building app once for all tests...');
