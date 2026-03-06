@@ -195,6 +195,10 @@ export const shell = {
     openExternal: vi.fn().mockResolvedValue(undefined),
 };
 
+export const net = {
+    fetch: vi.fn(),
+};
+
 export const dialog = {
     showSaveDialog: vi.fn().mockResolvedValue({ canceled: false, filePath: '/mock/path.pdf' }),
     showErrorBox: vi.fn(),
@@ -387,6 +391,7 @@ export default {
     nativeImage,
     screen,
     shell,
+    net,
     dialog,
     contextBridge,
     globalShortcut,

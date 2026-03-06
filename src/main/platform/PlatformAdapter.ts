@@ -163,6 +163,8 @@ export interface PlatformAdapter {
      */
     shouldDisableUpdates(env: NodeJS.ProcessEnv): boolean;
 
+    supportsAutoUpdate(env?: NodeJS.ProcessEnv): boolean;
+
     /**
      * Request media permissions (microphone, camera) from the system.
      * macOS: dynamically imports and calls systemPreferences.askForMediaAccess()

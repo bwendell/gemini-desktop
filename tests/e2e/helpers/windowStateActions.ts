@@ -49,6 +49,7 @@ type ElectronBrowserWindow = {
     isFullScreen(): boolean;
     isVisible(): boolean;
     isDestroyed(): boolean;
+    minimize(): void;
     unmaximize(): void;
     restore(): void;
     show(): void;
@@ -191,13 +192,37 @@ export async function minimizeWindow(): Promise<void> {
         (window as any).electronAPI?.minimizeWindow?.();
     });
 
-    await waitForWindowTransition(
+    const minimized = await waitForWindowTransition(
         async () => {
             const state = await getWindowState({ log: false });
             return state.isMinimized;
         },
         { description: 'Window minimize' }
     );
+
+    if (minimized) {
+        return;
+    }
+
+    E2ELogger.info('windowStateActions', 'Minimize via API did not complete, using main-process fallback');
+    await wdioBrowser.electron.execute((electron) => {
+        const win = electron.BrowserWindow.getAllWindows()[0];
+        if (win && !win.isMinimized()) {
+            win.minimize();
+        }
+    });
+
+    const minimizedFallback = await waitForWindowTransition(
+        async () => {
+            const state = await getWindowState({ log: false });
+            return state.isMinimized;
+        },
+        { description: 'Window minimize (fallback)' }
+    );
+
+    if (!minimizedFallback) {
+        throw new Error('Window minimize did not complete after fallback');
+    }
 }
 
 /**

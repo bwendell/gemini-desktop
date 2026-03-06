@@ -220,6 +220,35 @@ describe('UpdateToastContext', () => {
             openSpy.mockRestore();
         });
 
+        it('shows Download button for manual-available updates without release notes', async () => {
+            let capturedCallback: ((info: { version: string }) => void) | undefined;
+            mockElectronAPI.onManualUpdateAvailable.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => {};
+            });
+
+            const openSpy = createWindowOpenSpy();
+
+            render(
+                <TestWrapper>
+                    <div>Child</div>
+                </TestWrapper>
+            );
+
+            capturedCallback?.({ version: '4.0.0' });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('toast-action-0')).toHaveTextContent('Download');
+            });
+
+            expect(screen.queryByText('View Release Notes')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByTestId('toast-action-0'));
+            expect(openSpy).toHaveBeenCalledWith(getReleaseNotesUrl('4.0.0'));
+
+            openSpy.mockRestore();
+        });
+
         it('clicking dismiss hides toast for available type', async () => {
             let capturedCallback: ((info: { version: string }) => void) | undefined;
             mockElectronAPI.onUpdateAvailable.mockImplementation((cb) => {

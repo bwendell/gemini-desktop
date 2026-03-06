@@ -25,14 +25,40 @@ import { OptionsPage } from './pages/OptionsPage';
 const optionsPage = new OptionsPage();
 
 describe('Hotkey Configuration E2E', () => {
+    type WdioBrowser = typeof browser & {
+        electron: {
+            execute<R, T extends unknown[]>(
+                fn: (electron: typeof import('electron'), ...args: T) => R,
+                ...args: T
+            ): Promise<R>;
+        };
+        waitUntil<T>(
+            condition: () => Promise<T> | T,
+            options?: {
+                timeout?: number;
+                timeoutMsg?: string;
+                interval?: number;
+            }
+        ): Promise<T>;
+        getWindowHandles(): Promise<string[]>;
+        switchToWindow(handle: string): Promise<void>;
+        $(selector: string): Promise<import('./helpers/wdio-electron').WdioElement>;
+        $$(selector: string): Promise<import('./helpers/wdio-electron').WdioElement[]>;
+        keys(keys: string | string[]): Promise<void>;
+        execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
+        pause(ms: number): Promise<void>;
+        getUrl(): Promise<string>;
+    };
+
+    const wdioBrowser = browser as WdioBrowser;
     before(async () => {
-        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
+        await wdioBrowser.waitUntil(async () => (await wdioBrowser.getWindowHandles()).length > 0);
     });
 
     beforeEach(async () => {
         // Ensure we are focused on the main window before pressing keys
-        const handles = await browser.getWindowHandles();
-        await browser.switchToWindow(handles[0]);
+        const handles = await wdioBrowser.getWindowHandles();
+        await wdioBrowser.switchToWindow(handles[0]);
 
         await openOptionsWindowViaHotkey();
         await waitForOptionsWindow();
@@ -40,7 +66,7 @@ describe('Hotkey Configuration E2E', () => {
 
     afterEach(async () => {
         // Close options window if open
-        const handles = await browser.getWindowHandles();
+        const handles = await wdioBrowser.getWindowHandles();
         if (handles.length > 1) {
             await closeOptionsWindow();
         }
@@ -53,15 +79,20 @@ describe('Hotkey Configuration E2E', () => {
     describe('viewing default hotkeys', () => {
         it('should display all three hotkeys with default accelerators', async () => {
             // Find the hotkey toggles section
-            const hotkeyToggles = await browser.$('[data-testid="individual-hotkey-toggles"]');
+            const hotkeyToggles = await wdioBrowser.$('[data-testid="individual-hotkey-toggles"]');
             await expect(hotkeyToggles).toBeDisplayed();
 
             // Should show three hotkeys
-            const hotkeyRows = await hotkeyToggles.$$('.hotkey-row');
+            const hotkeyRows = await (hotkeyToggles as unknown as import('./helpers/wdio-electron').WdioElement).$$(
+                '.hotkey-row'
+            );
             expect(hotkeyRows.length).toBe(3);
 
             // Verify Always on Top shows the default accelerator (Ctrl+Alt+P or ⌘⌥P on Mac)
-            const alwaysOnTopRow = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]').parentElement();
+            const alwaysOnTopToggle = await wdioBrowser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
+            const alwaysOnTopRow = await (
+                alwaysOnTopToggle as unknown as import('./helpers/wdio-electron').WdioElement
+            ).parentElement();
             const alwaysOnTopAccelerator = await alwaysOnTopRow.$('.keycap-container');
             const acceleratorText = await alwaysOnTopAccelerator.getText();
 
@@ -70,17 +101,19 @@ describe('Hotkey Configuration E2E', () => {
         });
 
         it('should display keycaps with proper styling', async () => {
-            const keycaps = await browser.$$('kbd.keycap');
+            const keycaps = await wdioBrowser.$$('kbd.keycap');
             expect(keycaps.length).toBeGreaterThan(0);
 
             // Verify first keycap has proper styling
             const firstKeycap = keycaps[0];
-            const backgroundColor = await firstKeycap.getCSSProperty('background');
+            const backgroundColor = await (
+                firstKeycap as unknown as import('./helpers/wdio-electron').WdioElement
+            ).getCSSProperty('background');
             expect(backgroundColor.value).toContain('gradient');
         });
 
         it('should show key separators between keycaps', async () => {
-            const separators = await browser.$$('.key-separator');
+            const separators = await wdioBrowser.$$('.key-separator');
             expect(separators.length).toBeGreaterThan(0);
 
             const firstSeparator = separators[0];
@@ -99,40 +132,42 @@ describe('Hotkey Configuration E2E', () => {
             await optionsPage.clickAcceleratorInput('alwaysOnTop');
 
             // Should show recording prompt - verify with Page Object method
-            await browser.waitUntil(async () => await optionsPage.isRecordingModeActive('alwaysOnTop'), {
+            await wdioBrowser.waitUntil(async () => await optionsPage.isRecordingModeActive('alwaysOnTop'), {
                 timeout: 2000,
                 timeoutMsg: 'Recording mode did not activate',
             });
 
             // Verify prompt text
-            const prompt = await browser.$(optionsPage.recordingPromptSelector('alwaysOnTop'));
+            const prompt = await wdioBrowser.$(optionsPage.recordingPromptSelector('alwaysOnTop'));
             const promptText = await prompt.getText();
             expect(promptText).toContain('Press keys');
         });
 
         it('should display animated recording dot', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
 
-            const recordingDot = await browser.$('.recording-dot');
+            const recordingDot = await wdioBrowser.$('.recording-dot');
             await expect(recordingDot).toBeDisplayed();
 
             // Verify animation
-            const animation = await recordingDot.getCSSProperty('animation-name');
+            const animation = await (
+                recordingDot as unknown as import('./helpers/wdio-electron').WdioElement
+            ).getCSSProperty('animation-name');
             expect(animation.value).toBe('dot-pulse');
         });
 
         it('should capture and display new shortcut', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
 
             // Send key combination (Ctrl+Shift+F)
-            await browser.keys(['Control', 'Shift', 'f']);
+            await wdioBrowser.keys(['Control', 'Shift', 'f']);
 
             // Wait for recording to complete - recording prompt should disappear
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -141,7 +176,7 @@ describe('Hotkey Configuration E2E', () => {
             );
 
             // Should no longer be in recording mode
-            const recordingPrompt = await browser.$('.recording-prompt');
+            const recordingPrompt = await wdioBrowser.$('.recording-prompt');
             await expect(recordingPrompt).not.toBeDisplayed();
 
             // Should show new keycaps
@@ -149,36 +184,35 @@ describe('Hotkey Configuration E2E', () => {
             expect(keycaps.length).toBe(3); // Ctrl, Shift, F
 
             // Verify IPC call was made
-            const newAccelerator = await browser.electron.execute((_electron) => {
-                // @ts-expect-error
-                return global.hotkeyManager.getAccelerator('alwaysOnTop');
+            const newAccelerator = await wdioBrowser.electron.execute((_electron: typeof import('electron')) => {
+                return (global as { appContext?: any }).appContext?.hotkeyManager?.getAccelerator('alwaysOnTop');
             });
 
             expect(newAccelerator).toMatch(/CommandOrControl\+Shift\+F/);
         });
 
         it('should cancel recording on Escape key', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             const originalText = await acceleratorDisplay.getText();
 
             await acceleratorDisplay.click();
 
             // Wait for recording mode
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    const prompt = await browser.$('.recording-prompt');
+                    const prompt = await wdioBrowser.$('.recording-prompt');
                     return await prompt.isDisplayed();
                 },
                 { timeout: 2000 }
             );
 
             // Press Escape
-            await browser.keys('Escape');
+            await wdioBrowser.keys('Escape');
 
             // Wait for recording mode to exit
             await waitForUIState(
                 async () => {
-                    const prompt = await browser.$('.recording-prompt');
+                    const prompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await prompt.isExisting();
                     if (!exists) return true;
                     return !(await prompt.isDisplayed());
@@ -187,7 +221,7 @@ describe('Hotkey Configuration E2E', () => {
             );
 
             // Should exit recording mode
-            const recordingPrompt = await browser.$('.recording-prompt');
+            const recordingPrompt = await wdioBrowser.$('.recording-prompt');
             await expect(recordingPrompt).not.toBeDisplayed();
 
             // Should still show original accelerator
@@ -196,35 +230,35 @@ describe('Hotkey Configuration E2E', () => {
         });
 
         it('should not allow shortcuts without modifiers', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
 
             // Try to press just a letter key
-            await browser.keys('a');
+            await wdioBrowser.keys('a');
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     return await recordingPrompt.isDisplayed();
                 },
                 { description: 'Recording prompt still visible after invalid key', timeout: 1000 }
             );
 
             // Should still be in recording mode
-            const recordingPrompt = await browser.$('.recording-prompt');
+            const recordingPrompt = await wdioBrowser.$('.recording-prompt');
             await expect(recordingPrompt).toBeDisplayed();
         });
 
         it('should handle complex key combinations', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
 
             // Send Ctrl+Alt+Shift+P
-            await browser.keys(['Control', 'Alt', 'Shift', 'p']);
+            await wdioBrowser.keys(['Control', 'Alt', 'Shift', 'p']);
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -246,11 +280,11 @@ describe('Hotkey Configuration E2E', () => {
         it('should show reset button when accelerator differs from default', async () => {
             // Change the accelerator first using Page Object
             await optionsPage.clickAcceleratorInput('alwaysOnTop');
-            await browser.keys(['Control', 'Shift', 'q']);
+            await wdioBrowser.keys(['Control', 'Shift', 'q']);
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -275,11 +309,11 @@ describe('Hotkey Configuration E2E', () => {
 
             // Change the accelerator using Page Object
             await optionsPage.clickAcceleratorInput('alwaysOnTop');
-            await browser.keys(['Control', 'Shift', 'z']);
+            await wdioBrowser.keys(['Control', 'Shift', 'z']);
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -311,12 +345,12 @@ describe('Hotkey Configuration E2E', () => {
     describe('enabling and disabling hotkeys', () => {
         it('should disable accelerator input when hotkey is disabled', async () => {
             // Find the toggle switch
-            const toggle = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
+            const toggle = await wdioBrowser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
             await toggle.click();
 
             await waitForUIState(
                 async () => {
-                    const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+                    const hotkeyInput = await wdioBrowser.$('.hotkey-accelerator-input');
                     const className = await hotkeyInput.getAttribute('class');
                     return className?.includes('disabled') ?? false;
                 },
@@ -324,19 +358,19 @@ describe('Hotkey Configuration E2E', () => {
             );
 
             // Accelerator input should be disabled
-            const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+            const hotkeyInput = await wdioBrowser.$('.hotkey-accelerator-input');
             const hasDisabledClass = await hotkeyInput.getAttribute('class');
             expect(hasDisabledClass).toContain('disabled');
         });
 
         it('should prevent recording when disabled', async () => {
             // Disable the hotkey
-            const toggle = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
+            const toggle = await wdioBrowser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
             await toggle.click();
 
             await waitForUIState(
                 async () => {
-                    const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+                    const hotkeyInput = await wdioBrowser.$('.hotkey-accelerator-input');
                     const className = await hotkeyInput.getAttribute('class');
                     return className?.includes('disabled') ?? false;
                 },
@@ -344,12 +378,12 @@ describe('Hotkey Configuration E2E', () => {
             );
 
             // Try to click accelerator display
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -358,7 +392,7 @@ describe('Hotkey Configuration E2E', () => {
             );
 
             // Should not enter recording mode
-            const recordingPrompt = await browser.$('.recording-prompt');
+            const recordingPrompt = await wdioBrowser.$('.recording-prompt');
             const exists = await recordingPrompt.isExisting();
             if (exists) {
                 const isDisplayed = await recordingPrompt.isDisplayed();
@@ -368,13 +402,13 @@ describe('Hotkey Configuration E2E', () => {
 
         it('should preserve custom accelerator when toggling enabled state', async () => {
             // Set custom accelerator
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
-            await browser.keys(['Control', 'Alt', 'w']);
+            await wdioBrowser.keys(['Control', 'Alt', 'w']);
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -383,12 +417,12 @@ describe('Hotkey Configuration E2E', () => {
             );
 
             // Disable hotkey
-            const toggle = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
+            const toggle = await wdioBrowser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
             await toggle.click();
 
             await waitForUIState(
                 async () => {
-                    const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+                    const hotkeyInput = await wdioBrowser.$('.hotkey-accelerator-input');
                     const className = await hotkeyInput.getAttribute('class');
                     return className?.includes('disabled') ?? false;
                 },
@@ -400,7 +434,7 @@ describe('Hotkey Configuration E2E', () => {
 
             await waitForUIState(
                 async () => {
-                    const hotkeyInput = await browser.$('.hotkey-accelerator-input');
+                    const hotkeyInput = await wdioBrowser.$('.hotkey-accelerator-input');
                     const className = await hotkeyInput.getAttribute('class');
                     return !className?.includes('disabled');
                 },
@@ -408,9 +442,8 @@ describe('Hotkey Configuration E2E', () => {
             );
 
             // Should still have custom accelerator
-            const currentAccelerator = await browser.electron.execute((_electron) => {
-                // @ts-expect-error
-                return global.hotkeyManager.getAccelerator('alwaysOnTop');
+            const currentAccelerator = await wdioBrowser.electron.execute((_electron: typeof import('electron')) => {
+                return (global as { appContext?: any }).appContext?.hotkeyManager?.getAccelerator('alwaysOnTop');
             });
 
             expect(currentAccelerator).toMatch(/CommandOrControl\+Alt\+W/);
@@ -424,13 +457,13 @@ describe('Hotkey Configuration E2E', () => {
     describe('cross-window persistence', () => {
         it('should persist accelerator changes across window close/reopen', async () => {
             // Change accelerator
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
-            await browser.keys(['Control', 'Alt', 'r']);
+            await wdioBrowser.keys(['Control', 'Alt', 'r']);
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -444,27 +477,27 @@ describe('Hotkey Configuration E2E', () => {
 
             // Reopen options using shortcut
             // Ensure we are focused on the main window
-            const mainHandles = await browser.getWindowHandles();
-            await browser.switchToWindow(mainHandles[0]);
+            const mainHandles = await wdioBrowser.getWindowHandles();
+            await wdioBrowser.switchToWindow(mainHandles[0]);
 
             await openOptionsWindowViaHotkey();
             await waitForOptionsWindow();
 
             // Verify accelerator is persisted
-            const acceleratorDisplayAfter = await browser.$('.keycap-container');
+            const acceleratorDisplayAfter = await wdioBrowser.$('.keycap-container');
             const text = await acceleratorDisplayAfter.getText();
             expect(text).toMatch(/(Ctrl|⌘).*(Alt|⌥).*R/);
         });
 
         it('should sync changes to main process', async () => {
             // Change accelerator in UI
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
-            await browser.keys(['Control', 'Shift', 'n']);
+            await wdioBrowser.keys(['Control', 'Shift', 'n']);
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -473,10 +506,11 @@ describe('Hotkey Configuration E2E', () => {
             );
 
             // Verify in main process
-            const mainProcessAccelerator = await browser.electron.execute((_electron) => {
-                // @ts-expect-error
-                return global.hotkeyManager.getAccelerator('alwaysOnTop');
-            });
+            const mainProcessAccelerator = await wdioBrowser.electron.execute(
+                (_electron: typeof import('electron')) => {
+                    return (global as { appContext?: any }).appContext?.hotkeyManager?.getAccelerator('alwaysOnTop');
+                }
+            );
 
             expect(mainProcessAccelerator).toMatch(/CommandOrControl\+Shift\+N/);
         });
@@ -488,7 +522,7 @@ describe('Hotkey Configuration E2E', () => {
 
     describe('visual feedback', () => {
         it('should apply recording class with animation during recording', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
 
             // Container should have recording class
@@ -496,28 +530,34 @@ describe('Hotkey Configuration E2E', () => {
             expect(className).toContain('recording');
 
             // Should have pulse animation
-            const animation = await acceleratorDisplay.getCSSProperty('animation-name');
+            const animation = await (
+                acceleratorDisplay as unknown as import('./helpers/wdio-electron').WdioElement
+            ).getCSSProperty('animation-name');
             expect(animation.value).toBe('container-pulse');
         });
 
         it('should show hover effects on non-recording state', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
 
             // Hover over element
-            await acceleratorDisplay.moveTo();
+            await (acceleratorDisplay as unknown as import('./helpers/wdio-electron').WdioElement).moveTo();
 
             await waitForAnimationSettle('.keycap-container', { property: 'border-color' });
 
             // Border color should change (indicated by transition)
-            const transition = await acceleratorDisplay.getCSSProperty('transition');
+            const transition = await (
+                acceleratorDisplay as unknown as import('./helpers/wdio-electron').WdioElement
+            ).getCSSProperty('transition');
             expect(transition.value).toContain('all');
         });
 
         it('should display keycap 3D effect with shadows', async () => {
-            const keycaps = await browser.$$('kbd.keycap');
+            const keycaps = await wdioBrowser.$$('kbd.keycap');
             const firstKeycap = keycaps[0];
 
-            const boxShadow = await firstKeycap.getCSSProperty('box-shadow');
+            const boxShadow = await (
+                firstKeycap as unknown as import('./helpers/wdio-electron').WdioElement
+            ).getCSSProperty('box-shadow');
             expect(boxShadow.value).toBeTruthy();
         });
     });
@@ -528,7 +568,7 @@ describe('Hotkey Configuration E2E', () => {
 
     describe('accessibility', () => {
         it('should have proper ARIA labels', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             const ariaLabel = await acceleratorDisplay.getAttribute('aria-label');
 
             expect(ariaLabel).toContain('Keyboard shortcut');
@@ -537,13 +577,13 @@ describe('Hotkey Configuration E2E', () => {
 
         it('should be keyboard navigable', async () => {
             // Tab to first hotkey accelerator
-            await browser.keys('Tab');
-            await browser.keys('Tab');
-            await browser.keys('Tab');
+            await wdioBrowser.keys('Tab');
+            await wdioBrowser.keys('Tab');
+            await wdioBrowser.keys('Tab');
 
             // Should focus on accelerator display
-            const acceleratorDisplay = await browser.$('.keycap-container');
-            const isFocused = await browser.execute((el) => {
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
+            const isFocused = await wdioBrowser.execute((el) => {
                 return document.activeElement === el;
             }, acceleratorDisplay);
 
@@ -551,26 +591,26 @@ describe('Hotkey Configuration E2E', () => {
         });
 
         it('should have proper tabindex when enabled', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             const tabindex = await acceleratorDisplay.getAttribute('tabindex');
             expect(tabindex).toBe('0');
         });
 
         it('should have negative tabindex when disabled', async () => {
             // Disable hotkey
-            const toggle = await browser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
+            const toggle = await wdioBrowser.$('[data-testid="hotkey-toggle-alwaysOnTop"]');
             await toggle.click();
 
             await waitForUIState(
                 async () => {
-                    const acceleratorDisplay = await browser.$('.keycap-container');
+                    const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
                     const tabindex = await acceleratorDisplay.getAttribute('tabindex');
                     return tabindex === '-1';
                 },
                 { description: 'Tabindex to become -1 when disabled' }
             );
 
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             const tabindex = await acceleratorDisplay.getAttribute('tabindex');
             expect(tabindex).toBe('-1');
         });
@@ -582,37 +622,37 @@ describe('Hotkey Configuration E2E', () => {
 
     describe('error handling', () => {
         it('should handle invalid shortcuts gracefully', async () => {
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
 
             // Try modifier-only (should stay in recording)
-            await browser.keys('Control');
+            await wdioBrowser.keys('Control');
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     return await recordingPrompt.isDisplayed();
                 },
                 { description: 'Recording prompt still visible after modifier-only key', timeout: 1000 }
             );
 
-            const recordingPrompt = await browser.$('.recording-prompt');
+            const recordingPrompt = await wdioBrowser.$('.recording-prompt');
             await expect(recordingPrompt).toBeDisplayed();
         });
 
         it('should maintain UI state on IPC errors', async () => {
             // This would require mocking IPC failures
             // For now, verify current state is maintained
-            const initialText = await browser.$('.keycap-container').getText();
+            const initialText = await (await wdioBrowser.$('.keycap-container')).getText();
 
             // Try to record and cancel
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             await acceleratorDisplay.click();
-            await browser.keys('Escape');
+            await wdioBrowser.keys('Escape');
 
             await waitForUIState(
                 async () => {
-                    const recordingPrompt = await browser.$('.recording-prompt');
+                    const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                     const exists = await recordingPrompt.isExisting();
                     if (!exists) return true;
                     return !(await recordingPrompt.isDisplayed());
@@ -620,7 +660,7 @@ describe('Hotkey Configuration E2E', () => {
                 { description: 'Recording cancelled on Escape' }
             );
 
-            const currentText = await browser.$('.keycap-container').getText();
+            const currentText = await (await wdioBrowser.$('.keycap-container')).getText();
             expect(currentText).toBe(initialText);
         });
     });
@@ -631,19 +671,21 @@ describe('Hotkey Configuration E2E', () => {
 
     describe('multiple hotkeys configuration', () => {
         it('should allow configuring all three hotkeys independently', async () => {
-            const hotkeyRows = await browser.$$('.hotkey-row');
+            const hotkeyRows = await wdioBrowser.$$('.hotkey-row');
             expect(hotkeyRows.length).toBe(3);
 
             // Configure each hotkey with different combination
             const rowCount = hotkeyRows.length;
             for (let i = 0; i < rowCount; i++) {
-                const acceleratorDisplay = await hotkeyRows[i].$('.keycap-container');
+                const acceleratorDisplay = await (
+                    hotkeyRows[i] as unknown as import('./helpers/wdio-electron').WdioElement
+                ).$('.keycap-container');
                 await acceleratorDisplay.click();
-                await browser.keys(['Control', 'Alt', `${i + 1}`]);
+                await wdioBrowser.keys(['Control', 'Alt', `${i + 1}`]);
 
                 await waitForUIState(
                     async () => {
-                        const recordingPrompt = await browser.$('.recording-prompt');
+                        const recordingPrompt = await wdioBrowser.$('.recording-prompt');
                         const exists = await recordingPrompt.isExisting();
                         if (!exists) return true;
                         return !(await recordingPrompt.isDisplayed());
@@ -653,9 +695,8 @@ describe('Hotkey Configuration E2E', () => {
             }
 
             // Verify all three have different accelerators
-            const accelerators = await browser.electron.execute((_electron) => {
-                // @ts-expect-error
-                return global.hotkeyManager.getAccelerators();
+            const accelerators = await wdioBrowser.electron.execute((_electron: typeof import('electron')) => {
+                return (global as { appContext?: any }).appContext?.hotkeyManager?.getAccelerators();
             });
 
             expect(accelerators.alwaysOnTop).toMatch(/CommandOrControl\+Alt\+1/);
@@ -667,9 +708,8 @@ describe('Hotkey Configuration E2E', () => {
             // This behavior would depend on implementation
             // If we validate for duplicates, test here
             // For now, just verify each can be set independently
-            const accelerators = await browser.electron.execute((_electron) => {
-                // @ts-expect-error
-                return global.hotkeyManager.getAccelerators();
+            const accelerators = await wdioBrowser.electron.execute((_electron: typeof import('electron')) => {
+                return (global as { appContext?: any }).appContext?.hotkeyManager?.getAccelerators();
             });
 
             // All three should have distinct values
@@ -685,11 +725,11 @@ describe('Hotkey Configuration E2E', () => {
 
     describe('cross-platform display', () => {
         it('should display correct symbols/text based on platform', async () => {
-            const platform = await browser.execute(() => {
+            const platform = await wdioBrowser.execute(() => {
                 return (window as any).electronAPI.platform;
             });
 
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             const keycaps = await acceleratorDisplay.$$('kbd.keycap');
 
             // Get the text of the first keycap (should be Ctrl or ⌘)
@@ -705,12 +745,12 @@ describe('Hotkey Configuration E2E', () => {
         });
 
         it('should format CommandOrControl correctly for each platform', async () => {
-            const platform = await browser.execute(() => {
+            const platform = await wdioBrowser.execute(() => {
                 return (window as any).electronAPI.platform;
             });
 
             // Get the first hotkey accelerator (should contain CommandOrControl)
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             const keycaps = await acceleratorDisplay.$$('kbd.keycap');
             const firstKeycapText = await keycaps[0].getText();
 
@@ -724,12 +764,12 @@ describe('Hotkey Configuration E2E', () => {
         });
 
         it('should format Alt key correctly for each platform', async () => {
-            const platform = await browser.execute(() => {
+            const platform = await wdioBrowser.execute(() => {
                 return (window as any).electronAPI.platform;
             });
 
             // Get the Always on Top hotkey which has Alt (default: CommandOrControl+Alt+P)
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             const keycaps = await acceleratorDisplay.$$('kbd.keycap');
 
             // Second keycap should be Alt
@@ -746,11 +786,11 @@ describe('Hotkey Configuration E2E', () => {
         });
 
         it('should apply correct CSS classes for platform-specific styling', async () => {
-            const platform = await browser.execute(() => {
+            const platform = await wdioBrowser.execute(() => {
                 return (window as any).electronAPI.platform;
             });
 
-            const acceleratorDisplay = await browser.$('.keycap-container');
+            const acceleratorDisplay = await wdioBrowser.$('.keycap-container');
             const keycaps = await acceleratorDisplay.$$('kbd.keycap');
             const firstKeycap = keycaps[0];
 
@@ -767,7 +807,7 @@ describe('Hotkey Configuration E2E', () => {
 
         it('should maintain platform consistency across window reopens', async () => {
             // Get initial platform
-            const initialPlatform = await browser.execute(() => {
+            const initialPlatform = await wdioBrowser.execute(() => {
                 return (window as any).electronAPI.platform;
             });
 
@@ -775,7 +815,7 @@ describe('Hotkey Configuration E2E', () => {
             await closeOptionsWindow();
             await waitForWindowCount(1);
 
-            await browser.execute(async () => {
+            await wdioBrowser.execute(async () => {
                 const api = (window as any).electronAPI;
                 await api.openOptionsWindow();
             });
@@ -784,16 +824,16 @@ describe('Hotkey Configuration E2E', () => {
             // Switch to options window
             await switchToOptionsWindow();
 
-            await browser.waitUntil(
+            await wdioBrowser.waitUntil(
                 async () => {
-                    const content = await browser.$('#options-content');
+                    const content = await wdioBrowser.$('#options-content');
                     return await content.isExisting();
                 },
                 { timeout: 5000 }
             );
 
             // Verify platform hasn't changed
-            const reopenedPlatform = await browser.execute(() => {
+            const reopenedPlatform = await wdioBrowser.execute(() => {
                 return (window as any).electronAPI.platform;
             });
 
@@ -801,11 +841,11 @@ describe('Hotkey Configuration E2E', () => {
         });
 
         it('should render all three hotkeys with platform-appropriate format', async () => {
-            const platform = await browser.execute(() => {
+            const platform = await wdioBrowser.execute(() => {
                 return (window as any).electronAPI.platform;
             });
 
-            const hotkeyRows = await browser.$$('.hotkey-row');
+            const hotkeyRows = await wdioBrowser.$$('.hotkey-row');
             expect(hotkeyRows.length).toBe(3);
 
             // Check each hotkey row

@@ -117,6 +117,39 @@ describe('useUpdateNotifications', () => {
         });
     });
 
+    describe('manual-update-available event', () => {
+        it('sets notification state when manual update is available', async () => {
+            let capturedCallback: ((info: { version: string }) => void) | undefined;
+            mockElectronAPI.onManualUpdateAvailable.mockImplementation((cb) => {
+                capturedCallback = cb;
+                return () => {};
+            });
+
+            const { result } = renderHook(() => useUpdateNotifications());
+
+            act(() => {
+                capturedCallback?.({ version: '3.0.0' });
+            });
+
+            await waitFor(() => {
+                expect(result.current.type).toBe('manual-available');
+                expect(result.current.updateInfo?.version).toBe('3.0.0');
+                expect(result.current.visible).toBe(true);
+                expect(result.current.hasPendingUpdate).toBe(false);
+            });
+        });
+
+        it('cleans up manual update subscription on unmount', () => {
+            const cleanup = vi.fn();
+            mockElectronAPI.onManualUpdateAvailable.mockReturnValue(cleanup);
+
+            const { unmount } = renderHook(() => useUpdateNotifications());
+            unmount();
+
+            expect(cleanup).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('update downloaded event', () => {
         it('sets notification state with pending flag when downloaded', async () => {
             let capturedCallback: ((info: { version: string }) => void) | undefined;

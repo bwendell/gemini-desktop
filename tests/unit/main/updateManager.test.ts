@@ -10,6 +10,7 @@ import { useFakeTimers, useRealTimers } from '../../helpers/harness';
 vi.mock('electron', () => ({
     app: {
         isPackaged: true,
+        getVersion: vi.fn().mockReturnValue('0.9.1'),
     },
     BrowserWindow: {
         getAllWindows: vi.fn(),
@@ -20,6 +21,8 @@ vi.mock('electron-updater', () => ({
     autoUpdater: {
         autoDownload: false,
         autoInstallOnAppQuit: false,
+        channel: null,
+        allowDowngrade: false,
         logger: null,
         checkForUpdatesAndNotify: vi.fn(),
         quitAndInstall: vi.fn(),
@@ -68,6 +71,7 @@ describe('UpdateManager', () => {
     let mockSettingsStore: SettingsStore<any>;
     let mockWindows: any[];
     let originalPlatform: PropertyDescriptor | undefined;
+    let originalArch: PropertyDescriptor | undefined;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -76,10 +80,13 @@ describe('UpdateManager', () => {
         // Mock platform to win32 to avoid Linux-specific update disabling in CI
         originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
         Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+        originalArch = Object.getOwnPropertyDescriptor(process, 'arch');
+        Object.defineProperty(process, 'arch', { value: 'x64', configurable: true });
 
         mockGetPlatformAdapter.mockReset();
         mockGetPlatformAdapter.mockReturnValue({
             shouldDisableUpdates: vi.fn().mockReturnValue(false),
+            supportsAutoUpdate: vi.fn().mockReturnValue(true),
         });
 
         // Setup mock settings
@@ -108,6 +115,9 @@ describe('UpdateManager', () => {
         // Restore original platform
         if (originalPlatform) {
             Object.defineProperty(process, 'platform', originalPlatform);
+        }
+        if (originalArch) {
+            Object.defineProperty(process, 'arch', originalArch);
         }
     });
 
@@ -181,6 +191,27 @@ describe('UpdateManager', () => {
         expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
     });
 
+    it('uses the x64 update channel on Windows', async () => {
+        (app as any).isPackaged = true;
+        updateManager = new UpdateManager(mockSettingsStore);
+
+        await updateManager.checkForUpdates();
+
+        expect(autoUpdater.channel).toBe('x64');
+        expect(autoUpdater.allowDowngrade).toBe(false);
+    });
+
+    it('uses the arm64 update channel on Windows arm64', async () => {
+        Object.defineProperty(process, 'arch', { value: 'arm64', configurable: true });
+        (app as any).isPackaged = true;
+        updateManager = new UpdateManager(mockSettingsStore);
+
+        await updateManager.checkForUpdates();
+
+        expect(autoUpdater.channel).toBe('arm64');
+        expect(autoUpdater.allowDowngrade).toBe(false);
+    });
+
     it('broadcasts updates to windows', async () => {
         (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettingsStore);
@@ -207,6 +238,7 @@ describe('UpdateManager', () => {
 
             mockGetPlatformAdapter.mockReturnValue({
                 shouldDisableUpdates: vi.fn().mockReturnValue(true),
+                supportsAutoUpdate: vi.fn().mockReturnValue(true),
             });
 
             updateManager = new UpdateManager(mockSettingsStore);
@@ -226,6 +258,7 @@ describe('UpdateManager', () => {
 
         mockGetPlatformAdapter.mockReturnValue({
             shouldDisableUpdates: vi.fn().mockReturnValue(false),
+            supportsAutoUpdate: vi.fn().mockReturnValue(true),
         });
 
         updateManager = new UpdateManager(mockSettingsStore);
@@ -243,6 +276,7 @@ describe('UpdateManager', () => {
 
         mockGetPlatformAdapter.mockReturnValue({
             shouldDisableUpdates: vi.fn().mockReturnValue(false),
+            supportsAutoUpdate: vi.fn().mockReturnValue(true),
         });
 
         updateManager = new UpdateManager(mockSettingsStore);
@@ -265,6 +299,7 @@ describe('UpdateManager', () => {
 
         mockGetPlatformAdapter.mockReturnValue({
             shouldDisableUpdates: vi.fn().mockReturnValue(true),
+            supportsAutoUpdate: vi.fn().mockReturnValue(true),
         });
 
         updateManager = new UpdateManager(mockSettingsStore);
@@ -285,6 +320,7 @@ describe('UpdateManager', () => {
 
         mockGetPlatformAdapter.mockReturnValue({
             shouldDisableUpdates: vi.fn().mockReturnValue(true),
+            supportsAutoUpdate: vi.fn().mockReturnValue(true),
         });
 
         updateManager = new UpdateManager(mockSettingsStore);
@@ -307,7 +343,7 @@ describe('UpdateManager', () => {
             expect(updateManager.isEnabled()).toBe(true);
 
             updateManager.devMockPlatform('linux');
-            expect(updateManager.isEnabled()).toBe(false);
+            expect(updateManager.isEnabled()).toBe(true);
         } finally {
             process.env.VITEST = originalVitest;
         }
@@ -822,6 +858,7 @@ describe('UpdateManager', () => {
 
                 mockGetPlatformAdapter.mockReturnValue({
                     shouldDisableUpdates: vi.fn().mockReturnValue(true),
+                    supportsAutoUpdate: vi.fn().mockReturnValue(true),
                 });
 
                 updateManager = new UpdateManager(mockSettingsStore);

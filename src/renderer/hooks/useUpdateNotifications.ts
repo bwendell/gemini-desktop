@@ -17,7 +17,7 @@ import { isDevMode } from '../utils/platform';
  */
 export interface UpdateNotificationState {
     /** Type of notification currently showing */
-    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | null;
+    type: 'available' | 'downloaded' | 'error' | 'not-available' | 'progress' | 'manual-available' | null;
     /** Update information from electron-updater */
     updateInfo: UpdateInfo | null;
     /** Error message if type is 'error' */
@@ -112,6 +112,17 @@ export function useUpdateNotifications() {
             });
         });
 
+        const cleanupManualAvailable = window.electronAPI.onManualUpdateAvailable?.((info) => {
+            setState({
+                type: 'manual-available',
+                updateInfo: info,
+                errorMessage: null,
+                visible: true,
+                hasPendingUpdate: false,
+                downloadProgress: null,
+            });
+        });
+
         // Update downloaded - show action toast
         const cleanupDownloaded = window.electronAPI.onUpdateDownloaded((info) => {
             setState({
@@ -161,6 +172,7 @@ export function useUpdateNotifications() {
         // Cleanup subscriptions on unmount
         return () => {
             cleanupAvailable?.();
+            cleanupManualAvailable?.();
             cleanupDownloaded?.();
             cleanupError?.();
             cleanupNotAvailable?.();
@@ -207,6 +219,17 @@ export function useUpdateNotifications() {
                     });
                     // Also trigger native badge in main process
                     window.electronAPI?.devShowBadge(version);
+                },
+                /* v8 ignore next 8 */
+                showManualAvailable: (version = '2.0.0') => {
+                    setState({
+                        type: 'manual-available',
+                        updateInfo: { version },
+                        errorMessage: null,
+                        visible: true,
+                        hasPendingUpdate: false,
+                        downloadProgress: null,
+                    });
                 },
                 /* v8 ignore next 8 */
                 showError: (message = 'Test error message') => {

@@ -1,0 +1,34 @@
+import type WindowManager from './managers/windowManager';
+import type HotkeyManager from './managers/hotkeyManager';
+import type IpcManager from './managers/ipcManager';
+import type TrayManager from './managers/trayManager';
+import type UpdateManager from './managers/updateManager';
+import type BadgeManager from './managers/badgeManager';
+import type LlmManager from './managers/llmManager';
+import type NotificationManager from './managers/notificationManager';
+import type ExportManager from './managers/exportManager';
+import type MenuManager from './managers/menuManager';
+
+export interface CoreManagers {
+    readonly windowManager: WindowManager;
+    readonly hotkeyManager: HotkeyManager;
+    readonly trayManager: TrayManager;
+    readonly badgeManager: BadgeManager;
+    readonly updateManager: UpdateManager;
+    readonly llmManager: LlmManager;
+    readonly exportManager: ExportManager;
+    readonly ipcManager: IpcManager;
+}
+
+export interface ReadyManagers {
+    readonly menuManager: MenuManager | null;
+    readonly notificationManager: NotificationManager | null;
+}
+
+export interface ApplicationContext extends CoreManagers, ReadyManagers {}
+
+export interface E2EGlobals {
+    appContext?: ApplicationContext;
+    __e2eGeminiReadyBuffer?: { enabled: boolean; pending: unknown[] };
+    __e2eQuickChatHandler?: unknown;
+}

@@ -89,6 +89,10 @@ export class WindowsAdapter implements PlatformAdapter {
         return !!env.PORTABLE_EXECUTABLE_DIR;
     }
 
+    supportsAutoUpdate(env: NodeJS.ProcessEnv = process.env): boolean {
+        return !env.PORTABLE_EXECUTABLE_DIR;
+    }
+
     async requestMediaPermissions(_logger: Logger): Promise<void> {
         return;
     }

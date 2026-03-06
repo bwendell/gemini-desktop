@@ -30,7 +30,7 @@ export interface HotkeyDefinition {
 }
 
 type WdioBrowser = {
-    execute<T>(script: (...args: unknown[]) => T, ...args: unknown[]): Promise<T>;
+    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
     waitUntil<T>(
         condition: () => Promise<T> | T,
         options?: { timeout?: number; timeoutMsg?: string; interval?: number }
@@ -136,13 +136,13 @@ export async function isHotkeyRegistered(accelerator: string): Promise<boolean> 
 export async function waitForHotkeyRegistered(
     hotkeyId: keyof typeof REGISTERED_HOTKEYS,
     options: { timeout?: number; interval?: number } = {}
-): Promise<void> {
+): Promise<boolean> {
     const timeout = options.timeout ?? 10000;
     const interval = options.interval ?? 250;
     const accelerator = REGISTERED_HOTKEYS[hotkeyId].accelerator;
     const internalId = HOTKEY_ID_MAP[hotkeyId];
 
-    await wdioBrowser.waitUntil(
+    return wdioBrowser.waitUntil(
         async () => {
             const status = await getPlatformHotkeyStatus();
             if (status?.waylandStatus?.isWayland) {
@@ -475,8 +475,7 @@ export async function getWaylandStatusForSkipping(): Promise<{
     desktopEnvironment: string;
 }> {
     const status = await wdioBrowser.electron.execute(() => {
-        // @ts-expect-error - accessing global manager
-        return global.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
+        return (global as { appContext?: any }).appContext?.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
     });
 
     const isLinux = await wdioBrowser.electron.execute(() => process.platform === 'linux');

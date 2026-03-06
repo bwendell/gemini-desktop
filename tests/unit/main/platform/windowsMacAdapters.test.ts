@@ -363,6 +363,18 @@ describe('WindowsAdapter', () => {
         });
     });
 
+    describe('supportsAutoUpdate()', () => {
+        it('should return false when PORTABLE_EXECUTABLE_DIR is set', () => {
+            const env = { PORTABLE_EXECUTABLE_DIR: '/path/to/portable' } as NodeJS.ProcessEnv;
+            expect(adapter.supportsAutoUpdate(env)).toBe(false);
+        });
+
+        it('should return true when PORTABLE_EXECUTABLE_DIR is not set', () => {
+            const env = {} as NodeJS.ProcessEnv;
+            expect(adapter.supportsAutoUpdate(env)).toBe(true);
+        });
+    });
+
     describe('requestMediaPermissions()', () => {
         it('should be a no-op on Windows (not throw)', async () => {
             const logger = createMockLogger();
@@ -465,10 +477,16 @@ describe('MacAdapter', () => {
     });
 
     describe('shouldDisableUpdates()', () => {
-        it('should return false on macOS', () => {
+        it('should return true on macOS', () => {
             const env = { APPIMAGE: '', PORTABLE_EXECUTABLE_DIR: 'C:\\Portable' } as NodeJS.ProcessEnv;
 
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
+        });
+    });
+
+    describe('supportsAutoUpdate()', () => {
+        it('should return false on macOS', () => {
+            expect(adapter.supportsAutoUpdate({} as NodeJS.ProcessEnv)).toBe(false);
         });
     });
 
@@ -670,14 +688,14 @@ describe('MacAdapter', () => {
     });
 
     describe('shouldDisableUpdates()', () => {
-        it('should return false (macOS updates not disabled by default)', () => {
+        it('should return true (macOS updates disabled by default)', () => {
             const env = {};
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
 
-        it('should return false even with env vars set', () => {
+        it('should return true even with env vars set', () => {
             const env = { APPIMAGE: '/path/to/appimage', PORTABLE_EXECUTABLE_DIR: '/path/to/portable' };
-            expect(adapter.shouldDisableUpdates(env)).toBe(false);
+            expect(adapter.shouldDisableUpdates(env)).toBe(true);
         });
     });
 

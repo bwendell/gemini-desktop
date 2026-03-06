@@ -145,7 +145,7 @@ describe('Quick Chat Feature', () => {
             // Note: WebDriver window switching doesn't trigger OS-level blur,
             // so we use mainWindow.focus() which actually steals focus from Quick Chat
             await browserWithElectron.electron.execute((_electron: typeof import('electron')) => {
-                const windowManager = (global as any).windowManager;
+                const windowManager = (global as { appContext?: any }).appContext?.windowManager;
                 const mainWindow = windowManager?.getMainWindow?.();
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.focus();
@@ -153,7 +153,7 @@ describe('Quick Chat Feature', () => {
             });
 
             const _focusStateAfter = await browserWithElectron.electron.execute(() => {
-                const windowManager = (global as any).windowManager;
+                const windowManager = (global as { appContext?: any }).appContext?.windowManager;
                 const mainWindow = windowManager?.getMainWindow?.();
                 const quickChatWindow = windowManager?.getQuickChatWindow?.();
                 return {
@@ -168,7 +168,7 @@ describe('Quick Chat Feature', () => {
 
             if (!didHide) {
                 await browserWithElectron.electron.execute(() => {
-                    const windowManager = (global as any).windowManager;
+                    const windowManager = (global as { appContext?: any }).appContext?.windowManager;
                     const quickChatWindow = windowManager?.getQuickChatWindow?.();
                     if (quickChatWindow && !quickChatWindow.isDestroyed()) {
                         quickChatWindow.blur();
@@ -180,7 +180,7 @@ describe('Quick Chat Feature', () => {
 
             if (await quickChatPage.isVisible()) {
                 await browserWithElectron.electron.execute(() => {
-                    const windowManager = (global as any).windowManager;
+                    const windowManager = (global as { appContext?: any }).appContext?.windowManager;
                     const quickChatController = windowManager?.quickChatWindow;
                     if (quickChatController?.handleMainWindowFocus) {
                         quickChatController.handleMainWindowFocus();

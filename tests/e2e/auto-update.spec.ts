@@ -268,6 +268,34 @@ describe('Auto-Update', () => {
                 expect(tooltip).toBe('Gemini Desktop'); // Default tooltip
             });
         });
+
+        describe('Manual Update Available Stage', () => {
+            it('should display manual update available notification with download button', async () => {
+                await updateToast.showManualAvailable('6.0.0');
+                await updateToast.waitForVisible();
+
+                expect(await updateToast.getTitle()).toBe('Update Available');
+                expect(await updateToast.getMessage()).toContain('6.0.0');
+                expect(await updateToast.isDownloadButtonDisplayed()).toBe(true);
+                expect(await updateToast.getDownloadButtonText()).toBe('Download');
+            });
+
+            it('should not show Restart Now or Later buttons for manual update available', async () => {
+                await updateToast.showManualAvailable('6.0.0');
+                await updateToast.waitForVisible();
+
+                expect(await updateToast.isRestartButtonExisting()).toBe(false);
+                expect(await updateToast.isLaterButtonExisting()).toBe(false);
+            });
+
+            it('should dismiss manual update available toast', async () => {
+                await updateToast.showManualAvailable('6.0.0');
+                await updateToast.waitForVisible();
+
+                await updateToast.dismiss();
+                await updateToast.waitForHidden();
+            });
+        });
     });
 
     describe('User Interactions', () => {
@@ -490,6 +518,20 @@ describe('Auto-Update', () => {
                 // Tray tooltip should be default (not showing update info)
                 const tooltip = await updateToast.getTrayTooltip();
                 expect(tooltip).toBe('Gemini Desktop'); // Default tooltip
+            });
+        });
+
+        describe('Manual Update Available Toast', () => {
+            it('should show download button and no badge for manual update available', async () => {
+                await updateToast.clearBadge();
+                await updateToast.waitForAnimationComplete();
+
+                await updateToast.showManualAvailable('10.1.0');
+                await updateToast.waitForVisible();
+
+                expect(await updateToast.isDownloadButtonDisplayed()).toBe(true);
+                expect(await updateToast.getDownloadButtonText()).toBe('Download');
+                expect(await updateToast.isBadgeExisting()).toBe(false);
             });
         });
     });

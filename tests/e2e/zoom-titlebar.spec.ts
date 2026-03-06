@@ -18,21 +18,30 @@ import { isMacOS } from './helpers/platform';
 import { waitForDuration } from './helpers/waitUtilities';
 
 describe('Zoom Control via Custom Titlebar E2E', () => {
+    const wdioBrowser = browser as typeof browser & {
+        electron: {
+            execute<R, T extends unknown[]>(
+                fn: (electron: typeof import('electron'), ...args: T) => R,
+                ...args: T
+            ): Promise<R>;
+        };
+    };
+
     beforeEach(async () => {
         await waitForAppReady();
         await switchToMainWindow();
 
         // Reset zoom to 100% before each test for clean state
-        await browser.electron.execute(() => {
-            global.windowManager.setZoomLevel(100);
+        await wdioBrowser.electron.execute(() => {
+            (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(100);
         });
         await waitForIpcSettle();
     });
 
     afterEach(async () => {
         // Reset zoom level to 100% after tests
-        await browser.electron.execute(() => {
-            global.windowManager.setZoomLevel(100);
+        await wdioBrowser.electron.execute(() => {
+            (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(100);
         });
         // Close any open menu dropdowns by clicking elsewhere
         try {
@@ -136,8 +145,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             }
 
             // Verify initial zoom is 100%
-            const initialZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const initialZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(initialZoom).toBe(100);
 
@@ -147,8 +156,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             await waitForIpcSettle();
 
             // Verify zoom increased
-            const newZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const newZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(newZoom).toBeGreaterThan(100);
         });
@@ -160,13 +169,13 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             }
 
             // First zoom in to have room to zoom out
-            await browser.electron.execute(() => {
-                global.windowManager.setZoomLevel(125);
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(125);
             });
             await waitForIpcSettle();
 
-            const startZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const startZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(startZoom).toBe(125);
 
@@ -176,8 +185,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             await waitForIpcSettle();
 
             // Verify zoom decreased
-            const newZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const newZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(newZoom).toBeLessThan(startZoom);
         });
@@ -195,8 +204,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             }
 
             // Set zoom to 150%
-            await browser.electron.execute(() => {
-                global.windowManager.setZoomLevel(150);
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(150);
             });
             await waitForIpcSettle();
 
@@ -225,8 +234,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             }
 
             // Set zoom close to max
-            await browser.electron.execute(() => {
-                global.windowManager.setZoomLevel(175);
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(175);
             });
             await waitForIpcSettle();
 
@@ -239,8 +248,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             }
 
             // Verify zoom is capped at 200%
-            const finalZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const finalZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(finalZoom).toBe(200);
         });
@@ -252,8 +261,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             }
 
             // Set zoom close to min
-            await browser.electron.execute(() => {
-                global.windowManager.setZoomLevel(67);
+            await wdioBrowser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.windowManager?.setZoomLevel(67);
             });
             await waitForIpcSettle();
 
@@ -266,8 +275,8 @@ describe('Zoom Control via Custom Titlebar E2E', () => {
             }
 
             // Verify zoom is capped at 50%
-            const finalZoom = await browser.electron.execute(() => {
-                return global.windowManager.getZoomLevel();
+            const finalZoom = await wdioBrowser.electron.execute(() => {
+                return (global as { appContext?: any }).appContext?.windowManager?.getZoomLevel();
             });
             expect(finalZoom).toBe(50);
         });

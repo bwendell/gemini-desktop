@@ -35,10 +35,16 @@ vi.mock('electron-updater', () => ({
 describe('UpdateManager Error Coordination', () => {
     let updateManager: UpdateManager;
     let mockSettings: any;
+    let originalArgv: string[];
+    let originalAppImage: string | undefined;
+    let originalTestAutoUpdate: string | undefined;
 
     beforeEach(async () => {
         vi.clearAllMocks();
         (app as any).isPackaged = true;
+        originalArgv = [...process.argv];
+        originalAppImage = process.env.APPIMAGE;
+        originalTestAutoUpdate = process.env.TEST_AUTO_UPDATE;
 
         // Reset window mocks
         if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
@@ -49,15 +55,30 @@ describe('UpdateManager Error Coordination', () => {
             set: vi.fn(),
         };
 
+        process.argv = process.argv.filter((arg) => arg !== '--test-auto-update');
+        process.argv = process.argv.filter((arg) => arg !== '--integration-test');
+        process.env.APPIMAGE = '/tmp/app.AppImage';
+        delete process.env.TEST_AUTO_UPDATE;
+        (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettings as any);
+        updateManager.devMockPlatform('win32');
 
-        // IMPORTANT: Trigger lazy loading of autoUpdater to register event handlers
-        // This is necessary because autoUpdater is now lazily loaded
-        await updateManager.checkForUpdates(false);
+        await updateManager.checkForUpdates(true);
     });
 
     afterEach(() => {
         updateManager.destroy();
+        process.argv = originalArgv;
+        if (originalAppImage === undefined) {
+            delete process.env.APPIMAGE;
+        } else {
+            process.env.APPIMAGE = originalAppImage;
+        }
+        if (originalTestAutoUpdate === undefined) {
+            delete process.env.TEST_AUTO_UPDATE;
+        } else {
+            process.env.TEST_AUTO_UPDATE = originalTestAutoUpdate;
+        }
     });
 
     it('should broadcast masked error to ALL open windows', () => {

@@ -32,6 +32,8 @@
         "dist:mac-x64": "electron-builder --mac --x64 --publish never --config config/electron-builder.config.cjs",
         "dist:mac-arm64": "electron-builder --mac --arm64 --publish never --config config/electron-builder.config.cjs",
         "dist:win": "electron-builder --win --publish never --config config/electron-builder.config.cjs",
+        "dist:win-x64": "electron-builder --win --x64 --publish never --config config/electron-builder.config.cjs",
+        "dist:win-arm64": "electron-builder --win --arm64 --publish never --config config/electron-builder.config.cjs",
         "dist:linux": "electron-builder --linux --publish never --config config/electron-builder.config.cjs",
         "test": "vitest run --config config/vitest/vitest.config.ts",
         "test:watch": "vitest --config config/vitest/vitest.config.ts",
@@ -70,11 +72,12 @@
         "marked": "^17.0.3",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
+        "semver": "^7.7.4",
         "turndown": "^7.2.2",
         "turndown-plugin-gfm": "^1.0.2"
     },
     "optionalDependencies": {
-        "node-llama-cpp": "^3.16.2"
+        "node-llama-cpp": "^3.17.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.2",
@@ -84,6 +87,7 @@
         "@types/marked": "^6.0.0",
         "@types/react": "^19.2.10",
         "@types/react-dom": "^19.1.6",
+        "@types/semver": "^7.7.1",
         "@types/turndown": "^5.0.6",
         "@vitejs/plugin-react": "^5.1.3",
         "@vitest/coverage-v8": "^4.0.18",
@@ -100,13 +104,13 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^7.0.1",
-        "eslint-plugin-react-refresh": "^0.5.1",
+        "eslint-plugin-react-refresh": "^0.5.2",
         "expect-webdriverio": "^5.6.3",
         "fast-check": "^4.5.3",
         "globals": "^17.4.0",
         "husky": "^9.1.7",
         "jsdom": "^28.0.0",
-        "lint-staged": "^16.2.7",
+        "lint-staged": "^16.3.1",
         "prettier": "^3.8.1",
         "typedoc": "^0.28.16",
         "typescript": "~5.9.3",

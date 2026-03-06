@@ -4,7 +4,7 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
 [![GitHub last commit](https://img.shields.io/github/last-commit/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/commits/main)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
+[![Platform](<https://img.shields.io/badge/platform-Windows%20(x64%2C%20ARM64)%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square>)](https://github.com/bwendell/gemini-desktop/releases)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/bwendell/gemini-desktop/badge)](https://securityscorecards.dev/viewer/?uri=github.com/bwendell/gemini-desktop)
 [![CodeQL](https://img.shields.io/badge/CodeQL-enabled-brightgreen?logo=github)](https://github.com/bwendell/gemini-desktop/security/code-scanning)
 
@@ -83,11 +83,12 @@ Keep Gemini visible while you work. Toggle "Always On Top" mode with **`Ctrl+Shi
 
 ### Windows
 
-Download the latest `.exe` installer from [Releases](https://github.com/bwendell/gemini-desktop/releases).
+Download the latest `.exe` installer for your architecture from [Releases](https://github.com/bwendell/gemini-desktop/releases):
 
-```
-Gemini Desktop-x.x.x-x64-installer.exe
-```
+- **x64 (Intel/AMD)**: `Gemini Desktop-x.x.x-x64-installer.exe`
+- **ARM64 (Snapdragon/Qualcomm)**: `Gemini Desktop-x.x.x-arm64-installer.exe`
+
+> 💡 **Not sure which to download?** Open Settings → System → About and check "System type". If it says "ARM-based processor", download the ARM64 version.
 
 ### macOS
 
@@ -201,6 +202,17 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 - **macOS menubar icon fix** — use template tray assets to avoid stretching. ([#132](https://github.com/bwendell/gemini-desktop/issues/132), [#134](https://github.com/bwendell/gemini-desktop/pull/134))
 - **Text prediction setup fix** — handle packaged LLM fallback without export errors. ([#133](https://github.com/bwendell/gemini-desktop/issues/133), [#135](https://github.com/bwendell/gemini-desktop/pull/135))
 
+### v0.10.0 — Fixes & Updates
+
+- **Auto-update reliability on macOS** — fix the update flow that fails with a generic “auto-update service encountered an error” dialog during 0.9.x upgrades. ([#150](https://github.com/bwendell/gemini-desktop/issues/150))
+- **Native Windows ARM64 build** — ship an ARM64 installer so Windows on ARM devices can run Gemini Desktop without emulation. ([#151](https://github.com/bwendell/gemini-desktop/issues/151), [#170](https://github.com/bwendell/gemini-desktop/pull/170))
+- **Linux launch stability on modern distros** — prevent the V8 sandbox/native module memory conflict that causes a segmentation fault on KDE Wayland systems like openSUSE Leap 16. ([#158](https://github.com/bwendell/gemini-desktop/issues/158))
+- **Contributor guide** — add CONTRIBUTING.md with dev setup, test commands, and contribution expectations so new contributors don’t have to hunt for process details. ([#169](https://github.com/bwendell/gemini-desktop/issues/169))
+
+### v0.11.0 — Startup Experience
+
+- **Windows autostart option** — add a setting to launch Gemini Desktop at login, with an option to start minimized to the system tray. ([#159](https://github.com/bwendell/gemini-desktop/issues/159))
+
 ### Future Work
 
 - **Investigate AI Studio support** and feasibility for a better Gemini Live experience. ([#90](https://github.com/bwendell/gemini-desktop/issues/90))
@@ -243,7 +255,7 @@ Built with [Electron](https://www.electronjs.org/) + [React](https://react.dev) 
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - npm 9+
 
 ### Quick Start

@@ -195,6 +195,26 @@ describe('Update Notification Integration', () => {
             expect(info?.message).toContain('2.0.0');
         });
 
+        it('should display toast when manual-update-available IPC event is received', async () => {
+            await emitDevUpdateEvent('manual-update-available', { version: '5.0.0' });
+
+            await waitUntil(
+                async () => {
+                    const info = await getToastInfo('update-notification');
+                    return info !== null && info.buttons.includes('Download');
+                },
+                { timeout: 3000, timeoutMsg: 'Manual update toast did not appear' }
+            );
+
+            const info = await getToastInfo('update-notification');
+            expect(info?.type).toBe('info');
+            expect(info?.title).toBe('Update Available');
+            expect(info?.message).toContain('5.0.0');
+            expect(info?.buttons).toContain('Download');
+            expect(info?.buttons).not.toContain('Restart Now');
+            expect(info?.buttons).not.toContain('Later');
+        });
+
         it('should display toast when update-downloaded IPC event is received', async () => {
             // 1. Setup listener
             await exec(() => {
@@ -512,6 +532,40 @@ describe('Update Notification Integration', () => {
             const openedUrls = await getReleaseNotesOpenedUrls();
             expect(openedUrls[0]).toBe(getReleaseNotesUrl('1.0.0'));
         });
+
+        it('should open release notes from manual-available toast via Download button', async () => {
+            await exec(() => {
+                const win = window as Window & {
+                    __testUpdateToast?: { showManualAvailable: (version: string) => void };
+                };
+                win.__testUpdateToast?.showManualAvailable('4.0.0');
+            });
+
+            await waitUntil(
+                async () => {
+                    const info = await getToastInfo('update-notification');
+                    return info !== null && info.buttons.includes('Download');
+                },
+                { timeout: 3000, timeoutMsg: 'Manual update Download action did not appear' }
+            );
+
+            await exec(() => {
+                const toast = document.querySelector('[data-toast-id="update-notification"]');
+                const buttons = Array.from(toast?.querySelectorAll('.toast__button') || []);
+                const target = buttons.find((btn) => btn.textContent?.includes('Download'));
+                if (target instanceof HTMLElement) {
+                    target.click();
+                }
+            });
+
+            await waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
+                timeout: 2000,
+                timeoutMsg: 'Release notes URL was not opened for manual update',
+            });
+
+            const openedUrls = await getReleaseNotesOpenedUrls();
+            expect(openedUrls[0]).toBe(getReleaseNotesUrl('4.0.0'));
+        });
     });
 
     describe('7.5.4.4 - Dev Mode Helpers', () => {
@@ -629,6 +683,26 @@ describe('Update Notification Integration', () => {
 
             const info = await getToastInfo('update-notification');
             expect(info?.type).toBe('info');
+        });
+
+        it('should show manual-available toast via __testUpdateToast.showManualAvailable()', async () => {
+            await exec(() => {
+                const win = window as Window & {
+                    __testUpdateToast?: { showManualAvailable: (version: string) => void };
+                };
+                win.__testUpdateToast?.showManualAvailable('3.3.0');
+            });
+
+            await waitUntil(
+                async () => {
+                    const info = await getToastInfo('update-notification');
+                    return info !== null && info.buttons.includes('Download');
+                },
+                { timeout: 3000 }
+            );
+
+            const info = await getToastInfo('update-notification');
+            expect(info?.message).toContain('3.3.0');
         });
     });
 });

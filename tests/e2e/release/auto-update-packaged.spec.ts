@@ -32,7 +32,7 @@ describe('Release Build: Auto-Update System', () => {
     it('should have updateManager initialized', async () => {
         const updateInfo = await browser.electron.execute(() => {
             // Access the updateManager via the global managers object
-            const updateManager = (global as any).updateManager;
+            const updateManager = (global as { appContext?: any }).appContext?.updateManager;
             if (!updateManager) {
                 return { exists: false, error: 'updateManager not found on global' };
             }
@@ -100,7 +100,7 @@ describe('Release Build: Auto-Update System', () => {
 
     it('should have auto-update setting accessible', async () => {
         const settingInfo = await browser.electron.execute(() => {
-            const updateManager = (global as any).updateManager;
+            const updateManager = (global as { appContext?: any }).appContext?.updateManager;
             if (!updateManager) {
                 return { accessible: false, error: 'updateManager not found' };
             }
