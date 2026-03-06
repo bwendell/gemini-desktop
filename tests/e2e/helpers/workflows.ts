@@ -391,8 +391,25 @@ export async function ensureSingleWindow(): Promise<void> {
 
         // Close all windows except the first (main window)
         for (let i = handles.length - 1; i > 0; i--) {
-            await workflowsBrowser.switchToWindow(handles[i]);
-            await workflowsBrowser.closeWindow();
+            try {
+                await workflowsBrowser.switchToWindow(handles[i]);
+                await workflowsBrowser.closeWindow();
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                if (
+                    /invalid session id/i.test(message) ||
+                    /no such window/i.test(message) ||
+                    /not connected to devtools/i.test(message)
+                ) {
+                    E2ELogger.info(
+                        'workflows',
+                        `Transient window cleanup error for handle ${handles[i]}: ${message}. Continuing cleanup.`
+                    );
+                    continue;
+                }
+
+                throw error;
+            }
         }
 
         // Switch back to main window

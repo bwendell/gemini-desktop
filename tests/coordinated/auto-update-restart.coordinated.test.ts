@@ -48,7 +48,7 @@ vi.mock('electron-log', () => ({
 
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/__mocks__/logger';
+import { createLogger } from '../../src/main/utils/logger';
 
 // Mock Electron ipcMain
 const mockIpcMain = vi.hoisted(() => {
@@ -101,6 +101,7 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
     let trayManager: TrayManager;
     let updateManager: UpdateManager;
     let ipcManager: IpcManager;
+    let mockLogger: ReturnType<typeof createLogger>;
 
     beforeEach(async () => {
         vi.clearAllMocks();
@@ -108,6 +109,8 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
         mockIpcMain.removeAllListeners('auto-update:install');
         process.env.APPIMAGE = '/tmp/app.AppImage';
         delete process.env.TEST_AUTO_UPDATE;
+        process.argv = process.argv.filter((arg) => arg !== '--integration-test');
+        mockLogger = createLogger('[test]');
 
         // 1. Setup Mock Dependencies
         settingsStore = {
@@ -137,6 +140,7 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
             badgeManager,
             trayManager,
         });
+        updateManager.devMockPlatform('win32');
 
         process.argv = process.argv.filter((arg) => arg !== '--test-auto-update');
         await updateManager.checkForUpdates(true);
@@ -153,7 +157,6 @@ describe('Auto-Update Restart Flow Coordinated Test', () => {
             mockLogger
         );
         (net.fetch as any).mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue({ tag_name: 'v1.0.0' }) });
-        await updateManager.checkForUpdates(true);
         // Inject the updateManager (mimicking what happens in main.ts/container)
         (ipcManager as any).updateManager = updateManager;
 

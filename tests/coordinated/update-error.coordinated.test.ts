@@ -50,10 +50,12 @@ describe('UpdateManager Error Coordination', () => {
         };
 
         process.argv = process.argv.filter((arg) => arg !== '--test-auto-update');
+        process.argv = process.argv.filter((arg) => arg !== '--integration-test');
         process.env.APPIMAGE = '/tmp/app.AppImage';
         delete process.env.TEST_AUTO_UPDATE;
         (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettings as any);
+        updateManager.devMockPlatform('win32');
 
         await updateManager.checkForUpdates(true);
     });

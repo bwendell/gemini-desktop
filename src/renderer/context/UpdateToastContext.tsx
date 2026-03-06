@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useRef } from 'react';
 import { useToast } from './ToastContext';
 import { useUpdateNotifications } from '../hooks/useUpdateNotifications';
 import type { UpdateNotificationState } from '../hooks/useUpdateNotifications';
@@ -102,7 +102,6 @@ function getMessage(
  */
 export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     const { showToast, dismissToast, toasts } = useToast();
-    const [currentToastId, setCurrentToastId] = useState<string | null>(null);
 
     // Use ref to track callbacks for actions to avoid stale closures
     const callbacksRef = useRef<{
@@ -134,7 +133,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     const dismissNotification = useCallback(() => {
         // Always dismiss using the stable ID to avoid race condition with queueMicrotask
         dismissToast(UPDATE_TOAST_ID);
-        setCurrentToastId(null);
         baseDismissNotification();
     }, [dismissToast, baseDismissNotification]);
 
@@ -144,7 +142,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     const handleLater = useCallback(() => {
         // Always dismiss using the stable ID to avoid race condition with queueMicrotask
         dismissToast(UPDATE_TOAST_ID);
-        setCurrentToastId(null);
         baseHandleLater();
     }, [dismissToast, baseHandleLater]);
 
@@ -154,7 +151,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
     const installUpdate = useCallback(() => {
         // Always dismiss using the stable ID to avoid race condition with queueMicrotask
         dismissToast(UPDATE_TOAST_ID);
-        setCurrentToastId(null);
         baseInstallUpdate();
     }, [dismissToast, baseInstallUpdate]);
 
@@ -172,10 +168,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
      */
     useEffect(() => {
         if (!visible || !type) {
-            if (currentToastId) {
-                dismissToast(currentToastId);
-                queueMicrotask(() => setCurrentToastId(null));
-            }
+            dismissToast(UPDATE_TOAST_ID);
             pendingToastRef.current = false;
             return;
         }
@@ -214,12 +207,8 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             actions.push(releaseNotesAction);
         }
 
-        if (currentToastId && currentToastId !== UPDATE_TOAST_ID) {
-            dismissToast(currentToastId);
-        }
-
         pendingToastRef.current = true;
-        const id = showToast({
+        showToast({
             id: UPDATE_TOAST_ID,
             type: mapToToastType(type),
             title: getTitle(type),
@@ -228,9 +217,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
             actions: actions.length > 0 ? actions : undefined,
             persistent: true,
         });
-
-        queueMicrotask(() => setCurrentToastId(id));
-    }, [type, visible, updateInfo, errorMessage, downloadProgress, showToast, dismissToast, currentToastId]);
+    }, [type, visible, updateInfo, errorMessage, downloadProgress, showToast, dismissToast]);
 
     useEffect(() => {
         if (!visible || !type) {
@@ -247,7 +234,6 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
         }
 
         if (!hasUpdateToast) {
-            setCurrentToastId(null);
             baseDismissNotification();
         }
     }, [visible, type, toasts, baseDismissNotification]);
