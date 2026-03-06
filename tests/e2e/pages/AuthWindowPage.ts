@@ -14,6 +14,7 @@ import { BasePage } from './BasePage';
 import { clickMenuItemById } from '../helpers/menuActions';
 import { waitForWindowCount } from '../helpers/windowActions';
 import { E2E_TIMING } from '../helpers/e2eConstants';
+import { closeFocusedWindowSafely } from '../helpers/WindowManagerHelper';
 
 /**
  * Page Object for the OAuth Authentication Window.
@@ -73,7 +74,7 @@ export class AuthWindowPage extends BasePage {
      */
     async close(): Promise<void> {
         this.log('Closing auth window');
-        await browser.closeWindow();
+        await closeFocusedWindowSafely();
         await waitForWindowCount(1, 3000);
 
         if (this.mainWindowHandle) {

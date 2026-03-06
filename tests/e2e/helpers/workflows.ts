@@ -29,6 +29,7 @@ import {
     openOptionsWindowViaHotkey,
 } from './optionsWindowActions';
 import { isMacOS } from './platform';
+import { closeFocusedWindowSafely } from './WindowManagerHelper';
 
 type WorkflowsElement = {
     isDisplayed(): Promise<boolean>;
@@ -397,7 +398,7 @@ export async function ensureSingleWindow(): Promise<void> {
         for (let i = handles.length - 1; i > 0; i--) {
             try {
                 await workflowsBrowser.switchToWindow(handles[i]);
-                await workflowsBrowser.closeWindow();
+                await closeFocusedWindowSafely();
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 if (
