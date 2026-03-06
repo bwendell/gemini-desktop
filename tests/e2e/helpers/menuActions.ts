@@ -135,15 +135,24 @@ export async function triggerMenuItemViaElectronApi(id: string): Promise<void> {
             return { success: false, error: `Menu item with id "${itemId}" not found` };
         }
 
+        const win =
+            electron.BrowserWindow.getFocusedWindow?.() ??
+            electron.BrowserWindow.getAllWindows().find((window) => !window.isDestroyed());
+        if (!win) {
+            return { success: false, error: 'No available window to receive menu action' };
+        }
+
+        if (!win.isFocused()) {
+            win.focus();
+        }
+
         if (item.role === 'reload') {
-            const focusedWindow = electron.BrowserWindow.getFocusedWindow();
-            focusedWindow?.reload();
+            win.reload();
             return { success: true };
         }
 
         if (item.role === 'forceReload') {
-            const focusedWindow = electron.BrowserWindow.getFocusedWindow();
-            focusedWindow?.webContents.reloadIgnoringCache();
+            win.webContents.reloadIgnoringCache();
             return { success: true };
         }
 

@@ -32,10 +32,8 @@ const IS_WSL_ENVIRONMENT = (() => {
  */
 const IS_CI_ENVIRONMENT = !!(process.env.CI || process.env.GITHUB_ACTIONS);
 
-const IS_TTY_SESSION = (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'tty';
-const IS_HEADLESS_ENVIRONMENT = process.platform === 'linux' && (!process.env.DISPLAY || IS_TTY_SESSION);
-
 const IS_TTY_SESSION = process.platform === 'linux' && (process.env.XDG_SESSION_TYPE || '').toLowerCase() === 'tty';
+const IS_HEADLESS_ENVIRONMENT = process.platform === 'linux' && (!process.env.DISPLAY || IS_TTY_SESSION);
 
 /**
  * Gets the current platform from the browser context.
