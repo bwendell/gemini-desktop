@@ -18,6 +18,7 @@ import { app, BrowserWindow, net } from 'electron';
 import type { UpdateInfo, AppUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createLogger } from '../utils/logger';
+import { coerce, compare, valid } from 'semver';
 import type SettingsStore from '../store';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
@@ -111,7 +112,12 @@ export default class UpdateManager {
             logger.log('Manual-update-only mode enabled');
             logger.log(`UpdateManager initialized (enabled: ${this.enabled}, manualUpdateOnly: true)`);
 
-            if (this.enabled && app.isPackaged && !process.argv.includes('--test-auto-update')) {
+            if (
+                this.enabled &&
+                app.isPackaged &&
+                !process.argv.includes('--test-auto-update') &&
+                !process.env.TEST_AUTO_UPDATE
+            ) {
                 this.startPeriodicChecks();
             }
             return;
@@ -126,7 +132,7 @@ export default class UpdateManager {
         // because CI environments cannot reach GitHub releases. The test flag is
         // specifically for verifying initialization works (dev-app-update.yml is found),
         // not for testing actual network update checks.
-        if (this.enabled && !process.argv.includes('--test-auto-update')) {
+        if (this.enabled && !process.argv.includes('--test-auto-update') && !process.env.TEST_AUTO_UPDATE) {
             this.startPeriodicChecks();
         }
     }
@@ -475,6 +481,17 @@ export default class UpdateManager {
         });
 
         updater.on('update-available', (info: UpdateInfo) => {
+            const currentVersion = this.normalizeVersion(app.getVersion());
+            const incomingVersion = this.normalizeVersion(info.version);
+
+            if (currentVersion && incomingVersion) {
+                const comparison = compare(currentVersion, incomingVersion);
+                if (comparison != null && comparison >= 0) {
+                    logger.warn(`Ignoring update-available for version ${info.version} (current: ${app.getVersion()})`);
+                    return;
+                }
+            }
+
             logger.log(`Update available: ${info.version}`);
             this.broadcastToWindows(IPC_CHANNELS.AUTO_UPDATE_AVAILABLE, info);
             this.isFirstCheck = false;
@@ -524,6 +541,33 @@ export default class UpdateManager {
                 }
             }
         }
+    }
+
+    private normalizeVersion(version: string): string | null {
+        const trimmed = version.trim();
+        if (!trimmed) return null;
+        const cleaned = trimmed.startsWith('v') ? trimmed.slice(1) : trimmed;
+        const parsed = valid(cleaned);
+        if (parsed) {
+            return parsed;
+        }
+
+        const coerced = coerce(cleaned)?.version ?? null;
+        if (!coerced) {
+            logger.warn(`Unable to parse version string: ${version}`);
+        }
+        return coerced;
+    }
+
+    private isNewerVersion(versionA: string | null, versionB: string | null): boolean {
+        if (!versionA || !versionB) {
+            if (versionA && !versionB) {
+                logger.warn('Unable to compare versions (missing current version)', { versionA, versionB });
+            }
+            return false;
+        }
+
+        return compare(versionA, versionB) > 0;
     }
 
     // =========================================================================
@@ -646,8 +690,8 @@ export default class UpdateManager {
         const tagName = this.getGitHubReleaseField(release, 'tag_name');
         const releaseName = this.getGitHubReleaseField(release, 'name');
         const releaseNotes = this.getGitHubReleaseField(release, 'body');
-        const latestVersion = (tagName || '').replace(/^v/, '');
-        const currentVersion = app.getVersion();
+        const latestVersion = this.normalizeVersion(tagName || '');
+        const currentVersion = this.normalizeVersion(app.getVersion());
 
         if (!latestVersion) {
             return null;
@@ -675,22 +719,6 @@ export default class UpdateManager {
 
         const value = (release as Record<string, unknown>)[field];
         return typeof value === 'string' ? value : undefined;
-    }
-
-    private isNewerVersion(versionA: string, versionB: string): boolean {
-        const partsA = versionA.split('.').map((value) => Number(value));
-        const partsB = versionB.split('.').map((value) => Number(value));
-        const maxLength = Math.max(partsA.length, partsB.length);
-
-        for (let i = 0; i < maxLength; i += 1) {
-            const a = partsA[i] ?? 0;
-            const b = partsB[i] ?? 0;
-
-            if (a > b) return true;
-            if (a < b) return false;
-        }
-
-        return false;
     }
 
     /**
