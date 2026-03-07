@@ -14,7 +14,6 @@
  */
 
 import { browser, expect, $ } from '@wdio/globals';
-import { expectElementDisplayed, expectElementNotDisplayed } from './helpers/assertions';
 import { waitForDuration } from './helpers/waitUtilities';
 
 // ============================================================================
@@ -115,10 +114,10 @@ describe('Offline Behavior', () => {
         await reloadPage();
 
         // 4. Verify the OfflineOverlay is visible
-        await expectElementDisplayed('[data-testid="offline-overlay"]', { timeout: 10000 });
+        await expect(await $('[data-testid="offline-overlay"]')).toBeDisplayed({ wait: 10000 });
 
         // Verify SVG icon is present
-        await expectElementDisplayed('[data-testid="offline-icon"]');
+        await expect(await $('[data-testid="offline-icon"]')).toBeDisplayed({ wait: 5000 });
 
         // Verify Retry button is present and clickable
         const retryButton = await $('[data-testid="offline-retry-button"]');
@@ -155,7 +154,7 @@ describe('Offline Behavior', () => {
         await reloadPage();
 
         // 3. Verify overlay is visible (due to connectivity check failure)
-        await expectElementDisplayed('[data-testid="offline-overlay"]', { timeout: 15000 });
+        await expect(await $('[data-testid="offline-overlay"]')).toBeDisplayed({ wait: 15000 });
 
         // 4. Restore network connectivity
         await restoreNetwork();
@@ -169,9 +168,9 @@ describe('Offline Behavior', () => {
         await retryButton.click();
 
         // 6. Verify overlay disappears (reload happened and connectivity check passed)
-        await expectElementNotDisplayed('[data-testid="offline-overlay"]', { timeout: 15000 });
+        await expect(await $('[data-testid="offline-overlay"]')).not.toBeDisplayed({ wait: 15000 });
 
         // 7. Verify gemini iframe is visible
-        await expectElementDisplayed('[data-testid="gemini-iframe"]');
+        await expect(await $('[data-testid="gemini-iframe"]')).toBeDisplayed({ wait: 5000 });
     });
 });

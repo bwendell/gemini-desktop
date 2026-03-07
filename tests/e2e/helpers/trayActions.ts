@@ -29,17 +29,6 @@ interface E2ETrayManager {
     destroyTray?: () => void;
 }
 
-type WdioBrowser = typeof browser & {
-    electron: {
-        execute<R, T extends unknown[]>(
-            fn: (electron: typeof import('electron'), ...args: T) => R,
-            ...args: T
-        ): Promise<R>;
-    };
-};
-
-const wdioBrowser = browser as WdioBrowser;
-
 /**
  * State of the system tray.
  */
@@ -71,7 +60,7 @@ export interface TrayMenuItem {
  * @returns Promise<TrayState> - The current tray state
  */
 export async function getTrayState(): Promise<TrayState> {
-    return wdioBrowser.electron.execute(() => {
+    return browser.electron.execute(() => {
         try {
             const ctx = (global as { appContext?: any }).appContext;
             const trayManager = ctx?.trayManager as E2ETrayManager | undefined;
@@ -128,7 +117,7 @@ export async function getTrayState(): Promise<TrayState> {
 export async function simulateTrayClick(): Promise<void> {
     E2ELogger.info('tray', 'Triggering tray click via action executor');
 
-    await wdioBrowser.electron.execute(() => {
+    await browser.electron.execute(() => {
         const ctx = (global as { appContext?: any }).appContext;
         const trayManager = ctx?.trayManager as { executeTrayAction?: (action: string) => void } | undefined;
 
@@ -157,7 +146,7 @@ export async function simulateTrayClick(): Promise<void> {
 export async function simulateTrayRightClick(): Promise<void> {
     E2ELogger.info('tray', 'Triggering tray right-click event');
 
-    await wdioBrowser.electron.execute(() => {
+    await browser.electron.execute(() => {
         const ctx = (global as { appContext?: any }).appContext;
         const trayManager = ctx?.trayManager as { getTray?: () => Electron.Tray | null } | undefined;
 
@@ -181,7 +170,7 @@ export async function simulateTrayRightClick(): Promise<void> {
  * @returns Promise<TrayMenuItem[]> - Array of menu items
  */
 export async function getTrayContextMenuItems(): Promise<TrayMenuItem[]> {
-    return wdioBrowser.electron.execute((_electron: typeof import('electron')) => {
+    return browser.electron.execute((_electron: typeof import('electron')) => {
         const ctx = (global as { appContext?: any }).appContext;
         const trayManager = ctx?.trayManager as
             | {
@@ -221,7 +210,7 @@ export async function getTrayContextMenuItems(): Promise<TrayMenuItem[]> {
 export async function clickTrayMenuItem(action: 'show' | 'quit'): Promise<void> {
     E2ELogger.info('tray', `Executing tray menu action: ${action}`);
 
-    await wdioBrowser.electron.execute((_electron: typeof import('electron'), menuAction: string) => {
+    await browser.electron.execute((_electron: typeof import('electron'), menuAction: string) => {
         const ctx = (global as { appContext?: any }).appContext;
         const trayManager = ctx?.trayManager as { executeTrayAction?: (action: string) => void } | undefined;
 

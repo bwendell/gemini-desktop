@@ -64,24 +64,10 @@ export interface QuickChatState extends HotkeyActionState {
  *
  * @returns Promise<void>
  */
-type WdioBrowser = typeof browser & {
-    electron: {
-        execute<R, T extends unknown[]>(
-            fn: (electron: typeof import('electron'), ...args: T) => R,
-            ...args: T
-        ): Promise<R>;
-    };
-    pause(ms: number): Promise<void>;
-    getWindowHandles(): Promise<string[]>;
-    switchToWindow(handle: string): Promise<void>;
-};
-
-const wdioBrowser = browser as WdioBrowser;
-
 export async function showQuickChatWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Showing Quick Chat via hotkey action trigger');
 
-    await wdioBrowser.electron.execute(() => {
+    await browser.electron.execute(() => {
         // Trigger via hotkeyManager action execution - same path as real hotkey press
         const ctx = (global as { appContext?: any }).appContext;
         const hotkeyManager = ctx?.hotkeyManager as { executeHotkeyAction?: (id: string) => void } | undefined;
@@ -103,12 +89,12 @@ export async function showQuickChatWindow(): Promise<void> {
     // Wait for window creation to start - gives Electron time to create the window
     // before tests start polling for visibility. The window is created asynchronously
     // and shown on 'ready-to-show' event, so we need a brief delay here.
-    await wdioBrowser.pause(300);
+    await browser.pause(300);
 
     // Force-show the window if it was created but not shown (happens in headless CI
     // where ready-to-show event may not fire reliably). This ensures tests can
     // proceed even when Electron's visibility events are delayed.
-    await wdioBrowser.electron.execute(() => {
+    await browser.electron.execute(() => {
         const ctx = (global as { appContext?: any }).appContext;
         const windowManager = ctx?.windowManager;
         const quickChatWindow = windowManager?.getQuickChatWindow?.();
@@ -131,14 +117,14 @@ export async function showQuickChatWindow(): Promise<void> {
 export async function hideQuickChatWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Hiding Quick Chat via IPC');
 
-    await wdioBrowser.electron.execute((electron: typeof import('electron')) => {
+    await browser.electron.execute((electron: typeof import('electron')) => {
         // Send the same IPC message that the Quick Chat Escape handler sends
         const { ipcMain } = electron;
         ipcMain.emit('quick-chat:cancel', { sender: null });
     });
 
     // Small pause for window animation
-    await wdioBrowser.pause(100);
+    await browser.pause(100);
 }
 
 /**
@@ -152,7 +138,7 @@ export async function hideQuickChatWindow(): Promise<void> {
 export async function toggleQuickChatWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Toggling Quick Chat via hotkey action trigger');
 
-    await wdioBrowser.electron.execute(() => {
+    await browser.electron.execute(() => {
         const ctx = (global as { appContext?: any }).appContext;
         const hotkeyManager = ctx?.hotkeyManager as { executeHotkeyAction?: (id: string) => void } | undefined;
 
@@ -175,7 +161,7 @@ export async function toggleQuickChatWindow(): Promise<void> {
  * @returns Promise<QuickChatState> - The current Quick Chat state
  */
 export async function getQuickChatState(): Promise<QuickChatState> {
-    return wdioBrowser.electron.execute((electron: typeof import('electron')) => {
+    return browser.electron.execute((electron: typeof import('electron')) => {
         const { BrowserWindow } = electron;
         const ctx = (global as { appContext?: any }).appContext;
         const windowManager = ctx?.windowManager;
@@ -208,18 +194,18 @@ export async function hideAndFocusMainWindow(): Promise<void> {
     E2ELogger.info('quick-chat-action', 'Hiding Quick Chat via IPC and switching to main window');
 
     // Send IPC to cancel Quick Chat (works from any window context)
-    await wdioBrowser.electron.execute((electron: typeof import('electron')) => {
+    await browser.electron.execute((electron: typeof import('electron')) => {
         const { ipcMain } = electron;
         ipcMain.emit('quick-chat:cancel', { sender: null });
     });
 
     // Wait for window animation
-    await wdioBrowser.pause(150);
+    await browser.pause(150);
 
     // Switch to main window (first window handle)
-    const handles = await wdioBrowser.getWindowHandles();
+    const handles = await browser.getWindowHandles();
     if (handles.length > 0) {
-        await wdioBrowser.switchToWindow(handles[0]);
+        await browser.switchToWindow(handles[0]);
     }
 }
 
@@ -240,14 +226,14 @@ export async function submitQuickChatText(text: string): Promise<void> {
     E2ELogger.info('quick-chat-action', `Submitting text via IPC (${text.length} chars)`);
 
     // Send the same IPC message that the Quick Chat submit button sends
-    await wdioBrowser.electron.execute((electron: typeof import('electron'), submittedText: string) => {
+    await browser.electron.execute((electron: typeof import('electron'), submittedText: string) => {
         // Send via ipcMain emit - same as if renderer called ipcRenderer.send()
         const { ipcMain } = electron;
         ipcMain.emit('quick-chat:submit', { sender: null }, submittedText);
     }, text);
 
     // Wait for IPC processing
-    await wdioBrowser.pause(200);
+    await browser.pause(200);
 }
 
 /**
@@ -264,7 +250,7 @@ export async function getGeminiIframeState(): Promise<{
     // Pass domain patterns to the execute context since we can't import there
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
-    return wdioBrowser.electron.execute((_electron: typeof import('electron'), domains: string[]) => {
+    return browser.electron.execute((_electron: typeof import('electron'), domains: string[]) => {
         const ctx = (global as { appContext?: any }).appContext;
         const windowManager = ctx?.windowManager as
             | {
@@ -309,7 +295,7 @@ export async function getGeminiIframeState(): Promise<{
  * @returns Promise<{ title: string, visible: boolean, focused: boolean }[]>
  */
 export async function getAllWindowStates(): Promise<{ title: string; visible: boolean; focused: boolean }[]> {
-    return wdioBrowser.electron.execute((electron: typeof import('electron')) => {
+    return browser.electron.execute((electron: typeof import('electron')) => {
         const windows = electron.BrowserWindow.getAllWindows();
         return windows.map((w) => ({
             title: w.getTitle() || '(untitled)',
@@ -360,7 +346,7 @@ export async function verifyGeminiEditorState(): Promise<GeminiEditorState> {
     const buttonSelectors = [...GEMINI_SUBMIT_BUTTON_SELECTORS];
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
-    return wdioBrowser.electron.execute(
+    return browser.electron.execute(
         (
             _electron: typeof import('electron'),
             editorSels: string[],
@@ -534,7 +520,7 @@ export async function waitForTextInGeminiEditor(
             return state;
         }
 
-        await wdioBrowser.pause(200);
+        await browser.pause(200);
     }
 
     E2ELogger.info('gemini-verify', `Timeout waiting for text. Last state: ${JSON.stringify(lastState)}`);
@@ -554,7 +540,7 @@ export async function getGeminiConversationTitle(tabId?: string): Promise<string
     const titleSelectors = [...GEMINI_CONVERSATION_TITLE_SELECTORS];
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
-    return wdioBrowser.electron.execute(
+    return browser.electron.execute(
         async (electron: typeof import('electron'), selectors: string[], domains: string[], activeTabId?: string) => {
             const ctx = (global as { appContext?: any }).appContext;
             const windowManager = ctx?.windowManager as
@@ -634,7 +620,7 @@ async function readGeminiEditorDirect(expectedText?: string, activeTabId?: strin
     const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
     // Execute read script in the iframe
-    const result = await wdioBrowser.electron.execute(
+    const result = await browser.electron.execute(
         async (
             electron: typeof import('electron'),
             editorSels: string[],

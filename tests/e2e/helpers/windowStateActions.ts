@@ -35,14 +35,6 @@ export interface WindowState {
     isDestroyed: boolean;
 }
 
-type WdioBrowser = {
-    execute<T>(script: (...args: unknown[]) => T, ...args: unknown[]): Promise<T>;
-    pause(ms: number): Promise<void>;
-    electron: {
-        execute<T>(script: (electron: ElectronModule, ...args: unknown[]) => T, ...args: unknown[]): Promise<T>;
-    };
-};
-
 type ElectronBrowserWindow = {
     isMaximized(): boolean;
     isMinimized(): boolean;
@@ -58,14 +50,6 @@ type ElectronBrowserWindow = {
     setFullScreen(fullscreen: boolean): void;
 };
 
-type ElectronModule = {
-    BrowserWindow: {
-        getAllWindows(): ElectronBrowserWindow[];
-    };
-};
-
-const wdioBrowser = browser as unknown as WdioBrowser;
-
 // ============================================================================
 // State Query Functions
 // ============================================================================
@@ -80,8 +64,7 @@ export interface WindowStateOptions {
 }
 
 export async function getWindowState(options: WindowStateOptions = {}): Promise<WindowState> {
-    const state = await wdioBrowser.electron.execute((electron) => {
-        // use getAllWindows() because getFocusedWindow() returns null if window is minimized
+    const state = await browser.electron.execute((electron) => {
         const wins = electron.BrowserWindow.getAllWindows();
         const win = wins[0];
 
@@ -113,11 +96,10 @@ export async function getWindowState(options: WindowStateOptions = {}): Promise<
  * Checks if the current window is maximized.
  */
 export async function isWindowMaximized(): Promise<boolean> {
-    const result = await wdioBrowser.execute(() => {
+    const result = await browser.execute(() => {
         return (window as any).electronAPI?.isMaximized?.() ?? false;
     });
 
-    // If electronAPI method doesn't exist, fall back to Electron direct access
     if (result === false) {
         const state = await getWindowState();
         return state.isMaximized;
@@ -168,11 +150,10 @@ export async function isWindowDestroyed(): Promise<boolean> {
 export async function maximizeWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Maximizing window via API');
 
-    await wdioBrowser.execute(() => {
+    await browser.execute(() => {
         (window as any).electronAPI?.maximizeWindow?.();
     });
 
-    // Give the window time to transition
     await waitForWindowTransition(
         async () => {
             const state = await getWindowState({ log: false });
@@ -188,7 +169,7 @@ export async function maximizeWindow(): Promise<void> {
 export async function minimizeWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Minimizing window via API');
 
-    await wdioBrowser.execute(() => {
+    await browser.execute(() => {
         (window as any).electronAPI?.minimizeWindow?.();
     });
 
@@ -204,8 +185,8 @@ export async function minimizeWindow(): Promise<void> {
         return;
     }
 
-    E2ELogger.info('windowStateActions', 'Minimize via API did not complete, using main-process fallback');
-    await wdioBrowser.electron.execute((electron) => {
+    E2ELogger.info('windowStateActions', 'Minimize via API did not complete, using fallback');
+    await browser.electron.execute((electron) => {
         const win = electron.BrowserWindow.getAllWindows()[0];
         if (win && !win.isMinimized()) {
             win.minimize();
@@ -231,8 +212,7 @@ export async function minimizeWindow(): Promise<void> {
 export async function restoreWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Restoring window via API');
 
-    // Use direct Electron API for restore (not exposed via electronAPI)
-    await wdioBrowser.electron.execute((electron) => {
+    await browser.electron.execute((electron) => {
         const win = electron.BrowserWindow.getAllWindows()[0];
         if (win) {
             if (win.isMaximized()) {
@@ -262,7 +242,7 @@ export async function restoreWindow(): Promise<void> {
 export async function closeWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Closing window via API');
 
-    await wdioBrowser.execute(() => {
+    await browser.execute(() => {
         (window as any).electronAPI?.closeWindow?.();
     });
 }
@@ -273,7 +253,7 @@ export async function closeWindow(): Promise<void> {
 export async function hideWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Hiding window via API');
 
-    await wdioBrowser.electron.execute((electron) => {
+    await browser.electron.execute((electron) => {
         const win = electron.BrowserWindow.getAllWindows()[0];
         if (win) {
             win.hide();
@@ -295,7 +275,7 @@ export async function hideWindow(): Promise<void> {
 export async function showWindow(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Showing window via API');
 
-    await wdioBrowser.electron.execute((electron) => {
+    await browser.electron.execute((electron) => {
         const win = electron.BrowserWindow.getAllWindows()[0];
         if (win) {
             win.show();
@@ -303,7 +283,6 @@ export async function showWindow(): Promise<void> {
         }
     });
 
-    // On macOS, window operations need extra stabilization time
     await waitForMacOSWindowStabilize(undefined, { description: 'Window show (macOS)' });
     await waitForWindowTransition(
         async () => {
@@ -320,10 +299,9 @@ export async function showWindow(): Promise<void> {
 export async function toggleFullscreen(): Promise<void> {
     E2ELogger.info('windowStateActions', 'Toggling fullscreen via API');
 
-    // Get current fullscreen state before toggle
     const wasFullscreen = await isWindowFullScreen();
 
-    await wdioBrowser.execute(() => {
+    await browser.execute(() => {
         (window as any).electronAPI?.toggleFullscreen?.();
     });
 
@@ -340,7 +318,7 @@ export async function toggleFullscreen(): Promise<void> {
 export async function setFullScreen(fullscreen: boolean): Promise<void> {
     E2ELogger.info('windowStateActions', `Setting fullscreen to: ${fullscreen}`);
 
-    await wdioBrowser.electron.execute((electron, fs) => {
+    await browser.electron.execute((electron, fs) => {
         const win = electron.BrowserWindow.getAllWindows()[0];
         if (win) {
             const fullscreenState = Boolean(fs);
@@ -365,18 +343,16 @@ export async function setFullScreen(fullscreen: boolean): Promise<void> {
 export async function focusWindow(): Promise<boolean> {
     E2ELogger.info('windowStateActions', 'Focusing window via API');
 
-    // Force focus via Electron API
-    await wdioBrowser.electron.execute((electron) => {
+    await browser.electron.execute((electron) => {
         const win = electron.BrowserWindow.getAllWindows()[0];
         if (win) {
             win.focus();
         }
     });
 
-    // Wait for focus to be gained using condition-based wait
     const focusGained = await waitForUIState(
         async () => {
-            return await wdioBrowser.execute(() => document.hasFocus());
+            return await browser.execute(() => document.hasFocus());
         },
         {
             timeout: E2E_TIMING.TIMEOUTS?.UI_STATE,
@@ -384,7 +360,6 @@ export async function focusWindow(): Promise<boolean> {
         }
     );
 
-    // Verify focus was gained
     if (!focusGained) {
         E2ELogger.info(
             'windowStateActions',
@@ -418,7 +393,7 @@ export async function waitForWindowState(
         if (predicate(state)) {
             return;
         }
-        await wdioBrowser.pause(pollIntervalMs);
+        await browser.pause(pollIntervalMs);
     }
 
     throw new Error(`Window did not reach expected state within ${timeoutMs}ms`);
@@ -436,7 +411,7 @@ export async function waitForAllWindowsHidden(timeoutMs = 5000): Promise<void> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
-        const allHidden = await wdioBrowser.electron.execute((electron) => {
+        const allHidden = await browser.electron.execute((electron) => {
             const wins = electron.BrowserWindow.getAllWindows();
             return wins.every((win) => !win.isVisible());
         });
@@ -446,7 +421,7 @@ export async function waitForAllWindowsHidden(timeoutMs = 5000): Promise<void> {
             return;
         }
 
-        await wdioBrowser.pause(100);
+        await browser.pause(100);
     }
 
     throw new Error(`Windows did not become hidden within ${timeoutMs}ms`);
