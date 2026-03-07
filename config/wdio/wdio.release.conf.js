@@ -3,7 +3,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { baseConfig } from './wdio.base.conf.js';
-import { ensureArmChromedriver, getAppArgs } from './electron-args.js';
+import { ensureArmChromedriver, getAppArgs, linuxServiceConfig } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
