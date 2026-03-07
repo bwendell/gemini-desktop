@@ -335,11 +335,13 @@ export function getActivationSignalStats(): {
         signalsByShortcut[signal.shortcutId] = (signalsByShortcut[signal.shortcutId] || 0) + 1;
     }
 
+    const lastSignal = signals.at(-1);
+
     return {
         trackingEnabled: TEST_ONLY_SIGNAL_TRACKING_ENABLED,
         totalSignals: signals.length,
         signalsByShortcut,
-        lastSignalTime: signals.length > 0 ? signals[signals.length - 1].timestamp : null,
+        lastSignalTime: lastSignal?.timestamp ?? null,
         signals: Object.freeze(signals),
     };
 }

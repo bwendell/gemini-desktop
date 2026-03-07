@@ -340,8 +340,8 @@ export default class WindowManager extends EventEmitter {
         }
 
         // Clamp to valid range
-        const minZoom = ZOOM_LEVEL_STEPS[0];
-        const maxZoom = ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1];
+        const minZoom = ZOOM_LEVEL_STEPS[0] ?? 100;
+        const maxZoom = ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1] ?? 100;
         if (level <= minZoom) return minZoom;
         if (level >= maxZoom) return maxZoom;
 
@@ -425,11 +425,11 @@ export default class WindowManager extends EventEmitter {
                 this.setZoomLevel(nextStep);
             } else {
                 // Already at or above max, set to max
-                this.setZoomLevel(ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1]);
+                this.setZoomLevel(ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1] ?? this._zoomLevel);
             }
         } else if (currentIndex < ZOOM_LEVEL_STEPS.length - 1) {
             // Move to next step
-            this.setZoomLevel(ZOOM_LEVEL_STEPS[currentIndex + 1]);
+            this.setZoomLevel(ZOOM_LEVEL_STEPS[currentIndex + 1] ?? this._zoomLevel);
         }
         // else: already at max, do nothing
     }
@@ -450,11 +450,11 @@ export default class WindowManager extends EventEmitter {
                 this.setZoomLevel(nextStep);
             } else {
                 // Already at or below min, set to min
-                this.setZoomLevel(ZOOM_LEVEL_STEPS[0]);
+                this.setZoomLevel(ZOOM_LEVEL_STEPS[0] ?? this._zoomLevel);
             }
         } else if (currentIndex > 0) {
             // Move to previous step
-            this.setZoomLevel(ZOOM_LEVEL_STEPS[currentIndex - 1]);
+            this.setZoomLevel(ZOOM_LEVEL_STEPS[currentIndex - 1] ?? this._zoomLevel);
         }
         // else: already at min, do nothing
     }

@@ -166,7 +166,7 @@ export default class MenuManager {
 
         for (const { id, item } of this.contextMenuItems) {
             if (id in flagMap) {
-                item.enabled = flagMap[id];
+                item.enabled = flagMap[id] ?? false;
             }
         }
     }
