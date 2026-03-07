@@ -2,12 +2,7 @@ import { browser, expect, $ } from '@wdio/globals';
 import { MainWindowPage } from './pages';
 import { waitForAppReady, pressShortcut } from './helpers/workflows';
 import { waitForDuration } from './helpers/waitUtilities';
-import {
-    expectElementDisplayed,
-    expectElementNotDisplayed,
-    expectWindowCount,
-    expectElementContainsText,
-} from './helpers/assertions';
+import { expectWindowCount } from './helpers/assertions';
 
 describe('Fatal Error Recovery E2E', () => {
     const mainWindow = new MainWindowPage();
@@ -35,7 +30,7 @@ describe('Fatal Error Recovery E2E', () => {
         it.skip('should automatically reload when renderer crashes', async () => {
             // Navigate to a clean state
             await browser.reloadSession();
-            await expectElementDisplayed('body');
+            await expect(await $('body')).toBeDisplayed({ wait: 5000 });
 
             // Trigger a real renderer process crash via Debug menu
             await browser.electron.execute((electron) => {
@@ -63,7 +58,7 @@ describe('Fatal Error Recovery E2E', () => {
             );
 
             // Verify the app is interactive again
-            await expectElementDisplayed('body');
+            await expect(await $('body')).toBeDisplayed({ wait: 5000 });
         });
     });
 
@@ -71,7 +66,7 @@ describe('Fatal Error Recovery E2E', () => {
         it('should show error boundary and allow reload on React error', async () => {
             // Navigate to a clean state
             await browser.reloadSession();
-            await expectElementDisplayed('body');
+            await expect(await $('body')).toBeDisplayed({ wait: 5000 });
 
             // Trigger a simulated React error via global test hook
             // Note: We use a global function instead of IPC to avoid test environment flakiness
@@ -88,13 +83,13 @@ describe('Fatal Error Recovery E2E', () => {
 
             // Verify the error boundary fallback is displayed
             const fallbackSelector = '[data-testid="gemini-error-fallback"]';
-            await expectElementDisplayed(fallbackSelector, {
-                timeout: 10000,
-                timeoutMsg: 'Error fallback UI did not appear',
+            await expect(await $(fallbackSelector)).toBeDisplayed({
+                wait: 10000,
+                message: 'Error fallback UI did not appear',
             });
 
             // Verify the error title text
-            await expectElementContainsText(`${fallbackSelector} h3`, "Gemini couldn't load");
+            await expect(await $(`${fallbackSelector} h3`)).toHaveText(expect.stringContaining("Gemini couldn't load"));
 
             // 3. User can recover by clicking Reload
             const reloadButton = await $(`${fallbackSelector} button`);
@@ -102,7 +97,7 @@ describe('Fatal Error Recovery E2E', () => {
             await reloadButton.click();
 
             // Verify fallback disappears and normal content returns
-            await expectElementNotDisplayed(fallbackSelector, { timeout: 5000 });
+            await expect(await $(fallbackSelector)).not.toBeDisplayed({ wait: 5000 });
         });
     });
 
@@ -116,7 +111,7 @@ describe('Fatal Error Recovery E2E', () => {
             await waitForDuration(1000, 'Page reload');
 
             // 2. VERIFY ACTUAL OUTCOME
-            await expectElementDisplayed('body');
+            await expect(await $('body')).toBeDisplayed({ wait: 5000 });
         });
     });
 });

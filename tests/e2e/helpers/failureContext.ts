@@ -28,16 +28,6 @@ type WdioResult = {
     retries?: WdioRetries;
 };
 
-type WdioBrowser = {
-    execute<T>(script: (...args: unknown[]) => T, ...args: unknown[]): Promise<T>;
-    getWindowHandles(): Promise<string[]>;
-    getWindowHandle(): Promise<string>;
-    sessionId?: string;
-    electron: {
-        execute<T>(script: (electron: ElectronModule, ...args: unknown[]) => T, ...args: unknown[]): Promise<T>;
-    };
-};
-
 type ElectronModule = {
     app: {
         getVersion(): string;
@@ -58,8 +48,6 @@ type ElectronBrowserWindow = {
     isFullScreen(): boolean;
     webContents?: { getURL?(): string };
 };
-
-const wdioBrowser = browser as unknown as WdioBrowser;
 
 export interface FailureContextArtifacts {
     screenshotPath: string;
@@ -131,16 +119,14 @@ export interface FailureContext {
         allWindowHandles: string[];
     };
     rendererState: {
-        currentUrl: string;
-        pageTitle: string;
-        documentReadyState: string;
-        currentTheme: string | null;
-        visibleToasts: string[];
-        visibleDialogs: string[];
-        activeElementTag: string | null;
-        activeElementTestId: string | null;
-        bodyClasses: string;
-        htmlAttributes: Record<string, string>;
+        url: string;
+        title: string;
+        readyState: string;
+        theme: string | null;
+        visibleDialogs: {
+            count: number;
+            labels: string[];
+        };
     };
     consoleErrors: Array<{
         channel: 'console' | 'onerror' | 'unhandledrejection';
@@ -174,9 +160,14 @@ const MAX_BREADCRUMBS = 200;
 const MAX_CONSOLE_ERRORS = 50;
 const MAX_STRING_LENGTH = 2000;
 const MAX_SERIALIZE_DEPTH = 3;
+type FailureContextMode = 'compact' | 'full';
+
+const getFailureContextMode = (): FailureContextMode => {
+    return process.env.FAILURE_CONTEXT_MODE === 'full' ? 'full' : 'compact';
+};
 
 export async function installRendererErrorInterceptor(): Promise<void> {
-    await wdioBrowser.execute((maxConsoleErrors) => {
+    await browser.execute((maxConsoleErrors: number) => {
         if (window.__consoleErrors && window.__consoleErrorHookInstalled) {
             window.__consoleErrors = [];
             return;
@@ -243,6 +234,7 @@ export async function captureFailureContext(
     result: WdioResult,
     artifacts: FailureContextArtifacts
 ): Promise<FailureContext> {
+    const mode = getFailureContextMode();
     const captureFailures: Array<{ section: string; message: string }> = [];
     const recordFailure = (section: string, error: unknown) => {
         captureFailures.push({
@@ -268,13 +260,13 @@ export async function captureFailureContext(
         testAttempt: retryAttempt + 1,
         testMaxRetries: Number(process.env.WDIO_TEST_RETRIES ?? 0),
         specFileMaxRetries: Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 0),
-        workerId: typeof context.workerId === 'string' ? context.workerId : process.env.WDIO_WORKER_ID ?? null,
+        workerId: typeof context.workerId === 'string' ? context.workerId : (process.env.WDIO_WORKER_ID ?? null),
     };
 
     const environment = await captureEnvironment(recordFailure);
     const error = captureErrorDetails(result.error, recordFailure);
-    const appState = await captureAppState(recordFailure);
-    const rendererState = await captureRendererState(recordFailure);
+    const appState = await captureAppState(mode, recordFailure);
+    const rendererState = await captureRendererState(mode, recordFailure);
     const consoleErrors = await captureConsoleErrors(recordFailure);
     const breadcrumbs = captureBreadcrumbs(recordFailure);
 
@@ -422,20 +414,19 @@ export function safeSerialize(value: unknown): { text: string; truncated: boolea
 }
 
 const captureEnvironment = async (recordFailure: (section: string, error: unknown) => void) => {
+    const display = {
+        DISPLAY: process.env.DISPLAY ?? null,
+        XDG_SESSION_TYPE: process.env.XDG_SESSION_TYPE ?? null,
+        WAYLAND_DISPLAY: process.env.WAYLAND_DISPLAY ?? null,
+        inferredServer: inferDisplayServer(process.platform),
+    };
     try {
-        const appInfo = await wdioBrowser.electron.execute((electron: ElectronModule) => {
+        const appInfo = await browser.electron.execute((electron: ElectronModule) => {
             return {
                 appVersion: typeof electron.app?.getVersion === 'function' ? electron.app.getVersion() : null,
                 electronVersion: typeof process.versions?.electron === 'string' ? process.versions.electron : null,
             };
         });
-
-        const display = {
-            DISPLAY: process.env.DISPLAY ?? null,
-            XDG_SESSION_TYPE: process.env.XDG_SESSION_TYPE ?? null,
-            WAYLAND_DISPLAY: process.env.WAYLAND_DISPLAY ?? null,
-            inferredServer: inferDisplayServer(process.platform),
-        };
 
         return {
             platform: process.platform,
@@ -444,9 +435,11 @@ const captureEnvironment = async (recordFailure: (section: string, error: unknow
             appVersion: appInfo?.appVersion ?? null,
             electronVersion: appInfo?.electronVersion ?? null,
             ci: Boolean(process.env.CI),
-            sessionId: typeof wdioBrowser.sessionId === 'string' ? wdioBrowser.sessionId : null,
+            sessionId: typeof browser.sessionId === 'string' ? browser.sessionId : null,
             display: {
-                ...display,
+                DISPLAY: display.DISPLAY,
+                XDG_SESSION_TYPE: display.XDG_SESSION_TYPE,
+                WAYLAND_DISPLAY: display.WAYLAND_DISPLAY,
                 inferredServer: display.inferredServer,
             },
         };
@@ -459,12 +452,12 @@ const captureEnvironment = async (recordFailure: (section: string, error: unknow
             appVersion: null,
             electronVersion: null,
             ci: Boolean(process.env.CI),
-            sessionId: typeof wdioBrowser.sessionId === 'string' ? wdioBrowser.sessionId : null,
+            sessionId: typeof browser.sessionId === 'string' ? browser.sessionId : null,
             display: {
-                DISPLAY: process.env.DISPLAY ?? null,
-                XDG_SESSION_TYPE: process.env.XDG_SESSION_TYPE ?? null,
-                WAYLAND_DISPLAY: process.env.WAYLAND_DISPLAY ?? null,
-                inferredServer: inferDisplayServer(process.platform),
+                DISPLAY: display.DISPLAY,
+                XDG_SESSION_TYPE: display.XDG_SESSION_TYPE,
+                WAYLAND_DISPLAY: display.WAYLAND_DISPLAY,
+                inferredServer: display.inferredServer,
             },
         };
     }
@@ -477,7 +470,7 @@ const captureErrorDetails = (
     try {
         const message = getErrorMessage(error) ?? '';
         const type = error instanceof Error ? error.name : 'Error';
-        const stack = error instanceof Error ? error.stack ?? '' : '';
+        const stack = error instanceof Error ? (error.stack ?? '') : '';
         const locator = parseLocatorFromError(error);
         const assertion = parseAssertionDetails(error);
         const expected = assertion.expected;
@@ -510,9 +503,9 @@ const captureErrorDetails = (
     }
 };
 
-const captureAppState = async (recordFailure: (section: string, error: unknown) => void) => {
+const captureAppState = async (mode: FailureContextMode, recordFailure: (section: string, error: unknown) => void) => {
     try {
-        const appState = await wdioBrowser.electron.execute((electron: ElectronModule) => {
+        const appState = await browser.electron.execute((electron: ElectronModule) => {
             const wins = electron.BrowserWindow.getAllWindows();
             const details = wins.map((win) => {
                 const bounds = win.getBounds();
@@ -538,18 +531,25 @@ const captureAppState = async (recordFailure: (section: string, error: unknown) 
             };
         });
 
-        const allWindowHandles = await wdioBrowser.getWindowHandles();
-        const activeWindowHandle = await wdioBrowser.getWindowHandle();
+        const allWindowHandles = await browser.getWindowHandles();
+        const activeWindowHandle = await browser.getWindowHandle();
+
+        const windowDetails = (appState?.windowDetails ?? []).map(
+            (detail: FailureContext['appState']['windowDetails'][number]) => ({
+                ...detail,
+                url: redactUrl(detail.url),
+            })
+        );
+
+        const compactWindowDetails = mode === 'compact' ? windowDetails.slice(0, 3) : windowDetails;
+        const compactHandles = mode === 'compact' ? allWindowHandles.slice(0, 5) : allWindowHandles;
 
         return {
             windowCount: appState?.windowCount ?? 0,
-            windowDetails: (appState?.windowDetails ?? []).map((detail) => ({
-                ...detail,
-                url: redactUrl(detail.url),
-            })),
+            windowDetails: compactWindowDetails,
             focusedWindowTitle: appState?.focusedWindowTitle ?? null,
             activeWindowHandle: typeof activeWindowHandle === 'string' ? activeWindowHandle : null,
-            allWindowHandles,
+            allWindowHandles: compactHandles,
         };
     } catch (error) {
         recordFailure('appState', error);
@@ -563,76 +563,74 @@ const captureAppState = async (recordFailure: (section: string, error: unknown) 
     }
 };
 
-const captureRendererState = async (recordFailure: (section: string, error: unknown) => void) => {
+const captureRendererState = async (
+    mode: FailureContextMode,
+    recordFailure: (section: string, error: unknown) => void
+) => {
     try {
-        const rendererState = await wdioBrowser.execute(() => {
-            const html = document.documentElement;
-            const attrs: Record<string, string> = {};
-            for (const attr of Array.from(html.attributes)) {
-                attrs[attr.name] = attr.value;
-            }
+        const rendererState = await browser.execute(
+            (currentMode: FailureContextMode, maxBreadcrumbs: number) => {
+                const isVisible = (element: Element | null) => {
+                    if (!element || !(element instanceof HTMLElement)) {
+                        return false;
+                    }
+                    const style = window.getComputedStyle(element);
+                    return style.display !== 'none' && style.visibility !== 'hidden' && element.offsetParent !== null;
+                };
 
-            const isVisible = (element: Element | null) => {
-                if (!element || !(element instanceof HTMLElement)) {
-                    return false;
-                }
-                const style = window.getComputedStyle(element);
-                return style.display !== 'none' && style.visibility !== 'hidden' && element.offsetParent !== null;
-            };
+                const collectText = (selector: string) =>
+                    Array.from(document.querySelectorAll(selector))
+                        .filter((element) => isVisible(element))
+                        .map((element) => (element.textContent ?? '').trim())
+                        .filter(Boolean);
+                const visibleDialogs = collectText('[role="dialog"]');
+                const dialogLabels =
+                    currentMode === 'compact' ? visibleDialogs.slice(0, 3) : visibleDialogs.slice(0, maxBreadcrumbs);
 
-            const collectText = (selector: string) =>
-                Array.from(document.querySelectorAll(selector))
-                    .filter((element) => isVisible(element))
-                    .map((element) => (element.textContent ?? '').trim())
-                    .filter(Boolean);
-
-            const activeElement = document.activeElement as HTMLElement | null;
-
-            return {
-                currentUrl: window.location.href,
-                pageTitle: document.title,
-                documentReadyState: document.readyState,
-                currentTheme: html.getAttribute('data-theme'),
-                visibleToasts: collectText('[data-testid="toast"]'),
-                visibleDialogs: collectText('[role="dialog"]'),
-                activeElementTag: activeElement?.tagName ?? null,
-                activeElementTestId: activeElement?.getAttribute('data-testid') ?? null,
-                bodyClasses: document.body?.className ?? '',
-                htmlAttributes: attrs,
-            };
-        });
+                return {
+                    url: window.location.href,
+                    title: document.title,
+                    readyState: document.readyState,
+                    theme: document.documentElement.getAttribute('data-theme'),
+                    visibleDialogs: {
+                        count: visibleDialogs.length,
+                        labels: dialogLabels,
+                    },
+                };
+            },
+            mode,
+            MAX_BREADCRUMBS
+        );
 
         return {
             ...rendererState,
-            currentUrl: redactUrl(rendererState.currentUrl ?? ''),
+            url: redactUrl(rendererState.url ?? ''),
         };
     } catch (error) {
         recordFailure('rendererState', error);
         return {
-            currentUrl: '',
-            pageTitle: '',
-            documentReadyState: '',
-            currentTheme: null,
-            visibleToasts: [],
-            visibleDialogs: [],
-            activeElementTag: null,
-            activeElementTestId: null,
-            bodyClasses: '',
-            htmlAttributes: {},
+            url: '',
+            title: '',
+            readyState: '',
+            theme: null,
+            visibleDialogs: {
+                count: 0,
+                labels: [],
+            },
         };
     }
 };
 
 const captureConsoleErrors = async (recordFailure: (section: string, error: unknown) => void) => {
     try {
-        const errors = await wdioBrowser.execute(() => {
+        const errors = await browser.execute(() => {
             const entries = window.__consoleErrors ?? [];
             window.__consoleErrors = [];
             return entries;
         });
 
         const total = errors.length;
-        const items = errors.slice(0, MAX_CONSOLE_ERRORS).map((entry) => ({
+        const items = errors.slice(0, MAX_CONSOLE_ERRORS).map((entry: ConsoleErrorEntry) => ({
             channel: entry.channel,
             message: entry.message,
             stack: entry.stack,
@@ -703,15 +701,17 @@ const getErrorMessage = (error: unknown) => {
     return undefined;
 };
 
-const inferDisplayServer = (
-    platform: string
-): FailureContext['environment']['display']['inferredServer'] => {
+const inferDisplayServer = (platform: string): FailureContext['environment']['display']['inferredServer'] => {
     if (platform !== 'linux') {
         return 'unknown';
     }
 
-    if (process.env.XDG_SESSION_TYPE === 'wayland' || process.env.WAYLAND_DISPLAY) {
+    const sessionType = (process.env.XDG_SESSION_TYPE ?? '').toLowerCase();
+    if (sessionType === 'wayland' || process.env.WAYLAND_DISPLAY) {
         return 'wayland';
+    }
+    if (sessionType === 'x11') {
+        return 'x11';
     }
 
     if (process.env.DISPLAY) {

@@ -18,7 +18,6 @@
 
 import { browser, $, expect } from '@wdio/globals';
 import { waitForAppReady } from './helpers/workflows';
-import { expectElementDisplayed, expectElementNotDisplayed, expectElementContainsText } from './helpers/assertions';
 import { waitForAnimationSettle, waitForUIState } from './helpers/waitUtilities';
 
 // ============================================================================
@@ -92,13 +91,15 @@ describe('Error Boundary Recovery E2E', () => {
 
             // 2. VERIFY ACTUAL OUTCOME: Error fallback UI should be displayed
             const fallbackSelector = '[data-testid="error-fallback"]';
-            await expectElementDisplayed(fallbackSelector, {
-                timeout: 5000,
-                timeoutMsg: 'Error fallback UI did not appear in Options window',
+            await expect(await $(fallbackSelector)).toBeDisplayed({
+                wait: 5000,
+                message: 'Error fallback UI did not appear in Options window',
             });
 
             // 3. Verify the error title text
-            await expectElementContainsText('[data-testid="error-fallback-title"]', 'Something went wrong');
+            await expect(await $('[data-testid="error-fallback-title"]')).toHaveText(
+                expect.stringContaining('Something went wrong')
+            );
         });
 
         it('should show reload button when error occurs in Options', async () => {
@@ -131,7 +132,7 @@ describe('Error Boundary Recovery E2E', () => {
             });
 
             const fallbackSelector = '[data-testid="error-fallback"]';
-            await expectElementDisplayed(fallbackSelector, { timeout: 5000 });
+            await expect(await $(fallbackSelector)).toBeDisplayed({ wait: 5000 });
 
             // 2. SIMULATE REAL USER ACTION: Click the reload button
             const reloadButton = await $('[data-testid="error-fallback-reload"]');
@@ -148,9 +149,7 @@ describe('Error Boundary Recovery E2E', () => {
             }
 
             // Verify the error fallback is gone and normal content is back
-            await expectElementNotDisplayed(fallbackSelector, {
-                timeout: 5000,
-            });
+            await expect(await $(fallbackSelector)).not.toBeDisplayed({ wait: 5000 });
 
             // Verify normal options content is visible
             const optionsContent = await $('[data-testid="options-content"]');

@@ -14,7 +14,7 @@ import { clickMenuItemById } from './helpers/menuActions';
 import { waitForOptionsWindow, closeOptionsWindow, navigateToOptionsTab } from './helpers/optionsWindowActions';
 
 // NEW: Import assertion and workflow helpers
-import { expectTabActive, expectElementDisplayed, expectUrlHash } from './helpers/assertions';
+import { expectTabActive, expectUrlHash } from './helpers/assertions';
 import { withOptionsWindowViaMenu, waitForAppReady, ensureSingleWindow, waitForIpcSettle } from './helpers/workflows';
 
 describe('Options Window Tab Navigation', () => {
@@ -36,7 +36,7 @@ describe('Options Window Tab Navigation', () => {
                 await expectTabActive('settings');
 
                 // Use assertion helper for element display check
-                await expectElementDisplayed('[data-testid="theme-selector"]');
+                await expect(await $('[data-testid="theme-selector"]')).toBeDisplayed({ wait: 5000 });
             });
         });
 
@@ -48,7 +48,7 @@ describe('Options Window Tab Navigation', () => {
 
                 // Use assertion helpers
                 await expectTabActive('about');
-                await expectElementDisplayed('[data-testid="about-section"]');
+                await expect(await $('[data-testid="about-section"]')).toBeDisplayed({ wait: 5000 });
             });
         });
 
@@ -64,7 +64,7 @@ describe('Options Window Tab Navigation', () => {
 
                 // Use assertion helpers
                 await expectTabActive('settings');
-                await expectElementDisplayed('[data-testid="theme-selector"]');
+                await expect(await $('[data-testid="theme-selector"]')).toBeDisplayed({ wait: 5000 });
             });
         });
 
@@ -95,7 +95,7 @@ describe('Options Window Tab Navigation', () => {
             try {
                 // Use assertion helpers
                 await expectTabActive('about');
-                await expectElementDisplayed('[data-testid="about-section"]');
+                await expect(await $('[data-testid="about-section"]')).toBeDisplayed({ wait: 5000 });
             } finally {
                 await closeOptionsWindow();
             }
@@ -180,7 +180,7 @@ describe('About Tab Content Verification', () => {
                     expect(href).toBeTruthy();
 
                     const target = await link.getAttribute('target');
-                    if (href.startsWith('http')) {
+                    if (href && href.startsWith('http')) {
                         expect(target === '_blank' || target === null).toBe(true);
                     }
                 }
