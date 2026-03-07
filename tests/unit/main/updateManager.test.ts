@@ -191,24 +191,24 @@ describe('UpdateManager', () => {
         expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
     });
 
-    it('uses the x64 update channel on Windows', async () => {
+    it('uses the latest-x64 update channel on Windows', async () => {
         (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettingsStore);
 
         await updateManager.checkForUpdates();
 
-        expect(autoUpdater.channel).toBe('x64');
+        expect(autoUpdater.channel).toBe('latest-x64');
         expect(autoUpdater.allowDowngrade).toBe(false);
     });
 
-    it('uses the arm64 update channel on Windows arm64', async () => {
+    it('uses the latest-arm64 update channel on Windows arm64', async () => {
         Object.defineProperty(process, 'arch', { value: 'arm64', configurable: true });
         (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettingsStore);
 
         await updateManager.checkForUpdates();
 
-        expect(autoUpdater.channel).toBe('arm64');
+        expect(autoUpdater.channel).toBe('latest-arm64');
         expect(autoUpdater.allowDowngrade).toBe(false);
     });
 
