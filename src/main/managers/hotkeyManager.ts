@@ -514,51 +514,6 @@ export default class HotkeyManager {
     }
 
     /**
-     * Attempt D-Bus fallback registration if Chromium flag registration failed.
-     *
-     * @param waylandStatus - Current Wayland status to update with selected method
-     * @private
-     */
-    private async _attemptDBusFallbackIfNeeded(waylandStatus: WaylandStatus): Promise<void> {
-        const failedShortcuts = GLOBAL_HOTKEY_IDS.filter((id) => {
-            const result = this._registrationResults.get(id);
-            return this._individualSettings[id] && (!result || !result.success);
-        });
-
-        logger.log(
-            `D-Bus fallback check: failedShortcuts=${
-                failedShortcuts.length > 0 ? failedShortcuts.join(', ') : '(none)'
-            }`
-        );
-
-        if (failedShortcuts.length === 0) {
-            // All registered successfully via Chromium flag
-            logger.log('D-Bus fallback not needed; all shortcuts reported success via Chromium');
-            waylandStatus.portalMethod = 'chromium-flag';
-            return;
-        }
-
-        logger.log(`${failedShortcuts.length} shortcuts failed Chromium registration. Attempting D-Bus fallback...`);
-
-        try {
-            const shortcuts = failedShortcuts.map((id) => ({
-                id,
-                accelerator: this._accelerators[id],
-                description: `Gemini Desktop: ${id}`,
-            }));
-            const actionCallbacks = this._buildActionCallbacksMap(failedShortcuts);
-            const results = await registerViaDBus(shortcuts, actionCallbacks);
-            for (const result of results) {
-                this._registrationResults.set(result.hotkeyId, result);
-            }
-            waylandStatus.portalMethod = 'dbus-fallback';
-        } catch (error) {
-            logger.error('D-Bus fallback failed:', error);
-            waylandStatus.portalMethod = 'none';
-        }
-    }
-
-    /**
      * Register global shortcuts directly via D-Bus on Wayland.
      *
      * Builds the action callbacks map from shortcutActions and passes it

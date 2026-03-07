@@ -8,6 +8,7 @@
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "strict": true,
+        "noUnusedLocals": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
