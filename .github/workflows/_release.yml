@@ -229,6 +229,9 @@ jobs:
                   cd release
                   if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
                   Copy-Item -Path latest.yml -Destination latest-x64.yml -Force
+                  # TODO(v0.10.x cleanup): Remove legacy x64.yml/arm64.yml aliases after ~3-4 releases past v0.10.1,
+                  # once the installed base has moved off v0.10.0 and no longer requests arch-only channel files.
+                  Copy-Item -Path latest-x64.yml -Destination x64.yml -Force
               shell: pwsh
 
             - name: Generate Checksums
@@ -250,6 +253,7 @@ jobs:
                       release/*.exe.blockmap
                       release/latest.yml
                       release/latest-x64.yml
+                      release/x64.yml
                       release/checksums-windows.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -314,7 +318,10 @@ jobs:
               run: |
                   cd release
                   if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
-                  Move-Item -Path latest.yml -Destination latest-arm64.yml -Force
+                  # TODO(v0.10.x cleanup): Remove legacy x64.yml/arm64.yml aliases after ~3-4 releases past v0.10.1,
+                  # once the installed base has moved off v0.10.0 and no longer requests arch-only channel files.
+                  Copy-Item -Path latest.yml -Destination latest-arm64.yml -Force
+                  Copy-Item -Path latest-arm64.yml -Destination arm64.yml -Force
               shell: pwsh
 
             - name: Generate Checksums
@@ -335,6 +342,7 @@ jobs:
                       release/*.msi
                       release/*.exe.blockmap
                       release/latest-arm64.yml
+                      release/arm64.yml
                       release/checksums-windows-arm64.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
