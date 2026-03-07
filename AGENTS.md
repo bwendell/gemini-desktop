@@ -18,6 +18,12 @@ The project uses **npm** for package management and **Vitest** + **WebdriverIO**
 - `npm run lint` - Run ESLint checks
 - `npm run format` - Format code with Prettier
 
+### Commit-Time Lint Enforcement
+
+- Pre-commit hooks run `lint-staged` and then `npm run lint`.
+- If ESLint reports errors, the commit is blocked. Do not bypass hooks.
+- Before marking work complete, run lint in the active worktree and resolve all issues.
+
 ### Testing
 
 - `npm run test` - Run unit tests (Vitest)

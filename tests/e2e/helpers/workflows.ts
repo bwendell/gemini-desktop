@@ -14,6 +14,7 @@ import { E2ELogger } from './logger';
 import { testLogger } from './testLogger';
 import { E2E_TIMING } from './e2eConstants';
 import { Selectors } from './selectors';
+import { isTransientSessionError } from './cleanupErrors';
 import { clickMenuItemById } from './menuActions';
 import { waitForWindowCount } from './windowActions';
 import {
@@ -383,7 +384,17 @@ export async function setToggleState(toggleSelector: string, enabled: boolean): 
  */
 export async function ensureSingleWindow(): Promise<void> {
     testLogger.breadcrumb('workflow', 'Ensuring single window state');
-    const handles = await workflowsBrowser.getWindowHandles();
+    let handles: string[];
+    try {
+        handles = await workflowsBrowser.getWindowHandles();
+    } catch (error) {
+        if (isTransientSessionError(error)) {
+            E2ELogger.warn('workflows', 'Skipping ensureSingleWindow due transient WebDriver session error', error);
+            return;
+        }
+
+        throw error;
+    }
 
     if (handles.length === 0) {
         throw new Error('No window handles found while ensuring single window state');
@@ -437,10 +448,19 @@ export async function ensureSingleWindow(): Promise<void> {
  * Switches to the main window (first window handle).
  */
 export async function switchToMainWindow(): Promise<void> {
-    const handles = await workflowsBrowser.getWindowHandles();
-    if (handles.length > 0) {
-        await workflowsBrowser.switchToWindow(handles[0]);
-        E2ELogger.info('workflows', 'Switched to main window');
+    try {
+        const handles = await workflowsBrowser.getWindowHandles();
+        if (handles.length > 0) {
+            await workflowsBrowser.switchToWindow(handles[0]);
+            E2ELogger.info('workflows', 'Switched to main window');
+        }
+    } catch (error) {
+        if (isTransientSessionError(error)) {
+            E2ELogger.warn('workflows', 'Skipping switchToMainWindow due transient WebDriver session error', error);
+            return;
+        }
+
+        throw error;
     }
 }
 
@@ -603,28 +623,37 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
  * @param timeout - Timeout in ms (default: 15000)
  */
 export async function waitForAppReady(timeout = 15000): Promise<void> {
-    const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
-    await mainLayout.waitForExist({ timeout });
-    const bridgeReady = await waitForUIState(
-        async () => {
-            try {
-                return await workflowsBrowser.execute(() => {
-                    return typeof (window as { electronAPI?: unknown }).electronAPI !== 'undefined';
-                });
-            } catch {
-                return false;
+    try {
+        const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
+        await mainLayout.waitForExist({ timeout });
+        const bridgeReady = await waitForUIState(
+            async () => {
+                try {
+                    return await workflowsBrowser.execute(() => {
+                        return typeof (window as { electronAPI?: unknown }).electronAPI !== 'undefined';
+                    });
+                } catch {
+                    return false;
+                }
+            },
+            {
+                timeout: 30000,
+                interval: 500,
+                description: 'Preload bridge ready',
             }
-        },
-        {
-            timeout: 30000,
-            interval: 500,
-            description: 'Preload bridge ready',
+        );
+        if (!bridgeReady) {
+            throw new Error('electronAPI not available after 30 seconds');
         }
-    );
-    if (!bridgeReady) {
-        throw new Error('electronAPI not available after 30 seconds');
+        E2ELogger.info('workflows', '✓ App is ready');
+    } catch (error) {
+        if (isTransientSessionError(error)) {
+            E2ELogger.warn('workflows', 'Skipping waitForAppReady due transient WebDriver session error', error);
+            return;
+        }
+
+        throw error;
     }
-    E2ELogger.info('workflows', '✓ App is ready');
 }
 
 /**

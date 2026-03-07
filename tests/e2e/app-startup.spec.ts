@@ -13,10 +13,18 @@
 import { browser, $, expect } from '@wdio/globals';
 import { usesCustomControls } from './helpers/platform';
 import { Selectors } from './helpers/selectors';
+import { waitForAppReady } from './helpers/workflows';
+
+type StartupBrowser = {
+    execute<T>(script: (...args: unknown[]) => T, ...args: unknown[]): Promise<T>;
+};
+
+const startupBrowser = browser as unknown as StartupBrowser;
 
 describe('Application Startup', () => {
     beforeEach(async () => {
-        // Wait for the main layout to be ready
+        await waitForAppReady();
+
         const mainLayout = await $(Selectors.mainLayout);
         await mainLayout.waitForExist({ timeout: 15000 });
     });
@@ -99,7 +107,7 @@ describe('Application Startup', () => {
 
         // Verify the image actually loaded (not broken)
         // naturalWidth > 0 means the image loaded successfully
-        const isLoaded = await browser.execute(() => {
+        const isLoaded = await startupBrowser.execute(() => {
             const img = document.querySelector('header.titlebar img[alt="App Icon"]') as HTMLImageElement;
             return img ? img.naturalWidth > 0 : false;
         });

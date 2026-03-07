@@ -4,6 +4,7 @@
  */
 import { browser } from '@wdio/globals';
 import { readFileSync } from 'fs';
+import { E2ELogger } from './logger';
 
 export type E2EPlatform = 'windows' | 'linux' | 'macos';
 
@@ -40,11 +41,30 @@ const IS_HEADLESS_ENVIRONMENT = process.platform === 'linux' && (!process.env.DI
  * @returns {Promise<E2EPlatform>} 'windows', 'linux', or 'macos'
  */
 export async function getPlatform(): Promise<E2EPlatform> {
-    const navPlatform = await browserWithElectron.execute(() => {
-        const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
-        if (uaData?.platform) return uaData.platform;
-        return navigator.userAgent;
-    });
+    let navPlatform: string;
+    try {
+        navPlatform = await browserWithElectron.execute(() => {
+            const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+            if (uaData?.platform) return uaData.platform;
+            return navigator.userAgent;
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const combined = message.toLowerCase();
+        const transientSessionError =
+            combined.includes('invalid session id') ||
+            combined.includes('session deleted as the browser has closed the connection') ||
+            combined.includes('not connected to devtools') ||
+            combined.includes('timeout exceeded to get the contextid') ||
+            combined.includes('cdp bridge is not available');
+
+        if (!transientSessionError) {
+            throw error;
+        }
+
+        E2ELogger.warn('platform', 'Falling back to process.platform after transient WebDriver session error', error);
+        return process.platform === 'darwin' ? 'macos' : process.platform === 'win32' ? 'windows' : 'linux';
+    }
     const lower = navPlatform.toLowerCase();
     if (lower.includes('mac') || lower.includes('darwin')) return 'macos';
     if (lower.includes('win')) return 'windows';

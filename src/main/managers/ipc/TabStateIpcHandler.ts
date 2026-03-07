@@ -68,8 +68,13 @@ function normalizeTabsState(rawState: unknown): TabsState | null {
         return null;
     }
 
+    const firstTab = tabs[0];
+    if (!firstTab) {
+        return null;
+    }
+
     const rawActiveTabId = typeof rawState.activeTabId === 'string' ? rawState.activeTabId : '';
-    const activeTabId = seenIds.has(rawActiveTabId) ? rawActiveTabId : tabs[0].id;
+    const activeTabId = seenIds.has(rawActiveTabId) ? rawActiveTabId : firstTab.id;
 
     return {
         tabs,
