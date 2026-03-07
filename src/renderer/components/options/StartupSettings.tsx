@@ -50,14 +50,6 @@ export const StartupSettings = memo(function StartupSettings() {
 
         if (!newEnabled) {
             setStartMinimized(false);
-            try {
-                const setStartMinimizedApi = window.electronAPI?.setStartMinimized;
-                if (typeof setStartMinimizedApi === 'function') {
-                    setStartMinimizedApi(false);
-                }
-            } catch (error) {
-                console.error('Failed to disable start minimized:', error);
-            }
         }
 
         try {

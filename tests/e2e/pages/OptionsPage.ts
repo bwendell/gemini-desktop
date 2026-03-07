@@ -897,8 +897,7 @@ export class OptionsPage extends BasePage {
     }
 
     async isStartupSectionDisplayed(): Promise<boolean> {
-        const section = await this.$(this.startupSectionSelector);
-        return toOPEl(section).isDisplayed();
+        return this.isElementDisplayed(this.startupSectionSelector);
     }
 
     async isLaunchAtStartupEnabled(): Promise<boolean> {

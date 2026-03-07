@@ -29,6 +29,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
 const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
+const RELEASE_STARTUP_ARGS = process.env.WDIO_RELEASE_START_HIDDEN === 'true' ? ['--hidden'] : [];
 
 /**
  * Get the path to the packaged Electron binary based on the current platform.
@@ -137,7 +138,7 @@ export const config = {
             'electron',
             {
                 appBinaryPath: getReleaseBinaryPath(),
-                appArgs: getAppArgs('--test-auto-update', '--test-text-prediction'),
+                appArgs: getAppArgs('--test-auto-update', '--test-text-prediction', ...RELEASE_STARTUP_ARGS),
                 ...linuxServiceConfig,
             },
         ],

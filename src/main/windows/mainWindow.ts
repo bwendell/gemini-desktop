@@ -106,8 +106,9 @@ export default class MainWindow extends BaseWindow {
     }
 
     /**
-     * Create and show the main window.
+     * Create the main window.
      * @param options - Optional creation options
+     * @param options.startHidden - When true, skips initial show-on-ready behavior for hidden startup flows
      * @returns The created BrowserWindow
      */
     create(options?: { startHidden?: boolean }): BrowserWindow {

@@ -75,7 +75,7 @@ describe('StartupSettings', () => {
             });
         });
 
-        it('turning off launch-at-startup also calls setStartMinimized(false)', async () => {
+        it('turning off launch-at-startup does not call setStartMinimized directly', async () => {
             mockGetLaunchAtStartup.mockResolvedValue(true);
             mockGetStartMinimized.mockResolvedValue(true);
             render(<StartupSettings />);
@@ -85,7 +85,7 @@ describe('StartupSettings', () => {
 
             await waitFor(() => {
                 expect(mockSetLaunchAtStartup).toHaveBeenCalledWith(false);
-                expect(mockSetStartMinimized).toHaveBeenCalledWith(false);
+                expect(mockSetStartMinimized).not.toHaveBeenCalled();
             });
         });
 
