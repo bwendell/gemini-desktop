@@ -322,6 +322,7 @@ jobs:
                   # once the installed base has moved off v0.10.0 and no longer requests arch-only channel files.
                   Copy-Item -Path latest.yml -Destination latest-arm64.yml -Force
                   Copy-Item -Path latest-arm64.yml -Destination arm64.yml -Force
+                  Remove-Item -Path latest.yml -Force
               shell: pwsh
 
             - name: Generate Checksums
