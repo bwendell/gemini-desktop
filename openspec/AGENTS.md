@@ -12,6 +12,7 @@ Instructions for AI coding assistants using OpenSpec for spec-driven development
 - Validate: `openspec validate [change-id] --strict` and fix issues
 - Request approval: Do not start implementation until proposal is approved
 - If your change touches WDIO/E2E or Linux platform behavior, update AI guidance docs (see `docs/E2E_TESTING_GUIDELINES.md`) and include ARM/headless verification steps (`docs/ARM_LINUX_TESTING.md`).
+- Respect repository lint gates: commits run `lint-staged` + full `npm run lint`; never bypass hooks. Fix lint issues before proposing completion.
 
 ## Three-Stage Workflow
 

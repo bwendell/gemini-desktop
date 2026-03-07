@@ -13,6 +13,7 @@ import { isMacOS, isWindows, isLinuxCI, usesCustomControls, isLinuxHeadlessSync 
 import { E2E_TIMING } from './helpers/e2eConstants';
 import { waitForAppReady, ensureSingleWindow, switchToMainWindow } from './helpers/workflows';
 import { waitForUIState, waitForWindowTransition, waitForFullscreenTransition } from './helpers/waitUtilities';
+import { runSafeCleanup } from './helpers/safeCleanup';
 import {
     closeWindow,
     getWindowState,
@@ -60,25 +61,6 @@ type WdioBrowser = {
 };
 
 const wdioBrowser = browser as unknown as WdioBrowser;
-
-const CLEANUP_ERROR_SUBSTRINGS = [
-    'WebSocket is not connected',
-    'CDP bridge is not available',
-    'CDP Bridge is not yet initialised',
-    'Timeout exceeded to get the ContextId',
-    'invalid session id',
-    'session deleted as the browser has closed the connection',
-    'not connected to DevTools',
-    'Promise was collected',
-];
-
-const isIgnorableCleanupError = (error: unknown): boolean => {
-    const message = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error && error.stack ? error.stack : '';
-    const combined = `${message}\n${stack}`.toLowerCase();
-
-    return CLEANUP_ERROR_SUBSTRINGS.some((snippet) => combined.includes(snippet.toLowerCase()));
-};
 
 async function setFullScreenLocal(fullscreen: boolean): Promise<void> {
     await wdioBrowser.electron.execute((electron: typeof import('electron'), fs: boolean) => {
@@ -174,15 +156,14 @@ describe('Window Management', () => {
     });
 
     afterEach(async () => {
-        try {
-            await showWindow();
-            await restoreWindow();
-            await ensureSingleWindow();
-        } catch (error) {
-            if (!isIgnorableCleanupError(error)) {
-                throw error;
-            }
-        }
+        await runSafeCleanup(
+            async () => {
+                await showWindow();
+                await restoreWindow();
+                await ensureSingleWindow();
+            },
+            { context: 'window-spec-cleanup' }
+        );
     });
 
     describe('Always On Top', () => {

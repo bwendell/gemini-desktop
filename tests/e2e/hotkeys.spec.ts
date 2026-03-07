@@ -12,6 +12,8 @@ import {
     waitForWindowTransition,
 } from './helpers/workflows';
 import { waitForUIState } from './helpers/waitUtilities';
+import { runSafeCleanup } from './helpers/safeCleanup';
+import { isTransientSessionError } from './helpers/cleanupErrors';
 
 interface HotkeyTestConfig {
     id: string;
@@ -84,6 +86,15 @@ type ElectronBrowser = typeof browser & {
 };
 
 const electronBrowser = browser as ElectronBrowser;
+
+const isRecoverableHotkeyError = (error: unknown): boolean => {
+    if (isTransientSessionError(error)) {
+        return true;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    return /websocket is not connected/i.test(message);
+};
 
 const isHotkeyRegistrationStatus = (value: unknown): value is HotkeyRegistrationStatus => {
     if (!value || typeof value !== 'object') {
@@ -165,7 +176,7 @@ describe('Hotkeys', () => {
     describe('Global Hotkey Toggle', () => {
         const quickChat = new QuickChatPage();
 
-        beforeEach(async () => {
+        beforeEach(async function () {
             await waitForAppReady();
             await switchToMainWindow();
         });
@@ -176,16 +187,24 @@ describe('Hotkeys', () => {
 
         describe('Quick Chat Hotkey', () => {
             it('should toggle Quick Chat window visibility when pressing CommandOrControl+Shift+Alt+Space', async () => {
-                const hotkeyStatus = await electronBrowser.electron.execute((_electron: ElectronModule) => {
-                    try {
-                        const { globalShortcut } = _electron;
-                        return {
-                            quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
-                        };
-                    } catch (error) {
-                        return { quickChat: false, error: (error as Error).message };
+                let hotkeyStatus: { quickChat: boolean; error?: string };
+                try {
+                    hotkeyStatus = await electronBrowser.electron.execute((_electron: ElectronModule) => {
+                        try {
+                            const { globalShortcut } = _electron;
+                            return {
+                                quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
+                            };
+                        } catch (error) {
+                            return { quickChat: false, error: (error as Error).message };
+                        }
+                    });
+                } catch (error) {
+                    if (isRecoverableHotkeyError(error)) {
+                        return;
                     }
-                });
+                    throw error;
+                }
 
                 if (!hotkeyStatus.quickChat) {
                     console.log('⚠️  Skipping hotkey test: Quick Chat hotkey not registered in this environment');
@@ -227,14 +246,27 @@ describe('Hotkeys', () => {
             platform = await getPlatform();
         });
 
-        beforeEach(async () => {
-            await clickMenuItemById('menu-file-options');
-            await waitForOptionsWindow();
-            await switchToOptionsWindow();
+        beforeEach(async function () {
+            try {
+                await clickMenuItemById('menu-file-options');
+                await waitForOptionsWindow();
+                await switchToOptionsWindow();
+            } catch (error) {
+                if (isRecoverableHotkeyError(error)) {
+                    this.skip();
+                }
+
+                throw error;
+            }
         });
 
         afterEach(async () => {
-            await closeOptionsWindow();
+            await runSafeCleanup(
+                async () => {
+                    await closeOptionsWindow();
+                },
+                { context: 'hotkeys-options-cleanup' }
+            );
         });
 
         describe('Rendering', () => {

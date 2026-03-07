@@ -20,9 +20,7 @@ type OWBrowser = {
     getWindowHandles(): Promise<string[]>;
     switchToWindow(handle: string): Promise<void>;
     closeWindow(): Promise<void>;
-    $(
-        selector: string
-    ): Promise<{
+    $(selector: string): Promise<{
         isExisting(): Promise<boolean>;
         waitForDisplayed(opts?: { timeout?: number; timeoutMsg?: string }): Promise<void>;
         click(): Promise<void>;
@@ -58,8 +56,9 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
     });
 
     const handles = await owBrowser.getWindowHandles();
-    // Assume the last window is the new one (Options)
-    await owBrowser.switchToWindow(handles[handles.length - 1]);
+    const mainHandle = handles[0];
+    const optionsHandle = [...handles].reverse().find((handle) => handle !== mainHandle) ?? handles[handles.length - 1];
+    await owBrowser.switchToWindow(optionsHandle);
 
     await owBrowser.waitUntil(
         async () => {
@@ -78,12 +77,25 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
  */
 export async function closeOptionsWindow(): Promise<void> {
     E2ELogger.info('optionsWindowActions', 'Closing Options window');
+    const handles = await owBrowser.getWindowHandles();
+    if (handles.length <= 1) {
+        return;
+    }
+
+    const mainHandle = handles[0];
+    const optionsHandle = [...handles].reverse().find((handle) => handle !== mainHandle) ?? handles[handles.length - 1];
+
+    await owBrowser.switchToWindow(optionsHandle);
     await owBrowser.closeWindow();
 
-    const handles = await owBrowser.getWindowHandles();
-    if (handles.length > 0) {
-        await owBrowser.switchToWindow(handles[0]);
-    }
+    await owBrowser.waitUntil(async () => (await owBrowser.getWindowHandles()).length >= 1, {
+        timeout: 5000,
+        timeoutMsg: 'No window handle remained after closing options window',
+    });
+
+    const remainingHandles = await owBrowser.getWindowHandles();
+    const nextHandle = remainingHandles.includes(mainHandle) ? mainHandle : remainingHandles[0];
+    await owBrowser.switchToWindow(nextHandle);
 }
 
 /**
@@ -92,7 +104,12 @@ export async function closeOptionsWindow(): Promise<void> {
  */
 export async function getOptionsWindowHandle(): Promise<string | null> {
     const handles = await owBrowser.getWindowHandles();
-    return handles.length > 1 ? handles[1] : null;
+    if (handles.length <= 1) {
+        return null;
+    }
+
+    const mainHandle = handles[0];
+    return [...handles].reverse().find((handle) => handle !== mainHandle) ?? null;
 }
 
 /**

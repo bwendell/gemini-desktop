@@ -1197,46 +1197,19 @@ describe('HotkeyManager', () => {
                 expect(mockWindowManager.toggleMainWindowVisibility).toHaveBeenCalledTimes(1);
             });
 
-            it('should pass action callbacks to registerViaDBus in fallback path', async () => {
-                mockAdapterState.plan = {
-                    mode: 'native',
-                    waylandStatus: {
-                        isWayland: false,
-                        desktopEnvironment: 'unknown',
-                        deVersion: null,
-                        portalAvailable: false,
-                        portalMethod: 'none',
-                    },
-                };
-                mockGlobalShortcut.register.mockReturnValue(false);
-
-                hotkeyManager = new HotkeyManager(mockWindowManager);
+            it('should pass action callbacks to registerViaDBus in direct path', async () => {
+                createWaylandKdeStatus();
 
                 hotkeyManager.registerShortcuts();
 
-                const waylandStatus: WaylandStatus = {
-                    isWayland: true,
-                    desktopEnvironment: 'kde',
-                    deVersion: '5.27',
-                    portalAvailable: true,
-                    portalMethod: 'none',
-                };
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
+                });
 
-                mockAdapterState.plan = {
-                    mode: 'wayland-dbus',
-                    waylandStatus: waylandStatus,
-                };
-
-                const fallbackInvoker = hotkeyManager as unknown as {
-                    _attemptDBusFallbackIfNeeded: (status: WaylandStatus) => Promise<void>;
-                };
-
-                await fallbackInvoker._attemptDBusFallbackIfNeeded(waylandStatus);
-
-                expect(mockDbusFallback.registerViaDBus).toHaveBeenCalledWith(expect.any(Array), expect.any(Map));
                 const actionCallbacks = mockDbusFallback.registerViaDBus.mock.calls[0][1] as Map<string, () => void>;
                 expect(actionCallbacks.has('quickChat')).toBe(true);
                 expect(actionCallbacks.has('peekAndHide')).toBe(true);
+                expect(actionCallbacks.has('voiceChat')).toBe(true);
             });
         });
 
