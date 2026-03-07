@@ -114,6 +114,13 @@ export const baseConfig = {
     connectionRetryTimeout: process.platform === 'linux' || process.platform === 'win32' ? 180000 : 120000,
     connectionRetryCount: 3,
 
+    // Suppress false-positive "Timeout exceeded to get the ContextId" error log.
+    // This comes from wdio-electron-service's CDP bridge and is harmless — the bridge
+    // gracefully falls back when the context ID isn't resolved in time.
+    logLevels: {
+        'electron-service:bridge': 'silent',
+    },
+
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
         // Add a delay to ensure React has time to mount
