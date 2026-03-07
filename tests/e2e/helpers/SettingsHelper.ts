@@ -166,6 +166,16 @@ export class SettingsHelper {
         return settings?.autoCheckUpdates;
     }
 
+    async getLaunchAtStartup(): Promise<boolean | undefined> {
+        const settings = await this.readSettings();
+        return settings?.launchAtStartup as boolean | undefined;
+    }
+
+    async getStartMinimized(): Promise<boolean | undefined> {
+        const settings = await this.readSettings();
+        return settings?.startMinimized as boolean | undefined;
+    }
+
     // ===========================================================================
     // Generic Access
     // ===========================================================================

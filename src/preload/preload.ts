@@ -94,6 +94,10 @@ export const IPC_CHANNELS = {
     TEXT_PREDICTION_PREDICT: 'text-prediction:predict',
     RESPONSE_NOTIFICATIONS_GET_ENABLED: 'response-notifications:get-enabled',
     RESPONSE_NOTIFICATIONS_SET_ENABLED: 'response-notifications:set-enabled',
+    LAUNCH_AT_STARTUP_GET: 'launch-at-startup:get',
+    LAUNCH_AT_STARTUP_SET: 'launch-at-startup:set',
+    START_MINIMIZED_GET: 'start-minimized:get',
+    START_MINIMIZED_SET: 'start-minimized:set',
     EXPORT_CHAT_PDF: 'export-chat:pdf',
     EXPORT_CHAT_MARKDOWN: 'export-chat:markdown',
 } as const;
@@ -801,6 +805,14 @@ const electronAPI: ElectronAPI = {
      */
     setResponseNotificationsEnabled: (enabled: boolean) =>
         ipcRenderer.send(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_SET_ENABLED, enabled),
+
+    getLaunchAtStartup: () => ipcRenderer.invoke(IPC_CHANNELS.LAUNCH_AT_STARTUP_GET),
+
+    setLaunchAtStartup: (enabled: boolean) => ipcRenderer.send(IPC_CHANNELS.LAUNCH_AT_STARTUP_SET, enabled),
+
+    getStartMinimized: () => ipcRenderer.invoke(IPC_CHANNELS.START_MINIMIZED_GET),
+
+    setStartMinimized: (enabled: boolean) => ipcRenderer.send(IPC_CHANNELS.START_MINIMIZED_SET, enabled),
 
     // =========================================================================
     // Chat Export API (Structured)

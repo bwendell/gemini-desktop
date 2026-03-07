@@ -884,6 +884,61 @@ export class OptionsPage extends BasePage {
         return this.isElementDisplayed(this.responseNotificationsSwitchSelector);
     }
 
+    get startupSectionSelector(): string {
+        return '[data-testid="options-startup"]';
+    }
+
+    get launchAtStartupToggleSelector(): string {
+        return '[data-testid="launch-at-startup-toggle-switch"]';
+    }
+
+    get startMinimizedToggleSelector(): string {
+        return '[data-testid="start-minimized-toggle-switch"]';
+    }
+
+    async isStartupSectionDisplayed(): Promise<boolean> {
+        return this.isElementDisplayed(this.startupSectionSelector);
+    }
+
+    async isLaunchAtStartupEnabled(): Promise<boolean> {
+        const toggle = await this.$(this.launchAtStartupToggleSelector);
+        return (await toOPEl(toggle).getAttribute('aria-checked')) === 'true';
+    }
+
+    async clickLaunchAtStartupToggle(): Promise<void> {
+        const toggle = await this.waitForElement(this.launchAtStartupToggleSelector);
+        const stateBefore = await toOPEl(toggle).getAttribute('aria-checked');
+        await this.waitForIpcPropagation(
+            async () => {
+                await toOPEl(toggle).click();
+            },
+            async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore
+        );
+    }
+
+    async isStartMinimizedEnabled(): Promise<boolean> {
+        const toggle = await this.$(this.startMinimizedToggleSelector);
+        return (await toOPEl(toggle).getAttribute('aria-checked')) === 'true';
+    }
+
+    async isStartMinimizedDisabled(): Promise<boolean> {
+        const toggle = await this.$(this.startMinimizedToggleSelector);
+        const ariaDisabled = await toOPEl(toggle).getAttribute('aria-disabled');
+        const disabled = await toOPEl(toggle).getAttribute('disabled');
+        return ariaDisabled === 'true' || disabled !== null;
+    }
+
+    async clickStartMinimizedToggle(): Promise<void> {
+        const toggle = await this.waitForElement(this.startMinimizedToggleSelector);
+        const stateBefore = await toOPEl(toggle).getAttribute('aria-checked');
+        await this.waitForIpcPropagation(
+            async () => {
+                await toOPEl(toggle).click();
+            },
+            async () => (await toOPEl(toggle).getAttribute('aria-checked')) !== stateBefore
+        );
+    }
+
     // ===========================================================================
     // ABOUT TAB QUERIES
     // ===========================================================================

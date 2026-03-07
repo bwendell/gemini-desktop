@@ -24,6 +24,7 @@ import {
     QuickChatIpcHandler,
     TextPredictionIpcHandler,
     ResponseNotificationIpcHandler,
+    LaunchAtStartupIpcHandler,
     ExportIpcHandler,
     TabStateIpcHandler,
     IpcHandlerDependencies,
@@ -69,6 +70,9 @@ interface UserPreferences extends Record<string, unknown> {
     zoomLevel: number;
     // Response notification settings
     responseNotificationsEnabled: boolean;
+    // Launch at startup settings
+    launchAtStartup: boolean;
+    startMinimized: boolean;
 }
 
 /**
@@ -131,6 +135,8 @@ export default class IpcManager {
                     textPredictionModelId: 'qwen3-0.6b',
                     zoomLevel: 100,
                     responseNotificationsEnabled: true,
+                    launchAtStartup: false,
+                    startMinimized: false,
                 },
             });
         /* v8 ignore next -- production fallback, tests always inject logger */
@@ -180,6 +186,7 @@ export default class IpcManager {
             this.textPredictionHandler,
             // Response notification handler
             this.responseNotificationHandler,
+            new LaunchAtStartupIpcHandler(handlerDeps),
             // Export handler
             new ExportIpcHandler(handlerDeps),
             new TabStateIpcHandler(handlerDeps),

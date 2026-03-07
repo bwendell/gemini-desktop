@@ -106,10 +106,12 @@ export default class MainWindow extends BaseWindow {
     }
 
     /**
-     * Create and show the main window.
+     * Create the main window.
+     * @param options - Optional creation options
+     * @param options.startHidden - When true, skips initial show-on-ready behavior for hidden startup flows
      * @returns The created BrowserWindow
      */
-    create(): BrowserWindow {
+    create(options?: { startHidden?: boolean }): BrowserWindow {
         this.logger.debug('MainWindow.create() called');
         const win = this.createWindow();
         this.logger.debug('createWindow() returned');
@@ -119,20 +121,19 @@ export default class MainWindow extends BaseWindow {
             this.window.webContents.openDevTools();
         }
 
-        this.window?.once('ready-to-show', () => {
-            this.logger.debug('ready-to-show event fired, calling show()');
-            this.window?.show();
-        });
+        if (!options?.startHidden) {
+            this.window?.once('ready-to-show', () => {
+                this.logger.debug('ready-to-show event fired, calling show()');
+                this.window?.show();
+            });
 
-        // Fallback: show window after timeout in case ready-to-show doesn't fire
-        // This is particularly important for headless Linux environments (e.g., Ubuntu CI)
-        // where ready-to-show may not fire reliably with Xvfb
-        setTimeout(() => {
-            if (this.window && !this.window.isVisible()) {
-                this.logger.warn('ready-to-show timeout - showing window via fallback');
-                this.window.show();
-            }
-        }, READY_TO_SHOW_FALLBACK_MS);
+            setTimeout(() => {
+                if (this.window && !this.window.isVisible()) {
+                    this.logger.warn('ready-to-show timeout - showing window via fallback');
+                    this.window.show();
+                }
+            }, READY_TO_SHOW_FALLBACK_MS);
+        }
 
         this.setupWindowOpenHandler();
         this.setupNavigationHandler();

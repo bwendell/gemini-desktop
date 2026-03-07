@@ -90,13 +90,14 @@ export default class WindowManager extends EventEmitter {
 
     /**
      * Create the main application window.
+     * @param options - Optional creation options
      * @returns The main window
      */
-    createMainWindow(): BrowserWindow {
+    createMainWindow(options?: { startHidden?: boolean }): BrowserWindow {
         logger.debug('createMainWindow() called');
         try {
             logger.debug('About to call mainWindow.create()');
-            const win = this.mainWindow.create();
+            const win = this.mainWindow.create({ startHidden: options?.startHidden });
             logger.debug('mainWindow.create() returned, window:', win ? 'exists' : 'null');
             return win;
         } catch (error) {
@@ -175,7 +176,7 @@ export default class WindowManager extends EventEmitter {
             if (this.mainWindow.isValid()) {
                 this.restoreFromTray();
             } else {
-                this.createMainWindow();
+                this.createMainWindow({ startHidden: false });
                 this.focusMainWindow();
             }
         }
@@ -235,7 +236,7 @@ export default class WindowManager extends EventEmitter {
     async activateVoiceChat(): Promise<void> {
         try {
             if (!this.mainWindow.isValid()) {
-                this.createMainWindow();
+                this.createMainWindow({ startHidden: false });
             }
 
             if (this.isMainWindowVisible()) {

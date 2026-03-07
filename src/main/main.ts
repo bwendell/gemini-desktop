@@ -95,6 +95,7 @@ const useProductionBuild = app.isPackaged || process.env.ELECTRON_USE_DIST === '
 
 // For E2E tests, always use production build if it exists
 const isDev = !useProductionBuild;
+const startHidden = process.argv.includes('--hidden');
 
 /**
  * Manager instances - initialized lazily to allow for declarative pattern.
@@ -305,7 +306,7 @@ if (!gotTheLock) {
             if (appContext.windowManager.getMainWindow()) {
                 appContext.windowManager.restoreFromTray();
             } else {
-                appContext.windowManager.createMainWindow();
+                appContext.windowManager.createMainWindow({ startHidden: false });
             }
         }
     });
@@ -357,7 +358,7 @@ if (!gotTheLock) {
         logger.log('Menu setup complete');
 
         logger.debug('About to create main window');
-        appContext.windowManager.createMainWindow();
+        appContext.windowManager.createMainWindow({ startHidden });
         logger.debug('createMainWindow() returned');
         logger.log('Main window created');
 
@@ -408,10 +409,18 @@ if (!gotTheLock) {
         try {
             appContext.trayManager.createTray();
             logger.log('System tray created successfully');
+
+            if (startHidden) {
+                appContext.windowManager.hideToTray();
+            }
         } catch (error) {
             // Tray creation can fail on headless Linux (e.g., Ubuntu CI with Xvfb)
             // This is non-fatal - the app should continue without tray functionality
             logger.warn('Failed to create system tray (expected in headless environments):', error);
+
+            if (startHidden) {
+                appContext.windowManager.focusMainWindow();
+            }
         }
 
         // Security: Block webview creation attempts from renderer content
@@ -432,7 +441,7 @@ if (!gotTheLock) {
         app.on('activate', () => {
             // On macOS, recreate window when dock icon is clicked
             if (BrowserWindow.getAllWindows().length === 0 && appContext) {
-                appContext.windowManager.createMainWindow();
+                appContext.windowManager.createMainWindow({ startHidden: false });
             }
         });
     });
