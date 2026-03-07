@@ -568,35 +568,39 @@ const captureRendererState = async (
     recordFailure: (section: string, error: unknown) => void
 ) => {
     try {
-        const rendererState = await browser.execute((currentMode: FailureContextMode) => {
-            const isVisible = (element: Element | null) => {
-                if (!element || !(element instanceof HTMLElement)) {
-                    return false;
-                }
-                const style = window.getComputedStyle(element);
-                return style.display !== 'none' && style.visibility !== 'hidden' && element.offsetParent !== null;
-            };
+        const rendererState = await browser.execute(
+            (currentMode: FailureContextMode, maxBreadcrumbs: number) => {
+                const isVisible = (element: Element | null) => {
+                    if (!element || !(element instanceof HTMLElement)) {
+                        return false;
+                    }
+                    const style = window.getComputedStyle(element);
+                    return style.display !== 'none' && style.visibility !== 'hidden' && element.offsetParent !== null;
+                };
 
-            const collectText = (selector: string) =>
-                Array.from(document.querySelectorAll(selector))
-                    .filter((element) => isVisible(element))
-                    .map((element) => (element.textContent ?? '').trim())
-                    .filter(Boolean);
-            const visibleDialogs = collectText('[role="dialog"]');
-            const dialogLabels =
-                currentMode === 'compact' ? visibleDialogs.slice(0, 3) : visibleDialogs.slice(0, MAX_BREADCRUMBS);
+                const collectText = (selector: string) =>
+                    Array.from(document.querySelectorAll(selector))
+                        .filter((element) => isVisible(element))
+                        .map((element) => (element.textContent ?? '').trim())
+                        .filter(Boolean);
+                const visibleDialogs = collectText('[role="dialog"]');
+                const dialogLabels =
+                    currentMode === 'compact' ? visibleDialogs.slice(0, 3) : visibleDialogs.slice(0, maxBreadcrumbs);
 
-            return {
-                url: window.location.href,
-                title: document.title,
-                readyState: document.readyState,
-                theme: document.documentElement.getAttribute('data-theme'),
-                visibleDialogs: {
-                    count: visibleDialogs.length,
-                    labels: dialogLabels,
-                },
-            };
-        }, mode);
+                return {
+                    url: window.location.href,
+                    title: document.title,
+                    readyState: document.readyState,
+                    theme: document.documentElement.getAttribute('data-theme'),
+                    visibleDialogs: {
+                        count: visibleDialogs.length,
+                        labels: dialogLabels,
+                    },
+                };
+            },
+            mode,
+            MAX_BREADCRUMBS
+        );
 
         return {
             ...rendererState,
@@ -703,7 +707,7 @@ const inferDisplayServer = (platform: string): FailureContext['environment']['di
     }
 
     const sessionType = (process.env.XDG_SESSION_TYPE ?? '').toLowerCase();
-    if (sessionType === 'wayland') {
+    if (sessionType === 'wayland' || process.env.WAYLAND_DISPLAY) {
         return 'wayland';
     }
     if (sessionType === 'x11') {
