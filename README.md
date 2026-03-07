@@ -204,10 +204,10 @@ For full details, please read our [**Privacy Policy**](docs/PRIVACY.md) and [**S
 
 ### v0.10.0 — Fixes & Updates
 
-- **Auto-update reliability on macOS** — fix the update flow that fails with a generic “auto-update service encountered an error” dialog during 0.9.x upgrades. ([#150](https://github.com/bwendell/gemini-desktop/issues/150))
+- **Auto-update reliability on macOS** — fix the update flow that fails with a generic “auto-update service encountered an error” dialog during 0.9.x upgrades. ([#150](https://github.com/bwendell/gemini-desktop/issues/150), [#174](https://github.com/bwendell/gemini-desktop/pull/174))
 - **Native Windows ARM64 build** — ship an ARM64 installer so Windows on ARM devices can run Gemini Desktop without emulation. ([#151](https://github.com/bwendell/gemini-desktop/issues/151), [#170](https://github.com/bwendell/gemini-desktop/pull/170))
-- **Linux launch stability on modern distros** — prevent the V8 sandbox/native module memory conflict that causes a segmentation fault on KDE Wayland systems like openSUSE Leap 16. ([#158](https://github.com/bwendell/gemini-desktop/issues/158))
-- **Contributor guide** — add CONTRIBUTING.md with dev setup, test commands, and contribution expectations so new contributors don’t have to hunt for process details. ([#169](https://github.com/bwendell/gemini-desktop/issues/169))
+- **Linux launch stability on modern distros** — prevent the V8 sandbox/native module memory conflict that causes a segmentation fault on KDE Wayland systems like openSUSE Leap 16. ([#158](https://github.com/bwendell/gemini-desktop/issues/158), [#176](https://github.com/bwendell/gemini-desktop/pull/176))
+- **Contributor guide** — add CONTRIBUTING.md with dev setup, test commands, and contribution expectations so new contributors don’t have to hunt for process details. ([#169](https://github.com/bwendell/gemini-desktop/issues/169), [#172](https://github.com/bwendell/gemini-desktop/pull/172))
 
 ### v0.11.0 — Startup Experience
 
