@@ -13,6 +13,7 @@ import { E2ELogger } from './logger';
 import { isMacOS } from './platform';
 import { E2E_TIMING } from './e2eConstants';
 import { waitForWindowCount } from './waitUtilities';
+import { closeFocusedWindowSafely } from './WindowManagerHelper';
 
 type OWBrowser = {
     keys(value: string | string[]): Promise<void>;
@@ -20,9 +21,7 @@ type OWBrowser = {
     getWindowHandles(): Promise<string[]>;
     switchToWindow(handle: string): Promise<void>;
     closeWindow(): Promise<void>;
-    $(
-        selector: string
-    ): Promise<{
+    $(selector: string): Promise<{
         isExisting(): Promise<boolean>;
         waitForDisplayed(opts?: { timeout?: number; timeoutMsg?: string }): Promise<void>;
         click(): Promise<void>;
@@ -78,7 +77,7 @@ export async function waitForOptionsWindow(timeout = 10000): Promise<void> {
  */
 export async function closeOptionsWindow(): Promise<void> {
     E2ELogger.info('optionsWindowActions', 'Closing Options window');
-    await owBrowser.closeWindow();
+    await closeFocusedWindowSafely();
 
     const handles = await owBrowser.getWindowHandles();
     if (handles.length > 0) {

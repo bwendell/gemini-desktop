@@ -11,21 +11,45 @@
 import { browser } from '@wdio/globals';
 import { E2ELogger } from './logger';
 
+type BrowserWithElectronClose = {
+    getWindowHandles(): Promise<string[]>;
+    switchToWindow(handle: string): Promise<void>;
+    closeWindow(): Promise<void>;
+    execute<T>(script: (...args: unknown[]) => T, ...args: unknown[]): Promise<T>;
+};
+
+const helperBrowser = browser as unknown as BrowserWithElectronClose;
+
+async function isWindowsRuntime(): Promise<boolean> {
+    return helperBrowser.execute(() => navigator.platform.toLowerCase().includes('win'));
+}
+
+export async function closeFocusedWindowSafely(): Promise<void> {
+    if (await isWindowsRuntime()) {
+        await helperBrowser.execute(() => {
+            (window as Window & { electronAPI?: { closeWindow?: () => void } }).electronAPI?.closeWindow?.();
+        });
+        return;
+    }
+
+    await helperBrowser.closeWindow();
+}
+
 /**
  * Safely closes all windows except the main window.
- * Uses browser.closeWindow() which properly handles WebDriver session cleanup.
+ * Uses platform-safe close behavior to avoid Windows session disconnects.
  *
  * @param mainWindowHandle - The handle of the main window to preserve
  */
 export async function closeAllSecondaryWindows(mainWindowHandle: string): Promise<void> {
-    const handles = await browser.getWindowHandles();
+    const handles = await helperBrowser.getWindowHandles();
 
     for (const handle of handles) {
         if (handle !== mainWindowHandle) {
             try {
-                await browser.switchToWindow(handle);
+                await helperBrowser.switchToWindow(handle);
                 E2ELogger.info('WindowManagerHelper', `Closing secondary window: ${handle}`);
-                await browser.closeWindow();
+                await closeFocusedWindowSafely();
             } catch {
                 // Window might already be closed
                 E2ELogger.info('WindowManagerHelper', `Window ${handle} already closed or inaccessible`);
@@ -59,16 +83,16 @@ export async function switchToMainWindowSafely(mainWindowHandle: string): Promis
 
 /**
  * Close a specific window by its handle.
- * Uses browser.closeWindow() which properly handles WebDriver session cleanup.
+ * Uses platform-safe close behavior to avoid Windows session disconnects.
  *
  * @param windowHandle - The handle of the window to close
  * @param returnToHandle - Optional handle to switch to after closing
  */
 export async function closeWindowByHandle(windowHandle: string, returnToHandle?: string): Promise<void> {
     try {
-        await browser.switchToWindow(windowHandle);
+        await helperBrowser.switchToWindow(windowHandle);
         E2ELogger.info('WindowManagerHelper', `Closing window: ${windowHandle}`);
-        await browser.closeWindow();
+        await closeFocusedWindowSafely();
     } catch {
         E2ELogger.info('WindowManagerHelper', `Window ${windowHandle} already closed or inaccessible`);
     }

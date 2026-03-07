@@ -29,6 +29,7 @@
 import { browser, $, expect } from '@wdio/globals';
 import { Selectors } from './helpers/selectors';
 import { clickMenuItemById } from './helpers/menuActions';
+import { closeFocusedWindowSafely } from './helpers/WindowManagerHelper';
 
 describe('First-Run Experience', () => {
     beforeEach(async () => {
@@ -71,7 +72,7 @@ describe('First-Run Experience', () => {
             await expect(optionsTitlebar).toBeExisting();
 
             // Close the options window
-            await browser.closeWindow();
+            await closeFocusedWindowSafely();
 
             // Switch back to main window
             await browser.switchToWindow(handles[0]);
