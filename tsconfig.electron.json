@@ -9,6 +9,7 @@
         "resolveJsonModule": true,
         "strict": true,
         "noUnusedLocals": true,
+        "noUnusedParameters": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
