@@ -120,6 +120,46 @@ import './App.css';
 
 For a full architecture deep-dive (managers, IPC handler pattern, data stores, security model), see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## 📂 Boundary-Specific Guides
+
+Each subdirectory has its own AGENTS.md with boundary-specific conventions:
+
+- [src/main/AGENTS.md](src/main/AGENTS.md) — Electron main process, IPC handlers, managers
+- [src/renderer/AGENTS.md](src/renderer/AGENTS.md) — React frontend, contexts, hooks
+- [src/preload/AGENTS.md](src/preload/AGENTS.md) — Preload bridge, security boundary
+- [tests/e2e/AGENTS.md](tests/e2e/AGENTS.md) — E2E tests, deterministic waits
+- [tests/unit/AGENTS.md](tests/unit/AGENTS.md) — Unit tests, mock patterns
+
+## ✅ Verification Matrix
+
+Run the appropriate commands based on what you changed:
+
+| Change Scope         | Test Command(s)                                                     | What It Runs                               |
+| -------------------- | ------------------------------------------------------------------- | ------------------------------------------ |
+| `src/renderer/`      | `npm run test`, `npm run lint`                                      | Vitest (jsdom) — renderer unit tests       |
+| `src/main/`          | `npm run test:electron`, `npm run lint`                             | Vitest (node) — main process unit tests    |
+| `src/preload/`       | `npm run test:electron`, `npm run lint`                             | Vitest (node) — preload unit tests         |
+| `src/shared/`        | `npm run test:electron`, `npm run lint`                             | Vitest (node) — shared utility tests       |
+| Cross-boundary (IPC) | `npm run test:electron`, `npm run test:integration`, `npm run lint` | Unit + WDIO integration                    |
+| `tests/coordinated/` | `npm run test:coordinated`                                          | Vitest (jsdom) — multi-window coordination |
+| `tests/e2e/`         | `npm run test:e2e` or `npm run test:e2e:spec -- --spec=<path>`      | WDIO E2E tests                             |
+| Everything           | `npm run test:all`                                                  | Full sequential suite                      |
+
+## 🔧 Documentation Maintenance Contract
+
+When commands, boundaries, or patterns change, the nearest AGENTS.md **must** be updated in the same PR:
+
+| If you modify...                         | Update...                |
+| ---------------------------------------- | ------------------------ |
+| IPC handlers in `src/main/managers/ipc/` | `src/main/AGENTS.md`     |
+| Manager patterns in `src/main/managers/` | `src/main/AGENTS.md`     |
+| React contexts/hooks in `src/renderer/`  | `src/renderer/AGENTS.md` |
+| Preload bridge APIs in `src/preload/`    | `src/preload/AGENTS.md`  |
+| E2E wait utilities or test patterns      | `tests/e2e/AGENTS.md`    |
+| Unit test mock factories or patterns     | `tests/unit/AGENTS.md`   |
+| Global build/lint/test commands          | Root `AGENTS.md`         |
+| Verification matrix commands             | Root `AGENTS.md`         |
+
 ---
 
 ## 🌐 Domain Context
