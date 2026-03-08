@@ -118,9 +118,23 @@ import './App.css';
     - `coordinated/`: Vitest tests for multi-window coordination.
     - `e2e/`: WDIO End-to-End tests.
 
+For a full architecture deep-dive (managers, IPC handler pattern, data stores, security model), see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ---
 
-## 🤖 Cursor & Copilot Rules
+## 🌐 Domain Context
 
-- Follow existing patterns in `.cursor/rules/` if they exist (none found currently).
-- Adhere to the `Core Mandates` in the system prompt.
+- **Gemini Web App:** The app embeds `https://gemini.google.com/app` in an iframe after stripping `X-Frame-Options` headers.
+- **Quick Chat:** Spotlight-style floating window activated by global hotkey (`Ctrl+Shift+Alt+Space`) for quick prompts.
+- **Peek and Hide:** Instantly hide app to system tray via hotkey (`Ctrl+Shift+Space`).
+- **Session Persistence:** Google auth sessions stored in Chromium's encrypted cookie storage via `persist:gemini` partition.
+
+---
+
+## 🔒 Important Constraints
+
+- **No telemetry:** The app collects zero analytics or usage data.
+- **Google-only connections:** Only connects to `*.google.com` domains.
+- **No Node.js in renderer:** All Node.js access goes through the preload bridge.
+- **Header stripping scope:** `X-Frame-Options` stripping applies only to `gemini.google.com`.
+- **Cross-platform:** Must work on Windows (x64 and ARM64), macOS (Intel + ARM64), and Linux.
