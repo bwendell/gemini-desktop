@@ -1,0 +1,69 @@
+name: Retry Command
+description: Run a shell command with bounded retries and exponential backoff
+
+inputs:
+    command:
+        description: Shell command to execute
+        required: true
+    max_attempts:
+        description: Maximum command attempts before failing
+        required: false
+        default: '3'
+    initial_backoff_seconds:
+        description: Delay before first retry attempt
+        required: false
+        default: '10'
+    backoff_multiplier:
+        description: Multiplier applied to retry delay after each failure
+        required: false
+        default: '2'
+
+runs:
+    using: composite
+    steps:
+        - name: Run command with retry
+          shell: bash
+          run: |
+              set -euo pipefail
+
+              max_attempts='${{ inputs.max_attempts }}'
+              delay='${{ inputs.initial_backoff_seconds }}'
+              multiplier='${{ inputs.backoff_multiplier }}'
+              command='${{ inputs.command }}'
+
+              if ! [[ "$max_attempts" =~ ^[0-9]+$ ]] || [ "$max_attempts" -lt 1 ]; then
+                  echo "max_attempts must be a positive integer. Received: $max_attempts"
+                  exit 1
+              fi
+
+              if ! [[ "$delay" =~ ^[0-9]+$ ]] || [ "$delay" -lt 0 ]; then
+                  echo "initial_backoff_seconds must be a non-negative integer. Received: $delay"
+                  exit 1
+              fi
+
+              if ! [[ "$multiplier" =~ ^[0-9]+$ ]] || [ "$multiplier" -lt 1 ]; then
+                  echo "backoff_multiplier must be a positive integer. Received: $multiplier"
+                  exit 1
+              fi
+
+              attempt=1
+
+              while [ "$attempt" -le "$max_attempts" ]; do
+                  echo "Running command (attempt $attempt/$max_attempts): $command"
+
+                  if bash -euo pipefail -c "$command"; then
+                      echo "Command succeeded on attempt $attempt"
+                      exit 0
+                  fi
+
+                  if [ "$attempt" -eq "$max_attempts" ]; then
+                      echo "Command failed after $max_attempts attempts"
+                      exit 1
+                  fi
+
+                  echo "Attempt $attempt failed. Retrying in $delay seconds..."
+                  sleep "$delay"
+
+                  attempt=$((attempt + 1))
+                  delay=$((delay * multiplier))
+              done
