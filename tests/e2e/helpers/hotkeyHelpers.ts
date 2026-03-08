@@ -29,22 +29,6 @@ export interface HotkeyDefinition {
     };
 }
 
-type WdioBrowser = {
-    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
-    waitUntil<T>(
-        condition: () => Promise<T> | T,
-        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
-    ): Promise<T>;
-    electron: {
-        execute<R, T extends unknown[]>(
-            fn: (electron: typeof import('electron'), ...args: T) => R,
-            ...args: T
-        ): Promise<R>;
-    };
-};
-
-const wdioBrowser = browser as unknown as WdioBrowser;
-
 /**
  * Helper to convert an Electron accelerator to platform-specific display format.
  */
@@ -127,7 +111,7 @@ export function getHotkeyDisplayString(platform: E2EPlatform, hotkeyId: keyof ty
  * @returns Promise<boolean> - True if the shortcut is registered
  */
 export async function isHotkeyRegistered(accelerator: string): Promise<boolean> {
-    return wdioBrowser.electron.execute(
+    return browser.electron.execute(
         (electron: typeof import('electron'), acc: string) => electron.globalShortcut.isRegistered(acc),
         accelerator
     );
@@ -142,7 +126,7 @@ export async function waitForHotkeyRegistered(
     const accelerator = REGISTERED_HOTKEYS[hotkeyId].accelerator;
     const internalId = HOTKEY_ID_MAP[hotkeyId];
 
-    return wdioBrowser.waitUntil(
+    return browser.waitUntil(
         async () => {
             const status = await getPlatformHotkeyStatus();
             if (status?.waylandStatus?.isWayland) {
@@ -370,7 +354,7 @@ export interface GlobalShortcutRegistrationStatus {
  * @returns Promise with platform status or null if IPC not available
  */
 export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | null> {
-    return wdioBrowser.execute(() => {
+    return browser.execute(() => {
         // Access the preload API from renderer context
         const api = (window as any).electronAPI;
         if (!api?.getPlatformHotkeyStatus) {
@@ -388,7 +372,7 @@ export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | 
  * @returns Promise with registration status or null if execution fails
  */
 export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutRegistrationStatus | null> {
-    return wdioBrowser.electron.execute((_electron: typeof import('electron')) => {
+    return browser.electron.execute((_electron: typeof import('electron')) => {
         const { globalShortcut } = _electron;
         try {
             return {
@@ -439,7 +423,7 @@ export interface DbusActivationSignalStats {
  * @returns Promise with signal stats or null if IPC not available
  */
 export async function getDbusActivationSignalStats(): Promise<DbusActivationSignalStats | null> {
-    return wdioBrowser.execute(() => {
+    return browser.execute(() => {
         const api = (window as any).electronAPI;
         if (!api?.getDbusActivationSignalStats) {
             console.log('[E2E] getDbusActivationSignalStats not available on electronAPI');
@@ -454,7 +438,7 @@ export async function getDbusActivationSignalStats(): Promise<DbusActivationSign
  * Useful for test isolation between test cases.
  */
 export async function clearDbusActivationSignalHistory(): Promise<void> {
-    await wdioBrowser.execute(() => {
+    await browser.execute(() => {
         const api = (window as any).electronAPI;
         if (api?.clearDbusActivationSignalHistory) {
             api.clearDbusActivationSignalHistory();
@@ -474,11 +458,11 @@ export async function getWaylandStatusForSkipping(): Promise<{
     portalAvailable: boolean;
     desktopEnvironment: string;
 }> {
-    const status = await wdioBrowser.electron.execute(() => {
+    const status = await browser.electron.execute(() => {
         return (global as { appContext?: any }).appContext?.hotkeyManager?.getPlatformHotkeyStatus?.() ?? null;
     });
 
-    const isLinux = await wdioBrowser.electron.execute(() => process.platform === 'linux');
+    const isLinux = await browser.electron.execute(() => process.platform === 'linux');
 
     if (!status) {
         return {

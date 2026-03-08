@@ -11,24 +11,10 @@
 /// <reference path="./wdio-electron.d.ts" />
 
 import { browser } from '@wdio/globals';
+
+import type { WdioElement } from './wdio-electron';
 import { E2ELogger } from './logger';
 import { E2E_TIMING } from './e2eConstants';
-
-type WdioBrowser = {
-    pause(ms: number): Promise<void>;
-    $(selector: string): Promise<WebdriverIO.Element>;
-    execute<T>(script: string | ((...args: any[]) => T), ...args: any[]): Promise<T>;
-    getWindowHandles(): Promise<string[]>;
-};
-
-type WdioElement = {
-    isExisting(): Promise<boolean>;
-    getCSSProperty(prop: string): Promise<{ value: string; parsed?: { value: unknown } }>;
-    waitForDisplayed(options?: { timeout?: number; timeoutMsg?: string }): Promise<boolean>;
-    waitForClickable(options?: { timeout?: number; timeoutMsg?: string }): Promise<boolean>;
-};
-
-const wdioBrowser = browser as unknown as WdioBrowser;
 
 // =============================================================================
 // Type Definitions
@@ -108,24 +94,6 @@ export interface WaitForMacOSWindowStabilizeOptions {
     description?: string;
 }
 
-/**
- * Options for waitForCleanup.
- */
-export interface WaitForCleanupOptions {
-    /** Maximum time to wait in milliseconds (default: 2000) */
-    timeout?: number;
-}
-
-/**
- * Options for waitForCycle.
- */
-export interface WaitForCycleOptions {
-    /** Maximum time per operation in milliseconds (default: 3000) */
-    timeoutPerOperation?: number;
-    /** Maximum retries for the entire cycle (default: 3) */
-    maxRetries?: number;
-}
-
 // =============================================================================
 // Core Wait Utilities
 // =============================================================================
@@ -171,7 +139,7 @@ export async function waitForUIState(
             E2ELogger.info('waitUtilities', `${logPrefix}Condition check error: ${error}`);
         }
 
-        await wdioBrowser.pause(interval);
+        await browser.pause(interval);
     }
 
     E2ELogger.info('waitUtilities', `${logPrefix}✗ Timeout waiting for UI state after ${timeout}ms`);
@@ -204,7 +172,7 @@ export async function waitForIPCRoundTrip(
 
     // If no verification provided, use a brief safety delay (legacy behavior)
     if (!verification) {
-        await wdioBrowser.pause(Math.min(100, timeout));
+        await browser.pause(Math.min(100, timeout));
         return;
     }
 
@@ -223,7 +191,7 @@ export async function waitForIPCRoundTrip(
             // Verification threw error, continue polling
         }
 
-        await wdioBrowser.pause(pollInterval);
+        await browser.pause(pollInterval);
     }
 
     E2ELogger.info('waitUtilities', `✗ IPC verification timeout after ${timeout}ms`);
@@ -291,7 +259,7 @@ export async function waitForWindowTransition(
             conditionMetTime = null;
         }
 
-        await wdioBrowser.pause(interval);
+        await browser.pause(interval);
     }
 
     E2ELogger.info('waitUtilities', `[${description}] ✗ Window transition timeout after ${timeout}ms`);
@@ -333,7 +301,7 @@ export async function waitForAnimationSettle(
 
     while (Date.now() - startTime < timeout) {
         try {
-            const element = (await wdioBrowser.$(selector)) as unknown as WdioElement;
+            const element = (await browser.$(selector)) as unknown as WdioElement;
             const exists = await element.isExisting();
 
             if (!exists) {
@@ -348,13 +316,13 @@ export async function waitForAnimationSettle(
 
                 stableCount = 0;
                 lastValue = null;
-                await wdioBrowser.pause(interval);
+                await browser.pause(interval);
                 continue;
             }
 
             const [currentValue, domSignature] = await Promise.all([
                 element.getCSSProperty(property),
-                wdioBrowser.execute((selector: string) => {
+                browser.execute((selector: string) => {
                     const root = document.querySelector(selector);
                     if (!root) return { signature: '' };
 
@@ -387,7 +355,7 @@ export async function waitForAnimationSettle(
             lastValue = null;
         }
 
-        await wdioBrowser.pause(interval);
+        await browser.pause(interval);
     }
 
     E2ELogger.info('waitUtilities', `✗ Animation settle timeout after ${timeout}ms`);
@@ -457,7 +425,7 @@ export async function waitForFullscreenTransition(
             stableStartTime = null;
         }
 
-        await wdioBrowser.pause(interval);
+        await browser.pause(interval);
     }
 
     E2ELogger.info('waitUtilities', `✗ Fullscreen transition timeout after ${timeout}ms`);
@@ -486,7 +454,7 @@ export async function waitForMacOSWindowStabilize(
     const { timeout = E2E_TIMING.TIMEOUTS?.MACOS_WINDOW_STABILIZE ?? 5000, description = 'macOS window' } = options;
 
     // Check if we're on macOS
-    const isMacOS = await wdioBrowser.execute(() => {
+    const isMacOS = await browser.execute(() => {
         return navigator.platform.toLowerCase().includes('mac');
     });
 
@@ -499,7 +467,7 @@ export async function waitForMacOSWindowStabilize(
     if (!condition) {
         const stabilizationDelay = Math.min(500, timeout);
         E2ELogger.info('waitUtilities', `[${description}] Waiting ${stabilizationDelay}ms for macOS stabilization`);
-        await wdioBrowser.pause(stabilizationDelay);
+        await browser.pause(stabilizationDelay);
         return true;
     }
 
@@ -513,169 +481,15 @@ export async function waitForMacOSWindowStabilize(
     if (result) {
         // Additional stabilization delay after condition met
         const extraDelay = Math.min(250, timeout * 0.1);
-        await wdioBrowser.pause(extraDelay);
+        await browser.pause(extraDelay);
     }
 
     return result;
 }
 
-/**
- * Executes cleanup actions with timeout protection.
- * Replaces: browser.pause(E2E_TIMING.CLEANUP_PAUSE)
- *
- * @param actions - Array of async cleanup functions to execute
- * @param options - Configuration options
- * @returns Promise<void>
- *
- * @example
- * await waitForCleanup([
- *   async () => await clearAll(),
- *   async () => await ensureSingleWindow()
- * ]);
- */
-export async function waitForCleanup(
-    actions: Array<() => Promise<void>>,
-    options: WaitForCleanupOptions = {}
-): Promise<void> {
-    const { timeout = E2E_TIMING.TIMEOUTS?.CLEANUP ?? 2000 } = options;
-
-    E2ELogger.info('waitUtilities', `Executing ${actions.length} cleanup actions (timeout: ${timeout}ms per action)`);
-
-    for (let i = 0; i < actions.length; i++) {
-        const action = actions[i];
-        const actionStartTime = Date.now();
-
-        try {
-            // Wrap action in timeout
-            const timeoutPromise = new Promise<void>((_, reject) => {
-                setTimeout(() => reject(new Error(`Cleanup action ${i + 1} timed out`)), timeout);
-            });
-
-            await Promise.race([action(), timeoutPromise]);
-
-            const elapsed = Date.now() - actionStartTime;
-            E2ELogger.info('waitUtilities', `✓ Cleanup action ${i + 1}/${actions.length} completed in ${elapsed}ms`);
-        } catch (error) {
-            const elapsed = Date.now() - actionStartTime;
-            E2ELogger.info(
-                'waitUtilities',
-                `✗ Cleanup action ${i + 1}/${actions.length} failed after ${elapsed}ms: ${error}`
-            );
-            // Continue with next cleanup action even if one fails
-        }
-    }
-
-    E2ELogger.info('waitUtilities', `✓ All cleanup actions processed`);
-}
-
-/**
- * Executes a cycle of operations with retry logic for each.
- * Replaces: browser.pause(E2E_TIMING.CYCLE_PAUSE)
- *
- * @param operations - Array of async functions returning boolean (success/failure)
- * @param options - Configuration options
- * @returns Promise<boolean[]> - Results for each operation (true = success)
- *
- * @example
- * const results = await waitForCycle([
- *   async () => await operation1(),
- *   async () => await operation2(),
- *   async () => await operation3()
- * ]);
- * expect(results.every(r => r)).toBe(true);
- */
-export async function waitForCycle(
-    operations: Array<() => Promise<boolean>>,
-    options: WaitForCycleOptions = {}
-): Promise<boolean[]> {
-    const { timeoutPerOperation = E2E_TIMING.TIMEOUTS?.CYCLE_PER_OPERATION ?? 3000, maxRetries = 3 } = options;
-
-    E2ELogger.info(
-        'waitUtilities',
-        `Executing cycle of ${operations.length} operations (timeout: ${timeoutPerOperation}ms, maxRetries: ${maxRetries})`
-    );
-
-    const results: boolean[] = [];
-
-    for (let i = 0; i < operations.length; i++) {
-        const operation = operations[i];
-        let attempt = 0;
-        let success = false;
-
-        while (attempt < maxRetries && !success) {
-            attempt++;
-            const operationStartTime = Date.now();
-
-            try {
-                // Wrap operation in timeout
-                const timeoutPromise = new Promise<boolean>((_, reject) => {
-                    setTimeout(() => reject(new Error(`Operation ${i + 1} timed out`)), timeoutPerOperation);
-                });
-
-                success = await Promise.race([operation(), timeoutPromise]);
-
-                const elapsed = Date.now() - operationStartTime;
-                E2ELogger.info(
-                    'waitUtilities',
-                    `✓ Operation ${i + 1}/${operations.length} ${success ? 'succeeded' : 'returned false'} in ${elapsed}ms (attempt ${attempt}/${maxRetries})`
-                );
-            } catch (error) {
-                const elapsed = Date.now() - operationStartTime;
-                E2ELogger.info(
-                    'waitUtilities',
-                    `✗ Operation ${i + 1}/${operations.length} failed on attempt ${attempt}/${maxRetries} after ${elapsed}ms: ${error}`
-                );
-
-                if (attempt < maxRetries) {
-                    // Brief pause before retry
-                    await wdioBrowser.pause(100);
-                }
-            }
-        }
-
-        results.push(success);
-    }
-
-    const _allSucceeded = results.every((r) => r);
-    E2ELogger.info(
-        'waitUtilities',
-        `✓ Cycle complete: ${results.filter((r) => r).length}/${operations.length} operations succeeded`
-    );
-
-    return results;
-}
-
 // =============================================================================
 // Specialized Wait Utilities
 // =============================================================================
-
-/**
- * Waits for an element to be both displayed and clickable.
- * Combines waitForDisplayed + waitForClickable for reliable interaction.
- *
- * @param selector - CSS selector for the element
- * @param timeout - Maximum time to wait (default: 5000)
- * @returns Promise<WebdriverIO.Element> - The ready element
- *
- * @example
- * const button = await waitForElementClickable('[data-testid="submit"]');
- * await button.click();
- */
-export async function waitForElementClickable(selector: string, timeout = 5000): Promise<WebdriverIO.Element> {
-    const element = (await wdioBrowser.$(selector)) as unknown as WdioElement;
-
-    await element.waitForDisplayed({
-        timeout,
-        timeoutMsg: `Element "${selector}" not displayed within ${timeout}ms`,
-    });
-    await element.waitForClickable({
-        timeout,
-        timeoutMsg: `Element "${selector}" not clickable within ${timeout}ms`,
-    });
-
-    E2ELogger.info('waitUtilities', `✓ Element "${selector}" is displayed and clickable`);
-    return element as unknown as WebdriverIO.Element;
-}
 
 /**
  * Waits for window count to reach expected number.
@@ -696,7 +510,7 @@ export async function waitForWindowCount(expectedCount: number, timeout = 5000):
     E2ELogger.info('waitUtilities', `Waiting for window count to be ${expectedCount} (timeout: ${timeout}ms)`);
 
     while (Date.now() - startTime < timeout) {
-        const handles = await wdioBrowser.getWindowHandles();
+        const handles = await browser.getWindowHandles();
 
         if (handles.length === expectedCount) {
             const elapsed = Date.now() - startTime;
@@ -704,10 +518,10 @@ export async function waitForWindowCount(expectedCount: number, timeout = 5000):
             return true;
         }
 
-        await wdioBrowser.pause(interval);
+        await browser.pause(interval);
     }
 
-    const finalCount = (await wdioBrowser.getWindowHandles()).length;
+    const finalCount = (await browser.getWindowHandles()).length;
     E2ELogger.info(
         'waitUtilities',
         `✗ Timeout waiting for window count. Expected ${expectedCount}, found ${finalCount}`
@@ -730,7 +544,7 @@ export async function waitForDuration(durationMs: number, description?: string):
     const logPrefix = description ? `[${description}] ` : '';
     E2ELogger.info('waitUtilities', `${logPrefix}Waiting ${durationMs}ms (intentional duration wait)`);
 
-    await wdioBrowser.pause(durationMs);
+    await browser.pause(durationMs);
 
     E2ELogger.info('waitUtilities', `${logPrefix}✓ Duration wait complete`);
 }

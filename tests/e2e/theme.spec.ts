@@ -1,7 +1,7 @@
 import { $, $$, browser, expect } from '@wdio/globals';
 
 import { MainWindowPage, OptionsPage } from './pages';
-import { expectElementDisplayed, expectElementNotDisplayed, expectThemeApplied } from './helpers/assertions';
+import { expectThemeApplied } from './helpers/assertions';
 import { ensureSingleWindow, waitForAppReady, withOptionsWindowViaMenu } from './helpers/workflows';
 import { waitForWindowCount } from './helpers/windowActions';
 import { waitForAnimationSettle, waitForUIState } from './helpers/waitUtilities';
@@ -148,11 +148,11 @@ describe('Theme', () => {
             await waitForWindowCount(2);
             await optionsPage.waitForLoad();
 
-            await expectElementDisplayed('[data-testid="theme-selector"]');
+            await expect(await $('[data-testid="theme-selector"]')).toBeDisplayed({ wait: 5000 });
 
-            await expectElementDisplayed(optionsPage.themeCardSelector('system'));
-            await expectElementDisplayed(optionsPage.themeCardSelector('light'));
-            await expectElementDisplayed(optionsPage.themeCardSelector('dark'));
+            await expect(await $(optionsPage.themeCardSelector('system'))).toBeDisplayed({ wait: 5000 });
+            await expect(await $(optionsPage.themeCardSelector('light'))).toBeDisplayed({ wait: 5000 });
+            await expect(await $(optionsPage.themeCardSelector('dark'))).toBeDisplayed({ wait: 5000 });
 
             const previews = await $$('.theme-card__preview');
             expect(previews.length).toBe(3);
@@ -182,16 +182,16 @@ describe('Theme', () => {
 
             await optionsPage.selectTheme('light');
 
-            await expectElementDisplayed('[data-testid="theme-checkmark-light"]');
+            await expect(await $('[data-testid="theme-checkmark-light"]')).toBeDisplayed({ wait: 5000 });
 
-            await expectElementNotDisplayed('[data-testid="theme-checkmark-system"]', { timeout: 2000 });
-            await expectElementNotDisplayed('[data-testid="theme-checkmark-dark"]', { timeout: 2000 });
+            await expect(await $('[data-testid="theme-checkmark-system"]')).not.toBeDisplayed({ wait: 2000 });
+            await expect(await $('[data-testid="theme-checkmark-dark"]')).not.toBeDisplayed({ wait: 2000 });
 
             await optionsPage.selectTheme('dark');
 
-            await expectElementDisplayed('[data-testid="theme-checkmark-dark"]');
+            await expect(await $('[data-testid="theme-checkmark-dark"]')).toBeDisplayed({ wait: 5000 });
 
-            await expectElementNotDisplayed('[data-testid="theme-checkmark-light"]', { timeout: 2000 });
+            await expect(await $('[data-testid="theme-checkmark-light"]')).not.toBeDisplayed({ wait: 2000 });
 
             await optionsPage.close();
         });

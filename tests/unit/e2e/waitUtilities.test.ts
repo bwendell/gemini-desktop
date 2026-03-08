@@ -5,13 +5,13 @@
  * by mocking the browser object and testing the polling logic.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the dependencies before importing the module
-const mockPause = vi.fn();
-const mockExecute = vi.fn();
-const mockGetWindowHandles = vi.fn();
-const mockLoggerInfo = vi.fn();
+const mockPause = vi.hoisted(() => vi.fn());
+const mockExecute = vi.hoisted(() => vi.fn());
+const mockGetWindowHandles = vi.hoisted(() => vi.fn());
+const mockLoggerInfo = vi.hoisted(() => vi.fn());
 
 vi.mock('@wdio/globals', () => ({
     browser: {
@@ -21,7 +21,7 @@ vi.mock('@wdio/globals', () => ({
     },
 }));
 
-vi.mock('./logger', () => ({
+vi.mock('../../../tests/e2e/helpers/logger', () => ({
     E2ELogger: {
         info: mockLoggerInfo,
     },
@@ -39,7 +39,15 @@ import {
 describe('waitUtilities', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockPause.mockResolvedValue(undefined);
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(0));
+        mockPause.mockImplementation(async (ms: number) => {
+            await vi.advanceTimersByTimeAsync(ms);
+        });
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     describe('waitForUIState', () => {
@@ -164,6 +172,7 @@ describe('waitUtilities', () => {
                 .mockResolvedValueOnce(true) // Met but not stable
                 .mockResolvedValueOnce(false) // Became unstable
                 .mockResolvedValueOnce(true) // Met again
+                .mockResolvedValueOnce(true)
                 .mockResolvedValueOnce(true); // Stable
 
             const result = await waitForWindowTransition(condition, {
@@ -173,7 +182,7 @@ describe('waitUtilities', () => {
             });
 
             expect(result).toBe(true);
-            expect(condition).toHaveBeenCalledTimes(4);
+            expect(condition).toHaveBeenCalledTimes(5);
         });
 
         it('should return false when timeout reached', async () => {

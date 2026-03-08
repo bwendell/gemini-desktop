@@ -135,7 +135,7 @@ export async function captureElementDebugState(selector: string): Promise<Elemen
     };
 }
 
-const captureWindowDebugState = async (): Promise<WindowDebugState> => {
+export const captureWindowDebugState = async (): Promise<WindowDebugState> => {
     let title: string | null = null;
     let url: string | null = null;
 
@@ -154,7 +154,7 @@ const captureWindowDebugState = async (): Promise<WindowDebugState> => {
     return { title, url };
 };
 
-const buildAssertionErrorMessage = (
+export const buildAssertionErrorMessage = (
     options: AssertionErrorOptions,
     elementState: ElementDebugState | null,
     windowState: WindowDebugState | null,
@@ -207,7 +207,7 @@ const buildAssertionErrorMessage = (
     return lines.map((line, index) => (index === 0 ? line : `  ${line}`)).join('\n');
 };
 
-const throwEnhancedAssertionError = async (error: unknown, options: AssertionErrorOptions): Promise<never> => {
+export const throwEnhancedAssertionError = async (error: unknown, options: AssertionErrorOptions): Promise<never> => {
     const elementState = options.selector ? await captureElementDebugState(options.selector) : null;
     const windowState = await captureWindowDebugState();
     const message = buildAssertionErrorMessage(options, elementState, windowState, error);
@@ -223,103 +223,6 @@ const throwEnhancedAssertionError = async (error: unknown, options: AssertionErr
 // =============================================================================
 // Element Display Assertions
 // =============================================================================
-
-/**
- * Asserts that an element is displayed within the timeout.
- * Combines waitForDisplayed and expect for cleaner test code.
- *
- * @param selector - CSS selector for the element
- * @param options - Optional configuration
- * @param options.timeout - Timeout in ms (default: 5000)
- * @param options.timeoutMsg - Custom timeout message
- */
-export async function expectElementDisplayed(
-    selector: string,
-    options: { timeout?: number; timeoutMsg?: string } = {}
-): Promise<void> {
-    const { timeout = 5000, timeoutMsg } = options;
-    const element = await $(selector);
-    const startTime = Date.now();
-    const resolvedTimeoutMsg = timeoutMsg || `Element '${selector}' was not displayed within ${timeout}ms`;
-
-    try {
-        await element.waitForDisplayed({
-            timeout,
-            timeoutMsg: resolvedTimeoutMsg,
-        });
-        await expect(element).toBeDisplayed();
-        E2ELogger.info('assertions', `✓ Element displayed: ${selector}`);
-    } catch (error) {
-        const extraLines = timeoutMsg ? [`TimeoutMessage: ${resolvedTimeoutMsg}`] : undefined;
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" to be displayed`,
-            selector,
-            timeoutMs: timeout,
-            startTime,
-            extraLines,
-        });
-    }
-}
-
-/**
- * Asserts that an element is NOT displayed (hidden or removed).
- *
- * @param selector - CSS selector for the element
- * @param options - Optional configuration
- * @param options.timeout - Timeout in ms (default: 5000)
- */
-export async function expectElementNotDisplayed(selector: string, options: { timeout?: number } = {}): Promise<void> {
-    const { timeout = 5000 } = options;
-    const element = await $(selector);
-    const startTime = Date.now();
-    const timeoutMsg = `Element '${selector}' was still displayed after ${timeout}ms`;
-
-    try {
-        await element.waitForDisplayed({
-            timeout,
-            reverse: true,
-            timeoutMsg,
-        });
-        E2ELogger.info('assertions', `✓ Element not displayed: ${selector}`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" to be hidden`,
-            selector,
-            timeoutMs: timeout,
-            startTime,
-            extraLines: [`TimeoutMessage: ${timeoutMsg}`],
-        });
-    }
-}
-
-/**
- * Asserts that an element exists in the DOM (regardless of visibility).
- *
- * @param selector - CSS selector for the element
- * @param options - Optional configuration
- */
-export async function expectElementExists(selector: string, options: { timeout?: number } = {}): Promise<void> {
-    const { timeout = 5000 } = options;
-    const element = await $(selector);
-    const startTime = Date.now();
-    const timeoutMsg = `Element '${selector}' did not exist within ${timeout}ms`;
-
-    try {
-        await element.waitForExist({
-            timeout,
-            timeoutMsg,
-        });
-        E2ELogger.info('assertions', `✓ Element exists: ${selector}`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" to exist`,
-            selector,
-            timeoutMs: timeout,
-            startTime,
-            extraLines: [`TimeoutMessage: ${timeoutMsg}`],
-        });
-    }
-}
 
 // =============================================================================
 // Tab/Selection State Assertions
@@ -464,162 +367,13 @@ export async function expectWindowCount(expectedCount: number, options: { timeou
     }
 }
 
-/**
- * Asserts that a new window has been opened (count increased by at least 1).
- *
- * @param initialCount - The initial window count before the action
- */
-export async function expectNewWindowOpened(initialCount: number, options: { timeout?: number } = {}): Promise<void> {
-    const { timeout = 5000 } = options;
-    const startTime = Date.now();
-    let lastKnownCount: number | null = null;
-
-    try {
-        await browser.waitUntil(
-            async () => {
-                const handles = await browser.getWindowHandles();
-                lastKnownCount = handles.length;
-                return handles.length > initialCount;
-            },
-            {
-                timeout,
-                timeoutMsg: `No new window opened. Initial count: ${initialCount}`,
-            }
-        );
-
-        E2ELogger.info('assertions', `✓ New window opened (was ${initialCount})`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected a new window to open (initial count: ${initialCount})`,
-            timeoutMs: timeout,
-            startTime,
-            extraLines: [`CurrentWindowCount: ${lastKnownCount ?? 'unknown'}`],
-        });
-    }
-}
-
 // =============================================================================
 // Toggle/Checkbox Assertions
 // =============================================================================
 
-/**
- * Asserts that a toggle switch is in the expected state.
- *
- * @param toggleTestId - The data-testid of the toggle
- * @param expectedState - Whether it should be checked/enabled
- */
-export async function expectToggleState(
-    toggleTestId: string,
-    expectedState: boolean,
-    options: { timeout?: number } = {}
-): Promise<void> {
-    const { timeout = 5000 } = options;
-    const selector = `[data-testid="${toggleTestId}"]`;
-    const toggle = await $(selector);
-    const startTime = Date.now();
-    let ariaChecked: string | null = null;
-    let isChecked: string | null = null;
-    let className: string | null = null;
-    let actualState: boolean | null = null;
-
-    try {
-        await toggle.waitForDisplayed({ timeout });
-
-        // Toggles may use 'checked', 'aria-checked', or a class
-        ariaChecked = await toggle.getAttribute('aria-checked');
-        isChecked = await toggle.getAttribute('checked');
-        className = await toggle.getAttribute('class');
-
-        actualState =
-            ariaChecked === 'true' || isChecked !== null || (className && className.includes('checked')) || false;
-
-        expect(actualState).toBe(expectedState);
-        E2ELogger.info('assertions', `✓ Toggle ${toggleTestId}: ${expectedState ? 'ON' : 'OFF'}`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected toggle "${toggleTestId}" to be ${expectedState ? 'ON' : 'OFF'}`,
-            selector,
-            timeoutMs: timeout,
-            startTime,
-            extraLines: [
-                `AriaChecked: ${ariaChecked ?? 'null'}`,
-                `CheckedAttribute: ${isChecked ?? 'null'}`,
-                `ClassName: ${className ?? 'null'}`,
-                `ResolvedState: ${actualState === null ? 'unknown' : actualState ? 'ON' : 'OFF'}`,
-            ],
-        });
-    }
-}
-
 // =============================================================================
 // Text Content Assertions
 // =============================================================================
-
-/**
- * Asserts that an element contains the expected text.
- *
- * @param selector - CSS selector for the element
- * @param expectedText - Text that should be present (can be partial)
- */
-export async function expectElementContainsText(
-    selector: string,
-    expectedText: string,
-    options: { timeout?: number } = {}
-): Promise<void> {
-    const { timeout = 5000 } = options;
-    const element = await $(selector);
-    const startTime = Date.now();
-    let actualText: string | null = null;
-
-    try {
-        await element.waitForDisplayed({ timeout });
-        actualText = await element.getText();
-
-        expect((actualText ?? '').toLowerCase()).toContain(expectedText.toLowerCase());
-        E2ELogger.info('assertions', `✓ Element contains text: "${expectedText}"`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" to contain text "${expectedText}"`,
-            selector,
-            timeoutMs: timeout,
-            startTime,
-            extraLines: [`ActualText: "${formatTextPreview(actualText)}"`],
-        });
-    }
-}
-
-/**
- * Asserts that an element has exactly the expected text.
- *
- * @param selector - CSS selector for the element
- * @param expectedText - Exact text expected
- */
-export async function expectElementText(
-    selector: string,
-    expectedText: string,
-    options: { timeout?: number } = {}
-): Promise<void> {
-    const { timeout = 5000 } = options;
-    const element = await $(selector);
-    const startTime = Date.now();
-    let actualText: string | null = null;
-
-    try {
-        await element.waitForDisplayed({ timeout });
-        actualText = await element.getText();
-
-        expect(actualText).toBe(expectedText);
-        E2ELogger.info('assertions', `✓ Element text: "${expectedText}"`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" text to be "${expectedText}"`,
-            selector,
-            timeoutMs: timeout,
-            startTime,
-            extraLines: [`ActualText: "${formatTextPreview(actualText)}"`],
-        });
-    }
-}
 
 // =============================================================================
 // URL/Navigation Assertions
@@ -641,176 +395,6 @@ export async function expectUrlHash(expectedHash: string): Promise<void> {
         return throwEnhancedAssertionError(error, {
             baseMessage: `Expected URL to contain hash "${expectedHash}"`,
             extraLines: [`ActualUrl: ${url ?? 'unknown'}`],
-        });
-    }
-}
-
-/**
- * Asserts that the current URL contains a substring.
- *
- * @param expectedSubstring - Substring to check for
- */
-export async function expectUrlContains(expectedSubstring: string): Promise<void> {
-    let url: string | null = null;
-
-    try {
-        url = await browser.getUrl();
-        expect(url).toContain(expectedSubstring);
-        E2ELogger.info('assertions', `✓ URL contains: ${expectedSubstring}`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected URL to contain "${expectedSubstring}"`,
-            extraLines: [`ActualUrl: ${url ?? 'unknown'}`],
-        });
-    }
-}
-
-// =============================================================================
-// Toast Assertions
-// =============================================================================
-
-/**
- * Waits for a toast notification to appear and optionally verifies its content.
- *
- * @param options - Configuration options
- * @param options.selector - Custom toast selector (default: [data-testid="update-toast"])
- * @param options.containsText - Optional text the toast should contain
- * @param options.timeout - Timeout in ms (default: 5000)
- */
-export async function expectToastDisplayed(
-    options: { selector?: string; containsText?: string; timeout?: number } = {}
-): Promise<void> {
-    const { selector = '[data-testid="update-toast"]', containsText, timeout = 5000 } = options;
-    const toast = await $(selector);
-    const startTime = Date.now();
-    let actualText: string | null = null;
-
-    try {
-        await toast.waitForDisplayed({ timeout });
-        await expect(toast).toBeDisplayed();
-
-        if (containsText) {
-            actualText = await toast.getText();
-            expect((actualText ?? '').toLowerCase()).toContain(containsText.toLowerCase());
-        }
-
-        E2ELogger.info('assertions', `✓ Toast displayed${containsText ? `: "${containsText}"` : ''}`);
-    } catch (error) {
-        const extraLines = containsText
-            ? [`ExpectedText: "${containsText}"`, `ActualText: "${formatTextPreview(actualText)}"`]
-            : undefined;
-        return throwEnhancedAssertionError(error, {
-            baseMessage: containsText
-                ? `Expected toast "${selector}" to contain text "${containsText}"`
-                : `Expected toast "${selector}" to be displayed`,
-            selector,
-            timeoutMs: timeout,
-            startTime,
-            extraLines,
-        });
-    }
-}
-
-// =============================================================================
-// CSS Property Assertions
-// =============================================================================
-
-/**
- * Asserts that an element has a specific CSS property value.
- *
- * @param selector - CSS selector for the element
- * @param property - CSS property name
- * @param expectedValue - Expected value (can be partial match)
- */
-export async function expectCssProperty(selector: string, property: string, expectedValue: string): Promise<void> {
-    const element = await $(selector);
-    let cssValue: string | null = null;
-
-    try {
-        const cssProperty = await element.getCSSProperty(property);
-        cssValue = cssProperty.value;
-
-        expect(cssValue).toContain(expectedValue);
-        E2ELogger.info('assertions', `✓ CSS ${property}: ${expectedValue}`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" CSS ${property} to contain "${expectedValue}"`,
-            selector,
-            extraLines: [`ActualValue: ${cssValue ?? 'unknown'}`],
-        });
-    }
-}
-
-// =============================================================================
-// Attribute Assertions
-// =============================================================================
-
-/**
- * Asserts that an element has a specific attribute value.
- *
- * @param selector - CSS selector for the element
- * @param attribute - Attribute name
- * @param expectedValue - Expected value
- */
-export async function expectAttribute(selector: string, attribute: string, expectedValue: string): Promise<void> {
-    const element = await $(selector);
-    let actualValue: string | null = null;
-
-    try {
-        actualValue = await element.getAttribute(attribute);
-        expect(actualValue).toBe(expectedValue);
-        E2ELogger.info('assertions', `✓ Attribute ${attribute}="${expectedValue}"`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" attribute ${attribute} to be "${expectedValue}"`,
-            selector,
-            extraLines: [`ActualValue: ${actualValue ?? 'null'}`],
-        });
-    }
-}
-
-/**
- * Asserts that an element has a class.
- *
- * @param selector - CSS selector for the element
- * @param className - Class name to check for
- */
-export async function expectHasClass(selector: string, className: string): Promise<void> {
-    const element = await $(selector);
-    let classes: string | null = null;
-
-    try {
-        classes = await element.getAttribute('class');
-        expect(classes).toContain(className);
-        E2ELogger.info('assertions', `✓ Has class: ${className}`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" to have class "${className}"`,
-            selector,
-            extraLines: [`ActualClasses: ${classes ?? 'null'}`],
-        });
-    }
-}
-
-/**
- * Asserts that an element does NOT have a class.
- *
- * @param selector - CSS selector for the element
- * @param className - Class name that should be absent
- */
-export async function expectNotHasClass(selector: string, className: string): Promise<void> {
-    const element = await $(selector);
-    let classes: string | null = null;
-
-    try {
-        classes = await element.getAttribute('class');
-        expect(classes).not.toContain(className);
-        E2ELogger.info('assertions', `✓ Does not have class: ${className}`);
-    } catch (error) {
-        return throwEnhancedAssertionError(error, {
-            baseMessage: `Expected element "${selector}" to not have class "${className}"`,
-            selector,
-            extraLines: [`ActualClasses: ${classes ?? 'null'}`],
         });
     }
 }

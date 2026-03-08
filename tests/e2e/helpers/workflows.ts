@@ -10,6 +10,8 @@
 /// <reference path="./wdio-electron.d.ts" />
 
 import { browser } from '@wdio/globals';
+
+import type { WdioElement } from './wdio-electron';
 import { E2ELogger } from './logger';
 import { testLogger } from './testLogger';
 import { E2E_TIMING } from './e2eConstants';
@@ -29,35 +31,6 @@ import {
     openOptionsWindowViaHotkey,
 } from './optionsWindowActions';
 import { isMacOS } from './platform';
-
-type WorkflowsElement = {
-    isDisplayed(): Promise<boolean>;
-    isExisting(): Promise<boolean>;
-    waitForDisplayed(options?: { timeout?: number; timeoutMsg?: string; reverse?: boolean }): Promise<void>;
-    waitForExist(options?: { timeout?: number; timeoutMsg?: string }): Promise<void>;
-    click(): Promise<void>;
-    getAttribute(attr: string): Promise<string | null>;
-    parentElement(): Promise<WorkflowsElement>;
-    $(selector: string): Promise<WorkflowsElement>;
-};
-
-type WorkflowsBrowser = {
-    $(selector: string): Promise<WorkflowsElement>;
-    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
-    waitUntil<T>(condition: () => Promise<T> | T, options?: { timeout?: number; timeoutMsg?: string }): Promise<T>;
-    keys(value: string | string[]): Promise<void>;
-    getWindowHandles(): Promise<string[]>;
-    switchToWindow(handle: string): Promise<void>;
-    closeWindow(): Promise<void>;
-    electron: {
-        execute<T, A extends unknown[]>(
-            fn: (electron: typeof import('electron'), ...args: A) => T,
-            ...args: A
-        ): Promise<T>;
-    };
-};
-
-const workflowsBrowser = browser as unknown as WorkflowsBrowser;
 
 // =============================================================================
 // Options Window Workflows
@@ -85,7 +58,7 @@ export async function withOptionsWindowViaMenu<T>(action: () => Promise<T>): Pro
     await switchToOptionsWindow();
     const optionsWindowReady = await waitForUIState(
         async () => {
-            const content = await workflowsBrowser.$('[data-testid="options-content"]');
+            const content = (await browser.$('[data-testid="options-content"]')) as unknown as WdioElement;
             return await content.isDisplayed();
         },
         { description: 'Options window ready' }
@@ -150,7 +123,7 @@ export async function withOptionsTab<T>(tabName: 'settings' | 'about', action: (
         await navigateToOptionsTab(tabName);
         const tabBecameActive = await waitForUIState(
             async () => {
-                const tab = await workflowsBrowser.$(`[data-testid="options-tab-${tabName}"]`);
+                const tab = (await browser.$(`[data-testid="options-tab-${tabName}"]`)) as unknown as WdioElement;
                 return (await tab.getAttribute('aria-selected')) === 'true';
             },
             { description: `Options tab ${tabName} active` }
@@ -180,7 +153,7 @@ export async function changeTheme(theme: 'light' | 'dark' | 'system'): Promise<v
     E2ELogger.info('workflows', `Changing theme to: ${theme}`);
 
     await withOptionsWindowViaMenu(async () => {
-        const themeCard = await workflowsBrowser.$(Selectors.themeCard(theme));
+        const themeCard = (await browser.$(Selectors.themeCard(theme))) as unknown as WdioElement;
         await themeCard.waitForDisplayed({ timeout: 5000 });
         await themeCard.click();
         await waitForUIState(
@@ -207,7 +180,7 @@ export async function changeTheme(theme: 'light' | 'dark' | 'system'): Promise<v
  * await changeTheme(original); // Restore
  */
 export async function changeThemeWithRestore(newTheme: 'light' | 'dark' | 'system'): Promise<'light' | 'dark'> {
-    const originalTheme = (await workflowsBrowser.execute(() => {
+    const originalTheme = (await browser.execute(() => {
         return document.documentElement.getAttribute('data-theme');
     })) as 'light' | 'dark';
 
@@ -233,16 +206,16 @@ export async function recordHotkey(hotkeyId: string, keys: string[]): Promise<vo
     E2ELogger.info('workflows', `Recording hotkey for ${hotkeyId}: ${keys.join('+')}`);
 
     // Find the hotkey row and click the accelerator display
-    const row = await workflowsBrowser.$(`[data-testid="hotkey-toggle-${hotkeyId}"]`);
+    const row = (await browser.$(`[data-testid="hotkey-toggle-${hotkeyId}"]`)) as unknown as WdioElement;
     const parentRow = await row.parentElement();
     const acceleratorDisplay = await parentRow.$('.keycap-container');
 
     await acceleratorDisplay.click();
 
     // Wait for recording mode to activate
-    await workflowsBrowser.waitUntil(
+    await browser.waitUntil(
         async () => {
-            const prompt = await workflowsBrowser.$('.recording-prompt');
+            const prompt = (await browser.$('.recording-prompt')) as unknown as WdioElement;
             return await prompt.isDisplayed();
         },
         { timeout: 2000, timeoutMsg: 'Recording mode did not activate' }
@@ -251,11 +224,11 @@ export async function recordHotkey(hotkeyId: string, keys: string[]): Promise<vo
     // Press the new key combination
     await waitForIPCRoundTrip(
         async () => {
-            await workflowsBrowser.keys(keys);
+            await browser.keys(keys);
         },
         {
             verification: async () => {
-                const prompt = await workflowsBrowser.$('.recording-prompt');
+                const prompt = (await browser.$('.recording-prompt')) as unknown as WdioElement;
                 const exists = await prompt.isExisting();
                 if (!exists) return true;
                 return !(await prompt.isDisplayed());
@@ -290,7 +263,7 @@ export async function recordHotkeyViaOptions(hotkeyId: string, keys: string[]): 
 export async function resetHotkeyToDefault(hotkeyId: string): Promise<void> {
     E2ELogger.info('workflows', `Resetting hotkey: ${hotkeyId}`);
 
-    const row = await workflowsBrowser.$(`[data-testid="hotkey-toggle-${hotkeyId}"]`);
+    const row = (await browser.$(`[data-testid="hotkey-toggle-${hotkeyId}"]`)) as unknown as WdioElement;
     const parentRow = await row.parentElement();
     const resetButton = await parentRow.$('.reset-button');
 
@@ -330,7 +303,7 @@ export async function resetHotkeyToDefault(hotkeyId: string): Promise<void> {
  * await toggleSwitch('[data-testid="auto-update-toggle"]');
  */
 export async function toggleSwitch(toggleSelector: string): Promise<void> {
-    const toggle = await workflowsBrowser.$(toggleSelector);
+    const toggle = (await browser.$(toggleSelector)) as unknown as WdioElement;
     await toggle.waitForDisplayed({ timeout: 5000 });
 
     const wasChecked = (await toggle.getAttribute('aria-checked')) === 'true';
@@ -353,7 +326,7 @@ export async function toggleSwitch(toggleSelector: string): Promise<void> {
  * @param enabled - The desired state
  */
 export async function setToggleState(toggleSelector: string, enabled: boolean): Promise<void> {
-    const toggle = await workflowsBrowser.$(toggleSelector);
+    const toggle = (await browser.$(toggleSelector)) as unknown as WdioElement;
     await toggle.waitForDisplayed({ timeout: 5000 });
 
     const isCurrentlyEnabled = (await toggle.getAttribute('aria-checked')) === 'true';
@@ -383,7 +356,7 @@ export async function setToggleState(toggleSelector: string, enabled: boolean): 
  */
 export async function ensureSingleWindow(): Promise<void> {
     testLogger.breadcrumb('workflow', 'Ensuring single window state');
-    const handles = await workflowsBrowser.getWindowHandles();
+    const handles = await browser.getWindowHandles();
 
     if (handles.length === 0) {
         throw new Error('No window handles found while ensuring single window state');
@@ -396,8 +369,8 @@ export async function ensureSingleWindow(): Promise<void> {
         // Close all windows except the first (main window)
         for (let i = handles.length - 1; i > 0; i--) {
             try {
-                await workflowsBrowser.switchToWindow(handles[i]);
-                await workflowsBrowser.closeWindow();
+                await browser.switchToWindow(handles[i]);
+                await browser.closeWindow();
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 if (
@@ -416,7 +389,7 @@ export async function ensureSingleWindow(): Promise<void> {
             }
         }
 
-        const finalHandles = await workflowsBrowser.getWindowHandles();
+        const finalHandles = await browser.getWindowHandles();
         if (finalHandles.length > 1) {
             throw new Error(`[E2E] Failed to close extra windows. Remaining: ${finalHandles.length}`);
         }
@@ -426,7 +399,7 @@ export async function ensureSingleWindow(): Promise<void> {
         }
 
         // Switch back to main window
-        await workflowsBrowser.switchToWindow(finalHandles[0]);
+        await browser.switchToWindow(finalHandles[0]);
     }
 
     testLogger.breadcrumb('workflow', 'Single window state confirmed');
@@ -437,9 +410,9 @@ export async function ensureSingleWindow(): Promise<void> {
  * Switches to the main window (first window handle).
  */
 export async function switchToMainWindow(): Promise<void> {
-    const handles = await workflowsBrowser.getWindowHandles();
+    const handles = await browser.getWindowHandles();
     if (handles.length > 0) {
-        await workflowsBrowser.switchToWindow(handles[0]);
+        await browser.switchToWindow(handles[0]);
         E2ELogger.info('workflows', 'Switched to main window');
     }
 }
@@ -450,7 +423,7 @@ export async function switchToMainWindow(): Promise<void> {
  * @returns The number of open windows
  */
 export async function getWindowCount(): Promise<number> {
-    const handles = await workflowsBrowser.getWindowHandles();
+    const handles = await browser.getWindowHandles();
     return handles.length;
 }
 
@@ -469,21 +442,21 @@ export async function getWindowCount(): Promise<number> {
  * const optionsHandle = await openWindowViaMenu('menu-file-options');
  */
 export async function openWindowViaMenu(menuItemId: string): Promise<string> {
-    const initialHandles = await workflowsBrowser.getWindowHandles();
+    const initialHandles = await browser.getWindowHandles();
     const initialCount = initialHandles.length;
 
     await clickMenuItemById(menuItemId);
 
     // Wait for new window
-    await workflowsBrowser.waitUntil(
+    await browser.waitUntil(
         async () => {
-            const handles = await workflowsBrowser.getWindowHandles();
+            const handles = await browser.getWindowHandles();
             return handles.length > initialCount;
         },
         { timeout: 5000, timeoutMsg: `No new window opened after clicking ${menuItemId}` }
     );
 
-    const newHandles = await workflowsBrowser.getWindowHandles();
+    const newHandles = await browser.getWindowHandles();
     const newWindowHandle = newHandles.find((h) => !initialHandles.includes(h));
 
     E2ELogger.info('workflows', `✓ Opened window via menu: ${menuItemId}`);
@@ -513,7 +486,7 @@ export async function pressShortcut(modifierType: 'primary' | 'alt', ...keys: st
         modifier = 'Alt';
     }
 
-    await workflowsBrowser.keys([modifier, ...keys]);
+    await browser.keys([modifier, ...keys]);
     await waitForIpcDelay(E2E_TIMING.IPC_ROUND_TRIP);
 
     E2ELogger.info('workflows', `Pressed shortcut: ${modifier}+${keys.join('+')}`);
@@ -544,7 +517,7 @@ export async function pressComplexShortcut(modifiers: Array<'primary' | 'shift' 
         }
     });
 
-    await workflowsBrowser.keys([...modifierKeys, key]);
+    await browser.keys([...modifierKeys, key]);
     await waitForIpcDelay(E2E_TIMING.IPC_ROUND_TRIP);
 
     E2ELogger.info('workflows', `Pressed shortcut: ${modifierKeys.join('+')}+${key}`);
@@ -567,7 +540,7 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
 
     const keyCode = key.length === 1 ? key.toUpperCase() : key;
 
-    await workflowsBrowser.electron.execute(
+    await browser.electron.execute(
         (_electron, payload) => {
             const wm = (
                 global as { appContext?: { windowManager?: { getMainWindow?: () => Electron.BrowserWindow | null } } }
@@ -603,12 +576,12 @@ export async function pressNativeShortcut(modifiers: Array<'primary' | 'shift' |
  * @param timeout - Timeout in ms (default: 15000)
  */
 export async function waitForAppReady(timeout = 15000): Promise<void> {
-    const mainLayout = await workflowsBrowser.$(Selectors.mainLayout);
+    const mainLayout = (await browser.$(Selectors.mainLayout)) as unknown as WdioElement;
     await mainLayout.waitForExist({ timeout });
     const bridgeReady = await waitForUIState(
         async () => {
             try {
-                return await workflowsBrowser.execute(() => {
+                return await browser.execute(() => {
                     return typeof (window as { electronAPI?: unknown }).electronAPI !== 'undefined';
                 });
             } catch {
