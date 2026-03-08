@@ -32,7 +32,7 @@ Cover setup/registration, happy path, error handling, and edge cases.
 
 ## Canonical Example
 
-- `tests/unit/main/ipc/ThemeIpcHandler.test.ts` — `describe('ThemeIpcHandler', ...)` (lines 1-271)
+- `tests/unit/main/ipc/ThemeIpcHandler.test.ts` — `describe('ThemeIpcHandler', ...)`
     - Shows `vi.hoisted()` Electron mocking, shared factories, registration assertions, captured handler invocation, broadcast checks, and validation/error paths.
     - Pairs with `src/main/managers/ipc/ThemeIpcHandler.ts`.
 
@@ -43,9 +43,11 @@ Run with `npm run test:coordinated`.
 
 ## Running Unit and Related Tests
 
-- All unit tests: `npm run test`
+- Renderer unit tests: `npm run test`
 - Electron-focused unit tests: `npm run test:electron`
-- Single test: `npx vitest tests/unit/<path>`
+- All unit tests (renderer + electron): `npm run test && npm run test:electron`
+- Single renderer test: `npm run test -- tests/unit/renderer/<path>`
+- Single main/preload/shared test: `npm run test:electron -- tests/unit/<path>`
 - Watch mode: `npm run test:watch`
 - Coordinated tests: `npm run test:coordinated`
 

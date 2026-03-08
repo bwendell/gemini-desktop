@@ -29,7 +29,7 @@ For async initialization and subscriptions, use `AbortController` to prevent sta
 
 ## Canonical Example
 
-- `src/renderer/context/ThemeContext.tsx` — `ThemeProvider` and `useTheme` (lines 1-246)
+- `src/renderer/context/ThemeContext.tsx` — `ThemeProvider` and `useTheme`
     - Shows typed context API, `AbortController` guard, IPC subscription cleanup in `useEffect`, `useCallback` setter, and robust fallback/error handling.
     - Pattern aligns to preload `get → set → onChange` APIs.
 
