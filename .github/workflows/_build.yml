@@ -25,6 +25,9 @@ permissions: {}
 env:
     NODE_VERSION: '20'
     CI: true
+    npm_config_fetch_retries: '3'
+    npm_config_fetch_retry_mintimeout: '10000'
+    npm_config_fetch_retry_maxtimeout: '60000'
 
 jobs:
     build:
@@ -44,7 +47,12 @@ jobs:
                   cache: 'npm'
 
             - name: Install Dependencies
-              run: npm ci
+              uses: ./.github/actions/retry-command
+              with:
+                  command: npm ci --prefer-offline
+                  max_attempts: '3'
+                  initial_backoff_seconds: '10'
+                  backoff_multiplier: '2'
 
             - name: Build Frontend
               run: npm run build
