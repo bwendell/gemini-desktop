@@ -191,6 +191,9 @@ export function findGeminiElement(
 
     for (let i = 0; i < selectors.length; i++) {
         const selector = selectors[i];
+        if (!selector) {
+            continue;
+        }
         const element = document.querySelector(selector);
 
         if (element) {

@@ -340,8 +340,8 @@ export default class WindowManager extends EventEmitter {
         }
 
         // Clamp to valid range
-        const minZoom = ZOOM_LEVEL_STEPS[0];
-        const maxZoom = ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1];
+        const minZoom = ZOOM_LEVEL_STEPS[0] ?? 100;
+        const maxZoom = ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1] ?? minZoom;
         if (level <= minZoom) return minZoom;
         if (level >= maxZoom) return maxZoom;
 
@@ -425,11 +425,15 @@ export default class WindowManager extends EventEmitter {
                 this.setZoomLevel(nextStep);
             } else {
                 // Already at or above max, set to max
-                this.setZoomLevel(ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1]);
+                const maxStep = ZOOM_LEVEL_STEPS[ZOOM_LEVEL_STEPS.length - 1] ?? this._zoomLevel;
+                this.setZoomLevel(maxStep);
             }
         } else if (currentIndex < ZOOM_LEVEL_STEPS.length - 1) {
             // Move to next step
-            this.setZoomLevel(ZOOM_LEVEL_STEPS[currentIndex + 1]);
+            const nextStep = ZOOM_LEVEL_STEPS[currentIndex + 1];
+            if (nextStep !== undefined) {
+                this.setZoomLevel(nextStep);
+            }
         }
         // else: already at max, do nothing
     }
@@ -450,11 +454,15 @@ export default class WindowManager extends EventEmitter {
                 this.setZoomLevel(nextStep);
             } else {
                 // Already at or below min, set to min
-                this.setZoomLevel(ZOOM_LEVEL_STEPS[0]);
+                const minStep = ZOOM_LEVEL_STEPS[0] ?? this._zoomLevel;
+                this.setZoomLevel(minStep);
             }
         } else if (currentIndex > 0) {
             // Move to previous step
-            this.setZoomLevel(ZOOM_LEVEL_STEPS[currentIndex - 1]);
+            const previousStep = ZOOM_LEVEL_STEPS[currentIndex - 1];
+            if (previousStep !== undefined) {
+                this.setZoomLevel(previousStep);
+            }
         }
         // else: already at min, do nothing
     }

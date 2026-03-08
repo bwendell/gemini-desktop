@@ -8,9 +8,14 @@
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "strict": true,
-        "noImplicitAny": false,
+        "noImplicitAny": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitReturns": true,
         "baseUrl": ".",
         "paths": {
             "@shared/*": ["src/shared/*"]

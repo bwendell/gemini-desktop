@@ -339,7 +339,7 @@ export function getActivationSignalStats(): {
         trackingEnabled: TEST_ONLY_SIGNAL_TRACKING_ENABLED,
         totalSignals: signals.length,
         signalsByShortcut,
-        lastSignalTime: signals.length > 0 ? signals[signals.length - 1].timestamp : null,
+        lastSignalTime: signals.length > 0 ? (signals[signals.length - 1]?.timestamp ?? null) : null,
         signals: Object.freeze(signals),
     };
 }
