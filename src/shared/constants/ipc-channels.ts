@@ -98,6 +98,12 @@ export const IPC_CHANNELS = {
     RESPONSE_NOTIFICATIONS_GET_ENABLED: 'response-notifications:get-enabled',
     RESPONSE_NOTIFICATIONS_SET_ENABLED: 'response-notifications:set-enabled',
 
+    // Launch at Startup
+    LAUNCH_AT_STARTUP_GET: 'launch-at-startup:get',
+    LAUNCH_AT_STARTUP_SET: 'launch-at-startup:set',
+    START_MINIMIZED_GET: 'start-minimized:get',
+    START_MINIMIZED_SET: 'start-minimized:set',
+
     // Text Prediction (local LLM inference)
     TEXT_PREDICTION_GET_ENABLED: 'text-prediction:get-enabled',
     TEXT_PREDICTION_SET_ENABLED: 'text-prediction:set-enabled',

@@ -24,5 +24,6 @@ export { AutoUpdateIpcHandler } from './AutoUpdateIpcHandler';
 export { QuickChatIpcHandler } from './QuickChatIpcHandler';
 export { TextPredictionIpcHandler } from './TextPredictionIpcHandler';
 export { ResponseNotificationIpcHandler } from './ResponseNotificationIpcHandler';
+export { LaunchAtStartupIpcHandler } from './LaunchAtStartupIpcHandler';
 export { ExportIpcHandler } from './ExportIpcHandler';
 export { TabStateIpcHandler } from './TabStateIpcHandler';

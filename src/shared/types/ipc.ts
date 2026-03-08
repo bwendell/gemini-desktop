@@ -284,6 +284,34 @@ export interface ElectronAPI {
     setResponseNotificationsEnabled: (enabled: boolean) => void;
 
     // =========================================================================
+    // Launch at Startup API
+    // =========================================================================
+
+    /**
+     * Get whether launch at startup is enabled.
+     * @returns Promise resolving to the enabled state
+     */
+    getLaunchAtStartup: () => Promise<boolean>;
+
+    /**
+     * Set whether launch at startup is enabled.
+     * @param enabled - Whether to enable launch at startup
+     */
+    setLaunchAtStartup: (enabled: boolean) => void;
+
+    /**
+     * Get whether start minimized to tray is enabled.
+     * @returns Promise resolving to the enabled state
+     */
+    getStartMinimized: () => Promise<boolean>;
+
+    /**
+     * Set whether start minimized to tray is enabled.
+     * @param enabled - Whether to enable start minimized to tray
+     */
+    setStartMinimized: (enabled: boolean) => void;
+
+    // =========================================================================
     // Text Prediction API
     // =========================================================================
 
