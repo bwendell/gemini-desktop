@@ -80,9 +80,9 @@ describe('Error Boundary Recovery E2E', () => {
             // We use the E2E test hook which sets the error boundary state
             // This is the same state that would be set if a real error occurred
             await browser.execute(() => {
-                // @ts-expect-error - E2E testing hook exposed by ErrorBoundary
+                // @ts-expect-error: ErrorBoundary registers this dynamic trigger on window for E2E only
                 if (window.__ERROR_BOUNDARY_TRIGGER_OPTIONS__) {
-                    // @ts-expect-error
+                    // @ts-expect-error: ErrorBoundary registers this dynamic trigger on window for E2E only
                     window.__ERROR_BOUNDARY_TRIGGER_OPTIONS__();
                 } else {
                     throw new Error('Options error boundary test trigger not found');
@@ -105,7 +105,7 @@ describe('Error Boundary Recovery E2E', () => {
         it('should show reload button when error occurs in Options', async () => {
             // Trigger error
             await browser.execute(() => {
-                // @ts-expect-error
+                // @ts-expect-error: ErrorBoundary registers this dynamic trigger on window for E2E only
                 window.__ERROR_BOUNDARY_TRIGGER_OPTIONS__?.();
             });
 
@@ -127,7 +127,7 @@ describe('Error Boundary Recovery E2E', () => {
         it('should recover when user clicks Reload button after Options error', async () => {
             // 1. Trigger error
             await browser.execute(() => {
-                // @ts-expect-error
+                // @ts-expect-error: ErrorBoundary registers this dynamic trigger on window for E2E only
                 window.__ERROR_BOUNDARY_TRIGGER_OPTIONS__?.();
             });
 
@@ -159,7 +159,7 @@ describe('Error Boundary Recovery E2E', () => {
         it('should display expandable error details', async () => {
             // Trigger error
             await browser.execute(() => {
-                // @ts-expect-error
+                // @ts-expect-error: ErrorBoundary registers this dynamic trigger on window for E2E only
                 window.__ERROR_BOUNDARY_TRIGGER_OPTIONS__?.();
             });
 

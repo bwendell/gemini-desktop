@@ -98,7 +98,7 @@ export class UpdateToastPage extends BasePage {
     async showAvailable(version: string): Promise<void> {
         this.log(`Showing available toast for version ${version}`);
         await this.browser.execute((v: string) => {
-            // @ts-expect-error - test helper
+            // @ts-expect-error: update toast test helper is injected on window in E2E runtime
             window.__testUpdateToast.showAvailable(v);
         }, version);
         await waitForUIState(async () => await this.isDisplayed(), {
@@ -114,7 +114,7 @@ export class UpdateToastPage extends BasePage {
     async showDownloaded(version: string): Promise<void> {
         this.log(`Showing downloaded toast for version ${version}`);
         await this.browser.execute((v: string) => {
-            // @ts-expect-error - test helper
+            // @ts-expect-error: update toast test helper is injected on window in E2E runtime
             window.__testUpdateToast.showDownloaded(v);
         }, version);
         await waitForUIState(async () => await this.isDisplayed(), {
@@ -130,7 +130,7 @@ export class UpdateToastPage extends BasePage {
     async showError(errorMessage: string | null): Promise<void> {
         this.log(`Showing error toast: ${errorMessage}`);
         await this.browser.execute((msg: string | null) => {
-            // @ts-expect-error - test helper
+            // @ts-expect-error: update toast test helper is injected on window in E2E runtime
             window.__testUpdateToast.showError(msg);
         }, errorMessage);
         await waitForUIState(async () => await this.isDisplayed(), {
@@ -146,7 +146,7 @@ export class UpdateToastPage extends BasePage {
     async showProgress(percent: number): Promise<void> {
         this.log(`Showing progress toast: ${percent}%`);
         await this.browser.execute((p: number) => {
-            // @ts-expect-error - test helper
+            // @ts-expect-error: update toast test helper is injected on window in E2E runtime
             window.__testUpdateToast.showProgress(p);
         }, percent);
         await waitForUIState(async () => await this.isDisplayed(), {
@@ -162,7 +162,7 @@ export class UpdateToastPage extends BasePage {
     async showNotAvailable(currentVersion: string): Promise<void> {
         this.log(`Showing not-available toast for version ${currentVersion}`);
         await this.browser.execute((v: string) => {
-            // @ts-expect-error - test helper
+            // @ts-expect-error: update toast test helper is injected on window in E2E runtime
             window.__testUpdateToast.showNotAvailable(v);
         }, currentVersion);
         await waitForUIState(async () => await this.isDisplayed(), {
@@ -191,9 +191,9 @@ export class UpdateToastPage extends BasePage {
     async hide(): Promise<void> {
         this.log('Hiding toast');
         await this.browser.execute(() => {
-            // @ts-expect-error - test helper
+            // @ts-expect-error: update toast test helper is injected on window in E2E runtime
             if (window.__testUpdateToast?.hide) {
-                // @ts-expect-error
+                // @ts-expect-error: update toast test helper is injected on window in E2E runtime
                 window.__testUpdateToast.hide();
             }
         });
@@ -424,7 +424,7 @@ export class UpdateToastPage extends BasePage {
     async showBadge(version: string): Promise<void> {
         this.log(`Showing badge for version ${version}`);
         await this.browser.execute((v: string) => {
-            // @ts-expect-error - electronAPI exposed at runtime
+            // @ts-expect-error: test-only dev helper is exposed on electronAPI at runtime
             window.electronAPI.devShowBadge(v);
         }, version);
     }
@@ -435,7 +435,7 @@ export class UpdateToastPage extends BasePage {
     async clearBadge(): Promise<void> {
         this.log('Clearing badge');
         await this.browser.execute(() => {
-            // @ts-expect-error - electronAPI exposed at runtime
+            // @ts-expect-error: test-only dev helper is exposed on electronAPI at runtime
             window.electronAPI.devClearBadge();
         });
     }
@@ -458,7 +458,7 @@ export class UpdateToastPage extends BasePage {
      * Get the tray tooltip text.
      */
     async getTrayTooltip(): Promise<string> {
-        // @ts-expect-error - electronAPI exposed at runtime
+        // @ts-expect-error: test-only helper is exposed on electronAPI at runtime
         return this.browser.execute(() => window.electronAPI.getTrayTooltip());
     }
 

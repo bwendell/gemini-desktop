@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         const triggerId = this.props.testId || 'app';
         const triggerName = `__ERROR_BOUNDARY_TRIGGER_${triggerId.toUpperCase()}__`;
 
-        // @ts-expect-error - E2E testing hook
+        // @ts-expect-error: dynamic E2E trigger key is attached to window only in test runtime
         window[triggerName] = () => {
             this.setState({
                 hasError: true,
@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         // Cleanup E2E test trigger
         const triggerId = this.props.testId || 'app';
         const triggerName = `__ERROR_BOUNDARY_TRIGGER_${triggerId.toUpperCase()}__`;
-        // @ts-expect-error
+        // @ts-expect-error: dynamic E2E trigger key is attached to window only in test runtime
         delete window[triggerName];
     }
 
@@ -89,7 +89,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                 <pre data-testid="error-fallback-message">{this.state.error.message}</pre>
                             </details>
                         )}
-                        <button onClick={() => window.location.reload()} data-testid="error-fallback-reload">
+                        <button type="button" onClick={() => window.location.reload()} data-testid="error-fallback-reload">
                             Reload Application
                         </button>
                     </div>

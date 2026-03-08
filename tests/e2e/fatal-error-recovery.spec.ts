@@ -72,9 +72,9 @@ describe('Fatal Error Recovery E2E', () => {
             // Note: We use a global function instead of IPC to avoid test environment flakiness
             // This still tests the error boundary UI rendering and recovery flow
             await browser.execute(() => {
-                // @ts-expect-error
+                // @ts-expect-error: GeminiErrorBoundary registers this dynamic trigger on window for E2E only
                 if (window.__GEMINI_TRIGGER_FATAL_ERROR__) {
-                    // @ts-expect-error
+                    // @ts-expect-error: GeminiErrorBoundary registers this dynamic trigger on window for E2E only
                     window.__GEMINI_TRIGGER_FATAL_ERROR__();
                 } else {
                     throw new Error('Global error trigger not found');

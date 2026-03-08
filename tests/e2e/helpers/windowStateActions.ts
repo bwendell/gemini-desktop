@@ -35,21 +35,6 @@ export interface WindowState {
     isDestroyed: boolean;
 }
 
-type ElectronBrowserWindow = {
-    isMaximized(): boolean;
-    isMinimized(): boolean;
-    isFullScreen(): boolean;
-    isVisible(): boolean;
-    isDestroyed(): boolean;
-    minimize(): void;
-    unmaximize(): void;
-    restore(): void;
-    show(): void;
-    hide(): void;
-    focus(): void;
-    setFullScreen(fullscreen: boolean): void;
-};
-
 // ============================================================================
 // State Query Functions
 // ============================================================================

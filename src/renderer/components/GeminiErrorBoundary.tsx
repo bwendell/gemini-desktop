@@ -44,7 +44,7 @@ export class GeminiErrorBoundary extends Component<GeminiErrorBoundaryProps, Gem
         }
 
         // Expose direct trigger for E2E tests (bypasses IPC channel complexity)
-        // @ts-expect-error
+        // @ts-expect-error: dynamic E2E trigger key is attached to window only in test runtime
         window.__GEMINI_TRIGGER_FATAL_ERROR__ = () => {
             this.setState({
                 hasError: true,
@@ -95,7 +95,9 @@ export class GeminiErrorBoundary extends Component<GeminiErrorBoundaryProps, Gem
                                 <pre>{this.state.error.message}</pre>
                             </details>
                         )}
-                        <button onClick={this.handleReload}>Reload</button>
+                        <button type="button" onClick={this.handleReload}>
+                            Reload
+                        </button>
                     </div>
                 </div>
             );

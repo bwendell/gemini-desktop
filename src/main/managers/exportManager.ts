@@ -5,7 +5,6 @@ import { createLogger } from '../utils/logger';
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import { CHAT_EXTRACTION_SCRIPT } from '../utils/chatExtraction';
 import TurndownService from 'turndown';
-// @ts-ignore
 import { gfm } from 'turndown-plugin-gfm';
 import { marked } from 'marked';
 

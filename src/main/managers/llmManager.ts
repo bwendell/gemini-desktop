@@ -27,7 +27,6 @@ async function importNodeLlamaCpp(): Promise<typeof import('node-llama-cpp')> {
         return import('node-llama-cpp');
     }
     // Using Function constructor prevents TypeScript from transpiling this to require()
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     const dynamicImport = new Function('specifier', 'return import(specifier)');
     return dynamicImport('node-llama-cpp');
 }

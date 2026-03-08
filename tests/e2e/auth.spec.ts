@@ -221,7 +221,7 @@ describe('Authentication Flow', () => {
         await browser.url('https://accounts.google.com');
 
         // 5. Verify cookie is present in Main Window's session
-        let testCookie;
+        let testCookie: Awaited<ReturnType<typeof browser.getCookies>>[number] | undefined;
         await browser.waitUntil(
             async () => {
                 const cookies = await browser.getCookies(['e2e-test-cookie']);
@@ -235,7 +235,7 @@ describe('Authentication Flow', () => {
         );
 
         expect(testCookie).toBeDefined();
-        // @ts-expect-error
+        // @ts-expect-error: cookie lookup is intentionally assigned in waitUntil callback before assertion
         expect(testCookie.value).toBe('shared-session-verified');
 
         // Cleanup
