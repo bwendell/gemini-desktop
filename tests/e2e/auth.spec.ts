@@ -235,7 +235,9 @@ describe('Authentication Flow', () => {
         );
 
         expect(testCookie).toBeDefined();
-        // @ts-expect-error: cookie lookup is intentionally assigned in waitUntil callback before assertion
+        if (!testCookie) {
+            throw new Error('testCookie should be defined after waitUntil');
+        }
         expect(testCookie.value).toBe('shared-session-verified');
 
         // Cleanup
