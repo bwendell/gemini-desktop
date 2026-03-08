@@ -178,3 +178,45 @@ When commands, boundaries, or patterns change, the nearest AGENTS.md **must** be
 - **No Node.js in renderer:** All Node.js access goes through the preload bridge.
 - **Header stripping scope:** `X-Frame-Options` stripping applies only to `gemini.google.com`.
 - **Cross-platform:** Must work on Windows (x64 and ARM64), macOS (Intel + ARM64), and Linux.
+
+---
+
+## 🛑 Anti-Patterns & Deprecated Practices
+
+AI agents should actively avoid the following patterns, as they violate the project's architecture or lead to bugs:
+
+- **DO NOT** use global mutable state for managers (e.g., `let windowManager = new WindowManager()`). Always use dependency injection via `ApplicationContext` in `main.ts`.
+- **DO NOT** use `browser.pause()` in E2E tests for waiting. Always use explicit conditions with `browser.waitUntil()` or similar deterministic waits.
+- **DO NOT** add Node.js APIs (like `fs`, `path`, `child_process`) directly into the Renderer process. They must be exposed safely via the `preload.ts` bridge and typed in IPC channels.
+- **DO NOT** duplicate WDIO configurations. Standalone config files should extend `wdio.base.conf.js`.
+- **DO NOT** bypass `GeminiErrorBoundary` for risky UI sections; always ensure appropriate React error boundaries are established.
+
+---
+
+## 🧠 AI Agent Directives
+
+If you are an AI assistant (like GitHub Copilot, Cursor, Windsurf, or a custom agent), adhere to these directives:
+
+1. **Chain of Thought:** Always think step-by-step. Outline a brief implementation plan before generating, editing, or deleting code.
+2. **Context First:** Refer to `docs/ARCHITECTURE.md` before making structural changes to the main process or renderer integration.
+3. **Verify Constraints:** Identify edge cases and ensure safety constraints (no telemetry, strict CSP, Node isolation) are met before modifying any file.
+4. **Holistic Validation:** When modifying code, also consider the impact on accompanying test files (`tests/unit`, `tests/e2e`, `tests/coordinated`).
+
+---
+
+## 🌐 Domain Context
+
+- **Gemini Web App:** The app embeds `https://gemini.google.com/app` in an iframe after stripping `X-Frame-Options` headers.
+- **Quick Chat:** Spotlight-style floating window activated by global hotkey (`Ctrl+Shift+Alt+Space`) for quick prompts.
+- **Peek and Hide:** Instantly hide app to system tray via hotkey (`Ctrl+Shift+Space`).
+- **Session Persistence:** Google auth sessions stored in Chromium's encrypted cookie storage via `persist:gemini` partition.
+
+---
+
+## 🔒 Important Constraints
+
+- **No telemetry:** The app collects zero analytics or usage data.
+- **Google-only connections:** Only connects to `*.google.com` domains.
+- **No Node.js in renderer:** All Node.js access goes through the preload bridge.
+- **Header stripping scope:** `X-Frame-Options` stripping applies only to `gemini.google.com`.
+- **Cross-platform:** Must work on Windows (x64 and ARM64), macOS (Intel + ARM64), and Linux.
