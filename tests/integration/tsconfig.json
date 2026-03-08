@@ -1,0 +1,19 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "types": ["node", "mocha", "@wdio/globals/types"],
+        "moduleResolution": "bundler",
+        "skipLibCheck": true,
+        "strict": false,
+        "noImplicitAny": false,
+        "noUncheckedIndexedAccess": false
+    },
+    "include": [
+        "./**/*.integration.test.ts",
+        "./helpers/**/*.ts",
+        "./global.d.ts",
+        "../e2e/helpers/wdio-electron.d.ts"
+    ],
+    "exclude": ["../e2e/**", "../unit/**", "../coordinated/**"]
+}

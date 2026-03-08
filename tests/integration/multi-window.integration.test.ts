@@ -14,8 +14,7 @@ describe('Multi-Window Coordination (Quick Chat)', () => {
     it('should open Quick Chat window via Main Process invocation', async () => {
         // Invoke toggleQuickChat directly in Main Process via wdio-electron-service
         await browser.electron.execute(() => {
-            // @ts-expect-error - exposed in main.ts
-            (global as { appContext?: any }).appContext.windowManager.toggleQuickChat();
+            (global as any).appContext.windowManager.toggleQuickChat();
         });
 
         // Wait for second window handle
@@ -33,8 +32,12 @@ describe('Multi-Window Coordination (Quick Chat)', () => {
 
     it('should have correct title/url in the new window', async () => {
         const handles = await browser.getWindowHandles();
+        const quickChatHandle = handles[1];
+        if (!quickChatHandle) {
+            throw new Error('Quick Chat window handle not found');
+        }
         // Switch to the quick chat window (usually the new one)
-        await browser.switchToWindow(handles[1]);
+        await browser.switchToWindow(quickChatHandle);
 
         // Verify usage of 'quickchat' definition (could check URL or Title)
         // Since the title bar is custom or frameless, checking URL is robust.
@@ -45,16 +48,14 @@ describe('Multi-Window Coordination (Quick Chat)', () => {
     it('should close Quick Chat window via Main Process invocation', async () => {
         // Toggle again to close
         await browser.electron.execute(() => {
-            // @ts-expect-error
-            (global as { appContext?: any }).appContext.windowManager.toggleQuickChat();
+            (global as any).appContext.windowManager.toggleQuickChat();
         });
 
         // Wait for window to be hidden
         await browser.waitUntil(
             async () => {
                 return await browser.electron.execute(() => {
-                    // @ts-expect-error
-                    const win = (global as { appContext?: any }).appContext.windowManager.getQuickChatWindow();
+                    const win = (global as any).appContext.windowManager.getQuickChatWindow();
                     return win ? !win.isVisible() : true;
                 });
             },
@@ -63,6 +64,10 @@ describe('Multi-Window Coordination (Quick Chat)', () => {
 
         // Switch back to main window to avoid stale handle errors
         const handles = await browser.getWindowHandles();
-        await browser.switchToWindow(handles[0]);
+        const mainHandle = handles[0];
+        if (!mainHandle) {
+            throw new Error('Main window handle not found');
+        }
+        await browser.switchToWindow(mainHandle);
     });
 });

@@ -107,10 +107,18 @@ describe('Toast State Management Integration', () => {
 
             await dismissAll();
             // Wait for DOM to clear
-            await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 5000,
-                timeoutMsg: 'Toasts not cleared from DOM',
-            });
+            await browser.waitUntil(
+                async () => {
+                    const count = await browser.execute(
+                        () => document.querySelectorAll('[data-testid="toast"]').length
+                    );
+                    return count === 0;
+                },
+                {
+                    timeout: 5000,
+                    timeoutMsg: 'Toasts not cleared from DOM',
+                }
+            );
         });
 
         afterEach(async () => {
@@ -159,10 +167,18 @@ describe('Toast State Management Integration', () => {
 
             await dismissAll();
             // Wait for DOM to clear
-            await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 5000,
-                timeoutMsg: 'Toasts not cleared from DOM',
-            });
+            await browser.waitUntil(
+                async () => {
+                    const count = await browser.execute(
+                        () => document.querySelectorAll('[data-testid="toast"]').length
+                    );
+                    return count === 0;
+                },
+                {
+                    timeout: 5000,
+                    timeoutMsg: 'Toasts not cleared from DOM',
+                }
+            );
         });
 
         afterEach(async () => {
@@ -252,10 +268,18 @@ describe('Toast State Management Integration', () => {
 
             await dismissAll();
             // Wait for DOM to clear
-            await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 5000,
-                timeoutMsg: 'Toasts not cleared from DOM',
-            });
+            await browser.waitUntil(
+                async () => {
+                    const count = await browser.execute(
+                        () => document.querySelectorAll('[data-testid="toast"]').length
+                    );
+                    return count === 0;
+                },
+                {
+                    timeout: 5000,
+                    timeoutMsg: 'Toasts not cleared from DOM',
+                }
+            );
         });
 
         afterEach(async () => {
@@ -342,10 +366,18 @@ describe('Toast State Management Integration', () => {
 
             await dismissAll();
             // Wait for DOM to clear
-            await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 0, {
-                timeout: 5000,
-                timeoutMsg: 'Toasts not cleared from DOM',
-            });
+            await browser.waitUntil(
+                async () => {
+                    const count = await browser.execute(
+                        () => document.querySelectorAll('[data-testid="toast"]').length
+                    );
+                    return count === 0;
+                },
+                {
+                    timeout: 5000,
+                    timeoutMsg: 'Toasts not cleared from DOM',
+                }
+            );
         });
 
         afterEach(async () => {
@@ -401,10 +433,18 @@ describe('Toast State Management Integration', () => {
             expect(await getToastCount()).toBe(7);
 
             // Only 5 visible - wait for React/AnimatePresence to stabilize
-            await browser.waitUntil(async () => (await wdioSelectorAll('[data-testid="toast"]')).length === 5, {
-                timeout: 3000,
-                timeoutMsg: 'Expected 5 visible toasts',
-            });
+            await browser.waitUntil(
+                async () => {
+                    const count = await browser.execute(
+                        () => document.querySelectorAll('[data-testid="toast"]').length
+                    );
+                    return count === 5;
+                },
+                {
+                    timeout: 3000,
+                    timeoutMsg: 'Expected 5 visible toasts',
+                }
+            );
             const visibleBefore = await wdioSelectorAll('[data-testid="toast"]');
             expect(visibleBefore.length).toBe(5);
 

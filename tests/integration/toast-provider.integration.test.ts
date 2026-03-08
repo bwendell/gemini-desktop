@@ -1,13 +1,4 @@
-import type { Browser } from '@wdio/globals';
-
 import { browser, expect, $ as wdioSelector, $$ as wdioSelectorAll } from '@wdio/globals';
-
-const testBrowser = browser as unknown as WebdriverIO.Browser & Browser;
-
-let exec: typeof testBrowser.execute;
-let waitUntil: typeof testBrowser.waitUntil;
-let pause: typeof testBrowser.pause;
-let getWindowHandles: typeof testBrowser.getWindowHandles;
 
 /**
  * Toast Provider Integration Tests
@@ -23,15 +14,10 @@ describe('Toast Provider Integration', () => {
     const UPDATE_TOAST_ID = 'update-notification';
 
     before(async () => {
-        exec = testBrowser.execute.bind(testBrowser);
-        waitUntil = testBrowser.waitUntil.bind(testBrowser);
-        pause = testBrowser.pause.bind(testBrowser);
-        getWindowHandles = testBrowser.getWindowHandles.bind(testBrowser);
-
         // Wait for the app to be ready
-        await waitUntil(
+        await browser.waitUntil(
             async () => {
-                const handles = await getWindowHandles();
+                const handles = await browser.getWindowHandles();
                 return handles.length > 0;
             },
             {
@@ -42,14 +28,14 @@ describe('Toast Provider Integration', () => {
     });
 
     const getToastText = async (toastId: string) => {
-        return exec((id: string) => {
+        return browser.execute((id: string) => {
             const messageEl = document.querySelector(`[data-toast-id="${id}"] [data-testid="toast-message"]`);
             return messageEl?.textContent?.trim() ?? '';
         }, toastId);
     };
 
     const getToastSnapshot = async () => {
-        return exec(() => {
+        return browser.execute(() => {
             const win = window as any;
             if (typeof win.__toastTestHelpers?.getToasts !== 'function') return [];
 
@@ -61,16 +47,16 @@ describe('Toast Provider Integration', () => {
     };
 
     const toastExists = async (toastId: string) => {
-        return exec((id: string) => {
+        return browser.execute((id: string) => {
             return Boolean(document.querySelector(`[data-toast-id="${id}"]`));
         }, toastId);
     };
 
     beforeEach(async () => {
         // Allow any initial platform notices to render (LinuxHotkeyNotice)
-        await pause(1500);
+        await browser.pause(1500);
 
-        await exec(() => {
+        await browser.execute(() => {
             const win = window as any;
             if (win.__testUpdateToast?.hide) {
                 win.__testUpdateToast.hide();
@@ -84,22 +70,24 @@ describe('Toast Provider Integration', () => {
         });
 
         // Wait for any toasts to be removed
-        await waitUntil(
-            async () => {
-                const toastCount = await wdioSelectorAll('[data-testid="toast"]').length;
-                const helperCount = await exec(() => {
-                    const win = window as any;
-                    return typeof win.__toastTestHelpers?.getToasts === 'function'
-                        ? win.__toastTestHelpers.getToasts().length
-                        : 0;
-                });
-                const updateToastExists = await toastExists(UPDATE_TOAST_ID);
-                return toastCount === 0 && helperCount === 0 && !updateToastExists;
-            },
-            { timeout: 5000, interval: 100 }
-        ).catch(() => {
-            // Ignore timeout - toasts may already be gone
-        });
+        await browser
+            .waitUntil(
+                async () => {
+                    const toastCount = await wdioSelectorAll('[data-testid="toast"]').length;
+                    const helperCount = await browser.execute(() => {
+                        const win = window as any;
+                        return typeof win.__toastTestHelpers?.getToasts === 'function'
+                            ? win.__toastTestHelpers.getToasts().length
+                            : 0;
+                    });
+                    const updateToastExists = await toastExists(UPDATE_TOAST_ID);
+                    return toastCount === 0 && helperCount === 0 && !updateToastExists;
+                },
+                { timeout: 5000, interval: 100 }
+            )
+            .catch(() => {
+                // Ignore timeout - toasts may already be gone
+            });
     });
 
     describe('Provider Rendering', () => {
@@ -127,7 +115,7 @@ describe('Toast Provider Integration', () => {
         it('7.5.1.3 - should allow nested components to access useToast()', async () => {
             // The __toastTestHelpers prove that useToast() is accessible
             // from within the app component tree
-            const hasToastHelper = await exec(() => {
+            const hasToastHelper = await browser.execute(() => {
                 const win = window as any;
                 return (
                     typeof win.__toastTestHelpers === 'object' &&
@@ -144,7 +132,7 @@ describe('Toast Provider Integration', () => {
 
         it('should show and dismiss a toast via useToast()', async () => {
             // Use the __toastTestHelpers to show a toast
-            const toastId = await exec(() => {
+            const toastId = await browser.execute(() => {
                 const win = window as any;
                 return win.__toastTestHelpers.showSuccess('Integration test toast');
             });
@@ -153,7 +141,7 @@ describe('Toast Provider Integration', () => {
             expect(toastId.length).toBeGreaterThan(0);
 
             // Wait for toast to appear with correct message using robust polling
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const text = await getToastText(toastId);
                     return text === 'Integration test toast';
@@ -166,13 +154,13 @@ describe('Toast Provider Integration', () => {
             expect(messageText).toBe('Integration test toast');
 
             // Dismiss all toasts
-            await exec(() => {
+            await browser.execute(() => {
                 const win = window as any;
                 win.__toastTestHelpers.dismissAll();
             });
 
             // Verify toast is removed
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const snapshot = await getToastSnapshot();
                     return !snapshot.some((toast: { id: string }) => toast.id === toastId);
@@ -193,7 +181,7 @@ describe('Toast Provider Integration', () => {
             // 2. Toast context works (ToastProvider is middle)
             // 3. Update toast context works (UpdateToastProvider is inner)
 
-            const result = await exec(() => {
+            const result = await browser.execute(() => {
                 const win = window as any;
 
                 // Check theme functionality works
@@ -223,12 +211,12 @@ describe('Toast Provider Integration', () => {
 
         it('should verify UpdateToastContext can use ToastContext (proper nesting)', async () => {
             // Trigger an update notification via the dev helper
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.showAvailable('2.0.0');
             });
 
             // Wait for update toast to appear with robust polling
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     return toastExists(UPDATE_TOAST_ID);
                 },
@@ -236,20 +224,20 @@ describe('Toast Provider Integration', () => {
             );
 
             // Verify it's an info toast (as mapped from 'available')
-            const updateToastClass = await exec((toastId: string) => {
+            const updateToastClass = await browser.execute((toastId: string) => {
                 const toastEl = document.querySelector(`[data-toast-id="${toastId}"]`);
                 return toastEl?.getAttribute('class') ?? '';
             }, UPDATE_TOAST_ID);
             expect(updateToastClass?.split(' ')).toContain('toast--info');
 
             // Cleanup
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.hide();
                 (window as any).__toastTestHelpers.dismissToast('update-notification');
             });
 
             // Wait for removal
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const snapshot = await getToastSnapshot();
                     return !snapshot.some((toast: { id: string }) => toast.id === UPDATE_TOAST_ID);
@@ -262,7 +250,7 @@ describe('Toast Provider Integration', () => {
     describe('Multiple Providers', () => {
         it('7.5.1.5 - should not have conflicts with the single ToastProvider', async () => {
             // Test that multiple toasts can be created sequentially
-            const toastIds = await exec(() => {
+            const toastIds = await browser.execute<string[], []>(() => {
                 const win = window as any;
                 return [
                     win.__toastTestHelpers.showInfo('First toast'),
@@ -271,7 +259,7 @@ describe('Toast Provider Integration', () => {
                 ];
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const snapshot = await getToastSnapshot();
                     return toastIds.every((id: string) => snapshot.some((toast: { id: string }) => toast.id === id));
@@ -280,11 +268,11 @@ describe('Toast Provider Integration', () => {
             );
 
             // Cleanup
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__toastTestHelpers.dismissAll();
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const snapshot = await getToastSnapshot();
                     return snapshot.length === 0;
@@ -295,7 +283,7 @@ describe('Toast Provider Integration', () => {
 
         it('should handle rapid toast creation without conflicts', async () => {
             // Create many toasts rapidly
-            await exec(() => {
+            await browser.execute(() => {
                 const win = window as any;
                 const ids: string[] = [];
                 for (let i = 0; i < 7; i++) {
@@ -305,7 +293,7 @@ describe('Toast Provider Integration', () => {
             });
 
             // Should respect MAX_VISIBLE_TOASTS (which is 5)
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const visibleCount = await wdioSelectorAll('[data-testid="toast"]').length;
                     return visibleCount === 5;
@@ -314,11 +302,11 @@ describe('Toast Provider Integration', () => {
             );
 
             // Cleanup
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__toastTestHelpers.dismissAll();
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const snapshot = await getToastSnapshot();
                     return snapshot.length === 0;

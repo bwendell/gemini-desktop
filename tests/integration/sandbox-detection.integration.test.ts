@@ -8,26 +8,11 @@
 
 import { browser, expect } from '@wdio/globals';
 
+import { waitForApp } from './helpers/integrationUtils';
+
 describe('Sandbox Detection Integration', () => {
     before(async () => {
-        // Wait for Electron app to fully load
-        await browser.waitUntil(
-            async () => {
-                try {
-                    const hasElectronAPI = await browser.execute(() => {
-                        return typeof (window as any).electronAPI !== 'undefined';
-                    });
-                    return hasElectronAPI;
-                } catch {
-                    return false;
-                }
-            },
-            {
-                timeout: 30000,
-                timeoutMsg: 'electronAPI not available after 30 seconds',
-                interval: 500,
-            }
-        );
+        await waitForApp();
     });
 
     describe('App Launch Verification', () => {

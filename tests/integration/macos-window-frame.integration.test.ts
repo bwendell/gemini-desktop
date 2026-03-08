@@ -10,24 +10,14 @@
 
 import { browser, expect } from '@wdio/globals';
 
-const browserWithElectron = browser as unknown as {
-    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
-    waitUntil<T>(
-        condition: () => Promise<T> | T,
-        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
-    ): Promise<T>;
-    $(selector: string): Promise<WebdriverIO.Element>;
-    getWindowHandles(): Promise<string[]>;
-};
-
 describe('macOS Window Frame Integration Tests', () => {
     before(async () => {
-        await browserWithElectron.waitUntil(async () => (await browserWithElectron.getWindowHandles()).length > 0);
+        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
     });
 
     it('should have correct window frame structure on macOS', async () => {
         // Get platform from Electron
-        const platform = await browserWithElectron.execute(() => {
+        const platform = await browser.execute(() => {
             return (window as any).electronAPI?.platform;
         });
 
@@ -38,7 +28,7 @@ describe('macOS Window Frame Integration Tests', () => {
         }
 
         // Check main-content has non-zero height (takes up space below titlebar)
-        const mainContentHeight = await browserWithElectron.execute(() => {
+        const mainContentHeight = await browser.execute(() => {
             const mainContent = document.querySelector('.main-content');
             return mainContent ? (mainContent as HTMLElement).offsetHeight : 0;
         });
@@ -46,10 +36,10 @@ describe('macOS Window Frame Integration Tests', () => {
         expect(mainContentHeight).toBeGreaterThan(0);
 
         // Check tab-bar exists and has height
-        const tabBar = await browserWithElectron.$('.tab-bar');
+        const tabBar = await browser.$('.tab-bar');
         await expect(tabBar).toBeExisting();
 
-        const tabBarHeight = await browserWithElectron.execute(() => {
+        const tabBarHeight = await browser.execute(() => {
             const tabBar = document.querySelector('.tab-bar');
             return tabBar ? (tabBar as HTMLElement).offsetHeight : 0;
         });
@@ -57,10 +47,10 @@ describe('macOS Window Frame Integration Tests', () => {
         expect(tabBarHeight).toBeGreaterThan(0);
 
         // Check webview-container exists and has non-zero size
-        const webviewContainer = await browserWithElectron.$('.webview-container');
+        const webviewContainer = await browser.$('.webview-container');
         await expect(webviewContainer).toBeExisting();
 
-        const webviewSize = await browserWithElectron.execute(() => {
+        const webviewSize = await browser.execute(() => {
             const container = document.querySelector('.webview-container');
             if (!container) return { width: 0, height: 0 };
             return {
@@ -73,10 +63,10 @@ describe('macOS Window Frame Integration Tests', () => {
         expect(webviewSize.height).toBeGreaterThan(0);
 
         // Check gemini-iframe (inside webview-container) exists and has size
-        const geminiIframe = await browserWithElectron.$('.webview-container .gemini-iframe');
+        const geminiIframe = await browser.$('.webview-container .gemini-iframe');
         await expect(geminiIframe).toBeExisting();
 
-        const iframeSize = await browserWithElectron.execute(() => {
+        const iframeSize = await browser.execute(() => {
             const iframe = document.querySelector('iframe.gemini-iframe');
             if (!iframe) return { width: 0, height: 0 };
             return {
@@ -91,7 +81,7 @@ describe('macOS Window Frame Integration Tests', () => {
 
     it('should have proper window frame layout with visibility on macOS', async () => {
         // Get platform from Electron
-        const platform = await browserWithElectron.execute(() => {
+        const platform = await browser.execute(() => {
             return (window as any).electronAPI?.platform;
         });
 
@@ -102,10 +92,10 @@ describe('macOS Window Frame Integration Tests', () => {
         }
 
         // Verify main-layout exists and fills viewport
-        const mainLayout = await browserWithElectron.$('.main-layout');
+        const mainLayout = await browser.$('.main-layout');
         await expect(mainLayout).toBeExisting();
 
-        const layoutDimensions = await browserWithElectron.execute(() => {
+        const layoutDimensions = await browser.execute(() => {
             const layout = document.querySelector('.main-layout');
             if (!layout) return { width: 0, height: 0 };
             return {
@@ -120,7 +110,7 @@ describe('macOS Window Frame Integration Tests', () => {
         expect(layoutDimensions.width).toBe(layoutDimensions.windowWidth);
         expect(layoutDimensions.height).toBe(layoutDimensions.windowHeight);
 
-        const mainContentInfo = await browserWithElectron.execute(() => {
+        const mainContentInfo = await browser.execute(() => {
             const mainContent = document.querySelector('.main-content');
             if (!mainContent) {
                 return { display: null, height: 0 };
@@ -134,7 +124,7 @@ describe('macOS Window Frame Integration Tests', () => {
         expect(mainContentInfo.height).toBeGreaterThan(0);
 
         // Verify webview-container is absolutely positioned (fills main-content)
-        const webviewPosition = await browserWithElectron.execute(() => {
+        const webviewPosition = await browser.execute(() => {
             const container = document.querySelector('.webview-container');
             return container ? window.getComputedStyle(container).position : null;
         });
@@ -144,7 +134,7 @@ describe('macOS Window Frame Integration Tests', () => {
 
     it('should have visible frame controls on non-macOS platforms (conditionally)', async () => {
         // Get platform from Electron
-        const platform = await browserWithElectron.execute(() => {
+        const platform = await browser.execute(() => {
             return (window as any).electronAPI?.platform;
         });
 
@@ -155,11 +145,11 @@ describe('macOS Window Frame Integration Tests', () => {
         }
 
         // Check that titlebar exists (frames controls)
-        const titlebar = await browserWithElectron.$('.titlebar');
+        const titlebar = await browser.$('.titlebar');
         await expect(titlebar).toBeExisting();
 
         // Verify it's visible
-        const titlebarVisible = await browserWithElectron.execute(() => {
+        const titlebarVisible = await browser.execute(() => {
             const titlebar = document.querySelector('.titlebar');
             return titlebar ? window.getComputedStyle(titlebar).display !== 'none' : false;
         });

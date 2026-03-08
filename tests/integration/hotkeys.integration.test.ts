@@ -8,12 +8,11 @@ describe('Global Hotkeys Integration', () => {
 
     it('should have hotkeys registered in the main process', async () => {
         // Verify registration via Main Process
-        const isRegistered = await browser.electron.execute((_electron) => {
+        const isRegistered = await browser.electron.execute(() => {
             // Check if the 'quickChat' accelerator is registered
             // We know the accelerator is 'CommandOrControl+Shift+Alt+Space'
             // We can also check internal manager state
-            // @ts-expect-error
-            return global.appContext.hotkeyManager.isIndividualEnabled('quickChat');
+            return (global as any).appContext.hotkeyManager.isIndividualEnabled('quickChat');
         });
 
         expect(isRegistered).toBe(true);
@@ -28,8 +27,7 @@ describe('Global Hotkeys Integration', () => {
 
         // Verify in Main Process
         const isEnabled = await browser.electron.execute(() => {
-            // @ts-expect-error
-            return global.appContext.hotkeyManager.isIndividualEnabled('quickChat');
+            return (global as any).appContext.hotkeyManager.isIndividualEnabled('quickChat');
         });
 
         expect(isEnabled).toBe(false);
@@ -43,8 +41,7 @@ describe('Global Hotkeys Integration', () => {
 
         // Verify in Main Process
         const isEnabled = await browser.electron.execute(() => {
-            // @ts-expect-error
-            return global.appContext.hotkeyManager.isIndividualEnabled('quickChat');
+            return (global as any).appContext.hotkeyManager.isIndividualEnabled('quickChat');
         });
 
         expect(isEnabled).toBe(true);
@@ -52,7 +49,7 @@ describe('Global Hotkeys Integration', () => {
 
     it('should handle platform-specific accelerators correctly', async () => {
         // Verify we are generating the right accelerator string for the platform
-        const accelerator = await browser.electron.execute((_electron) => {
+        const accelerator = await browser.electron.execute(() => {
             // We can access the private shortcuts array if we really wanted to,
             // but checking 'process.platform' is enough to verify the test environment context.
             return process.platform;
@@ -74,9 +71,8 @@ describe('Global Hotkeys Integration', () => {
         }, newAccelerator);
 
         // 2. Verify in Main Process
-        const savedAccelerator = await browser.electron.execute((_electron) => {
-            // @ts-expect-error
-            return global.appContext.hotkeyManager.getAccelerator('alwaysOnTop');
+        const savedAccelerator = await browser.electron.execute(() => {
+            return (global as any).appContext.hotkeyManager.getAccelerator('alwaysOnTop');
         });
 
         // Check for platform-specific expansion (CommandOrControl -> Ctrl/Cmd) is done by Electron
@@ -89,8 +85,7 @@ describe('Global Hotkeys Integration', () => {
     describe('Cross-Platform Behavior', () => {
         it('should use CommandOrControl in all default accelerators', async () => {
             const accelerators = await browser.electron.execute(() => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.getAccelerators();
+                return (global as any).appContext.hotkeyManager.getAccelerators();
             });
 
             // All default accelerators should use CommandOrControl for cross-platform compatibility
@@ -118,8 +113,7 @@ describe('Global Hotkeys Integration', () => {
 
             // Verify it's stored as-is (not expanded to Ctrl/Cmd)
             const stored = await browser.electron.execute(() => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.getAccelerator('peekAndHide');
+                return (global as any).appContext.hotkeyManager.getAccelerator('peekAndHide');
             });
 
             expect(stored).toBe(customAccelerator);
@@ -149,9 +143,8 @@ describe('Global Hotkeys Integration', () => {
     describe('Voice Chat Hotkey', () => {
         it('should have voiceChat hotkey registered in the main process', async () => {
             // Verify voiceChat is registered and enabled by default
-            const isRegistered = await browser.electron.execute((_electron) => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.isIndividualEnabled('voiceChat');
+            const isRegistered = await browser.electron.execute(() => {
+                return (global as any).appContext.hotkeyManager.isIndividualEnabled('voiceChat');
             });
 
             expect(isRegistered).toBe(true);
@@ -159,9 +152,8 @@ describe('Global Hotkeys Integration', () => {
 
         it('should have voiceChat accelerator default to CommandOrControl+Shift+M', async () => {
             // Verify default accelerator is set correctly
-            const accelerator = await browser.electron.execute((_electron) => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.getAccelerator('voiceChat');
+            const accelerator = await browser.electron.execute(() => {
+                return (global as any).appContext.hotkeyManager.getAccelerator('voiceChat');
             });
 
             expect(accelerator).toBe(DEFAULT_ACCELERATORS.voiceChat);
@@ -177,8 +169,7 @@ describe('Global Hotkeys Integration', () => {
 
             // Verify in Main Process that voiceChat is disabled
             const isEnabled = await browser.electron.execute(() => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.isIndividualEnabled('voiceChat');
+                return (global as any).appContext.hotkeyManager.isIndividualEnabled('voiceChat');
             });
 
             expect(isEnabled).toBe(false);
@@ -193,8 +184,7 @@ describe('Global Hotkeys Integration', () => {
 
             // Verify in Main Process that voiceChat is enabled
             const isEnabled = await browser.electron.execute(() => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.isIndividualEnabled('voiceChat');
+                return (global as any).appContext.hotkeyManager.isIndividualEnabled('voiceChat');
             });
 
             expect(isEnabled).toBe(true);
@@ -209,9 +199,8 @@ describe('Global Hotkeys Integration', () => {
             }, customAccelerator);
 
             // Verify in Main Process
-            const savedAccelerator = await browser.electron.execute((_electron) => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.getAccelerator('voiceChat');
+            const savedAccelerator = await browser.electron.execute(() => {
+                return (global as any).appContext.hotkeyManager.getAccelerator('voiceChat');
             });
 
             expect(savedAccelerator).toBe(customAccelerator);
@@ -232,8 +221,7 @@ describe('Global Hotkeys Integration', () => {
 
             // Verify it's disabled in main process
             let isEnabled = await browser.electron.execute(() => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.isIndividualEnabled('voiceChat');
+                return (global as any).appContext.hotkeyManager.isIndividualEnabled('voiceChat');
             });
             expect(isEnabled).toBe(false);
 
@@ -245,8 +233,7 @@ describe('Global Hotkeys Integration', () => {
 
             // Verify it's enabled again
             isEnabled = await browser.electron.execute(() => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.isIndividualEnabled('voiceChat');
+                return (global as any).appContext.hotkeyManager.isIndividualEnabled('voiceChat');
             });
             expect(isEnabled).toBe(true);
         });
@@ -254,8 +241,7 @@ describe('Global Hotkeys Integration', () => {
         it('should include voiceChat in all default accelerators', async () => {
             // Fetch all accelerators from main process
             const accelerators = await browser.electron.execute(() => {
-                // @ts-expect-error
-                return global.appContext.hotkeyManager.getAccelerators();
+                return (global as any).appContext.hotkeyManager.getAccelerators();
             });
 
             // Verify voiceChat is present and uses CommandOrControl

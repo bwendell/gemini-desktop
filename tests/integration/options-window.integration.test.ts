@@ -10,55 +10,37 @@
  */
 
 import { browser, expect } from '@wdio/globals';
+import {
+    closeExtraWindows,
+    executeWithElectron,
+    getMainWindowHandle,
+    openOptionsWindow,
+    switchToMainWindow,
+    waitForApp,
+} from './helpers/integrationUtils';
 
 describe('Options Window Integration', () => {
     let mainWindowHandle: string;
 
     before(async () => {
-        // Wait for app ready
-        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
-
-        // Ensure renderer is ready
-        await browser.execute(async () => {
-            return await new Promise<void>((resolve) => {
-                if (document.readyState === 'complete') return resolve();
-                window.addEventListener('load', () => resolve());
-            });
-        });
-
-        // Store main window handle
-        const handles = await browser.getWindowHandles();
-        mainWindowHandle = handles[0];
+        await waitForApp();
+        mainWindowHandle = await getMainWindowHandle();
     });
 
     afterEach(async () => {
-        // Close options window if open
-        await browser.electron.execute(() => {
-            // @ts-expect-error - Close all windows except main
-            const { BrowserWindow } = require('electron');
-            const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
-            BrowserWindow.getAllWindows().forEach((win: any) => {
-                if (win !== mainWin && !win.isDestroyed()) {
-                    win.close();
-                }
-            });
-        });
-
-        await browser.pause(300);
-
-        // Switch back to main window
-        const handles = await browser.getWindowHandles();
-        if (handles.length > 0) {
-            await browser.switchToWindow(handles[0]);
+        await switchToMainWindow(mainWindowHandle);
+        try {
+            await closeExtraWindows({ force: true, timeout: 8000 });
+        } catch (error) {
+            console.warn('Options window cleanup did not fully converge:', error);
         }
     });
 
     describe('Options Window Creation', () => {
         it('should open options window via WindowManager', async () => {
             // Open options window
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            await executeWithElectron(() => {
+                (global as any).appContext.windowManager.createOptionsWindow();
             });
 
             // Wait for window to appear
@@ -76,47 +58,15 @@ describe('Options Window Integration', () => {
 
         it('should open options window via IPC from renderer', async () => {
             // Open via renderer IPC
-            await browser.execute(() => {
-                const api = (window as any).electronAPI;
-                if (api?.openOptions) {
-                    api.openOptions();
-                }
-            });
-
-            // Wait for window to appear
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000, timeoutMsg: 'Options window did not appear via IPC' }
-            );
-
+            const optionsHandle = await openOptionsWindow(mainWindowHandle);
+            expect(optionsHandle).toBeTruthy();
             const handles = await browser.getWindowHandles();
             expect(handles.length).toBe(2);
         });
 
         it('should have correct URL pattern for options window', async () => {
-            // Open options window
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
-            });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
-
-            // Switch to options window
-            const handles = await browser.getWindowHandles();
-            const optionsHandle = handles.find((h) => h !== mainWindowHandle);
-            if (optionsHandle) {
-                await browser.switchToWindow(optionsHandle);
-            }
+            const optionsHandle = await openOptionsWindow(mainWindowHandle);
+            await browser.switchToWindow(optionsHandle);
 
             const url = await browser.getUrl();
             expect(url).toContain('options');
@@ -125,26 +75,8 @@ describe('Options Window Integration', () => {
 
     describe('Tab Navigation', () => {
         it('should open directly to settings tab', async () => {
-            // Open to settings tab
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow('settings');
-            });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
-
-            // Switch to options window
-            const handles = await browser.getWindowHandles();
-            const optionsHandle = handles.find((h) => h !== mainWindowHandle);
-            if (optionsHandle) {
-                await browser.switchToWindow(optionsHandle);
-            }
+            const optionsHandle = await openOptionsWindow(mainWindowHandle, 'settings');
+            await browser.switchToWindow(optionsHandle);
 
             const url = await browser.getUrl();
             // URL should contain #settings or load settings content
@@ -153,26 +85,8 @@ describe('Options Window Integration', () => {
         });
 
         it('should open directly to about tab', async () => {
-            // Open to about tab
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow('about');
-            });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
-
-            // Switch to options window
-            const handles = await browser.getWindowHandles();
-            const optionsHandle = handles.find((h) => h !== mainWindowHandle);
-            if (optionsHandle) {
-                await browser.switchToWindow(optionsHandle);
-            }
+            const optionsHandle = await openOptionsWindow(mainWindowHandle, 'about');
+            await browser.switchToWindow(optionsHandle);
 
             const url = await browser.getUrl();
             expect(url).toContain('options');
@@ -181,21 +95,8 @@ describe('Options Window Integration', () => {
 
         it('should open to about tab via IPC with tab parameter', async () => {
             // Open via renderer IPC with tab
-            await browser.execute(() => {
-                const api = (window as any).electronAPI;
-                if (api?.openOptions) {
-                    api.openOptions('about');
-                }
-            });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
-
+            const optionsHandle = await openOptionsWindow(mainWindowHandle, 'about');
+            expect(optionsHandle).toBeTruthy();
             const handles = await browser.getWindowHandles();
             expect(handles.length).toBe(2);
         });
@@ -204,9 +105,8 @@ describe('Options Window Integration', () => {
     describe('Single Instance Enforcement', () => {
         it('should focus existing options window instead of creating new one', async () => {
             // Open first options window
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            await executeWithElectron(() => {
+                (global as any).appContext.windowManager.createOptionsWindow();
             });
 
             await browser.waitUntil(
@@ -218,12 +118,14 @@ describe('Options Window Integration', () => {
             );
 
             // Try to open again
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            await executeWithElectron(() => {
+                (global as any).appContext.windowManager.createOptionsWindow();
             });
 
-            await browser.pause(500);
+            await browser.waitUntil(async () => (await browser.getWindowHandles()).length === 2, {
+                timeout: 1000,
+                timeoutMsg: 'Options window count changed unexpectedly',
+            });
 
             // Should still only have 2 windows (main + options)
             const handles = await browser.getWindowHandles();
@@ -232,9 +134,8 @@ describe('Options Window Integration', () => {
 
         it('should navigate existing window to new tab instead of creating new window', async () => {
             // Open to settings tab
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow('settings');
+            await executeWithElectron(() => {
+                (global as any).appContext.windowManager.createOptionsWindow('settings');
             });
 
             await browser.waitUntil(
@@ -246,12 +147,14 @@ describe('Options Window Integration', () => {
             );
 
             // Now open to about tab
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow('about');
+            await executeWithElectron(() => {
+                (global as any).appContext.windowManager.createOptionsWindow('about');
             });
 
-            await browser.pause(500);
+            await browser.waitUntil(async () => (await browser.getWindowHandles()).length === 2, {
+                timeout: 1000,
+                timeoutMsg: 'Options window count changed unexpectedly',
+            });
 
             // Should still only have 2 windows
             const handles = await browser.getWindowHandles();
@@ -270,81 +173,56 @@ describe('Options Window Integration', () => {
 
     describe('Options Window Closing', () => {
         it('should close options window properly', async () => {
-            // Open options window
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
-            });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
+            const optionsHandle = await openOptionsWindow(mainWindowHandle);
 
             // Get options window handle before switching
-            const handles = await browser.getWindowHandles();
-            const _optionsHandle = handles.find((h) => h !== mainWindowHandle);
+            expect(optionsHandle).toBeTruthy();
 
             // IMPORTANT: Switch back to main window BEFORE closing options window
             // to prevent ECONNREFUSED errors on macOS when WebDriver tries to
             // communicate with a window that's being destroyed
             await browser.switchToWindow(mainWindowHandle);
 
-            // Close options window via main process (not from options window context)
-            // This avoids WebDriver connection issues when the window closes
-            await browser.electron.execute((electron) => {
+            await browser.switchToWindow(optionsHandle);
+            await browser.closeWindow();
+            await browser.switchToWindow(mainWindowHandle);
+
+            await executeWithElectron((electron) => {
                 const { BrowserWindow } = electron;
-                // @ts-expect-error
-                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
-                BrowserWindow.getAllWindows().forEach((win: any) => {
-                    if (win !== mainWin && !win.isDestroyed()) {
-                        win.close();
+
+                BrowserWindow.getAllWindows().forEach((win) => {
+                    if (!win.isDestroyed() && win.webContents.getURL().includes('options')) {
+                        win.destroy();
                     }
                 });
             });
 
-            // Wait for window to close
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 1;
-                },
-                { timeout: 5000, timeoutMsg: 'Options window did not close' }
-            );
+            try {
+                await closeExtraWindows({ force: true, timeout: 12000 });
+            } catch {
+                await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(optionsHandle), {
+                    timeout: 5000,
+                    interval: 100,
+                    timeoutMsg: 'Options window did not close',
+                });
+            }
 
-            const finalHandles = await browser.getWindowHandles();
-            expect(finalHandles.length).toBe(1);
+            await browser.waitUntil(async () => (await browser.getWindowHandles()).length === 1, {
+                timeout: 5000,
+                interval: 100,
+                timeoutMsg: 'Expected only main window after closing options window',
+            });
         });
     });
 
     describe('Options Window Content', () => {
         it('should have electronAPI available in options window', async () => {
-            // Open options window
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            const optionsHandle = await openOptionsWindow(mainWindowHandle);
+            await browser.switchToWindow(optionsHandle);
+            await browser.waitUntil(async () => typeof (await browser.getUrl()) === 'string', {
+                timeout: 2000,
+                timeoutMsg: 'Options content did not stabilize',
             });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
-
-            // Switch to options window
-            const handles = await browser.getWindowHandles();
-            const optionsHandle = handles.find((h) => h !== mainWindowHandle);
-            if (optionsHandle) {
-                await browser.switchToWindow(optionsHandle);
-            }
-
-            // Wait for content to load
-            await browser.pause(500);
 
             const hasElectronAPI = await browser.execute(() => {
                 return typeof (window as any).electronAPI !== 'undefined';
@@ -354,28 +232,12 @@ describe('Options Window Integration', () => {
         });
 
         it('should be able to get theme settings from options window', async () => {
-            // Open options window
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            const optionsHandle = await openOptionsWindow(mainWindowHandle);
+            await browser.switchToWindow(optionsHandle);
+            await browser.waitUntil(async () => typeof (await browser.getUrl()) === 'string', {
+                timeout: 2000,
+                timeoutMsg: 'Options content did not stabilize',
             });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
-
-            // Switch to options window
-            const handles = await browser.getWindowHandles();
-            const optionsHandle = handles.find((h) => h !== mainWindowHandle);
-            if (optionsHandle) {
-                await browser.switchToWindow(optionsHandle);
-            }
-
-            await browser.pause(500);
 
             const themeData = await browser.execute(async () => {
                 const api = (window as any).electronAPI;
@@ -391,28 +253,12 @@ describe('Options Window Integration', () => {
         });
 
         it('should be able to get hotkey settings from options window', async () => {
-            // Open options window
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            const optionsHandle = await openOptionsWindow(mainWindowHandle);
+            await browser.switchToWindow(optionsHandle);
+            await browser.waitUntil(async () => typeof (await browser.getUrl()) === 'string', {
+                timeout: 2000,
+                timeoutMsg: 'Options content did not stabilize',
             });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
-
-            // Switch to options window
-            const handles = await browser.getWindowHandles();
-            const optionsHandle = handles.find((h) => h !== mainWindowHandle);
-            if (optionsHandle) {
-                await browser.switchToWindow(optionsHandle);
-            }
-
-            await browser.pause(500);
 
             const hotkeySettings = await browser.execute(async () => {
                 const api = (window as any).electronAPI;
@@ -431,28 +277,12 @@ describe('Options Window Integration', () => {
 
     describe('Theme Broadcast to Options Window', () => {
         it('should receive theme change events in options window', async () => {
-            // Open options window
-            await browser.electron.execute(() => {
-                // @ts-expect-error
-                (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            const optionsHandle = await openOptionsWindow(mainWindowHandle);
+            await browser.switchToWindow(optionsHandle);
+            await browser.waitUntil(async () => typeof (await browser.getUrl()) === 'string', {
+                timeout: 2000,
+                timeoutMsg: 'Options content did not stabilize',
             });
-
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000 }
-            );
-
-            // Switch to options window and setup listener
-            const handles = await browser.getWindowHandles();
-            const optionsHandle = handles.find((h) => h !== mainWindowHandle);
-            if (optionsHandle) {
-                await browser.switchToWindow(optionsHandle);
-            }
-
-            await browser.pause(500);
 
             // Setup theme change listener
             await browser.execute(() => {
@@ -475,10 +305,16 @@ describe('Options Window Integration', () => {
                 }
             });
 
-            await browser.pause(500);
-
-            // Switch back to options and verify event was received
             await browser.switchToWindow(optionsHandle!);
+
+            await browser.waitUntil(
+                async () => {
+                    return browser.execute(() => {
+                        return Boolean((window as any)._themeChangeReceived);
+                    });
+                },
+                { timeout: 3000, timeoutMsg: 'Theme change event not observed in options window' }
+            );
 
             const received = await browser.execute(() => {
                 return (window as any)._themeChangeReceived;

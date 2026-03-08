@@ -7,21 +7,7 @@
  * These tests use real IPC communication between renderer and main processes.
  */
 
-import { browser as baseBrowser, expect } from '@wdio/globals';
-
-const browser = baseBrowser as unknown as {
-    execute<T, A extends unknown[]>(script: string | ((...args: A) => T), ...args: A): Promise<T>;
-    waitUntil<T>(
-        condition: () => Promise<T> | T,
-        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
-    ): Promise<T>;
-    getWindowHandles(): Promise<string[]>;
-    switchToWindow(handle: string): Promise<void>;
-    pause(ms: number): Promise<void>;
-    electron: {
-        execute<R, T extends unknown[]>(fn: (...args: T) => R, ...args: T): Promise<R>;
-    };
-};
+import { browser, expect } from '@wdio/globals';
 
 describe('Text Prediction Settings IPC Integration', () => {
     let mainWindowHandle: string;
@@ -48,7 +34,10 @@ describe('Text Prediction Settings IPC Integration', () => {
 
         // Store main window handle
         const handles = await browser.getWindowHandles();
-        mainWindowHandle = handles[0];
+        mainWindowHandle = handles[0] ?? '';
+        if (!mainWindowHandle) {
+            throw new Error('Could not resolve main window handle');
+        }
     });
 
     describe('getTextPredictionEnabled API', () => {
@@ -433,7 +422,7 @@ describe('Text Prediction Settings IPC Integration', () => {
             // Close options window if open
             await browser.electron.execute(() => {
                 const { BrowserWindow } = require('electron');
-                const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
+                const mainWin = (global as any).appContext.windowManager.getMainWindow();
                 BrowserWindow.getAllWindows().forEach((win: any) => {
                     if (win !== mainWin && !win.isDestroyed()) {
                         win.close();

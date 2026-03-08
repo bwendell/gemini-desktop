@@ -15,15 +15,18 @@ describe('macOS Options Titlebar Integration Tests', () => {
 
         // Store main window handle
         const handles = await browser.getWindowHandles();
-        mainWindowHandle = handles[0];
+        const handle = handles[0];
+        if (!handle) {
+            throw new Error('Main window handle not found');
+        }
+        mainWindowHandle = handle;
     });
 
     afterEach(async () => {
         // Close options window if open
         await browser.electron.execute(() => {
-            // @ts-expect-error
             const { BrowserWindow } = require('electron');
-            const mainWin = (global as { appContext?: any }).appContext.windowManager.getMainWindow();
+            const mainWin = (global as any).appContext.windowManager.getMainWindow();
             BrowserWindow.getAllWindows().forEach((win: any) => {
                 if (win !== mainWin && !win.isDestroyed()) {
                     win.close();
@@ -36,7 +39,11 @@ describe('macOS Options Titlebar Integration Tests', () => {
         // Switch back to main window
         const handles = await browser.getWindowHandles();
         if (handles.length > 0) {
-            await browser.switchToWindow(handles[0]);
+            const handle = handles[0];
+            if (!handle) {
+                throw new Error('Main window handle not found after cleanup');
+            }
+            await browser.switchToWindow(handle);
         }
     });
 
@@ -54,8 +61,7 @@ describe('macOS Options Titlebar Integration Tests', () => {
 
         // Open options window
         await browser.electron.execute(() => {
-            // @ts-expect-error
-            (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            (global as any).appContext.windowManager.createOptionsWindow();
         });
 
         // Wait for window to appear
@@ -111,8 +117,7 @@ describe('macOS Options Titlebar Integration Tests', () => {
 
         // Open options window
         await browser.electron.execute(() => {
-            // @ts-expect-error
-            (global as { appContext?: any }).appContext.windowManager.createOptionsWindow();
+            (global as any).appContext.windowManager.createOptionsWindow();
         });
 
         // Wait for window to appear

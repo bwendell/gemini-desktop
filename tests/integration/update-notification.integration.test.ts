@@ -10,15 +10,6 @@ type ToastInfo = {
     textContent: string | null;
 };
 
-const exec = (...args: Parameters<WebdriverIO.Browser['execute']>) =>
-    (browser as unknown as WebdriverIO.Browser).execute<unknown, unknown[]>(...args);
-const waitUntil = (...args: Parameters<WebdriverIO.Browser['waitUntil']>) =>
-    (browser as unknown as WebdriverIO.Browser).waitUntil(...args);
-const pause = (...args: Parameters<WebdriverIO.Browser['pause']>) =>
-    (browser as unknown as WebdriverIO.Browser).pause(...args);
-const getWindowHandles = (...args: Parameters<WebdriverIO.Browser['getWindowHandles']>) =>
-    (browser as unknown as WebdriverIO.Browser).getWindowHandles(...args);
-
 /**
  * Update Notification Integration Tests
  *
@@ -29,13 +20,13 @@ const getWindowHandles = (...args: Parameters<WebdriverIO.Browser['getWindowHand
 describe('Update Notification Integration', () => {
     before(async () => {
         // Wait for app ready
-        await waitUntil(async () => (await getWindowHandles()).length > 0, {
+        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0, {
             timeout: 10000,
             timeoutMsg: 'App did not load in time',
         });
 
         // Ensure renderer is ready
-        await exec(async () => {
+        await browser.execute(async () => {
             return await new Promise<void>((resolve) => {
                 if (document.readyState === 'complete') return resolve();
                 window.addEventListener('load', () => resolve());
@@ -48,18 +39,29 @@ describe('Update Notification Integration', () => {
 
     afterEach(async () => {
         // Clean up any visible toasts after each test
-        await exec(() => {
+        await browser.execute(() => {
             if ((window as any).__testUpdateToast) {
                 (window as any).__testUpdateToast.hide();
             }
         });
-        // Wait for animation to complete
-        await pause(300);
+        await browser.waitUntil(
+            async () => {
+                const toastExists = await browser.execute(() => {
+                    return document.querySelector('[data-toast-id="update-notification"]') !== null;
+                });
+                return !toastExists;
+            },
+            {
+                timeout: 3000,
+                interval: 100,
+                timeoutMsg: 'Update notification toast did not dismiss during cleanup',
+            }
+        );
     });
 
     // Helper to find a toast by ID or just the first one
     const getToastInfo = async (toastId?: string): Promise<ToastInfo | null> => {
-        return (await exec((id) => {
+        return (await browser.execute((id) => {
             const toastIdValue = typeof id === 'string' ? id : undefined;
             const selector = toastIdValue ? `[data-toast-id="${toastIdValue}"]` : '[data-testid="toast"]';
             const toast = document.querySelector(selector);
@@ -85,7 +87,7 @@ describe('Update Notification Integration', () => {
     };
 
     const emitDevUpdateEvent = async (event: string, payload: unknown) => {
-        await exec(
+        await browser.execute(
             (eventName, eventPayload) => {
                 const win = window as Window & {
                     electronAPI?: { devEmitUpdateEvent?: (name: string, data: unknown) => void };
@@ -99,7 +101,7 @@ describe('Update Notification Integration', () => {
     };
 
     const setDevMockPlatform = async (platform: string, env: Record<string, string>) => {
-        await exec(
+        await browser.execute(
             (platformValue, envValue) => {
                 const win = window as Window & {
                     electronAPI?: { devMockPlatform?: (name: string, vars: Record<string, string>) => void };
@@ -113,7 +115,7 @@ describe('Update Notification Integration', () => {
     };
 
     const setupReleaseNotesOpenSpy = async () => {
-        await exec(() => {
+        await browser.execute(() => {
             const win = window as Window & {
                 __releaseNotesTest?: { openedUrls: string[]; originalOpen?: typeof window.open };
             };
@@ -138,7 +140,7 @@ describe('Update Notification Integration', () => {
     };
 
     const restoreReleaseNotesOpenSpy = async () => {
-        await exec(() => {
+        await browser.execute(() => {
             const win = window as Window & {
                 __releaseNotesTest?: { openedUrls: string[]; originalOpen?: typeof window.open };
             };
@@ -152,7 +154,7 @@ describe('Update Notification Integration', () => {
     };
 
     const getReleaseNotesOpenedUrls = async (): Promise<string[]> => {
-        return (await exec(() => {
+        return (await browser.execute(() => {
             const win = window as Window & {
                 __releaseNotesTest?: { openedUrls: string[] };
             };
@@ -164,7 +166,7 @@ describe('Update Notification Integration', () => {
     describe('7.5.4.1 - IPC Events Trigger Toasts', () => {
         it('should display toast when update-available IPC event is received', async () => {
             // 1. Setup listener for update-available event
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any)._updateAvailableReceived = false;
                 (window as any).electronAPI.onUpdateAvailable(() => {
                     (window as any)._updateAvailableReceived = true;
@@ -175,7 +177,7 @@ describe('Update Notification Integration', () => {
             await emitDevUpdateEvent('update-available', { version: '2.0.0' });
 
             // 3. Wait for toast to appear
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo();
                     return info !== null;
@@ -184,7 +186,7 @@ describe('Update Notification Integration', () => {
             );
 
             // 4. Verify the update-available event was received
-            const received = await exec(() => (window as any)._updateAvailableReceived);
+            const received = await browser.execute(() => (window as any)._updateAvailableReceived);
             expect(received).toBe(true);
 
             // 5. Verify toast content
@@ -198,7 +200,7 @@ describe('Update Notification Integration', () => {
         it('should display toast when manual-update-available IPC event is received', async () => {
             await emitDevUpdateEvent('manual-update-available', { version: '5.0.0' });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.buttons.includes('Download');
@@ -217,7 +219,7 @@ describe('Update Notification Integration', () => {
 
         it('should display toast when update-downloaded IPC event is received', async () => {
             // 1. Setup listener
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any)._updateDownloadedReceived = false;
                 (window as any).electronAPI.onUpdateDownloaded(() => {
                     (window as any)._updateDownloadedReceived = true;
@@ -228,7 +230,7 @@ describe('Update Notification Integration', () => {
             await emitDevUpdateEvent('update-downloaded', { version: '2.0.0' });
 
             // 3. Wait for toast to appear
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null;
@@ -237,7 +239,7 @@ describe('Update Notification Integration', () => {
             );
 
             // 4. Verify the event was received
-            const received = await exec(() => (window as any)._updateDownloadedReceived);
+            const received = await browser.execute(() => (window as any)._updateDownloadedReceived);
             expect(received).toBe(true);
 
             // 5. Verify toast is visible with success type styling
@@ -249,7 +251,7 @@ describe('Update Notification Integration', () => {
 
         it('should display error toast when update-error IPC event is received', async () => {
             // 1. Setup listener
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any)._updateErrorReceived = false;
                 (window as any).electronAPI.onUpdateError(() => {
                     (window as any)._updateErrorReceived = true;
@@ -260,7 +262,7 @@ describe('Update Notification Integration', () => {
             await emitDevUpdateEvent('error', new Error('Test error'));
 
             // 3. Wait for toast to appear
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null;
@@ -269,7 +271,7 @@ describe('Update Notification Integration', () => {
             );
 
             // 4. Verify the error event was received
-            const received = await exec(() => (window as any)._updateErrorReceived);
+            const received = await browser.execute(() => (window as any)._updateErrorReceived);
             expect(received).toBe(true);
 
             // 5. Verify error toast content
@@ -290,7 +292,7 @@ describe('Update Notification Integration', () => {
             });
 
             // 2. Wait for toast to appear
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null;
@@ -311,7 +313,7 @@ describe('Update Notification Integration', () => {
                 percent: 30,
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info?.message?.includes('30%');
@@ -324,7 +326,7 @@ describe('Update Notification Integration', () => {
                 percent: 80,
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info?.message?.includes('80%');
@@ -342,7 +344,7 @@ describe('Update Notification Integration', () => {
             // 1. Trigger update-downloaded
             await emitDevUpdateEvent('update-downloaded', { version: '2.0.0' });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.buttons.length >= 2;
@@ -360,7 +362,7 @@ describe('Update Notification Integration', () => {
             // 1. Trigger update-downloaded to show toast
             await emitDevUpdateEvent('update-downloaded', { version: '2.0.0' });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null;
@@ -369,7 +371,7 @@ describe('Update Notification Integration', () => {
             );
 
             // 2. Click the Later button
-            await exec(() => {
+            await browser.execute(() => {
                 const toast = document.querySelector('[data-toast-id="update-notification"]');
                 const buttons = Array.from(toast?.querySelectorAll('.toast__button') || []);
                 const laterButton = buttons.find((btn) => btn.textContent?.includes('Later'));
@@ -377,7 +379,7 @@ describe('Update Notification Integration', () => {
             });
 
             // 3. Verify toast is dismissed
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info === null;
@@ -390,7 +392,7 @@ describe('Update Notification Integration', () => {
             // 1. Trigger update-downloaded to show toast
             await emitDevUpdateEvent('update-downloaded', { version: '2.0.0' });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null;
@@ -399,7 +401,7 @@ describe('Update Notification Integration', () => {
             );
 
             // 2. Click the Restart Now button
-            await exec(() => {
+            await browser.execute(() => {
                 const toast = document.querySelector('[data-toast-id="update-notification"]');
                 const buttons = Array.from(toast?.querySelectorAll('.toast__button') || []);
                 const restartButton = buttons.find((btn) => btn.textContent?.includes('Restart'));
@@ -407,7 +409,7 @@ describe('Update Notification Integration', () => {
             });
 
             // 3. Verify toast is dismissed after clicking
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info === null;
@@ -427,14 +429,14 @@ describe('Update Notification Integration', () => {
         });
 
         it('should open release notes from available update toast', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 const win = window as Window & {
                     __testUpdateToast?: { showAvailable: (version: string) => void };
                 };
                 win.__testUpdateToast?.showAvailable('3.1.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.buttons.includes('View Release Notes');
@@ -442,7 +444,7 @@ describe('Update Notification Integration', () => {
                 { timeout: 3000, timeoutMsg: 'View Release Notes action did not appear' }
             );
 
-            await exec(() => {
+            await browser.execute(() => {
                 const toast = document.querySelector('[data-toast-id="update-notification"]');
                 const buttons = Array.from(toast?.querySelectorAll('.toast__button') || []);
                 const target = buttons.find((btn) => btn.textContent?.includes('View Release Notes'));
@@ -451,7 +453,7 @@ describe('Update Notification Integration', () => {
                 }
             });
 
-            await waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
+            await browser.waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
                 timeout: 2000,
                 timeoutMsg: 'Release notes URL was not opened for available update',
             });
@@ -461,14 +463,14 @@ describe('Update Notification Integration', () => {
         });
 
         it('should open release notes from downloaded update toast', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 const win = window as Window & {
                     __testUpdateToast?: { showDownloaded: (version: string) => void };
                 };
                 win.__testUpdateToast?.showDownloaded('3.2.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return (
@@ -481,7 +483,7 @@ describe('Update Notification Integration', () => {
                 { timeout: 3000, timeoutMsg: 'Downloaded toast actions did not appear' }
             );
 
-            await exec(() => {
+            await browser.execute(() => {
                 const toast = document.querySelector('[data-toast-id="update-notification"]');
                 const buttons = Array.from(toast?.querySelectorAll('.toast__button') || []);
                 const target = buttons.find((btn) => btn.textContent?.includes('View Release Notes'));
@@ -490,7 +492,7 @@ describe('Update Notification Integration', () => {
                 }
             });
 
-            await waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
+            await browser.waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
                 timeout: 2000,
                 timeoutMsg: 'Release notes URL was not opened for downloaded update',
             });
@@ -500,14 +502,14 @@ describe('Update Notification Integration', () => {
         });
 
         it('should open release notes from not-available toast', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 const win = window as Window & {
                     __testUpdateToast?: { showNotAvailable: (version: string) => void };
                 };
                 win.__testUpdateToast?.showNotAvailable('1.0.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.buttons.includes('View Release Notes');
@@ -515,7 +517,7 @@ describe('Update Notification Integration', () => {
                 { timeout: 3000, timeoutMsg: 'Not-available release notes action did not appear' }
             );
 
-            await exec(() => {
+            await browser.execute(() => {
                 const toast = document.querySelector('[data-toast-id="update-notification"]');
                 const buttons = Array.from(toast?.querySelectorAll('.toast__button') || []);
                 const target = buttons.find((btn) => btn.textContent?.includes('View Release Notes'));
@@ -524,7 +526,7 @@ describe('Update Notification Integration', () => {
                 }
             });
 
-            await waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
+            await browser.waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
                 timeout: 2000,
                 timeoutMsg: 'Release notes URL was not opened for not-available update',
             });
@@ -534,14 +536,14 @@ describe('Update Notification Integration', () => {
         });
 
         it('should open release notes from manual-available toast via Download button', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 const win = window as Window & {
                     __testUpdateToast?: { showManualAvailable: (version: string) => void };
                 };
                 win.__testUpdateToast?.showManualAvailable('4.0.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.buttons.includes('Download');
@@ -549,7 +551,7 @@ describe('Update Notification Integration', () => {
                 { timeout: 3000, timeoutMsg: 'Manual update Download action did not appear' }
             );
 
-            await exec(() => {
+            await browser.execute(() => {
                 const toast = document.querySelector('[data-toast-id="update-notification"]');
                 const buttons = Array.from(toast?.querySelectorAll('.toast__button') || []);
                 const target = buttons.find((btn) => btn.textContent?.includes('Download'));
@@ -558,7 +560,7 @@ describe('Update Notification Integration', () => {
                 }
             });
 
-            await waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
+            await browser.waitUntil(async () => (await getReleaseNotesOpenedUrls()).length > 0, {
                 timeout: 2000,
                 timeoutMsg: 'Release notes URL was not opened for manual update',
             });
@@ -570,18 +572,18 @@ describe('Update Notification Integration', () => {
 
     describe('7.5.4.4 - Dev Mode Helpers', () => {
         it('should have __testUpdateToast helper available in dev mode', async () => {
-            const helperExists = await exec(() => {
+            const helperExists = await browser.execute(() => {
                 return typeof (window as any).__testUpdateToast === 'object';
             });
             expect(helperExists).toBe(true);
         });
 
         it('should show available toast via __testUpdateToast.showAvailable()', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.showAvailable('3.0.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.message?.includes('3.0.0');
@@ -594,11 +596,11 @@ describe('Update Notification Integration', () => {
         });
 
         it('should show downloaded toast via __testUpdateToast.showDownloaded()', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.showDownloaded('3.0.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.type === 'success';
@@ -611,11 +613,11 @@ describe('Update Notification Integration', () => {
         });
 
         it('should show error toast via __testUpdateToast.showError()', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.showError('Custom test error');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.type === 'error';
@@ -628,11 +630,11 @@ describe('Update Notification Integration', () => {
         });
 
         it('should show progress toast via __testUpdateToast.showProgress()', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.showProgress(60);
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.message?.includes('60%');
@@ -645,22 +647,22 @@ describe('Update Notification Integration', () => {
         });
 
         it('should hide toast via __testUpdateToast.hide()', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.showDownloaded('3.0.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     return (await getToastInfo('update-notification')) !== null;
                 },
                 { timeout: 3000 }
             );
 
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.hide();
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     return (await getToastInfo('update-notification')) === null;
                 },
@@ -669,11 +671,11 @@ describe('Update Notification Integration', () => {
         });
 
         it('should show not-available toast via __testUpdateToast.showNotAvailable()', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 (window as any).__testUpdateToast.showNotAvailable('1.0.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.message?.includes('up to date');
@@ -686,14 +688,14 @@ describe('Update Notification Integration', () => {
         });
 
         it('should show manual-available toast via __testUpdateToast.showManualAvailable()', async () => {
-            await exec(() => {
+            await browser.execute(() => {
                 const win = window as Window & {
                     __testUpdateToast?: { showManualAvailable: (version: string) => void };
                 };
                 win.__testUpdateToast?.showManualAvailable('3.3.0');
             });
 
-            await waitUntil(
+            await browser.waitUntil(
                 async () => {
                     const info = await getToastInfo('update-notification');
                     return info !== null && info.buttons.includes('Download');

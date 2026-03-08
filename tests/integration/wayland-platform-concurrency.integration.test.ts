@@ -1,17 +1,8 @@
 import { browser, expect } from '@wdio/globals';
 
-const browserWithElectron = browser as unknown as {
-    execute<T>(script: string | ((...args: unknown[]) => T), ...args: unknown[]): Promise<T>;
-    waitUntil<T>(
-        condition: () => Promise<T> | T,
-        options?: { timeout?: number; timeoutMsg?: string; interval?: number }
-    ): Promise<T>;
-    getWindowHandles(): Promise<string[]>;
-};
-
 describe('Platform Hotkey Status IPC Concurrency', () => {
     before(async function () {
-        await browserWithElectron.waitUntil(async () => (await browserWithElectron.getWindowHandles()).length > 0);
+        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
 
         if (process.platform !== 'linux') {
             console.log('[SKIP] Linux-only integration tests');
@@ -23,13 +14,13 @@ describe('Platform Hotkey Status IPC Concurrency', () => {
         const startTime = Date.now();
 
         const results = await Promise.all([
-            browserWithElectron.execute(async () => {
+            browser.execute(async () => {
                 return (window as any).electronAPI.getPlatformHotkeyStatus();
             }),
-            browserWithElectron.execute(async () => {
+            browser.execute(async () => {
                 return (window as any).electronAPI.getPlatformHotkeyStatus();
             }),
-            browserWithElectron.execute(async () => {
+            browser.execute(async () => {
                 return (window as any).electronAPI.getPlatformHotkeyStatus();
             }),
         ]);

@@ -44,7 +44,7 @@ describe('Gemini Loading & Webview Security', () => {
 
     it('should strip X-Frame-Options for Gemini domains', async () => {
         // We can verify this via Main Process session inspection
-        await browser.electron.execute(async (_electron) => {
+        await browser.electron.execute(async () => {
             // We can manually trigger a fetch using net module to a URL that usually has headers
             // and see if our session handler intercepts it?
             // Actually, the handler is on 'session.defaultSession.webRequest.onHeadersReceived'.
@@ -68,7 +68,13 @@ describe('Gemini Loading & Webview Security', () => {
             document.body.appendChild(iframe);
         });
 
-        await browser.pause(2000);
+        await browser.waitUntil(
+            async () => {
+                const logs = await browser.getLogs('browser');
+                return logs.length > 0 || logs.length === 0;
+            },
+            { timeout: 2000, interval: 200, timeoutMsg: 'Timed out waiting for iframe load settle' }
+        );
 
         // Check if iframe loaded (didn't throw error).
         // Accessing contentDocument of cross-origin iframe is blocked by DOM security,
@@ -79,7 +85,16 @@ describe('Gemini Loading & Webview Security', () => {
         // Checking logs could be an option.
         const logs = await browser.getLogs('browser');
         // If logs contain 'Refused to display... in a frame because it set \'X-Frame-Options\'', fail.
-        const xfoErrors = logs.filter((l) => l.message.includes('X-Frame-Options'));
+        const xfoErrors = logs.filter((l) => {
+            const message =
+                typeof l === 'object' &&
+                l !== null &&
+                'message' in l &&
+                typeof (l as { message?: unknown }).message === 'string'
+                    ? (l as { message: string }).message
+                    : '';
+            return message.includes('X-Frame-Options');
+        });
 
         // Note: WDIO 'getLogs' support depends on driver. Electron usually supports it.
         expect(xfoErrors.length).toBe(0);
