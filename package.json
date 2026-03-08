@@ -124,8 +124,8 @@
         "**/*": "prettier --write --ignore-unknown",
         "src/**/*.{ts,tsx}": "eslint",
         "tests/**/*.{ts,tsx}": "eslint",
-        "config/**/*.{js,ts,cjs,mjs}": "eslint",
-        "scripts/**/*.{js,ts,cjs,mjs}": "eslint"
+        "config/**/*.{ts,tsx}": "eslint",
+        "scripts/**/*.{ts,tsx}": "eslint"
     },
     "overrides": {
         "serialize-javascript": "^7.0.3",

@@ -500,7 +500,6 @@ export default class HotkeyManager {
         // mode === 'wayland-dbus': Wayland portal registration via D-Bus
         logger.log('registerShortcuts() path: Wayland portal registration via D-Bus (direct)');
         this._globalHotkeysEnabled = false;
-        void this._attemptDBusFallbackIfNeeded;
         this._requestWaylandRegistration(plan.waylandStatus);
     }
 
