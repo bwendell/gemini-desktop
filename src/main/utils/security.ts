@@ -83,7 +83,7 @@ export function setupWebviewSecurity(app: App): void {
  * @param session - The default session
  */
 export function setupMediaPermissions(session: Session): void {
-    session.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    session.setPermissionRequestHandler((_webContents, permission, callback, details) => {
         const url = details.requestingUrl || '';
 
         // Allowed permissions for Gemini/Google domains:

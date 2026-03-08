@@ -12,6 +12,7 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "noUnusedLocals": true,
+        "noUnusedParameters": true,
         "baseUrl": ".",
         "paths": {
             "@shared/*": ["src/shared/*"]
