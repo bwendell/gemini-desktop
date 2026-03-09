@@ -30,7 +30,7 @@ Treat this get/set/onChange shape as the template for new bridge APIs.
 - Never expose raw `ipcRenderer` to renderer code
 - Never expose raw `ipcRenderer.on` directly; always wrap and strip event object
 - Keep surface area minimal to what renderer needs
-- Keep preload IPC channel definitions in `src/preload/preload.ts` aligned with main-process channel constants in `src/shared/constants/ipc-channels.ts`
+- Keep preload API modules and shared channel constants aligned by importing channels from `src/shared/constants/ipc-channels.ts`
 
 See `docs/ARCHITECTURE.md` (Security Model) and Electron context isolation/security docs for deeper background.
 
@@ -38,7 +38,7 @@ See `docs/ARCHITECTURE.md` (Security Model) and Electron context isolation/secur
 
 - Exposing Node.js modules (`fs`, `path`, `child_process`) through preload
 - Forgetting to return cleanup functions from `on*` APIs
-- Adding or renaming preload channels without keeping `src/preload/preload.ts` and `src/shared/constants/ipc-channels.ts` in sync
+- Adding or renaming preload channels without updating all relevant `src/preload/api/*` modules and `src/shared/constants/ipc-channels.ts`
 
 ## When You Change This File
 
