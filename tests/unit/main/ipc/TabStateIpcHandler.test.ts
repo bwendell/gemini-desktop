@@ -84,7 +84,190 @@ describe('TabStateIpcHandler', () => {
         expect(mockIpcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.TABS_GET_STATE, expect.any(Function));
         expect(mockIpcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.TABS_SAVE_STATE, expect.any(Function));
         expect(mockIpcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.TABS_UPDATE_TITLE, expect.any(Function));
+        expect(mockIpcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.TABS_RELOAD, expect.any(Function));
 
+        handler.unregister();
+    });
+
+    it('reload handler reloads only active frame from payload tab id', () => {
+        handler.register();
+
+        const reloadListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_RELOAD);
+        const activeTabId = 'tab-active';
+        const activeFrame = {
+            name: getTabFrameName(activeTabId),
+            url: GEMINI_APP_URL,
+            isDestroyed: vi.fn().mockReturnValue(false),
+            reload: vi.fn().mockReturnValue(true),
+        };
+        const backgroundFrame = {
+            name: getTabFrameName('tab-bg'),
+            url: GEMINI_APP_URL,
+            isDestroyed: vi.fn().mockReturnValue(false),
+            reload: vi.fn().mockReturnValue(true),
+        };
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(false),
+            webContents: {
+                mainFrame: {
+                    frames: [backgroundFrame, activeFrame],
+                },
+            },
+        };
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+
+        reloadListener?.({}, { activeTabId });
+
+        expect(activeFrame.reload).toHaveBeenCalledTimes(1);
+        expect(backgroundFrame.reload).not.toHaveBeenCalled();
+
+        handler.unregister();
+    });
+
+    it('reload handler uses payload active tab over stored active tab', () => {
+        handler.register();
+
+        const saveListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_SAVE_STATE);
+        const reloadListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_RELOAD);
+
+        saveListener?.(
+            {},
+            {
+                tabs: [
+                    { id: 'tab-old', title: 'Old', url: GEMINI_APP_URL, createdAt: 1 },
+                    { id: 'tab-new', title: 'New', url: GEMINI_APP_URL, createdAt: 2 },
+                ],
+                activeTabId: 'tab-old',
+            }
+        );
+
+        const oldFrame = {
+            name: getTabFrameName('tab-old'),
+            isDestroyed: vi.fn().mockReturnValue(false),
+            reload: vi.fn().mockReturnValue(true),
+        };
+        const newFrame = {
+            name: getTabFrameName('tab-new'),
+            isDestroyed: vi.fn().mockReturnValue(false),
+            reload: vi.fn().mockReturnValue(true),
+        };
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(false),
+            webContents: {
+                mainFrame: {
+                    frames: [oldFrame, newFrame],
+                },
+            },
+        };
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+
+        reloadListener?.({}, { activeTabId: 'tab-new' });
+
+        expect(newFrame.reload).toHaveBeenCalledTimes(1);
+        expect(oldFrame.reload).not.toHaveBeenCalled();
+
+        handler.unregister();
+    });
+
+    it('reload handler skips when main window is destroyed', () => {
+        handler.register();
+        const reloadListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_RELOAD);
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(true),
+            webContents: {
+                mainFrame: {
+                    frames: [],
+                },
+            },
+        };
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+
+        expect(() => reloadListener?.({}, { activeTabId: 'tab-a' })).not.toThrow();
+        handler.unregister();
+    });
+
+    it('reload handler skips when target frame is destroyed', () => {
+        handler.register();
+        const reloadListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_RELOAD);
+
+        const targetFrame = {
+            name: getTabFrameName('tab-a'),
+            isDestroyed: vi.fn().mockReturnValue(true),
+            reload: vi.fn().mockReturnValue(true),
+        };
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(false),
+            webContents: {
+                mainFrame: {
+                    frames: [targetFrame],
+                },
+            },
+        };
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+
+        reloadListener?.({}, { activeTabId: 'tab-a' });
+        expect(targetFrame.reload).not.toHaveBeenCalled();
+
+        handler.unregister();
+    });
+
+    it('reload handler debounces rapid calls', () => {
+        handler.register();
+        const reloadListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_RELOAD);
+
+        const targetFrame = {
+            name: getTabFrameName('tab-a'),
+            isDestroyed: vi.fn().mockReturnValue(false),
+            reload: vi.fn().mockReturnValue(true),
+        };
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(false),
+            webContents: {
+                mainFrame: {
+                    frames: [targetFrame],
+                },
+            },
+        };
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+
+        reloadListener?.({}, { activeTabId: 'tab-a' });
+        reloadListener?.({}, { activeTabId: 'tab-a' });
+
+        expect(targetFrame.reload).toHaveBeenCalledTimes(1);
+
+        handler.unregister();
+    });
+
+    it('reload handler falls back to first gemini frame when no active tab id payload or store', () => {
+        handler.register();
+        const reloadListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_RELOAD);
+
+        const fallbackFrame = {
+            name: getTabFrameName('tab-fallback'),
+            url: GEMINI_APP_URL,
+            isDestroyed: vi.fn().mockReturnValue(false),
+            reload: vi.fn().mockReturnValue(true),
+        };
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(false),
+            webContents: {
+                mainFrame: {
+                    frames: [fallbackFrame],
+                },
+            },
+        };
+
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+
+        reloadListener?.({}, undefined);
+
+        expect(fallbackFrame.reload).toHaveBeenCalledTimes(1);
         handler.unregister();
     });
 
@@ -352,5 +535,12 @@ describe('TabStateIpcHandler', () => {
 
         handler.unregister();
         vi.useRealTimers();
+    });
+
+    it('unregister removes TABS_RELOAD listeners', () => {
+        handler.register();
+        handler.unregister();
+
+        expect(mockIpcMain.removeAllListeners).toHaveBeenCalledWith(IPC_CHANNELS.TABS_RELOAD);
     });
 });

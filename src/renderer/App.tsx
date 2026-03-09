@@ -43,7 +43,7 @@ function AppContent() {
         isOnline: true,
         error: null,
         retry: () => {
-            window.location.reload();
+            window.electronAPI?.reloadTabs();
         },
     });
     const pendingNavigateRef = useRef<GeminiNavigatePayload | null>(null);

@@ -223,7 +223,7 @@ describe('Menu', () => {
             await optionsPage.close();
         });
 
-        it('should reload the page when clicking View -> Reload', async function (this: Context) {
+        it('should preserve renderer shell state when clicking View -> Reload', async function (this: Context) {
             if (await isMacOS()) {
                 this.skip();
             }
@@ -237,10 +237,17 @@ describe('Menu', () => {
 
             await mainWindow.clickMenuById('menu-view-reload');
 
-            await waitForDuration(1000, 'Page reload');
-
-            const valAfter = await wdioBrowser.execute(() => (window as WindowWithE2EVar).__e2e_test_var);
-            expect(valAfter).toBeFalsy();
+            const rendererStatePreserved = await waitForUIState(
+                async () => {
+                    const valAfter = await wdioBrowser.execute(() => (window as WindowWithE2EVar).__e2e_test_var);
+                    return valAfter === 'loaded';
+                },
+                {
+                    timeout: 5000,
+                    description: 'Renderer shell state preserved after tab reload',
+                }
+            );
+            expect(rendererStatePreserved).toBe(true);
         });
     });
 

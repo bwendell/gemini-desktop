@@ -110,6 +110,7 @@ const mockElectronAPI = {
     // Gemini Iframe Navigation API
     onGeminiNavigate: vi.fn().mockReturnValue(() => {}),
     signalGeminiReady: vi.fn(),
+    reloadTabs: vi.fn(),
 
     // Export API
     exportChatToPdf: vi.fn(),
@@ -173,9 +174,10 @@ Object.defineProperty(window, 'electronAPI', {
 });
 
 // Helper to change platform in tests
-export function setMockPlatform(platform: string): void {
-    if (window.electronAPI) {
-        (window.electronAPI as any).platform = platform;
+export function setMockPlatform(platform: NodeJS.Platform): void {
+    const windowWithElectronApi = window as unknown as { electronAPI?: { platform: NodeJS.Platform } };
+    if (windowWithElectronApi.electronAPI) {
+        windowWithElectronApi.electronAPI.platform = platform;
     }
 }
 
@@ -210,7 +212,8 @@ Object.defineProperty(globalThis, 'performance', {
 // ============================================================================
 beforeEach(() => {
     vi.clearAllMocks();
-    if (window.electronAPI) {
-        (window.electronAPI as any).platform = 'win32';
+    const windowWithElectronApi = window as unknown as { electronAPI?: { platform: NodeJS.Platform } };
+    if (windowWithElectronApi.electronAPI) {
+        windowWithElectronApi.electronAPI.platform = 'win32';
     }
 });

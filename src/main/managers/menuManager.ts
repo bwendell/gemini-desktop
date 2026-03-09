@@ -7,6 +7,7 @@ import type { PlatformAdapter } from '../platform/PlatformAdapter';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
 import { getReleaseNotesUrl } from '../../shared/utils/releaseNotes';
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
+import type { TabStateIpcHandler } from './ipc';
 
 /**
  * Manages the application native menu and context menus.
@@ -27,13 +28,16 @@ export default class MenuManager {
     private contextMenuItems: { id: string; item: MenuItem }[] = [];
     private hotkeyManager: HotkeyManager | null = null;
     private readonly adapter: PlatformAdapter;
+    private readonly tabStateIpcHandler: TabStateIpcHandler | null;
 
     constructor(
         private windowManager: WindowManager,
         hotkeyManager?: HotkeyManager,
-        adapter?: PlatformAdapter
+        adapter?: PlatformAdapter,
+        tabStateIpcHandler?: TabStateIpcHandler | null
     ) {
         this.adapter = adapter ?? getPlatformAdapter();
+        this.tabStateIpcHandler = tabStateIpcHandler ?? null;
 
         if (hotkeyManager) {
             this.hotkeyManager = hotkeyManager;
@@ -351,8 +355,14 @@ export default class MenuManager {
         return {
             label: 'View',
             submenu: [
-                { role: 'reload', id: 'menu-view-reload' },
-                { role: 'forceReload', id: 'menu-view-forcereload' },
+                {
+                    label: 'Reload',
+                    id: 'menu-view-reload',
+                    accelerator: 'CmdOrCtrl+R',
+                    click: () => {
+                        this.tabStateIpcHandler?.reloadActiveTabFromMenu();
+                    },
+                },
                 { role: 'toggleDevTools', id: 'menu-view-devtools' },
                 { type: 'separator' },
                 {

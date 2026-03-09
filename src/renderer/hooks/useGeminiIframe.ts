@@ -127,7 +127,9 @@ export function useGeminiIframe(): GeminiIframeState {
      */
     const retry = useCallback(() => {
         logger.log('Retrying connection - reloading page');
-        window.location.reload();
+        setIsLoading(true);
+        setError(null);
+        window.electronAPI?.reloadTabs();
     }, []);
 
     return {

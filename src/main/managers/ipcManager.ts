@@ -84,6 +84,7 @@ export default class IpcManager {
     private readonly textPredictionHandler: TextPredictionIpcHandler;
     private readonly responseNotificationHandler: ResponseNotificationIpcHandler;
     private readonly quickChatHandler: QuickChatIpcHandler;
+    private readonly tabStateHandler: TabStateIpcHandler;
     private readonly logger: Logger;
     private readonly handlerDeps: IpcHandlerDependencies;
     /** Settings store exposed for integration tests */
@@ -169,6 +170,8 @@ export default class IpcManager {
         }
 
         // Instantiate all handlers
+        this.tabStateHandler = new TabStateIpcHandler(handlerDeps);
+
         this.handlers = [
             // Phase 1 handlers
             new ShellIpcHandler(handlerDeps),
@@ -189,7 +192,7 @@ export default class IpcManager {
             new LaunchAtStartupIpcHandler(handlerDeps),
             // Export handler
             new ExportIpcHandler(handlerDeps),
-            new TabStateIpcHandler(handlerDeps),
+            this.tabStateHandler,
         ];
 
         this.logger.log('Initialized');
@@ -233,6 +236,10 @@ export default class IpcManager {
         this.handlerDeps.notificationManager = manager;
         this.responseNotificationHandler.setNotificationManager(manager);
         this.logger.log(`NotificationManager ${manager ? 'injected' : 'cleared'}`);
+    }
+
+    getTabStateIpcHandler(): TabStateIpcHandler {
+        return this.tabStateHandler;
     }
 
     /**

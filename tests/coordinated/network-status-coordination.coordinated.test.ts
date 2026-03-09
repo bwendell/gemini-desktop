@@ -98,7 +98,9 @@ describe('Network Status Coordination', () => {
 
             // Simulate going online
             act(() => {
-                onlineListeners.forEach((listener) => listener(new Event('online')));
+                onlineListeners.forEach((listener) => {
+                    listener(new Event('online'));
+                });
             });
 
             expect(result.current).toBe(true);
@@ -110,7 +112,9 @@ describe('Network Status Coordination', () => {
 
             // Simulate going offline
             act(() => {
-                offlineListeners.forEach((listener) => listener(new Event('offline')));
+                offlineListeners.forEach((listener) => {
+                    listener(new Event('offline'));
+                });
             });
 
             expect(result.current).toBe(false);
@@ -225,34 +229,41 @@ describe('Network Status Coordination', () => {
 
             // Rapid toggling
             act(() => {
-                offlineListeners.forEach((l) => l(new Event('offline')));
+                offlineListeners.forEach((l) => {
+                    l(new Event('offline'));
+                });
             });
             expect(result.current).toBe(false);
 
             act(() => {
-                onlineListeners.forEach((l) => l(new Event('online')));
+                onlineListeners.forEach((l) => {
+                    l(new Event('online'));
+                });
             });
             expect(result.current).toBe(true);
 
             act(() => {
-                offlineListeners.forEach((l) => l(new Event('offline')));
+                offlineListeners.forEach((l) => {
+                    l(new Event('offline'));
+                });
             });
             expect(result.current).toBe(false);
 
             act(() => {
-                onlineListeners.forEach((l) => l(new Event('online')));
+                onlineListeners.forEach((l) => {
+                    l(new Event('online'));
+                });
             });
             expect(result.current).toBe(true);
         });
     });
 
     describe('Retry Mechanism', () => {
-        it('should provide retry function that reloads the page', () => {
-            // Mock window.location.reload
-            const mockReload = vi.fn();
-            Object.defineProperty(window, 'location', {
+        it('should provide retry function that reloads tabs', () => {
+            const mockReloadTabs = vi.fn();
+            Object.defineProperty(window, 'electronAPI', {
                 configurable: true,
-                value: { ...window.location, reload: mockReload },
+                value: { ...window.electronAPI, reloadTabs: mockReloadTabs },
             });
 
             const { result } = renderHook(() => useGeminiIframe());
@@ -261,7 +272,7 @@ describe('Network Status Coordination', () => {
                 result.current.retry();
             });
 
-            expect(mockReload).toHaveBeenCalled();
+            expect(mockReloadTabs).toHaveBeenCalled();
         });
     });
 });

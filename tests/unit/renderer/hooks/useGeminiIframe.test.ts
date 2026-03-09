@@ -6,18 +6,12 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useGeminiIframe } from '../../../../src/renderer/hooks/useGeminiIframe';
 import { useNetworkStatus } from '../../../../src/renderer/hooks/useNetworkStatus';
+import { mockElectronAPI } from '../test/setup';
 
 // Mock dependencies
 vi.mock('../../../../src/renderer/hooks/useNetworkStatus', () => ({
     useNetworkStatus: vi.fn(),
 }));
-
-// Mock window.location.reload
-const mockReload = vi.fn();
-Object.defineProperty(window, 'location', {
-    value: { reload: mockReload },
-    writable: true,
-});
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -101,14 +95,14 @@ describe('useGeminiIframe', () => {
     });
 
     describe('retry', () => {
-        it('reloads the page', () => {
+        it('requests active tab reload through electronAPI', () => {
             const { result } = renderHook(() => useGeminiIframe());
 
             act(() => {
                 result.current.retry();
             });
 
-            expect(mockReload).toHaveBeenCalled();
+            expect(mockElectronAPI.reloadTabs).toHaveBeenCalledTimes(1);
         });
     });
 

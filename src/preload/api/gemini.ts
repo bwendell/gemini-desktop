@@ -14,6 +14,7 @@ export const geminiAPI: Pick<
     | 'onTabShortcutTriggered'
     | 'onTabTitleUpdated'
     | 'updateTabTitle'
+    | 'reloadTabs'
 > = {
     onGeminiNavigate: createSubscription<GeminiNavigatePayload>(IPC_CHANNELS.GEMINI_NAVIGATE),
     signalGeminiReady: (payload) => ipcRenderer.send(IPC_CHANNELS.GEMINI_READY, payload),
@@ -22,4 +23,5 @@ export const geminiAPI: Pick<
     onTabShortcutTriggered: createSubscription<TabShortcutPayload>(IPC_CHANNELS.TABS_SHORTCUT_TRIGGERED),
     onTabTitleUpdated: createSubscription<{ tabId: string; title: string }>(IPC_CHANNELS.TABS_TITLE_UPDATED),
     updateTabTitle: (tabId, title) => ipcRenderer.send(IPC_CHANNELS.TABS_UPDATE_TITLE, { tabId, title }),
+    reloadTabs: (activeTabId) => ipcRenderer.send(IPC_CHANNELS.TABS_RELOAD, activeTabId ? { activeTabId } : undefined),
 };

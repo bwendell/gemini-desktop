@@ -176,7 +176,7 @@ export function useMenuDefinitions(): MenuDefinition[] {
                     id: 'menu-view-reload',
                     label: 'Reload',
                     shortcut: 'Ctrl+R',
-                    action: () => window.location.reload(),
+                    action: () => window.electronAPI?.reloadTabs(),
                 },
                 { separator: true },
                 {

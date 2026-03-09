@@ -8,11 +8,13 @@ vi.mock('./useNetworkStatus', () => ({
     useNetworkStatus: vi.fn(() => true),
 }));
 
-// Mock window.location.reload
-const mockReload = vi.fn();
-Object.defineProperty(window, 'location', {
-    value: { reload: mockReload },
+const mockReloadTabs = vi.fn();
+Object.defineProperty(window, 'electronAPI', {
+    value: {
+        reloadTabs: mockReloadTabs,
+    },
     writable: true,
+    configurable: true,
 });
 
 describe('useGeminiIframe', () => {
@@ -62,7 +64,7 @@ describe('useGeminiIframe', () => {
         expect(result.current.error).toBe('Failed to load Gemini');
     });
 
-    it('retry calls window.location.reload', () => {
+    it('retry clears error state, sets loading, and calls reloadTabs', () => {
         const { result } = renderHook(() => useGeminiIframe());
 
         // First set error state
@@ -78,7 +80,9 @@ describe('useGeminiIframe', () => {
             result.current.retry();
         });
 
-        expect(mockReload).toHaveBeenCalledTimes(1);
+        expect(result.current.error).toBeNull();
+        expect(result.current.isLoading).toBe(true);
+        expect(mockReloadTabs).toHaveBeenCalledTimes(1);
     });
 
     it('handleLoad after error clears error state', async () => {

@@ -115,6 +115,8 @@ export interface ElectronAPI {
 
     updateTabTitle: (tabId: string, title: string) => void;
 
+    reloadTabs: (activeTabId?: string) => void;
+
     // =========================================================================
     // Individual Hotkeys API
     // =========================================================================

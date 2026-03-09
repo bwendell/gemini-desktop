@@ -38,6 +38,7 @@ describe('MenuManager', () => {
     let menuManager: MenuManager;
     let mockWindowManager: any;
     let mockHotkeyManager: any;
+    let mockTabStateIpcHandler: { reloadActiveTabFromMenu: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -63,10 +64,15 @@ describe('MenuManager', () => {
             isIndividualEnabled: vi.fn().mockReturnValue(true),
         };
 
+        mockTabStateIpcHandler = {
+            reloadActiveTabFromMenu: vi.fn(),
+        };
+
         menuManager = new MenuManager(
             mockWindowManager as unknown as WindowManager,
             mockHotkeyManager,
-            new LinuxX11Adapter() // default non-macOS adapter
+            new LinuxX11Adapter(), // default non-macOS adapter
+            mockTabStateIpcHandler as any
         );
     });
 
@@ -80,7 +86,12 @@ describe('MenuManager', () => {
     // Replace setPlatform: creates a new MenuManager with the correct adapter
     const setPlatform = (platform: string) => {
         const adapter = adapterForPlatform[platform]();
-        menuManager = new MenuManager(mockWindowManager as unknown as WindowManager, mockHotkeyManager, adapter);
+        menuManager = new MenuManager(
+            mockWindowManager as unknown as WindowManager,
+            mockHotkeyManager,
+            adapter,
+            mockTabStateIpcHandler as any
+        );
     };
 
     const findMenuItem = (template: any[], label: string) => {
@@ -134,7 +145,9 @@ describe('MenuManager', () => {
                 .filter((item: any) => item.role)
                 .map((item: any) => item.role);
 
-            expect(submenuRoles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
+            expect(submenuRoles).toEqual(
+                expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll'])
+            );
         });
 
         it('positions Edit menu between File and View', () => {
@@ -379,6 +392,21 @@ describe('MenuManager', () => {
     });
 
     describe('View Menu', () => {
+        it('Reload click handler calls reloadActiveTabFromMenu', () => {
+            setPlatform('win32');
+            menuManager.buildMenu();
+            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
+            const viewMenu = findMenuItem(template, 'View');
+            const reloadItem = findSubmenuItem(viewMenu, 'Reload');
+
+            expect(reloadItem).toBeTruthy();
+            expect(reloadItem.id).toBe('menu-view-reload');
+            expect(reloadItem.accelerator).toBe('CmdOrCtrl+R');
+
+            reloadItem.click();
+            expect(mockTabStateIpcHandler.reloadActiveTabFromMenu).toHaveBeenCalledTimes(1);
+        });
+
         it('includes Always On Top menu item', () => {
             setPlatform('win32');
             menuManager.buildMenu();
