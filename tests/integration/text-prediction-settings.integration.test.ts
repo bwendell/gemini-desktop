@@ -9,8 +9,13 @@
 
 import { browser, expect } from '@wdio/globals';
 
+import { closeOptionsWindowsForIntegration, openOptionsWindowForIntegration } from './helpers/optionsWindowActions';
+import { waitForDuration } from './helpers/waitAdapters';
+import { OptionsPage } from './pages/OptionsPage';
+
 describe('Text Prediction Settings IPC Integration', () => {
     let mainWindowHandle: string;
+    const optionsPage = new OptionsPage();
 
     before(async () => {
         // Wait for the main window to be ready and electronAPI to be available
@@ -73,7 +78,7 @@ describe('Text Prediction Settings IPC Integration', () => {
             }, newValue);
 
             // Small pause for IPC to complete
-            await browser.pause(200);
+            await waitForDuration(200);
 
             // Get the updated value
             const updatedValue = await browser.execute(async () => {
@@ -95,7 +100,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(false);
             });
 
-            await browser.pause(100);
+            await waitForDuration(100);
 
             // Verify it's false
             const afterFalse = await browser.execute(async () => {
@@ -108,7 +113,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(true);
             });
 
-            await browser.pause(100);
+            await waitForDuration(100);
 
             // Verify it's true
             const afterTrue = await browser.execute(async () => {
@@ -143,7 +148,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(true);
             });
 
-            await browser.pause(100);
+            await waitForDuration(100);
 
             // Retrieve and verify persistence
             const valueAfterSetTrue = await browser.execute(async () => {
@@ -156,7 +161,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(false);
             });
 
-            await browser.pause(100);
+            await waitForDuration(100);
 
             // Retrieve and verify persistence
             const valueAfterSetFalse = await browser.execute(async () => {
@@ -176,7 +181,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(true);
             });
 
-            await browser.pause(150);
+            await waitForDuration(150);
 
             // Verify the value was stored by retrieving it
             const storedValue = await browser.execute(async () => {
@@ -190,7 +195,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionEnabled(false);
             });
 
-            await browser.pause(150);
+            await waitForDuration(150);
 
             // Verify the new value was stored
             const updatedValue = await browser.execute(async () => {
@@ -232,7 +237,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionGpuEnabled(value);
             }, newValue);
 
-            await browser.pause(100);
+            await waitForDuration(100);
 
             // Verify
             const updatedValue = await browser.execute(async () => {
@@ -268,7 +273,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionGpuEnabled(true);
             });
 
-            await browser.pause(100);
+            await waitForDuration(100);
 
             const afterTrue = await browser.execute(async () => {
                 return await (window as any).electronAPI.getTextPredictionGpuEnabled();
@@ -280,7 +285,7 @@ describe('Text Prediction Settings IPC Integration', () => {
                 await (window as any).electronAPI.setTextPredictionGpuEnabled(false);
             });
 
-            await browser.pause(100);
+            await waitForDuration(100);
 
             const afterFalse = await browser.execute(async () => {
                 return await (window as any).electronAPI.getTextPredictionGpuEnabled();
@@ -416,56 +421,18 @@ describe('Text Prediction Settings IPC Integration', () => {
 
     // Task 9.9 - Options window Settings tab shows Text Prediction section
     describe('Options Window Text Prediction Section', () => {
-        let optionsWindowHandle: string | null = null;
-
         afterEach(async () => {
-            // Close options window if open
-            await browser.electron.execute(() => {
-                const { BrowserWindow } = require('electron');
-                const mainWin = (global as any).appContext.windowManager.getMainWindow();
-                BrowserWindow.getAllWindows().forEach((win: any) => {
-                    if (win !== mainWin && !win.isDestroyed()) {
-                        win.close();
-                    }
-                });
-            });
-
-            await browser.pause(300);
-
-            // Switch back to main window
+            await closeOptionsWindowsForIntegration();
             await browser.switchToWindow(mainWindowHandle);
         });
 
         it('should show Text Prediction section in Options window', async () => {
-            // Open options window
-            await browser.execute(() => {
-                (window as any).electronAPI.openOptions('settings');
-            });
+            await openOptionsWindowForIntegration('settings');
+            await optionsPage.waitForLoad();
 
-            // Wait for window to appear
-            await browser.waitUntil(
-                async () => {
-                    const handles = await browser.getWindowHandles();
-                    return handles.length === 2;
-                },
-                { timeout: 5000, timeoutMsg: 'Options window did not appear' }
+            const hasTextPredictionSection = await optionsPage.isSectionDisplayed(
+                optionsPage.textPredictionSectionSelector
             );
-
-            // Find options window handle
-            const handles = await browser.getWindowHandles();
-            optionsWindowHandle = handles.find((h) => h !== mainWindowHandle) || null;
-
-            if (optionsWindowHandle) {
-                await browser.switchToWindow(optionsWindowHandle);
-            }
-
-            await browser.pause(500);
-
-            // Check for text prediction section or toggle
-            const hasTextPredictionSection = await browser.execute(() => {
-                const body = document.body.innerText.toLowerCase();
-                return body.includes('text prediction') || body.includes('prediction');
-            });
 
             expect(hasTextPredictionSection).toBe(true);
         });

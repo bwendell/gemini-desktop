@@ -1,5 +1,7 @@
 import { browser } from '@wdio/globals';
 
+import { waitForElectronState, waitForRendererState, waitForWindowCount } from './waitAdapters';
+
 type ElectronExecute = {
     execute<R>(fn: (electron: typeof import('electron')) => R): Promise<R>;
     execute<R, A>(fn: (electron: typeof import('electron'), arg: A) => R, arg: A): Promise<R>;
@@ -40,7 +42,7 @@ type GlobalWithAppContext = typeof globalThis & {
 };
 
 export async function waitForElectronAPI(timeout = 30000): Promise<void> {
-    await integrationBrowser.waitUntil(
+    await waitForRendererState(
         async () => {
             try {
                 return await integrationBrowser.execute(() => {
@@ -55,7 +57,7 @@ export async function waitForElectronAPI(timeout = 30000): Promise<void> {
 }
 
 export async function waitForAppReady(timeout = 30000): Promise<void> {
-    await integrationBrowser.waitUntil(async () => (await integrationBrowser.getWindowHandles()).length > 0, {
+    await waitForRendererState(async () => (await integrationBrowser.getWindowHandles()).length > 0, {
         timeout,
         timeoutMsg: `App window did not appear after ${timeout}ms`,
     });
@@ -136,7 +138,7 @@ export async function closeExtraWindows(
 
     await closeWithMethod('close');
     try {
-        await integrationBrowser.waitUntil(async () => (await integrationBrowser.getWindowHandles()).length <= 1, {
+        await waitForRendererState(async () => (await integrationBrowser.getWindowHandles()).length <= 1, {
             timeout,
             interval,
             timeoutMsg: 'Extra windows did not close in time',
@@ -149,7 +151,7 @@ export async function closeExtraWindows(
     }
 
     await closeWithMethod('destroy');
-    await integrationBrowser.waitUntil(async () => (await integrationBrowser.getWindowHandles()).length <= 1, {
+    await waitForRendererState(async () => (await integrationBrowser.getWindowHandles()).length <= 1, {
         timeout,
         interval,
         timeoutMsg: 'Extra windows remained after force cleanup',
@@ -168,7 +170,7 @@ export async function openOptionsWindow(mainWindowHandle: string, tab = 'setting
         }
     }, tab);
 
-    await integrationBrowser.waitUntil(
+    await waitForRendererState(
         async () => {
             const handles = await integrationBrowser.getWindowHandles();
             const hasSecondaryWindow = handles.some((handle) => handle !== mainWindowHandle);
@@ -312,10 +314,28 @@ export async function waitForMainProcess(
 ): Promise<void> {
     const { timeout = 5000, timeoutMsg = 'Main process condition not met' } = options;
 
-    await integrationBrowser.waitUntil(async () => integrationBrowser.electron.execute(condition), {
-        timeout,
-        timeoutMsg,
-    });
+    await waitForElectronState(condition, { timeout, timeoutMsg });
+}
+
+export async function waitForSecondaryWindow(mainWindowHandle: string, timeout = 5000): Promise<string> {
+    await waitForRendererState(
+        async () => {
+            const secondary = await getSecondaryWindowHandle(mainWindowHandle);
+            return Boolean(secondary);
+        },
+        { timeout, timeoutMsg: 'Secondary window did not appear' }
+    );
+
+    const secondary = await getSecondaryWindowHandle(mainWindowHandle);
+    if (!secondary) {
+        throw new Error('Could not resolve secondary window handle');
+    }
+
+    return secondary;
+}
+
+export async function waitForSingleWindow(timeout = 5000): Promise<void> {
+    await waitForWindowCount(1, { timeout, timeoutMsg: 'Expected only one window handle' });
 }
 
 export async function callElectronAPI<T>(method: string, ...args: unknown[]): Promise<T> {

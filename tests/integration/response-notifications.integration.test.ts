@@ -14,13 +14,7 @@
 
 import { browser, expect } from '@wdio/globals';
 
-type GlobalWithAppContext = typeof globalThis & {
-    appContext?: {
-        windowManager?: {
-            getMainWindow?: () => { isDestroyed: () => boolean } | null;
-        };
-    };
-};
+import { closeOptionsWindowsForIntegration, openOptionsWindowForIntegration } from './helpers/optionsWindowActions';
 
 const setResponseNotificationsEnabled = async (enabled: boolean): Promise<void> => {
     await browser.execute((value) => {
@@ -45,43 +39,12 @@ const waitForResponseNotificationsValue = async (expected: boolean, timeout = 30
 };
 
 const closeOptionsWindowsForTest = async (): Promise<void> => {
-    await browser.electron.execute(() => {
-        const { BrowserWindow } = require('electron') as typeof import('electron');
-        const mainWindow = (global as GlobalWithAppContext).appContext?.windowManager?.getMainWindow?.();
-
-        BrowserWindow.getAllWindows().forEach((win) => {
-            if (win !== mainWindow && !win.isDestroyed()) {
-                win.close();
-            }
-        });
-    });
-
-    try {
-        await browser.waitUntil(async () => (await browser.getWindowHandles()).length <= 1, {
-            timeout: 1500,
-            interval: 100,
-            timeoutMsg: 'Options windows did not fully close in cleanup window',
-        });
-    } catch (error) {
-        void error;
-    }
+    await closeOptionsWindowsForIntegration();
 };
 
 const openOptionsWindowAllowExisting = async (mainWindowHandle: string): Promise<string | null> => {
-    await browser.execute(() => {
-        (window as any).electronAPI.openOptions('settings');
-    });
-
-    await browser.waitUntil(
-        async () => {
-            const handles = await browser.getWindowHandles();
-            return handles.length >= 2;
-        },
-        { timeout: 5000, timeoutMsg: 'Options window did not appear' }
-    );
-
-    const handles = await browser.getWindowHandles();
-    return handles.find((handle) => handle !== mainWindowHandle) ?? null;
+    void mainWindowHandle;
+    return openOptionsWindowForIntegration('settings');
 };
 
 describe('Response Notifications IPC Integration', () => {
