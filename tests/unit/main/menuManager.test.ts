@@ -145,7 +145,9 @@ describe('MenuManager', () => {
                 .filter((item: any) => item.role)
                 .map((item: any) => item.role);
 
-            expect(submenuRoles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
+            expect(submenuRoles).toEqual(
+                expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll'])
+            );
         });
 
         it('positions Edit menu between File and View', () => {
@@ -402,21 +404,6 @@ describe('MenuManager', () => {
             expect(reloadItem.accelerator).toBe('CmdOrCtrl+R');
 
             reloadItem.click();
-            expect(mockTabStateIpcHandler.reloadActiveTabFromMenu).toHaveBeenCalledTimes(1);
-        });
-
-        it('Force Reload click handler calls reloadActiveTabFromMenu', () => {
-            setPlatform('win32');
-            menuManager.buildMenu();
-            const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
-            const viewMenu = findMenuItem(template, 'View');
-            const forceReloadItem = findSubmenuItem(viewMenu, 'Force Reload');
-
-            expect(forceReloadItem).toBeTruthy();
-            expect(forceReloadItem.id).toBe('menu-view-forcereload');
-            expect(forceReloadItem.accelerator).toBe('CmdOrCtrl+Shift+R');
-
-            forceReloadItem.click();
             expect(mockTabStateIpcHandler.reloadActiveTabFromMenu).toHaveBeenCalledTimes(1);
         });
 

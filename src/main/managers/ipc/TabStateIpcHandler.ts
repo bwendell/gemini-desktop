@@ -283,6 +283,25 @@ export class TabStateIpcHandler extends BaseIpcHandler {
         return { activeTabId: normalizedState.activeTabId, source: 'store' };
     }
 
+    private _resolveFallbackFrameActiveTabId(): string | null {
+        const mainWindow = this.deps.windowManager.getMainWindow();
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return null;
+        }
+
+        const activeGeminiFrame = mainWindow.webContents.mainFrame.frames.find(
+            (frame) => !frame.isDestroyed() && isGeminiDomain(frame.url)
+        );
+
+        if (!activeGeminiFrame) {
+            return null;
+        }
+
+        const match = /^gemini-tab-(.+)$/.exec(activeGeminiFrame.name);
+        const derivedTabId = match?.[1]?.trim();
+        return derivedTabId || null;
+    }
+
     private _scheduleDelayedTitlePoll(): void {
         if (this.delayedTitlePollTimeout) {
             clearTimeout(this.delayedTitlePollTimeout);
@@ -311,12 +330,22 @@ export class TabStateIpcHandler extends BaseIpcHandler {
             }
 
             const activeTabDetails = this._resolveActiveTabId(payload);
-            if (!activeTabDetails) {
-                this.logger.warn('Cannot reload active tab: no active tab id available');
-                return;
-            }
+            let activeTabId: string;
+            let source: 'payload' | 'store' | 'frame';
 
-            const { activeTabId, source } = activeTabDetails;
+            if (activeTabDetails) {
+                activeTabId = activeTabDetails.activeTabId;
+                source = activeTabDetails.source;
+            } else {
+                const fallbackFrameTabId = this._resolveFallbackFrameActiveTabId();
+                if (!fallbackFrameTabId) {
+                    this.logger.warn('Cannot reload active tab: no active tab id available');
+                    return;
+                }
+
+                activeTabId = fallbackFrameTabId;
+                source = 'frame';
+            }
             const targetFrameName = getTabFrameName(activeTabId);
             const targetFrame = mainWindow.webContents.mainFrame.frames.find((frame) => frame.name === targetFrameName);
 

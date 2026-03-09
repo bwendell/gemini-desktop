@@ -64,7 +64,7 @@ describe('useGeminiIframe', () => {
         expect(result.current.error).toBe('Failed to load Gemini');
     });
 
-    it('retry calls reloadTabs', () => {
+    it('retry clears error state, sets loading, and calls reloadTabs', () => {
         const { result } = renderHook(() => useGeminiIframe());
 
         // First set error state
@@ -80,6 +80,8 @@ describe('useGeminiIframe', () => {
             result.current.retry();
         });
 
+        expect(result.current.error).toBeNull();
+        expect(result.current.isLoading).toBe(true);
         expect(mockReloadTabs).toHaveBeenCalledTimes(1);
     });
 

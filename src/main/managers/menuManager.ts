@@ -363,14 +363,6 @@ export default class MenuManager {
                         this.tabStateIpcHandler?.reloadActiveTabFromMenu();
                     },
                 },
-                {
-                    label: 'Force Reload',
-                    id: 'menu-view-forcereload',
-                    accelerator: 'CmdOrCtrl+Shift+R',
-                    click: () => {
-                        this.tabStateIpcHandler?.reloadActiveTabFromMenu();
-                    },
-                },
                 { role: 'toggleDevTools', id: 'menu-view-devtools' },
                 { type: 'separator' },
                 {

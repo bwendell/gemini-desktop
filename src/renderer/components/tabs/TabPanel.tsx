@@ -29,7 +29,6 @@ function TabIframe({ tab, isActive, onTabReady, onActiveStatusChange }: TabIfram
     const { isLoading, error, isOnline, handleLoad, handleError, retry } = useGeminiIframe();
     const showError = !!error || !isOnline;
     const hasLoadedRef = useRef(false);
-    const hasValidatedConnectivityRef = useRef(false);
 
     useEffect(() => {
         if (isActive) {
@@ -42,8 +41,7 @@ function TabIframe({ tab, isActive, onTabReady, onActiveStatusChange }: TabIfram
     }, [error, isActive, isOnline, onActiveStatusChange, retry]);
 
     useEffect(() => {
-        if (isActive && hasLoadedRef.current && !hasValidatedConnectivityRef.current) {
-            hasValidatedConnectivityRef.current = true;
+        if (isActive && hasLoadedRef.current) {
             void handleLoad();
         }
     }, [handleLoad, isActive]);
@@ -51,8 +49,7 @@ function TabIframe({ tab, isActive, onTabReady, onActiveStatusChange }: TabIfram
     const onIframeLoad = useCallback(() => {
         hasLoadedRef.current = true;
 
-        if (isActive && !hasValidatedConnectivityRef.current) {
-            hasValidatedConnectivityRef.current = true;
+        if (isActive) {
             void handleLoad();
         }
 

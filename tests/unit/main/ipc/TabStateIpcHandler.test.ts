@@ -243,6 +243,34 @@ describe('TabStateIpcHandler', () => {
         handler.unregister();
     });
 
+    it('reload handler falls back to first gemini frame when no active tab id payload or store', () => {
+        handler.register();
+        const reloadListener = mockIpcMain._listeners.get(IPC_CHANNELS.TABS_RELOAD);
+
+        const fallbackFrame = {
+            name: getTabFrameName('tab-fallback'),
+            url: GEMINI_APP_URL,
+            isDestroyed: vi.fn().mockReturnValue(false),
+            reload: vi.fn().mockReturnValue(true),
+        };
+
+        const mockMainWindow = {
+            isDestroyed: vi.fn().mockReturnValue(false),
+            webContents: {
+                mainFrame: {
+                    frames: [fallbackFrame],
+                },
+            },
+        };
+
+        vi.spyOn(mockWindowManager, 'getMainWindow').mockReturnValue(mockMainWindow as never);
+
+        reloadListener?.({}, undefined);
+
+        expect(fallbackFrame.reload).toHaveBeenCalledTimes(1);
+        handler.unregister();
+    });
+
     it('saves and returns normalized tab state', () => {
         handler.register();
 
