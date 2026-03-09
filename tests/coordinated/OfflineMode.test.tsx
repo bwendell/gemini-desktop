@@ -70,6 +70,7 @@ const mockElectronAPI = {
     // Gemini Iframe Navigation API
     onGeminiNavigate: vi.fn().mockReturnValue(() => {}),
     signalGeminiReady: vi.fn(),
+    reloadTabs: vi.fn(),
 
     // Individual Hotkeys API
     getIndividualHotkeys: vi.fn().mockResolvedValue({
@@ -156,16 +157,14 @@ Object.defineProperty(window, 'electronAPI', {
     configurable: true,
 });
 
-// Mock window.location.reload
-const mockReload = vi.fn();
-delete (window as any).location;
-(window as any).location = { reload: mockReload };
+const mockReloadTabs = mockElectronAPI.reloadTabs;
 
 describe('Offline Mode Integration', () => {
     let onlineGetter: any;
 
     beforeEach(() => {
         vi.clearAllMocks();
+        mockReloadTabs.mockClear();
 
         // Mock navigator.onLine
         onlineGetter = vi.spyOn(navigator, 'onLine', 'get');
@@ -248,7 +247,7 @@ describe('Offline Mode Integration', () => {
     });
 
     describe('retry functionality', () => {
-        it('retry button triggers page reload', async () => {
+        it('retry button triggers tab reload', async () => {
             onlineGetter.mockReturnValue(false);
 
             await act(async () => {
@@ -261,7 +260,7 @@ describe('Offline Mode Integration', () => {
                 fireEvent.click(retryButton);
             });
 
-            expect(mockReload).toHaveBeenCalledTimes(1);
+            expect(mockReloadTabs).toHaveBeenCalledTimes(1);
         });
     });
 
