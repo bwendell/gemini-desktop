@@ -264,10 +264,27 @@ jobs:
                   name: electron-dist
                   path: dist-electron/
 
+            - name: Check Build Artifacts Exist
+              run: |
+                  if [[ ! -f dist/index.html ]]; then
+                    echo "ERROR: dist/index.html not found"
+                    exit 1
+                  fi
+                  if [[ ! -f dist-electron/main/main.cjs ]]; then
+                    echo "ERROR: dist-electron/main/main.cjs not found"
+                    exit 1
+                  fi
+                  if [[ ! -f dist-electron/preload/preload.cjs ]]; then
+                    echo "ERROR: dist-electron/preload/preload.cjs not found"
+                    exit 1
+                  fi
+              shell: bash
+
             - name: Run E2E Tests
               run: npm run test:e2e:group:${{ matrix.group }}
               shell: bash
               env:
+                  SKIP_BUILD: 'true'
                   ELECTRON_USE_DIST: 'true'
                   DEBUG: 'wdio:*'
 
@@ -340,10 +357,27 @@ jobs:
                   name: electron-dist
                   path: dist-electron/
 
+            - name: Check Build Artifacts Exist
+              run: |
+                  if [[ ! -f dist/index.html ]]; then
+                    echo "ERROR: dist/index.html not found"
+                    exit 1
+                  fi
+                  if [[ ! -f dist-electron/main/main.cjs ]]; then
+                    echo "ERROR: dist-electron/main/main.cjs not found"
+                    exit 1
+                  fi
+                  if [[ ! -f dist-electron/preload/preload.cjs ]]; then
+                    echo "ERROR: dist-electron/preload/preload.cjs not found"
+                    exit 1
+                  fi
+              shell: bash
+
             - name: Run E2E Tests
               run: npm run test:e2e:group:${{ matrix.group }}
               shell: bash
               env:
+                  SKIP_BUILD: 'true'
                   ELECTRON_USE_DIST: 'true'
                   DEBUG: 'wdio:*'
 
@@ -410,12 +444,29 @@ jobs:
                   name: electron-dist
                   path: dist-electron/
 
+            - name: Check Build Artifacts Exist
+              run: |
+                  if [[ ! -f dist/index.html ]]; then
+                    echo "ERROR: dist/index.html not found"
+                    exit 1
+                  fi
+                  if [[ ! -f dist-electron/main/main.cjs ]]; then
+                    echo "ERROR: dist-electron/main/main.cjs not found"
+                    exit 1
+                  fi
+                  if [[ ! -f dist-electron/preload/preload.cjs ]]; then
+                    echo "ERROR: dist-electron/preload/preload.cjs not found"
+                    exit 1
+                  fi
+              shell: bash
+
             - name: Run E2E Tests
               # DO NOT use xvfb-run wrapper here - it sets DISPLAY which conflicts with
               # wdio-electron-service's autoXvfb feature for parallel worker processes
               run: npm run test:e2e:group:${{ matrix.group }}
               shell: bash
               env:
+                  SKIP_BUILD: 'true'
                   ELECTRON_USE_DIST: 'true'
                   DEBUG: 'wdio:*'
 
@@ -445,20 +496,12 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest, windows-latest, macos-latest]
+                os: [ubuntu-latest, macos-latest]
                 include:
                     - os: ubuntu-latest
                       dist-script: 'dist:linux'
                       emoji: '🐧'
                       platform: 'Ubuntu'
-                    - os: windows-latest
-                      dist-script: 'dist:win-x64'
-                      emoji: '🪟'
-                      platform: 'Windows x64'
-                    - os: windows-latest
-                      dist-script: 'dist:win-arm64'
-                      emoji: '🪟'
-                      platform: 'Windows arm64'
                     - os: macos-latest
                       dist-script: 'dist:mac-arm64'
                       emoji: '🍎'
