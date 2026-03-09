@@ -49,13 +49,13 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ### Windows
 
-- **x64 (Intel/AMD)**: `Gemini Desktop-x.x.x-x64-installer.exe`
-- **ARM64 (Snapdragon/Qualcomm)**: `Gemini Desktop-x.x.x-arm64-installer.exe`
+- **x64 (Intel/AMD)**: `Gemini-Desktop-x.x.x-x64-installer.exe`
+- **ARM64 (Snapdragon/Qualcomm)**: `Gemini-Desktop-x.x.x-arm64-installer.exe`
 
 ### macOS
 
-- **Apple Silicon (M1/M2/M3)**: `Gemini Desktop-x.x.x-arm64.dmg`
-- **Intel**: `Gemini Desktop-x.x.x-x64.dmg`
+- **Apple Silicon (M1/M2/M3)**: `Gemini-Desktop-x.x.x-arm64.dmg`
+- **Intel**: `Gemini-Desktop-x.x.x-x64.dmg`
 
 > ⚠️ The app is not code-signed yet. On first launch, remove quarantine:
 >
@@ -65,16 +65,16 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ### Linux
 
-- **AppImage**: `Gemini Desktop-x.x.x-x64.AppImage`
-- **Debian/Ubuntu**: `Gemini Desktop-x.x.x-x64.deb`
+- **AppImage**: `Gemini-Desktop-x.x.x-x64.AppImage`
+- **Debian/Ubuntu**: `Gemini-Desktop-x.x.x-x64.deb`
 
 ```bash
 # AppImage
-chmod +x "Gemini Desktop-x.x.x-x64.AppImage"
-./"Gemini Desktop-x.x.x-x64.AppImage"
+chmod +x "Gemini-Desktop-x.x.x-x64.AppImage"
+./"Gemini-Desktop-x.x.x-x64.AppImage"
 
 # Debian/Ubuntu
-sudo dpkg -i "Gemini Desktop-x.x.x-x64.deb"
+sudo dpkg -i "Gemini-Desktop-x.x.x-x64.deb"
 ```
 
 ## 🔒 Privacy & Security
@@ -107,6 +107,7 @@ Contributions are welcome. For setup, standards, and workflow expectations, see 
 
 This is an unofficial, open-source project and is **not** affiliated with Google LLC.
 **Gemini** and **Google** are registered trademarks of Google LLC.
+Use this software at your own risk; it is provided "as is" without any warranty. See [docs/DISCLAIMER.md](docs/DISCLAIMER.md) for full terms, including user responsibility and warranty disclaimers.
 
 ## 📄 License
 
