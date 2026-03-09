@@ -23,13 +23,18 @@ runs:
     steps:
         - name: Run command with retry
           shell: bash
+          env:
+              MAX_ATTEMPTS: ${{ inputs.max_attempts }}
+              INITIAL_BACKOFF_SECONDS: ${{ inputs.initial_backoff_seconds }}
+              BACKOFF_MULTIPLIER: ${{ inputs.backoff_multiplier }}
+              COMMAND: ${{ inputs.command }}
           run: |
               set -euo pipefail
 
-              max_attempts='${{ inputs.max_attempts }}'
-              delay='${{ inputs.initial_backoff_seconds }}'
-              multiplier='${{ inputs.backoff_multiplier }}'
-              command='${{ inputs.command }}'
+              max_attempts="$MAX_ATTEMPTS"
+              delay="$INITIAL_BACKOFF_SECONDS"
+              multiplier="$BACKOFF_MULTIPLIER"
+              command="$COMMAND"
 
               if ! [[ "$max_attempts" =~ ^[0-9]+$ ]] || [ "$max_attempts" -lt 1 ]; then
                   echo "max_attempts must be a positive integer. Received: $max_attempts"

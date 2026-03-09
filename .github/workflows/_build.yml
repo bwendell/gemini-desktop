@@ -50,9 +50,6 @@ jobs:
               uses: ./.github/actions/retry-command
               with:
                   command: npm ci --prefer-offline
-                  max_attempts: '3'
-                  initial_backoff_seconds: '10'
-                  backoff_multiplier: '2'
 
             - name: Build Frontend
               run: npm run build

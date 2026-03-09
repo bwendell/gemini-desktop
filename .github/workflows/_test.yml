@@ -68,9 +68,6 @@ jobs:
               uses: ./.github/actions/retry-command
               with:
                   command: npm ci --prefer-offline
-                  max_attempts: '3'
-                  initial_backoff_seconds: '10'
-                  backoff_multiplier: '2'
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
@@ -137,9 +134,6 @@ jobs:
               uses: ./.github/actions/retry-command
               with:
                   command: npm ci --prefer-offline
-                  max_attempts: '3'
-                  initial_backoff_seconds: '10'
-                  backoff_multiplier: '2'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
@@ -196,9 +190,6 @@ jobs:
               uses: ./.github/actions/retry-command
               with:
                   command: npm ci --prefer-offline
-                  max_attempts: '3'
-                  initial_backoff_seconds: '10'
-                  backoff_multiplier: '2'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
@@ -260,9 +251,6 @@ jobs:
               uses: ./.github/actions/retry-command
               with:
                   command: npm ci --prefer-offline
-                  max_attempts: '3'
-                  initial_backoff_seconds: '10'
-                  backoff_multiplier: '2'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
@@ -339,9 +327,6 @@ jobs:
               uses: ./.github/actions/retry-command
               with:
                   command: npm ci --prefer-offline
-                  max_attempts: '3'
-                  initial_backoff_seconds: '10'
-                  backoff_multiplier: '2'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
@@ -412,9 +397,6 @@ jobs:
               uses: ./.github/actions/retry-command
               with:
                   command: npm ci --prefer-offline
-                  max_attempts: '3'
-                  initial_backoff_seconds: '10'
-                  backoff_multiplier: '2'
 
             - name: Download Frontend Build
               uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
@@ -506,9 +488,6 @@ jobs:
               uses: ./.github/actions/retry-command
               with:
                   command: npm ci --prefer-offline
-                  max_attempts: '3'
-                  initial_backoff_seconds: '10'
-                  backoff_multiplier: '2'
 
             # Download build artifacts from _build.yml
             - name: Download Frontend Build
