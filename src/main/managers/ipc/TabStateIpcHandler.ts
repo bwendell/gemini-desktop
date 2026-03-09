@@ -101,6 +101,10 @@ export class TabStateIpcHandler extends BaseIpcHandler {
     private readonly tabsStore: SettingsStore<TabStoreRecord>;
     private titlePollInterval: ReturnType<typeof setInterval> | null = null;
     private static readonly TITLE_POLL_INTERVAL_MS = 3000;
+    private static readonly RELOAD_COOLDOWN_MS = 1000;
+    private static readonly RELOAD_TITLE_SYNC_DELAY_MS = 5000;
+    private lastReloadAt = 0;
+    private delayedTitlePollTimeout: ReturnType<typeof setTimeout> | null = null;
 
     constructor(...args: ConstructorParameters<typeof BaseIpcHandler>) {
         super(...args);
@@ -120,6 +124,9 @@ export class TabStateIpcHandler extends BaseIpcHandler {
         ipcMain.on(IPC_CHANNELS.TABS_UPDATE_TITLE, (_event, payload: unknown) => {
             this._handleUpdateTitle(payload);
         });
+        ipcMain.on(IPC_CHANNELS.TABS_RELOAD, (_event, payload: unknown) => {
+            this._reloadActiveTabFrame(payload);
+        });
 
         this.titlePollInterval = setInterval(() => {
             void this._pollForTitleUpdate();
@@ -128,6 +135,10 @@ export class TabStateIpcHandler extends BaseIpcHandler {
 
     updateTabTitle(tabId: string, title: string): void {
         this._handleUpdateTitle({ tabId, title });
+    }
+
+    reloadActiveTabFromMenu(): void {
+        this._reloadActiveTabFrame(undefined);
     }
 
     private _handleGetState(): TabsState | null {
@@ -255,14 +266,99 @@ export class TabStateIpcHandler extends BaseIpcHandler {
         }
     }
 
+    private _resolveActiveTabId(payload?: unknown): { activeTabId: string; source: 'payload' | 'store' } | null {
+        if (isRecord(payload)) {
+            const payloadActiveTabId = typeof payload.activeTabId === 'string' ? payload.activeTabId.trim() : '';
+            if (payloadActiveTabId) {
+                return { activeTabId: payloadActiveTabId, source: 'payload' };
+            }
+        }
+
+        const storedState = this.tabsStore.get('tabsState');
+        const normalizedState = normalizeTabsState(storedState);
+        if (!normalizedState) {
+            return null;
+        }
+
+        return { activeTabId: normalizedState.activeTabId, source: 'store' };
+    }
+
+    private _scheduleDelayedTitlePoll(): void {
+        if (this.delayedTitlePollTimeout) {
+            clearTimeout(this.delayedTitlePollTimeout);
+        }
+
+        this.delayedTitlePollTimeout = setTimeout(() => {
+            this.delayedTitlePollTimeout = null;
+            void this._pollForTitleUpdate();
+        }, TabStateIpcHandler.RELOAD_TITLE_SYNC_DELAY_MS);
+    }
+
+    private _reloadActiveTabFrame(payload?: unknown): void {
+        try {
+            const mainWindow = this.deps.windowManager.getMainWindow();
+            if (!mainWindow || mainWindow.isDestroyed()) {
+                this.logger.warn('Cannot reload active tab: main window not found or destroyed');
+                return;
+            }
+
+            const now = Date.now();
+            if (now - this.lastReloadAt < TabStateIpcHandler.RELOAD_COOLDOWN_MS) {
+                this.logger.warn('Skipping tab reload due to cooldown', {
+                    cooldownMs: TabStateIpcHandler.RELOAD_COOLDOWN_MS,
+                });
+                return;
+            }
+
+            const activeTabDetails = this._resolveActiveTabId(payload);
+            if (!activeTabDetails) {
+                this.logger.warn('Cannot reload active tab: no active tab id available');
+                return;
+            }
+
+            const { activeTabId, source } = activeTabDetails;
+            const targetFrameName = getTabFrameName(activeTabId);
+            const targetFrame = mainWindow.webContents.mainFrame.frames.find((frame) => frame.name === targetFrameName);
+
+            if (!targetFrame || targetFrame.isDestroyed()) {
+                this.logger.warn('Cannot reload active tab: target frame missing or destroyed', {
+                    activeTabId,
+                    targetFrameName,
+                    source,
+                });
+                return;
+            }
+
+            const reloadStarted = targetFrame.reload();
+            this.lastReloadAt = now;
+
+            this.logger.log('Active tab reload requested', {
+                activeTabId,
+                source,
+                targetFrameName,
+                reloadStarted,
+            });
+
+            this._scheduleDelayedTitlePoll();
+        } catch (error) {
+            this.handleError('reloading active tab frame', error);
+        }
+    }
+
     unregister(): void {
         ipcMain.removeHandler(IPC_CHANNELS.TABS_GET_STATE);
         ipcMain.removeAllListeners(IPC_CHANNELS.TABS_SAVE_STATE);
         ipcMain.removeAllListeners(IPC_CHANNELS.TABS_UPDATE_TITLE);
+        ipcMain.removeAllListeners(IPC_CHANNELS.TABS_RELOAD);
 
         if (this.titlePollInterval) {
             clearInterval(this.titlePollInterval);
             this.titlePollInterval = null;
+        }
+
+        if (this.delayedTitlePollTimeout) {
+            clearTimeout(this.delayedTitlePollTimeout);
+            this.delayedTitlePollTimeout = null;
         }
     }
 }

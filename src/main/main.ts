@@ -351,7 +351,13 @@ if (!gotTheLock) {
             return;
         }
 
-        const menuManager = new MenuManager(appContext.windowManager, appContext.hotkeyManager);
+        const tabStateIpcHandler = appContext.ipcManager.getTabStateIpcHandler();
+        const menuManager = new MenuManager(
+            appContext.windowManager,
+            appContext.hotkeyManager,
+            undefined,
+            tabStateIpcHandler
+        );
         menuManager.buildMenu();
         menuManager.setupContextMenu();
         setReadyManagers({ menuManager });

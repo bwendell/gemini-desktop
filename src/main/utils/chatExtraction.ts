@@ -125,6 +125,12 @@ export const TITLE_EXTRACTION_SCRIPT = `
                 }
             }
         }
+
+        const docTitle = document.title.replace(' - Gemini', '').trim();
+        if (docTitle) {
+            return docTitle;
+        }
+
         return '';
     } catch (err) {
         return '';

@@ -146,14 +146,9 @@ describe('useMenuDefinitions', () => {
     });
 
     describe('View menu', () => {
-        it('Reload action calls window.location.reload', () => {
-            const reloadSpy = vi.fn();
-            const originalLocation = window.location;
-
-            Object.defineProperty(window, 'location', {
-                value: { ...originalLocation, reload: reloadSpy },
-                writable: true,
-            });
+        it('Reload action calls reloadTabs', () => {
+            const reloadTabsSpy = vi.fn();
+            (window.electronAPI as unknown as { reloadTabs: typeof reloadTabsSpy }).reloadTabs = reloadTabsSpy;
 
             const { result } = renderHook(() => useMenuDefinitions());
             const viewMenu = result.current[1];
@@ -161,14 +156,8 @@ describe('useMenuDefinitions', () => {
 
             if ('action' in reloadItem && reloadItem.action) {
                 reloadItem.action();
-                expect(reloadSpy).toHaveBeenCalled();
+                expect(reloadTabsSpy).toHaveBeenCalled();
             }
-
-            // Restore original location
-            Object.defineProperty(window, 'location', {
-                value: originalLocation,
-                writable: true,
-            });
         });
 
         it('Toggle Fullscreen action calls electronAPI.toggleFullscreen()', () => {

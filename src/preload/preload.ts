@@ -43,6 +43,7 @@ export const IPC_CHANNELS = {
     TABS_UPDATE_TITLE: 'tabs:update-title',
     TABS_TITLE_UPDATED: 'tabs:title-updated',
     TABS_SHORTCUT_TRIGGERED: 'tabs:shortcut-triggered',
+    TABS_RELOAD: 'tabs:reload',
 
     ALWAYS_ON_TOP_GET: 'always-on-top:get',
     ALWAYS_ON_TOP_SET: 'always-on-top:set',
@@ -319,6 +320,9 @@ const electronAPI: ElectronAPI = {
             tabId,
             title,
         }),
+
+    reloadTabs: (activeTabId) =>
+        ipcRenderer.send(IPC_CHANNELS.TABS_RELOAD, activeTabId ? { activeTabId } : undefined),
 
     // =========================================================================
     // Individual Hotkeys API

@@ -158,6 +158,16 @@ describe('Preload Script', () => {
                 title: 'New Title',
             });
         });
+
+        it('reloadTabs should send IPC message with payload when tab id provided', () => {
+            exposedAPI.reloadTabs('tab-a');
+            expect(ipcRendererMock.send).toHaveBeenCalledWith('tabs:reload', { activeTabId: 'tab-a' });
+        });
+
+        it('reloadTabs should send IPC message without payload when tab id omitted', () => {
+            exposedAPI.reloadTabs();
+            expect(ipcRendererMock.send).toHaveBeenCalledWith('tabs:reload', undefined);
+        });
     });
 
     // Task 7.7: Text Prediction preload tests
