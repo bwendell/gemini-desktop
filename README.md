@@ -77,8 +77,6 @@ chmod +x "Gemini Desktop-x.x.x-x64.AppImage"
 sudo dpkg -i "Gemini Desktop-x.x.x-x64.deb"
 ```
 
-KDE Wayland users: global hotkeys rely on XDG Desktop Portals; see [Wayland Manual Testing](docs/WAYLAND_MANUAL_TESTING.md) and the [Wayland Testing Runbook](docs/WAYLAND_TESTING_RUNBOOK.md).
-
 ## 🔒 Privacy & Security
 
 Gemini Desktop has **no telemetry** and only connects to Google domains for Gemini access.
