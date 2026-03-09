@@ -14,8 +14,9 @@ const adapterForPlatform = {
 
 describe('Navigation Security Integration', () => {
     let mockMainWindow: any;
-    let webContentsHandlers: Record<string, Function> = {};
-    let windowOpenHandler: Function | null = null;
+    type MockEventHandler = (...args: unknown[]) => unknown;
+    let webContentsHandlers: Record<string, MockEventHandler> = {};
+    let windowOpenHandler: MockEventHandler | null = null;
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
         beforeEach(() => {

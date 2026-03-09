@@ -29,6 +29,7 @@ vi.mock('fs', () => ({
 }));
 
 const { mockAutoUpdater, emitAutoUpdaterEvent } = vi.hoisted(() => {
+    type MockAutoUpdaterHandler = (...args: unknown[]) => void;
     const mock = {
         checkForUpdates: vi.fn(),
         checkForUpdatesAndNotify: vi.fn().mockResolvedValue(undefined),
@@ -40,7 +41,7 @@ const { mockAutoUpdater, emitAutoUpdaterEvent } = vi.hoisted(() => {
         autoInstallOnAppQuit: true,
         forceDevUpdateConfig: false,
         logger: null,
-        _handlers: new Map<string, Function>(),
+        _handlers: new Map<string, MockAutoUpdaterHandler>(),
     };
 
     const emit = (event: string, ...args: any[]) => {
@@ -56,7 +57,7 @@ const { mockAutoUpdater, emitAutoUpdaterEvent } = vi.hoisted(() => {
 vi.mock('electron-updater', () => ({
     autoUpdater: {
         ...mockAutoUpdater,
-        on: vi.fn((event: string, handler: Function) => {
+        on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
             mockAutoUpdater._handlers.set(event, handler);
             return mockAutoUpdater;
         }),

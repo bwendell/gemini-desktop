@@ -7,13 +7,14 @@ import { IPC_CHANNELS } from '../../src/shared/constants/ipc-channels';
 import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
 const mockNotification = vi.hoisted(() => {
+    type NotificationListener = (...args: unknown[]) => unknown;
     const notificationInstances: any[] = [];
     const MockNotification = vi.fn().mockImplementation(function (this: any, options: any) {
         this.title = options.title;
         this.body = options.body;
         this.silent = options.silent;
-        this._listeners = new Map<string, Function>();
-        this.on = vi.fn((event: string, handler: Function) => {
+        this._listeners = new Map<string, NotificationListener>();
+        this.on = vi.fn((event: string, handler: NotificationListener) => {
             this._listeners.set(event, handler);
             return this;
         });
