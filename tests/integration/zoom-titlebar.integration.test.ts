@@ -186,6 +186,18 @@ describe('Zoom Titlebar Integration', () => {
 
             await browser.waitUntil(
                 async () => {
+                    const zoomLevel = await browser.execute(() => (window as any).electronAPI.getZoomLevel());
+                    return zoomLevel === 110;
+                },
+                {
+                    timeout: 3000,
+                    timeoutMsg: 'Zoom level did not increase to 110 after zoomIn() during unsubscribe test',
+                    interval: 100,
+                }
+            );
+
+            await browser.waitUntil(
+                async () => {
                     const events = await browser.execute(() => (window as any).__testZoomEvents);
                     return Array.isArray(events) && events.length === 0;
                 },
