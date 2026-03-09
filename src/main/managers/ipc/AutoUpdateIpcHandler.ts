@@ -24,6 +24,14 @@ import { IPC_CHANNELS } from '../../utils/constants';
  * and provides dev testing utilities.
  */
 export class AutoUpdateIpcHandler extends BaseIpcHandler {
+    private static hasGetLastCheckTime(value: unknown): value is { getLastCheckTime: () => number } {
+        return typeof value === 'object' && value !== null && 'getLastCheckTime' in value;
+    }
+
+    private static hasGetTrayTooltip(value: unknown): value is { getTrayTooltip: () => string } {
+        return typeof value === 'object' && value !== null && 'getTrayTooltip' in value;
+    }
+
     /**
      * Register auto-update IPC handlers with ipcMain.
      */
@@ -149,7 +157,10 @@ export class AutoUpdateIpcHandler extends BaseIpcHandler {
      */
     private _handleGetLastCheck(): number {
         if (this.deps.updateManager) {
-            return (this.deps.updateManager as any).getLastCheckTime?.() || 0;
+            if (AutoUpdateIpcHandler.hasGetLastCheckTime(this.deps.updateManager)) {
+                return this.deps.updateManager.getLastCheckTime();
+            }
+            return 0;
         }
         return 0;
     }
@@ -234,7 +245,10 @@ export class AutoUpdateIpcHandler extends BaseIpcHandler {
     private _handleGetTrayTooltip(): string {
         try {
             if (this.deps.updateManager) {
-                return (this.deps.updateManager as any).getTrayTooltip?.() || '';
+                if (AutoUpdateIpcHandler.hasGetTrayTooltip(this.deps.updateManager)) {
+                    return this.deps.updateManager.getTrayTooltip();
+                }
+                return '';
             }
             return '';
         } catch (error) {

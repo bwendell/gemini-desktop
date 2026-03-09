@@ -24,6 +24,10 @@ import type {
 } from '../types';
 import { getWaylandPlatformStatus } from '../../utils/constants';
 
+type DesktopNameCapableApp = Electron.App & {
+    setDesktopName?: (name: string) => void;
+};
+
 export class LinuxWaylandAdapter implements PlatformAdapter {
     readonly id = 'linux-wayland' as const;
 
@@ -43,8 +47,9 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
 
         // Set desktop name for portal integration
         try {
-            if (typeof (app as any).setDesktopName === 'function') {
-                (app as any).setDesktopName('gemini-desktop');
+            const desktopNameCapableApp = app as DesktopNameCapableApp;
+            if (typeof desktopNameCapableApp.setDesktopName === 'function') {
+                desktopNameCapableApp.setDesktopName('gemini-desktop');
             }
         } catch (e) {
             logger.error('Error calling setDesktopName:', e);
