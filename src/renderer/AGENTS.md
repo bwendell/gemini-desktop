@@ -42,5 +42,6 @@ For async initialization and subscriptions, use `AbortController` to prevent sta
 
 ## When You Change Files Here
 
+- If you are working in a newly created git worktree, run `npm install` in that worktree first so local dependencies are present before running the commands below.
 - Run `npm run test`
 - Run `npm run lint`

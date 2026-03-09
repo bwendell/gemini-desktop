@@ -43,6 +43,7 @@ Run with `npm run test:coordinated`.
 
 ## Running Unit and Related Tests
 
+- If you are working in a newly created git worktree, run `npm install` in that worktree first so Vitest, Electron, and related binaries exist locally.
 - Renderer unit tests: `npm run test`
 - Electron-focused unit tests: `npm run test:electron`
 - All unit tests (renderer + electron): `npm run test && npm run test:electron`

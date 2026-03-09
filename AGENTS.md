@@ -9,6 +9,7 @@ The project uses **npm** for package management and **Vitest** + **WebdriverIO**
 ### Development & Build
 
 - `npm install` - Install dependencies
+- If you create a new git worktree, run `npm install` inside that worktree before any `npm run` command. Each worktree has its own `node_modules`, and Electron binaries will be missing until install completes.
 - `npm run electron:dev` - Start the app in development mode
 - `npm run build` - Full build (TypeScript + Vite)
 - `npm run clean` - Clean build artifacts

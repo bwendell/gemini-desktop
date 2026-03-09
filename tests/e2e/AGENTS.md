@@ -39,6 +39,7 @@ Group specs by feature behavior, not by helper implementation detail.
 
 ## Running E2E Tests
 
+- If you are working in a newly created git worktree, run `npm install` in that worktree first so WebdriverIO, Electron, and related binaries exist locally.
 - Full suite: `npm run test:e2e`
 - Single spec: `npm run test:e2e:spec -- --spec=tests/e2e/<file>`
 - Grouped suites: `npm run test:e2e:group:<name>`
