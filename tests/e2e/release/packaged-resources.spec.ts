@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Test: Packaged Resources (Release Build Only)
  *

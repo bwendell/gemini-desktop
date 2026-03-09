@@ -272,6 +272,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
     return <TabContext.Provider value={contextValue}>{children}</TabContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- context hook export pattern used across renderer contexts
 export function useTabContext(): TabContextValue {
     const context = useContext(TabContext);
     if (!context) {

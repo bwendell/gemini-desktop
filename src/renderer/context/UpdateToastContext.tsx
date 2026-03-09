@@ -269,6 +269,7 @@ export function UpdateToastProvider({ children }: UpdateToastProviderProps) {
  * @example
  * const { hasPendingUpdate, installUpdate } = useUpdateToast();
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context hook export pattern used across renderer contexts
 export function useUpdateToast(): UpdateToastContextType {
     const context = useContext(UpdateToastContext);
     if (context === undefined) {

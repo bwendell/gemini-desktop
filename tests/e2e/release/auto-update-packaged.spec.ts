@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Test: Auto-Update in Packaged Builds (Release Build Only)
  *

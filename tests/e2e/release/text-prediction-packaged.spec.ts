@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { browser, expect } from '@wdio/globals';
 
 describe('Release Build: Text Prediction', () => {

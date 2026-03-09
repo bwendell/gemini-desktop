@@ -81,6 +81,7 @@ export interface ToastContextValue {
 /**
  * Toast context (null when outside provider)
  */
+/* eslint-disable-next-line react-refresh/only-export-components -- context export is required for hooks/providers */
 export const ToastContext = createContext<ToastContextValue | null>(null);
 
 /**
@@ -284,20 +285,19 @@ export function ToastProvider({ children }: ToastProviderProps) {
 
         if (isTestMode) {
             // Create a stable proxy object on window
-            const win = window as unknown as Record<string, any>;
-            win.__toastTestHelpers = {
-                showToast: (options: any) => helpersRef.current.showToast(options),
+            window.__toastTestHelpers = {
+                showToast: (options: ShowToastOptions) => helpersRef.current.showToast(options),
                 dismissToast: (id: string) => helpersRef.current.dismissToast(id),
                 dismissAll: () => helpersRef.current.dismissAll(),
                 getToasts: () => helpersRef.current.getToasts(),
-                showSuccess: (msg: string, opt: any) => helpersRef.current.showSuccess(msg, opt),
-                showError: (msg: string, opt: any) => helpersRef.current.showError(msg, opt),
-                showInfo: (msg: string, opt: any) => helpersRef.current.showInfo(msg, opt),
-                showWarning: (msg: string, opt: any) => helpersRef.current.showWarning(msg, opt),
+                showSuccess: (msg: string, opt?: Partial<ShowToastOptions>) => helpersRef.current.showSuccess(msg, opt),
+                showError: (msg: string, opt?: Partial<ShowToastOptions>) => helpersRef.current.showError(msg, opt),
+                showInfo: (msg: string, opt?: Partial<ShowToastOptions>) => helpersRef.current.showInfo(msg, opt),
+                showWarning: (msg: string, opt?: Partial<ShowToastOptions>) => helpersRef.current.showWarning(msg, opt),
             };
 
             return () => {
-                delete win.__toastTestHelpers;
+                delete window.__toastTestHelpers;
             };
         }
         return undefined;
@@ -336,6 +336,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
  * }
  * ```
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context hook export pattern used across renderer contexts
 export function useToast(): ToastContextValue {
     const context = useContext(ToastContext);
 

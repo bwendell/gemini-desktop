@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Test: Global Hotkey Registration (Release Build Only)
  *
@@ -211,6 +210,10 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         const quickChatResult = status.registrationResults.find((r) => r.hotkeyId === 'quickChat');
         const peekAndHideResult = status.registrationResults.find((r) => r.hotkeyId === 'peekAndHide');
 
+        if (!quickChatResult || !peekAndHideResult) {
+            throw new Error(`Missing expected registration results: ${JSON.stringify(status.registrationResults)}`);
+        }
+
         expect(quickChatResult).toBeDefined();
         expect(peekAndHideResult).toBeDefined();
         expect(quickChatResult.success).toBe(true);
@@ -225,12 +228,10 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         }
 
         if (!status.waylandStatus.isWayland) {
-            skipTest(this, 'Wayland globalShortcut checks', 'Not a Wayland session');
             return;
         }
 
         if (!status.waylandStatus.portalAvailable) {
-            skipTest(this, 'Wayland globalShortcut checks', 'Portal not available');
             return;
         }
 
