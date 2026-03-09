@@ -13,9 +13,7 @@ vi.mock('../../../src/renderer/hooks/useNetworkStatus', () => ({
     useNetworkStatus: vi.fn(),
 }));
 
-// Mock window.location.reload
-delete (window as any).location;
-(window as any).location = { reload: vi.fn() };
+import { mockElectronAPI } from './test/setup';
 
 describe('Offline Handling (Coordinated)', () => {
     beforeEach(() => {
@@ -57,7 +55,7 @@ describe('Offline Handling (Coordinated)', () => {
             expect(retryButton).toBeInTheDocument();
         });
 
-        it('calls retry function (reloads page) when retry button is clicked', async () => {
+        it('calls retry function (reloadTabs) when retry button is clicked', async () => {
             (useNetworkStatus as Mock).mockReturnValue(false);
 
             await act(async () => {
@@ -70,7 +68,7 @@ describe('Offline Handling (Coordinated)', () => {
                 fireEvent.click(retryButton);
             });
 
-            expect(window.location.reload).toHaveBeenCalledTimes(1);
+            expect(mockElectronAPI.reloadTabs).toHaveBeenCalledTimes(1);
         });
     });
 
