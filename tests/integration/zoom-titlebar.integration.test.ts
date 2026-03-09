@@ -204,6 +204,18 @@ describe('Zoom Titlebar Integration', () => {
                 { timeout: 3000, timeoutMsg: 'Received zoom events after unsubscribe', interval: 100 }
             );
 
+            await browser.waitUntil(
+                async () => {
+                    const events = await browser.execute(() => (window as any).__testZoomEvents);
+                    return Array.isArray(events) && events.length === 0;
+                },
+                {
+                    timeout: 400,
+                    timeoutMsg: 'Zoom events were emitted after unsubscribe stability window',
+                    interval: 100,
+                }
+            );
+
             const events = await browser.execute(() => (window as any).__testZoomEvents);
             expect(events.length).toBe(0);
 
