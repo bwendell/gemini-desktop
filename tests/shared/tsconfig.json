@@ -6,8 +6,10 @@
         "types": ["node", "@wdio/globals"],
         "strict": true,
         "skipLibCheck": true,
-        "noEmit": true
+        "noEmit": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true
     },
-    "files": ["./helpers/wdio-electron.d.ts", "../shared/wdio-types.d.ts"],
-    "include": ["./**/*.ts"]
+    "include": ["./**/*.ts"],
+    "exclude": ["node_modules"]
 }
