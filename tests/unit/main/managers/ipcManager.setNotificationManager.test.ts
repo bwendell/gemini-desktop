@@ -12,6 +12,9 @@ import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
 
 // Mock Electron
 const { mockIpcMain } = vi.hoisted(() => {
+    type MockIpcListener = (...args: unknown[]) => void;
+    type MockIpcHandler = (...args: unknown[]) => unknown;
+
     const mockIpcMain = {
         on: vi.fn((channel, listener) => {
             mockIpcMain._listeners.set(channel, listener);
@@ -19,8 +22,8 @@ const { mockIpcMain } = vi.hoisted(() => {
         handle: vi.fn((channel, handler) => {
             mockIpcMain._handlers.set(channel, handler);
         }),
-        _listeners: new Map<string, Function>(),
-        _handlers: new Map<string, Function>(),
+        _listeners: new Map<string, MockIpcListener>(),
+        _handlers: new Map<string, MockIpcHandler>(),
         _reset: () => {
             mockIpcMain._listeners.clear();
             mockIpcMain._handlers.clear();
@@ -76,7 +79,7 @@ describe('IpcManager.setNotificationManager', () => {
 
         // Create IpcManager WITHOUT NotificationManager (simulating startup)
         ipcManager = new IpcManager(
-            mockWindowManager,
+            mockWindowManager as any,
             null, // hotkeyManager
             null, // updateManager
             null, // printManager
@@ -159,12 +162,12 @@ describe('IpcManager.setNotificationManager', () => {
             };
 
             // Inject first manager
-            ipcManager.setNotificationManager(mockManager1);
+            ipcManager.setNotificationManager(mockManager1 as any);
             const getHandler = mockIpcMain._handlers.get(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_GET_ENABLED);
             expect(getHandler!()).toBe(true);
 
             // Inject second manager
-            ipcManager.setNotificationManager(mockManager2);
+            ipcManager.setNotificationManager(mockManager2 as any);
             expect(getHandler!()).toBe(false);
 
             // First manager should not be called anymore
