@@ -36,6 +36,13 @@ Priorities may shift based on user feedback, upstream Gemini changes, and platfo
 - **Test infrastructure hardening** — standardize WDIO config inheritance, remove flaky waits, and improve assertion/failure context helpers for more deterministic CI. ([#180](https://github.com/bwendell/gemini-desktop/pull/180), [#186](https://github.com/bwendell/gemini-desktop/pull/186), [#190](https://github.com/bwendell/gemini-desktop/pull/190), [#185](https://github.com/bwendell/gemini-desktop/pull/185))
 - **Quality and maintenance updates** — enforce lint checks in pre-commit hooks, remediate npm audit vulnerabilities, reduce E2E lint noise, and add docs updates/deprecations. ([#189](https://github.com/bwendell/gemini-desktop/pull/189), [#187](https://github.com/bwendell/gemini-desktop/pull/187), [#191](https://github.com/bwendell/gemini-desktop/pull/191), [#192](https://github.com/bwendell/gemini-desktop/pull/192))
 
+### v0.11.1 — Refresh Continuity & Release Stability
+
+- **Return to previous chat on refresh** — preserve each tab's active Gemini URL and restore that exact conversation after refresh instead of defaulting to the Gemini homepage. ([#198](https://github.com/bwendell/gemini-desktop/issues/198), [#200](https://github.com/bwendell/gemini-desktop/pull/200))
+- **Preload bridge architecture refactor** — split preload bridge APIs into domain modules for clearer boundaries and easier long-term maintenance. ([#202](https://github.com/bwendell/gemini-desktop/pull/202))
+- **Release and test reliability improvements** — dedupe zoom integration coverage and increase Windows release/integration timeout limits to reduce flaky release gates. ([#203](https://github.com/bwendell/gemini-desktop/pull/203), [#205](https://github.com/bwendell/gemini-desktop/pull/205))
+- **Documentation and developer workflow updates** — refresh architecture references and setup guidance for cleaner contributor onboarding and handoff context. ([#206](https://github.com/bwendell/gemini-desktop/pull/206), [#201](https://github.com/bwendell/gemini-desktop/pull/201), [#199](https://github.com/bwendell/gemini-desktop/pull/199), [#197](https://github.com/bwendell/gemini-desktop/pull/197), [#194](https://github.com/bwendell/gemini-desktop/pull/194))
+
 ## Near-Term Focus
 
 - Continue strengthening release quality and upgrade reliability across platforms.
