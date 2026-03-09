@@ -42,5 +42,6 @@ See `docs/ARCHITECTURE.md` (Security Model) and Electron context isolation/secur
 
 ## When You Change This File
 
+- If you are working in a newly created git worktree, run `npm install` in that worktree first so Electron and other dependencies exist locally.
 - Run `npm run test:electron`
 - If adding or changing IPC channels, also run `npm run test:integration`

@@ -40,5 +40,6 @@ See `src/main/managers/ipc/BaseIpcHandler.ts` and `docs/ARCHITECTURE.md` (IPC Ha
 
 ## When You Change Files Here
 
+- If you are working in a newly created git worktree, run `npm install` in that worktree first so Electron and other dependencies exist locally.
 - Run `npm run test:electron`
 - If IPC handlers are modified, also run `npm run test:integration`
