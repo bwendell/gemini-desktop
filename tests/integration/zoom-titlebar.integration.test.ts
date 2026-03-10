@@ -12,6 +12,8 @@
 
 import { browser, expect } from '@wdio/globals';
 
+import { waitForZoomUIUpdate } from './helpers/zoomWaitHelpers';
+
 describe('Zoom Titlebar Integration', () => {
     const resetZoomState = async () => {
         console.log('--- RESETTING ZOOM STATE ---');
@@ -28,7 +30,7 @@ describe('Zoom Titlebar Integration', () => {
             }
         });
 
-        await browser.pause(100);
+        await waitForZoomUIUpdate(200);
 
         // 2. Set to default (100%) and VERIFY it applied
         await browser.electron.execute(() => {
@@ -46,7 +48,7 @@ describe('Zoom Titlebar Integration', () => {
         });
 
         // Wait for zoom change events to propagate to renderer
-        await browser.pause(300);
+        await waitForZoomUIUpdate(600);
     };
 
     beforeEach(async () => {
@@ -55,7 +57,11 @@ describe('Zoom Titlebar Integration', () => {
 
     before(async () => {
         // Wait for app ready
-        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
+        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0, {
+            timeout: 30000,
+            timeoutMsg: 'App window did not appear after 30000ms',
+            interval: 500,
+        });
 
         // Ensure renderer is ready
         await browser.execute(async () => {
@@ -66,7 +72,7 @@ describe('Zoom Titlebar Integration', () => {
         });
 
         // Wait for the app to be fully initialized
-        await browser.pause(500);
+        await waitForZoomUIUpdate(1000);
     });
 
     afterEach(async () => {
@@ -94,7 +100,7 @@ describe('Zoom Titlebar Integration', () => {
                 (global as any).appContext.windowManager.setZoomLevel(150);
             });
 
-            await browser.pause(100);
+            await waitForZoomUIUpdate(200);
 
             // Read via renderer API
             const zoomLevel = await browser.execute(() => (window as any).electronAPI.getZoomLevel());
@@ -106,7 +112,7 @@ describe('Zoom Titlebar Integration', () => {
             await browser.electron.execute(() => {
                 (global as any).appContext.windowManager.setZoomLevel(75);
             });
-            await browser.pause(50);
+            await waitForZoomUIUpdate(100);
 
             let zoomLevel = await browser.execute(() => (window as any).electronAPI.getZoomLevel());
             expect(zoomLevel).toBe(75);
@@ -114,7 +120,7 @@ describe('Zoom Titlebar Integration', () => {
             await browser.electron.execute(() => {
                 (global as any).appContext.windowManager.setZoomLevel(125);
             });
-            await browser.pause(50);
+            await waitForZoomUIUpdate(100);
 
             zoomLevel = await browser.execute(() => (window as any).electronAPI.getZoomLevel());
             expect(zoomLevel).toBe(125);
@@ -137,7 +143,7 @@ describe('Zoom Titlebar Integration', () => {
         it('should update actual webContents zoom factor after zoomIn', async () => {
             // Call zoomIn
             await browser.execute(() => (window as any).electronAPI.zoomIn());
-            await browser.pause(100);
+            await waitForZoomUIUpdate(200);
 
             // Verify webContents zoom factor
             const zoomFactor = await browser.electron.execute(() => {
@@ -157,7 +163,7 @@ describe('Zoom Titlebar Integration', () => {
             await browser.electron.execute(() => {
                 (global as any).appContext.windowManager.setZoomLevel(200);
             });
-            await browser.pause(50);
+            await waitForZoomUIUpdate(100);
 
             // Try to zoom in further
             const newZoom = await browser.execute(() => (window as any).electronAPI.zoomIn());
@@ -192,7 +198,7 @@ describe('Zoom Titlebar Integration', () => {
         it('should update actual webContents zoom factor after zoomOut', async () => {
             // Call zoomOut
             await browser.execute(() => (window as any).electronAPI.zoomOut());
-            await browser.pause(100);
+            await waitForZoomUIUpdate(200);
 
             // Verify webContents zoom factor
             const zoomFactor = await browser.electron.execute(() => {
@@ -212,7 +218,7 @@ describe('Zoom Titlebar Integration', () => {
             await browser.electron.execute(() => {
                 (global as any).appContext.windowManager.setZoomLevel(50);
             });
-            await browser.pause(50);
+            await waitForZoomUIUpdate(100);
 
             // Try to zoom out further
             const newZoom = await browser.execute(() => (window as any).electronAPI.zoomOut());
@@ -243,12 +249,12 @@ describe('Zoom Titlebar Integration', () => {
                 );
             });
 
-            await browser.pause(50);
+            await waitForZoomUIUpdate(100);
 
             // Trigger zoom change via zoomIn
             await browser.execute(() => (window as any).electronAPI.zoomIn());
 
-            await browser.pause(100);
+            await waitForZoomUIUpdate(200);
 
             // Check if event was received
             const events = await browser.execute(() => (window as any).__testZoomEvents);
@@ -275,12 +281,12 @@ describe('Zoom Titlebar Integration', () => {
                 );
             });
 
-            await browser.pause(50);
+            await waitForZoomUIUpdate(100);
 
             // Trigger zoom change via zoomOut
             await browser.execute(() => (window as any).electronAPI.zoomOut());
 
-            await browser.pause(100);
+            await waitForZoomUIUpdate(200);
 
             // Check if event was received
             const events = await browser.execute(() => (window as any).__testZoomEvents);
@@ -307,14 +313,14 @@ describe('Zoom Titlebar Integration', () => {
                 );
             });
 
-            await browser.pause(50);
+            await waitForZoomUIUpdate(100);
 
             // Trigger zoom change via main process
             await browser.electron.execute(() => {
                 (global as any).appContext.windowManager.setZoomLevel(175);
             });
 
-            await browser.pause(100);
+            await waitForZoomUIUpdate(200);
 
             // Check if event was received
             const events = await browser.execute(() => (window as any).__testZoomEvents);
@@ -341,12 +347,12 @@ describe('Zoom Titlebar Integration', () => {
                 unsubscribe();
             });
 
-            await browser.pause(50);
+            await waitForZoomUIUpdate(100);
 
             // Trigger zoom change
             await browser.execute(() => (window as any).electronAPI.zoomIn());
 
-            await browser.pause(100);
+            await waitForZoomUIUpdate(200);
 
             // Should not have received any events after unsubscribe
             const events = await browser.execute(() => (window as any).__testZoomEvents);

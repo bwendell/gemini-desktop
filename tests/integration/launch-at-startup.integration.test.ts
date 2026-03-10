@@ -2,6 +2,8 @@ import { browser, expect } from '@wdio/globals';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { waitForAutoLauncher, waitForStartupSetting, waitForWindowContentLoaded } from './helpers/startupWaitHelpers';
+
 interface WdioBrowserCompat {
     waitUntil: (
         condition: () => Promise<boolean>,
@@ -9,7 +11,6 @@ interface WdioBrowserCompat {
     ) => Promise<void>;
     execute: <T>(fn: (...args: unknown[]) => T, ...args: unknown[]) => Promise<T>;
     getWindowHandles: () => Promise<string[]>;
-    pause: (ms: number) => Promise<void>;
     switchToWindow: (handle: string) => Promise<void>;
     electron: {
         execute: <T>(fn: (electron: typeof import('electron')) => T) => Promise<T>;
@@ -43,7 +44,7 @@ describe('Launch at Startup IPC Integration', () => {
         userDataPath = await wdio.electron.execute((electron) => {
             return electron.app.getPath('userData');
         });
-        await wdio.pause(500);
+        await waitForWindowContentLoaded(1000);
     });
 
     describe('LaunchAtStartup API', () => {
@@ -66,7 +67,7 @@ describe('Launch at Startup IPC Integration', () => {
             await wdio.execute(async () => {
                 (window as any).electronAPI.setLaunchAtStartup(true);
             });
-            await wdio.pause(200);
+            await waitForStartupSetting(true, 400);
 
             const valueTrue = await wdio.execute(async () => {
                 return await (window as any).electronAPI.getLaunchAtStartup();
@@ -76,7 +77,7 @@ describe('Launch at Startup IPC Integration', () => {
             await wdio.execute(async () => {
                 (window as any).electronAPI.setLaunchAtStartup(false);
             });
-            await wdio.pause(200);
+            await waitForStartupSetting(false, 400);
 
             const valueFalse = await wdio.execute(async () => {
                 return await (window as any).electronAPI.getLaunchAtStartup();
@@ -106,7 +107,19 @@ describe('Launch at Startup IPC Integration', () => {
                 (window as any).electronAPI.setLaunchAtStartup(true);
                 (window as any).electronAPI.setStartMinimized(true);
             });
-            await wdio.pause(200);
+            await waitForStartupSetting(true, 400);
+            await wdio.waitUntil(
+                async () => {
+                    return await wdio.execute(async () => {
+                        return await (window as any).electronAPI.getStartMinimized();
+                    });
+                },
+                {
+                    timeout: 400,
+                    timeoutMsg: 'Start Minimized did not become true within 400ms',
+                    interval: 100,
+                }
+            );
 
             const valueTrue = await wdio.execute(async () => {
                 return await (window as any).electronAPI.getStartMinimized();
@@ -117,7 +130,19 @@ describe('Launch at Startup IPC Integration', () => {
                 (window as any).electronAPI.setStartMinimized(false);
                 (window as any).electronAPI.setLaunchAtStartup(false);
             });
-            await wdio.pause(200);
+            await waitForStartupSetting(false, 400);
+            await wdio.waitUntil(
+                async () => {
+                    return !(await wdio.execute(async () => {
+                        return await (window as any).electronAPI.getStartMinimized();
+                    }));
+                },
+                {
+                    timeout: 400,
+                    timeoutMsg: 'Start Minimized did not become false within 400ms',
+                    interval: 100,
+                }
+            );
 
             const valueFalse = await wdio.execute(async () => {
                 return await (window as any).electronAPI.getStartMinimized();
@@ -143,7 +168,11 @@ describe('Launch at Startup IPC Integration', () => {
                 });
             });
 
-            await wdio.pause(300);
+            await wdio.waitUntil(async () => (await wdio.getWindowHandles()).length <= 1, {
+                timeout: 600,
+                timeoutMsg: 'Options windows did not close within 600ms',
+                interval: 100,
+            });
             await wdio.switchToWindow(mainWindowHandle);
         });
 
@@ -166,7 +195,7 @@ describe('Launch at Startup IPC Integration', () => {
                 await wdio.switchToWindow(optionsWindowHandle);
             }
 
-            await wdio.pause(500);
+            await waitForWindowContentLoaded(1000);
 
             const hasStartupSection = await wdio.execute(() => {
                 return !!document.querySelector('[data-testid="options-startup"]');
@@ -193,7 +222,7 @@ describe('Launch at Startup IPC Integration', () => {
                 await wdio.switchToWindow(optionsWindowHandle);
             }
 
-            await wdio.pause(500);
+            await waitForWindowContentLoaded(1000);
 
             const toggleCount = await wdio.execute(() => {
                 const section = document.querySelector('[data-testid="options-startup"]');
@@ -209,7 +238,7 @@ describe('Launch at Startup IPC Integration', () => {
             await wdio.execute(() => {
                 (window as any).electronAPI.setLaunchAtStartup(false);
             });
-            await wdio.pause(250);
+            await waitForStartupSetting(false, 500);
 
             await wdio.execute(() => {
                 (window as any).electronAPI.openOptions('settings');
@@ -229,7 +258,7 @@ describe('Launch at Startup IPC Integration', () => {
                 await wdio.switchToWindow(optionsWindowHandle);
             }
 
-            await wdio.pause(500);
+            await waitForWindowContentLoaded(1000);
 
             const startMinDisabled = await wdio.execute(() => {
                 const toggle = document.querySelector('[data-testid="start-minimized-toggle-switch"]');
@@ -262,7 +291,7 @@ describe('Launch at Startup IPC Integration', () => {
             }
 
             await wdio.switchToWindow(optionsHandle);
-            await wdio.pause(350);
+            await waitForWindowContentLoaded(700);
             return optionsHandle;
         }
 
@@ -280,7 +309,11 @@ describe('Launch at Startup IPC Integration', () => {
                 });
             });
 
-            await wdio.pause(300);
+            await wdio.waitUntil(async () => (await wdio.getWindowHandles()).length <= 1, {
+                timeout: 600,
+                timeoutMsg: 'Options windows did not close within 600ms',
+                interval: 100,
+            });
             await wdio.switchToWindow(mainWindowHandle);
         }
 
@@ -290,14 +323,26 @@ describe('Launch at Startup IPC Integration', () => {
                 (window as any).electronAPI.setStartMinimized(false);
                 (window as any).electronAPI.setLaunchAtStartup(false);
             });
-            await wdio.pause(250);
+            await waitForStartupSetting(false, 500);
+            await wdio.waitUntil(
+                async () => {
+                    return !(await wdio.execute(async () => {
+                        return await (window as any).electronAPI.getStartMinimized();
+                    }));
+                },
+                {
+                    timeout: 500,
+                    timeoutMsg: 'Start Minimized did not become false within 500ms',
+                    interval: 100,
+                }
+            );
         });
 
         it('persists launch-at-startup state across Options close/reopen', async () => {
             await wdio.execute(() => {
                 (window as any).electronAPI.setLaunchAtStartup(true);
             });
-            await wdio.pause(250);
+            await waitForStartupSetting(true, 500);
 
             await openOptionsWindow();
             await closeOptionsWindows();
@@ -313,7 +358,19 @@ describe('Launch at Startup IPC Integration', () => {
                 (window as any).electronAPI.setLaunchAtStartup(true);
                 (window as any).electronAPI.setStartMinimized(true);
             });
-            await wdio.pause(250);
+            await waitForStartupSetting(true, 500);
+            await wdio.waitUntil(
+                async () => {
+                    return await wdio.execute(async () => {
+                        return await (window as any).electronAPI.getStartMinimized();
+                    });
+                },
+                {
+                    timeout: 500,
+                    timeoutMsg: 'Start Minimized did not become true within 500ms',
+                    interval: 100,
+                }
+            );
 
             await openOptionsWindow();
             await closeOptionsWindows();
@@ -331,14 +388,26 @@ describe('Launch at Startup IPC Integration', () => {
                 (window as any).electronAPI.setStartMinimized(false);
                 (window as any).electronAPI.setLaunchAtStartup(false);
             });
-            await wdio.pause(250);
+            await waitForStartupSetting(false, 500);
+            await wdio.waitUntil(
+                async () => {
+                    return !(await wdio.execute(async () => {
+                        return await (window as any).electronAPI.getStartMinimized();
+                    }));
+                },
+                {
+                    timeout: 500,
+                    timeoutMsg: 'Start Minimized did not become false within 500ms',
+                    interval: 100,
+                }
+            );
         });
 
         it('writes launchAtStartup to user-preferences.json', async () => {
             await wdio.execute(() => {
                 (window as any).electronAPI.setLaunchAtStartup(true);
             });
-            await wdio.pause(1000);
+            await waitForAutoLauncher(true, 2000);
 
             const settingsPath = path.join(userDataPath, 'user-preferences.json');
             expect(fs.existsSync(settingsPath)).toBe(true);
@@ -352,7 +421,19 @@ describe('Launch at Startup IPC Integration', () => {
                 (window as any).electronAPI.setLaunchAtStartup(true);
                 (window as any).electronAPI.setStartMinimized(true);
             });
-            await wdio.pause(1000);
+            await waitForAutoLauncher(true, 2000);
+            await wdio.waitUntil(
+                async () => {
+                    return await wdio.execute(async () => {
+                        return await (window as any).electronAPI.getStartMinimized();
+                    });
+                },
+                {
+                    timeout: 2000,
+                    timeoutMsg: 'Start Minimized did not become true within 2000ms',
+                    interval: 100,
+                }
+            );
 
             const settingsPath = path.join(userDataPath, 'user-preferences.json');
             expect(fs.existsSync(settingsPath)).toBe(true);
