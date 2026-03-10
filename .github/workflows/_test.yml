@@ -167,14 +167,20 @@ jobs:
         name: Integration Tests (${{ matrix.os }})
         needs: unit-tests
         runs-on: ${{ matrix.os }}
-        timeout-minutes: 25
+        timeout-minutes: ${{ matrix.timeout_minutes }}
         permissions:
             contents: read
 
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest, windows-latest, macos-latest]
+                include:
+                    - os: ubuntu-latest
+                      timeout_minutes: 25
+                    - os: windows-latest
+                      timeout_minutes: 30
+                    - os: macos-latest
+                      timeout_minutes: 25
 
         steps:
             - name: Checkout Code

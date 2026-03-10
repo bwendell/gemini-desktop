@@ -21,6 +21,93 @@ import {
     GEMINI_DOMAIN_PATTERNS,
 } from './helpers/e2eConstants';
 
+async function findGeminiFrameInfo(): Promise<{ frameUrl: string; frameCount: number }> {
+    const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
+
+    const frameInfo = await browser.electron.execute((electron: typeof import('electron'), domains: string[]) => {
+        const windows = electron.BrowserWindow.getAllWindows();
+        const mainWindow = windows[0];
+        if (!mainWindow) {
+            return null;
+        }
+
+        const frames = mainWindow.webContents.mainFrame.frames;
+        const geminiFrame = frames.find((f) => {
+            try {
+                return domains.some((domain) => f.url.includes(domain));
+            } catch {
+                return false;
+            }
+        });
+
+        if (!geminiFrame) {
+            return null;
+        }
+
+        return { frameUrl: geminiFrame.url, frameCount: frames.length };
+    }, domainPatterns);
+
+    if (frameInfo && typeof frameInfo.frameUrl === 'string') {
+        return frameInfo;
+    }
+
+    throw new Error('Gemini frame not loaded');
+}
+
+async function clickMicrophoneInGeminiFrame(): Promise<{ executed: boolean }> {
+    const micSelectors = [...GEMINI_MICROPHONE_BUTTON_SELECTORS];
+    const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
+
+    const clickResult = await browser.electron.execute(
+        (electron: typeof import('electron'), micSels: string[], domains: string[]) => {
+            const windows = electron.BrowserWindow.getAllWindows();
+            const mainWindow = windows[0];
+            if (!mainWindow) {
+                return null;
+            }
+
+            const frames = mainWindow.webContents.mainFrame.frames;
+            const geminiFrame = frames.find((f) => {
+                try {
+                    return domains.some((domain) => f.url.includes(domain));
+                } catch {
+                    return false;
+                }
+            });
+
+            if (!geminiFrame) {
+                return null;
+            }
+
+            const selectorsJson = JSON.stringify(micSels);
+            const clickScript = `
+            (function() {
+              const selectors = ${selectorsJson};
+              for (const sel of selectors) {
+                const btn = document.querySelector(sel);
+                if (btn) {
+                  btn.click();
+                  return { clicked: true, selector: sel };
+                }
+              }
+              return { clicked: false, error: 'Microphone button not found' };
+            })();
+          `;
+
+            geminiFrame.executeJavaScript(clickScript);
+            return { executed: true };
+        },
+        micSelectors,
+        domainPatterns
+    );
+
+    if (clickResult && clickResult.executed === true) {
+        return clickResult;
+    }
+
+    throw new Error('Gemini frame not accessible');
+}
+
 describe('Microphone Permission', () => {
     beforeEach(async () => {
         // Wait for Gemini iframe to load
@@ -52,80 +139,43 @@ describe('Microphone Permission', () => {
 
     describe('Microphone Button Interaction', () => {
         it('should have Gemini frame loaded', async () => {
-            // Pass domain patterns to execute context
-            const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
-
-            const frameInfo = await browser.electron.execute(
-                (electron: typeof import('electron'), domains: string[]) => {
-                    const windows = electron.BrowserWindow.getAllWindows();
-                    const mainWindow = windows[0];
-                    if (!mainWindow) throw new Error('No main window found');
-
-                    const frames = mainWindow.webContents.mainFrame.frames;
-                    const geminiFrame = frames.find((f) => {
-                        try {
-                            return domains.some((domain) => f.url.includes(domain));
-                        } catch {
-                            return false;
-                        }
-                    });
-
-                    if (!geminiFrame) throw new Error('Gemini frame not loaded');
-                    return { frameUrl: geminiFrame.url, frameCount: frames.length };
+            const frameReady = await waitForUIState(
+                async () => {
+                    try {
+                        await findGeminiFrameInfo();
+                        return true;
+                    } catch {
+                        return false;
+                    }
                 },
-                domainPatterns
+                { timeout: 15000, description: 'Gemini frame to be discoverable from main process' }
             );
+
+            expect(frameReady).toBe(true);
+
+            const frameInfo = await findGeminiFrameInfo();
 
             expect(frameInfo.frameUrl).toContain('gemini');
         });
 
         it('should not show error toast when clicking microphone button', async () => {
-            // Pass selectors to execute context
-            const micSelectors = [...GEMINI_MICROPHONE_BUTTON_SELECTORS];
             const toastSelectors = [...GEMINI_ERROR_TOAST_SELECTORS];
             const errorText = GEMINI_MICROPHONE_ERROR_TEXT;
             const domainPatterns = [...GEMINI_DOMAIN_PATTERNS];
 
-            // Click microphone button via main process (to access iframe frames)
-            const clickResult = await browser.electron.execute(
-                (electron: typeof import('electron'), micSels: string[], domains: string[]) => {
-                    const windows = electron.BrowserWindow.getAllWindows();
-                    const mainWindow = windows[0];
-                    if (!mainWindow) throw new Error('No main window found');
-
-                    const frames = mainWindow.webContents.mainFrame.frames;
-                    const geminiFrame = frames.find((f) => {
-                        try {
-                            return domains.some((domain) => f.url.includes(domain));
-                        } catch {
-                            return false;
-                        }
-                    });
-
-                    if (!geminiFrame) throw new Error('Gemini frame not accessible');
-
-                    // Build click script using provided selectors
-                    const selectorsJson = JSON.stringify(micSels);
-                    const clickScript = `
-            (function() {
-              const selectors = ${selectorsJson};
-              for (const sel of selectors) {
-                const btn = document.querySelector(sel);
-                if (btn) {
-                  btn.click();
-                  return { clicked: true, selector: sel };
-                }
-              }
-              return { clicked: false, error: 'Microphone button not found' };
-            })();
-          `;
-
-                    geminiFrame.executeJavaScript(clickScript);
-                    return { executed: true };
+            await waitForUIState(
+                async () => {
+                    try {
+                        await findGeminiFrameInfo();
+                        return true;
+                    } catch {
+                        return false;
+                    }
                 },
-                micSelectors,
-                domainPatterns
+                { timeout: 15000, description: 'Gemini frame to be discoverable before microphone click' }
             );
+
+            const clickResult = await clickMicrophoneInGeminiFrame();
 
             expect(clickResult.executed).toBe(true);
 

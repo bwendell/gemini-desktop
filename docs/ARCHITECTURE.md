@@ -1,620 +1,412 @@
-# Architecture Overview
+# Architecture Reference
 
-This document serves as a critical, living template designed to equip agents with a rapid and comprehensive understanding of the codebase's architecture, enabling efficient navigation and effective contribution from day one. Update this document as the codebase evolves.
+This document is the durable architecture map for Gemini Desktop. It is written for contributors and AI agents who need a trustworthy view of the live runtime boundaries, data flows, and source-of-truth files.
 
-## 1. Project Structure
+Use this document to understand how the application is organized. Use the code paths linked in each section when you need implementation detail.
 
-> This section provides a high-level overview of the project's directory and file structure, categorised by architectural layer or major functional area. It is essential for quickly navigating the codebase, locating relevant files, and understanding the overall organization and separation of concerns.
+## System Overview
 
-```text
-gemini-desktop/
-├── src/                      # Main source code
-│   ├── main/                 # Electron main process (Node.js context)
-│   │   ├── main.ts           # Application entry point, lifecycle management
-│   │   ├── managers/         # Core functionality managers
-│   │   │   ├── windowManager.ts    # Window creation and state management
-│   │   │   ├── ipcManager.ts       # IPC orchestrator (delegates to handlers)
-│   │   │   ├── llmManager.ts       # Local LLM resource management
-│   │   │   ├── ipc/                # Domain-specific IPC handlers
-│   │   │   │   ├── index.ts              # Barrel exports for handlers
-│   │   │   │   ├── types.ts              # Handler dependency types
-│   │   │   │   ├── BaseIpcHandler.ts     # Abstract base class
-│   │   │   │   ├── ShellIpcHandler.ts    # Shell operations
-│   │   │   │   ├── WindowIpcHandler.ts   # Window controls
-│   │   │   │   ├── ThemeIpcHandler.ts    # Theme management
-│   │   │   │   ├── ZoomIpcHandler.ts     # Zoom level control
-│   │   │   │   ├── AlwaysOnTopIpcHandler.ts  # Window pin state
-│   │   │   │   ├── HotkeyIpcHandler.ts   # Hotkey settings
-│   │   │   │   ├── AppIpcHandler.ts      # App-level operations
-│   │   │   │   ├── AutoUpdateIpcHandler.ts   # Auto-update controls
-│   │   │   │   ├── QuickChatIpcHandler.ts    # Quick Chat flow
-│   │   │   │   ├── TextPredictionIpcHandler.ts # Text prediction
-│   │   │   │   └── ResponseNotificationIpcHandler.ts # Notification settings
-│   │   │   ├── hotkeyManager.ts    # Global keyboard shortcut registration
-│   │   │   ├── trayManager.ts      # System tray icon and menu
-│   │   │   ├── menuManager.ts      # Application menu construction
-│   │   │   ├── updateManager.ts    # Auto-update functionality
-│   │   │   ├── badgeManager.ts     # Update notification badges
-│   │   │   └── notificationManager.ts # Response notification handling
-│   │   ├── windows/          # Window class implementations
-│   │   │   ├── baseWindow.ts       # Abstract base window class
-│   │   │   ├── mainWindow.ts       # Primary application window
-│   │   │   ├── optionsWindow.ts    # Settings/preferences window
-│   │   │   ├── quickChatWindow.ts  # Spotlight-style floating prompt
-│   │   │   └── authWindow.ts       # Google authentication window
-│   │   ├── utils/            # Main process utilities
-│   │   └── store.ts          # Settings persistence (electron-store pattern)
-│   ├── preload/              # Electron preload scripts (bridge context)
-│   │   └── preload.ts        # Secure API exposure via contextBridge
-│   ├── renderer/             # React frontend (browser context)
-│   │   ├── App.tsx           # Root React component
-│   │   ├── main.tsx          # React DOM entry point
-│   │   ├── components/       # Reusable UI components
-│   │   │   ├── titlebar/     # Custom window title bar
-│   │   │   ├── options/      # Settings panels and controls
-│   │   │   ├── quickchat/    # Quick Chat input interface
-│   │   │   ├── toast/        # Generic and update notifications
-│   │   │   ├── layout/       # Layout components
-│   │   │   └── common/       # Shared UI elements
-│   │   ├── context/          # React context providers (theme, settings)
-│   │   ├── hooks/            # Custom React hooks
-│   │   ├── windows/          # Window-specific root components
-│   │   │   ├── options/      # Options window React app
-│   │   │   └── quickchat/    # Quick Chat window React app
-│   │   └── utils/            # Renderer utilities
-│   └── shared/               # Code shared between main/renderer
-│       ├── constants/        # IPC channel names, URLs
-│       │   ├── ipc-channels.ts     # All IPC channel definitions
-│       │   └── urls.ts             # External URL constants
-│       ├── types/            # TypeScript type definitions
-│       │   ├── ipc.ts              # ElectronAPI interface
-│       │   ├── hotkeys.ts          # Hotkey configuration types
-│       │   ├── theme.ts            # Theme preference types
-│       │   └── updates.ts          # Auto-update event types
-│       └── utils/            # Shared utility functions
-├── tests/                    # Test suites by type
-│   ├── unit/                 # Isolated unit tests (Vitest)
-│   ├── coordinated/          # Multi-module integration tests (Vitest)
-│   ├── integration/          # Electron process integration (WDIO)
-│   └── e2e/                  # Full end-to-end tests (WDIO)
-│       └── release/          # Tests for packaged builds
-├── config/                   # Configuration files
-│   ├── electron-builder.config.cjs  # Build/packaging config
-│   ├── vitest/               # Vitest test configurations
-│   └── wdio/                 # WebdriverIO test configurations
-├── build/                    # Build assets (icons, installers)
-├── scripts/                  # Build and automation scripts
-├── .github/                  # GitHub configurations
-│   └── workflows/            # CI/CD GitHub Actions
-│       ├── test.yml          # Test pipeline (PR/push)
-│       ├── release.yml       # Release pipeline (tags)
-│       └── _*.yml            # Reusable workflow components
-├── docs/                     # Project documentation
-├── public/                   # Static assets
-├── package.json              # Dependencies and scripts
-├── tsconfig.json             # TypeScript configuration
-├── vite.config.ts            # Vite build configuration
-└── eslint.config.js          # ESLint configuration
-```
+Gemini Desktop is an Electron application with three primary runtime boundaries:
 
-## 2. High-Level System Diagram
-
-> Provide a simple block diagram (e.g., a C4 Model Level 1: System Context diagram, or a basic component diagram) or a clear text-based description of the major components and their interactions. Focus on how data flows, services communicate, and key architectural boundaries.
+- The main process composes managers, owns native integrations, and coordinates application lifecycle.
+- The preload bridge exposes a typed `window.electronAPI` surface to renderer code.
+- The renderer hosts a React shell that manages tabs and embeds Gemini inside iframe-based tab panels.
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│                           Gemini Desktop Application                       │
-├────────────────────────────────────────────────────────────────────────────┤
-│                                                                            │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                      MAIN PROCESS (Node.js)                         │   │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │   │
-│  │  │WindowManager │  │ HotkeyManager│  │  TrayManager │               │   │
-│  │  └──────┬───────┘  └──────────────┘  └──────────────┘               │   │
-│  │         │                                                           │   │
-│  │  ┌──────┴───────┐  ┌──────────────┐  ┌──────────────┐               │   │
-│  │  │  IpcManager  │  │UpdateManager │  │  MenuManager │               │   │
-│  │  └──────┬───────┘  └──────────────┘  └──────────────┘               │   │
-│  │         │                                                           │   │
-│  │  ┌──────┴───────┐                                                   │   │
-│  │  │SettingsStore │  (electron-store for persistence)                 │   │
-│  │  └──────────────┘                                                   │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│              │                                                             │
-│              │ IPC (contextBridge)                                         │
-│              ▼                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                    PRELOAD (Bridge Context)                         │   │
-│  │  preload.ts - Exposes window.electronAPI safely                     │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│              │                                                             │
-│              │ window.electronAPI                                          │
-│              ▼                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                  RENDERER PROCESS (Chromium/React)                  │   │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────────┐   │   │
-│  │  │ MainWindow │  │OptionsWin  │  │ QuickChat  │  │  AuthWindow  │   │   │
-│  │  │  (iframe)  │  │  (React)   │  │  (React)   │  │  (Google)    │   │   │
-│  │  │  (emits    │  └────────────┘  └────────────┘  └──────────────┘   │   │
-│  │  │  response- │                                                     │   │
-│  │  │  complete) │  ┌─────────────────────┐                            │   │
-│  │  └─────┬──────┘  │ NotificationManager │                            │   │
-│  │        │         │ (OS notifications + │                            │   │
-│  │        └────────►│  badge coordination)│                            │   │
-│  │        │                                                            │   │
-│  │        ▼                                                            │   │
-│  │  ┌──────────────────────────────────────────────────────────────┐   │   │
-│  │  │              Embedded: https://gemini.google.com             │   │   │
-│  │  └──────────────────────────────────────────────────────────────┘   │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                            │
-└────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ HTTPS
-                                    ▼
-                    ┌──────────────────────────────┐
-                    │     Google Gemini Web App    │
-                    │     gemini.google.com/app    |
-                    └──────────────────────────────┘
++----------------------------- Gemini Desktop ------------------------------+
+|                                                                          |
+|  Main Process                                                            |
+|  - main.ts boots the app                                                 |
+|  - ApplicationContext holds manager graph                                |
+|  - IpcManager registers domain handlers                                  |
+|  - Window/Tray/Menu/Hotkey/Update/Badge/Notification managers            |
+|  - ExportManager and LlmManager own feature backends                     |
+|                                                                          |
+|          ipcMain / BrowserWindow / session / platform adapters           |
+|                                ^                                         |
+|                                |                                         |
+|                      contextBridge via preload                            |
+|                                |                                         |
+|                                v                                         |
+|  Preload Bridge                                                          |
+|  - preload.ts exposes window.electronAPI                                 |
+|  - typed invoke/send/on wrappers                                          |
+|  - subscriptions return cleanup functions                                |
+|                                                                          |
+|                                ^                                         |
+|                                |                                         |
+|                         window.electronAPI                                |
+|                                |                                         |
+|                                v                                         |
+|  Renderer                                                                 |
+|  - App.tsx composes Theme/Toast/Update/Tab providers                     |
+|  - TabContext owns in-memory tab UI state                                |
+|  - TabBar and TabPanel render iframe-based Gemini tabs                   |
+|  - Quick Chat and options UI use the preload bridge                      |
+|                                                                          |
++--------------------------------------------------------------------------+
+                                 |
+                                 v
+                      Google Gemini web app (`gemini.google.com`)
 ```
 
-### Process Communication Flow
+## Runtime Boundaries
 
-1. **User Input** → Renderer captures via React components
-2. **Renderer → Main** → IPC invoke/send through `window.electronAPI`
-3. **Main Process** → Handles via `IpcManager`, delegates to appropriate manager
-4. **Main → Renderer** → IPC reply/emit through event channels
-5. **Settings Changes** → Stored via `SettingsStore`, broadcast to all windows
+### Main Process
 
-## 3. Core Components
+The main process owns native behavior and long-lived services: app startup, BrowserWindow lifecycle, tray integration, hotkeys, updates, notifications, export, local persistence, and platform-specific behavior.
 
-### 3.1. Frontend (Renderer Process)
+### Preload Bridge
 
-**Name:** React UI Layer
+The preload layer is the only sanctioned bridge between the sandboxed renderer and Electron APIs. Renderer code does not import Node.js modules directly.
 
-**Description:** The renderer process hosts the React-based UI for all application windows. The main window embeds the Google Gemini web application in an iframe with stripped security headers. Secondary windows (Options, Quick Chat) are full React applications for settings management and quick prompts.
+### Renderer
 
-**Technologies:**
+The renderer is a React application. It owns visual state, tab interactions, option panels, toast UI, and iframe embedding, while deferring native effects to the preload bridge and main process.
 
-- React 19 with TypeScript
-- Vite for development and building
-- Framer Motion for animations
-- CSS Modules for styling
-- Custom hooks for IPC communication
+### Shared Contracts
 
-**Key Components:**
+`src/shared/` defines the stable contracts that keep the boundaries aligned: IPC channel names, shared types, URL constants, and tab helpers.
 
-- `src/renderer/components/titlebar/` - Custom window title bar with traffic lights
-- `src/renderer/components/options/` - Settings panels for themes, hotkeys, updates
-- `src/renderer/components/quickchat/` - Floating prompt input interface
-- `src/renderer/context/` - React contexts for theme and settings state
-- `src/renderer/components/toast/` - Generic and specialized update notification toasts
-- `src/renderer/context/ToastContext.tsx` - Central API for showing toasts via `useToast` hook
+### External Dependency
 
-### 3.2. Backend Services (Main Process)
+The application embeds the Gemini web app in iframes and keeps authentication in Chromium session storage. There is no separate Gemini Desktop backend service.
 
-#### 3.2.1. Window Manager
+## Main-Process Composition
 
-**Name:** `WindowManager` (`src/main/managers/windowManager.ts`)
+### Manager Architecture
 
-**Description:** Orchestrates the creation, lifecycle, and state of all application windows. Manages show/hide operations, tray minimization, and cross-window coordination. Maintains references to MainWindow, OptionsWindow, QuickChatWindow, and AuthWindow instances. Also provides zoom control functionality for the main window.
+The main process uses dependency injection rather than global mutable singletons. `src/main/main.ts` constructs the manager graph, stores it in `ApplicationContext`, and wires late-bound services after the app is ready.
 
-**Technologies:** Electron BrowserWindow API, TypeScript
+### Composition Root
 
-**Zoom Control:**
+- `src/main/main.ts` is the composition root.
+- `src/main/ApplicationContext.ts` defines the live manager container.
+- Core managers are created first: `WindowManager`, `HotkeyManager`, `TrayManager`, `BadgeManager`, `UpdateManager`, `LlmManager`, `ExportManager`, and `IpcManager`.
+- Ready-only managers are attached later: `MenuManager` and `NotificationManager`.
 
-- `getZoomLevel()` / `setZoomLevel(level)` - Get/set zoom percentage (50%-200%)
-- `zoomIn()` / `zoomOut()` - Step through standard zoom levels
-- Zoom steps: 50%, 67%, 75%, 80%, 90%, 100%, 110%, 125%, 150%, 175%, 200%
-- **Scope:** Main window only - Options and Quick Chat windows are not affected
-- Zoom level persists to settings and is restored on app restart
+### Core Manager Families
 
-#### 3.2.2. IPC Manager
+| Family                   | Responsibility                                                    | Primary files                                                                                                                                     |
+| ------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windowing                | Create and coordinate main, options, quick chat, and auth windows | `src/main/managers/windowManager.ts`, `src/main/windows/`                                                                                         |
+| Native shell integration | Tray, menu, hotkeys, app lifecycle, badges                        | `src/main/managers/trayManager.ts`, `src/main/managers/menuManager.ts`, `src/main/managers/hotkeyManager.ts`, `src/main/managers/badgeManager.ts` |
+| Background services      | Auto-update checks, local LLM lifecycle, export orchestration     | `src/main/managers/updateManager.ts`, `src/main/managers/llmManager.ts`, `src/main/managers/exportManager.ts`                                     |
+| Notifications            | Native response notifications and badge coordination              | `src/main/managers/notificationManager.ts`                                                                                                        |
+| IPC                      | Register and dispose typed handler families                       | `src/main/managers/ipcManager.ts`, `src/main/managers/ipc/`                                                                                       |
+| Persistence              | JSON-backed settings stores used by managers and handlers         | `src/main/store.ts`                                                                                                                               |
+| Platform abstraction     | Centralize OS-specific behavior                                   | `src/main/platform/`                                                                                                                              |
 
-**Name:** `IpcManager` (`src/main/managers/ipcManager.ts`)
+### Startup Sequence
 
-**Description:** Lightweight orchestrator for inter-process communication. Delegates to domain-specific handlers in `src/main/managers/ipc/` for all IPC functionality. Responsible for handler instantiation, registration, and initialization during app startup.
+1. `main.ts` performs sandbox and platform initialization before creating windows.
+2. `initializeManagers()` builds the core manager graph and stores it in `ApplicationContext`.
+3. `app.whenReady()` applies session-level security, registers IPC handlers, builds the menu, and creates the main window.
+4. Once the main window exists, `BadgeManager` receives its window reference and `NotificationManager` is created.
+5. `NotificationManager` is injected back into `IpcManager` because response notification IPC depends on a service that is only available after the main window exists.
+6. Tray creation, hotkey registration, text prediction initialization, and periodic update checks happen after the app is ready.
 
-**Technologies:** Electron ipcMain API, TypeScript
+### Late-Bound Managers and Runtime Wiring
 
-**Handler Pattern Architecture:**
+- `MenuManager` depends on `TabStateIpcHandler`, so it is created after `IpcManager.setupIpcHandlers()` makes that handler available.
+- `NotificationManager` lives in the main process and subscribes to the main window's `response-complete` event. It is not a renderer component.
+- `IpcManager.setNotificationManager()` handles the late injection needed by `ResponseNotificationIpcHandler`.
 
-The IPC system uses a handler-based architecture where each domain-specific handler extends `BaseIpcHandler` and manages its own IPC channels:
+### Cleanup and Disposal
 
-```text
-IpcManager (orchestrator)
-    │
-    ├── BaseIpcHandler (abstract)
-    │       ├── getWindowFromEvent()
-    │       ├── broadcastToAllWindows()
-    │       └── handleError()
-    │
-    └── Domain Handlers
-            ├── ShellIpcHandler     - shell:show-item-in-folder
-            ├── WindowIpcHandler    - window:minimize/maximize/close/show
-            ├── ThemeIpcHandler     - theme:get/set + broadcast
-            ├── ZoomIpcHandler      - zoom:get-level/zoom-in/zoom-out
-            ├── AlwaysOnTopIpcHandler - always-on-top:get/set
-            ├── HotkeyIpcHandler    - hotkeys:individual/accelerator settings
-            ├── AppIpcHandler       - open-options/open-google-signin
-            ├── AutoUpdateIpcHandler - auto-update:get/set/check/install
-            ├── QuickChatIpcHandler - quick-chat:submit/hide/cancel
-            ├── TextPredictionIpcHandler - text-prediction:enable/predict
-            └── ResponseNotificationIpcHandler - response-notifications:get/set
-```
+`main.ts` centralizes shutdown through `cleanupAllManagers()`. Cleanup unregisters hotkeys, destroys the tray, stops update timers, disposes the LLM manager, unregisters IPC handlers, removes `response-complete` listeners, disposes `NotificationManager`, and clears the application context.
 
-**Handler Lifecycle:**
+### Where to Look in Code
 
-1. `IpcManager` instantiates all handlers with shared dependencies
-2. Each handler's `register()` method is called to set up IPC channels
-3. Each handler's `initialize()` method (if defined) is called for startup state
-4. Handlers manage their own event subscriptions and broadcasting
+- `src/main/main.ts`
+- `src/main/ApplicationContext.ts`
+- `src/main/managers/`
+- `src/main/windows/`
+- `src/main/store.ts`
 
-**Key Benefits:**
+## IPC Architecture
 
-- **Single Responsibility**: Each handler owns one domain (theme, zoom, hotkeys, etc.)
-- **Testability**: Handlers can be unit tested in isolation with mocked dependencies
-- **Maintainability**: ~200 line orchestrator vs 1500+ line monolith
-- **Dependency Injection**: `IpcHandlerDependencies` interface enables clean testing
+`IpcManager` is the orchestrator for renderer-to-main communication. It creates handler instances with a shared dependency object, registers them, optionally initializes them, and unregisters them during disposal.
 
-#### 3.2.3. Hotkey Manager
+### IPC Handler Pattern
 
-**Name:** `HotkeyManager` (`src/main/managers/hotkeyManager.ts`)
+All handler classes extend `BaseIpcHandler` and follow the same lifecycle:
 
-**Description:** Registers and manages global keyboard shortcuts that work even when the application is not focused. Supports customizable accelerators for Quick Chat (`Ctrl+Shift+Alt+Space`), Peek and Hide (`Ctrl+Shift+Space`), Always On Top (`Ctrl+Shift+T`), and Settings (`Ctrl+,`). Includes special handling for Linux/Wayland via `GlobalShortcutsPortal`.
+1. `register()` adds `ipcMain.handle` and `ipcMain.on` listeners.
+2. `initialize()` is optional for handlers that need startup work after registration.
+3. `unregister()` removes listeners during shutdown.
 
-**Technologies:** Electron globalShortcut API, TypeScript
+`BaseIpcHandler` also provides:
 
-#### 3.2.4. Tray Manager
+- `getWindowFromEvent()` for safe sender window lookup.
+- `broadcastToAllWindows()` for fan-out state sync.
+- `handleError()` for consistent logging.
 
-**Name:** `TrayManager` (`src/main/managers/trayManager.ts`)
+### Handler Families
 
-**Description:** Creates and manages the system tray icon and context menu. Provides quick access to show/hide the app, open settings, and quit. Shows update badges when new versions are available.
+| Handler family         | Responsibility                                              | Primary files                                             |
+| ---------------------- | ----------------------------------------------------------- | --------------------------------------------------------- |
+| Window                 | Minimize, maximize, close, show, fullscreen                 | `src/main/managers/ipc/WindowIpcHandler.ts`               |
+| Theme                  | Theme preference get/set and cross-window sync              | `src/main/managers/ipc/ThemeIpcHandler.ts`                |
+| Zoom                   | Zoom level get/set and broadcast                            | `src/main/managers/ipc/ZoomIpcHandler.ts`                 |
+| Always on top          | Window pinning state                                        | `src/main/managers/ipc/AlwaysOnTopIpcHandler.ts`          |
+| Hotkeys                | Hotkey enablement, accelerators, and status                 | `src/main/managers/ipc/HotkeyIpcHandler.ts`               |
+| App                    | Open settings, auth windows, app-level actions              | `src/main/managers/ipc/AppIpcHandler.ts`                  |
+| Auto-update            | User-triggered checks, install flow, status events          | `src/main/managers/ipc/AutoUpdateIpcHandler.ts`           |
+| Quick Chat             | Submit, hide, cancel, and execute flow into the main window | `src/main/managers/ipc/QuickChatIpcHandler.ts`            |
+| Text prediction        | Local LLM enablement, model status, inference               | `src/main/managers/ipc/TextPredictionIpcHandler.ts`       |
+| Response notifications | Response notification preference bridge                     | `src/main/managers/ipc/ResponseNotificationIpcHandler.ts` |
+| Launch at startup      | Login-item state and start-minimized settings               | `src/main/managers/ipc/LaunchAtStartupIpcHandler.ts`      |
+| Export                 | PDF and Markdown export triggers from UI and menu events    | `src/main/managers/ipc/ExportIpcHandler.ts`               |
+| Tab state              | Tab persistence, title sync, reload flow                    | `src/main/managers/ipc/TabStateIpcHandler.ts`             |
+| Shell                  | Reveal files in the OS file browser                         | `src/main/managers/ipc/ShellIpcHandler.ts`                |
 
-**Technologies:** Electron Tray API, TypeScript
+### Dependency Injection Model
 
-#### 3.2.5. Update Manager
+Handlers receive a shared dependency object containing the logger, settings store, `WindowManager`, and optional manager references such as `HotkeyManager`, `UpdateManager`, `ExportManager`, `LlmManager`, and `NotificationManager`.
 
-**Name:** `UpdateManager` (`src/main/managers/updateManager.ts`)
+### NotificationManager Injection
 
-**Description:** Handles automatic update checking, downloading, and installation via electron-updater. Performs periodic background checks and notifies users of available updates. Integrates with BadgeManager for visual notifications.
+`NotificationManager` is created after the main window exists, so `IpcManager` starts with a null notification dependency and receives the real manager later through `setNotificationManager()`. This is a key part of the current architecture and should be preserved when changing response notification behavior.
 
-**Technologies:** electron-updater, electron-log, TypeScript
+### Where to Look in Code
 
-#### 3.2.6. Menu Manager
+- `src/main/managers/ipcManager.ts`
+- `src/main/managers/ipc/BaseIpcHandler.ts`
+- `src/main/managers/ipc/`
+- `src/shared/constants/ipc-channels.ts`
 
-**Name:** `MenuManager` (`src/main/managers/menuManager.ts`)
+## Preload Bridge and Security Boundary
 
-**Description:** Constructs the application menu bar with platform-specific layouts. Provides menu items for window controls, editing, view options (including zoom), and help/about access.
+The preload layer exposes a typed `window.electronAPI` object to renderer code using `contextBridge.exposeInMainWorld`.
 
-**Technologies:** Electron Menu API, TypeScript
+### Bridge Shape
 
-**View Menu Zoom Items:**
+The bridge follows three stable patterns:
 
-- "Zoom In (X%)" - `Ctrl+=` / `Cmd+=` - Increases zoom to next step
-- "Zoom Out (X%)" - `Ctrl+-` / `Cmd+-` - Decreases zoom to previous step
-- Menu labels display current zoom percentage and update after changes
+- `invoke` for request/response calls.
+- `send` for fire-and-forget commands.
+- `on*` subscription wrappers that strip the raw Electron event and return cleanup functions for React effects.
 
-#### 3.2.7. Notification Manager
+`src/shared/types/ipc.ts` is the canonical type definition for this API surface, and `src/shared/constants/ipc-channels.ts` is the canonical channel inventory shared across processes.
 
-**Name:** `NotificationManager` (`src/main/managers/notificationManager.ts`)
+### Security Model
 
-**Description:** Manages native OS notifications and taskbar badges when Gemini finishes generating a response while the application is unfocused. Coordinates with `BadgeManager` (`src/main/managers/badgeManager.ts`) for visual indicators and listens to the MainWindow's `response-complete` event. Respects user preference for enabling/disabling response notifications.
+- The renderer remains sandboxed with `contextIsolation: true` and no direct Node.js access.
+- The preload bridge does not expose raw `ipcRenderer`.
+- Channel names are centralized in shared constants rather than duplicated ad hoc.
+- The renderer talks to Electron only through `window.electronAPI`.
 
-**Technologies:** Electron Notification API, TypeScript
+### Where to Look in Code
 
-**Key Features:**
+- `src/preload/preload.ts`
+- `src/shared/types/ipc.ts`
+- `src/shared/constants/ipc-channels.ts`
 
-- **Focus State Tracking**: Monitors main window focus/blur events
-- **Native Notifications**: Shows "Response ready" notification when window is unfocused
-- **Notification Click Handling**: Clicking notification focuses the main window
-- **Badge Coordination**: Shows/clears notification badge via BadgeManager
-- **Setting Respect**: Only triggers when `responseNotificationsEnabled` is true
+## Renderer Architecture
 
-**Platform Support:**
+`src/renderer/App.tsx` composes the root provider stack and the main shell:
 
-| Platform | OS Notification             | Taskbar Badge        | Notes                              |
-| -------- | --------------------------- | -------------------- | ---------------------------------- |
-| Windows  | ✅ Toast via `Notification` | ✅ Green dot overlay | Uses existing BadgeManager pattern |
-| macOS    | ✅ Native notification      | ✅ Dock badge text   | Uses existing BadgeManager pattern |
-| Linux    | ✅ libnotify (GNOME/KDE)    | ⚠️ No native API     | Notification works, badge skipped  |
+- `ThemeProvider`
+- `ToastProvider`
+- `UpdateToastProvider`
+- `TabProvider`
 
-#### 3.2.8. Toast Utility (Main Process)
+Inside that shell, `MainLayout` renders the tab bar and the active tab panel. `TabPanel` mounts one iframe per tab and shows the active iframe while keeping the tab shell in React. Quick Chat integration also lives at this boundary: the renderer listens for Gemini navigation requests from the main process and signals readiness back through the preload bridge.
 
-**Name:** `showToast` (`src/main/utils/toast.ts`)
+Global UI state is handled with React contexts rather than a single global store. Current high-value contexts include theme, toast/update notifications, individual hotkeys, and tabs.
 
-**Description:** Provides a helper function for the main process to trigger toast notifications in any renderer window via the `toast:show` IPC channel. Used for system alerts, auth failures, and background task progress.
+Styling is plain CSS imported by components such as `App.tsx` and `TabBar.tsx`. The architecture does not use CSS Modules as a primary styling pattern.
 
-**Technologies:** Electron webContents.send, IPC, TypeScript
+### Where to Look in Code
 
-### 3.3. Toast System Architecture
+- `src/renderer/App.tsx`
+- `src/renderer/context/`
+- `src/renderer/hooks/`
+- `src/renderer/components/`
 
-The application uses a layered toast system to provide non-intrusive feedback:
+## Quick Chat Flow
 
-1. **Toast Component**: Presentational component supporting multiple types (`success`, `error`, `info`, `warning`, `progress`).
-2. **ToastContainer**: Manages a stack of up to 5 visible toasts in the bottom-left corner with enter/exit animations.
-3. **ToastContext**: Context provider that manages the toast queue, auto-dismiss timers, and provides the `useToast` hook.
-4. **IPC Integration**: Subscribes to `toast:show` events from the main process, allowing system-level events to be surfaced as UI toasts.
+Quick Chat is a cross-boundary workflow rather than a standalone renderer feature.
 
-**Provider Nesting Order**: `ToastProvider` must be wrapped above `UpdateToastProvider` in the component tree:
+1. The floating quick chat window collects prompt text.
+2. `QuickChatIpcHandler` hides the quick chat window, focuses the main window, creates a correlated request ID and target tab ID, and sends `gemini:navigate` to the renderer.
+3. The renderer creates or activates the requested tab and waits for the iframe in that tab to load.
+4. Once the target iframe is ready, the renderer sends `gemini:ready` back to the main process.
+5. `QuickChatIpcHandler` finds the target iframe frame by `getTabFrameName(tabId)` and injects the prompt into Gemini, optionally auto-submitting outside of E2E buffering modes.
 
-```tsx
-<ThemeProvider>
-    <ToastProvider>
-        <UpdateToastProvider>
-            <App />
-        </UpdateToastProvider>
-    </ToastProvider>
-</ThemeProvider>
-```
+This flow is why Quick Chat, tab identity, iframe naming, and preload IPC need to stay aligned.
 
-**Toast Types and Auto-Dismiss Durations**:
+### Where to Look in Code
 
-| Type       | Color  | Auto-Dismiss | Use Case                           |
-| ---------- | ------ | ------------ | ---------------------------------- |
-| `success`  | Green  | 5 seconds    | Completed actions, saved changes   |
-| `info`     | Accent | 5 seconds    | Updates available, feature tips    |
-| `warning`  | Yellow | 7 seconds    | Session expiring, potential issues |
-| `error`    | Red    | 10 seconds   | Auth failures, network errors      |
-| `progress` | Accent | Never        | Download progress, long operations |
+- `src/main/managers/ipc/QuickChatIpcHandler.ts`
+- `src/main/windows/quickChatWindow.ts`
+- `src/renderer/App.tsx`
+- `src/renderer/hooks/useQuickChatNavigation.ts`
+- `src/shared/types/tabs.ts`
 
-**ToastContext Public API** (`useToast` hook):
+## Tabs Architecture
 
-| Method                           | Description                                       |
-| -------------------------------- | ------------------------------------------------- |
-| `showToast(options)`             | Display toast with full options, returns toast ID |
-| `showSuccess(message, options?)` | Convenience helper for success type               |
-| `showError(message, options?)`   | Convenience helper for error type                 |
-| `showInfo(message, options?)`    | Convenience helper for info type                  |
-| `showWarning(message, options?)` | Convenience helper for warning type               |
-| `dismissToast(id)`               | Remove a specific toast by ID                     |
-| `dismissAll()`                   | Remove all active toasts                          |
-| `toasts`                         | Current array of visible ToastItems               |
+Tabs are a first-class system, not just a visual affordance.
 
-**ShowToastOptions**:
+### State Ownership
 
-```ts
-{
-  id?: string;           // Custom ID (auto-generated if omitted)
-  type: ToastType;       // 'success' | 'error' | 'info' | 'warning' | 'progress'
-  title?: string;        // Optional bold header
-  message: string;       // Toast body text
-  duration?: number;     // Custom duration in ms (null = persistent)
-  progress?: number;     // 0-100 for progress type
-  actions?: ToastAction[]; // Action buttons {label, onClick, primary?}
-  persistent?: boolean;  // If true, no auto-dismiss
-}
-```
+- The renderer owns live tab UI state in `TabContext`.
+- The main process owns persisted tab state through `TabStateIpcHandler` and its dedicated `tabs-state` store.
 
-### 3.4. Preload Script
+### Hydration and Persistence
 
-**Name:** Preload Bridge (`src/preload/preload.ts`)
+On startup, `TabContext` loads persisted `TabsState` through `window.electronAPI.getTabState()`. After hydration, it saves tab changes back to the main process with a debounced `saveTabState()` call.
 
-**Description:** The security boundary between Node.js and browser contexts. Uses Electron's `contextBridge` to expose a safe, limited API (`window.electronAPI`) to renderer processes. Implements the `ElectronAPI` interface defined in `src/shared/types/ipc.ts`. No Node.js APIs are directly accessible to renderer code.
+### Frame Naming and Iframe Ownership
 
-**Technologies:** Electron contextBridge, ipcRenderer, TypeScript
+Each tab iframe is named with `getTabFrameName(tabId)` from `src/shared/types/tabs.ts`. The main process relies on that naming convention to find the correct iframe frame for title extraction and reload requests.
 
-## 4. Data Stores
+### Title Synchronization Flow
 
-> (List and describe the databases and other persistent storage solutions used.)
+`TabStateIpcHandler` polls the active Gemini iframe, extracts the current conversation title, persists it, and broadcasts `TABS_TITLE_UPDATED` to renderer windows. The renderer also exposes `updateTabTitle()` for explicit title updates when needed.
 
-### 4.1. Settings Store
+### Active-Tab Reload Flow
 
-**Name:** `SettingsStore` (`src/main/store.ts`)
+Renderer code can request a reload through `window.electronAPI.reloadTabs()`. `TabStateIpcHandler` resolves the active tab, finds the matching iframe frame in the main window, reloads it, enforces a cooldown, and schedules a delayed title sync pass.
 
-**Type:** File-based JSON storage (electron-store pattern)
+### Shortcut Integration
 
-**Purpose:** Persists user preferences and application settings locally. All data stays on the user's machine with no cloud synchronization.
+`useTabKeyboardShortcuts()` handles both local keyboard shortcuts and tab shortcut events delivered over the preload bridge.
 
-**Key Data Stored:**
+### Where to Look in Code
 
-- `theme` - User theme preference (light/dark/system)
-- `alwaysOnTop` - Window pin state
-- `hotkeyAccelerators` - Custom keyboard shortcuts
-- `individualHotkeys` - Per-hotkey enabled/disabled state
-- `autoUpdateEnabled` - Auto-update preference
-- `windowBounds` - Last window position and size
-- `zoomLevel` - Main window zoom percentage (50-200, default: 100)
-- `responseNotificationsEnabled` - Response notification preference (default: true)
+- `src/renderer/context/TabContext.tsx`
+- `src/renderer/components/tabs/TabBar.tsx`
+- `src/renderer/components/tabs/TabPanel.tsx`
+- `src/renderer/hooks/useTabKeyboardShortcuts.ts`
+- `src/main/managers/ipc/TabStateIpcHandler.ts`
+- `src/shared/types/tabs.ts`
 
-### 4.2. Session Storage
+## Export Flow
 
-**Name:** Chromium Session Storage
+Export is owned by the main process.
 
-**Type:** Encrypted cookie/session storage
+- `ExportManager` extracts chat content from a Gemini frame, converts it into Markdown or rendered HTML, and writes the chosen output file.
+- `ExportIpcHandler` exposes renderer-driven export triggers and also listens for window-level export events such as print-to-PDF.
+- The extraction path is intentionally constrained to allowed Gemini domains.
 
-**Purpose:** Stores Google authentication sessions. Uses Chromium's standard encrypted storage for secure persistence of login cookies. Session is shared across main window and auth window via `persist:gemini` partition.
+The current shipped export formats are:
 
-**Location:** Standard Electron userData directory
+- Markdown
+- PDF
 
-## 5. External Integrations / APIs
+### Where to Look in Code
 
-### 5.1. Google Gemini Web App
+- `src/main/managers/exportManager.ts`
+- `src/main/managers/ipc/ExportIpcHandler.ts`
+- `src/preload/preload.ts`
 
-**Service Name:** Google Gemini
+## Launch-at-Startup Flow
 
-**Purpose:** The core AI functionality. The main window embeds `https://gemini.google.com/app` in an iframe after stripping `X-Frame-Options` headers.
+Launch-at-startup spans renderer UI, preload, IPC, and platform login-item APIs.
 
-**Integration Method:** Embedded iframe with header stripping via Electron's `webRequest.onHeadersReceived`
+- `StartupSettings` in the renderer loads the current settings and lets the user toggle launch-at-startup and start-minimized behavior.
+- The preload bridge exposes `getLaunchAtStartup`, `setLaunchAtStartup`, `getStartMinimized`, and `setStartMinimized`.
+- `LaunchAtStartupIpcHandler` persists the settings in the main-process preferences store and applies login-item configuration through Electron.
+- On platforms that support it, start-minimized is expressed by launching the app with `--hidden`; macOS also maps this into `openAsHidden`.
 
-### 5.2. Google Authentication
+### Where to Look in Code
 
-**Service Name:** Google OAuth
+- `src/renderer/components/options/StartupSettings.tsx`
+- `src/preload/preload.ts`
+- `src/main/managers/ipc/LaunchAtStartupIpcHandler.ts`
 
-**Purpose:** User authentication for Gemini access. Handled entirely by Google's login flow in a dedicated auth window.
+## Platform Abstraction
 
-**Integration Method:** BrowserWindow loading Google sign-in pages, cookies shared via session partition
+Platform-specific behavior is centralized under `src/main/platform/`.
 
-### 5.3. GitHub Releases
+- `PlatformAdapter` defines the cross-platform contract.
+- `platformAdapterFactory.ts` selects the active adapter for Windows, macOS, Linux X11, or Linux Wayland.
+- Adapters own platform-specific behavior for app configuration, hotkey strategy, badge behavior, tray/window behavior, menu differences, update support, and notification guidance.
 
-**Service Name:** GitHub Releases API
+This layer exists so the rest of the main process can depend on stable abstractions instead of scattering `process.platform` checks throughout the codebase.
 
-**Purpose:** Auto-update distribution. electron-updater checks for new releases at the project's GitHub releases page.
+### Where to Look in Code
 
-**Integration Method:** electron-updater with GitHub provider
+- `src/main/platform/PlatformAdapter.ts`
+- `src/main/platform/platformAdapterFactory.ts`
+- `src/main/platform/adapters/`
 
-## 6. Deployment & Infrastructure
+## Data Persistence
 
-**Distribution:** GitHub Releases (not cloud-hosted)
+Gemini Desktop uses local persistence only.
 
-**Build Targets:**
+### Settings and Feature State
 
-- Windows: `.exe` installer (NSIS)
-- macOS: `.dmg` for both Intel (x64) and Apple Silicon (arm64)
-- Linux: `.AppImage` and `.deb` packages
+`SettingsStore` writes JSON files under Electron's user data directory. Current architectural uses include:
 
-**CI/CD Pipeline:** GitHub Actions
+- user preferences managed by `IpcManager`
+- update settings managed by `UpdateManager`
+- notification settings managed by `NotificationManager`
+- tab state managed by `TabStateIpcHandler`
 
-- `test.yml` - Runs on PRs and pushes; executes unit, coordinated, integration, and E2E tests
-- `release.yml` - Runs on version tags; builds and publishes to GitHub Releases
-- Reusable workflows (`_test.yml`, `_build.yml`, `_release.yml`) for DRY configuration
+### Chromium Session Persistence
 
-**Logging:** electron-log
+Authentication and Gemini session state are separate from `SettingsStore`. They live in Chromium's session/cookie storage, including the `persist:gemini` partition used by the embedded Gemini experience.
 
-- Logs written to user's app data directory
-- Crash reports collected locally (no upload unless configured)
+### Boundaries to Remember
 
-## 7. Security Considerations
+- There is no external database.
+- There is no backend service.
+- Settings persistence and Chromium session persistence are separate concerns.
 
-**Authentication:** Google OAuth (handled by Google, not the app)
+### Where to Look in Code
 
-**Authorization:** N/A - User accesses their own Gemini account
+- `src/main/store.ts`
+- `src/main/managers/ipc/TabStateIpcHandler.ts`
+- `src/main/managers/updateManager.ts`
+- `src/main/managers/notificationManager.ts`
+- `src/main/main.ts`
 
-**Process Isolation:**
+## Testing and Verification Map
 
-- `contextIsolation: true` - Renderer cannot access Node.js
-- `sandbox: true` - Renderer processes are sandboxed
-- `nodeIntegration: false` - No Node.js in renderer
+The repo uses multiple test layers to validate different boundaries.
 
-**IPC Security:**
+| Area                       | Primary verification       | Relevant paths                                                         |
+| -------------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| Renderer UI and hooks      | `npm run test`             | `src/renderer/`, `tests/unit/renderer/`                                |
+| Main process and preload   | `npm run test:electron`    | `src/main/`, `src/preload/`, `tests/unit/main/`, `tests/unit/preload/` |
+| Multi-window coordination  | `npm run test:coordinated` | `tests/coordinated/`                                                   |
+| Cross-boundary integration | `npm run test:integration` | `tests/integration/`                                                   |
+| End-to-end behavior        | `npm run test:e2e`         | `tests/e2e/`                                                           |
 
-- All IPC channels defined centrally in `src/shared/constants/ipc-channels.ts`
-- Preload script exposes minimal, typed API via `contextBridge`
-- No arbitrary code execution from renderer
+For command details and scope-specific expectations, use the verification matrix in `AGENTS.md` as the operational source of truth.
 
-**Data Security:**
+## Maintaining This Doc
 
-- No telemetry or analytics collection
-- Only connects to `*.google.com` domains
-- All settings stored locally with standard OS encryption
-- No passwords stored - auth handled by Google
+This file should change whenever the architecture meaningfully changes. Do not treat it as a one-time snapshot.
 
-**Header Stripping:** `X-Frame-Options` and `Content-Security-Policy: frame-ancestors` headers are stripped specifically for `gemini.google.com` to enable iframe embedding. This is necessary for the app to function but is applied narrowly.
+### Update This Document When
 
-## 8. Development & Testing Environment
+- `src/main/main.ts` changes how managers are composed or cleaned up.
+- `src/main/ApplicationContext.ts` changes the manager graph.
+- `src/main/managers/ipc/` gains, removes, or materially changes handler families.
+- `src/preload/preload.ts` or `src/shared/types/ipc.ts` changes the bridge surface.
+- `src/renderer/context/TabContext.tsx` or `src/renderer/components/tabs/` changes tab ownership or flows.
+- `src/main/platform/` changes platform abstraction responsibilities.
+- Export, launch-at-startup, update, notification, or persistence flows move across boundaries.
 
-**Local Setup:**
+### Source-of-Truth Map
 
-```bash
-# Prerequisites: Node.js 20+, npm 9+
-git clone https://github.com/bwendell/gemini-desktop.git
-cd gemini-desktop
-npm install
-npm run electron:dev    # Start development
-```
+| Architecture area        | Source-of-truth files                                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Main-process composition | `src/main/main.ts`, `src/main/ApplicationContext.ts`                                                                                              |
+| IPC architecture         | `src/main/managers/ipcManager.ts`, `src/main/managers/ipc/`                                                                                       |
+| Preload bridge           | `src/preload/preload.ts`, `src/shared/types/ipc.ts`, `src/shared/constants/ipc-channels.ts`                                                       |
+| Renderer shell           | `src/renderer/App.tsx`, `src/renderer/context/`, `src/renderer/hooks/`                                                                            |
+| Tabs architecture        | `src/renderer/context/TabContext.tsx`, `src/renderer/components/tabs/`, `src/main/managers/ipc/TabStateIpcHandler.ts`, `src/shared/types/tabs.ts` |
+| Platform abstraction     | `src/main/platform/`                                                                                                                              |
+| Persistence              | `src/main/store.ts`, manager-specific store usage in `src/main/managers/`                                                                         |
 
-**Testing Frameworks:**
+### Documentation Rules
 
-| Type                | Framework   | Config                                       | Command                    |
-| ------------------- | ----------- | -------------------------------------------- | -------------------------- |
-| Unit Tests          | Vitest      | `config/vitest/vitest.config.ts`             | `npm run test`             |
-| Electron Unit Tests | Vitest      | `config/vitest/vitest.electron.config.ts`    | `npm run test:electron`    |
-| Coordinated Tests   | Vitest      | `config/vitest/vitest.coordinated.config.ts` | `npm run test:coordinated` |
-| Integration Tests   | WebdriverIO | `config/wdio/wdio.integration.conf.js`       | `npm run test:integration` |
-| E2E Tests           | WebdriverIO | `config/wdio/wdio.conf.js`                   | `npm run test:e2e`         |
-| All Tests           | -           | -                                            | `npm run test:all`         |
-
-**E2E Testing Principles:**
-
-- Simulate real user actions only (clicks, typing, keypresses)
-- Verify actual outcomes visible to users
-- Test the full stack (Renderer → IPC → Main → Side effects)
-- Avoid internal method calls or mocks in E2E tests
-
-**Code Quality Tools:**
-
-- ESLint for linting (`eslint.config.js`)
-- Prettier for formatting (`.prettierrc`)
-- TypeScript for type safety (`tsconfig.json`)
-
-## 9. Memory Management
-
-> This section documents patterns for preventing memory leaks in the Electron application.
-
-**Manager Dispose Pattern:**
-
-All long-lived managers should implement cleanup methods called during app shutdown:
-
-| Manager             | Cleanup Method    | Cleans Up                                    |
-| ------------------- | ----------------- | -------------------------------------------- |
-| IpcManager          | `dispose()`       | IPC handlers via `unregister()` on handlers  |
-| HotkeyManager       | `unregisterAll()` | Global shortcuts                             |
-| TrayManager         | `destroyTray()`   | System tray icon                             |
-| UpdateManager       | `destroy()`       | Check intervals, autoUpdater listeners       |
-| NotificationManager | `dispose()`       | Window event listeners, active notifications |
-| LlmManager          | `dispose()`       | Model resources                              |
-
-**Cleanup in `will-quit` event (main.ts):**
-
-```typescript
-app.on('will-quit', () => {
-    hotkeyManager.unregisterAll();
-    trayManager.destroyTray();
-    updateManager.destroy();
-    llmManager.dispose();
-    ipcManager.dispose();
-    notificationManager?.dispose();
-});
-```
-
-**Event Listener Best Practices:**
-
-1. **Store handler references for cleanup:** When registering listeners, store the handler reference so it can be removed later:
-
-    ```typescript
-    // Good - store for cleanup
-    this.onFocus = () => this.handleFocus();
-    window.on('focus', this.onFocus);
-    // Later: window.off('focus', this.onFocus);
-
-    // Bad - anonymous function can't be removed
-    window.on('focus', () => this.handleFocus());
-    ```
-
-2. **BaseWindow cleanup:** All window classes extending `BaseWindow` automatically call `removeAllListeners()` on close to clean up EventEmitter listeners.
-
-3. **WebRequest listeners:** Use `session.webRequest.onCompleted(filter, null)` to properly unregister session-level listeners, not just clearing the reference.
-
-4. **Preload script:** All `ipcRenderer.on()` subscriptions return cleanup functions for React's `useEffect` pattern.
-
-## 10. Future Considerations / Roadmap
-
-- **Preload Bundling:** Currently preload script duplicates some constants from shared. A proper bundling step (Vite/esbuild) would allow true code sharing.
-- **Linux Wayland Support:** Global shortcuts require `GlobalShortcutsPortal` on Wayland; further testing and refinement needed.
-- **Deep Linking:** Potential for URL scheme handling (`gemini://`) for external integrations.
-
-## 11. Project Identification
-
-**Project Name:** Gemini Desktop
-
-**Repository URL:** [https://github.com/bwendell/gemini-desktop](https://github.com/bwendell/gemini-desktop)
-
-**Primary Contact/Team:** Ben Wendell ([github@benwendell.com](mailto:github@benwendell.com))
-
-**Date of Last Update:** 2026-01-28
-
-## 12. Glossary / Acronyms
-
-> Define any project-specific terms or acronyms.
-
-| Term                 | Definition                                                                                |
-| -------------------- | ----------------------------------------------------------------------------------------- |
-| **Main Process**     | The Node.js process that runs Electron's main script (`main.ts`). Has full system access. |
-| **Renderer Process** | Chromium browser process running React UI. Sandboxed with no Node.js access.              |
-| **Preload Script**   | Bridge script that runs before renderer, exposes safe APIs via `contextBridge`.           |
-| **IPC**              | Inter-Process Communication - Electron's message passing between main and renderer.       |
-| **Quick Chat**       | Spotlight-style floating prompt window for quick Gemini queries.                          |
-| **Peek and Hide**    | Feature to instantly hide the app to system tray.                                         |
-| **WDIO**             | WebdriverIO - Testing framework used for integration and E2E tests.                       |
-| **contextBridge**    | Electron API for safely exposing Node.js functionality to renderer.                       |
-| **electron-updater** | Library for auto-update functionality in Electron apps.                                   |
+- Do not use line-number references in this file.
+- Prefer durable file paths and runtime responsibilities over implementation trivia.
+- Remove or rewrite claims that cannot be tied back to live code.
+- Keep AGENTS and contributor docs aligned with this file when they depend on it for architectural guidance.

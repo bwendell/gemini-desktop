@@ -8,6 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const esbuild = require('esbuild');
 
 const distElectronDir = path.join(__dirname, '../dist-electron');
 
@@ -57,4 +58,20 @@ if (fs.existsSync(devUpdateYml)) {
 
 console.log('Renaming .js files to .cjs and updating require statements...');
 renameJsToCjs(distElectronDir);
+
+const preloadEntryPath = path.join(distElectronDir, 'preload/preload.cjs');
+if (fs.existsSync(preloadEntryPath)) {
+    console.log('Bundling preload entrypoint for sandbox compatibility...');
+    esbuild.buildSync({
+        entryPoints: [preloadEntryPath],
+        outfile: preloadEntryPath,
+        allowOverwrite: true,
+        bundle: true,
+        platform: 'node',
+        format: 'cjs',
+        external: ['electron'],
+        logLevel: 'silent',
+    });
+}
+
 console.log('Rename and update complete.');
