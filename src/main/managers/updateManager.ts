@@ -340,10 +340,11 @@ export default class UpdateManager {
             // Check if this is a known "benign" error (like 404/403 which means no access/no releases)
             // or a network error which we should suppress for background checks
             const errorStr = error instanceof Error ? error.message : String(error ?? '');
+            const errorStrLower = errorStr.toLowerCase();
             const isNetworkOrConfigError =
                 errorStr.includes('404') ||
                 errorStr.includes('403') ||
-                errorStr.includes('Github') ||
+                errorStrLower.includes('github') ||
                 errorStr.includes('Network') ||
                 errorStr.includes('net::') ||
                 errorStr.includes('Cannot find latest') ||

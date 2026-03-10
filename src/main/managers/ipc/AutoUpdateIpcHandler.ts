@@ -25,11 +25,21 @@ import { IPC_CHANNELS } from '../../utils/constants';
  */
 export class AutoUpdateIpcHandler extends BaseIpcHandler {
     private static hasGetLastCheckTime(value: unknown): value is { getLastCheckTime: () => number } {
-        return typeof value === 'object' && value !== null && 'getLastCheckTime' in value;
+        if (typeof value !== 'object' || value === null || !('getLastCheckTime' in value)) {
+            return false;
+        }
+
+        const candidate = value as { getLastCheckTime?: unknown };
+        return typeof candidate.getLastCheckTime === 'function';
     }
 
     private static hasGetTrayTooltip(value: unknown): value is { getTrayTooltip: () => string } {
-        return typeof value === 'object' && value !== null && 'getTrayTooltip' in value;
+        if (typeof value !== 'object' || value === null || !('getTrayTooltip' in value)) {
+            return false;
+        }
+
+        const candidate = value as { getTrayTooltip?: unknown };
+        return typeof candidate.getTrayTooltip === 'function';
     }
 
     /**

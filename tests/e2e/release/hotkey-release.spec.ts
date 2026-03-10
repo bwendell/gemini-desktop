@@ -189,7 +189,7 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         }
     });
 
-    it('should register hotkeys successfully when portal is available', async () => {
+    it('should register hotkeys successfully when portal is available', async function () {
         const status = await getPlatformHotkeyStatus();
 
         if (!status) {
@@ -197,10 +197,12 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         }
 
         if (!status.waylandStatus.isWayland) {
+            skipTest(this, 'Wayland globalShortcut checks', 'Not a Wayland session');
             return;
         }
 
         if (!status.waylandStatus.portalAvailable) {
+            skipTest(this, 'Wayland globalShortcut checks', 'Portal not available');
             return;
         }
 
@@ -220,7 +222,7 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         expect(peekAndHideResult.success).toBe(true);
     });
 
-    it('should avoid globalShortcut false positives on Wayland', async () => {
+    it('should avoid globalShortcut false positives on Wayland', async function () {
         const status = await getPlatformHotkeyStatus();
 
         if (!status) {
