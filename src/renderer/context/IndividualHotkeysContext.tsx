@@ -215,7 +215,9 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
 
         return () => {
             isMounted = false;
-            cleanups.forEach((cleanup) => cleanup());
+            cleanups.forEach((cleanup) => {
+                cleanup();
+            });
         };
     }, []);
 
@@ -268,6 +270,7 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
  * setEnabled('quickChat', false); // Disable Quick Chat hotkey
  * setAccelerator('peekAndHide', 'CommandOrControl+Shift+Space'); // Change Peek and Hide shortcut
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context hook export pattern used across renderer contexts
 export function useIndividualHotkeys(): IndividualHotkeysContextType {
     const context = useContext(IndividualHotkeysContext);
     if (context === undefined) {

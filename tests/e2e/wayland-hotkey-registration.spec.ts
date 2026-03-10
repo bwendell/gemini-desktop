@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Tests: Wayland Hotkey Registration and LinuxHotkeyNotice Toast
  *
@@ -13,7 +12,7 @@
  * @module wayland-hotkey-registration.spec
  */
 
-import { expect } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import { waitForAppReady } from './helpers/workflows';
 import { canRunWaylandTests, isLinux, isLinuxSync } from './helpers/platform';
 import { skipSuite, skipTest } from './helpers/testUtils';
@@ -49,6 +48,7 @@ describe('Wayland Hotkey Registration', () => {
     it('on Linux: platform status contains waylandStatus object', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'Wayland status', 'Non-Linux platform');
+            return;
         }
 
         const status = await getPlatformHotkeyStatus();
@@ -56,6 +56,7 @@ describe('Wayland Hotkey Registration', () => {
         // Handle case where IPC is not available (environmental issue)
         if (!status) {
             skipTest(this, 'Wayland status', 'IPC not available (getPlatformHotkeyStatus returned null)');
+            return;
         }
 
         // Verify waylandStatus object exists and has expected fields
@@ -71,16 +72,19 @@ describe('Wayland Hotkey Registration', () => {
     it('on Linux Wayland+KDE: hotkeys register successfully if environment supports it', async function () {
         if (!canRunWaylandTests()) {
             skipTest(this, 'Wayland+KDE hotkeys', `Requires local Wayland+KDE (non-CI). See ${DOC_LINKS.manual}`);
+            return;
         }
 
         if (!(await isLinux())) {
             skipTest(this, 'Wayland+KDE hotkeys', 'Non-Linux platform');
+            return;
         }
 
         const status = await getPlatformHotkeyStatus();
 
         if (!status) {
             skipTest(this, 'Wayland+KDE hotkeys', 'IPC not available (getPlatformHotkeyStatus returned null)');
+            return;
         }
 
         // Skip if not running on Wayland
@@ -90,6 +94,7 @@ describe('Wayland Hotkey Registration', () => {
                 'Wayland+KDE hotkeys',
                 `Not a Wayland session (isWayland=${status.waylandStatus.isWayland})`
             );
+            return;
         }
 
         // Skip if portal not available (e.g., not KDE Plasma 5.27+)
@@ -99,6 +104,7 @@ describe('Wayland Hotkey Registration', () => {
                 'Wayland+KDE hotkeys',
                 `Portal not available (DE=${status.waylandStatus.desktopEnvironment}, portalMethod=${status.waylandStatus.portalMethod})`
             );
+            return;
         }
 
         const quickChatResult = status.registrationResults.find((result) => result.hotkeyId === 'quickChat');
@@ -110,6 +116,7 @@ describe('Wayland Hotkey Registration', () => {
                 'Wayland+KDE hotkeys',
                 `Missing registration results: ${JSON.stringify(status.registrationResults)}`
             );
+            return;
         }
 
         expect(status.globalHotkeysEnabled).toBe(true);
@@ -122,17 +129,20 @@ describe('Wayland Hotkey Registration', () => {
     it('on Linux non-Wayland: hotkeys are NOT registered and globalHotkeysEnabled is false', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'Non-Wayland hotkeys', 'Non-Linux platform');
+            return;
         }
 
         const status = await getPlatformHotkeyStatus();
 
         if (!status) {
             skipTest(this, 'Non-Wayland hotkeys', 'IPC not available (getPlatformHotkeyStatus returned null)');
+            return;
         }
 
         // Skip if running on Wayland (this test is for X11/other sessions)
         if (status.waylandStatus.isWayland) {
             skipTest(this, 'Non-Wayland hotkeys', 'Running on Wayland session');
+            return;
         }
 
         // On non-Wayland Linux, global hotkeys should be disabled
@@ -161,6 +171,7 @@ describe('LinuxHotkeyNotice Toast Behavior', () => {
     it('on successful registration: no warning toast visible', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'LinuxHotkeyNotice success toast', 'Non-Linux platform');
+            return;
         }
 
         const status = await getPlatformHotkeyStatus();
@@ -171,11 +182,13 @@ describe('LinuxHotkeyNotice Toast Behavior', () => {
                 'LinuxHotkeyNotice success toast',
                 'IPC not available (getPlatformHotkeyStatus returned null)'
             );
+            return;
         }
 
         // Only check for no-toast when hotkeys are actually enabled
         if (!status.globalHotkeysEnabled) {
             skipTest(this, 'LinuxHotkeyNotice success toast', 'Global hotkeys not enabled');
+            return;
         }
 
         // Check for partial failures
@@ -186,6 +199,7 @@ describe('LinuxHotkeyNotice Toast Behavior', () => {
                 'LinuxHotkeyNotice success toast',
                 `Partial registration failures: ${JSON.stringify(failures)}`
             );
+            return;
         }
 
         // Clear any stale toasts from previous tests/app state
@@ -214,11 +228,11 @@ describe('LinuxHotkeyNotice Toast Behavior', () => {
             const toastElement = await browser.$(toastSelector);
             const toastTitle = await toastElement
                 .$('[data-testid="toast-title"]')
-                .getText()
+                .then((element) => element.getText())
                 .catch(() => '');
             const toastMessage = await toastElement
                 .$('[data-testid="toast-message"]')
-                .getText()
+                .then((element) => element.getText())
                 .catch(() => '');
 
             console.log('Toast appeared unexpectedly:', { title: toastTitle, message: toastMessage });
@@ -239,6 +253,7 @@ describe('LinuxHotkeyNotice Toast Behavior', () => {
                     'LinuxHotkeyNotice success toast',
                     'Partial failure toast appeared (possible race condition in status check)'
                 );
+                return;
             }
         }
 
@@ -249,6 +264,7 @@ describe('LinuxHotkeyNotice Toast Behavior', () => {
     it('on failed registration: warning toast appears with appropriate message', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'LinuxHotkeyNotice failure toast', 'Non-Linux platform');
+            return;
         }
 
         const status = await getPlatformHotkeyStatus();
@@ -259,11 +275,13 @@ describe('LinuxHotkeyNotice Toast Behavior', () => {
                 'LinuxHotkeyNotice failure toast',
                 'IPC not available (getPlatformHotkeyStatus returned null)'
             );
+            return;
         }
 
         // Only check for toast when hotkeys are disabled
         if (status.globalHotkeysEnabled) {
             skipTest(this, 'LinuxHotkeyNotice failure toast', 'Global hotkeys enabled');
+            return;
         }
 
         // Wait for the LinuxHotkeyNotice toast to appear
@@ -309,6 +327,7 @@ describe('Environmental Graceful Degradation', () => {
     it('test environment without Wayland support degrades gracefully', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'Graceful degradation', 'Non-Linux platform');
+            return;
         }
 
         // This test verifies that even in environments without Wayland (most CI),
@@ -350,6 +369,7 @@ describe('Non-Linux Platform Behavior', () => {
     it('existing hotkey behavior unchanged on macOS/Windows', async function () {
         if (await isLinux()) {
             skipTest(this, 'Non-Linux hotkey behavior', 'Linux platform');
+            return;
         }
 
         // On macOS/Windows, global hotkeys should work as before
@@ -362,6 +382,7 @@ describe('Non-Linux Platform Behavior', () => {
                 'Non-Linux hotkey behavior',
                 'browser.electron.execute returned undefined (CI or multiple Electron instances)'
             );
+            return;
         }
 
         if (registrationStatus.status === 'error') {
@@ -377,6 +398,7 @@ describe('Non-Linux Platform Behavior', () => {
                 'Non-Linux hotkey behavior',
                 'No global hotkeys registered (possibly claimed by another Electron instance)'
             );
+            return;
         }
 
         // Verify both global hotkeys are registered on non-Linux platforms
@@ -405,6 +427,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
     it('getDbusActivationSignalStats returns valid structure via IPC', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'D-Bus signal stats structure', 'Non-Linux platform');
+            return;
         }
 
         const stats = await getDbusActivationSignalStats();
@@ -415,6 +438,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal stats structure',
                 `Signal tracking IPC not available. See ${DOC_LINKS.signalTracking}`
             );
+            return;
         }
 
         expect(typeof stats.trackingEnabled).toBe('boolean');
@@ -431,6 +455,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
     it('signal tracking reports correct initial state on test environment', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'D-Bus signal stats initial state', 'Non-Linux platform');
+            return;
         }
 
         await clearDbusActivationSignalHistory();
@@ -443,6 +468,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal stats initial state',
                 `Signal tracking IPC not available. See ${DOC_LINKS.signalTracking}`
             );
+            return;
         }
 
         expect(stats.totalSignals).toBe(0);
@@ -460,6 +486,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal tracking enabled',
                 `Requires local Wayland+KDE (non-CI). See ${DOC_LINKS.manual}`
             );
+            return;
         }
 
         const waylandStatus = await getWaylandStatusForSkipping();
@@ -476,6 +503,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal tracking enabled',
                 `Requires Wayland+KDE+portal (linux=${waylandStatus.isLinux}, wayland=${waylandStatus.isWayland}, portal=${waylandStatus.portalAvailable}, de=${waylandStatus.desktopEnvironment})`
             );
+            return;
         }
 
         const stats = await getDbusActivationSignalStats();
@@ -486,6 +514,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal tracking enabled',
                 `Signal tracking IPC not available. See ${DOC_LINKS.signalTracking}`
             );
+            return;
         }
 
         expect(stats.trackingEnabled).toBe(true);
@@ -496,6 +525,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
     it('signal history clear is idempotent', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'D-Bus signal history clear', 'Non-Linux platform');
+            return;
         }
 
         await clearDbusActivationSignalHistory();
@@ -508,6 +538,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal history clear',
                 `Signal tracking IPC not available. See ${DOC_LINKS.signalTracking}`
             );
+            return;
         }
 
         expect(stats1.totalSignals).toBe(0);
@@ -531,6 +562,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal stats on non-Wayland Linux',
                 `Requires non-Wayland Linux (linux=${waylandStatus.isLinux}, wayland=${waylandStatus.isWayland})`
             );
+            return;
         }
 
         const stats = await getDbusActivationSignalStats();
@@ -541,6 +573,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal stats on non-Wayland Linux',
                 `Signal tracking IPC not available. See ${DOC_LINKS.signalTracking}`
             );
+            return;
         }
 
         expect(typeof stats.trackingEnabled).toBe('boolean');
@@ -552,6 +585,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
     it('IPC round-trip for signal stats completes within timeout', async function () {
         if (!(await isLinux())) {
             skipTest(this, 'D-Bus signal stats IPC latency', 'Non-Linux platform');
+            return;
         }
 
         const startTime = Date.now();
@@ -566,6 +600,7 @@ describe('D-Bus Activation Signal Tracking (Test-Only)', () => {
                 'D-Bus signal stats IPC latency',
                 `Signal tracking IPC not available. See ${DOC_LINKS.signalTracking}`
             );
+            return;
         }
 
         expect(elapsed).toBeLessThan(5000);

@@ -334,16 +334,17 @@ export default class UpdateManager {
                 return;
             }
             await updater.checkForUpdatesAndNotify();
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error('Update check failed:', error);
 
             // Check if this is a known "benign" error (like 404/403 which means no access/no releases)
             // or a network error which we should suppress for background checks
-            const errorStr = (error?.message || '').toString();
+            const errorStr = error instanceof Error ? error.message : String(error ?? '');
+            const errorStrLower = errorStr.toLowerCase();
             const isNetworkOrConfigError =
                 errorStr.includes('404') ||
                 errorStr.includes('403') ||
-                errorStr.includes('Github') ||
+                errorStrLower.includes('github') ||
                 errorStr.includes('Network') ||
                 errorStr.includes('net::') ||
                 errorStr.includes('Cannot find latest') ||
@@ -616,7 +617,7 @@ export default class UpdateManager {
     /**
      * Emit a simulated update event.
      */
-    devEmitUpdateEvent(event: string, data: any): void {
+    devEmitUpdateEvent(event: string, data: unknown): void {
         logger.log(`[DEV] Emitting mock event: ${event}`);
         if (event === 'error') {
             // MASKED ERROR: Do NOT send the raw error message to the renderer/user.

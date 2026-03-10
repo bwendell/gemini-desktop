@@ -8,6 +8,9 @@ import { ShellIpcHandler } from '../../../../src/main/managers/ipc/ShellIpcHandl
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';
 
+type MockIpcListener = (...args: unknown[]) => void;
+type MockIpcHandler = (...args: unknown[]) => unknown;
+
 // Mock Electron
 const { mockIpcMain, mockShell } = vi.hoisted(() => {
     const mockIpcMain = {
@@ -17,8 +20,8 @@ const { mockIpcMain, mockShell } = vi.hoisted(() => {
         handle: vi.fn((channel, handler) => {
             mockIpcMain._handlers.set(channel, handler);
         }),
-        _listeners: new Map<string, Function>(),
-        _handlers: new Map<string, Function>(),
+        _listeners: new Map<string, MockIpcListener>(),
+        _handlers: new Map<string, MockIpcHandler>(),
         _reset: () => {
             mockIpcMain._listeners.clear();
             mockIpcMain._handlers.clear();
@@ -52,9 +55,9 @@ describe('ShellIpcHandler', () => {
 
         mockLogger = createMockLogger();
         mockDeps = {
-            store: createMockStore({}),
-            logger: mockLogger,
-            windowManager: createMockWindowManager(),
+            store: createMockStore({}) as unknown as IpcHandlerDependencies['store'],
+            logger: mockLogger as unknown as IpcHandlerDependencies['logger'],
+            windowManager: createMockWindowManager() as unknown as IpcHandlerDependencies['windowManager'],
         };
 
         handler = new ShellIpcHandler(mockDeps);

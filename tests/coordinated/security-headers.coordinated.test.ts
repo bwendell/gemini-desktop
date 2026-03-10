@@ -5,9 +5,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { setupHeaderStripping, setupWebviewSecurity } from '../../src/main/utils/security';
 
+type MockHandler = (...args: unknown[]) => unknown;
+
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../src/main/utils/logger');
-import { mockLogger } from '../../src/main/utils/logger';
+import { mockLogger } from '../../src/main/utils/__mocks__/logger';
 
 describe('Security Integration', () => {
     beforeEach(() => {
@@ -16,7 +18,7 @@ describe('Security Integration', () => {
 
     describe('Header Stripping', () => {
         let mockSession: any;
-        let headersHandler: Function;
+        let headersHandler: MockHandler;
 
         beforeEach(() => {
             mockSession = {
@@ -84,7 +86,7 @@ describe('Security Integration', () => {
 
     describe('Webview Security', () => {
         let mockApp: any;
-        let webContentsHandler: Function;
+        let webContentsHandler: MockHandler;
 
         beforeEach(() => {
             mockApp = {

@@ -223,7 +223,7 @@ export interface ElectronAPI {
     devSetUpdateEnabled: (enabled: boolean) => void;
 
     /** Emit mock update event (dev only) */
-    devEmitUpdateEvent: (event: string, data: any) => void;
+    devEmitUpdateEvent: (event: string, data: unknown) => void;
 
     /** Mock platform (dev only) */
     devMockPlatform: (platform: NodeJS.Platform | null, env: Record<string, string> | null) => void;

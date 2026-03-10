@@ -237,6 +237,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
  * const { theme, setTheme, currentEffectiveTheme } = useTheme();
  * setTheme('dark');
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context hook export pattern used across renderer contexts
 export function useTheme(): ThemeContextType {
     const context = useContext(ThemeContext);
     if (context === undefined) {

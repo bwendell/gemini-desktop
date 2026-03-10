@@ -23,6 +23,10 @@ import type {
     TrayIconFilename,
 } from '../types';
 
+type DesktopNameCapableApp = Electron.App & {
+    setDesktopName?: (name: string) => void;
+};
+
 /** Default WaylandStatus for non-Wayland contexts */
 const DEFAULT_WAYLAND_STATUS: WaylandStatus = {
     isWayland: false,
@@ -50,8 +54,9 @@ export class LinuxX11Adapter implements PlatformAdapter {
 
         // Set desktop name for integration
         try {
-            if (typeof (app as any).setDesktopName === 'function') {
-                (app as any).setDesktopName('gemini-desktop');
+            const desktopNameCapableApp = app as DesktopNameCapableApp;
+            if (typeof desktopNameCapableApp.setDesktopName === 'function') {
+                desktopNameCapableApp.setDesktopName('gemini-desktop');
             }
         } catch (e) {
             logger.error('Error calling setDesktopName:', e);

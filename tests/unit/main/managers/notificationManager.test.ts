@@ -10,6 +10,8 @@ import type { BrowserWindow } from 'electron';
 import NotificationManager from '../../../../src/main/managers/notificationManager';
 import { createMockStore } from '../../../helpers/mocks';
 
+type NotificationListener = (...args: unknown[]) => unknown;
+
 // Mock Notification class
 const mockNotification = vi.hoisted(() => {
     const notificationInstances: any[] = [];
@@ -17,8 +19,8 @@ const mockNotification = vi.hoisted(() => {
         this.title = options.title;
         this.body = options.body;
         this.silent = options.silent;
-        this._listeners = new Map<string, Function>();
-        this.on = vi.fn((event: string, handler: Function) => {
+        this._listeners = new Map<string, NotificationListener>();
+        this.on = vi.fn((event: string, handler: NotificationListener) => {
             this._listeners.set(event, handler);
             return this;
         });
@@ -547,8 +549,8 @@ describe('NotificationManager', () => {
             mockNotification.mockImplementationOnce(function (this: any, options: any) {
                 this.title = options.title;
                 this.body = options.body;
-                this._listeners = new Map<string, Function>();
-                this.on = vi.fn((event: string, handler: Function) => {
+                this._listeners = new Map<string, NotificationListener>();
+                this.on = vi.fn((event: string, handler: NotificationListener) => {
                     this._listeners.set(event, handler);
                     return this;
                 });

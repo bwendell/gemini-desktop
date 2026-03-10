@@ -24,6 +24,24 @@ import { IPC_CHANNELS } from '../../utils/constants';
  * and provides dev testing utilities.
  */
 export class AutoUpdateIpcHandler extends BaseIpcHandler {
+    private static hasGetLastCheckTime(value: unknown): value is { getLastCheckTime: () => number } {
+        if (typeof value !== 'object' || value === null || !('getLastCheckTime' in value)) {
+            return false;
+        }
+
+        const candidate = value as { getLastCheckTime?: unknown };
+        return typeof candidate.getLastCheckTime === 'function';
+    }
+
+    private static hasGetTrayTooltip(value: unknown): value is { getTrayTooltip: () => string } {
+        if (typeof value !== 'object' || value === null || !('getTrayTooltip' in value)) {
+            return false;
+        }
+
+        const candidate = value as { getTrayTooltip?: unknown };
+        return typeof candidate.getTrayTooltip === 'function';
+    }
+
     /**
      * Register auto-update IPC handlers with ipcMain.
      */
@@ -149,7 +167,10 @@ export class AutoUpdateIpcHandler extends BaseIpcHandler {
      */
     private _handleGetLastCheck(): number {
         if (this.deps.updateManager) {
-            return (this.deps.updateManager as any).getLastCheckTime?.() || 0;
+            if (AutoUpdateIpcHandler.hasGetLastCheckTime(this.deps.updateManager)) {
+                return this.deps.updateManager.getLastCheckTime();
+            }
+            return 0;
         }
         return 0;
     }
@@ -234,7 +255,10 @@ export class AutoUpdateIpcHandler extends BaseIpcHandler {
     private _handleGetTrayTooltip(): string {
         try {
             if (this.deps.updateManager) {
-                return (this.deps.updateManager as any).getTrayTooltip?.() || '';
+                if (AutoUpdateIpcHandler.hasGetTrayTooltip(this.deps.updateManager)) {
+                    return this.deps.updateManager.getTrayTooltip();
+                }
+                return '';
             }
             return '';
         } catch (error) {

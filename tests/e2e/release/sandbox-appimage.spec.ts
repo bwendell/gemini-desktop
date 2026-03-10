@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Test: AppImage Sandbox Detection (Release Build Only)
  *
