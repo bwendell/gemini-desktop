@@ -290,7 +290,7 @@ export async function waitForAnimationSettle(
     options: WaitForAnimationSettleOptions = {}
 ): Promise<boolean> {
     const {
-        timeout = E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE ?? 8000,
+        timeout = E2E_TIMING.TIMEOUTS?.ANIMATION_SETTLE ?? 3000,
         property = 'transform',
         interval = E2E_TIMING.POLLING?.ANIMATION ?? 50,
         allowMissing = false,
@@ -459,7 +459,11 @@ export async function waitForMacOSWindowStabilize(
     condition?: () => Promise<boolean>,
     options: WaitForMacOSWindowStabilizeOptions = {}
 ): Promise<boolean> {
-    const { timeout = E2E_TIMING.TIMEOUTS?.MACOS_WINDOW_STABILIZE ?? 5000, description = 'macOS window' } = options;
+    const {
+        timeout = E2E_TIMING.TIMEOUTS?.MACOS_WINDOW_STABILIZE ?? 5000,
+        interval = E2E_TIMING.POLLING?.WINDOW_STATE ?? 100,
+        description = 'macOS window',
+    } = options;
 
     // Check if we're on macOS
     const isMacOS = await browser.execute(() => {
@@ -482,7 +486,7 @@ export async function waitForMacOSWindowStabilize(
     // Wait for condition with extended timeout for macOS
     const result = await waitForUIState(condition, {
         timeout,
-        interval: 100,
+        interval,
         description: `${description} (macOS)`,
     });
 
