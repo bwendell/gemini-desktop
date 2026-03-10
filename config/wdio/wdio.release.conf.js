@@ -6,9 +6,9 @@ import { baseConfig } from './wdio.base.conf.js';
 import { ensureArmChromedriver, getAppArgs, linuxServiceConfig } from './electron-args.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 2);
+const SPEC_FILE_RETRIES = Number(process.env.WDIO_SPEC_FILE_RETRIES ?? 1);
 const SPEC_FILE_RETRY_DELAY_SECONDS = Number(process.env.WDIO_SPEC_FILE_RETRY_DELAY_SECONDS ?? 5);
-const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 2);
+const TEST_RETRIES = Number(process.env.WDIO_TEST_RETRIES ?? 1);
 const RELEASE_STARTUP_ARGS = process.env.WDIO_RELEASE_START_HIDDEN === 'true' ? ['--hidden'] : [];
 
 function getReleaseBinaryPath() {
@@ -91,6 +91,15 @@ export const config = {
         '../../tests/e2e/release/*.spec.ts',
     ],
     exclude: [],
+    // Release builds are stable; use minimal retries (default: 1). Override with WDIO_SPEC_FILE_RETRIES env var
+    specFileRetries: SPEC_FILE_RETRIES,
+    specFileRetriesDelay: SPEC_FILE_RETRY_DELAY_SECONDS,
+    specFileRetriesDeferred: false,
+    // Release builds are stable; use minimal retries (default: 1). Override with WDIO_TEST_RETRIES env var
+    mochaOpts: {
+        ...baseConfig.mochaOpts,
+        retries: TEST_RETRIES,
+    },
     services: [
         [
             'electron',

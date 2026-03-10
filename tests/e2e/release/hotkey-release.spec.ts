@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Test: Global Hotkey Registration (Release Build Only)
  *
@@ -190,34 +189,7 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
         }
     });
 
-    it('should register hotkeys successfully when portal is available', async () => {
-        const status = await getPlatformHotkeyStatus();
-
-        if (!status) {
-            throw new Error('getPlatformHotkeyStatus IPC not available');
-        }
-
-        if (!status.waylandStatus.isWayland) {
-            return;
-        }
-
-        if (!status.waylandStatus.portalAvailable) {
-            return;
-        }
-
-        expect(status.globalHotkeysEnabled).toBe(true);
-        expect(['dbus-direct', 'dbus-fallback']).toContain(status.waylandStatus.portalMethod);
-
-        const quickChatResult = status.registrationResults.find((r) => r.hotkeyId === 'quickChat');
-        const peekAndHideResult = status.registrationResults.find((r) => r.hotkeyId === 'peekAndHide');
-
-        expect(quickChatResult).toBeDefined();
-        expect(peekAndHideResult).toBeDefined();
-        expect(quickChatResult.success).toBe(true);
-        expect(peekAndHideResult.success).toBe(true);
-    });
-
-    it('should avoid globalShortcut false positives on Wayland', async () => {
+    it('should register hotkeys successfully when portal is available', async function () {
         const status = await getPlatformHotkeyStatus();
 
         if (!status) {
@@ -231,6 +203,37 @@ describe('Release Build: Wayland+KDE Hotkey Registration', () => {
 
         if (!status.waylandStatus.portalAvailable) {
             skipTest(this, 'Wayland globalShortcut checks', 'Portal not available');
+            return;
+        }
+
+        expect(status.globalHotkeysEnabled).toBe(true);
+        expect(['dbus-direct', 'dbus-fallback']).toContain(status.waylandStatus.portalMethod);
+
+        const quickChatResult = status.registrationResults.find((r) => r.hotkeyId === 'quickChat');
+        const peekAndHideResult = status.registrationResults.find((r) => r.hotkeyId === 'peekAndHide');
+
+        if (!quickChatResult || !peekAndHideResult) {
+            throw new Error(`Missing expected registration results: ${JSON.stringify(status.registrationResults)}`);
+        }
+
+        expect(quickChatResult).toBeDefined();
+        expect(peekAndHideResult).toBeDefined();
+        expect(quickChatResult.success).toBe(true);
+        expect(peekAndHideResult.success).toBe(true);
+    });
+
+    it('should avoid globalShortcut false positives on Wayland', async function () {
+        const status = await getPlatformHotkeyStatus();
+
+        if (!status) {
+            throw new Error('getPlatformHotkeyStatus IPC not available');
+        }
+
+        if (!status.waylandStatus.isWayland) {
+            return;
+        }
+
+        if (!status.waylandStatus.portalAvailable) {
             return;
         }
 

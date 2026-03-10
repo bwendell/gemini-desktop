@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Test: Code Signing Verification (Release Build Only)
  *

@@ -14,7 +14,8 @@ const adapterForPlatform = {
 
 describe('Window Visibility Fallback Integration', () => {
     let mockBrowserWindow: any;
-    let registeredListeners: Record<string, Function> = {};
+    type WindowEventListener = (...args: unknown[]) => void;
+    let registeredListeners: Record<string, WindowEventListener> = {};
 
     describe.each(['darwin', 'win32', 'linux'] as const)('on %s', (platform) => {
         beforeEach(() => {

@@ -22,6 +22,37 @@ interface ChatData {
     conversation: ChatTurn[];
 }
 
+const isChatTurn = (value: unknown): value is ChatTurn => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const candidate = value as Partial<ChatTurn>;
+    const hasValidRole = candidate.role === 'user' || candidate.role === 'model';
+    const hasValidText = typeof candidate.text === 'string';
+    const hasValidHtml = candidate.html === undefined || typeof candidate.html === 'string';
+
+    return hasValidRole && hasValidText && hasValidHtml;
+};
+
+const isChatData = (data: unknown): data is ChatData => {
+    if (!data || typeof data !== 'object') {
+        return false;
+    }
+
+    const candidate = data as Partial<ChatData>;
+
+    if (!Array.isArray(candidate.conversation)) {
+        return false;
+    }
+
+    return (
+        typeof candidate.title === 'string' &&
+        typeof candidate.timestamp === 'string' &&
+        candidate.conversation.every((turn) => isChatTurn(turn))
+    );
+};
+
 export default class ExportManager {
     private turndown: TurndownService;
 
@@ -97,22 +128,28 @@ export default class ExportManager {
                 return null;
             }
 
-            const data = (await targetFrame.executeJavaScript(CHAT_EXTRACTION_SCRIPT)) as any;
+            const data = (await targetFrame.executeJavaScript(CHAT_EXTRACTION_SCRIPT)) as unknown;
             logger.debug('Extracted data:', JSON.stringify(data, null, 2));
 
-            if (data && data.error) {
-                logger.error('Extraction script returned error:', data.error);
+            if (data && typeof data === 'object' && 'error' in data) {
+                logger.error('Extraction script returned error:', (data as { error: unknown }).error);
                 return null;
             }
 
-            if (data && data.conversation && data.conversation.length === 0) {
+            if (isChatData(data) && data.conversation.length === 0) {
                 logger.warn(
                     'Extraction successful but conversation is empty. Diagnostics:',
-                    JSON.stringify(data.diagnostics, null, 2)
+                    JSON.stringify(
+                        typeof data === 'object' && data && 'diagnostics' in data
+                            ? (data as { diagnostics?: unknown }).diagnostics
+                            : undefined,
+                        null,
+                        2
+                    )
                 );
             }
 
-            return data as ChatData;
+            return isChatData(data) ? data : null;
         } catch (error) {
             logger.error('Failed to extract chat data:', error);
             return null;

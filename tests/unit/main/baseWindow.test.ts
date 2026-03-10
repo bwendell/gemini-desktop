@@ -6,6 +6,8 @@ import { BrowserWindow } from 'electron';
 import BaseWindow from '../../../src/main/windows/baseWindow';
 import { type BrowserWindowConstructorOptions } from 'electron';
 
+type WindowClosedHandler = () => void;
+
 // Concrete implementation of BaseWindow for testing
 class TestWindow extends BaseWindow {
     protected readonly windowConfig: BrowserWindowConstructorOptions = {
@@ -118,7 +120,7 @@ describe('BaseWindow', () => {
             const win = testWindow.getWindow()!;
             const closedHandler = (vi.mocked(win.on).mock.calls as any[]).find((call) => call[0] === 'closed')?.[1];
             if (typeof closedHandler === 'function') {
-                (closedHandler as Function)();
+                (closedHandler as WindowClosedHandler)();
             }
 
             expect(testWindow.getWindow()).toBeNull();
@@ -138,7 +140,7 @@ describe('BaseWindow', () => {
             const win = testWindow.getWindow()!;
             const closedHandler = (vi.mocked(win.on).mock.calls as any[]).find((call) => call[0] === 'closed')?.[1];
             if (typeof closedHandler === 'function') {
-                (closedHandler as Function)();
+                (closedHandler as WindowClosedHandler)();
             }
 
             expect(removeAllListenersSpy).toHaveBeenCalled();

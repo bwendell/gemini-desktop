@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * E2E Test: Startup Performance (Release Build Only)
  *
@@ -82,9 +81,10 @@ describe('Release Build: Startup Performance', () => {
         });
 
         expect(windowInfo.exists).toBe(true);
+        expect(windowInfo.bounds).toBeDefined();
         expect(windowInfo.isVisible).toBe(true);
-        expect(windowInfo.bounds.width).toBeGreaterThan(100);
-        expect(windowInfo.bounds.height).toBeGreaterThan(100);
+        expect(windowInfo.bounds?.width).toBeGreaterThan(100);
+        expect(windowInfo.bounds?.height).toBeGreaterThan(100);
     });
 
     it('should have renderer process loaded', async () => {
@@ -175,7 +175,9 @@ describe('Release Build: Startup Performance', () => {
         }
 
         // Verify heap is not approaching limit (indicates potential memory leak)
-        const heapUsagePercent = (v8Stats.usedHeapSizeMB / v8Stats.heapSizeLimitMB) * 100;
+        const usedHeapSizeMB = v8Stats.usedHeapSizeMB ?? 0;
+        const heapSizeLimitMB = v8Stats.heapSizeLimitMB ?? 1;
+        const heapUsagePercent = (usedHeapSizeMB / heapSizeLimitMB) * 100;
         expect(heapUsagePercent).toBeLessThan(80);
     });
 });

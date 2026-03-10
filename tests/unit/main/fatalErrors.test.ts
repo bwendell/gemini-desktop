@@ -10,6 +10,17 @@ import { BrowserWindow } from 'electron';
 import MainWindow from '../../../src/main/windows/mainWindow';
 import AuthWindow from '../../../src/main/windows/authWindow';
 
+type MockEventHandler = (...args: unknown[]) => void;
+type MockFunctionWithCalls = {
+    mock: {
+        calls: Array<[string, MockEventHandler]>;
+    };
+};
+
+const getMockCalls = (mockFunction: unknown): Array<[string, MockEventHandler]> => {
+    return (mockFunction as MockFunctionWithCalls).mock.calls;
+};
+
 vi.mock('../../../src/main/utils/paths', async (importOriginal) => {
     type PathsModule = typeof import('../../../src/main/utils/paths');
     const actual = await importOriginal<PathsModule>();
@@ -36,8 +47,8 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
             const win = mainWindow.create();
 
             // Find the render-process-gone handler in mock calls
-            const renderProcessGoneCall = win.webContents.on.mock.calls.find(
-                (call: [string, Function]) => call[0] === 'render-process-gone'
+            const renderProcessGoneCall = getMockCalls(win.webContents.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'render-process-gone'
             );
 
             expect(renderProcessGoneCall).toBeDefined();
@@ -46,8 +57,8 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should setup did-fail-load handler on webContents', () => {
             const win = mainWindow.create();
 
-            const didFailLoadCall = win.webContents.on.mock.calls.find(
-                (call: [string, Function]) => call[0] === 'did-fail-load'
+            const didFailLoadCall = getMockCalls(win.webContents.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'did-fail-load'
             );
 
             expect(didFailLoadCall).toBeDefined();
@@ -56,7 +67,9 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should setup unresponsive handler on window', () => {
             const win = mainWindow.create();
 
-            const unresponsiveCall = win.on.mock.calls.find((call: [string, Function]) => call[0] === 'unresponsive');
+            const unresponsiveCall = getMockCalls(win.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'unresponsive'
+            );
 
             expect(unresponsiveCall).toBeDefined();
         });
@@ -64,7 +77,9 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should setup responsive handler on window', () => {
             const win = mainWindow.create();
 
-            const responsiveCall = win.on.mock.calls.find((call: [string, Function]) => call[0] === 'responsive');
+            const responsiveCall = getMockCalls(win.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'responsive'
+            );
 
             expect(responsiveCall).toBeDefined();
         });
@@ -72,8 +87,8 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should log error when render-process-gone fires', () => {
             const win = mainWindow.create();
 
-            const renderProcessGoneCall = win.webContents.on.mock.calls.find(
-                (call: [string, Function]) => call[0] === 'render-process-gone'
+            const renderProcessGoneCall = getMockCalls(win.webContents.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'render-process-gone'
             );
 
             const handler = renderProcessGoneCall?.[1];
@@ -88,8 +103,8 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should reload window on crash (non-killed)', () => {
             const win = mainWindow.create();
 
-            const renderProcessGoneCall = win.webContents.on.mock.calls.find(
-                (call: [string, Function]) => call[0] === 'render-process-gone'
+            const renderProcessGoneCall = getMockCalls(win.webContents.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'render-process-gone'
             );
 
             const handler = renderProcessGoneCall?.[1];
@@ -101,8 +116,8 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should not reload window when intentionally killed', () => {
             const win = mainWindow.create();
 
-            const renderProcessGoneCall = win.webContents.on.mock.calls.find(
-                (call: [string, Function]) => call[0] === 'render-process-gone'
+            const renderProcessGoneCall = getMockCalls(win.webContents.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'render-process-gone'
             );
 
             const handler = renderProcessGoneCall?.[1];
@@ -122,8 +137,8 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should setup did-fail-load handler on webContents', () => {
             const win = authWindow.create('https://accounts.google.com/test');
 
-            const didFailLoadCall = win.webContents.on.mock.calls.find(
-                (call: [string, Function]) => call[0] === 'did-fail-load'
+            const didFailLoadCall = getMockCalls(win.webContents.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'did-fail-load'
             );
 
             expect(didFailLoadCall).toBeDefined();
@@ -132,8 +147,8 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should setup certificate-error handler on webContents', () => {
             const win = authWindow.create('https://accounts.google.com/test');
 
-            const certErrorCall = win.webContents.on.mock.calls.find(
-                (call: [string, Function]) => call[0] === 'certificate-error'
+            const certErrorCall = getMockCalls(win.webContents.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'certificate-error'
             );
 
             expect(certErrorCall).toBeDefined();
@@ -142,7 +157,9 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should setup unresponsive handler on window', () => {
             const win = authWindow.create('https://accounts.google.com/test');
 
-            const unresponsiveCall = win.on.mock.calls.find((call: [string, Function]) => call[0] === 'unresponsive');
+            const unresponsiveCall = getMockCalls(win.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'unresponsive'
+            );
 
             expect(unresponsiveCall).toBeDefined();
         });
@@ -150,7 +167,9 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should setup responsive handler on window', () => {
             const win = authWindow.create('https://accounts.google.com/test');
 
-            const responsiveCall = win.on.mock.calls.find((call: [string, Function]) => call[0] === 'responsive');
+            const responsiveCall = getMockCalls(win.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'responsive'
+            );
 
             expect(responsiveCall).toBeDefined();
         });
@@ -158,8 +177,8 @@ describe('Fatal Error Handling - Window Crash Handlers', () => {
         it('should deny certificate errors for security', () => {
             const win = authWindow.create('https://accounts.google.com/test');
 
-            const certErrorCall = win.webContents.on.mock.calls.find(
-                (call: [string, Function]) => call[0] === 'certificate-error'
+            const certErrorCall = getMockCalls(win.webContents.on).find(
+                (call: [string, MockEventHandler]) => call[0] === 'certificate-error'
             );
 
             const handler = certErrorCall?.[1];

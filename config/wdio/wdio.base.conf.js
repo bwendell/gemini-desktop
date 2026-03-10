@@ -111,7 +111,7 @@ export const baseConfig = {
 
     // Connection retry settings
     // Linux needs more time for xvfb/display initialization
-    connectionRetryTimeout: process.platform === 'linux' || process.platform === 'win32' ? 180000 : 120000,
+    connectionRetryTimeout: process.platform === 'linux' ? 180000 : 120000,
     connectionRetryCount: 3,
 
     // Suppress false-positive "Timeout exceeded to get the ContextId" error log.
@@ -124,8 +124,7 @@ export const baseConfig = {
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
         // Add a delay to ensure React has time to mount
-        // Windows needs more time for initial startup in CI (Defender scan, first-time extraction)
-        const startupDelay = process.platform === 'win32' ? 8000 : 5000;
+        const startupDelay = 5000;
         await new Promise((resolve) => setTimeout(resolve, startupDelay));
     },
 

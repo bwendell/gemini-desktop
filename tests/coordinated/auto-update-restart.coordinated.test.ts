@@ -52,7 +52,8 @@ import { createLogger } from '../../src/main/utils/logger';
 
 // Mock Electron ipcMain
 const mockIpcMain = vi.hoisted(() => {
-    const listeners: Record<string, Function[]> = {};
+    type MockIpcListener = (...args: unknown[]) => void;
+    const listeners: Record<string, MockIpcListener[]> = {};
     return {
         on: vi.fn((channel, listener) => {
             if (!listeners[channel]) listeners[channel] = [];

@@ -10,8 +10,16 @@ import IpcManager from '../../../../src/main/managers/ipcManager';
 import { createMockWindowManager, createMockStore } from '../../../helpers/mocks';
 import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
 
+type IpcManagerConstructorArgs = ConstructorParameters<typeof IpcManager>;
+type IpcManagerWindowManager = IpcManagerConstructorArgs[0];
+type IpcManagerNotificationManager = NonNullable<IpcManagerConstructorArgs[5]>;
+type IpcManagerStore = NonNullable<IpcManagerConstructorArgs[6]>;
+
 // Mock Electron
 const { mockIpcMain } = vi.hoisted(() => {
+    type MockIpcListener = (...args: unknown[]) => void;
+    type MockIpcHandler = (...args: unknown[]) => unknown;
+
     const mockIpcMain = {
         on: vi.fn((channel, listener) => {
             mockIpcMain._listeners.set(channel, listener);
@@ -19,8 +27,8 @@ const { mockIpcMain } = vi.hoisted(() => {
         handle: vi.fn((channel, handler) => {
             mockIpcMain._handlers.set(channel, handler);
         }),
-        _listeners: new Map<string, Function>(),
-        _handlers: new Map<string, Function>(),
+        _listeners: new Map<string, MockIpcListener>(),
+        _handlers: new Map<string, MockIpcHandler>(),
         _reset: () => {
             mockIpcMain._listeners.clear();
             mockIpcMain._handlers.clear();
@@ -65,7 +73,13 @@ describe('IpcManager.setNotificationManager', () => {
     let ipcManager: IpcManager;
     let mockWindowManager: ReturnType<typeof createMockWindowManager>;
     let mockStore: ReturnType<typeof createMockStore>;
-    let mockNotificationManager: any;
+    type NotificationManagerLike = {
+        isEnabled: () => boolean;
+        setEnabled: (enabled: boolean) => void;
+        onResponseComplete: (callback: (...args: unknown[]) => void) => void;
+    };
+
+    let mockNotificationManager: NotificationManagerLike;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -76,13 +90,13 @@ describe('IpcManager.setNotificationManager', () => {
 
         // Create IpcManager WITHOUT NotificationManager (simulating startup)
         ipcManager = new IpcManager(
-            mockWindowManager,
+            mockWindowManager as unknown as IpcManagerWindowManager,
             null, // hotkeyManager
             null, // updateManager
             null, // printManager
             null, // llmManager
             null, // notificationManager - deliberately null to test late injection
-            mockStore as any,
+            mockStore as unknown as IpcManagerStore,
             mockLogger
         );
 
@@ -110,11 +124,13 @@ describe('IpcManager.setNotificationManager', () => {
 
     describe('setNotificationManager(mockManager)', () => {
         it('does not throw when called with a manager', () => {
-            expect(() => ipcManager.setNotificationManager(mockNotificationManager)).not.toThrow();
+            expect(() =>
+                ipcManager.setNotificationManager(mockNotificationManager as unknown as IpcManagerNotificationManager)
+            ).not.toThrow();
         });
 
         it('logs when manager is injected', () => {
-            ipcManager.setNotificationManager(mockNotificationManager);
+            ipcManager.setNotificationManager(mockNotificationManager as unknown as IpcManagerNotificationManager);
             expect(mockLogger.log).toHaveBeenCalledWith('NotificationManager injected');
         });
 
@@ -125,7 +141,7 @@ describe('IpcManager.setNotificationManager', () => {
             expect(beforeResult).toBe(true); // Default when no manager
 
             // Inject the manager
-            ipcManager.setNotificationManager(mockNotificationManager);
+            ipcManager.setNotificationManager(mockNotificationManager as unknown as IpcManagerNotificationManager);
 
             // After injection: get-enabled should call the manager
             const afterResult = getHandler!();
@@ -135,7 +151,7 @@ describe('IpcManager.setNotificationManager', () => {
 
         it('allows set-enabled to call the injected manager', () => {
             // Inject the manager
-            ipcManager.setNotificationManager(mockNotificationManager);
+            ipcManager.setNotificationManager(mockNotificationManager as unknown as IpcManagerNotificationManager);
 
             // Call set-enabled
             const setListener = mockIpcMain._listeners.get(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_SET_ENABLED);
@@ -159,12 +175,12 @@ describe('IpcManager.setNotificationManager', () => {
             };
 
             // Inject first manager
-            ipcManager.setNotificationManager(mockManager1);
+            ipcManager.setNotificationManager(mockManager1 as unknown as IpcManagerNotificationManager);
             const getHandler = mockIpcMain._handlers.get(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_GET_ENABLED);
             expect(getHandler!()).toBe(true);
 
             // Inject second manager
-            ipcManager.setNotificationManager(mockManager2);
+            ipcManager.setNotificationManager(mockManager2 as unknown as IpcManagerNotificationManager);
             expect(getHandler!()).toBe(false);
 
             // First manager should not be called anymore
@@ -178,7 +194,7 @@ describe('IpcManager.setNotificationManager', () => {
             const getHandler = mockIpcMain._handlers.get(IPC_CHANNELS.RESPONSE_NOTIFICATIONS_GET_ENABLED);
 
             // Inject manager
-            ipcManager.setNotificationManager(mockNotificationManager);
+            ipcManager.setNotificationManager(mockNotificationManager as unknown as IpcManagerNotificationManager);
             expect(getHandler!()).toBe(false);
 
             // Clear to null
@@ -186,7 +202,7 @@ describe('IpcManager.setNotificationManager', () => {
             expect(getHandler!()).toBe(true); // Default when no manager
 
             // Re-inject manager
-            ipcManager.setNotificationManager(mockNotificationManager);
+            ipcManager.setNotificationManager(mockNotificationManager as unknown as IpcManagerNotificationManager);
             expect(getHandler!()).toBe(false);
         });
     });

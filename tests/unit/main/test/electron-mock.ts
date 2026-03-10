@@ -5,6 +5,8 @@
 import { vi } from 'vitest';
 import { createMockWebContents as createSharedMockWebContents } from '../../../helpers/mocks/main/webContents';
 
+type MockListener = (...args: unknown[]) => void;
+
 export const app = {
     getPath: vi.fn((name) => `/mock/${name}`),
     isPackaged: false,
@@ -55,7 +57,7 @@ export class BrowserWindow {
             webContents: createMockWebContents(),
             loadURL: vi.fn().mockResolvedValue(undefined),
             loadFile: vi.fn(),
-            _listeners: new Map<string, Function>(),
+            _listeners: new Map<string, MockListener>(),
 
             // Stateful methods
             show: vi.fn(() => {
@@ -327,7 +329,7 @@ export class MenuItem {
     type?: string;
     checked?: boolean;
     submenu?: Menu;
-    click?: Function;
+    click?: MockListener;
     enabled?: boolean;
     role?: string;
     accelerator?: string;
