@@ -124,8 +124,7 @@ export const baseConfig = {
     // Wait for app to fully load before starting tests
     before: async function (capabilities, specs) {
         // Add a delay to ensure React has time to mount
-        // Windows needs more time for initial startup in CI (Defender scan, first-time extraction)
-        const startupDelay = process.platform === 'win32' ? 5000 : 5000;
+        const startupDelay = 5000;
         await new Promise((resolve) => setTimeout(resolve, startupDelay));
     },
 
