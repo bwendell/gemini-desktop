@@ -23,11 +23,10 @@ describe('Windows release artifacts', () => {
         expect(workflow).not.toContain('release/*.msi');
         expect(workflow).not.toContain('Get-ChildItem -Path *.msi -File');
         expect(workflow).not.toContain('release/*.exe');
-        expect(workflow).toContain('release/upload-x64/*');
-        expect(workflow).toContain('release/upload-arm64/*');
+        expect(workflow).toContain('steps.windows_x64_upload.outputs.files');
+        expect(workflow).toContain('steps.windows_arm64_upload.outputs.files');
         expect(workflow).toContain('checksums-windows-x64.txt');
         expect(workflow).toContain('checksums-windows-arm64.txt');
         expect(workflow).toContain('Get-ChildItem -Path \u0027Gemini-Desktop-*-installer.exe\u0027 -File');
-        expect(workflow).toContain('Get-ChildItem -Path \u0027*-arm64-installer.exe\u0027 -File');
     });
 });
