@@ -43,6 +43,10 @@ Group specs by feature behavior, not by helper implementation detail.
 - Full suite: `npm run test:e2e`
 - Single spec: `npm run test:e2e:spec -- --spec=tests/e2e/<file>`
 - Grouped suites: `npm run test:e2e:group:<name>`
+- Packaged release lane: `npm run test:e2e:release`
+- Windows installer lane: `npm run test:e2e:release:installer`
+
+Installer smoke/upgrade coverage must use a deterministic install root and may only execute installers on Windows hosts. Outside Windows, keep the installer lane in skip-only mode.
 
 ## Common Mistakes
 

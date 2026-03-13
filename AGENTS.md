@@ -26,6 +26,8 @@ The project uses **npm** for package management and **Vitest** + **WebdriverIO**
 - `npm run test:electron` - Run electron-specific unit tests
 - `npm run test:coordinated` - Run coordinated multi-window tests
 - `npm run test:e2e` - Run E2E tests sequentially
+- `npm run test:e2e:release` - Run packaged release-binary WDIO coverage
+- `npm run test:e2e:release:installer` - Run Windows installer smoke/upgrade WDIO coverage
 - `npm run test:all` - Run all test suites
 
 **Running a Single Test:**
@@ -135,16 +137,16 @@ Each subdirectory has its own AGENTS.md with boundary-specific conventions:
 
 Run the appropriate commands based on what you changed:
 
-| Change Scope         | Test Command(s)                                                     | What It Runs                               |
-| -------------------- | ------------------------------------------------------------------- | ------------------------------------------ |
-| `src/renderer/`      | `npm run test`, `npm run lint`                                      | Vitest (jsdom) — renderer unit tests       |
-| `src/main/`          | `npm run test:electron`, `npm run lint`                             | Vitest (node) — main process unit tests    |
-| `src/preload/`       | `npm run test:electron`, `npm run lint`                             | Vitest (node) — preload unit tests         |
-| `src/shared/`        | `npm run test:electron`, `npm run lint`                             | Vitest (node) — shared utility tests       |
-| Cross-boundary (IPC) | `npm run test:electron`, `npm run test:integration`, `npm run lint` | Unit + WDIO integration                    |
-| `tests/coordinated/` | `npm run test:coordinated`                                          | Vitest (jsdom) — multi-window coordination |
-| `tests/e2e/`         | `npm run test:e2e` or `npm run test:e2e:spec -- --spec=<path>`      | WDIO E2E tests                             |
-| Everything           | `npm run test:all`                                                  | Full sequential suite                      |
+| Change Scope         | Test Command(s)                                                                         | What It Runs                               |
+| -------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `src/renderer/`      | `npm run test`, `npm run lint`                                                          | Vitest (jsdom) — renderer unit tests       |
+| `src/main/`          | `npm run test:electron`, `npm run lint`                                                 | Vitest (node) — main process unit tests    |
+| `src/preload/`       | `npm run test:electron`, `npm run lint`                                                 | Vitest (node) — preload unit tests         |
+| `src/shared/`        | `npm run test:electron`, `npm run lint`                                                 | Vitest (node) — shared utility tests       |
+| Cross-boundary (IPC) | `npm run test:electron`, `npm run test:integration`, `npm run lint`                     | Unit + WDIO integration                    |
+| `tests/coordinated/` | `npm run test:coordinated`                                                              | Vitest (jsdom) — multi-window coordination |
+| `tests/e2e/`         | `npm run test:e2e`, `npm run test:e2e:release`, or `npm run test:e2e:release:installer` | WDIO E2E tests                             |
+| Everything           | `npm run test:all`                                                                      | Full sequential suite                      |
 
 ## 🔧 Documentation Maintenance Contract
 
