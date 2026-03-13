@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-const scriptPath = path.resolve(process.cwd(), 'scripts/validate-windows-release-metadata.cjs');
+const scriptPath = path.resolve(process.cwd(), 'scripts/release/validate-windows-release-metadata.cjs');
 const tempDirs: string[] = [];
 
 function sha512Base64(value: Buffer): string {
@@ -24,10 +24,7 @@ function createReleaseFixture(
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `windows-release-${lane}-`));
     tempDirs.push(tempDir);
 
-    const installers =
-        lane === 'x64'
-            ? ['Gemini-Desktop-1.2.3-installer.exe', 'Gemini-Desktop-1.2.3-x64-installer.exe']
-            : ['Gemini-Desktop-1.2.3-arm64-installer.exe'];
+    const installers = ['Gemini-Desktop-1.2.3-installer.exe'];
 
     const hashes = new Map<string, { sha512: string; sha256: string; size: number }>();
 
@@ -53,12 +50,12 @@ function createReleaseFixture(
         lane === 'x64'
             ? {
                   'latest.yml': overrides.latestPath ?? 'Gemini-Desktop-1.2.3-installer.exe',
-                  'latest-x64.yml': overrides.metadataPath ?? 'Gemini-Desktop-1.2.3-x64-installer.exe',
-                  'x64.yml': overrides.metadataPath ?? 'Gemini-Desktop-1.2.3-x64-installer.exe',
+                  'latest-x64.yml': overrides.metadataPath ?? 'Gemini-Desktop-1.2.3-installer.exe',
+                  'x64.yml': overrides.metadataPath ?? 'Gemini-Desktop-1.2.3-installer.exe',
               }
             : {
-                  'latest-arm64.yml': overrides.metadataPath ?? 'Gemini-Desktop-1.2.3-arm64-installer.exe',
-                  'arm64.yml': overrides.metadataPath ?? 'Gemini-Desktop-1.2.3-arm64-installer.exe',
+                  'latest-arm64.yml': overrides.metadataPath ?? 'Gemini-Desktop-1.2.3-installer.exe',
+                  'arm64.yml': overrides.metadataPath ?? 'Gemini-Desktop-1.2.3-installer.exe',
               };
 
     for (const [metadataFile, installerName] of Object.entries(metadataTargets)) {
@@ -93,25 +90,35 @@ afterEach(() => {
 });
 
 describe('validate-windows-release-metadata', () => {
-    it('passes when x64 metadata targets the x64 updater installer and latest.yml targets the promoted unified installer', () => {
+    it('passes when x64 metadata aliases target the promoted unified installer', () => {
         const releaseDir = createReleaseFixture('x64');
         const result = runValidator('x64', releaseDir);
 
         expect(result.status).toBe(0);
         expect(fs.existsSync(path.join(releaseDir, 'windows-release-manifest-x64.json'))).toBe(true);
+        const manifest = JSON.parse(
+            fs.readFileSync(path.join(releaseDir, 'windows-release-manifest-x64.json'), 'utf8')
+        ) as { uploadFiles: string[] };
+        expect(manifest.uploadFiles).toContain('Gemini-Desktop-1.2.3-installer.exe');
+        expect(manifest.uploadFiles).toContain('Gemini-Desktop-1.2.3-installer.exe.blockmap');
     });
 
-    it('passes when arm64 compatibility metadata points to the arm64 updater installer', () => {
+    it('passes when arm64 compatibility metadata points to the promoted unified installer', () => {
         const releaseDir = createReleaseFixture('arm64');
         const result = runValidator('arm64', releaseDir);
 
         expect(result.status).toBe(0);
         expect(fs.existsSync(path.join(releaseDir, 'windows-release-manifest-arm64.json'))).toBe(true);
+        const manifest = JSON.parse(
+            fs.readFileSync(path.join(releaseDir, 'windows-release-manifest-arm64.json'), 'utf8')
+        ) as { uploadFiles: string[] };
+        expect(manifest.uploadFiles).not.toContain('Gemini-Desktop-1.2.3-installer.exe');
+        expect(manifest.uploadFiles).not.toContain('Gemini-Desktop-1.2.3-installer.exe.blockmap');
     });
 
     it('fails when latest-arm64.yml points to an unexpected installer', () => {
         const releaseDir = createReleaseFixture('arm64', {
-            metadataPath: 'Gemini-Desktop-1.2.3-installer.exe',
+            metadataPath: 'Gemini-Desktop-1.2.3-arm64-installer.exe',
         });
         const result = runValidator('arm64', releaseDir);
 

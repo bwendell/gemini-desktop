@@ -107,9 +107,9 @@ function parseChecksums(content) {
     return checksums;
 }
 
-function ensureFileExists(filePath) {
-    if (!fs.existsSync(filePath)) {
-        fail(`Missing required file: ${filePath}`);
+function ensurePathExists(targetPath, description = 'path') {
+    if (!fs.existsSync(targetPath)) {
+        fail(`Missing required ${description}: ${targetPath}`);
     }
 }
 
@@ -122,39 +122,41 @@ function collectInstallers(releaseDir) {
     const unified = installers.find(
         (entry) => !entry.includes('-x64-installer.exe') && !entry.includes('-arm64-installer.exe')
     );
-    const x64 = installers.find((entry) => entry.includes('-x64-installer.exe'));
-    const arm64 = installers.find((entry) => entry.includes('-arm64-installer.exe'));
 
-    return { unified, x64, arm64, installers };
+    return { unified, installers };
 }
 
 function expectedContractForLane(lane, installers) {
     if (lane === 'x64') {
         return {
             checksumFile: 'checksums-windows-x64.txt',
-            installers: [installers.unified, installers.x64].filter(Boolean),
+            installers: [installers.unified].filter(Boolean),
+            includeInstallerArtifacts: true,
             metadataTargets: {
                 'latest.yml': installers.unified,
-                'latest-x64.yml': installers.x64,
-                'x64.yml': installers.x64,
+                'latest-x64.yml': installers.unified,
+                'x64.yml': installers.unified,
             },
         };
     }
 
     return {
         checksumFile: 'checksums-windows-arm64.txt',
-        installers: [installers.arm64].filter(Boolean),
+        installers: [installers.unified].filter(Boolean),
+        includeInstallerArtifacts: false,
         metadataTargets: {
-            'latest-arm64.yml': installers.arm64,
-            'arm64.yml': installers.arm64,
+            'latest-arm64.yml': installers.unified,
+            'arm64.yml': installers.unified,
         },
     };
 }
 
-function writeManifest({ releaseDir, lane, installers, checksumFile, metadataTargets }) {
+function writeManifest({ releaseDir, lane, installers, checksumFile, metadataTargets, includeInstallerArtifacts }) {
     const manifestName = `windows-release-manifest-${lane}.json`;
     const uploadFiles = [
-        ...installers.flatMap((installerName) => [installerName, `${installerName}.blockmap`]),
+        ...(includeInstallerArtifacts
+            ? installers.flatMap((installerName) => [installerName, `${installerName}.blockmap`])
+            : []),
         ...Object.keys(metadataTargets),
         checksumFile,
         manifestName,
@@ -181,7 +183,11 @@ function main() {
         fail('Expected --lane x64|arm64');
     }
 
-    ensureFileExists(releaseDir);
+    ensurePathExists(releaseDir, 'directory');
+
+    if (!fs.statSync(releaseDir).isDirectory()) {
+        fail(`Expected release directory, received file: ${releaseDir}`);
+    }
 
     if (fs.readdirSync(releaseDir).some((entry) => entry.endsWith('.msi'))) {
         fail('MSI artifacts are forbidden in the Windows release set');
@@ -197,15 +203,15 @@ function main() {
     }
 
     const checksumPath = path.join(releaseDir, contract.checksumFile);
-    ensureFileExists(checksumPath);
+    ensurePathExists(checksumPath, 'file');
     const checksums = parseChecksums(fs.readFileSync(checksumPath, 'utf8'));
     const installerHashes = new Map();
 
     for (const installerName of contract.installers) {
         const installerPath = path.join(releaseDir, installerName);
         const blockmapPath = path.join(releaseDir, `${installerName}.blockmap`);
-        ensureFileExists(installerPath);
-        ensureFileExists(blockmapPath);
+        ensurePathExists(installerPath, 'file');
+        ensurePathExists(blockmapPath, 'file');
 
         const sha512 = sha512Base64(installerPath);
         const sha256 = sha256Hex(installerPath);
@@ -226,7 +232,7 @@ function main() {
 
     for (const [metadataFile, expectedInstaller] of Object.entries(contract.metadataTargets)) {
         const metadataPath = path.join(releaseDir, metadataFile);
-        ensureFileExists(metadataPath);
+        ensurePathExists(metadataPath, 'file');
         const metadata = parseMetadata(fs.readFileSync(metadataPath, 'utf8'));
         const hashes = installerHashes.get(expectedInstaller);
 
@@ -263,6 +269,7 @@ function main() {
         installers: contract.installers,
         checksumFile: contract.checksumFile,
         metadataTargets: contract.metadataTargets,
+        includeInstallerArtifacts: contract.includeInstallerArtifacts,
     });
 
     console.log(
