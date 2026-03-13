@@ -28,6 +28,7 @@ describe('release workflow Windows metadata aliases', () => {
     });
 
     it('keeps Windows metadata aliases while publishing exe-only Windows artifacts', () => {
+        expect(workflow).toContain('release/latest.yml');
         expect(workflow).toContain('release/x64.yml');
         expect(workflow).toContain('release/arm64.yml');
         expect(workflow).toContain('release/latest-x64.yml');
