@@ -31,10 +31,9 @@ module.exports = {
     appId: 'com.benwendell.gemini-desktop',
     productName: 'Gemini Desktop',
 
-    // Phase A bridge release contract:
-    // - promoted installer: Gemini-Desktop-${version}-installer.${ext}
-    // - compatibility metadata: latest-x64.yml, latest-arm64.yml, x64.yml, arm64.yml
-    // - remaining arch-scoped installers are internal-only fixtures when BUILD_WINDOWS_UNIFIED is disabled
+    // Windows unified installer contract:
+    // - public installer: Gemini-Desktop-${version}-installer.${ext}
+    // - compatibility metadata aliases may still be published by the workflow while older installs migrate
 
     directories: {
         output: 'release',

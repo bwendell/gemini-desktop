@@ -61,12 +61,10 @@ afterEach(() => {
 });
 
 describe('Windows unified installer bridge-release metadata contract', () => {
-    it('documents the Phase A unified installer filename in the builder contract', () => {
-        expect(builderConfigSource).toContain('Phase A bridge release contract');
+    it('documents the Windows unified installer filename in the builder contract', () => {
+        expect(builderConfigSource).toContain('Windows unified installer contract');
         expect(builderConfigSource).toContain('Gemini-Desktop-${version}-installer.${ext}');
-        expect(builderConfigSource).toContain('Gemini-Desktop-${version}-${arch}-installer.${ext}');
-        expect(builderConfigSource).toContain('latest-x64.yml');
-        expect(builderConfigSource).toContain('latest-arm64.yml');
+        expect(builderConfigSource).toContain('compatibility metadata aliases');
     });
 
     it('builds a single promoted Windows installer when BUILD_WINDOWS_UNIFIED is enabled', () => {
@@ -89,7 +87,7 @@ describe('Windows unified installer bridge-release metadata contract', () => {
         expect(builderConfig.files).not.toContain('!node_modules/@node-llama-cpp/win-x64-cuda');
     });
 
-    it('keeps the x64 updater lane scoped to x64 artifacts only', () => {
+    it('still allows explicitly scoped x64 builds when BUILD_WINDOWS_UNIFIED is disabled', () => {
         const builderConfig = loadBuilderConfig({
             BUILD_PLATFORM: 'win32',
             BUILD_ARCH: 'x64',
@@ -107,7 +105,7 @@ describe('Windows unified installer bridge-release metadata contract', () => {
         expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/win-arm64');
     });
 
-    it('keeps the arm64 updater lane scoped to arm64 artifacts only', () => {
+    it('still allows explicitly scoped arm64 builds when BUILD_WINDOWS_UNIFIED is disabled', () => {
         const builderConfig = loadBuilderConfig({
             BUILD_PLATFORM: 'win32',
             BUILD_ARCH: 'arm64',
@@ -129,9 +127,7 @@ describe('Windows unified installer bridge-release metadata contract', () => {
         expect(builderConfigSource).toContain('resolvedWindowsArchTargets');
     });
 
-    it('exposes explicit bridge-release Windows build scripts', () => {
-        expect(packageJson.scripts['dist:win:bridge:unified']).toContain('scripts/run-windows-dist.cjs unified');
-        expect(packageJson.scripts['dist:win:bridge:x64']).toContain('scripts/run-windows-dist.cjs x64');
-        expect(packageJson.scripts['dist:win:bridge:arm64']).toContain('scripts/run-windows-dist.cjs arm64');
+    it('exposes a unified Windows build script', () => {
+        expect(packageJson.scripts['dist:win']).toContain('scripts/release/run-windows-dist.cjs');
     });
 });

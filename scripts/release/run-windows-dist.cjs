@@ -3,15 +3,16 @@
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 
-const mode = process.argv[2];
+const mode = process.argv[2] ?? 'unified';
 
-if (!mode || !['unified', 'x64', 'arm64'].includes(mode)) {
-    console.error('Usage: node scripts/run-windows-dist.cjs <unified|x64|arm64>');
+if (mode !== 'unified') {
+    console.error('Usage: node scripts/release/run-windows-dist.cjs [unified]');
     process.exit(1);
 }
 
 const electronBuilderBin = path.resolve(
     __dirname,
+    '..',
     '..',
     'node_modules',
     '.bin',
@@ -24,24 +25,9 @@ const env = {
     BUILD_PLATFORM: 'win32',
 };
 
-switch (mode) {
-    case 'unified':
-        env.BUILD_ARCH = 'x64';
-        env.BUILD_WINDOWS_UNIFIED = 'true';
-        args.push('--x64', '--arm64');
-        break;
-    case 'x64':
-        env.BUILD_ARCH = 'x64';
-        args.push('--x64');
-        break;
-    case 'arm64':
-        env.BUILD_ARCH = 'arm64';
-        args.push('--arm64');
-        break;
-    default:
-        console.error(`Unsupported mode: ${mode}`);
-        process.exit(1);
-}
+env.BUILD_ARCH = 'x64';
+env.BUILD_WINDOWS_UNIFIED = 'true';
+args.push('--x64', '--arm64');
 
 const result = spawnSync(electronBuilderBin, args, {
     stdio: 'inherit',
