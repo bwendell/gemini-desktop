@@ -217,8 +217,20 @@ jobs:
                   name: electron-dist
                   path: dist-electron/
 
-            - name: Build (without publish)
-              run: npm run dist:win-x64
+            - name: Build Windows x64 updater installer
+              run: npm run dist:win:bridge:x64
+              shell: bash
+              env:
+                  AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
+                  AZURE_PUBLISHER_NAME: ${{ secrets.AZURE_PUBLISHER_NAME }}
+                  AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
+                  AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+                  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+            - name: Build promoted unified Windows installer
+              run: npm run dist:win:bridge:unified
               shell: bash
               env:
                   AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
@@ -234,22 +246,97 @@ jobs:
               shell: bash
               timeout-minutes: 30
 
+            - name: Resolve previous x64 installer for upgrade validation
+              run: |
+                  set -euo pipefail
+                  previous_tag="$(gh release list --exclude-drafts --exclude-pre-releases --limit 10 --json tagName --jq '.[] | select(.tagName != env.GITHUB_REF_NAME) | .tagName' | head -n 1)"
+                  if [ -z "$previous_tag" ]; then
+                    echo 'Failed to resolve a previous release tag for x64 upgrade validation.' >&2
+                    exit 1
+                  fi
+
+                  mkdir -p release/baseline-x64
+                  gh release download "$previous_tag" --pattern 'Gemini-Desktop-*-x64-installer.exe' --dir release/baseline-x64
+
+                  baseline_installer="$(compgen -G 'release/baseline-x64/Gemini-Desktop-*-x64-installer.exe' | head -n 1 || true)"
+                  if [ -z "$baseline_installer" ]; then
+                    echo 'Failed to download a previous x64 installer for upgrade validation.' >&2
+                    exit 1
+                  fi
+
+                  {
+                    printf 'TARGET_VERSION=%s\n' "${GITHUB_REF_NAME#v}"
+                    printf 'WINDOWS_BASELINE_INSTALLER=%s\n' "$baseline_installer"
+                    printf 'WINDOWS_BASELINE_VERSION=%s\n' "${previous_tag#v}"
+                  } >> "$GITHUB_ENV"
+              shell: bash
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Install promoted Windows installer for smoke lane
+              run: |
+                  $installer = Get-ChildItem -Path release/Gemini-Desktop-*-installer.exe -File | Where-Object { $_.Name -notlike '*-x64-installer.exe' -and $_.Name -notlike '*-arm64-installer.exe' } | Select-Object -First 1 -ExpandProperty FullName
+                  if (-not $installer) { throw 'Promoted unified installer not found for installer smoke lane.' }
+                  ./scripts/windows/install-and-launch.ps1 -InstallerPath $installer -InstallDir "$env:TEMP\gemini-desktop-installer-smoke\Gemini Desktop"
+              shell: pwsh
+
+            - name: Run Windows installer smoke test (x64)
+              run: npm run test:e2e:release:installer -- --spec=tests/e2e/release/windows-installer-smoke.spec.ts
+              shell: bash
+              timeout-minutes: 30
+
+            - name: Install previous x64 baseline build
+              run: |
+                  if (-not $env:WINDOWS_BASELINE_INSTALLER) { throw 'WINDOWS_BASELINE_INSTALLER was not set for x64 upgrade validation.' }
+                  ./scripts/windows/install-and-launch.ps1 -InstallerPath $env:WINDOWS_BASELINE_INSTALLER -InstallDir "$env:TEMP\gemini-desktop-installer-smoke\Gemini Desktop" -SkipLaunch
+              shell: pwsh
+
+            - name: Upgrade baseline install to promoted Windows installer (x64)
+              run: |
+                  $installer = Get-ChildItem -Path release/Gemini-Desktop-*-installer.exe -File | Where-Object { $_.Name -notlike '*-x64-installer.exe' -and $_.Name -notlike '*-arm64-installer.exe' } | Select-Object -First 1 -ExpandProperty FullName
+                  if (-not $installer) { throw 'Promoted unified installer not found for x64 upgrade validation.' }
+                  ./scripts/windows/install-and-launch.ps1 -InstallerPath $installer -InstallDir "$env:TEMP\gemini-desktop-installer-smoke\Gemini Desktop"
+              shell: pwsh
+
+            - name: Run Windows installer upgrade test (x64)
+              run: npm run test:e2e:release:installer -- --spec=tests/e2e/release/windows-upgrade-x64.spec.ts
+              shell: bash
+              timeout-minutes: 30
+              env:
+                  TARGET_VERSION: ${{ env.TARGET_VERSION }}
+                  WINDOWS_BASELINE_INSTALLER: ${{ env.WINDOWS_BASELINE_INSTALLER }}
+                  WINDOWS_BASELINE_VERSION: ${{ env.WINDOWS_BASELINE_VERSION }}
+
             - name: Prepare Windows update metadata (x64)
               run: |
                   cd release
-                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
+                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated by the x64 updater lane.' }
                   Copy-Item -Path latest.yml -Destination latest-x64.yml -Force
                   # TODO(v0.10.x cleanup): Remove legacy x64.yml/arm64.yml aliases after ~3-4 releases past v0.10.1,
                   # once the installed base has moved off v0.10.0 and no longer requests arch-only channel files.
                   Copy-Item -Path latest-x64.yml -Destination x64.yml -Force
               shell: pwsh
 
-            - name: Generate Checksums
+            - name: Generate Checksums (x64 lane)
               run: |
                   cd release
-                  $files = @(Get-ChildItem -Path *.exe -File)
-                  if ($files.Count -eq 0) { throw 'No .exe files found in release/ for checksum generation.' }
-                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
+                  $files = @(Get-ChildItem -Path 'Gemini-Desktop-*-installer.exe' -File | Where-Object { $_.Name -notlike '*-arm64-installer.exe' })
+                  if ($files.Count -lt 2) { throw 'Expected the x64 lane to own both the x64 updater installer and promoted unified installer.' }
+                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows-x64.txt
+              shell: pwsh
+
+            - name: Validate Windows update metadata (x64)
+              run: node scripts/validate-windows-release-metadata.cjs --lane x64 --release-dir release
+              shell: bash
+
+            - name: Prepare validated upload set (x64)
+              run: |
+                  $manifest = Get-Content release/windows-release-manifest-x64.json | ConvertFrom-Json
+                  $uploadDir = Join-Path release upload-x64
+                  New-Item -ItemType Directory -Force -Path $uploadDir | Out-Null
+                  foreach ($file in $manifest.uploadFiles) {
+                    Copy-Item -Path (Join-Path release $file) -Destination (Join-Path $uploadDir (Split-Path $file -Leaf)) -Force
+                  }
               shell: pwsh
 
             - name: Upload to GitHub Release
@@ -258,12 +345,7 @@ jobs:
                   draft: true
                   fail_on_unmatched_files: true
                   files: |
-                      release/*.exe
-                      release/*.exe.blockmap
-                      release/latest.yml
-                      release/latest-x64.yml
-                      release/x64.yml
-                      release/checksums-windows.txt
+                      release/upload-x64/*
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -309,8 +391,8 @@ jobs:
                   name: electron-dist
                   path: dist-electron/
 
-            - name: Build (without publish)
-              run: npm run dist:win-arm64
+            - name: Build Windows arm64 updater installer
+              run: npm run dist:win:bridge:arm64
               shell: bash
               env:
                   AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
@@ -321,28 +403,42 @@ jobs:
                   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
                   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-            - name: Run Release E2E Tests
-              run: npm run test:e2e:release
-              shell: bash
-              timeout-minutes: 30
-
             - name: Prepare Windows update metadata (arm64)
               run: |
                   cd release
-                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
+                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated by the arm64 updater lane.' }
                   # TODO(v0.10.x cleanup): Remove legacy x64.yml/arm64.yml aliases after ~3-4 releases past v0.10.1,
                   # once the installed base has moved off v0.10.0 and no longer requests arch-only channel files.
                   Copy-Item -Path latest.yml -Destination latest-arm64.yml -Force
                   Copy-Item -Path latest-arm64.yml -Destination arm64.yml -Force
-                  Remove-Item -Path latest.yml -Force
               shell: pwsh
 
-            - name: Generate Checksums
+            - name: Generate Checksums (arm64 lane)
               run: |
                   cd release
-                  $files = @(Get-ChildItem -Path *.exe -File)
-                  if ($files.Count -eq 0) { throw 'No .exe files found in release/ for checksum generation.' }
+                  $files = @(Get-ChildItem -Path '*-arm64-installer.exe' -File)
+                  if ($files.Count -eq 0) { throw 'No ARM64 installer files found in release/ for checksum generation.' }
                   $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows-arm64.txt
+              shell: pwsh
+
+            - name: Validate Windows update metadata (arm64)
+              run: node scripts/validate-windows-release-metadata.cjs --lane arm64 --release-dir release
+              shell: bash
+
+            - name: Attach ARM64 validation gate reminder
+              run: |
+                  Write-Host 'ARM64 validation must run on Windows-on-ARM hardware or a documented manual gate before publication.'
+                  Write-Host 'Keep the GitHub release draft until ARM64 evidence is attached.'
+              shell: pwsh
+
+            - name: Prepare validated upload set (arm64)
+              run: |
+                  $manifest = Get-Content release/windows-release-manifest-arm64.json | ConvertFrom-Json
+                  $uploadDir = Join-Path release upload-arm64
+                  New-Item -ItemType Directory -Force -Path $uploadDir | Out-Null
+                  foreach ($file in $manifest.uploadFiles) {
+                    Copy-Item -Path (Join-Path release $file) -Destination (Join-Path $uploadDir (Split-Path $file -Leaf)) -Force
+                  }
               shell: pwsh
 
             - name: Upload to GitHub Release
@@ -351,11 +447,7 @@ jobs:
                   draft: true
                   fail_on_unmatched_files: true
                   files: |
-                      release/*.exe
-                      release/*.exe.blockmap
-                      release/latest-arm64.yml
-                      release/arm64.yml
-                      release/checksums-windows-arm64.txt
+                      release/upload-arm64/*
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
