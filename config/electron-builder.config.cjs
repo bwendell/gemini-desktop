@@ -63,10 +63,6 @@ module.exports = {
                 target: 'nsis',
                 arch: ['x64', 'arm64'],
             },
-            {
-                target: 'msi',
-                arch: ['x64', 'arm64'],
-            },
         ],
         icon: 'build/icon.png',
         artifactName: 'Gemini-Desktop-${version}-${arch}.${ext}',
