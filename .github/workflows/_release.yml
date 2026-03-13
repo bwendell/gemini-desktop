@@ -247,8 +247,8 @@ jobs:
             - name: Generate Checksums
               run: |
                   cd release
-                  $files = @(Get-ChildItem -Path *.exe -File) + @(Get-ChildItem -Path *.msi -File)
-                  if ($files.Count -eq 0) { throw 'No .exe or .msi files found in release/ for checksum generation.' }
+                  $files = @(Get-ChildItem -Path *.exe -File)
+                  if ($files.Count -eq 0) { throw 'No .exe files found in release/ for checksum generation.' }
                   $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
               shell: pwsh
 
@@ -259,7 +259,6 @@ jobs:
                   fail_on_unmatched_files: true
                   files: |
                       release/*.exe
-                      release/*.msi
                       release/*.exe.blockmap
                       release/latest.yml
                       release/latest-x64.yml
@@ -341,8 +340,8 @@ jobs:
             - name: Generate Checksums
               run: |
                   cd release
-                  $files = @(Get-ChildItem -Path *.exe -File) + @(Get-ChildItem -Path *.msi -File)
-                  if ($files.Count -eq 0) { throw 'No .exe or .msi files found in release/ for checksum generation.' }
+                  $files = @(Get-ChildItem -Path *.exe -File)
+                  if ($files.Count -eq 0) { throw 'No .exe files found in release/ for checksum generation.' }
                   $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows-arm64.txt
               shell: pwsh
 
@@ -353,7 +352,6 @@ jobs:
                   fail_on_unmatched_files: true
                   files: |
                       release/*.exe
-                      release/*.msi
                       release/*.exe.blockmap
                       release/latest-arm64.yml
                       release/arm64.yml
