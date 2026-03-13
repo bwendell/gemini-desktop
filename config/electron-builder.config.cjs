@@ -5,27 +5,36 @@
 const explicitBuildArch = process.env.npm_config_arch || process.env.BUILD_ARCH;
 const buildArch = explicitBuildArch || process.arch;
 const buildPlatform = process.env.BUILD_PLATFORM || process.platform;
+const buildWindowsUnified = process.env.BUILD_WINDOWS_UNIFIED === 'true';
 const isWindowsBuild = buildPlatform === 'win32';
-const windowsBinaryExclusions = isWindowsBuild
-    ? buildArch === 'arm64'
-        ? [
-              '!node_modules/@node-llama-cpp/win-x64',
-              '!node_modules/@node-llama-cpp/win-x64-cuda',
-              '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
-              '!node_modules/@node-llama-cpp/win-x64-vulkan',
-          ]
-        : ['!node_modules/@node-llama-cpp/win-arm64']
-    : [
-          '!node_modules/@node-llama-cpp/win-arm64',
-          '!node_modules/@node-llama-cpp/win-x64',
-          '!node_modules/@node-llama-cpp/win-x64-cuda',
-          '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
-          '!node_modules/@node-llama-cpp/win-x64-vulkan',
-      ];
+const resolvedWindowsArchTargets = buildWindowsUnified ? ['x64', 'arm64'] : [buildArch === 'arm64' ? 'arm64' : 'x64'];
+const windowsBinaryExclusions = buildWindowsUnified
+    ? []
+    : isWindowsBuild
+      ? buildArch === 'arm64'
+          ? [
+                '!node_modules/@node-llama-cpp/win-x64',
+                '!node_modules/@node-llama-cpp/win-x64-cuda',
+                '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+                '!node_modules/@node-llama-cpp/win-x64-vulkan',
+            ]
+          : ['!node_modules/@node-llama-cpp/win-arm64']
+      : [
+            '!node_modules/@node-llama-cpp/win-arm64',
+            '!node_modules/@node-llama-cpp/win-x64',
+            '!node_modules/@node-llama-cpp/win-x64-cuda',
+            '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+            '!node_modules/@node-llama-cpp/win-x64-vulkan',
+        ];
 
 module.exports = {
     appId: 'com.benwendell.gemini-desktop',
     productName: 'Gemini Desktop',
+
+    // Phase A bridge release contract:
+    // - promoted installer: Gemini-Desktop-${version}-installer.${ext}
+    // - compatibility metadata: latest-x64.yml, latest-arm64.yml, x64.yml, arm64.yml
+    // - remaining arch-scoped installers are internal-only fixtures when BUILD_WINDOWS_UNIFIED is disabled
 
     directories: {
         output: 'release',
@@ -61,7 +70,7 @@ module.exports = {
         target: [
             {
                 target: 'nsis',
-                arch: ['x64', 'arm64'],
+                arch: resolvedWindowsArchTargets,
             },
         ],
         icon: 'build/icon.png',
@@ -87,7 +96,11 @@ module.exports = {
         createDesktopShortcut: true,
         createStartMenuShortcut: true,
         perMachine: false,
-        artifactName: 'Gemini-Desktop-${version}-${arch}-installer.${ext}',
+        runAfterFinish: false,
+        buildUniversalInstaller: buildWindowsUnified,
+        artifactName: buildWindowsUnified
+            ? 'Gemini-Desktop-${version}-installer.${ext}'
+            : 'Gemini-Desktop-${version}-${arch}-installer.${ext}',
     },
     mac: {
         target: ['dmg', 'zip'],
