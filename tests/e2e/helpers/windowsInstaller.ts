@@ -34,21 +34,11 @@ export function findUnifiedInstallerPath(): string {
     return path.join(getReleaseDir(), installer);
 }
 
-export function findArchInstallerPath(arch: 'x64' | 'arm64'): string {
-    const installer = listInstallers().find((entry) => entry.includes(`-${arch}-installer.exe`));
-    if (!installer) {
-        throw new Error(`${arch} installer was not found in release/`);
-    }
-
-    return path.join(getReleaseDir(), installer);
-}
-
 export function installWindowsArtifact(installerPath: string, installDir = WINDOWS_INSTALL_DIR): void {
     if (process.platform !== 'win32') {
         return;
     }
 
-    const scriptPath = path.resolve(process.cwd(), 'scripts/windows/install-and-launch.ps1');
     fs.mkdirSync(path.dirname(installDir), { recursive: true });
 
     const result = spawnSync(
@@ -57,12 +47,12 @@ export function installWindowsArtifact(installerPath: string, installDir = WINDO
             '-NoProfile',
             '-ExecutionPolicy',
             'Bypass',
-            '-File',
-            scriptPath,
-            '-InstallerPath',
-            installerPath,
-            '-InstallDir',
-            installDir,
+            '-Command',
+            `$ErrorActionPreference = 'Stop'; $installer = ${JSON.stringify(installerPath)}; $installDir = ${JSON.stringify(installDir)}; ` +
+                `if (-not (Test-Path $installer)) { throw "Installer not found: $installer" }; ` +
+                `New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($installDir)) | Out-Null; ` +
+                `$result = Start-Process -FilePath $installer -ArgumentList @('/S', "/D=$installDir") -Wait -PassThru; ` +
+                `if ($result.ExitCode -ne 0) { throw "Installer exited with code $($result.ExitCode)" }`,
         ],
         {
             stdio: 'inherit',
@@ -72,15 +62,6 @@ export function installWindowsArtifact(installerPath: string, installDir = WINDO
     if (result.status !== 0) {
         throw new Error(`Installer smoke failed for ${installerPath}`);
     }
-}
-
-export function installHistoricalWindowsBuild(arch: 'x64' | 'arm64'): void {
-    const baselineInstaller = process.env.WINDOWS_BASELINE_INSTALLER;
-    if (!baselineInstaller) {
-        throw new Error(`WINDOWS_BASELINE_INSTALLER is required for ${arch} upgrade validation`);
-    }
-
-    installWindowsArtifact(baselineInstaller);
 }
 
 export function getInstalledWindowsAppPath(): string {
