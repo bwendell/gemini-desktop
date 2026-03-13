@@ -49,9 +49,8 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ### Windows
 
-- **Unified installer (recommended)**: `Gemini-Desktop-x.x.x-installer.exe`
-- **Updater compatibility metadata**: existing installs continue to request `latest-x64.yml`, `latest-arm64.yml`, `x64.yml`, and `arm64.yml` during the Phase A bridge release.
-- **Phase B cutover**: `x64.yml` and `arm64.yml` remain in place until at least one bridge release proves stable ARM64 validation and the project explicitly promotes `latest.yml` as the primary Windows updater channel.
+- **x64 (Intel/AMD)**: `Gemini-Desktop-x.x.x-installer.exe`
+- **ARM64 (Snapdragon/Qualcomm)**: `Gemini-Desktop-x.x.x-installer.exe`
 
 ### macOS
 
