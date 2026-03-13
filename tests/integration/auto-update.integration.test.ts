@@ -50,6 +50,14 @@ describe('Auto-Update Integration', () => {
             await expect(browser.execute(() => window.electronAPI.checkForUpdates())).resolves.not.toThrow();
         });
 
+        it('keeps Windows updater channels stable while release metadata points to the unified installer', async () => {
+            await browser.execute(() => {
+                window.electronAPI.devMockPlatform('win32', { TEST_AUTO_UPDATE: 'true' });
+            });
+
+            await expect(browser.execute(() => window.electronAPI.checkForUpdates())).resolves.not.toThrow();
+        });
+
         it('should handle update check errors correctly', async () => {
             // 1. Setup listener in renderer
             await browser.execute(() => {
