@@ -49,8 +49,8 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ### Windows
 
-- **x64 (Intel/AMD)**: `Gemini-Desktop-x.x.x-x64-installer.exe`
-- **ARM64 (Snapdragon/Qualcomm)**: `Gemini-Desktop-x.x.x-arm64-installer.exe`
+- **x64 (Intel/AMD)**: `Gemini-Desktop-x.x.x-installer.exe`
+- **ARM64 (Snapdragon/Qualcomm)**: `Gemini-Desktop-x.x.x-installer.exe`
 
 ### macOS
 

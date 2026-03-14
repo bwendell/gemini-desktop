@@ -191,7 +191,7 @@ describe('UpdateManager', () => {
         expect(autoUpdater.checkForUpdatesAndNotify).toHaveBeenCalled();
     });
 
-    it('uses the latest-x64 update channel on Windows', async () => {
+    it('keeps latest-x64 as the Windows x64 bridge channel during unified installer rollout', async () => {
         (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettingsStore);
 
@@ -201,7 +201,7 @@ describe('UpdateManager', () => {
         expect(autoUpdater.allowDowngrade).toBe(false);
     });
 
-    it('uses the latest-arm64 update channel on Windows arm64', async () => {
+    it('keeps latest-arm64 as the Windows ARM64 bridge channel during unified installer rollout', async () => {
         Object.defineProperty(process, 'arch', { value: 'arm64', configurable: true });
         (app as any).isPackaged = true;
         updateManager = new UpdateManager(mockSettingsStore);
