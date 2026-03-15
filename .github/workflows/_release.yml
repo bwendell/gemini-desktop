@@ -1,25 +1,13 @@
-# =============================================================================
-# Atomic Release Workflow (Reusable)
-# =============================================================================
-#
-# This reusable workflow handles the packaging and publishing process.
-#
-# Strategy: Build with --publish never, then upload via softprops/action-gh-release
-# This avoids electron-builder's buggy GitHub upload mechanism that causes
-# "already_exists" errors on blockmap files.
-#
-# =============================================================================
-
 name: Release (Reusable)
 
 on:
     workflow_call:
+        inputs:
+            publish:
+                required: false
+                type: boolean
+                default: true
 
-# =============================================================================
-# Permissions
-# =============================================================================
-# Restrict default GITHUB_TOKEN permissions (OpenSSF Scorecard best practice)
-# Jobs declare their own permissions as needed
 permissions: {}
 
 env:
@@ -31,22 +19,21 @@ env:
     npm_config_fetch_retry_maxtimeout: '60000'
 
 jobs:
-    # ==========================================================================
-    # macOS x64 Build
-    # ==========================================================================
     macos-x64:
         name: macOS (x64)
         runs-on: macos-latest
         permissions:
-            contents: write # Required for release upload
+            contents: write
         env:
             npm_config_arch: x64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                  ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v4
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -57,13 +44,13 @@ jobs:
                   command: npm ci --prefer-offline
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -86,7 +73,8 @@ jobs:
                   mv latest-mac.yml latest-mac-x64.yml
 
             - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
+              if: ${{ inputs.publish }}
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -100,29 +88,28 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
               with:
                   name: release-artifacts-macos-x64
                   path: release/
                   retention-days: 7
                   if-no-files-found: error
 
-    # ==========================================================================
-    # macOS arm64 Build
-    # ==========================================================================
     macos-arm64:
         name: macOS (arm64)
         runs-on: macos-latest
         permissions:
-            contents: write # Required for release upload
+            contents: write
         env:
             npm_config_arch: arm64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                  ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v4
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -133,13 +120,13 @@ jobs:
                   command: npm ci --prefer-offline
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -162,7 +149,8 @@ jobs:
                   mv latest-mac.yml latest-mac-arm64.yml
 
             - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
+              if: ${{ inputs.publish }}
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -176,29 +164,40 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
               with:
                   name: release-artifacts-macos-arm64
                   path: release/
                   retention-days: 7
                   if-no-files-found: error
 
-    windows-x64:
-        name: Windows (x64)
+    windows-build:
+        name: Windows Build
         runs-on: windows-latest
         permissions:
-            contents: write # Required for release upload
-        env:
-            npm_config_arch: x64
+            contents: read
+        outputs:
+            release_version: ${{ steps.release_version.outputs.value }}
+            windows_upload_files: ${{ steps.prepare_windows.outputs.windows_upload_files }}
+            promoted_installer_name: ${{ steps.capture_windows.outputs.promoted_installer_name }}
+            windows_manifest_path: ${{ steps.capture_windows.outputs.windows_manifest_path }}
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                  ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v4
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
+
+            - name: Resolve release version
+              id: release_version
+              run: |
+                  node -e "const packageJson = require('./package.json'); require('node:fs').appendFileSync(process.env.GITHUB_OUTPUT, `value=${packageJson.version}\n`);"
+              shell: bash
 
             - name: Install Dependencies
               uses: ./.github/actions/retry-command
@@ -206,19 +205,19 @@ jobs:
                   command: npm ci --prefer-offline
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
                   name: electron-dist
                   path: dist-electron/
 
             - name: Build (without publish)
-              run: npm run dist:win-x64
+              run: npm run dist:win
               shell: bash
               env:
                   AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
@@ -229,65 +228,45 @@ jobs:
                   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
                   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-            - name: Run Release E2E Tests
+            - name: Run packaged release validation
               run: npm run test:e2e:release
               shell: bash
               timeout-minutes: 30
 
-            - name: Prepare Windows update metadata (x64)
+            - name: Prepare Windows release assets
+              id: prepare_windows
               run: |
-                  cd release
-                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
-                  Copy-Item -Path latest.yml -Destination latest-x64.yml -Force
-                  # TODO(v0.10.x cleanup): Remove legacy x64.yml/arm64.yml aliases after ~3-4 releases past v0.10.1,
-                  # once the installed base has moved off v0.10.0 and no longer requests arch-only channel files.
-                  Copy-Item -Path latest-x64.yml -Destination x64.yml -Force
-              shell: pwsh
+                  node scripts/release/prepare-windows-release-assets.cjs --release-dir release --version "${{ steps.release_version.outputs.value }}" --github-output "$GITHUB_OUTPUT"
+              shell: bash
 
-            - name: Generate Checksums
+            - name: Capture Windows build outputs
+              id: capture_windows
               run: |
-                  cd release
-                  $files = @(Get-ChildItem -Path *.exe -File)
-                  if ($files.Count -eq 0) { throw 'No .exe files found in release/ for checksum generation.' }
-                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
-              shell: pwsh
+                  node -e "const fs=require('node:fs'); const path=require('node:path'); const manifestPath=path.resolve('release/windows-release-manifest.json'); const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8')); const expectedUploadFiles=[`release/${manifest.promotedInstallerName}`,`release/${manifest.promotedBlockmapName}`,'release/latest.yml','release/latest-x64.yml','release/latest-arm64.yml','release/x64.yml','release/arm64.yml','release/checksums-windows.txt']; if (JSON.stringify(manifest.windowsUploadFiles)!==JSON.stringify(expectedUploadFiles)) { throw new Error(`Unexpected windowsUploadFiles order: ${JSON.stringify(manifest.windowsUploadFiles)}`); } fs.appendFileSync(process.env.GITHUB_OUTPUT, `promoted_installer_name=${manifest.promotedInstallerName}\n`); fs.appendFileSync(process.env.GITHUB_OUTPUT, 'windows_manifest_path=release/windows-release-manifest.json\n');"
+              shell: bash
 
-            - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
+            - name: Upload Windows workflow artifacts
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
               with:
-                  draft: true
-                  fail_on_unmatched_files: true
-                  files: |
-                      release/*.exe
-                      release/*.exe.blockmap
-                      release/latest.yml
-                      release/latest-x64.yml
-                      release/x64.yml
-                      release/checksums-windows.txt
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            - name: Upload Build Artifacts
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
-              with:
-                  name: release-artifacts-windows-x64
+                  name: release-artifacts-windows
                   path: release/
                   retention-days: 7
                   if-no-files-found: error
 
-    windows-arm64:
-        name: Windows (arm64)
+    windows-validate-x64:
+        name: Windows Validate (x64)
+        needs: windows-build
         runs-on: windows-latest
         permissions:
-            contents: write # Required for release upload
-        env:
-            npm_config_arch: arm64
+            contents: read
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                  ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v4
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -297,90 +276,175 @@ jobs:
               with:
                   command: npm ci --prefer-offline
 
-            - name: Download Frontend Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+            - name: Download Windows workflow artifact
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
-                  name: frontend-dist
-                  path: dist/
+                  name: release-artifacts-windows
+                  path: release/
 
-            - name: Download Electron Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
-              with:
-                  name: electron-dist
-                  path: dist-electron/
-
-            - name: Build (without publish)
-              run: npm run dist:win-arm64
-              shell: bash
-              env:
-                  AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
-                  AZURE_PUBLISHER_NAME: ${{ secrets.AZURE_PUBLISHER_NAME }}
-                  AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
-                  AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
-                  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-                  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-                  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-
-            - name: Run Release E2E Tests
-              run: npm run test:e2e:release
-              shell: bash
-              timeout-minutes: 30
-
-            - name: Prepare Windows update metadata (arm64)
+            - name: Resolve x64 baseline installer
+              id: resolve_baseline
               run: |
-                  cd release
-                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
-                  # TODO(v0.10.x cleanup): Remove legacy x64.yml/arm64.yml aliases after ~3-4 releases past v0.10.1,
-                  # once the installed base has moved off v0.10.0 and no longer requests arch-only channel files.
-                  Copy-Item -Path latest.yml -Destination latest-arm64.yml -Force
-                  Copy-Item -Path latest-arm64.yml -Destination arm64.yml -Force
-                  Remove-Item -Path latest.yml -Force
-              shell: pwsh
-
-            - name: Generate Checksums
-              run: |
-                  cd release
-                  $files = @(Get-ChildItem -Path *.exe -File)
-                  if ($files.Count -eq 0) { throw 'No .exe files found in release/ for checksum generation.' }
-                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows-arm64.txt
-              shell: pwsh
-
-            - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
-              with:
-                  draft: true
-                  fail_on_unmatched_files: true
-                  files: |
-                      release/*.exe
-                      release/*.exe.blockmap
-                      release/latest-arm64.yml
-                      release/arm64.yml
-                      release/checksums-windows-arm64.txt
+                  node scripts/release/resolve-windows-baseline-installer.cjs --lane x64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --download-dir release/baseline-x64 --github-output "$GITHUB_OUTPUT"
+              shell: bash
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Upload Build Artifacts
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
-              with:
-                  name: release-artifacts-windows-arm64
-                  path: release/
-                  retention-days: 7
-                  if-no-files-found: error
+            - name: Install promoted x64 candidate
+              run: |
+                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-smoke-x64 --result-path release/installer-smoke-manifest.json
+              shell: bash
 
-    # ==========================================================================
-    # Linux Build
-    # ==========================================================================
+            - name: Run x64 installer smoke spec
+              run: npm run test:e2e:release:installer -- --spec=tests/e2e/release/windows-installer-smoke.spec.ts
+              shell: bash
+              env:
+                  EXPECTED_WINDOWS_ARCH: x64
+                  TARGET_VERSION: ${{ needs.windows-build.outputs.release_version }}
+
+            - name: Install baseline x64 build
+              shell: pwsh
+              env:
+                  BASELINE_INSTALLER_PATH: ${{ steps.resolve_baseline.outputs.baseline_installer }}
+              run: |
+                  New-Item -ItemType Directory -Force -Path '.wdio-test-data/windows-upgrade-x64' | Out-Null
+                  $installRoot = (Resolve-Path '.wdio-test-data/windows-upgrade-x64').Path
+                  Start-Process -FilePath $env:BASELINE_INSTALLER_PATH -ArgumentList '/S', "/D=$installRoot" -Wait
+
+            - name: Upgrade x64 baseline to promoted installer
+              run: |
+                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-upgrade-x64 --result-path release/installer-smoke-manifest.json
+              shell: bash
+
+            - name: Run x64 upgrade spec
+              run: npm run test:e2e:release:installer -- --spec=tests/e2e/release/windows-upgrade-x64.spec.ts
+              shell: bash
+              env:
+                  BASELINE_INSTALLER_PATH: ${{ steps.resolve_baseline.outputs.baseline_installer }}
+                  BASELINE_VERSION: ${{ steps.resolve_baseline.outputs.baseline_version }}
+                  TARGET_VERSION: ${{ needs.windows-build.outputs.release_version }}
+
+    windows-validate-arm64:
+        name: Windows Validate (arm64)
+        needs: windows-build
+        runs-on: windows-11-arm
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                  ref: ${{ github.sha }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+
+            - name: Install Dependencies
+              uses: ./.github/actions/retry-command
+              with:
+                  command: npm ci --prefer-offline
+
+            - name: Preflight windows-11-arm runner
+              shell: pwsh
+              run: |
+                  Write-Host "Runner OS: $env:ImageOS"
+                  Write-Host "Runner Version: $env:ImageVersion"
+                  node --version
+                  npm --version
+
+            - name: Suppress Windows 11 privacy dialog host
+              shell: pwsh
+              run: |
+                  # The hosted windows-11-arm image can surface a first-run privacy dialog that steals focus from GUI automation.
+                  Stop-Process -Name "WWAHost" -ErrorAction SilentlyContinue
+
+            - name: Download Windows workflow artifact
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+              with:
+                  name: release-artifacts-windows
+                  path: release/
+
+            - name: Resolve arm64 baseline installer
+              id: resolve_baseline
+              run: |
+                  node scripts/release/resolve-windows-baseline-installer.cjs --lane arm64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --download-dir release/baseline-arm64 --github-output "$GITHUB_OUTPUT"
+              shell: bash
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Install promoted arm64 candidate
+              run: |
+                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-smoke-arm64 --result-path release/installer-smoke-manifest.json
+              shell: bash
+
+            - name: Run arm64 installer smoke spec
+              run: npm run test:e2e:release:installer -- --spec=tests/e2e/release/windows-installer-smoke.spec.ts
+              shell: bash
+              env:
+                  EXPECTED_WINDOWS_ARCH: arm64
+                  TARGET_VERSION: ${{ needs.windows-build.outputs.release_version }}
+
+            - name: Install baseline arm64 build
+              shell: pwsh
+              env:
+                  BASELINE_INSTALLER_PATH: ${{ steps.resolve_baseline.outputs.baseline_installer }}
+              run: |
+                  New-Item -ItemType Directory -Force -Path '.wdio-test-data/windows-upgrade-arm64' | Out-Null
+                  $installRoot = (Resolve-Path '.wdio-test-data/windows-upgrade-arm64').Path
+                  Start-Process -FilePath $env:BASELINE_INSTALLER_PATH -ArgumentList '/S', "/D=$installRoot" -Wait
+
+            - name: Upgrade arm64 baseline to promoted installer
+              run: |
+                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-upgrade-arm64 --result-path release/installer-smoke-manifest.json
+              shell: bash
+
+            - name: Run arm64 upgrade spec
+              run: npm run test:e2e:release:installer -- --spec=tests/e2e/release/windows-upgrade-arm64.spec.ts
+              shell: bash
+              env:
+                  BASELINE_INSTALLER_PATH: ${{ steps.resolve_baseline.outputs.baseline_installer }}
+                  BASELINE_VERSION: ${{ steps.resolve_baseline.outputs.baseline_version }}
+                  TARGET_VERSION: ${{ needs.windows-build.outputs.release_version }}
+
+    windows-publish:
+        name: Windows Publish
+        needs: [windows-build, windows-validate-x64, windows-validate-arm64]
+        runs-on: windows-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Download Windows workflow artifact
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+              with:
+                  name: release-artifacts-windows
+                  path: release/
+
+            - name: Upload Windows release assets
+              if: ${{ inputs.publish }}
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
+              with:
+                  draft: true
+                  fail_on_unmatched_files: true
+                  files: ${{ needs.windows-build.outputs.windows_upload_files }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     linux:
         name: Linux (x64)
         runs-on: ubuntu-latest
         permissions:
-            contents: write # Required for release upload
+            contents: write
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                  ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v4
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -391,13 +455,13 @@ jobs:
                   command: npm ci --prefer-offline
 
             - name: Download Frontend Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
                   name: frontend-dist
                   path: dist/
 
             - name: Download Electron Build
-              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+              uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
               with:
                   name: electron-dist
                   path: dist-electron/
@@ -414,7 +478,8 @@ jobs:
                   sha256sum *.AppImage *.deb *.rpm *.tar.gz > checksums-linux.txt
 
             - name: Upload to GitHub Release
-              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
+              if: ${{ inputs.publish }}
+              uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -429,7 +494,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Upload Build Artifacts
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
+              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
               with:
                   name: release-artifacts-linux
                   path: release/

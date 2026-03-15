@@ -14,6 +14,12 @@ name: Manual Release
 
 on:
     workflow_dispatch:
+        inputs:
+            publish:
+                description: Publish release assets
+                required: false
+                type: boolean
+                default: true
 
 # =============================================================================
 # Permissions
@@ -40,4 +46,6 @@ jobs:
         permissions:
             contents: write
         uses: ./.github/workflows/_release.yml
+        with:
+            publish: ${{ inputs.publish }}
         secrets: inherit

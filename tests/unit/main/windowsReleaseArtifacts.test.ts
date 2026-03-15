@@ -19,12 +19,13 @@ describe('Windows release artifacts', () => {
         expect(targets).not.toContain('msi');
     });
 
-    it('does not upload or checksum MSI artifacts in the Windows release workflow', () => {
+    it('publishes Windows assets from one explicit build output list', () => {
+        expect(workflow).not.toContain('release/*.exe');
         expect(workflow).not.toContain('release/*.msi');
-        expect(workflow).not.toContain('Get-ChildItem -Path *.msi -File');
-        expect(workflow).toContain('release/*.exe');
-        expect(workflow).toContain('release/*.exe.blockmap');
+        expect(workflow).not.toContain('windows-release-manifest-x64.json');
+        expect(workflow).not.toContain('windows-release-manifest-arm64.json');
         expect(workflow).toContain('release/checksums-windows.txt');
-        expect(workflow).toContain('release/checksums-windows-arm64.txt');
+        expect(workflow).not.toContain('release/checksums-windows-arm64.txt');
+        expect(workflow).toContain('${{ needs.windows-build.outputs.windows_upload_files }}');
     });
 });
