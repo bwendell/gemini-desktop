@@ -242,7 +242,32 @@ jobs:
             - name: Capture Windows build outputs
               id: capture_windows
               run: |
-                  node -e "const fs=require('node:fs'); const path=require('node:path'); const manifestPath=path.resolve('release/windows-release-manifest.json'); const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8')); const expectedUploadFiles=[`release/${manifest.promotedInstallerName}`,`release/${manifest.promotedBlockmapName}`,'release/latest.yml','release/latest-x64.yml','release/latest-arm64.yml','release/x64.yml','release/arm64.yml','release/checksums-windows.txt']; if (JSON.stringify(manifest.windowsUploadFiles)!==JSON.stringify(expectedUploadFiles)) { throw new Error(`Unexpected windowsUploadFiles order: ${JSON.stringify(manifest.windowsUploadFiles)}`); } fs.appendFileSync(process.env.GITHUB_OUTPUT, `promoted_installer_name=${manifest.promotedInstallerName}\n`); fs.appendFileSync(process.env.GITHUB_OUTPUT, 'windows_manifest_path=release/windows-release-manifest.json\n');"
+                  node <<'EOF'
+                  const fs = require('node:fs');
+                  const path = require('node:path');
+
+                  const manifestPath = path.resolve('release/windows-release-manifest.json');
+                  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                  const expectedUploadFiles = [
+                      `release/${manifest.promotedInstallerName}`,
+                      `release/${manifest.promotedBlockmapName}`,
+                      'release/latest.yml',
+                      'release/latest-x64.yml',
+                      'release/latest-arm64.yml',
+                      'release/x64.yml',
+                      'release/arm64.yml',
+                      'release/checksums-windows.txt',
+                  ];
+
+                  if (JSON.stringify(manifest.windowsUploadFiles) !== JSON.stringify(expectedUploadFiles)) {
+                      throw new Error(
+                          `Unexpected windowsUploadFiles order: ${JSON.stringify(manifest.windowsUploadFiles)}`,
+                      );
+                  }
+
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `promoted_installer_name=${manifest.promotedInstallerName}\n`);
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, 'windows_manifest_path=release/windows-release-manifest.json\n');
+                  EOF
               shell: bash
 
             - name: Upload Windows workflow artifacts
