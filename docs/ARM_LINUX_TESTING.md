@@ -1,5 +1,8 @@
 # ARM Linux Headless Testing
 
+> **Target Audience**: AI agents and maintainers running automated Electron tests on headless ARM Linux hosts.
+> **Execution Mode**: Automation-friendly runbook. Use this for package setup, build prerequisites, and standard test commands.
+
 This document covers running End-to-End (E2E) tests on headless ARM Linux systems, specifically optimized for Oracle Linux, RHEL, and Rocky Linux.
 
 ## Prerequisites
@@ -14,7 +17,8 @@ sudo dnf install -y xorg-x11-server-Xvfb mesa-libgbm gtk3 libnotify libXScrnSave
 
 ## Quick Start
 
-Follow these steps to set up your environment and run the integration tests:
+Follow these steps to set up your environment and run the integration tests.
+If you are in a fresh git worktree, run `npm install` inside that worktree before any `npm run` command:
 
 ```bash
 # 1. Install dependencies
