@@ -25,4 +25,11 @@ describe('Windows release workflow topology', () => {
         expect(workflow).not.toContain('Attach ARM64 validation gate reminder');
         expect(workflow).toContain('release/windows-release-manifest.json');
     });
+
+    it('fails baseline installs when Windows installer processes exit non-zero', () => {
+        expect(workflow).toContain('Start-Process -FilePath $env:BASELINE_INSTALLER_PATH');
+        expect(workflow).toContain('-PassThru');
+        expect(workflow).toContain('Baseline x64 installer exited with code');
+        expect(workflow).toContain('Baseline arm64 installer exited with code');
+    });
 });

@@ -334,7 +334,10 @@ jobs:
               run: |
                   New-Item -ItemType Directory -Force -Path '.wdio-test-data/windows-upgrade-x64' | Out-Null
                   $installRoot = (Resolve-Path '.wdio-test-data/windows-upgrade-x64').Path
-                  Start-Process -FilePath $env:BASELINE_INSTALLER_PATH -ArgumentList '/S', "/D=$installRoot" -Wait
+                  $process = Start-Process -FilePath $env:BASELINE_INSTALLER_PATH -ArgumentList '/S', "/D=$installRoot" -Wait -PassThru
+                  if ($process.ExitCode -ne 0) {
+                    throw "Baseline x64 installer exited with code $($process.ExitCode)"
+                  }
 
             - name: Upgrade x64 baseline to promoted installer
               run: |
@@ -419,7 +422,10 @@ jobs:
               run: |
                   New-Item -ItemType Directory -Force -Path '.wdio-test-data/windows-upgrade-arm64' | Out-Null
                   $installRoot = (Resolve-Path '.wdio-test-data/windows-upgrade-arm64').Path
-                  Start-Process -FilePath $env:BASELINE_INSTALLER_PATH -ArgumentList '/S', "/D=$installRoot" -Wait
+                  $process = Start-Process -FilePath $env:BASELINE_INSTALLER_PATH -ArgumentList '/S', "/D=$installRoot" -Wait -PassThru
+                  if ($process.ExitCode -ne 0) {
+                    throw "Baseline arm64 installer exited with code $($process.ExitCode)"
+                  }
 
             - name: Upgrade arm64 baseline to promoted installer
               run: |
