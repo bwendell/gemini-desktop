@@ -7,24 +7,35 @@ const buildArch = explicitBuildArch || process.arch;
 const buildPlatform = process.env.BUILD_PLATFORM || process.platform;
 const isWindowsBuild = buildPlatform === 'win32';
 const isUnifiedWindowsBuild = process.env.BUILD_WINDOWS_UNIFIED === 'true';
-const windowsBinaryExclusions = isWindowsBuild
-    ? isUnifiedWindowsBuild
-        ? []
-        : buildArch === 'arm64'
-          ? [
-                '!node_modules/@node-llama-cpp/win-x64',
-                '!node_modules/@node-llama-cpp/win-x64-cuda',
-                '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
-                '!node_modules/@node-llama-cpp/win-x64-vulkan',
-            ]
-          : ['!node_modules/@node-llama-cpp/win-arm64']
-    : [
-          '!node_modules/@node-llama-cpp/win-arm64',
-          '!node_modules/@node-llama-cpp/win-x64',
-          '!node_modules/@node-llama-cpp/win-x64-cuda',
-          '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
-          '!node_modules/@node-llama-cpp/win-x64-vulkan',
-      ];
+
+function getWindowsBinaryExclusions() {
+    if (!isWindowsBuild) {
+        return [
+            '!node_modules/@node-llama-cpp/win-arm64',
+            '!node_modules/@node-llama-cpp/win-x64',
+            '!node_modules/@node-llama-cpp/win-x64-cuda',
+            '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+            '!node_modules/@node-llama-cpp/win-x64-vulkan',
+        ];
+    }
+
+    if (isUnifiedWindowsBuild) {
+        return [];
+    }
+
+    if (buildArch === 'arm64') {
+        return [
+            '!node_modules/@node-llama-cpp/win-x64',
+            '!node_modules/@node-llama-cpp/win-x64-cuda',
+            '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+            '!node_modules/@node-llama-cpp/win-x64-vulkan',
+        ];
+    }
+
+    return ['!node_modules/@node-llama-cpp/win-arm64'];
+}
+
+const windowsBinaryExclusions = getWindowsBinaryExclusions();
 
 module.exports = {
     appId: 'com.benwendell.gemini-desktop',

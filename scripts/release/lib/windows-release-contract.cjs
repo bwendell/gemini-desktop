@@ -12,14 +12,33 @@ function toReleaseContractPath(fileName) {
 }
 
 function computeInstallerInfo(installerPath) {
-    const installerBuffer = fs.readFileSync(installerPath);
+    const size = fs.statSync(installerPath).size;
+    const fileDescriptor = fs.openSync(installerPath, 'r');
+    const sha256 = crypto.createHash('sha256');
+    const sha512 = crypto.createHash('sha512');
+    const buffer = Buffer.allocUnsafe(1024 * 1024);
+
+    try {
+        let bytesRead = 0;
+
+        do {
+            bytesRead = fs.readSync(fileDescriptor, buffer, 0, buffer.length, null);
+            if (bytesRead > 0) {
+                const chunk = buffer.subarray(0, bytesRead);
+                sha256.update(chunk);
+                sha512.update(chunk);
+            }
+        } while (bytesRead > 0);
+    } finally {
+        fs.closeSync(fileDescriptor);
+    }
 
     return {
         installerPath,
         installerName: path.basename(installerPath),
-        size: installerBuffer.length,
-        sha256: crypto.createHash('sha256').update(installerBuffer).digest('hex'),
-        sha512: crypto.createHash('sha512').update(installerBuffer).digest('base64'),
+        size,
+        sha256: sha256.digest('hex'),
+        sha512: sha512.digest('base64'),
     };
 }
 

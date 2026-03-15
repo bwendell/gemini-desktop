@@ -122,6 +122,18 @@ describe('prepare-windows-release-assets', () => {
         expect(checksumContents).toContain(installerName);
     });
 
+    it('computes installer hashes and size without changing the public contract', () => {
+        const { discoverWindowsReleaseFiles } = loadWindowsReleaseContract();
+        const releaseDir = makeTempReleaseDir();
+        const { installerBuffer } = writeBaseReleaseFiles(releaseDir);
+
+        const result = discoverWindowsReleaseFiles(releaseDir, '0.12.0');
+
+        expect(result.size).toBe(installerBuffer.length);
+        expect(result.sha256).toBe(createHash('sha256').update(installerBuffer).digest('hex'));
+        expect(result.sha512).toBe(createHash('sha512').update(installerBuffer).digest('base64'));
+    });
+
     it('emits upload files without the internal manifest', () => {
         const { prepareWindowsReleaseAssets } = loadWindowsReleaseContract();
         const releaseDir = makeTempReleaseDir();

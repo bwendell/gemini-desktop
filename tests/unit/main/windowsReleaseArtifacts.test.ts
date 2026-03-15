@@ -28,4 +28,11 @@ describe('Windows release artifacts', () => {
         expect(workflow).not.toContain('release/checksums-windows-arm64.txt');
         expect(workflow).toContain('${{ needs.windows-build.outputs.windows_upload_files }}');
     });
+
+    it('keeps unified Windows binaries explicit in builder exclusions', () => {
+        expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/linux-x64');
+        expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/mac-arm64-metal');
+        expect(fs.readFileSync(configPath, 'utf8')).toContain('function getWindowsBinaryExclusions()');
+        expect(fs.readFileSync(configPath, 'utf8')).toContain('if (isUnifiedWindowsBuild)');
+    });
 });
