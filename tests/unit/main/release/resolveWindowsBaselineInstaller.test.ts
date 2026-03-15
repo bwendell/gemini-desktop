@@ -80,11 +80,25 @@ describe('resolve-windows-baseline-installer', () => {
         const result = selectBaselineAsset(
             [release('v0.11.0', ['Gemini-Desktop-0.11.0-installer.exe'])],
             'arm64',
-            'v0.12.0'
+            'v0.12.0',
+            '0.12.0'
         );
 
         expect(result.name).toBe('Gemini-Desktop-0.11.0-installer.exe');
         expect(result.kind).toBe('unified');
+    });
+
+    it('rejects releases that match the target version during branch validation', () => {
+        const { selectBaselineAsset } = loadResolver();
+
+        expect(() =>
+            selectBaselineAsset(
+                [release('v0.12.0', ['Gemini-Desktop-0.12.0-installer.exe'])],
+                'x64',
+                'feature/windows-unified-installer-remediation',
+                '0.12.0'
+            )
+        ).toThrow(/No acceptable baseline installer/i);
     });
 
     it('rejects x64-specific installers for the arm64 lane', () => {

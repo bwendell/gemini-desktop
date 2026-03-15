@@ -24,6 +24,10 @@ describe('Windows upgrade x64', () => {
             }
         }
 
+        if (process.env.BASELINE_VERSION === process.env.TARGET_VERSION) {
+            throw new Error('Windows x64 upgrade validation requires BASELINE_VERSION to differ from TARGET_VERSION.');
+        }
+
         const runtimeInfo = await browser.electron.execute((electron) => ({
             arch: process.arch,
             version: electron.app.getVersion(),

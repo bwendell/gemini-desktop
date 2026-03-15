@@ -196,7 +196,7 @@ jobs:
             - name: Resolve release version
               id: release_version
               run: |
-                  node -e "const packageJson = require('./package.json'); require('node:fs').appendFileSync(process.env.GITHUB_OUTPUT, `value=${packageJson.version}\n`);"
+                  node -e 'const packageJson = require("./package.json"); require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, `value=${packageJson.version}\n`);'
               shell: bash
 
             - name: Install Dependencies
@@ -285,7 +285,7 @@ jobs:
             - name: Resolve x64 baseline installer
               id: resolve_baseline
               run: |
-                  node scripts/release/resolve-windows-baseline-installer.cjs --lane x64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --download-dir release/baseline-x64 --github-output "$GITHUB_OUTPUT"
+                  node scripts/release/resolve-windows-baseline-installer.cjs --lane x64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --target-version "${{ needs.windows-build.outputs.release_version }}" --download-dir release/baseline-x64 --github-output "$GITHUB_OUTPUT"
               shell: bash
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -370,7 +370,7 @@ jobs:
             - name: Resolve arm64 baseline installer
               id: resolve_baseline
               run: |
-                  node scripts/release/resolve-windows-baseline-installer.cjs --lane arm64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --download-dir release/baseline-arm64 --github-output "$GITHUB_OUTPUT"
+                  node scripts/release/resolve-windows-baseline-installer.cjs --lane arm64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --target-version "${{ needs.windows-build.outputs.release_version }}" --download-dir release/baseline-arm64 --github-output "$GITHUB_OUTPUT"
               shell: bash
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

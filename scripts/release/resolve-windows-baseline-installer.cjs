@@ -29,9 +29,19 @@ function getBaselineKind(assetName) {
     return /-installer\.exe$/i.test(assetName) ? 'unified' : null;
 }
 
-function selectBaselineAsset(releases, lane, currentTag) {
+function normalizeVersion(value) {
+    return String(value || '').replace(/^v/i, '');
+}
+
+function selectBaselineAsset(releases, lane, currentTag, targetVersion) {
+    const normalizedCurrentTag = String(currentTag || '');
+    const normalizedTargetVersion = normalizeVersion(targetVersion);
     const eligibleReleases = releases.filter(
-        (release) => !release.draft && !release.prerelease && release.tag_name !== currentTag
+        (release) =>
+            !release.draft &&
+            !release.prerelease &&
+            release.tag_name !== normalizedCurrentTag &&
+            normalizeVersion(release.tag_name) !== normalizedTargetVersion
     );
 
     const preferredKind = lane === 'arm64' ? 'arm64-specific' : 'x64-specific';
@@ -110,13 +120,14 @@ async function runCli() {
     const repo = args.repo;
     const currentTag = args['current-tag'];
     const downloadDir = args['download-dir'];
+    const targetVersion = args['target-version'];
 
-    if (!lane || !repo || !currentTag || !downloadDir) {
-        throw new Error('Expected --lane, --repo, --current-tag, and --download-dir');
+    if (!lane || !repo || !currentTag || !downloadDir || !targetVersion) {
+        throw new Error('Expected --lane, --repo, --current-tag, --target-version, and --download-dir');
     }
 
     const releases = await queryReleases(repo, process.env.GITHUB_TOKEN);
-    const asset = selectBaselineAsset(releases, lane, currentTag);
+    const asset = selectBaselineAsset(releases, lane, currentTag, targetVersion);
     const baselineInstaller = await downloadBaselineAsset(asset, path.resolve(downloadDir), process.env.GITHUB_TOKEN);
 
     emitOutputs(args['github-output'], {
@@ -138,6 +149,7 @@ module.exports = {
     downloadBaselineAsset,
     emitOutputs,
     getBaselineKind,
+    normalizeVersion,
     parseArgs,
     queryReleases,
     runCli,
