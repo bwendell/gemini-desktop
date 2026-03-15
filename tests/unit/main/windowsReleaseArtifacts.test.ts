@@ -19,12 +19,20 @@ describe('Windows release artifacts', () => {
         expect(targets).not.toContain('msi');
     });
 
-    it('does not upload or checksum MSI artifacts in the Windows release workflow', () => {
+    it('publishes Windows assets from one explicit build output list', () => {
+        expect(workflow).not.toContain('release/*.exe');
         expect(workflow).not.toContain('release/*.msi');
-        expect(workflow).not.toContain('Get-ChildItem -Path *.msi -File');
-        expect(workflow).toContain('release/*.exe');
-        expect(workflow).toContain('release/*.exe.blockmap');
+        expect(workflow).not.toContain('windows-release-manifest-x64.json');
+        expect(workflow).not.toContain('windows-release-manifest-arm64.json');
         expect(workflow).toContain('release/checksums-windows.txt');
-        expect(workflow).toContain('release/checksums-windows-arm64.txt');
+        expect(workflow).not.toContain('release/checksums-windows-arm64.txt');
+        expect(workflow).toContain('${{ needs.windows-build.outputs.windows_upload_files }}');
+    });
+
+    it('keeps unified Windows binaries explicit in builder exclusions', () => {
+        expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/linux-x64');
+        expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/mac-arm64-metal');
+        expect(fs.readFileSync(configPath, 'utf8')).toContain('function getWindowsBinaryExclusions()');
+        expect(fs.readFileSync(configPath, 'utf8')).toContain('if (isUnifiedWindowsBuild)');
     });
 });

@@ -6,22 +6,36 @@ const explicitBuildArch = process.env.npm_config_arch || process.env.BUILD_ARCH;
 const buildArch = explicitBuildArch || process.arch;
 const buildPlatform = process.env.BUILD_PLATFORM || process.platform;
 const isWindowsBuild = buildPlatform === 'win32';
-const windowsBinaryExclusions = isWindowsBuild
-    ? buildArch === 'arm64'
-        ? [
-              '!node_modules/@node-llama-cpp/win-x64',
-              '!node_modules/@node-llama-cpp/win-x64-cuda',
-              '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
-              '!node_modules/@node-llama-cpp/win-x64-vulkan',
-          ]
-        : ['!node_modules/@node-llama-cpp/win-arm64']
-    : [
-          '!node_modules/@node-llama-cpp/win-arm64',
-          '!node_modules/@node-llama-cpp/win-x64',
-          '!node_modules/@node-llama-cpp/win-x64-cuda',
-          '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
-          '!node_modules/@node-llama-cpp/win-x64-vulkan',
-      ];
+const isUnifiedWindowsBuild = process.env.BUILD_WINDOWS_UNIFIED === 'true';
+
+function getWindowsBinaryExclusions() {
+    if (!isWindowsBuild) {
+        return [
+            '!node_modules/@node-llama-cpp/win-arm64',
+            '!node_modules/@node-llama-cpp/win-x64',
+            '!node_modules/@node-llama-cpp/win-x64-cuda',
+            '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+            '!node_modules/@node-llama-cpp/win-x64-vulkan',
+        ];
+    }
+
+    if (isUnifiedWindowsBuild) {
+        return [];
+    }
+
+    if (buildArch === 'arm64') {
+        return [
+            '!node_modules/@node-llama-cpp/win-x64',
+            '!node_modules/@node-llama-cpp/win-x64-cuda',
+            '!node_modules/@node-llama-cpp/win-x64-cuda-ext',
+            '!node_modules/@node-llama-cpp/win-x64-vulkan',
+        ];
+    }
+
+    return ['!node_modules/@node-llama-cpp/win-arm64'];
+}
+
+const windowsBinaryExclusions = getWindowsBinaryExclusions();
 
 module.exports = {
     appId: 'com.benwendell.gemini-desktop',
@@ -65,7 +79,9 @@ module.exports = {
             },
         ],
         icon: 'build/icon.png',
-        artifactName: 'Gemini-Desktop-${version}-${arch}.${ext}',
+        artifactName: isUnifiedWindowsBuild
+            ? 'Gemini-Desktop-${version}.${ext}'
+            : 'Gemini-Desktop-${version}-${arch}.${ext}',
         ...(process.env.AZURE_SIGN_ENDPOINT &&
         process.env.AZURE_CODE_SIGNING_ACCOUNT_NAME &&
         process.env.AZURE_CERT_PROFILE_NAME &&
@@ -87,7 +103,10 @@ module.exports = {
         createDesktopShortcut: true,
         createStartMenuShortcut: true,
         perMachine: false,
-        artifactName: 'Gemini-Desktop-${version}-${arch}-installer.${ext}',
+        buildUniversalInstaller: isUnifiedWindowsBuild,
+        artifactName: isUnifiedWindowsBuild
+            ? 'Gemini-Desktop-${version}-installer.${ext}'
+            : 'Gemini-Desktop-${version}-${arch}-installer.${ext}',
     },
     mac: {
         target: ['dmg', 'zip'],

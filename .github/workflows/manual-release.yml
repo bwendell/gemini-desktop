@@ -3,10 +3,6 @@
 # =============================================================================
 #
 # This workflow allows manual triggering of the release process.
-# It is useful for testing packaging or creating ad-hoc releases, executing:
-#   - Build (via _build.yml)
-#   - Release Packaging & Publishing (via _release.yml)
-#   - SKIPS tests for faster execution
 #
 # =============================================================================
 
@@ -14,6 +10,12 @@ name: Manual Release
 
 on:
     workflow_dispatch:
+        inputs:
+            publish:
+                description: Publish release assets
+                required: false
+                type: boolean
+                default: true
 
 # =============================================================================
 # Permissions
@@ -40,4 +42,6 @@ jobs:
         permissions:
             contents: write
         uses: ./.github/workflows/_release.yml
+        with:
+            publish: ${{ inputs.publish }}
         secrets: inherit
