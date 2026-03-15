@@ -36,10 +36,10 @@ Cover setup/registration, happy path, error handling, and edge cases.
     - Shows `vi.hoisted()` Electron mocking, shared factories, registration assertions, captured handler invocation, broadcast checks, and validation/error paths.
     - Pairs with `src/main/managers/ipc/ThemeIpcHandler.ts`.
 
-## Also Covers: Coordinated Tests
+## Related Boundary: Coordinated Tests
 
-`tests/coordinated/` exercises cross-boundary coordination behavior (for example, multi-window synchronization).
-Run with `npm run test:coordinated`.
+`tests/coordinated/` now has its own source-of-truth guide at `tests/coordinated/AGENTS.md`.
+Use that guide when the change is primarily about multi-window synchronization, IPC coordination, or cross-module contract verification.
 
 ## Running Unit and Related Tests
 
@@ -50,7 +50,7 @@ Run with `npm run test:coordinated`.
 - Single renderer test: `npm run test -- tests/unit/renderer/<path>`
 - Single main/preload/shared test: `npm run test:electron -- tests/unit/<path>`
 - Watch mode: `npm run test:watch`
-- Coordinated tests: `npm run test:coordinated`
+- Coordinated tests: see `tests/coordinated/AGENTS.md`
 
 ## Common Mistakes
 
