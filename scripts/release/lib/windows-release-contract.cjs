@@ -7,6 +7,10 @@ const YAML = require('yaml');
 const WINDOWS_METADATA_FILES = ['latest.yml', 'latest-x64.yml', 'latest-arm64.yml', 'x64.yml', 'arm64.yml'];
 const WINDOWS_ALIAS_FILES = ['latest-x64.yml', 'latest-arm64.yml', 'x64.yml', 'arm64.yml'];
 
+function toReleaseContractPath(fileName) {
+    return path.posix.join('release', fileName);
+}
+
 function computeInstallerInfo(installerPath) {
     const installerBuffer = fs.readFileSync(installerPath);
 
@@ -140,7 +144,7 @@ function prepareWindowsReleaseAssets({ releaseDir, version, githubOutputPath }) 
         installerInfo.blockmapName,
         ...WINDOWS_METADATA_FILES,
         'checksums-windows.txt',
-    ].map((fileName) => path.join('release', fileName));
+    ].map((fileName) => toReleaseContractPath(fileName));
 
     const manifestPath = path.join(releaseDir, 'windows-release-manifest.json');
     writeWorkflowManifest(manifestPath, {
@@ -157,7 +161,7 @@ function prepareWindowsReleaseAssets({ releaseDir, version, githubOutputPath }) 
 
     return {
         promotedInstallerName: installerInfo.installerName,
-        windowsManifestPath: path.join('release', 'windows-release-manifest.json'),
+        windowsManifestPath: toReleaseContractPath('windows-release-manifest.json'),
         windowsUploadFiles,
     };
 }

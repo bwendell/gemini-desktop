@@ -139,4 +139,28 @@ describe('prepare-windows-release-assets', () => {
         expect(outputContents).toContain('checksums-windows.txt');
         expect(outputContents).not.toContain('windows-release-manifest.json');
     });
+
+    it('normalizes workflow contract paths to forward slashes', () => {
+        const { prepareWindowsReleaseAssets } = loadWindowsReleaseContract();
+        const releaseDir = makeTempReleaseDir();
+
+        writeBaseReleaseFiles(releaseDir);
+
+        const result = prepareWindowsReleaseAssets({
+            releaseDir,
+            version: '0.12.0',
+        });
+
+        expect(result.windowsManifestPath).toBe('release/windows-release-manifest.json');
+        expect(result.windowsUploadFiles).toEqual([
+            'release/Gemini-Desktop-0.12.0-installer.exe',
+            'release/Gemini-Desktop-0.12.0-installer.exe.blockmap',
+            'release/latest.yml',
+            'release/latest-x64.yml',
+            'release/latest-arm64.yml',
+            'release/x64.yml',
+            'release/arm64.yml',
+            'release/checksums-windows.txt',
+        ]);
+    });
 });
