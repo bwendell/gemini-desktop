@@ -15,7 +15,9 @@ Primary structure:
 ## Deterministic Wait Pattern (CRITICAL)
 
 Never use `browser.pause()` directly in specs for state synchronization.
-Use wait helpers from `tests/e2e/helpers/waitUtilities.ts`, especially:
+Use wait helpers from the canonical shared library `tests/shared/wait-utilities.ts`.
+`tests/e2e/helpers/waitUtilities.ts` is kept only as a compatibility re-export for existing imports.
+Use these shared helpers especially:
 
 - `waitForUIState()`
 - `waitForIPCRoundTrip()`
@@ -34,8 +36,8 @@ Group specs by feature behavior, not by helper implementation detail.
 
 - `tests/e2e/theme.spec.ts`
     - Shows page objects, deterministic wait helpers, and multi-window assertions.
-- `tests/e2e/helpers/waitUtilities.ts`
-    - Central library for replacing non-deterministic timing waits.
+- `tests/shared/wait-utilities.ts`
+    - Canonical shared wait-library implementation used by E2E and integration suites.
 
 ## Running E2E Tests
 

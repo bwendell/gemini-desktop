@@ -35,7 +35,7 @@ Is this wait testing an intentional timer (e.g., auto-dismiss)?
 
 What are you waiting for?
 ├── Element to appear/disappear → element.waitForDisplayed() / waitForUIState()
-├── Element to be clickable → waitForElementClickable(selector)
+├── Element to be clickable → use WebdriverIO `waitForClickable()` on the element
 ├── Window state change → waitForWindowTransition(condition)
 ├── CSS animation to finish → waitForAnimationSettle(selector)
 ├── IPC round-trip complete → waitForIPCRoundTrip(action, { verification })
@@ -244,7 +244,8 @@ await button.click();
 **After**:
 
 ```typescript
-const button = await waitForElementClickable('[data-testid="submit"]');
+const button = await browser.$('[data-testid="submit"]');
+await button.waitForClickable();
 await button.click();
 ```
 
@@ -294,7 +295,8 @@ it('should dismiss toast when clicking X', async () => {
 it('should dismiss toast when clicking X', async () => {
     await showToast('Test');
     await waitForAnimationSettle('[data-testid="toast"]');
-    const dismissBtn = await waitForElementClickable('.toast-dismiss');
+    const dismissBtn = await browser.$('.toast-dismiss');
+    await dismissBtn.waitForClickable();
     await dismissBtn.click();
     await waitForUIState(
         async () => {
@@ -365,27 +367,24 @@ it('should open options window', async () => {
 
 ## Available Utilities
 
-All utilities are exported from `tests/e2e/helpers/waitUtilities.ts`:
+The canonical shared implementations live in `tests/shared/wait-utilities.ts` and are re-exported from `tests/e2e/helpers/waitUtilities.ts` for backward compatibility:
 
-| Utility                       | Purpose                       | Default Timeout |
-| ----------------------------- | ----------------------------- | --------------- |
-| `waitForUIState`              | Generic condition polling     | 5000ms          |
-| `waitForIPCRoundTrip`         | IPC action + verification     | 3000ms          |
-| `waitForWindowTransition`     | Window state with stability   | 5000ms          |
-| `waitForAnimationSettle`      | CSS animation completion      | 3000ms          |
-| `waitForFullscreenTransition` | Fullscreen enter/exit         | 10000ms         |
-| `waitForMacOSWindowStabilize` | macOS-specific delays         | 5000ms          |
-| `waitForCleanup`              | Cleanup actions with timeout  | 2000ms          |
-| `waitForCycle`                | Multi-operation with retries  | 3000ms/op       |
-| `waitForElementClickable`     | Element displayed + clickable | 5000ms          |
-| `waitForWindowCount`          | Wait for N windows            | 5000ms          |
-| `waitForDuration`             | Intentional fixed wait        | N/A             |
+| Utility                       | Purpose                     | Default Timeout |
+| ----------------------------- | --------------------------- | --------------- |
+| `waitForUIState`              | Generic condition polling   | 5000ms          |
+| `waitForIPCRoundTrip`         | IPC action + verification   | 3000ms          |
+| `waitForWindowTransition`     | Window state with stability | 5000ms          |
+| `waitForAnimationSettle`      | CSS animation completion    | 3000ms          |
+| `waitForFullscreenTransition` | Fullscreen enter/exit       | 10000ms         |
+| `waitForMacOSWindowStabilize` | macOS-specific delays       | 5000ms          |
+| `waitForWindowCount`          | Wait for N windows          | 5000ms          |
+| `waitForDuration`             | Intentional fixed wait      | N/A             |
 
 ---
 
 ## Timeout Constants
 
-Defined in `tests/e2e/helpers/e2eConstants.ts`:
+Defined canonically in `tests/shared/timing-constants.ts` and re-exported from `tests/e2e/helpers/e2eConstants.ts`:
 
 ```typescript
 TIMEOUTS: {
@@ -431,7 +430,8 @@ POLLING: {
 await browser.$('.button').click();
 
 // Use
-const button = await waitForElementClickable('.button');
+const button = await browser.$('.button');
+await button.waitForClickable();
 await button.click();
 ```
 

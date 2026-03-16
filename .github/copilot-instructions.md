@@ -12,5 +12,6 @@ Welcome! You are an AI assistant helping with the `gemini-desktop` project.
 ## Where to find more context
 
 - **Repository Guidelines:** `AGENTS.md` (Root)
+- **Agent Task Routing:** `docs/AI_AGENT_DOC_INDEX.md`
 - **Architecture & Design:** `docs/ARCHITECTURE.md`
 - **Specific Anti-Patterns:** See the "Anti-Patterns & Deprecated Practices" section at the bottom of `AGENTS.md`.

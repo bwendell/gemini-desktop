@@ -30,8 +30,8 @@ import {
 const DOC_LINKS = {
     runbook: 'docs/WAYLAND_TESTING_RUNBOOK.md',
     manual: 'docs/WAYLAND_MANUAL_TESTING.md',
-    signalTracking: 'docs/TEST_ONLY_SIGNAL_TRACKING.md',
-    limitations: 'docs/WAYLAND_KNOWN_LIMITATIONS.md',
+    signalTracking: 'docs/WAYLAND_TESTING_RUNBOOK.md',
+    limitations: 'docs/WAYLAND_TESTING_RUNBOOK.md',
 };
 
 describe('Wayland Hotkey Registration', () => {

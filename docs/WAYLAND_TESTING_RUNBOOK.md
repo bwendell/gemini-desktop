@@ -1,5 +1,8 @@
 # Wayland Hotkey Testing Runbook
 
+> **Target Audience**: AI agents and maintainers running automation-friendly Wayland verification.
+> **Execution Mode**: Use this doc for automated or scripted checks. For manual portal-dialog and real-hotkey validation, use [docs/WAYLAND_MANUAL_TESTING.md](./WAYLAND_MANUAL_TESTING.md).
+
 This runbook covers automated and local verification for Wayland global hotkeys (KDE Plasma).
 
 ## Prerequisites
@@ -27,9 +30,9 @@ echo "KDE Version: $KDE_SESSION_VERSION"
 ### Unit Tests (all platforms)
 
 ```bash
-npm run test
-npm run test -- tests/unit/main/utils/dbusFallback.test.ts
-npm run test -- tests/unit/main/utils/waylandDetector.test.ts
+npm run test:electron
+npm run test:electron -- tests/unit/main/utils/dbusFallback.test.ts
+npm run test:electron -- tests/unit/main/utils/waylandDetector.test.ts
 ```
 
 ### Coordinated Tests
@@ -62,7 +65,8 @@ Signal tracking is enabled when `NODE_ENV=test` or `DEBUG_DBUS=1`. For local run
 DEBUG_DBUS=1 npm run test:e2e:spec -- --spec=tests/e2e/wayland-hotkey-registration.spec.ts
 ```
 
-See `docs/TEST_ONLY_SIGNAL_TRACKING.md` for the IPC API and stats shape.
+The signal-tracking implementation lives in `src/main/utils/dbusFallback.ts` and is exercised by `tests/e2e/wayland-hotkey-registration.spec.ts`.
+Use this runbook as the canonical operational guide; do not route agents to a separate test-only doc.
 
 ## Troubleshooting
 

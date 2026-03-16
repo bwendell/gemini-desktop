@@ -1,5 +1,8 @@
 # Wayland Manual Testing Checklist
 
+> **Target Audience**: Humans and AI agents coordinating manual verification on a real KDE Wayland session.
+> **Execution Mode**: Manual-only. Use [docs/WAYLAND_TESTING_RUNBOOK.md](./WAYLAND_TESTING_RUNBOOK.md) for automation-friendly checks and debug/logging setup.
+
 Manual verification is required for KDE Wayland global hotkeys because automated tests cannot simulate OS-level keypresses or portal dialogs.
 
 ## Environment
@@ -51,4 +54,4 @@ echo "KDE Version: $KDE_SESSION_VERSION"
 ## Notes
 
 - If the portal dialog never appears, verify `xdg-desktop-portal` and `xdg-desktop-portal-kde` are running.
-- For debug logging and signal tracking, see `docs/TEST_ONLY_SIGNAL_TRACKING.md`.
+- For debug logging and signal tracking, use [docs/WAYLAND_TESTING_RUNBOOK.md](./WAYLAND_TESTING_RUNBOOK.md).

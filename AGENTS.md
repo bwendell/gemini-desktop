@@ -116,10 +116,13 @@ import './App.css';
 - `src/shared/`: Code shared between main and renderer (types, constants, utils).
 - `tests/`:
     - `unit/`: Vitest unit tests for shared, renderer, and preload.
+    - `integration/`: WDIO integration tests for real Electron cross-boundary behavior.
     - `coordinated/`: Vitest tests for multi-window coordination.
+    - `shared/`: Shared WDIO test infrastructure (wait utilities, timing constants, logging).
     - `e2e/`: WDIO End-to-End tests.
 
 For a full architecture deep-dive (managers, IPC handler pattern, data stores, security model), see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+If you need help deciding which doc to read next, use [docs/AI_AGENT_DOC_INDEX.md](docs/AI_AGENT_DOC_INDEX.md).
 
 ## 📂 Boundary-Specific Guides
 
@@ -128,6 +131,10 @@ Each subdirectory has its own AGENTS.md with boundary-specific conventions:
 - [src/main/AGENTS.md](src/main/AGENTS.md) — Electron main process, IPC handlers, managers
 - [src/renderer/AGENTS.md](src/renderer/AGENTS.md) — React frontend, contexts, hooks
 - [src/preload/AGENTS.md](src/preload/AGENTS.md) — Preload bridge, security boundary
+- [src/shared/AGENTS.md](src/shared/AGENTS.md) — Shared contracts, IPC channels, shared types
+- [tests/integration/AGENTS.md](tests/integration/AGENTS.md) — Integration tests, helpers, single-spec WDIO usage
+- [tests/coordinated/AGENTS.md](tests/coordinated/AGENTS.md) — Coordinated multi-window and IPC contract tests
+- [tests/shared/AGENTS.md](tests/shared/AGENTS.md) — Shared WDIO test infrastructure and canonical wait utilities
 - [tests/e2e/AGENTS.md](tests/e2e/AGENTS.md) — E2E tests, deterministic waits
 - [tests/unit/AGENTS.md](tests/unit/AGENTS.md) — Unit tests, mock patterns
 
@@ -135,32 +142,40 @@ Each subdirectory has its own AGENTS.md with boundary-specific conventions:
 
 Run the appropriate commands based on what you changed:
 
-| Change Scope                                    | Test Command(s)                                                                                                                                                                                                                                                                                                                                                                                                                                            | What It Runs                                                                                            |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `src/renderer/`                                 | `npm run test`, `npm run lint`                                                                                                                                                                                                                                                                                                                                                                                                                             | Vitest (jsdom) — renderer unit tests                                                                    |
-| `src/main/`                                     | `npm run test:electron`, `npm run lint`                                                                                                                                                                                                                                                                                                                                                                                                                    | Vitest (node) — main process unit tests                                                                 |
-| `src/preload/`                                  | `npm run test:electron`, `npm run lint`                                                                                                                                                                                                                                                                                                                                                                                                                    | Vitest (node) — preload unit tests                                                                      |
-| `src/shared/`                                   | `npm run test:electron`, `npm run lint`                                                                                                                                                                                                                                                                                                                                                                                                                    | Vitest (node) — shared utility tests                                                                    |
-| Cross-boundary (IPC)                            | `npm run test:electron`, `npm run test:integration`, `npm run lint`                                                                                                                                                                                                                                                                                                                                                                                        | Unit + WDIO integration                                                                                 |
-| Windows release workflow / installer validation | `npm run test:electron -- tests/unit/main/windowsReleaseWorkflowTopology.test.ts tests/unit/main/windowsReleaseArtifacts.test.ts tests/unit/main/windowsReleaseMetadata.test.ts tests/unit/main/releaseWorkflowAliases.test.ts tests/unit/main/release/prepareWindowsReleaseAssets.test.ts tests/unit/main/release/resolveWindowsBaselineInstaller.test.ts` and `gh workflow run manual-release.yml --ref "$(git branch --show-current)" -f publish=false` | Release-contract unit tests + hosted x64/ARM64 installer validation through the no-publish release path |
-| `tests/coordinated/`                            | `npm run test:coordinated`                                                                                                                                                                                                                                                                                                                                                                                                                                 | Vitest (jsdom) — multi-window coordination                                                              |
-| `tests/e2e/`                                    | `npm run test:e2e` or `npm run test:e2e:spec -- --spec=<path>`                                                                                                                                                                                                                                                                                                                                                                                             | WDIO E2E tests                                                                                          |
-| Everything                                      | `npm run test:all`                                                                                                                                                                                                                                                                                                                                                                                                                                         | Full sequential suite                                                                                   |
+| Change Scope         | Test Command(s)                                                           | What It Runs                                |
+| -------------------- | ------------------------------------------------------------------------- | ------------------------------------------- |
+| `src/renderer/`      | `npm run test`, `npm run lint`                                            | Vitest (jsdom) — renderer unit tests        |
+| `src/main/`          | `npm run test:electron`, `npm run lint`                                   | Vitest (node) — main process unit tests     |
+| `src/preload/`       | `npm run test:electron`, `npm run lint`                                   | Vitest (node) — preload unit tests          |
+| `src/shared/`        | `npm run test:electron`, `npm run lint`                                   | Vitest (node) — shared utility tests        |
+| `tests/integration/` | `npm run test:integration` or `npm run test:integration -- --spec=<path>` | WDIO integration tests                      |
+| Cross-boundary (IPC) | `npm run test:electron`, `npm run test:integration`, `npm run lint`       | Unit + WDIO integration                     |
+| `tests/coordinated/` | `npm run test:coordinated`                                                | Vitest (jsdom) — multi-window coordination  |
+| `tests/shared/`      | `npm run lint` + relevant `test:integration` / `test:e2e:spec` coverage   | Shared WDIO helpers used by multiple suites |
+| `tests/e2e/`         | `npm run test:e2e` or `npm run test:e2e:spec -- --spec=<path>`            | WDIO E2E tests                              |
+| Everything           | `npm run test:all`                                                        | Full sequential suite                       |
 
 ## 🔧 Documentation Maintenance Contract
 
-When commands, boundaries, or patterns change, the nearest AGENTS.md **must** be updated in the same PR:
+AI agents must update the relevant documentation in the same PR whenever behavior, structure, commands, boundaries, workflows, or source-of-truth file locations change.
+When commands, boundaries, or patterns change, the nearest AGENTS.md or operational doc **must** be updated in the same PR:
 
-| If you modify...                         | Update...                |
-| ---------------------------------------- | ------------------------ |
-| IPC handlers in `src/main/managers/ipc/` | `src/main/AGENTS.md`     |
-| Manager patterns in `src/main/managers/` | `src/main/AGENTS.md`     |
-| React contexts/hooks in `src/renderer/`  | `src/renderer/AGENTS.md` |
-| Preload bridge APIs in `src/preload/`    | `src/preload/AGENTS.md`  |
-| E2E wait utilities or test patterns      | `tests/e2e/AGENTS.md`    |
-| Unit test mock factories or patterns     | `tests/unit/AGENTS.md`   |
-| Global build/lint/test commands          | Root `AGENTS.md`         |
-| Verification matrix commands             | Root `AGENTS.md`         |
+| If you modify...                                  | Update...                            |
+| ------------------------------------------------- | ------------------------------------ |
+| IPC handlers in `src/main/managers/ipc/`          | `src/main/AGENTS.md`                 |
+| Manager patterns in `src/main/managers/`          | `src/main/AGENTS.md`                 |
+| React contexts/hooks in `src/renderer/`           | `src/renderer/AGENTS.md`             |
+| Preload bridge APIs in `src/preload/`             | `src/preload/AGENTS.md`              |
+| Shared contracts/types/channels in `src/shared/`  | `src/shared/AGENTS.md`               |
+| Integration test patterns/helpers/config          | `tests/integration/AGENTS.md`        |
+| Coordinated test patterns/helpers/config          | `tests/coordinated/AGENTS.md`        |
+| Shared test utilities/routing in `tests/shared/`  | `tests/shared/AGENTS.md`             |
+| E2E wait utilities or test patterns               | `tests/e2e/AGENTS.md`                |
+| Unit test mock factories or patterns              | `tests/unit/AGENTS.md`               |
+| AI-agent routing or documentation discovery paths | `docs/AI_AGENT_DOC_INDEX.md`         |
+| Wayland / ARM Linux / browser validation runbooks | nearest relevant `docs/*.md` runbook |
+| Global build/lint/test commands                   | Root `AGENTS.md`                     |
+| Verification matrix commands                      | Root `AGENTS.md`                     |
 
 ---
 

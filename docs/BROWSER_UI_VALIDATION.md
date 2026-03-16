@@ -3,6 +3,10 @@
 > [!WARNING]
 > **Functionality does not work in browser mode.** This guide is for **UI/styling validation only**.
 
+> [!NOTE]
+> **Target Audience**: AI agents and maintainers doing fast visual checks while `npm run electron:dev` is running.
+> Use this doc for layout and styling validation only; return to [AGENTS.md](../AGENTS.md) for repo-wide rules and the verification matrix.
+
 ## Overview
 
 When the Vite dev server is running (`npm run electron:dev`), you can view individual windows in a regular browser to validate UI appearance without launching the full Electron app.
