@@ -17,6 +17,8 @@ Primary files and folders:
 Choose integration tests over unit tests when behavior crosses process or window boundaries, but you do not need the full end-user workflow depth of `tests/e2e/`.
 Choose coordinated tests when mocked Electron/Vitest coverage is enough; choose E2E when you must validate the real user-facing workflow from UI action through outcome.
 
+For configurable hotkeys, prefer integration tests for renderer → preload → main persistence and registration assertions (for example: setting an accelerator through `window.electronAPI`, then checking `HotkeyManager`, `globalShortcut`, and persisted store values from the main process).
+
 ## Canonical Patterns
 
 - Reuse helpers from `tests/integration/helpers/` before adding spec-local setup code.

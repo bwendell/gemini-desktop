@@ -32,6 +32,8 @@ Use page objects from `tests/e2e/pages/`.
 Use `beforeEach` with `waitForAppReady()` and `afterEach` with `ensureSingleWindow()` to preserve isolation.
 Group specs by feature behavior, not by helper implementation detail.
 
+For hotkey customization flows, keep E2E focused on the user-visible recorder UX, rendered accelerator text, and high-level registration state. Leave native Windows system-menu suppression to unit/integration coverage unless the host environment is a stable Windows automation target.
+
 ## Canonical Examples
 
 - `tests/e2e/theme.spec.ts`
