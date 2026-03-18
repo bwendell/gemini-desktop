@@ -9,6 +9,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { HotkeyId } from '../../context/IndividualHotkeysContext';
+import { acceleratorFromKeyInput } from '../../../shared/utils/acceleratorUtils';
 import './hotkeyAcceleratorInput.css';
 
 // ============================================================================
@@ -31,78 +32,6 @@ interface HotkeyAcceleratorInputProps {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Convert a keyboard event to an Electron accelerator string.
- */
-function keyEventToAccelerator(event: React.KeyboardEvent): string | null {
-    const parts: string[] = [];
-
-    // Must have at least one modifier
-    if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
-        return null;
-    }
-
-    // Add modifiers (use CommandOrControl for cross-platform)
-    if (event.ctrlKey || event.metaKey) {
-        parts.push('CommandOrControl');
-    }
-    if (event.altKey) {
-        parts.push('Alt');
-    }
-    if (event.shiftKey) {
-        parts.push('Shift');
-    }
-
-    // Skip if only modifier keys are pressed
-    const modifierKeys = ['Control', 'Meta', 'Alt', 'Shift', 'CapsLock', 'NumLock', 'ScrollLock'];
-    if (modifierKeys.includes(event.key)) {
-        return null;
-    }
-
-    // Get the main key
-    let key = '';
-
-    if (event.code.startsWith('Key')) {
-        key = event.code.slice(3); // KeyA -> A
-    } else if (event.code.startsWith('Digit')) {
-        key = event.code.slice(5); // Digit1 -> 1
-    } else if (event.code === 'Space') {
-        key = 'Space';
-    } else if (event.code === 'Enter') {
-        key = 'Enter';
-    } else if (event.code === 'Escape') {
-        return null; // Escape cancels recording
-    } else if (event.code === 'Tab') {
-        key = 'Tab';
-    } else if (event.code === 'Backspace') {
-        key = 'Backspace';
-    } else if (event.code === 'Delete') {
-        key = 'Delete';
-    } else if (event.code.startsWith('Arrow')) {
-        key = event.code.slice(5); // ArrowUp -> Up
-    } else if (event.code.startsWith('F') && /^F\d{1,2}$/.test(event.code)) {
-        key = event.code; // F1-F24
-    } else if (event.code === 'Home') {
-        key = 'Home';
-    } else if (event.code === 'End') {
-        key = 'End';
-    } else if (event.code === 'PageUp') {
-        key = 'PageUp';
-    } else if (event.code === 'PageDown') {
-        key = 'PageDown';
-    } else {
-        // Use the key value for other keys
-        key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
-    }
-
-    if (!key) {
-        return null;
-    }
-
-    parts.push(key);
-    return parts.join('+');
-}
 
 /**
  * Parse an accelerator string into individual key parts for display.
@@ -174,7 +103,20 @@ export function HotkeyAcceleratorInput({
     defaultAccelerator,
 }: HotkeyAcceleratorInputProps) {
     const [isRecording, setIsRecording] = useState(false);
-    const inputRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLButtonElement>(null);
+    const captureRequestIdRef = useRef(0);
+    const captureAbortControllerRef = useRef<AbortController | null>(null);
+    const isWindows = window.electronAPI?.platform === 'win32';
+
+    useEffect(() => {
+        return () => {
+            captureAbortControllerRef.current?.abort();
+            captureAbortControllerRef.current = null;
+            if (window.electronAPI?.cancelHotkeyCapture) {
+                window.electronAPI.cancelHotkeyCapture();
+            }
+        };
+    }, []);
 
     // Focus the input when entering recording mode
     useEffect(() => {
@@ -182,6 +124,45 @@ export function HotkeyAcceleratorInput({
             inputRef.current.focus();
         }
     }, [isRecording]);
+
+    useEffect(() => {
+        if (!isRecording || !isWindows || !window.electronAPI?.captureNextHotkey) {
+            return;
+        }
+
+        const requestId = captureRequestIdRef.current + 1;
+        captureRequestIdRef.current = requestId;
+        const abortController = new AbortController();
+        captureAbortControllerRef.current = abortController;
+
+        void window.electronAPI
+            .captureNextHotkey()
+            .then((result) => {
+                if (abortController.signal.aborted || captureRequestIdRef.current !== requestId) {
+                    return;
+                }
+
+                if (result.status === 'captured' && result.accelerator) {
+                    onAcceleratorChange(hotkeyId, result.accelerator);
+                }
+
+                setIsRecording(false);
+            })
+            .catch(() => {
+                if (abortController.signal.aborted || captureRequestIdRef.current !== requestId) {
+                    return;
+                }
+
+                setIsRecording(false);
+            });
+
+        return () => {
+            abortController.abort();
+            if (captureAbortControllerRef.current === abortController) {
+                captureAbortControllerRef.current = null;
+            }
+        };
+    }, [hotkeyId, isRecording, isWindows, onAcceleratorChange]);
 
     // Handle key down during recording
     const handleKeyDown = useCallback(
@@ -193,21 +174,38 @@ export function HotkeyAcceleratorInput({
 
             // Escape cancels recording
             if (event.key === 'Escape') {
+                if (window.electronAPI?.cancelHotkeyCapture) {
+                    window.electronAPI.cancelHotkeyCapture();
+                }
                 setIsRecording(false);
                 return;
             }
 
-            const accelerator = keyEventToAccelerator(event);
+            if (isWindows) {
+                return;
+            }
+
+            const accelerator = acceleratorFromKeyInput({
+                ctrlKey: event.ctrlKey,
+                metaKey: event.metaKey,
+                altKey: event.altKey,
+                shiftKey: event.shiftKey,
+                key: event.key,
+                code: event.code,
+            });
             if (accelerator) {
                 onAcceleratorChange(hotkeyId, accelerator);
                 setIsRecording(false);
             }
         },
-        [isRecording, hotkeyId, onAcceleratorChange]
+        [hotkeyId, isRecording, isWindows, onAcceleratorChange]
     );
 
     // Handle blur - stop recording
     const handleBlur = useCallback(() => {
+        if (window.electronAPI?.cancelHotkeyCapture) {
+            window.electronAPI.cancelHotkeyCapture();
+        }
         setIsRecording(false);
     }, []);
 
@@ -232,6 +230,7 @@ export function HotkeyAcceleratorInput({
         <div className={`hotkey-accelerator-input ${disabled ? 'disabled' : ''}`}>
             {!isDefault && (
                 <button
+                    type="button"
                     className="reset-button"
                     onClick={resetToDefault}
                     disabled={disabled}
@@ -239,21 +238,23 @@ export function HotkeyAcceleratorInput({
                     title="Reset to default"
                 >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <title>Reset to default</title>
                         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                         <path d="M3 3v5h5" />
                     </svg>
                 </button>
             )}
-            <div
+            <button
                 ref={inputRef}
+                type="button"
                 className={`keycap-container ${isRecording ? 'recording' : ''}`}
                 onClick={startRecording}
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}
                 tabIndex={disabled ? -1 : 0}
-                role="button"
                 aria-label={`Keyboard shortcut: ${keyParts.join(' + ')}. Click to change.`}
                 aria-disabled={disabled}
+                disabled={disabled}
             >
                 {isRecording ? (
                     <span className="recording-prompt">
@@ -263,14 +264,16 @@ export function HotkeyAcceleratorInput({
                 ) : (
                     <div className="keycaps">
                         {keyParts.map((part, index) => (
-                            <React.Fragment key={index}>
+                            <React.Fragment
+                                key={`${part}-${keyParts.slice(0, index).filter((existingPart) => existingPart === part).length}`}
+                            >
                                 {index > 0 && <span className="key-separator">+</span>}
                                 <Keycap keyLabel={part} isModifier={index < keyParts.length - 1} />
                             </React.Fragment>
                         ))}
                     </div>
                 )}
-            </div>
+            </button>
         </div>
     );
 }

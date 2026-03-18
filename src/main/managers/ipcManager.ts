@@ -37,6 +37,7 @@ import type UpdateManager from './updateManager';
 import type LlmManager from './llmManager';
 import type NotificationManager from './notificationManager';
 import type ExportManager from './exportManager';
+import type { WindowsHotkeyCaptureManager } from './windowsHotkeyCaptureManager';
 import type { ModelStatus } from './llmManager';
 import type { ThemePreference, Logger } from '../types';
 import { DEFAULT_ACCELERATORS } from '../../shared/types/hotkeys';
@@ -109,7 +110,8 @@ export default class IpcManager {
         llmManager?: LlmManager | null,
         notificationManager?: NotificationManager | null,
         store?: SettingsStore<UserPreferences>,
-        logger?: Logger
+        logger?: Logger,
+        windowsHotkeyCaptureManager?: WindowsHotkeyCaptureManager | null
     ) {
         /* v8 ignore next 16 -- production fallback, tests always inject dependencies */
         const actualStore =
@@ -154,6 +156,7 @@ export default class IpcManager {
             llmManager: llmManager || null,
             notificationManager: notificationManager || null,
             exportManager: exportManager || null,
+            windowsHotkeyCaptureManager: windowsHotkeyCaptureManager || null,
         };
         this.handlerDeps = handlerDeps;
 

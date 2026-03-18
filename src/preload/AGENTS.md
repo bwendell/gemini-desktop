@@ -16,6 +16,8 @@ Preload APIs follow three patterns:
 
 Subscription cleanup return functions are mandatory because renderer hooks call them during `useEffect` teardown.
 
+For one-shot native capture flows, prefer an explicit `invoke` method for the capture request and a paired `send` cancellation method for blur/unmount cleanup. Keep these APIs narrow and task-specific (for example `captureNextHotkey()` and `cancelHotkeyCapture()`).
+
 ## Canonical Example
 
 - `src/preload/preload.ts` — Theme API section (`// Theme API`, lines 197-228)

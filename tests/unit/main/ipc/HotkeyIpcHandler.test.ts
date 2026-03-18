@@ -80,6 +80,10 @@ describe('HotkeyIpcHandler', () => {
         setIndividualEnabled: ReturnType<typeof vi.fn>;
         setAccelerator: ReturnType<typeof vi.fn>;
     };
+    let mockWindowsHotkeyCaptureManager: {
+        beginCapture: ReturnType<typeof vi.fn>;
+        cancelCapture: ReturnType<typeof vi.fn>;
+    };
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -94,12 +98,20 @@ describe('HotkeyIpcHandler', () => {
             setIndividualEnabled: vi.fn(),
             setAccelerator: vi.fn(),
         };
+        mockWindowsHotkeyCaptureManager = {
+            beginCapture: vi.fn().mockResolvedValue({
+                status: 'captured',
+                accelerator: 'Alt+Space',
+            }),
+            cancelCapture: vi.fn(),
+        };
 
         mockDeps = {
             store: mockStore,
             logger: mockLogger,
             windowManager: createMockWindowManager(),
             hotkeyManager: mockHotkeyManager,
+            windowsHotkeyCaptureManager: mockWindowsHotkeyCaptureManager,
         } as unknown as IpcHandlerDependencies;
 
         handler = new HotkeyIpcHandler(mockDeps);
@@ -152,6 +164,23 @@ describe('HotkeyIpcHandler', () => {
                 expect.any(Function)
             );
             expect(mockIpcMain._handlers.has(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET)).toBe(true);
+        });
+
+        it('registers hotkeys:capture:accelerator handler', () => {
+            handler.register();
+
+            expect(mockIpcMain.handle).toHaveBeenCalledWith(
+                IPC_CHANNELS.HOTKEYS_CAPTURE_ACCELERATOR,
+                expect.any(Function)
+            );
+            expect(mockIpcMain._handlers.has(IPC_CHANNELS.HOTKEYS_CAPTURE_ACCELERATOR)).toBe(true);
+        });
+
+        it('registers hotkeys:capture:cancel listener', () => {
+            handler.register();
+
+            expect(mockIpcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.HOTKEYS_CAPTURE_CANCEL, expect.any(Function));
+            expect(mockIpcMain._listeners.has(IPC_CHANNELS.HOTKEYS_CAPTURE_CANCEL)).toBe(true);
         });
     });
 
@@ -515,6 +544,30 @@ describe('HotkeyIpcHandler', () => {
         });
     });
 
+    describe('hotkey capture handlers', () => {
+        beforeEach(() => {
+            handler.register();
+        });
+
+        it('routes capture requests to windowsHotkeyCaptureManager using sender window id', async () => {
+            const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_CAPTURE_ACCELERATOR);
+            const result = await invokeHandler!({ sender: mockBrowserWindow._mockWebContents });
+
+            expect(mockWindowsHotkeyCaptureManager.beginCapture).toHaveBeenCalledWith(1);
+            expect(result).toEqual({
+                status: 'captured',
+                accelerator: 'Alt+Space',
+            });
+        });
+
+        it('routes capture cancellation to windowsHotkeyCaptureManager using sender window id', () => {
+            const listener = mockIpcMain._listeners.get(IPC_CHANNELS.HOTKEYS_CAPTURE_CANCEL);
+            listener!({ sender: mockBrowserWindow._mockWebContents });
+
+            expect(mockWindowsHotkeyCaptureManager.cancelCapture).toHaveBeenCalledWith(1);
+        });
+    });
+
     describe('broadcast skips destroyed windows', () => {
         beforeEach(() => {
             handler.register();
@@ -664,6 +717,8 @@ describe('HotkeyIpcHandler', () => {
 
             handler.unregister();
 
+            expect(mockIpcMain.removeHandler).toHaveBeenCalledWith(IPC_CHANNELS.HOTKEYS_CAPTURE_ACCELERATOR);
+            expect(mockIpcMain.removeAllListeners).toHaveBeenCalledWith(IPC_CHANNELS.HOTKEYS_CAPTURE_CANCEL);
             expect(mockIpcMain.removeHandler).toHaveBeenCalledWith(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET);
         });
     });

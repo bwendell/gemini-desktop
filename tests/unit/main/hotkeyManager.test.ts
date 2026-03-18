@@ -306,6 +306,26 @@ describe('HotkeyManager', () => {
         });
     });
 
+    describe('ownsRegisteredGlobalAccelerator', () => {
+        beforeEach(() => {
+            mockGlobalShortcut.register.mockReturnValue(true);
+        });
+
+        it('returns true when a global hotkey is actively registered with Alt+Space', () => {
+            hotkeyManager.setAccelerator('quickChat', 'Alt+Space');
+            hotkeyManager.registerShortcuts();
+
+            expect(hotkeyManager.ownsRegisteredGlobalAccelerator('Alt+Space')).toBe(true);
+        });
+
+        it('returns false when Alt+Space is configured but disabled', () => {
+            hotkeyManager.setAccelerator('quickChat', 'Alt+Space');
+            hotkeyManager.setIndividualEnabled('quickChat', false);
+
+            expect(hotkeyManager.ownsRegisteredGlobalAccelerator('Alt+Space')).toBe(false);
+        });
+    });
+
     describe('getFullSettings', () => {
         it('should return combined enabled states and accelerators', () => {
             expect(hotkeyManager.getFullSettings()).toEqual({

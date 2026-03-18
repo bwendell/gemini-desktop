@@ -290,6 +290,12 @@ export default class HotkeyManager {
         return this._accelerators[id];
     }
 
+    ownsRegisteredGlobalAccelerator(accelerator: string): boolean {
+        return Array.from(this._registeredShortcuts.values()).some(
+            (registeredAccelerator) => registeredAccelerator === accelerator
+        );
+    }
+
     /**
      * Get full settings including both enabled states and accelerators.
      *

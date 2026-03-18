@@ -11,6 +11,7 @@ import {
     parseAccelerator,
     isValidAccelerator,
     keyEventToAccelerator,
+    acceleratorFromKeyInput,
     formatAcceleratorForDisplay,
     normalizeAccelerator,
 } from '../../../src/shared/utils/acceleratorUtils';
@@ -259,6 +260,37 @@ describe('acceleratorUtils', () => {
                 ctrlKey: true,
             });
             expect(keyEventToAccelerator(endEvent)).toBe('CommandOrControl+End');
+        });
+    });
+
+    describe('acceleratorFromKeyInput', () => {
+        it('returns Alt+Space for Windows reserved combination input', () => {
+            expect(
+                acceleratorFromKeyInput({
+                    altKey: true,
+                    code: 'Space',
+                    key: ' ',
+                })
+            ).toBe('Alt+Space');
+        });
+
+        it('returns null for modifier-only input', () => {
+            expect(
+                acceleratorFromKeyInput({
+                    altKey: true,
+                    code: 'AltLeft',
+                    key: 'Alt',
+                })
+            ).toBeNull();
+        });
+
+        it('returns null when no modifiers are pressed', () => {
+            expect(
+                acceleratorFromKeyInput({
+                    code: 'KeyA',
+                    key: 'a',
+                })
+            ).toBeNull();
         });
     });
 

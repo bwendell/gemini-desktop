@@ -23,6 +23,7 @@ import {
     type HotkeySettings,
     type PlatformHotkeyStatus,
 } from '../../../shared/types/hotkeys';
+import type { HotkeyCaptureResult } from '../../../shared/types/hotkey-capture';
 import { getActivationSignalStats, clearActivationSignalHistory } from '../../utils/dbusFallback';
 
 /** Whether to enable test-only D-Bus activation signal IPC handlers */
@@ -62,6 +63,14 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         // Get full hotkey settings (enabled + accelerators)
         ipcMain.handle(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET, (): HotkeySettings => {
             return this._handleGetFullSettings();
+        });
+
+        ipcMain.handle(IPC_CHANNELS.HOTKEYS_CAPTURE_ACCELERATOR, (event): Promise<HotkeyCaptureResult> => {
+            return this._handleCaptureAccelerator(event);
+        });
+
+        ipcMain.on(IPC_CHANNELS.HOTKEYS_CAPTURE_CANCEL, (event) => {
+            this._handleCancelCapture(event);
         });
 
         // Get current platform hotkey status (Wayland/Portal info)
@@ -375,6 +384,24 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         this.broadcastToAllWindows(IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED, accelerators);
     }
 
+    private _handleCaptureAccelerator(event: Electron.IpcMainInvokeEvent): Promise<HotkeyCaptureResult> {
+        const win = this.getWindowFromEvent(event);
+        if (!win || !this.deps.windowsHotkeyCaptureManager) {
+            return Promise.resolve({ status: 'cancelled', accelerator: null });
+        }
+
+        return this.deps.windowsHotkeyCaptureManager.beginCapture(win.id);
+    }
+
+    private _handleCancelCapture(event: Electron.IpcMainEvent): void {
+        const win = this.getWindowFromEvent(event);
+        if (!win || !this.deps.windowsHotkeyCaptureManager) {
+            return;
+        }
+
+        this.deps.windowsHotkeyCaptureManager.cancelCapture(win.id);
+    }
+
     /** Unregister all IPC handlers. */
     unregister(): void {
         ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_GET);
@@ -382,6 +409,8 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
         ipcMain.removeAllListeners(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET);
         ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET);
+        ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_CAPTURE_ACCELERATOR);
+        ipcMain.removeAllListeners(IPC_CHANNELS.HOTKEYS_CAPTURE_CANCEL);
         ipcMain.removeHandler(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET);
         // Only remove test-only handlers if they were registered
         if (TEST_ONLY_DBUS_SIGNALS_ENABLED) {

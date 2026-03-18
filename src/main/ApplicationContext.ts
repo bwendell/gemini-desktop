@@ -8,6 +8,7 @@ import type LlmManager from './managers/llmManager';
 import type NotificationManager from './managers/notificationManager';
 import type ExportManager from './managers/exportManager';
 import type MenuManager from './managers/menuManager';
+import type { WindowsHotkeyCaptureManager } from './managers/windowsHotkeyCaptureManager';
 
 export interface CoreManagers {
     readonly windowManager: WindowManager;
@@ -18,6 +19,7 @@ export interface CoreManagers {
     readonly llmManager: LlmManager;
     readonly exportManager: ExportManager;
     readonly ipcManager: IpcManager;
+    readonly windowsHotkeyCaptureManager: WindowsHotkeyCaptureManager;
 }
 
 export interface ReadyManagers {

@@ -1,6 +1,8 @@
 import { browser, expect } from '@wdio/globals';
 import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
 
+const QUICK_CHAT_ALT_SPACE = 'Alt+Space';
+
 describe('Global Hotkeys Integration', () => {
     before(async () => {
         await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
@@ -80,6 +82,41 @@ describe('Global Hotkeys Integration', () => {
         // The test mock or real implementation might return the raw string or parsed
         // Based on unit tests, it returns the raw 'CommandOrControl+...' string matching input
         expect(savedAccelerator).toBe(newAccelerator);
+    });
+
+    it('should persist and register Alt+Space for quick chat on Windows', async () => {
+        try {
+            await browser.execute(async (accelerator) => {
+                const api = (window as any).electronAPI;
+                await api.setHotkeyAccelerator('quickChat', accelerator);
+            }, QUICK_CHAT_ALT_SPACE);
+
+            const quickChatState = await browser.electron.execute((electron, altSpaceAccelerator) => {
+                const appContext = (global as any).appContext;
+                const accelerator = appContext.hotkeyManager.getAccelerator('quickChat');
+                const persistedAccelerator = appContext.ipcManager.store.get('acceleratorQuickChat');
+                const platform = process.platform;
+
+                return {
+                    accelerator,
+                    persistedAccelerator,
+                    platform,
+                    registered: platform === 'win32' ? electron.globalShortcut.isRegistered(altSpaceAccelerator) : null,
+                };
+            }, QUICK_CHAT_ALT_SPACE);
+
+            expect(quickChatState.accelerator).toBe(QUICK_CHAT_ALT_SPACE);
+            expect(quickChatState.persistedAccelerator).toBe(QUICK_CHAT_ALT_SPACE);
+
+            if (quickChatState.platform === 'win32') {
+                expect(quickChatState.registered).toBe(true);
+            }
+        } finally {
+            await browser.execute(async (accelerator) => {
+                const api = (window as any).electronAPI;
+                await api.setHotkeyAccelerator('quickChat', accelerator);
+            }, DEFAULT_ACCELERATORS.quickChat);
+        }
     });
 
     describe('Cross-Platform Behavior', () => {

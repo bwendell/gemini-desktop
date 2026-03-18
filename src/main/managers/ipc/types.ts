@@ -11,6 +11,7 @@ import type UpdateManager from '../updateManager';
 import type LlmManager from '../llmManager';
 import type NotificationManager from '../notificationManager';
 import type ExportManager from '../exportManager';
+import type { WindowsHotkeyCaptureManager } from '../windowsHotkeyCaptureManager';
 import type { Logger } from '../../types';
 
 /**
@@ -70,4 +71,5 @@ export interface IpcHandlerDependencies {
     notificationManager?: NotificationManager | null;
     /** Optional export manager for high-quality PDF/MD export */
     exportManager?: ExportManager | null;
+    windowsHotkeyCaptureManager?: WindowsHotkeyCaptureManager | null;
 }

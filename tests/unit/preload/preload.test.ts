@@ -308,6 +308,27 @@ describe('Preload Script', () => {
         });
     });
 
+    describe('Hotkey capture API', () => {
+        it('captureNextHotkey should invoke IPC handler', async () => {
+            const mockResult = {
+                status: 'captured',
+                accelerator: 'Alt+Space',
+            };
+            (ipcRendererMock.invoke as any).mockResolvedValue(mockResult);
+
+            const result = await exposedAPI.captureNextHotkey();
+
+            expect(ipcRendererMock.invoke).toHaveBeenCalledWith('hotkeys:capture:accelerator');
+            expect(result).toEqual(mockResult);
+        });
+
+        it('cancelHotkeyCapture should send IPC message', () => {
+            exposedAPI.cancelHotkeyCapture();
+
+            expect(ipcRendererMock.send).toHaveBeenCalledWith('hotkeys:capture:cancel');
+        });
+    });
+
     describe('D-Bus activation signal API gating', () => {
         it('exposes getDbusActivationSignalStats when NODE_ENV=test', () => {
             // In test mode (which is the current environment), the API should be exposed
