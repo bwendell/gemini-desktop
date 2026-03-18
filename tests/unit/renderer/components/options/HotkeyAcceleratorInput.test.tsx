@@ -5,6 +5,7 @@
  * keycap display, and reset functionality.
  */
 
+import React, { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { HotkeyAcceleratorInput } from '../../../../../src/renderer/components/options/HotkeyAcceleratorInput';
@@ -37,7 +38,7 @@ describe('HotkeyAcceleratorInput', () => {
         vi.clearAllMocks();
         originalElectronAPI = window.electronAPI;
         // Use shared factory with default platform
-        setupMockElectronAPI({ platform: 'win32' });
+        setupMockElectronAPI({ platform: 'linux' });
     });
 
     afterEach(() => {
@@ -121,6 +122,10 @@ describe('HotkeyAcceleratorInput', () => {
         });
 
         it('should capture key combination and update accelerator', async () => {
+            setupMockElectronAPI({
+                platform: 'linux',
+            });
+
             render(<HotkeyAcceleratorInput {...defaultProps} />);
 
             const input = screen.getByRole('button', { name: /keyboard shortcut/i });
@@ -139,6 +144,88 @@ describe('HotkeyAcceleratorInput', () => {
             });
 
             expect(mockOnChange).toHaveBeenCalledWith('alwaysOnTop', 'CommandOrControl+Shift+F');
+        });
+
+        it('should use native Windows capture and accept Alt+Space', async () => {
+            const captureNextHotkey = vi.fn().mockResolvedValue({
+                status: 'captured',
+                accelerator: 'Alt+Space',
+            });
+
+            setupMockElectronAPI({
+                platform: 'win32',
+                captureNextHotkey,
+            });
+
+            render(<HotkeyAcceleratorInput {...defaultProps} />);
+
+            fireEvent.click(screen.getByRole('button', { name: /keyboard shortcut/i }));
+
+            await waitFor(() => {
+                expect(captureNextHotkey).toHaveBeenCalledTimes(1);
+            });
+
+            await waitFor(() => {
+                expect(mockOnChange).toHaveBeenCalledWith('alwaysOnTop', 'Alt+Space');
+            });
+        });
+
+        it('should still apply Windows capture results after StrictMode remount', async () => {
+            let resolveCapture: ((result: { status: 'captured'; accelerator: string }) => void) | undefined;
+            const captureNextHotkey = vi.fn().mockImplementation(
+                () =>
+                    new Promise((resolve) => {
+                        resolveCapture = resolve;
+                    })
+            );
+
+            setupMockElectronAPI({
+                platform: 'win32',
+                captureNextHotkey,
+                cancelHotkeyCapture: vi.fn(),
+            });
+
+            render(
+                <StrictMode>
+                    <HotkeyAcceleratorInput {...defaultProps} />
+                </StrictMode>
+            );
+
+            fireEvent.click(screen.getByRole('button', { name: /keyboard shortcut/i }));
+
+            await waitFor(() => {
+                expect(captureNextHotkey).toHaveBeenCalledTimes(1);
+            });
+
+            resolveCapture?.({ status: 'captured', accelerator: 'Alt+Space' });
+
+            await waitFor(() => {
+                expect(mockOnChange).toHaveBeenCalledWith('alwaysOnTop', 'Alt+Space');
+            });
+        });
+
+        it('should exit recording when native Windows capture rejects', async () => {
+            const captureNextHotkey = vi.fn().mockRejectedValue(new Error('IPC failure'));
+
+            setupMockElectronAPI({
+                platform: 'win32',
+                captureNextHotkey,
+                cancelHotkeyCapture: vi.fn(),
+            });
+
+            render(<HotkeyAcceleratorInput {...defaultProps} />);
+
+            fireEvent.click(screen.getByRole('button', { name: /keyboard shortcut/i }));
+
+            await waitFor(() => {
+                expect(captureNextHotkey).toHaveBeenCalledTimes(1);
+            });
+
+            await waitFor(() => {
+                expect(screen.queryByText('Press keys...')).not.toBeInTheDocument();
+            });
+
+            expect(mockOnChange).not.toHaveBeenCalled();
         });
 
         it('should cancel recording on Escape key', async () => {
@@ -160,6 +247,14 @@ describe('HotkeyAcceleratorInput', () => {
         });
 
         it('should cancel recording on blur', async () => {
+            const cancelHotkeyCapture = vi.fn();
+
+            setupMockElectronAPI({
+                platform: 'win32',
+                captureNextHotkey: vi.fn().mockImplementation(() => new Promise(() => {})),
+                cancelHotkeyCapture,
+            });
+
             render(<HotkeyAcceleratorInput {...defaultProps} />);
 
             const input = screen.getByRole('button', { name: /keyboard shortcut/i });
@@ -174,6 +269,8 @@ describe('HotkeyAcceleratorInput', () => {
             await waitFor(() => {
                 expect(screen.queryByText('Press keys...')).not.toBeInTheDocument();
             });
+
+            expect(cancelHotkeyCapture).toHaveBeenCalledTimes(1);
         });
 
         it('should not enter recording mode when disabled', () => {

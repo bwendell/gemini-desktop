@@ -125,6 +125,8 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         }),
         setHotkeyAccelerator: vi.fn(),
         onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
+        captureNextHotkey: vi.fn().mockResolvedValue({ status: 'cancelled', accelerator: null }),
+        cancelHotkeyCapture: vi.fn(),
 
         // =========================================================================
         // Always On Top API
