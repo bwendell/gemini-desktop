@@ -122,6 +122,7 @@ export interface MockHotkeyManager {
     setAccelerator: ReturnType<typeof vi.fn>;
     updateAllAccelerators: ReturnType<typeof vi.fn>;
     getFullSettings: ReturnType<typeof vi.fn>;
+    ownsRegisteredGlobalAccelerator: ReturnType<typeof vi.fn>;
     executeHotkeyAction: ReturnType<typeof vi.fn>;
     getGlobalHotkeyActions: ReturnType<typeof vi.fn>;
     getApplicationHotkeyActions: ReturnType<typeof vi.fn>;
@@ -371,6 +372,7 @@ export function createMockHotkeyManager(overrides?: Partial<Omit<MockHotkeyManag
         setAccelerator: vi.fn().mockReturnValue(true),
         updateAllAccelerators: vi.fn(),
         getFullSettings: vi.fn().mockReturnValue({}),
+        ownsRegisteredGlobalAccelerator: vi.fn().mockReturnValue(false),
         executeHotkeyAction: vi.fn(),
         getGlobalHotkeyActions: vi.fn().mockReturnValue([]),
         getApplicationHotkeyActions: vi.fn().mockReturnValue([]),
