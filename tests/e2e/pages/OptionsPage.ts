@@ -15,6 +15,7 @@ import { browser } from '@wdio/globals';
 import { navigateToOptionsTab, closeOptionsWindow, waitForOptionsWindow } from '../helpers/optionsWindowActions';
 import { E2E_TIMING } from '../helpers/e2eConstants';
 import { waitForIPCRoundTrip, waitForAnimationSettle } from '../helpers/waitUtilities';
+import type { HotkeyId } from '../../../src/shared/types/hotkeys';
 
 type OPElement = {
     getAttribute(attr: string): Promise<string | null>;
@@ -375,6 +376,26 @@ export class OptionsPage extends BasePage {
             },
             async () => await this.isRecordingModeActive(hotkeyId)
         );
+    }
+
+    async waitForRecordingModeToExit(hotkeyId: string, timeout = 5000): Promise<void> {
+        await opBrowser.waitUntil(async () => !(await this.isRecordingModeActive(hotkeyId)), {
+            timeout,
+            timeoutMsg: `Recording mode did not exit for hotkey ${hotkeyId}`,
+        });
+    }
+
+    async recordAccelerator(hotkeyId: HotkeyId, keys: string[]): Promise<void> {
+        await this.clickAcceleratorInput(hotkeyId);
+        await waitForIPCRoundTrip(
+            async () => {
+                await browser.keys(keys);
+            },
+            {
+                verification: async () => !(await this.isRecordingModeActive(hotkeyId)),
+            }
+        );
+        await this.waitForRecordingModeToExit(hotkeyId);
     }
 
     /**

@@ -20,6 +20,7 @@ import {
 } from './helpers/optionsWindowActions';
 import { waitForUIState, waitForAnimationSettle, waitForWindowCount } from './helpers/waitUtilities';
 import { OptionsPage } from './pages/OptionsPage';
+import { isWindows } from './helpers/platform';
 
 // Create page object instance for use in tests
 const optionsPage = new OptionsPage();
@@ -269,6 +270,31 @@ describe('Hotkey Configuration E2E', () => {
             // Should have 4 keycaps
             const keycaps = await acceleratorDisplay.$$('kbd.keycap');
             expect(keycaps.length).toBe(4);
+        });
+
+        it('should record Alt+Space for quick chat on Windows via native capture', async () => {
+            if (!(await isWindows())) {
+                return;
+            }
+
+            try {
+                await optionsPage.recordAccelerator('quickChat', ['Alt', 'Space']);
+
+                const acceleratorText = await optionsPage.getCurrentAccelerator('quickChat');
+                expect(acceleratorText).toContain('Alt');
+                expect(acceleratorText).toContain('␣');
+
+                const savedAccelerator = await wdioBrowser.electron.execute((_electron: typeof import('electron')) => {
+                    return (global as { appContext?: any }).appContext?.hotkeyManager?.getAccelerator('quickChat');
+                });
+
+                expect(savedAccelerator).toBe('Alt+Space');
+            } finally {
+                await wdioBrowser.execute(async () => {
+                    const api = (window as any).electronAPI;
+                    await api.setHotkeyAccelerator('quickChat', 'CommandOrControl+Shift+Alt+Space');
+                });
+            }
         });
     });
 
