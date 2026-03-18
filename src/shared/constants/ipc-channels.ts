@@ -68,6 +68,8 @@ export const IPC_CHANNELS = {
     HOTKEYS_ACCELERATOR_SET: 'hotkeys:accelerator:set',
     HOTKEYS_ACCELERATOR_CHANGED: 'hotkeys:accelerator:changed',
     HOTKEYS_FULL_SETTINGS_GET: 'hotkeys:full-settings:get',
+    HOTKEYS_CAPTURE_ACCELERATOR: 'hotkeys:capture:accelerator',
+    HOTKEYS_CAPTURE_CANCEL: 'hotkeys:capture:cancel',
 
     // Auto-Update
     AUTO_UPDATE_GET_ENABLED: 'auto-update:get-enabled',

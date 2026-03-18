@@ -17,6 +17,7 @@ import type { UpdateInfo, DownloadProgress } from './updates';
 import type { ToastPayload } from './toast';
 import type { TextPredictionSettings } from './text-prediction';
 import type { GeminiNavigatePayload, GeminiReadyPayload, TabsState, TabShortcutPayload } from './tabs';
+import type { HotkeyCaptureResult } from './hotkey-capture';
 
 /**
  * Electron API exposed to renderer process via contextBridge.
@@ -145,6 +146,10 @@ export interface ElectronAPI {
 
     /** Listen for hotkey accelerator changes. Returns unsubscribe function. */
     onHotkeyAcceleratorsChanged: (callback: (accelerators: HotkeyAccelerators) => void) => () => void;
+
+    captureNextHotkey: () => Promise<HotkeyCaptureResult>;
+
+    cancelHotkeyCapture: () => void;
 
     // =========================================================================
     // Always On Top API
