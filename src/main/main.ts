@@ -80,6 +80,7 @@ import NotificationManager, { type NotificationSettings } from './managers/notif
 import UpdateManager, { AutoUpdateSettings } from './managers/updateManager';
 import ExportManager from './managers/exportManager';
 import LlmManager from './managers/llmManager';
+import { WindowsHotkeyCaptureManager } from './managers/windowsHotkeyCaptureManager';
 import SettingsStore from './store';
 import type { ApplicationContext, E2EGlobals, ReadyManagers } from './ApplicationContext';
 
@@ -141,6 +142,10 @@ function initializeManagers(): void {
     const hotkeyManager = new HotkeyManager(windowManager);
     logger.debug('initializeManagers() - HotkeyManager created');
 
+    logger.debug('initializeManagers() - creating WindowsHotkeyCaptureManager');
+    const windowsHotkeyCaptureManager = new WindowsHotkeyCaptureManager(hotkeyManager);
+    logger.debug('initializeManagers() - WindowsHotkeyCaptureManager created');
+
     // Create tray and badge managers
     logger.debug('initializeManagers() - creating TrayManager');
     const trayManager = new TrayManager(windowManager);
@@ -178,8 +183,22 @@ function initializeManagers(): void {
     logger.debug('initializeManagers() - ExportManager created');
 
     logger.debug('initializeManagers() - creating IpcManager');
-    const ipcManager = new IpcManager(windowManager, hotkeyManager, updateManager, exportManager, llmManager, null);
+    const ipcManager = new IpcManager(
+        windowManager,
+        hotkeyManager,
+        updateManager,
+        exportManager,
+        llmManager,
+        null,
+        undefined,
+        undefined,
+        windowsHotkeyCaptureManager
+    );
     logger.debug('initializeManagers() - IpcManager created');
+
+    app.on('browser-window-created', (_event, window) => {
+        windowsHotkeyCaptureManager.attachWindow(window);
+    });
 
     appContext = {
         windowManager,
@@ -190,6 +209,7 @@ function initializeManagers(): void {
         llmManager,
         exportManager,
         ipcManager,
+        windowsHotkeyCaptureManager,
         menuManager: null,
         notificationManager: null,
     };
