@@ -23,6 +23,8 @@ If you add, rename, or remove a channel or shared payload, update every consumin
 - renderer callers/subscriptions
 - any tests that assert the contract
 
+If you add a one-shot cross-boundary workflow, define the payload/result in `src/shared/types/` and export it from the shared type surface instead of inventing ad hoc inline shapes in preload or renderer code.
+
 For architecture context, read [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md), especially the **Shared Contracts** section.
 
 ## Canonical Examples

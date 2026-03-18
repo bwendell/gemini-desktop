@@ -19,6 +19,11 @@ Primary files and folders:
 All managers are injected via `ApplicationContext`. Do not use global mutable manager singletons.
 For architecture details, see `docs/ARCHITECTURE.md` (Manager Architecture section).
 
+### Windows-reserved hotkey capture pattern
+
+When a shortcut must work around Windows-reserved behavior (for example `Alt+Space`), keep the existing hotkey persistence/registration path intact and add the platform-specific capture/suppression logic in a dedicated manager under `src/main/managers/`.
+Attach that manager centrally from `main.ts` with `app.on('browser-window-created', ...)` so every `BrowserWindow` gets the same `before-input-event` / `system-context-menu` handling without duplicating window-specific code.
+
 ## IPC Handler Pattern
 
 Handlers extend `BaseIpcHandler` and follow lifecycle: `register()` → optional `initialize()` → `unregister()`.
@@ -35,6 +40,7 @@ See `src/main/managers/ipc/BaseIpcHandler.ts` and `docs/ARCHITECTURE.md` (IPC Ha
 ## Common Mistakes
 
 - Using global mutable state for managers instead of DI via `ApplicationContext`
+- Embedding Windows-specific hotkey suppression directly in individual window classes instead of a shared manager attached from `main.ts`
 - Forgetting `unregister()` cleanup for IPC handlers
 - Sending to destroyed windows without checking `isDestroyed()` first
 
