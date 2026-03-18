@@ -11,7 +11,7 @@
 
 import { browser } from '@wdio/globals';
 import type { E2EPlatform } from './platform';
-import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, type HotkeyId } from '../../../src/shared/types/hotkeys';
 
 /**
  * Hotkey definition for cross-platform testing.
@@ -82,6 +82,13 @@ const HOTKEY_ID_MAP: Record<keyof typeof REGISTERED_HOTKEYS, string> = {
     VOICE_CHAT: 'voiceChat',
 };
 
+export interface ConfiguredHotkeyRegistration {
+    accelerator: string | null;
+    hotkeyId: HotkeyId;
+    platform: NodeJS.Platform;
+    registered: boolean;
+}
+
 /**
  * Gets the expected accelerator string for the current platform.
  * Electron uses 'CommandOrControl' which maps to Ctrl on Windows/Linux and Cmd on macOS.
@@ -115,6 +122,25 @@ export async function isHotkeyRegistered(accelerator: string): Promise<boolean> 
         (electron: typeof import('electron'), acc: string) => electron.globalShortcut.isRegistered(acc),
         accelerator
     );
+}
+
+export async function getConfiguredHotkeyRegistration(
+    hotkeyId: keyof typeof REGISTERED_HOTKEYS
+): Promise<ConfiguredHotkeyRegistration> {
+    const internalHotkeyId = HOTKEY_ID_MAP[hotkeyId] as HotkeyId;
+
+    return browser.electron.execute((electron: typeof import('electron'), resolvedHotkeyId: HotkeyId) => {
+        const appContext = (global as { appContext?: { hotkeyManager?: { getAccelerator: (id: HotkeyId) => string } } })
+            .appContext;
+        const accelerator = appContext?.hotkeyManager?.getAccelerator(resolvedHotkeyId) ?? null;
+
+        return {
+            accelerator,
+            hotkeyId: resolvedHotkeyId,
+            platform: process.platform,
+            registered: accelerator ? electron.globalShortcut.isRegistered(accelerator) : false,
+        };
+    }, internalHotkeyId);
 }
 
 export async function waitForHotkeyRegistered(

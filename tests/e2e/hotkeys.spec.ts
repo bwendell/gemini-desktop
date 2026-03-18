@@ -12,6 +12,8 @@ import {
     waitForWindowTransition,
 } from './helpers/workflows';
 import { waitForUIState } from './helpers/waitUtilities';
+import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
+import { getConfiguredHotkeyRegistration } from './helpers/hotkeyHelpers';
 
 interface HotkeyTestConfig {
     id: string;
@@ -109,6 +111,13 @@ describe('Hotkeys', () => {
             await waitForAppReady();
         });
 
+        afterEach(async () => {
+            await browser.execute(async (defaultAccelerator) => {
+                const api = (window as any).electronAPI;
+                await api.setHotkeyAccelerator('quickChat', defaultAccelerator);
+            }, DEFAULT_ACCELERATORS.quickChat);
+        });
+
         it('should successfully register default hotkeys on startup', async () => {
             if (await isLinux()) {
                 console.log('[SKIPPED] Global hotkey registration test skipped on Linux.');
@@ -159,6 +168,23 @@ describe('Hotkeys', () => {
 
             expect(registrationStatus.quickChat).toBe(true);
             expect(registrationStatus.peekAndHide).toBe(true);
+        });
+
+        it('should register a configured Alt+Space quick chat accelerator on Windows', async () => {
+            if ((await getPlatform()) !== 'windows') {
+                return;
+            }
+
+            await browser.execute(async () => {
+                const api = (window as any).electronAPI;
+                await api.setHotkeyAccelerator('quickChat', 'Alt+Space');
+            });
+
+            const registration = await getConfiguredHotkeyRegistration('QUICK_CHAT');
+
+            expect(registration.platform).toBe('win32');
+            expect(registration.accelerator).toBe('Alt+Space');
+            expect(registration.registered).toBe(true);
         });
     });
 
