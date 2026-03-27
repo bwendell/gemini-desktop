@@ -16,6 +16,7 @@
 import { browser } from '@wdio/globals';
 import { isMacOS } from './platform';
 import { E2ELogger } from './logger';
+import { getDefaultAccelerators } from '../../../src/shared/types/hotkeys';
 
 // ============================================================================
 // Types
@@ -52,7 +53,7 @@ export const KeyboardShortcuts = {
     QUIT: 'CmdOrCtrl+Q',
 
     // Features
-    QUICK_CHAT: 'CmdOrCtrl+Shift+Alt+Space',
+    QUICK_CHAT: getDefaultAccelerators(process.platform).quickChat,
 } as const;
 
 // ============================================================================

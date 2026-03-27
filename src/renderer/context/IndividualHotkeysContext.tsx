@@ -56,6 +56,7 @@ export const DEFAULT_ACCELERATORS: HotkeyAccelerators = SHARED_DEFAULT_ACCELERAT
  * @param platform - The Node.js process platform ('win32', 'darwin', 'linux', etc.)
  * @returns Platform-aware accelerator configuration
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context utility re-export pattern used across renderer contexts
 export const getDefaultAccelerators = getSharedDefaultAccelerators;
 
 /** Individual hotkeys context value exposed to consumers */
