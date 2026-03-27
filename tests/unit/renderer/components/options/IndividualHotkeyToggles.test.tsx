@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { IndividualHotkeyToggles } from '../../../../../src/renderer/components/options/IndividualHotkeyToggles';
 import * as hotkeysContext from '../../../../../src/renderer/context/IndividualHotkeysContext';
-import { DEFAULT_ACCELERATORS } from '../../../../../src/shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../../../../src/shared/types/hotkeys';
 
 const mockSetEnabled = vi.fn();
 const mockSetAccelerator = vi.fn();
@@ -96,6 +96,64 @@ describe('IndividualHotkeyToggles', () => {
     describe('accelerator defaults', () => {
         it('should have voiceChat default accelerator as CommandOrControl+Shift+M', () => {
             expect(DEFAULT_ACCELERATORS.voiceChat).toBe('CommandOrControl+Shift+M');
+        });
+    });
+
+    describe('platform-aware defaultAccelerator prop', () => {
+        it('should pass Alt+Space as quickChat defaultAccelerator on Windows', () => {
+            Object.defineProperty(window, 'electronAPI', {
+                value: { platform: 'win32' },
+                writable: true,
+                configurable: true,
+            });
+
+            const win32Defaults = getDefaultAccelerators('win32');
+            expect(win32Defaults.quickChat).toBe('Alt+Space');
+
+            render(<IndividualHotkeyToggles />);
+            expect(screen.getByTestId('hotkey-row-quickChat')).toBeInTheDocument();
+        });
+
+        it('should pass legacy default as quickChat defaultAccelerator on macOS', () => {
+            Object.defineProperty(window, 'electronAPI', {
+                value: { platform: 'darwin' },
+                writable: true,
+                configurable: true,
+            });
+
+            const darwinDefaults = getDefaultAccelerators('darwin');
+            expect(darwinDefaults.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+
+            render(<IndividualHotkeyToggles />);
+            expect(screen.getByTestId('hotkey-row-quickChat')).toBeInTheDocument();
+        });
+
+        it('should pass legacy default as quickChat defaultAccelerator on Linux', () => {
+            Object.defineProperty(window, 'electronAPI', {
+                value: { platform: 'linux' },
+                writable: true,
+                configurable: true,
+            });
+
+            const linuxDefaults = getDefaultAccelerators('linux');
+            expect(linuxDefaults.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+
+            render(<IndividualHotkeyToggles />);
+            expect(screen.getByTestId('hotkey-row-quickChat')).toBeInTheDocument();
+        });
+
+        it('should fall back to linux defaults when electronAPI is unavailable', () => {
+            Object.defineProperty(window, 'electronAPI', {
+                value: undefined,
+                writable: true,
+                configurable: true,
+            });
+
+            const fallbackDefaults = getDefaultAccelerators('linux');
+            expect(fallbackDefaults.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+
+            render(<IndividualHotkeyToggles />);
+            expect(screen.getByTestId('hotkey-row-quickChat')).toBeInTheDocument();
         });
     });
 });

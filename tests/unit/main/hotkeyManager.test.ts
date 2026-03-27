@@ -13,6 +13,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createMockWindowManager } from '../../helpers/mocks';
 import {
     DEFAULT_ACCELERATORS,
+    getDefaultAccelerators,
     GLOBAL_HOTKEY_IDS,
     APPLICATION_HOTKEY_IDS,
     getHotkeyScope,
@@ -174,6 +175,30 @@ describe('HotkeyManager', () => {
             // Others should have defaults
             expect(customManager.getAccelerator('alwaysOnTop')).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
             expect(customManager.getAccelerator('quickChat')).toBe(DEFAULT_ACCELERATORS.quickChat);
+        });
+
+        it('should initialize accelerators using platform-aware defaults', () => {
+            const currentPlatformDefaults = getDefaultAccelerators(process.platform as NodeJS.Platform);
+            const customManager = new HotkeyManager(mockWindowManager);
+
+            for (const hotkeyId of ['quickChat', 'peekAndHide', 'alwaysOnTop', 'printToPdf', 'voiceChat'] as const) {
+                expect(customManager.getAccelerator(hotkeyId)).toBe(currentPlatformDefaults[hotkeyId]);
+            }
+        });
+
+        it('should return Alt+Space for quickChat on win32', () => {
+            const win32Defaults = getDefaultAccelerators('win32');
+            expect(win32Defaults.quickChat).toBe('Alt+Space');
+        });
+
+        it('should return CommandOrControl+Shift+Alt+Space for quickChat on darwin', () => {
+            const darwinDefaults = getDefaultAccelerators('darwin');
+            expect(darwinDefaults.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+        });
+
+        it('should return CommandOrControl+Shift+Alt+Space for quickChat on linux', () => {
+            const linuxDefaults = getDefaultAccelerators('linux');
+            expect(linuxDefaults.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
         });
     });
 
@@ -358,16 +383,14 @@ describe('HotkeyManager', () => {
         });
 
         it('should re-register with new accelerator if hotkey was registered', () => {
-            // Register all shortcuts
+            const expectedOldAccelerator = getDefaultAccelerators(process.platform as NodeJS.Platform).peekAndHide;
+
             hotkeyManager.registerShortcuts();
             vi.clearAllMocks();
 
-            // Change accelerator for enabled hotkey (use a value that's not the default)
             hotkeyManager.setAccelerator('peekAndHide', 'CommandOrControl+Alt+B');
 
-            // Should unregister old accelerator
-            expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(DEFAULT_ACCELERATORS.peekAndHide);
-            // Should register new accelerator
+            expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith(expectedOldAccelerator);
             expect(mockGlobalShortcut.register).toHaveBeenCalledWith('CommandOrControl+Alt+B', expect.any(Function));
         });
 
@@ -380,13 +403,13 @@ describe('HotkeyManager', () => {
         });
 
         it('should be idempotent for same accelerator', () => {
+            const defaultAccelerator = getDefaultAccelerators(process.platform as NodeJS.Platform).peekAndHide;
+
             hotkeyManager.registerShortcuts();
             vi.clearAllMocks();
 
-            // Set to same value
-            hotkeyManager.setAccelerator('peekAndHide', DEFAULT_ACCELERATORS.peekAndHide);
+            hotkeyManager.setAccelerator('peekAndHide', defaultAccelerator);
 
-            // Should not trigger any registration changes
             expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
             expect(mockGlobalShortcut.register).not.toHaveBeenCalled();
         });

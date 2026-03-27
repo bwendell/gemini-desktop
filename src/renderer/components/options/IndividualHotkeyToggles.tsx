@@ -12,9 +12,9 @@
  * @module IndividualHotkeyToggles
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { CapsuleToggle } from '../common/CapsuleToggle';
-import { useIndividualHotkeys, HotkeyId, DEFAULT_ACCELERATORS } from '../../context/IndividualHotkeysContext';
+import { useIndividualHotkeys, HotkeyId, getDefaultAccelerators } from '../../context/IndividualHotkeysContext';
 import { HotkeyAcceleratorInput } from './HotkeyAcceleratorInput';
 import './individualHotkeyToggles.css';
 
@@ -75,6 +75,12 @@ const HOTKEY_CONFIGS: HotkeyConfig[] = [
 export const IndividualHotkeyToggles = memo(function IndividualHotkeyToggles() {
     const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
 
+    // Get platform-aware default accelerators for the current platform
+    const platformDefaults = useMemo(
+        () => getDefaultAccelerators((window.electronAPI?.platform ?? 'linux') as NodeJS.Platform),
+        []
+    );
+
     return (
         <div className="individual-hotkey-toggles" data-testid="individual-hotkey-toggles">
             {HOTKEY_CONFIGS.map((config) => (
@@ -89,7 +95,7 @@ export const IndividualHotkeyToggles = memo(function IndividualHotkeyToggles() {
                             currentAccelerator={accelerators[config.id]}
                             disabled={!settings[config.id]}
                             onAcceleratorChange={setAccelerator}
-                            defaultAccelerator={DEFAULT_ACCELERATORS[config.id]}
+                            defaultAccelerator={platformDefaults[config.id]}
                         />
                     </div>
                     <div className="hotkey-toggle-wrapper">

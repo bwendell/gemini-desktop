@@ -132,6 +132,30 @@ export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
     printToPdf: 'CommandOrControl+Shift+P',
 };
 
+/**
+ * Legacy quickChat accelerator (pre-Windows Alt+Space migration).
+ * Used for detecting users who had the old default and migrating them to the new Windows default.
+ */
+export const LEGACY_QUICKCHAT_ACCELERATOR = 'CommandOrControl+Shift+Alt+Space';
+
+/**
+ * Get platform-aware default accelerators.
+ * On Windows, quickChat defaults to 'Alt+Space' for accessibility.
+ * On other platforms, returns the standard defaults.
+ *
+ * @param platform - The Node.js process platform ('win32', 'darwin', 'linux', etc.)
+ * @returns Platform-aware accelerator configuration
+ */
+export function getDefaultAccelerators(platform: NodeJS.Platform): HotkeyAccelerators {
+    if (platform === 'win32') {
+        return {
+            ...DEFAULT_ACCELERATORS,
+            quickChat: 'Alt+Space',
+        };
+    }
+    return { ...DEFAULT_ACCELERATORS };
+}
+
 // ==========================================================================
 // Wayland Platform Status Types
 // ==========================================================================

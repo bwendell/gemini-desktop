@@ -106,6 +106,10 @@ describe('acceleratorUtils', () => {
                 expect(isValidAccelerator('CommandOrControl+Up')).toBe(true);
                 expect(isValidAccelerator('Alt+Left')).toBe(true);
             });
+
+            it('should accept Alt+Space', () => {
+                expect(isValidAccelerator('Alt+Space')).toBe(true);
+            });
         });
 
         describe('invalid accelerators', () => {

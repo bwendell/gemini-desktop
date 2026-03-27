@@ -594,6 +594,10 @@ describe('Options Window', () => {
 - Close windows opened during tests
 - Clear any cached data
 
+### Testing Windows Alt+Space
+
+On Windows, `Alt+Space` is a system-reserved hotkey. Tests must account for suppression logic in `BaseWindow.setupBaseHandlers()` (which uses `before-input-event` and `system-context-menu` to intercept the key combination) rather than relying on standard DOM keydown capture in the renderer.
+
 ---
 
 ## Summary

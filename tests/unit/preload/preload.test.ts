@@ -308,6 +308,31 @@ describe('Preload Script', () => {
         });
     });
 
+    describe('Hotkey Recorder API', () => {
+        it('onHotkeyRecorderKeyCaptured should register listener and return unsubscribe', () => {
+            const callback = vi.fn();
+            const unsubscribe = exposedAPI.onHotkeyRecorderKeyCaptured(callback);
+
+            expect(ipcRendererMock.on).toHaveBeenCalledWith('hotkeys:recorder:key-captured', expect.any(Function));
+
+            // simulate event
+            const handler = (ipcRendererMock.on as any).mock.calls.find(
+                (call: any[]) => call[0] === 'hotkeys:recorder:key-captured'
+            )?.[1];
+            if (handler) {
+                handler({}, 'Alt+Space');
+                expect(callback).toHaveBeenCalledWith('Alt+Space');
+            }
+
+            // test unsubscribe
+            unsubscribe();
+            expect(ipcRendererMock.removeListener).toHaveBeenCalledWith(
+                'hotkeys:recorder:key-captured',
+                expect.any(Function)
+            );
+        });
+    });
+
     describe('D-Bus activation signal API gating', () => {
         it('exposes getDbusActivationSignalStats when NODE_ENV=test', () => {
             // In test mode (which is the current environment), the API should be exposed

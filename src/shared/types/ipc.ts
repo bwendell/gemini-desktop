@@ -146,6 +146,9 @@ export interface ElectronAPI {
     /** Listen for hotkey accelerator changes. Returns unsubscribe function. */
     onHotkeyAcceleratorsChanged: (callback: (accelerators: HotkeyAccelerators) => void) => () => void;
 
+    /** Listen for hotkey recorder key captures. Returns unsubscribe function. */
+    onHotkeyRecorderKeyCaptured: (callback: (accelerator: string) => void) => () => void;
+
     // =========================================================================
     // Always On Top API
     // =========================================================================

@@ -54,3 +54,4 @@ Group specs by feature behavior, not by helper implementation detail.
 - Missing `ensureSingleWindow()` in `afterEach`
 - Hardcoding ad-hoc timeouts instead of wait utility constants/options
 - Duplicating WDIO config instead of extending `wdio.base.conf.js`
+- Hardcoding hotkey accelerator strings (e.g. `'CommandOrControl+Shift+Alt+Space'`) — always use `getDefaultAccelerators(process.platform).quickChat` from `src/shared/types/hotkeys` so platform-specific defaults (e.g. `'Alt+Space'` on Windows) are picked up automatically

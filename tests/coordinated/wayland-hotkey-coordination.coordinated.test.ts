@@ -12,7 +12,7 @@ vi.mock('electron', async () => {
 });
 
 import { globalShortcut } from 'electron';
-import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../src/shared/types/hotkeys';
 
 import type { IndividualHotkeySettings } from '../../src/main/types';
 import type { WaylandStatus, PlatformHotkeyStatus } from '../../src/shared/types/hotkeys';
@@ -461,7 +461,7 @@ describe('Wayland Hotkey Coordination', () => {
 
             if (platform !== 'linux') {
                 expect(globalShortcut.register).toHaveBeenCalledWith(
-                    DEFAULT_ACCELERATORS.quickChat,
+                    getDefaultAccelerators(platform).quickChat,
                     expect.any(Function)
                 );
                 expect(globalShortcut.register).toHaveBeenCalledWith(

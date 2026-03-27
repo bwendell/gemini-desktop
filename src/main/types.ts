@@ -36,6 +36,7 @@ export type {
 // Re-export hotkey constants and scope helpers
 export {
     DEFAULT_ACCELERATORS,
+    getDefaultAccelerators,
     HOTKEY_IDS,
     GLOBAL_HOTKEY_IDS,
     APPLICATION_HOTKEY_IDS,

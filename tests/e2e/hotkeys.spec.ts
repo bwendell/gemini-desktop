@@ -12,6 +12,7 @@ import {
     waitForWindowTransition,
 } from './helpers/workflows';
 import { waitForUIState } from './helpers/waitUtilities';
+import { getDefaultAccelerators } from '../../src/shared/types/hotkeys';
 
 interface HotkeyTestConfig {
     id: string;
@@ -42,7 +43,7 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     {
         id: 'quickChat',
         label: 'Quick Chat',
-        shortcutWin: 'Ctrl+Shift+Alt+␣',
+        shortcutWin: 'Alt+Space',
         shortcutMac: '⌘+⇧+⌥+␣',
         testId: 'hotkey-toggle-quickChat',
         rowTestId: 'hotkey-row-quickChat',
@@ -79,7 +80,7 @@ type ElectronModule = {
 
 type ElectronBrowser = typeof browser & {
     electron: {
-        execute: <T>(fn: (electron: ElectronModule) => T) => Promise<T>;
+        execute: <T, A extends unknown[]>(fn: (electron: ElectronModule, ...args: A) => T, ...args: A) => Promise<T>;
     };
 };
 
@@ -116,25 +117,27 @@ describe('Hotkeys', () => {
                 return;
             }
 
-            const registrationStatus = await electronBrowser.electron.execute<HotkeyRegistrationStatus | null>(
-                (_electron: ElectronModule): HotkeyRegistrationStatus => {
-                    const { globalShortcut } = _electron;
+            const quickChatAccelerator = getDefaultAccelerators(process.platform).quickChat;
+            const registrationStatus = await electronBrowser.electron.execute<
+                HotkeyRegistrationStatus | null,
+                [string]
+            >((_electron: ElectronModule, acc: string): HotkeyRegistrationStatus => {
+                const { globalShortcut } = _electron;
 
-                    try {
-                        return {
-                            quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
-                            peekAndHide: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
-                            status: 'success',
-                        };
-                    } catch (error) {
-                        return {
-                            error: (error as Error).message,
-                            stack: (error as Error).stack,
-                            status: 'error',
-                        };
-                    }
+                try {
+                    return {
+                        quickChat: globalShortcut.isRegistered(acc),
+                        peekAndHide: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
+                        status: 'success',
+                    };
+                } catch (error) {
+                    return {
+                        error: (error as Error).message,
+                        stack: (error as Error).stack,
+                        status: 'error',
+                    };
                 }
-            );
+            }, quickChatAccelerator);
 
             console.log('Global Hotkey Registration Status:', JSON.stringify(registrationStatus, null, 2));
 
@@ -175,17 +178,21 @@ describe('Hotkeys', () => {
         });
 
         describe('Quick Chat Hotkey', () => {
-            it('should toggle Quick Chat window visibility when pressing CommandOrControl+Shift+Alt+Space', async () => {
-                const hotkeyStatus = await electronBrowser.electron.execute((_electron: ElectronModule) => {
-                    try {
-                        const { globalShortcut } = _electron;
-                        return {
-                            quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
-                        };
-                    } catch (error) {
-                        return { quickChat: false, error: (error as Error).message };
-                    }
-                });
+            it('should toggle Quick Chat window visibility when pressing the Quick Chat hotkey', async () => {
+                const quickChatAccelerator = getDefaultAccelerators(process.platform).quickChat;
+                const hotkeyStatus = await electronBrowser.electron.execute(
+                    (_electron: ElectronModule, acc: string) => {
+                        try {
+                            const { globalShortcut } = _electron;
+                            return {
+                                quickChat: globalShortcut.isRegistered(acc),
+                            };
+                        } catch (error) {
+                            return { quickChat: false, error: (error as Error).message };
+                        }
+                    },
+                    quickChatAccelerator
+                );
 
                 if (!hotkeyStatus.quickChat) {
                     console.log('⚠️  Skipping hotkey test: Quick Chat hotkey not registered in this environment');

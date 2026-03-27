@@ -9,7 +9,7 @@ import { ipcMain, BrowserWindow } from 'electron';
 import { HotkeyIpcHandler } from '../../../src/main/managers/ipc/HotkeyIpcHandler';
 import type { IpcHandlerDependencies } from '../../../src/main/managers/ipc/types';
 import { IPC_CHANNELS } from '../../../src/shared/constants/ipc-channels';
-import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../../src/shared/types/hotkeys';
 
 // Use the centralized logger mock from __mocks__ directory
 vi.mock('../../../src/main/utils/logger');
@@ -134,7 +134,7 @@ describe('HotkeyIpcHandler Coordinated Tests', () => {
             expect(result).toEqual({
                 alwaysOnTop: 'Ctrl+T',
                 peekAndHide: 'Ctrl+H',
-                quickChat: DEFAULT_ACCELERATORS.quickChat,
+                quickChat: getDefaultAccelerators(process.platform).quickChat,
                 voiceChat: 'Ctrl+Shift+M',
                 printToPdf: DEFAULT_ACCELERATORS.printToPdf,
             });

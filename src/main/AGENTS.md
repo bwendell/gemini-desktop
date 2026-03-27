@@ -38,6 +38,12 @@ See `src/main/managers/ipc/BaseIpcHandler.ts` and `docs/ARCHITECTURE.md` (IPC Ha
 - Forgetting `unregister()` cleanup for IPC handlers
 - Sending to destroyed windows without checking `isDestroyed()` first
 
+## Windows Alt+Space Suppression
+
+- Windows Alt+Space suppression lives in `BaseWindow.setupBaseHandlers()`.
+- It uses `before-input-event` to track recent Alt presses and `system-context-menu` to suppress the Windows system menu and emit `IPC_CHANNELS.HOTKEY_RECORDER_KEY_CAPTURED`.
+- This behavior must stay in `BaseWindow` so all window types inherit it.
+
 ## When You Change Files Here
 
 - If you are working in a newly created git worktree, run `npm install` in that worktree first so Electron and other dependencies exist locally.

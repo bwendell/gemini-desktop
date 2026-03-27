@@ -29,6 +29,9 @@ For architecture context, read [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md
 
 - `src/shared/constants/ipc-channels.ts`
     - Central source of truth for channel names shared by main and preload.
+    - Contract: `HOTKEY_RECORDER_KEY_CAPTURED` is the IPC channel for the hotkey recorder.
+- `src/shared/utils/accelerators.ts`
+    - Shared hotkey logic including `getDefaultAccelerators(platform)` and `LEGACY_QUICKCHAT_ACCELERATOR` for platform-specific defaults.
 - `src/shared/types/ipc.ts`
     - Canonical typed contract for `window.electronAPI`.
 - `src/shared/types/tabs.ts`
@@ -40,6 +43,9 @@ For architecture context, read [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md
 - Hardcoding channel strings outside `src/shared/constants/ipc-channels.ts`
 - Adding boundary-specific behavior to shared utilities instead of keeping them pure and reusable
 - Renaming payload fields without updating the renderer and tests that consume them
+
+- Hotkey defaults now include `getDefaultAccelerators(platform)` plus `LEGACY_QUICKCHAT_ACCELERATOR` for Windows migration.
+- The recorder IPC contract is `IPC_CHANNELS.HOTKEY_RECORDER_KEY_CAPTURED` and must stay aligned with preload and renderer consumers.
 
 ## When You Change Files Here
 

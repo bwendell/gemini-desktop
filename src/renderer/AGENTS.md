@@ -19,6 +19,10 @@ Primary files and folders:
 
 Use React Context for global UI state (Theme, Toast, Auth) and local state/reducers for component-local logic.
 All system access must flow through preload bridge methods on `window.electronAPI`.
+
+- Platform context: Renderer must use `window.electronAPI.platform` for platform-aware defaults and behavior.
+- Hotkey Recording: `HotkeyAcceleratorInput` subscribes to `onHotkeyRecorderKeyCaptured()` during recording to receive main-process captured keys.
+
 See renderer sections in `docs/ARCHITECTURE.md` for deeper rationale.
 
 ## IPC Communication from Renderer
@@ -39,6 +43,9 @@ For async initialization and subscriptions, use `AbortController` to prevent sta
 - Forgetting to clean up IPC subscriptions in `useEffect` return
 - Skipping `GeminiErrorBoundary` around risky UI areas
 - Missing `AbortController.abort()` in async cleanup paths
+
+- Hotkey UI must use `window.electronAPI.platform` for platform-aware defaults.
+- `HotkeyAcceleratorInput` subscribes to `onHotkeyRecorderKeyCaptured()` while recording so Windows Alt+Space can be captured even when DOM keydown does not fire.
 
 ## When You Change Files Here
 

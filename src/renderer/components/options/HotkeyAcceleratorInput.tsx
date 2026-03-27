@@ -175,6 +175,20 @@ export function HotkeyAcceleratorInput({
 }: HotkeyAcceleratorInputProps) {
     const [isRecording, setIsRecording] = useState(false);
     const inputRef = useRef<HTMLDivElement>(null);
+    const isRecordingRef = useRef(false);
+
+    const setRecordingState = useCallback((recording: boolean) => {
+        isRecordingRef.current = recording;
+        setIsRecording(recording);
+    }, []);
+
+    const applyRecordedAccelerator = useCallback(
+        (accelerator: string) => {
+            onAcceleratorChange(hotkeyId, accelerator);
+            setRecordingState(false);
+        },
+        [hotkeyId, onAcceleratorChange, setRecordingState]
+    );
 
     // Focus the input when entering recording mode
     useEffect(() => {
@@ -182,6 +196,20 @@ export function HotkeyAcceleratorInput({
             inputRef.current.focus();
         }
     }, [isRecording]);
+
+    useEffect(() => {
+        if (!isRecording || !window.electronAPI?.onHotkeyRecorderKeyCaptured) {
+            return;
+        }
+
+        return window.electronAPI.onHotkeyRecorderKeyCaptured((accelerator) => {
+            if (!isRecordingRef.current) {
+                return;
+            }
+
+            applyRecordedAccelerator(accelerator);
+        });
+    }, [applyRecordedAccelerator, isRecording]);
 
     // Handle key down during recording
     const handleKeyDown = useCallback(
@@ -193,30 +221,29 @@ export function HotkeyAcceleratorInput({
 
             // Escape cancels recording
             if (event.key === 'Escape') {
-                setIsRecording(false);
+                setRecordingState(false);
                 return;
             }
 
             const accelerator = keyEventToAccelerator(event);
             if (accelerator) {
-                onAcceleratorChange(hotkeyId, accelerator);
-                setIsRecording(false);
+                applyRecordedAccelerator(accelerator);
             }
         },
-        [isRecording, hotkeyId, onAcceleratorChange]
+        [applyRecordedAccelerator, isRecording, setRecordingState]
     );
 
     // Handle blur - stop recording
     const handleBlur = useCallback(() => {
-        setIsRecording(false);
-    }, []);
+        setRecordingState(false);
+    }, [setRecordingState]);
 
     // Start recording
     const startRecording = useCallback(() => {
         if (!disabled) {
-            setIsRecording(true);
+            setRecordingState(true);
         }
-    }, [disabled]);
+    }, [disabled, setRecordingState]);
 
     // Reset to default
     const resetToDefault = useCallback(() => {

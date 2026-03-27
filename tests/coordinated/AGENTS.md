@@ -38,6 +38,7 @@ Move to `tests/integration/` or `tests/e2e/` only when you need the real Electro
 - Escalating immediately to WDIO when mocked Electron coordination is sufficient
 - Repeating setup that already belongs in `tests/helpers/setup/coordinated.ts`
 - Mixing coordinated-test ownership into `tests/unit/AGENTS.md` instead of treating this directory as the source of truth
+- Hardcoding hotkey accelerator strings (e.g. `'CommandOrControl+Shift+Alt+Space'`) — always use `getDefaultAccelerators(process.platform).quickChat` from `src/shared/types/hotkeys` so platform-specific defaults (e.g. `'Alt+Space'` on Windows) are picked up automatically
 
 ## Running Coordinated Tests
 
