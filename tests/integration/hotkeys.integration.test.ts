@@ -1,5 +1,5 @@
 import { browser, expect } from '@wdio/globals';
-import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../src/shared/types/hotkeys';
 
 describe('Global Hotkeys Integration', () => {
     before(async () => {
@@ -7,11 +7,7 @@ describe('Global Hotkeys Integration', () => {
     });
 
     it('should have hotkeys registered in the main process', async () => {
-        // Verify registration via Main Process
         const isRegistered = await browser.electron.execute(() => {
-            // Check if the 'quickChat' accelerator is registered
-            // We know the accelerator is 'CommandOrControl+Shift+Alt+Space'
-            // We can also check internal manager state
             return (global as any).appContext.hotkeyManager.isIndividualEnabled('quickChat');
         });
 
@@ -83,15 +79,18 @@ describe('Global Hotkeys Integration', () => {
     });
 
     describe('Cross-Platform Behavior', () => {
-        it('should use CommandOrControl in all default accelerators', async () => {
+        it('should use correct default accelerators for the running platform', async () => {
             const accelerators = await browser.electron.execute(() => {
                 return (global as any).appContext.hotkeyManager.getAccelerators();
             });
 
-            // All default accelerators should use CommandOrControl for cross-platform compatibility
+            // Platform-invariant hotkeys always use CommandOrControl
             expect(accelerators.alwaysOnTop).toContain('CommandOrControl');
             expect(accelerators.peekAndHide).toContain('CommandOrControl');
-            expect(accelerators.quickChat).toContain('CommandOrControl');
+
+            // quickChat default is platform-aware: 'Alt+Space' on Windows, 'CommandOrControl+...' elsewhere
+            const expectedQuickChat = getDefaultAccelerators(process.platform).quickChat;
+            expect(accelerators.quickChat).toBe(expectedQuickChat);
         });
 
         it('should correctly report the actual platform', async () => {

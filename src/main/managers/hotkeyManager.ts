@@ -53,7 +53,7 @@ import {
     type IndividualHotkeySettings,
     type HotkeyAccelerators,
     type HotkeySettings,
-    DEFAULT_ACCELERATORS,
+    getDefaultAccelerators,
     HOTKEY_IDS,
     GLOBAL_HOTKEY_IDS,
     isGlobalHotkey,
@@ -140,7 +140,7 @@ export default class HotkeyManager {
      * Current accelerators for each hotkey.
      * Can be customized by the user.
      */
-    private _accelerators: HotkeyAccelerators = { ...DEFAULT_ACCELERATORS };
+    private _accelerators: HotkeyAccelerators = getDefaultAccelerators(process.platform as NodeJS.Platform);
 
     /**
      * Tracks which shortcuts are currently registered with the system.

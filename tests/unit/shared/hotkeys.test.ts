@@ -9,6 +9,8 @@ import {
     isApplicationHotkey,
     HOTKEY_IDS,
     DEFAULT_ACCELERATORS,
+    getDefaultAccelerators,
+    LEGACY_QUICKCHAT_ACCELERATOR,
     type HotkeyId,
     type IndividualHotkeySettings,
     type HotkeySettings,
@@ -232,6 +234,7 @@ describe('Hotkey Types', () => {
                 peekAndHide: true,
                 alwaysOnTop: true,
                 printToPdf: true,
+                voiceChat: true,
             };
             expect(settings.printToPdf).toBe(true);
         });
@@ -242,6 +245,7 @@ describe('Hotkey Types', () => {
                 peekAndHide: true,
                 alwaysOnTop: true,
                 printToPdf: false,
+                voiceChat: true,
             };
             expect(settings.printToPdf).toBe(false);
         });
@@ -253,6 +257,7 @@ describe('Hotkey Types', () => {
                 peekAndHide: false,
                 alwaysOnTop: false,
                 printToPdf: true,
+                voiceChat: false,
             };
             expect(Object.keys(settings)).toContain('printToPdf');
         });
@@ -269,6 +274,7 @@ describe('Hotkey Types', () => {
                 peekAndHide: config,
                 alwaysOnTop: config,
                 printToPdf: config,
+                voiceChat: config,
             };
             expect(settings.printToPdf.accelerator).toBe('CommandOrControl+Shift+P');
             expect(settings.printToPdf.enabled).toBe(true);
@@ -280,6 +286,7 @@ describe('Hotkey Types', () => {
                 peekAndHide: { enabled: true, accelerator: 'CommandOrControl+Alt+E' },
                 alwaysOnTop: { enabled: true, accelerator: 'CommandOrControl+Shift+T' },
                 printToPdf: { enabled: true, accelerator: 'CommandOrControl+Alt+P' },
+                voiceChat: { enabled: true, accelerator: 'CommandOrControl+Shift+M' },
             };
             expect(settings.printToPdf.accelerator).toBe('CommandOrControl+Alt+P');
         });
@@ -290,6 +297,7 @@ describe('Hotkey Types', () => {
                 peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
                 alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
                 printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
+                voiceChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.voiceChat },
             };
             expect(settings.printToPdf.accelerator).toBe('CommandOrControl+Shift+P');
         });
@@ -300,6 +308,7 @@ describe('Hotkey Types', () => {
                 peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
                 alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
                 printToPdf: { enabled: false, accelerator: DEFAULT_ACCELERATORS.printToPdf },
+                voiceChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.voiceChat },
             };
             expect(settings.printToPdf.enabled).toBe(false);
             expect(settings.printToPdf.accelerator).toBe('CommandOrControl+Shift+P');
@@ -395,6 +404,8 @@ describe('Hotkey Types', () => {
                         return 'aot';
                     case 'printToPdf':
                         return 'print';
+                    case 'voiceChat':
+                        return 'voice';
                 }
             };
             expect(handleHotkey('printToPdf')).toBe('print');
@@ -427,6 +438,75 @@ describe('Hotkey Types', () => {
                 .filter(([key]) => key !== 'printToPdf')
                 .map(([, value]) => value);
             expect(otherAccelerators).not.toContain(printPdfAccel);
+        });
+    });
+
+    // ==========================================================================
+    // getDefaultAccelerators
+    // ==========================================================================
+
+    describe('getDefaultAccelerators', () => {
+        it('should export LEGACY_QUICKCHAT_ACCELERATOR constant', () => {
+            expect(LEGACY_QUICKCHAT_ACCELERATOR).toBe('CommandOrControl+Shift+Alt+Space');
+        });
+
+        it('should return Windows-specific default for quickChat on win32', () => {
+            const defaults = getDefaultAccelerators('win32');
+            expect(defaults.quickChat).toBe('Alt+Space');
+        });
+
+        it('should return standard default for quickChat on darwin', () => {
+            const defaults = getDefaultAccelerators('darwin');
+            expect(defaults.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+        });
+
+        it('should return standard default for quickChat on linux', () => {
+            const defaults = getDefaultAccelerators('linux');
+            expect(defaults.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+        });
+
+        it('should return all 5 hotkey accelerators', () => {
+            const defaults = getDefaultAccelerators('win32');
+            expect(Object.keys(defaults).length).toBe(5);
+            expect(defaults).toHaveProperty('quickChat');
+            expect(defaults).toHaveProperty('peekAndHide');
+            expect(defaults).toHaveProperty('alwaysOnTop');
+            expect(defaults).toHaveProperty('printToPdf');
+            expect(defaults).toHaveProperty('voiceChat');
+        });
+
+        it('should preserve all other accelerators on win32', () => {
+            const defaults = getDefaultAccelerators('win32');
+            expect(defaults.peekAndHide).toBe('CommandOrControl+Shift+Space');
+            expect(defaults.alwaysOnTop).toBe('CommandOrControl+Alt+P');
+            expect(defaults.printToPdf).toBe('CommandOrControl+Shift+P');
+            expect(defaults.voiceChat).toBe('CommandOrControl+Shift+M');
+        });
+
+        it('should preserve all accelerators on darwin', () => {
+            const defaults = getDefaultAccelerators('darwin');
+            expect(defaults.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+            expect(defaults.peekAndHide).toBe('CommandOrControl+Shift+Space');
+            expect(defaults.alwaysOnTop).toBe('CommandOrControl+Alt+P');
+            expect(defaults.printToPdf).toBe('CommandOrControl+Shift+P');
+            expect(defaults.voiceChat).toBe('CommandOrControl+Shift+M');
+        });
+
+        it('should be identical to DEFAULT_ACCELERATORS on darwin', () => {
+            const defaults = getDefaultAccelerators('darwin');
+            expect(defaults).toEqual(DEFAULT_ACCELERATORS);
+        });
+
+        it('should be identical to DEFAULT_ACCELERATORS on linux', () => {
+            const defaults = getDefaultAccelerators('linux');
+            expect(defaults).toEqual(DEFAULT_ACCELERATORS);
+        });
+
+        it('should NOT modify DEFAULT_ACCELERATORS constant', () => {
+            const beforeCall = { ...DEFAULT_ACCELERATORS };
+            getDefaultAccelerators('win32');
+            expect(DEFAULT_ACCELERATORS).toEqual(beforeCall);
+            expect(DEFAULT_ACCELERATORS.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
         });
     });
 });

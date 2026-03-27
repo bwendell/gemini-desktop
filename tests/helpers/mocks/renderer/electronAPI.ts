@@ -26,6 +26,7 @@ import { vi } from 'vitest';
 import type { ElectronAPI } from '../../../../src/shared/types/ipc';
 import type { ThemeData } from '../../../../src/shared/types/theme';
 import type { TextPredictionSettings } from '../../../../src/shared/types/text-prediction';
+import { getDefaultAccelerators } from '../../../../src/shared/types/hotkeys';
 
 /**
  * Options for creating a mock ElectronAPI.
@@ -110,7 +111,7 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         // Hotkey Accelerators API
         // =========================================================================
         getHotkeyAccelerators: vi.fn().mockResolvedValue({
-            quickChat: 'CommandOrControl+Shift+Alt+Space',
+            quickChat: getDefaultAccelerators(process.platform).quickChat,
             peekAndHide: 'CommandOrControl+Shift+Space',
             voiceChat: 'CommandOrControl+Shift+M',
             alwaysOnTop: 'CommandOrControl+Alt+P',
@@ -119,12 +120,13 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
         getFullHotkeySettings: vi.fn().mockResolvedValue({
             alwaysOnTop: { enabled: true, accelerator: 'CommandOrControl+Alt+P' },
             peekAndHide: { enabled: true, accelerator: 'CommandOrControl+Shift+Space' },
-            quickChat: { enabled: true, accelerator: 'CommandOrControl+Shift+Alt+Space' },
+            quickChat: { enabled: true, accelerator: getDefaultAccelerators(process.platform).quickChat },
             voiceChat: { enabled: true, accelerator: 'CommandOrControl+Shift+M' },
             printToPdf: { enabled: true, accelerator: 'CommandOrControl+Shift+P' },
         }),
         setHotkeyAccelerator: vi.fn(),
         onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
+        onHotkeyRecorderKeyCaptured: vi.fn().mockReturnValue(defaultUnsubscribe),
 
         // =========================================================================
         // Always On Top API

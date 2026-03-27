@@ -1,4 +1,5 @@
 import { browser, expect } from '@wdio/globals';
+import { getDefaultAccelerators } from '../../src/shared/types/hotkeys';
 
 /**
  * Wayland Platform Status IPC Round-Trip Integration Tests
@@ -88,11 +89,10 @@ describe('Platform Hotkey Status IPC', () => {
             });
 
             // Check if quickChat is registered via globalShortcut
-            const isQuickChatRegistered = await browser.electron.execute(() => {
+            const isQuickChatRegistered = await browser.electron.execute((_, acc: string) => {
                 const { globalShortcut } = require('electron');
-                // Use the default quickChat accelerator
-                return globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space');
-            });
+                return globalShortcut.isRegistered(acc);
+            }, getDefaultAccelerators(process.platform).quickChat);
 
             // If any global hotkey is registered, globalHotkeysEnabled should be true
             // Note: On Linux without Wayland portal, both may be false — that's valid

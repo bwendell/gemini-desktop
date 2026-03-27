@@ -13,6 +13,7 @@ Preload APIs follow three patterns:
 - `invoke` for request/response via `ipcRenderer.invoke()`
 - `send` for fire-and-forget via `ipcRenderer.send()`
 - `on*` subscriptions via `ipcRenderer.on()` that return cleanup functions
+    - Bridge: `onHotkeyRecorderKeyCaptured()` is a subscription wrapper for receiving key capture events from main.
 
 Subscription cleanup return functions are mandatory because renderer hooks call them during `useEffect` teardown.
 
@@ -39,6 +40,8 @@ See `docs/ARCHITECTURE.md` (Security Model) and Electron context isolation/secur
 - Exposing Node.js modules (`fs`, `path`, `child_process`) through preload
 - Forgetting to return cleanup functions from `on*` APIs
 - Adding or renaming preload channels without updating all relevant `src/preload/api/*` modules and `src/shared/constants/ipc-channels.ts`
+
+- The hotkey recorder bridge exposes `onHotkeyRecorderKeyCaptured()` as a subscription wrapper around `IPC_CHANNELS.HOTKEY_RECORDER_KEY_CAPTURED`, not a request/response API.
 
 ## When You Change This File
 

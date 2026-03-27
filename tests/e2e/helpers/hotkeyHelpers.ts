@@ -11,7 +11,7 @@
 
 import { browser } from '@wdio/globals';
 import type { E2EPlatform } from './platform';
-import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../../src/shared/types/hotkeys';
 
 /**
  * Hotkey definition for cross-platform testing.
@@ -53,9 +53,9 @@ export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
         displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.peekAndHide),
     },
     QUICK_CHAT: {
-        accelerator: DEFAULT_ACCELERATORS.quickChat,
+        accelerator: getDefaultAccelerators(process.platform).quickChat,
         description: 'Toggle Quick Chat floating window [Global]',
-        displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.quickChat),
+        displayFormat: acceleratorToDisplayFormat(getDefaultAccelerators(process.platform).quickChat),
     },
     ALWAYS_ON_TOP: {
         accelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
@@ -372,11 +372,12 @@ export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | 
  * @returns Promise with registration status or null if execution fails
  */
 export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutRegistrationStatus | null> {
-    return browser.electron.execute((_electron: typeof import('electron')) => {
+    const quickChatAccelerator = getDefaultAccelerators(process.platform).quickChat;
+    return browser.electron.execute((_electron: typeof import('electron'), acc: string) => {
         const { globalShortcut } = _electron;
         try {
             return {
-                quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
+                quickChat: globalShortcut.isRegistered(acc),
                 peekAndHide: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
                 status: 'success',
             };
@@ -388,7 +389,7 @@ export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutR
                 error: (error as Error).message,
             };
         }
-    });
+    }, quickChatAccelerator);
 }
 
 // =============================================================================

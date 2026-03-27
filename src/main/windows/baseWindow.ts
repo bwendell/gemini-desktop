@@ -9,6 +9,7 @@ import { BrowserWindow } from 'electron';
 import type { BrowserWindowConstructorOptions } from 'electron';
 import { EventEmitter } from 'events';
 
+import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import { createLogger } from '../utils/logger';
 import { getPreloadPath, getDistHtmlPath } from '../utils/paths';
 import { getDevUrl } from '../utils/constants';
@@ -20,6 +21,8 @@ import { getDevUrl } from '../utils/constants';
  * @abstract
  */
 export default abstract class BaseWindow extends EventEmitter {
+    private altKeyPressedAt = 0;
+
     /** The underlying BrowserWindow instance */
     protected window: BrowserWindow | null = null;
 
@@ -127,8 +130,36 @@ export default abstract class BaseWindow extends EventEmitter {
     protected setupBaseHandlers(): void {
         if (!this.window) return;
 
+        if (process.platform === 'win32') {
+            this.window.webContents.on('before-input-event', (_event, input) => {
+                if (input.key !== 'Alt') {
+                    return;
+                }
+
+                if (input.type === 'keyDown') {
+                    this.altKeyPressedAt = Date.now();
+                }
+
+                if (input.type === 'keyUp') {
+                    this.altKeyPressedAt = 0;
+                }
+            });
+
+            this.window.on('system-context-menu', (event) => {
+                const altPressedRecently = this.altKeyPressedAt > 0 && Date.now() - this.altKeyPressedAt < 1000;
+
+                if (!altPressedRecently) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.window?.webContents.send(IPC_CHANNELS.HOTKEY_RECORDER_KEY_CAPTURED, 'Alt+Space');
+            });
+        }
+
         this.window.on('closed', () => {
             this.logger.log('Window closed');
+            this.altKeyPressedAt = 0;
             this.window = null;
             this.emit('closed');
             // Clean up EventEmitter listeners to prevent memory leaks

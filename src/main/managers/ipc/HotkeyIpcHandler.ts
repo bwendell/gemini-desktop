@@ -16,7 +16,8 @@ import { BaseIpcHandler } from './BaseIpcHandler';
 import { IPC_CHANNELS } from '../../utils/constants';
 import {
     HOTKEY_IDS,
-    DEFAULT_ACCELERATORS,
+    LEGACY_QUICKCHAT_ACCELERATOR,
+    getDefaultAccelerators,
     type HotkeyId,
     type IndividualHotkeySettings,
     type HotkeyAccelerators,
@@ -93,6 +94,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         try {
             // Migrate legacy keys if present
             this._migrateLegacyHotkeySettings();
+            this._migrateWindowsQuickChatDefault();
 
             // Sync enabled states
             const savedSettings = this._getIndividualSettings();
@@ -135,6 +137,19 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         ) {
             this.deps.store.set('acceleratorPeekAndHide', legacyAcceleratorBossKey);
             this.logger.log('Migrated acceleratorBossKey to acceleratorPeekAndHide');
+        }
+    }
+
+    private _migrateWindowsQuickChatDefault(): void {
+        if (process.platform !== 'win32') {
+            return;
+        }
+
+        const acceleratorQuickChat = this.deps.store.get('acceleratorQuickChat');
+
+        if (acceleratorQuickChat === LEGACY_QUICKCHAT_ACCELERATOR) {
+            this.deps.store.set('acceleratorQuickChat', getDefaultAccelerators(process.platform).quickChat);
+            this.logger.log('Migrated Windows quickChat accelerator to Alt+Space');
         }
     }
 
@@ -200,7 +215,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             return this._getAccelerators();
         } catch (error) {
             this.logger.error('Error getting hotkey accelerators:', error);
-            return { ...DEFAULT_ACCELERATORS };
+            return { ...getDefaultAccelerators(process.platform) };
         }
     }
 
@@ -277,12 +292,13 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             };
         } catch (error) {
             this.logger.error('Error getting full hotkey settings:', error);
+            const defaultAccelerators = getDefaultAccelerators(process.platform);
             return {
-                alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
-                peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
-                quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
-                voiceChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.voiceChat },
-                printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
+                alwaysOnTop: { enabled: true, accelerator: defaultAccelerators.alwaysOnTop },
+                peekAndHide: { enabled: true, accelerator: defaultAccelerators.peekAndHide },
+                quickChat: { enabled: true, accelerator: defaultAccelerators.quickChat },
+                voiceChat: { enabled: true, accelerator: defaultAccelerators.voiceChat },
+                printToPdf: { enabled: true, accelerator: defaultAccelerators.printToPdf },
             };
         }
     }
@@ -327,12 +343,13 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
      * Get hotkey accelerators from store.
      */
     private _getAccelerators(): HotkeyAccelerators {
+        const defaultAccelerators = getDefaultAccelerators(process.platform);
         return {
-            alwaysOnTop: this.deps.store.get('acceleratorAlwaysOnTop') ?? DEFAULT_ACCELERATORS.alwaysOnTop,
-            peekAndHide: this.deps.store.get('acceleratorPeekAndHide') ?? DEFAULT_ACCELERATORS.peekAndHide,
-            quickChat: this.deps.store.get('acceleratorQuickChat') ?? DEFAULT_ACCELERATORS.quickChat,
-            voiceChat: this.deps.store.get('acceleratorVoiceChat') ?? DEFAULT_ACCELERATORS.voiceChat,
-            printToPdf: this.deps.store.get('acceleratorPrintToPdf') ?? DEFAULT_ACCELERATORS.printToPdf,
+            alwaysOnTop: this.deps.store.get('acceleratorAlwaysOnTop') ?? defaultAccelerators.alwaysOnTop,
+            peekAndHide: this.deps.store.get('acceleratorPeekAndHide') ?? defaultAccelerators.peekAndHide,
+            quickChat: this.deps.store.get('acceleratorQuickChat') ?? defaultAccelerators.quickChat,
+            voiceChat: this.deps.store.get('acceleratorVoiceChat') ?? defaultAccelerators.voiceChat,
+            printToPdf: this.deps.store.get('acceleratorPrintToPdf') ?? defaultAccelerators.printToPdf,
         };
     }
 

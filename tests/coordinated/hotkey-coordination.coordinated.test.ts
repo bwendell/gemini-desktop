@@ -3,7 +3,7 @@ import { globalShortcut, BrowserWindow } from 'electron';
 import HotkeyManager from '../../src/main/managers/hotkeyManager';
 import WindowManager from '../../src/main/managers/windowManager';
 import IpcManager from '../../src/main/managers/ipcManager';
-import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../src/shared/types/hotkeys';
 import {
     createMockPlatformAdapter,
     platformAdapterPresets,
@@ -203,7 +203,7 @@ describe('HotkeyManager ↔ SettingsStore ↔ IpcManager Integration', () => {
 
                 expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.peekAndHide);
 
-                expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.quickChat);
+                expect(registeredAccelerators).toContain(getDefaultAccelerators(process.platform).quickChat);
 
                 expect(registeredAccelerators).toContain(DEFAULT_ACCELERATORS.voiceChat);
 

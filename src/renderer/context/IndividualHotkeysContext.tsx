@@ -25,7 +25,10 @@ import type {
     IndividualHotkeySettings as SharedIndividualHotkeySettings,
     HotkeyAccelerators as SharedHotkeyAccelerators,
 } from '../../shared/types/hotkeys';
-import { DEFAULT_ACCELERATORS as SHARED_DEFAULT_ACCELERATORS } from '../../shared/types/hotkeys';
+import {
+    DEFAULT_ACCELERATORS as SHARED_DEFAULT_ACCELERATORS,
+    getDefaultAccelerators as getSharedDefaultAccelerators,
+} from '../../shared/types/hotkeys';
 
 const logger = createRendererLogger('[IndividualHotkeysContext]');
 
@@ -42,8 +45,19 @@ export type IndividualHotkeySettings = SharedIndividualHotkeySettings;
 /** Hotkey accelerators (keyboard shortcuts) */
 export type HotkeyAccelerators = SharedHotkeyAccelerators;
 
-/** Default accelerators for each hotkey */
+/** Default accelerators for each hotkey (platform-agnostic fallback) */
 export const DEFAULT_ACCELERATORS: HotkeyAccelerators = SHARED_DEFAULT_ACCELERATORS;
+
+/**
+ * Get platform-aware default accelerators.
+ * On Windows, quickChat defaults to 'Alt+Space' for accessibility.
+ * On other platforms, returns the standard defaults.
+ *
+ * @param platform - The Node.js process platform ('win32', 'darwin', 'linux', etc.)
+ * @returns Platform-aware accelerator configuration
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- context utility re-export pattern used across renderer contexts
+export const getDefaultAccelerators = getSharedDefaultAccelerators;
 
 /** Individual hotkeys context value exposed to consumers */
 interface IndividualHotkeysContextType {
@@ -134,8 +148,13 @@ function isValidAccelerators(data: unknown): data is HotkeyAccelerators {
  * - Falls back to defaults when Electron is unavailable
  */
 export function IndividualHotkeysProvider({ children }: IndividualHotkeysProviderProps) {
+    // Get platform-aware default accelerators
+    const platformAwareDefaults = getSharedDefaultAccelerators(
+        (window.electronAPI?.platform ?? 'linux') as NodeJS.Platform
+    );
+
     const [settings, setSettingsState] = useState<IndividualHotkeySettings>(DEFAULT_SETTINGS);
-    const [accelerators, setAcceleratorsState] = useState<HotkeyAccelerators>(DEFAULT_ACCELERATORS);
+    const [accelerators, setAcceleratorsState] = useState<HotkeyAccelerators>(platformAwareDefaults);
 
     // Initialize state from Electron on mount
     useEffect(() => {

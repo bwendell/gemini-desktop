@@ -25,6 +25,7 @@ import { getPlatform, E2EPlatform } from './helpers/platform';
 import { getHotkeyDisplayString, isHotkeyRegistered } from './helpers/hotkeyHelpers';
 import { QuickChatPage } from './pages';
 import { waitForAppReady, waitForWindowTransition, ensureSingleWindow } from './helpers/workflows';
+import { getDefaultAccelerators } from '../../src/shared/types/hotkeys';
 
 describe('Quick Chat Feature', () => {
     let platform: E2EPlatform;
@@ -50,7 +51,7 @@ describe('Quick Chat Feature', () => {
             // Verify the hotkey is actually registered at the OS level
             // Note: Triggering the hotkey via robotjs is flaky, so we verify registration status instead.
             // This follows E2E principles by checking ACTUAL registration state, not manipulating internals.
-            const defaultAccelerator = 'CommandOrControl+Shift+Alt+Space';
+            const defaultAccelerator = getDefaultAccelerators(process.platform).quickChat;
             const isRegistered = await isHotkeyRegistered(defaultAccelerator);
 
             // In CI environments, global hotkey registration may fail due to:
@@ -73,6 +74,8 @@ describe('Quick Chat Feature', () => {
             // Verify platform-specific display format
             if (platform === 'macos') {
                 expect(displayString).toBe('Cmd+Shift+Alt+Space');
+            } else if (platform === 'windows') {
+                expect(displayString).toBe('Alt+Space');
             } else {
                 expect(displayString).toBe('Ctrl+Shift+Alt+Space');
             }

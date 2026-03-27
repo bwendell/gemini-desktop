@@ -85,7 +85,7 @@ For full details, read the [Transparency Report](docs/TRANSPARENCY.md), [Privacy
 
 ## ⌨️ Keyboard Shortcuts
 
-- `Ctrl+Shift+Alt+Space` (`Cmd+Shift+Alt+Space` on macOS) — Toggle Quick Chat
+- `Alt+Space` on Windows, `Ctrl+Shift+Alt+Space` on Linux, `Cmd+Shift+Alt+Space` on macOS — Toggle Quick Chat
 - `Ctrl+Shift+Space` (`Cmd+Shift+Space` on macOS) — Peek and Hide (toggle app visibility)
 - `Ctrl+P` (`Cmd+P` on macOS) — Print current page to PDF
 

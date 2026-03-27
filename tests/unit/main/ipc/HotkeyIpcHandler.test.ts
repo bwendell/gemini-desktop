@@ -8,8 +8,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HotkeyIpcHandler } from '../../../../src/main/managers/ipc/HotkeyIpcHandler';
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';
+import { restorePlatform, stubPlatform } from '../../../helpers/harness';
 import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
-import { DEFAULT_ACCELERATORS } from '../../../../src/shared/types/hotkeys';
+import {
+    DEFAULT_ACCELERATORS,
+    LEGACY_QUICKCHAT_ACCELERATOR,
+    getDefaultAccelerators,
+} from '../../../../src/shared/types/hotkeys';
 
 // Store original env
 const originalNodeEnv = process.env.NODE_ENV;
@@ -106,6 +111,7 @@ describe('HotkeyIpcHandler', () => {
     });
 
     afterEach(() => {
+        restorePlatform();
         // Restore original environment
         process.env.NODE_ENV = originalNodeEnv;
         if (originalDebugDbus === undefined) {
@@ -172,6 +178,64 @@ describe('HotkeyIpcHandler', () => {
             );
             expect(mockHotkeyManager.updateAllAccelerators).toHaveBeenCalled();
             expect(mockLogger.log).toHaveBeenCalledWith('Hotkeys initialized from store');
+        });
+
+        it('migrates the legacy Windows quickChat default to Alt+Space', () => {
+            stubPlatform('win32');
+            mockStore = createMockStore({
+                acceleratorQuickChat: LEGACY_QUICKCHAT_ACCELERATOR,
+            });
+            mockDeps.store = mockStore as never;
+            handler = new HotkeyIpcHandler(mockDeps);
+
+            handler.initialize();
+
+            expect(mockStore.set).toHaveBeenCalledWith('acceleratorQuickChat', 'Alt+Space');
+            expect(mockHotkeyManager.updateAllAccelerators).toHaveBeenCalledWith(
+                expect.objectContaining({ quickChat: 'Alt+Space' })
+            );
+        });
+
+        it('does not migrate custom Windows quickChat accelerators', () => {
+            stubPlatform('win32');
+            mockStore.get.mockImplementation((key: string) => {
+                if (key === 'acceleratorQuickChat') return 'Alt+Shift+Q';
+                return undefined;
+            });
+
+            handler.initialize();
+
+            expect(mockStore.set).not.toHaveBeenCalledWith('acceleratorQuickChat', 'Alt+Space');
+            expect(mockHotkeyManager.updateAllAccelerators).toHaveBeenCalledWith(
+                expect.objectContaining({ quickChat: 'Alt+Shift+Q' })
+            );
+        });
+
+        it('does not migrate when quickChat accelerator is undefined on Windows', () => {
+            stubPlatform('win32');
+            mockStore.get.mockReturnValue(undefined);
+
+            handler.initialize();
+
+            expect(mockStore.set).not.toHaveBeenCalledWith('acceleratorQuickChat', 'Alt+Space');
+            expect(mockHotkeyManager.updateAllAccelerators).toHaveBeenCalledWith(
+                expect.objectContaining({ quickChat: 'Alt+Space' })
+            );
+        });
+
+        it('does not migrate the legacy quickChat default on non-Windows platforms', () => {
+            stubPlatform('linux');
+            mockStore.get.mockImplementation((key: string) => {
+                if (key === 'acceleratorQuickChat') return LEGACY_QUICKCHAT_ACCELERATOR;
+                return undefined;
+            });
+
+            handler.initialize();
+
+            expect(mockStore.set).not.toHaveBeenCalledWith('acceleratorQuickChat', 'Alt+Space');
+            expect(mockHotkeyManager.updateAllAccelerators).toHaveBeenCalledWith(
+                expect.objectContaining({ quickChat: LEGACY_QUICKCHAT_ACCELERATOR })
+            );
         });
 
         it('does nothing if hotkeyManager is not available', () => {
@@ -365,7 +429,18 @@ describe('HotkeyIpcHandler', () => {
             expect(result).toEqual(DEFAULT_ACCELERATORS);
         });
 
+        it('returns Windows platform defaults if not set', async () => {
+            stubPlatform('win32');
+            mockStore.get.mockReturnValue(undefined);
+
+            const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
+            const result = await invokeHandler!();
+
+            expect(result).toEqual(getDefaultAccelerators('win32'));
+        });
+
         it('returns fallback on error', async () => {
+            stubPlatform('win32');
             mockStore.get.mockImplementation(() => {
                 throw new Error('Store error');
             });
@@ -373,7 +448,7 @@ describe('HotkeyIpcHandler', () => {
             const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
             const result = await invokeHandler!();
 
-            expect(result).toEqual(DEFAULT_ACCELERATORS);
+            expect(result).toEqual(getDefaultAccelerators('win32'));
             expect(mockLogger.error).toHaveBeenCalled();
         });
     });
@@ -497,6 +572,7 @@ describe('HotkeyIpcHandler', () => {
         });
 
         it('returns fallback on error', async () => {
+            stubPlatform('win32');
             mockStore.get.mockImplementation(() => {
                 throw new Error('Store error');
             });
@@ -505,13 +581,77 @@ describe('HotkeyIpcHandler', () => {
             const result = await invokeHandler!();
 
             expect(result).toEqual({
-                alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
-                peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
-                quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
-                voiceChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.voiceChat },
-                printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
+                alwaysOnTop: { enabled: true, accelerator: getDefaultAccelerators('win32').alwaysOnTop },
+                peekAndHide: { enabled: true, accelerator: getDefaultAccelerators('win32').peekAndHide },
+                quickChat: { enabled: true, accelerator: getDefaultAccelerators('win32').quickChat },
+                voiceChat: { enabled: true, accelerator: getDefaultAccelerators('win32').voiceChat },
+                printToPdf: { enabled: true, accelerator: getDefaultAccelerators('win32').printToPdf },
             });
             expect(mockLogger.error).toHaveBeenCalled();
+        });
+    });
+
+    describe('IpcManager defaults', () => {
+        it('seeds Windows quickChat defaults with Alt+Space for new installs', async () => {
+            stubPlatform('win32');
+
+            const settingsStoreConstructor = vi.fn();
+            class MockHandler {
+                register = vi.fn();
+                initialize = vi.fn();
+                unregister = vi.fn();
+            }
+            class MockSettingsStore {
+                get = vi.fn();
+                set = vi.fn();
+                has = vi.fn();
+                delete = vi.fn();
+                clear = vi.fn();
+                _defaults: Record<string, unknown>;
+
+                constructor(options: { defaults: Record<string, unknown> }) {
+                    settingsStoreConstructor(options);
+                    this._defaults = options.defaults;
+                }
+            }
+
+            vi.doMock('../../../../src/main/store', () => ({
+                default: MockSettingsStore,
+            }));
+            vi.doMock('../../../../src/main/utils/logger', () => ({
+                createLogger: vi.fn(() => createMockLogger()),
+            }));
+            vi.doMock('../../../../src/main/managers/ipc/index', () => ({
+                BaseIpcHandler: MockHandler,
+                ShellIpcHandler: MockHandler,
+                WindowIpcHandler: MockHandler,
+                ThemeIpcHandler: MockHandler,
+                ZoomIpcHandler: MockHandler,
+                AlwaysOnTopIpcHandler: MockHandler,
+                HotkeyIpcHandler: MockHandler,
+                AppIpcHandler: MockHandler,
+                AutoUpdateIpcHandler: MockHandler,
+                QuickChatIpcHandler: MockHandler,
+                TextPredictionIpcHandler: MockHandler,
+                ResponseNotificationIpcHandler: MockHandler,
+                LaunchAtStartupIpcHandler: MockHandler,
+                ExportIpcHandler: MockHandler,
+                TabStateIpcHandler: MockHandler,
+            }));
+
+            const { default: IpcManager } = await import('../../../../src/main/managers/ipcManager');
+
+            new IpcManager(createMockWindowManager() as never);
+
+            expect(settingsStoreConstructor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    defaults: expect.objectContaining({
+                        acceleratorQuickChat: 'Alt+Space',
+                    }),
+                })
+            );
+
+            vi.resetModules();
         });
     });
 

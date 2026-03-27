@@ -229,7 +229,10 @@ E2E tests should NEVER simulate or mock the system under test.
 Before writing any code, write down the exact steps a user would take:
 
 ```text
-1. User presses Ctrl+Shift+Alt+Space
+1. User presses the Quick Chat hotkey:
+   - Windows: Alt+Space
+   - Linux: Ctrl+Shift+Alt+Space
+   - macOS: Cmd+Shift+Alt+Space
 2. Quick Chat window opens
 3. User types "Hello Gemini"
 4. User presses Enter or clicks Submit
@@ -593,6 +596,10 @@ describe('Options Window', () => {
 - Reset app settings after tests that modify them
 - Close windows opened during tests
 - Clear any cached data
+
+### Testing Windows Alt+Space
+
+On Windows, `Alt+Space` is a system-reserved hotkey. Tests must account for suppression logic in `BaseWindow.setupBaseHandlers()` (which uses `before-input-event` and `system-context-menu` to intercept the key combination) rather than relying on standard DOM keydown capture in the renderer.
 
 ---
 

@@ -202,6 +202,94 @@ describe('HotkeyAcceleratorInput', () => {
             expect(screen.getByText('Press keys...')).toBeInTheDocument();
             expect(mockOnChange).not.toHaveBeenCalled();
         });
+
+        it('should subscribe to recorder IPC while recording and apply captured Alt+Space', async () => {
+            const unsubscribe = vi.fn();
+            const onHotkeyRecorderKeyCaptured = vi.fn().mockReturnValue(unsubscribe);
+            setupMockElectronAPI({
+                platform: 'win32',
+                onHotkeyRecorderKeyCaptured,
+            });
+
+            render(<HotkeyAcceleratorInput {...defaultProps} />);
+
+            expect(onHotkeyRecorderKeyCaptured).not.toHaveBeenCalled();
+
+            const input = screen.getByRole('button', { name: /keyboard shortcut/i });
+            fireEvent.click(input);
+
+            await waitFor(() => {
+                expect(screen.getByText('Press keys...')).toBeInTheDocument();
+                expect(onHotkeyRecorderKeyCaptured).toHaveBeenCalledTimes(1);
+            });
+
+            const callback = onHotkeyRecorderKeyCaptured.mock.calls[0]?.[0] as
+                | ((accelerator: string) => void)
+                | undefined;
+            expect(callback).toBeTypeOf('function');
+
+            callback?.('Alt+Space');
+
+            await waitFor(() => {
+                expect(mockOnChange).toHaveBeenCalledWith('alwaysOnTop', 'Alt+Space');
+                expect(screen.queryByText('Press keys...')).not.toBeInTheDocument();
+            });
+        });
+
+        it('should ignore recorder IPC Alt+Space when not recording', async () => {
+            const unsubscribe = vi.fn();
+            const onHotkeyRecorderKeyCaptured = vi.fn().mockReturnValue(unsubscribe);
+            setupMockElectronAPI({
+                platform: 'win32',
+                onHotkeyRecorderKeyCaptured,
+            });
+
+            render(<HotkeyAcceleratorInput {...defaultProps} />);
+
+            const input = screen.getByRole('button', { name: /keyboard shortcut/i });
+            fireEvent.click(input);
+
+            await waitFor(() => {
+                expect(onHotkeyRecorderKeyCaptured).toHaveBeenCalledTimes(1);
+            });
+
+            const callback = onHotkeyRecorderKeyCaptured.mock.calls[0]?.[0] as
+                | ((accelerator: string) => void)
+                | undefined;
+            expect(callback).toBeTypeOf('function');
+
+            fireEvent.blur(input);
+
+            await waitFor(() => {
+                expect(screen.queryByText('Press keys...')).not.toBeInTheDocument();
+            });
+
+            callback?.('Alt+Space');
+
+            expect(mockOnChange).not.toHaveBeenCalled();
+        });
+
+        it('should clean up recorder IPC subscription on unmount', async () => {
+            const unsubscribe = vi.fn();
+            const onHotkeyRecorderKeyCaptured = vi.fn().mockReturnValue(unsubscribe);
+            setupMockElectronAPI({
+                platform: 'win32',
+                onHotkeyRecorderKeyCaptured,
+            });
+
+            const { unmount } = render(<HotkeyAcceleratorInput {...defaultProps} />);
+
+            const input = screen.getByRole('button', { name: /keyboard shortcut/i });
+            fireEvent.click(input);
+
+            await waitFor(() => {
+                expect(onHotkeyRecorderKeyCaptured).toHaveBeenCalledTimes(1);
+            });
+
+            unmount();
+
+            expect(unsubscribe).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('reset functionality', () => {
