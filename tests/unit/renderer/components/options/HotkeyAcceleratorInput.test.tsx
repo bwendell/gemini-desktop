@@ -1,14 +1,20 @@
 /**
+ * @vitest-environment jsdom
+ */
+
+/**
  * Unit tests for HotkeyAcceleratorInput component.
  *
  * Tests the hotkey accelerator input component with recording mode,
  * keycap display, and reset functionality.
  */
 
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { HotkeyAcceleratorInput } from '../../../../../src/renderer/components/options/HotkeyAcceleratorInput';
 import { DEFAULT_ACCELERATORS } from '../../../../../src/shared/types/hotkeys';
+import type { HotkeyRecorderKeyEvent } from '../../../../../src/shared/types/hotkeys';
 import type { HotkeyId } from '../../../../../src/renderer/context/IndividualHotkeysContext';
 import { setupMockElectronAPI } from '../../../../helpers/mocks';
 
@@ -42,6 +48,7 @@ describe('HotkeyAcceleratorInput', () => {
 
     afterEach(() => {
         window.electronAPI = originalElectronAPI;
+        cleanup();
     });
 
     describe('rendering', () => {
@@ -157,6 +164,72 @@ describe('HotkeyAcceleratorInput', () => {
                 expect(screen.queryByText('Press keys...')).not.toBeInTheDocument();
             });
             expect(mockOnChange).not.toHaveBeenCalled();
+        });
+
+        it('should use onHotkeyRecorderKeyCaptured IPC when recording', async () => {
+            render(<HotkeyAcceleratorInput {...defaultProps} />);
+
+            const input = screen.getByRole('button', { name: /keyboard shortcut/i });
+            fireEvent.click(input);
+
+            await waitFor(() => {
+                expect(screen.getByText('Press keys...')).toBeInTheDocument();
+            });
+
+            expect(window.electronAPI.onHotkeyRecorderKeyCaptured).toHaveBeenCalled();
+        });
+
+        it('should stop listening to onHotkeyRecorderKeyCaptured when recording stops', async () => {
+            const mockUnsubscribe = vi.fn();
+            vi.mocked(window.electronAPI.onHotkeyRecorderKeyCaptured).mockReturnValue(mockUnsubscribe);
+
+            render(<HotkeyAcceleratorInput {...defaultProps} />);
+
+            const input = screen.getByRole('button', { name: /keyboard shortcut/i });
+            fireEvent.click(input);
+
+            await waitFor(() => {
+                expect(screen.getByText('Press keys...')).toBeInTheDocument();
+            });
+
+            fireEvent.keyDown(input, { key: 'Escape', code: 'Escape' });
+
+            await waitFor(() => {
+                expect(screen.queryByText('Press keys...')).not.toBeInTheDocument();
+            });
+
+            expect(mockUnsubscribe).toHaveBeenCalled();
+        });
+
+        it('should capture shortcut from IPC event and call onChange', async () => {
+            let capturedCallback: (event: HotkeyRecorderKeyEvent) => void;
+            vi.mocked(window.electronAPI.onHotkeyRecorderKeyCaptured).mockImplementation((cb) => {
+                capturedCallback = cb;
+                return vi.fn();
+            });
+
+            render(<HotkeyAcceleratorInput {...defaultProps} />);
+
+            const input = screen.getByRole('button', { name: /keyboard shortcut/i });
+            fireEvent.click(input);
+
+            await waitFor(() => {
+                expect(screen.getByText('Press keys...')).toBeInTheDocument();
+            });
+
+            capturedCallback!({
+                key: 'Space',
+                code: 'Space',
+                ctrlKey: false,
+                altKey: true,
+                shiftKey: false,
+                metaKey: false,
+            });
+
+            expect(mockOnChange).toHaveBeenCalledWith('alwaysOnTop', 'Alt+Space');
+            await waitFor(() => {
+                expect(screen.queryByText('Press keys...')).not.toBeInTheDocument();
+            });
         });
 
         it('should cancel recording on blur', async () => {
