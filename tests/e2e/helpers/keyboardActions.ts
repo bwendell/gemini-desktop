@@ -52,7 +52,7 @@ export const KeyboardShortcuts = {
     QUIT: 'CmdOrCtrl+Q',
 
     // Features
-    QUICK_CHAT: 'CmdOrCtrl+Shift+Alt+Space',
+    QUICK_CHAT: 'Alt+Space',
 } as const;
 
 // ============================================================================
