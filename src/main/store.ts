@@ -23,6 +23,18 @@ import type { SettingsStoreOptions } from './types';
 
 const logger = createLogger('[SettingsStore]');
 
+const getSettingsStorePath = (configName: string): string => {
+    const userDataPath = app.getPath('userData');
+    return path.join(userDataPath, `${configName}.json`);
+};
+
+export const settingsStoreFileExists = (
+    configName: string,
+    fileSystem: Pick<typeof fs, 'existsSync'> = fs
+): boolean => {
+    return fileSystem.existsSync(getSettingsStorePath(configName));
+};
+
 /**
  * Deep merge two objects, with source values taking precedence.
  * Arrays and non-object values in source replace target values entirely.
@@ -93,8 +105,7 @@ export default class SettingsStore<T extends Record<string, unknown> = Record<st
             opts.configName = 'settings';
         }
 
-        const userDataPath = app.getPath('userData');
-        this._path = path.join(userDataPath, opts.configName + '.json');
+        this._path = getSettingsStorePath(opts.configName);
         this._defaults = (opts.defaults as Partial<T>) || {};
         /* v8 ignore next -- production fallback, tests always inject mock fs */
         this._fs = opts.fs || fs;

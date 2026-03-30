@@ -312,22 +312,27 @@ describe('HotkeyManager', () => {
                 alwaysOnTop: {
                     enabled: true,
                     accelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
+                    defaultAccelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
                 },
                 peekAndHide: {
                     enabled: true,
                     accelerator: DEFAULT_ACCELERATORS.peekAndHide,
+                    defaultAccelerator: DEFAULT_ACCELERATORS.peekAndHide,
                 },
                 quickChat: {
                     enabled: true,
                     accelerator: DEFAULT_ACCELERATORS.quickChat,
+                    defaultAccelerator: DEFAULT_ACCELERATORS.quickChat,
                 },
                 voiceChat: {
                     enabled: true,
                     accelerator: DEFAULT_ACCELERATORS.voiceChat,
+                    defaultAccelerator: DEFAULT_ACCELERATORS.voiceChat,
                 },
                 printToPdf: {
                     enabled: true,
                     accelerator: DEFAULT_ACCELERATORS.printToPdf,
+                    defaultAccelerator: DEFAULT_ACCELERATORS.printToPdf,
                 },
             });
         });
@@ -337,6 +342,7 @@ describe('HotkeyManager', () => {
             const settings = hotkeyManager.getFullSettings();
             expect(settings.peekAndHide.enabled).toBe(false);
             expect(settings.peekAndHide.accelerator).toBe(DEFAULT_ACCELERATORS.peekAndHide);
+            expect(settings.peekAndHide.defaultAccelerator).toBe(DEFAULT_ACCELERATORS.peekAndHide);
         });
 
         it('should reflect changes to accelerators', () => {
@@ -344,6 +350,7 @@ describe('HotkeyManager', () => {
             const settings = hotkeyManager.getFullSettings();
             expect(settings.quickChat.accelerator).toBe('CommandOrControl+Alt+Q');
             expect(settings.quickChat.enabled).toBe(true);
+            expect(settings.quickChat.defaultAccelerator).toBe(DEFAULT_ACCELERATORS.quickChat);
         });
     });
 
@@ -1505,6 +1512,154 @@ describe('HotkeyManager', () => {
                 expect(status.waylandStatus.portalMethod).toBe('none');
                 expect(mockDbusFallback.registerViaDBus).not.toHaveBeenCalled();
             });
+        });
+    });
+
+    // ========================================================================
+    // Startup Ordering Tests (Task 7: Verify HotkeyManager initialization)
+    // ========================================================================
+    // These tests verify that the HotkeyManager startup sequence matches the
+    // expected pattern used in main.ts:
+    //   1. HotkeyManager constructed with DEFAULT_ACCELERATORS
+    //   2. IpcManager constructed and setupIpcHandlers() called
+    //   3. HotkeyIpcHandler.initialize() calls updateAllAccelerators() with stored values
+    //   4. registerShortcuts() is called AFTER stored accelerators are applied
+    //
+    // This ensures that custom persisted accelerators (not just defaults) are
+    // registered with the system.
+
+    describe('startup ordering: stored accelerators before registration', () => {
+        it('should allow accelerators to be set before registerShortcuts() is called', () => {
+            mockGlobalShortcut.register.mockReturnValue(true);
+
+            // Simulate what happens during startup:
+            // 1. HotkeyManager is constructed (already done in beforeEach)
+            // 2. Custom accelerators are applied (like HotkeyIpcHandler.initialize() does)
+            const customAccelerators = {
+                peekAndHide: 'Alt+H',
+                quickChat: 'Alt+Space',
+                voiceChat: DEFAULT_ACCELERATORS.voiceChat,
+                alwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
+                printToPdf: DEFAULT_ACCELERATORS.printToPdf,
+            };
+            hotkeyManager.updateAllAccelerators(customAccelerators);
+
+            // 3. registerShortcuts() is called
+            hotkeyManager.registerShortcuts();
+
+            // Verify that the custom accelerators were registered, not the defaults
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith('Alt+H', expect.any(Function));
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith('Alt+Space', expect.any(Function));
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalledWith(
+                DEFAULT_ACCELERATORS.peekAndHide,
+                expect.any(Function)
+            );
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalledWith(
+                DEFAULT_ACCELERATORS.quickChat,
+                expect.any(Function)
+            );
+        });
+
+        it('should use stored accelerators from updateAllAccelerators before registration', () => {
+            mockGlobalShortcut.register.mockReturnValue(true);
+
+            // Simulate fresh-install scenario: stored accelerators = Alt+Space (new default)
+            const storedAccelerators = {
+                peekAndHide: DEFAULT_ACCELERATORS.peekAndHide,
+                quickChat: 'Alt+Space', // Fresh-install default from plan
+                voiceChat: DEFAULT_ACCELERATORS.voiceChat,
+                alwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
+                printToPdf: DEFAULT_ACCELERATORS.printToPdf,
+            };
+            hotkeyManager.updateAllAccelerators(storedAccelerators);
+
+            hotkeyManager.registerShortcuts();
+
+            // Should register with the stored Alt+Space, not the legacy default
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith('Alt+Space', expect.any(Function));
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(GLOBAL_HOTKEY_IDS.length);
+        });
+
+        it('should maintain custom accelerators through the full startup sequence', () => {
+            mockGlobalShortcut.register.mockReturnValue(true);
+
+            // Start with custom settings
+            const customSettings = {
+                alwaysOnTop: true,
+                peekAndHide: true,
+                quickChat: true,
+                voiceChat: false, // Disabled
+                printToPdf: true,
+            };
+
+            const customAccelerators = {
+                peekAndHide: 'Shift+Alt+H',
+                quickChat: 'Alt+Q',
+                voiceChat: DEFAULT_ACCELERATORS.voiceChat,
+                alwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
+                printToPdf: DEFAULT_ACCELERATORS.printToPdf,
+            };
+
+            // Apply both settings and accelerators (like IPC handler init does)
+            hotkeyManager.updateAllSettings(customSettings);
+            hotkeyManager.updateAllAccelerators(customAccelerators);
+
+            hotkeyManager.registerShortcuts();
+
+            // Verify enabled shortcuts use custom accelerators
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith('Shift+Alt+H', expect.any(Function));
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith('Alt+Q', expect.any(Function));
+
+            // Verify disabled shortcut is not registered
+            expect(mockGlobalShortcut.register).not.toHaveBeenCalledWith(
+                DEFAULT_ACCELERATORS.voiceChat,
+                expect.any(Function)
+            );
+
+            // Should register 2 shortcuts (peekAndHide + quickChat), not voiceChat
+            expect(mockGlobalShortcut.register).toHaveBeenCalledTimes(2);
+        });
+
+        it('should return correct accelerators after updateAllAccelerators', () => {
+            const customAccelerators = {
+                peekAndHide: 'Ctrl+H',
+                quickChat: 'Ctrl+Q',
+                voiceChat: 'Ctrl+V',
+                alwaysOnTop: 'Ctrl+T',
+                printToPdf: 'Ctrl+P',
+            };
+
+            hotkeyManager.updateAllAccelerators(customAccelerators);
+
+            const retrieved = hotkeyManager.getAccelerators();
+            expect(retrieved.peekAndHide).toBe('Ctrl+H');
+            expect(retrieved.quickChat).toBe('Ctrl+Q');
+            expect(retrieved.voiceChat).toBe('Ctrl+V');
+            expect(retrieved.alwaysOnTop).toBe('Ctrl+T');
+            expect(retrieved.printToPdf).toBe('Ctrl+P');
+        });
+
+        it('should handle partial accelerator updates correctly', () => {
+            mockGlobalShortcut.register.mockReturnValue(true);
+
+            // Update only some accelerators (like store.get might do)
+            hotkeyManager.updateAllAccelerators({
+                peekAndHide: 'Alt+P',
+                quickChat: DEFAULT_ACCELERATORS.quickChat,
+                voiceChat: DEFAULT_ACCELERATORS.voiceChat,
+                alwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
+                printToPdf: DEFAULT_ACCELERATORS.printToPdf,
+            });
+
+            hotkeyManager.registerShortcuts();
+
+            // Updated accelerator should be used
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith('Alt+P', expect.any(Function));
+            // Defaults should be used for others
+            expect(mockGlobalShortcut.register).toHaveBeenCalledWith(
+                DEFAULT_ACCELERATORS.quickChat,
+                expect.any(Function)
+            );
         });
     });
 });

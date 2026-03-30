@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ipcMain, nativeTheme, BrowserWindow, shell } from 'electron';
 import IpcManager from '../../../src/main/managers/ipcManager';
+import SettingsStore, { settingsStoreFileExists } from '../../../src/main/store';
 import {
     createMockWindowManager,
     createMockStore,
@@ -12,6 +13,7 @@ import {
 } from '../../helpers/mocks';
 import { IPC_CHANNELS } from '../../../src/shared/constants/ipc-channels';
 import { getTabFrameName } from '../../../src/shared/types/tabs';
+import type { HotkeySettings } from '../../../src/shared/types/hotkeys';
 
 // Mock Electron
 const { mockIpcMain, mockNativeTheme, mockBrowserWindow, mockShell, mockApp } = vi.hoisted(() => {
@@ -84,6 +86,7 @@ vi.mock('electron', () => ({
 vi.mock('../../../src/main/store', () => {
     return {
         default: vi.fn(),
+        settingsStoreFileExists: vi.fn(),
     };
 });
 
@@ -99,6 +102,8 @@ vi.mock('../../../src/main/utils/logger');
 import { mockLogger } from '../../../src/main/utils/__mocks__/logger';
 
 describe('IpcManager', () => {
+    const MockedSettingsStore = vi.mocked(SettingsStore);
+    const mockSettingsStoreFileExists = vi.mocked(settingsStoreFileExists);
     let ipcManager: any;
     let mockWindowManager: any;
     let mockStore: any;
@@ -119,6 +124,9 @@ describe('IpcManager', () => {
         mockStore = createMockStore({ theme: 'system' });
         mockUpdateManager = createMockUpdateManager();
         mockExportManager = createMockExportManager();
+        MockedSettingsStore.mockReset();
+        mockSettingsStoreFileExists.mockReset();
+        mockSettingsStoreFileExists.mockReturnValue(true);
 
         ipcManager = new IpcManager(
             mockWindowManager,
@@ -157,6 +165,71 @@ describe('IpcManager', () => {
             // After setupIpcHandlers, ThemeIpcHandler.initialize() sets nativeTheme
             expect(mockStore.get).toHaveBeenCalledWith('theme');
             expect(nativeTheme.themeSource).toBe('dark');
+        });
+
+        it('persists Alt+Space only for fresh installs and passes resolved defaults to IPC handlers', () => {
+            const constructedStore = createMockStore({ theme: 'system' });
+            mockSettingsStoreFileExists.mockReturnValue(false);
+            MockedSettingsStore.mockImplementation(function MockSettingsStore() {
+                return constructedStore as any;
+            });
+
+            const freshInstallIpcManager = new IpcManager(
+                mockWindowManager,
+                null,
+                mockUpdateManager,
+                mockExportManager,
+                null,
+                null,
+                undefined,
+                mockLogger
+            );
+
+            expect(mockSettingsStoreFileExists).toHaveBeenCalledWith('user-preferences');
+            expect(MockedSettingsStore).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    configName: 'user-preferences',
+                    defaults: expect.objectContaining({
+                        acceleratorQuickChat: 'Alt+Space',
+                    }),
+                })
+            );
+            expect((freshInstallIpcManager as any).handlerDeps.defaultHotkeyAccelerators).toEqual(
+                expect.objectContaining({ quickChat: 'Alt+Space' })
+            );
+            expect(constructedStore.set).toHaveBeenCalledWith('acceleratorQuickChat', 'Alt+Space');
+        });
+
+        it('keeps legacy quick chat defaults for existing preference files without silent rewrites', () => {
+            const constructedStore = createMockStore({ theme: 'system', acceleratorQuickChat: 'Ctrl+Space' });
+            mockSettingsStoreFileExists.mockReturnValue(true);
+            MockedSettingsStore.mockImplementation(function MockSettingsStore() {
+                return constructedStore as any;
+            });
+
+            const existingInstallIpcManager = new IpcManager(
+                mockWindowManager,
+                null,
+                mockUpdateManager,
+                mockExportManager,
+                null,
+                null,
+                undefined,
+                mockLogger
+            );
+
+            expect(MockedSettingsStore).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    configName: 'user-preferences',
+                    defaults: expect.objectContaining({
+                        acceleratorQuickChat: 'CommandOrControl+Shift+Alt+Space',
+                    }),
+                })
+            );
+            expect((existingInstallIpcManager as any).handlerDeps.defaultHotkeyAccelerators).toEqual(
+                expect.objectContaining({ quickChat: 'CommandOrControl+Shift+Alt+Space' })
+            );
+            expect(constructedStore.set).not.toHaveBeenCalledWith('acceleratorQuickChat', expect.anything());
         });
     });
 
@@ -338,6 +411,38 @@ describe('IpcManager', () => {
             (BrowserWindow as any).getAllWindows = vi.fn().mockReturnValue([mockWin]);
             handler({}, 'alwaysOnTop', false);
             expect(mockStore.set).toHaveBeenCalledWith('hotkeyAlwaysOnTop', false);
+        });
+
+        it('handles hotkeys:full-settings:get', async () => {
+            mockStore.get.mockImplementation((key: string) => {
+                if (key === 'hotkeyAlwaysOnTop') return true;
+                if (key === 'hotkeyPeekAndHide') return false;
+                if (key === 'hotkeyQuickChat') return true;
+                if (key === 'hotkeyVoiceChat') return true;
+                if (key === 'hotkeyPrintToPdf') return true;
+                if (key === 'acceleratorAlwaysOnTop') return 'CmdOrCtrl+T';
+                if (key === 'acceleratorPeekAndHide') return 'CmdOrCtrl+E';
+                return undefined;
+            });
+
+            const handler = (ipcMain as any)._handlers.get('hotkeys:full-settings:get');
+            const result = (await handler()) as HotkeySettings;
+
+            expect(result.alwaysOnTop).toEqual({
+                enabled: true,
+                accelerator: 'CmdOrCtrl+T',
+                defaultAccelerator: 'CommandOrControl+Alt+P',
+            });
+            expect(result.peekAndHide).toEqual({
+                enabled: false,
+                accelerator: 'CmdOrCtrl+E',
+                defaultAccelerator: 'CommandOrControl+Shift+Space',
+            });
+            expect(result.quickChat).toEqual({
+                enabled: true,
+                accelerator: 'CommandOrControl+Shift+Alt+Space',
+                defaultAccelerator: 'CommandOrControl+Shift+Alt+Space',
+            });
         });
     });
 
@@ -1625,8 +1730,16 @@ describe('IpcManager', () => {
             });
             const handler = (ipcMain as any)._handlers.get('hotkeys:full-settings:get');
             const result = await handler();
-            expect(result.alwaysOnTop).toEqual({ enabled: true, accelerator: 'CmdOrCtrl+T' });
-            expect(result.peekAndHide).toEqual({ enabled: false, accelerator: 'CmdOrCtrl+E' });
+            expect(result.alwaysOnTop).toEqual({
+                enabled: true,
+                accelerator: 'CmdOrCtrl+T',
+                defaultAccelerator: 'CommandOrControl+Alt+P',
+            });
+            expect(result.peekAndHide).toEqual({
+                enabled: false,
+                accelerator: 'CmdOrCtrl+E',
+                defaultAccelerator: 'CommandOrControl+Shift+Space',
+            });
         });
 
         it('handles hotkeys:full-settings:get error', async () => {

@@ -69,6 +69,9 @@ export const IPC_CHANNELS = {
     HOTKEYS_ACCELERATOR_CHANGED: 'hotkeys:accelerator:changed',
     HOTKEYS_FULL_SETTINGS_GET: 'hotkeys:full-settings:get',
 
+    // Hotkey Recorder (Windows Alt+Space capture)
+    HOTKEY_RECORDER_KEY_CAPTURED: 'hotkeys:recorder:key-captured',
+
     // Auto-Update
     AUTO_UPDATE_GET_ENABLED: 'auto-update:get-enabled',
     AUTO_UPDATE_SET_ENABLED: 'auto-update:set-enabled',

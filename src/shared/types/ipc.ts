@@ -12,6 +12,7 @@ import type {
     HotkeyAccelerators,
     HotkeySettings,
     PlatformHotkeyStatus,
+    HotkeyRecorderKeyEvent,
 } from './hotkeys';
 import type { UpdateInfo, DownloadProgress } from './updates';
 import type { ToastPayload } from './toast';
@@ -145,6 +146,9 @@ export interface ElectronAPI {
 
     /** Listen for hotkey accelerator changes. Returns unsubscribe function. */
     onHotkeyAcceleratorsChanged: (callback: (accelerators: HotkeyAccelerators) => void) => () => void;
+
+    /** Listen for hotkey recorder key capture. Returns unsubscribe function. */
+    onHotkeyRecorderKeyCaptured: (callback: (keyEvent: HotkeyRecorderKeyEvent) => void) => () => void;
 
     // =========================================================================
     // Always On Top API

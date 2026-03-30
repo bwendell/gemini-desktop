@@ -35,6 +35,7 @@ vi.mock('electron', () => ({
 vi.mock('../../../../src/main/store', () => {
     return {
         default: vi.fn(),
+        settingsStoreFileExists: vi.fn().mockReturnValue(true),
     };
 });
 
@@ -65,10 +66,10 @@ describe('IpcManager.dispose()', () => {
         mockExportManager = createMockExportManager();
 
         ipcManager = new IpcManager(
-            mockWindowManager,
+            mockWindowManager as any,
             null,
-            mockUpdateManager,
-            mockExportManager,
+            mockUpdateManager as any,
+            mockExportManager as any,
             null,
             null,
             mockStore as any,

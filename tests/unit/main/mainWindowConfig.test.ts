@@ -78,9 +78,7 @@ describe('MainWindow configuration', () => {
         it('macOS should have frame: true AND titleBarStyle: hidden together', async () => {
             stubPlatform('darwin');
 
-            const { MAIN_WINDOW_CONFIG, getTitleBarStyle } = await import(
-                '../../../src/main/utils/constants'
-            );
+            const { MAIN_WINDOW_CONFIG, getTitleBarStyle } = await import('../../../src/main/utils/constants');
 
             // macOS requires frame: true when titleBarStyle is 'hidden' for custom titlebar
             expect(MAIN_WINDOW_CONFIG.frame).toBe(true);
@@ -90,9 +88,7 @@ describe('MainWindow configuration', () => {
         it('Windows should have frame: false AND titleBarStyle: undefined together', async () => {
             stubPlatform('win32');
 
-            const { MAIN_WINDOW_CONFIG, getTitleBarStyle } = await import(
-                '../../../src/main/utils/constants'
-            );
+            const { MAIN_WINDOW_CONFIG, getTitleBarStyle } = await import('../../../src/main/utils/constants');
 
             // Windows uses frame: false for custom rendering
             expect(MAIN_WINDOW_CONFIG.frame).toBe(false);
@@ -102,9 +98,7 @@ describe('MainWindow configuration', () => {
         it('Linux should have frame: false AND titleBarStyle: undefined together', async () => {
             stubPlatform('linux');
 
-            const { MAIN_WINDOW_CONFIG, getTitleBarStyle } = await import(
-                '../../../src/main/utils/constants'
-            );
+            const { MAIN_WINDOW_CONFIG, getTitleBarStyle } = await import('../../../src/main/utils/constants');
 
             // Linux uses frame: false for custom rendering
             expect(MAIN_WINDOW_CONFIG.frame).toBe(false);
@@ -116,9 +110,7 @@ describe('MainWindow configuration', () => {
         it('MAIN_WINDOW_CONFIG should have backgroundColor from BASE_WINDOW_CONFIG', async () => {
             stubPlatform('darwin');
 
-            const { MAIN_WINDOW_CONFIG, BASE_WINDOW_CONFIG } = await import(
-                '../../../src/main/utils/constants'
-            );
+            const { MAIN_WINDOW_CONFIG, BASE_WINDOW_CONFIG } = await import('../../../src/main/utils/constants');
 
             expect(MAIN_WINDOW_CONFIG.backgroundColor).toBe(BASE_WINDOW_CONFIG.backgroundColor);
             expect(MAIN_WINDOW_CONFIG.backgroundColor).toBe('#1a1a1a');
@@ -127,9 +119,7 @@ describe('MainWindow configuration', () => {
         it('MAIN_WINDOW_CONFIG should have show: false from BASE_WINDOW_CONFIG', async () => {
             stubPlatform('darwin');
 
-            const { MAIN_WINDOW_CONFIG, BASE_WINDOW_CONFIG } = await import(
-                '../../../src/main/utils/constants'
-            );
+            const { MAIN_WINDOW_CONFIG, BASE_WINDOW_CONFIG } = await import('../../../src/main/utils/constants');
 
             expect(MAIN_WINDOW_CONFIG.show).toBe(BASE_WINDOW_CONFIG.show);
             expect(MAIN_WINDOW_CONFIG.show).toBe(false);
@@ -138,9 +128,7 @@ describe('MainWindow configuration', () => {
         it('MAIN_WINDOW_CONFIG should have webPreferences from BASE_WINDOW_CONFIG', async () => {
             stubPlatform('darwin');
 
-            const { MAIN_WINDOW_CONFIG, BASE_WINDOW_CONFIG } = await import(
-                '../../../src/main/utils/constants'
-            );
+            const { MAIN_WINDOW_CONFIG, BASE_WINDOW_CONFIG } = await import('../../../src/main/utils/constants');
 
             expect(MAIN_WINDOW_CONFIG.webPreferences).toBeDefined();
             expect(MAIN_WINDOW_CONFIG.webPreferences).toEqual(BASE_WINDOW_CONFIG.webPreferences);
