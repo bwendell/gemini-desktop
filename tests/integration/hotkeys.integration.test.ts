@@ -1,9 +1,34 @@
 import { browser, expect } from '@wdio/globals';
-import { DEFAULT_ACCELERATORS } from '../../src/shared/types/hotkeys';
+
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../src/shared/types/hotkeys';
+import {
+    callElectronAPI,
+    closeExtraWindows,
+    getMainWindowHandle,
+    getMainProcessPlatform,
+    openOptionsWindow,
+    switchToMainWindow,
+    waitForApp,
+} from './helpers/integrationUtils';
+import { hideQuickChat } from './helpers/windowHelpers';
 
 describe('Global Hotkeys Integration', () => {
+    let mainWindowHandle: string;
+
     before(async () => {
-        await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 0);
+        await waitForApp();
+        mainWindowHandle = await getMainWindowHandle();
+    });
+
+    afterEach(async () => {
+        await browser.execute(async (defaultAlwaysOnTop) => {
+            const api = (window as any).electronAPI;
+            await api?.setHotkeyAccelerator?.('alwaysOnTop', defaultAlwaysOnTop);
+        }, DEFAULT_ACCELERATORS.alwaysOnTop);
+
+        await hideQuickChat();
+        await switchToMainWindow(mainWindowHandle);
+        await closeExtraWindows({ force: true, timeout: 8000 });
     });
 
     it('should have hotkeys registered in the main process', async () => {
@@ -88,10 +113,9 @@ describe('Global Hotkeys Integration', () => {
                 return (global as any).appContext.hotkeyManager.getAccelerators();
             });
 
-            // All default accelerators should use CommandOrControl for cross-platform compatibility
             expect(accelerators.alwaysOnTop).toContain('CommandOrControl');
             expect(accelerators.peekAndHide).toContain('CommandOrControl');
-            expect(accelerators.quickChat).toContain('CommandOrControl');
+            expect(accelerators.quickChat).toBe(getDefaultAccelerators(process.platform).quickChat);
         });
 
         it('should correctly report the actual platform', async () => {
@@ -247,6 +271,155 @@ describe('Global Hotkeys Integration', () => {
             // Verify voiceChat is present and uses CommandOrControl
             expect(accelerators.voiceChat).toBeDefined();
             expect(accelerators.voiceChat).toContain('CommandOrControl');
+        });
+    });
+
+    describe('Windows Alt+Space quick chat lane', () => {
+        it('should expose Alt+Space as the resolved quickChat default accelerator', async () => {
+            const fullSettings = await callElectronAPI<{
+                quickChat: {
+                    enabled: boolean;
+                    accelerator: string;
+                    defaultAccelerator: string;
+                };
+            }>('getFullHotkeySettings');
+
+            expect(fullSettings.quickChat.defaultAccelerator).toBe('Alt+Space');
+        });
+
+        it('should drive the visible quickChat path and recorder bridge on the Windows lane', async function () {
+            const platform = await getMainProcessPlatform();
+
+            if (platform !== 'win32') {
+                this.skip();
+            }
+
+            await hideQuickChat();
+
+            const registration = await browser.electron.execute(() => {
+                const { globalShortcut } = require('electron');
+
+                return {
+                    accelerator: 'Alt+Space',
+                    isRegistered: globalShortcut.isRegistered('Alt+Space'),
+                };
+            });
+
+            expect(registration).toEqual({ accelerator: 'Alt+Space', isRegistered: true });
+
+            await browser.electron.execute(() => {
+                (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction?.('quickChat');
+            });
+
+            await browser.waitUntil(
+                async () => {
+                    return browser.electron.execute(() => {
+                        const quickChatWindow = (
+                            global as { appContext?: any }
+                        ).appContext?.windowManager?.getQuickChatWindow?.();
+                        return Boolean(
+                            quickChatWindow && !quickChatWindow.isDestroyed() && quickChatWindow.isVisible()
+                        );
+                    });
+                },
+                { timeout: 5000, timeoutMsg: 'Quick Chat window did not become visible from hotkey action' }
+            );
+
+            await hideQuickChat();
+
+            const optionsHandle = await openOptionsWindow(mainWindowHandle);
+            await browser.switchToWindow(optionsHandle);
+
+            const acceleratorSelector = '[data-testid="hotkey-row-alwaysOnTop"] .keycap-container';
+            const promptSelector = '[data-testid="hotkey-row-alwaysOnTop"] .recording-prompt';
+
+            await browser.waitUntil(
+                async () => {
+                    const container = await browser.$(acceleratorSelector);
+                    return container.isDisplayed();
+                },
+                { timeout: 5000, timeoutMsg: 'Hotkey accelerator input did not render in options window' }
+            );
+
+            await (await browser.$(acceleratorSelector)).click();
+
+            await browser.waitUntil(
+                async () => {
+                    const prompt = await browser.$(promptSelector);
+                    return prompt.isDisplayed();
+                },
+                { timeout: 5000, timeoutMsg: 'Recorder mode did not activate in options window' }
+            );
+
+            const bridgeResult = await browser.electron.execute((electron: typeof import('electron')) => {
+                const optionsWindow = electron.BrowserWindow.getAllWindows().find((win) =>
+                    win.webContents.getURL().includes('options')
+                );
+
+                if (!optionsWindow) {
+                    throw new Error('Options window not found for recorder bridge test');
+                }
+
+                let prevented = false;
+
+                optionsWindow.webContents.emit(
+                    'before-input-event',
+                    { preventDefault() {} } as Electron.Event,
+                    {
+                        type: 'keyDown',
+                        code: 'Space',
+                        key: 'Space',
+                        alt: true,
+                        control: false,
+                        shift: false,
+                        meta: false,
+                        isAutoRepeat: false,
+                    } as Electron.Input
+                );
+
+                optionsWindow.emit('system-context-menu', {
+                    preventDefault: () => {
+                        prevented = true;
+                    },
+                } as Electron.Event);
+
+                return {
+                    prevented,
+                    url: optionsWindow.webContents.getURL(),
+                };
+            });
+
+            expect(bridgeResult.prevented).toBe(true);
+            expect(bridgeResult.url).toContain('options');
+
+            await browser.waitUntil(
+                async () => {
+                    const prompt = await browser.$(promptSelector);
+                    return !(await prompt.isExisting()) || !(await prompt.isDisplayed());
+                },
+                { timeout: 5000, timeoutMsg: 'Recorder mode did not exit after bridge capture' }
+            );
+
+            await browser.waitUntil(
+                async () => {
+                    const storedAccelerator = await browser.electron.execute(() => {
+                        return (global as { appContext?: any }).appContext?.hotkeyManager?.getAccelerator?.(
+                            'alwaysOnTop'
+                        );
+                    });
+
+                    return storedAccelerator === 'Alt+Space';
+                },
+                { timeout: 5000, timeoutMsg: 'alwaysOnTop accelerator did not update to Alt+Space' }
+            );
+
+            const recorderValue = await browser.execute((selector) => {
+                const element = document.querySelector(selector);
+                return element?.textContent ?? null;
+            }, acceleratorSelector);
+
+            expect(recorderValue).toContain('Alt');
+            expect(recorderValue).toContain('␣');
         });
     });
 });

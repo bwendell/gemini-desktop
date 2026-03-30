@@ -66,7 +66,9 @@ describe('MenuManager Platform Integration', () => {
 
             const submenu = editMenu?.submenu ?? [];
             const roles = submenu.filter((item: any) => item.role).map((item: any) => item.role);
-            expect(roles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
+            expect(roles).toEqual(
+                expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll'])
+            );
         });
 
         it('should include About and Settings in app menu on macOS', () => {
@@ -147,7 +149,9 @@ describe('MenuManager Platform Integration', () => {
 
             const submenu = editMenu?.submenu ?? [];
             const roles = submenu.filter((item: any) => item.role).map((item: any) => item.role);
-            expect(roles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
+            expect(roles).toEqual(
+                expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll'])
+            );
         });
     });
 
@@ -193,7 +197,9 @@ describe('MenuManager Platform Integration', () => {
 
             const submenu = editMenu?.submenu ?? [];
             const roles = submenu.filter((item: any) => item.role).map((item: any) => item.role);
-            expect(roles).toEqual(expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll']));
+            expect(roles).toEqual(
+                expect.arrayContaining(['undo', 'redo', 'cut', 'copy', 'paste', 'delete', 'selectAll'])
+            );
         });
     });
 

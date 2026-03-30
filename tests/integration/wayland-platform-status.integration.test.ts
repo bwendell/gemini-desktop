@@ -90,8 +90,9 @@ describe('Platform Hotkey Status IPC', () => {
             // Check if quickChat is registered via globalShortcut
             const isQuickChatRegistered = await browser.electron.execute(() => {
                 const { globalShortcut } = require('electron');
-                // Use the default quickChat accelerator
-                return globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space');
+                const { getDefaultAccelerators } = require('../../dist-electron/shared/types/hotkeys.cjs');
+
+                return globalShortcut.isRegistered(getDefaultAccelerators(process.platform).quickChat);
             });
 
             // If any global hotkey is registered, globalHotkeysEnabled should be true
