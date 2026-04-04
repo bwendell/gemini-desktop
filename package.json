@@ -99,7 +99,7 @@
         "@wdio/spec-reporter": "^9.23.2",
         "@wdio/types": "^9.23.3",
         "concurrently": "^9.2.1",
-        "electron": "^39.5.1",
+        "electron": "^39.8.6",
         "electron-builder": "^26.7.0",
         "eslint": "^9.39.2",
         "eslint-config-prettier": "^10.1.8",
