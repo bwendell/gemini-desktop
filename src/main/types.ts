@@ -43,6 +43,7 @@ export {
     getHotkeyScope,
     isGlobalHotkey,
     isApplicationHotkey,
+    getDefaultAccelerators,
 } from '../shared/types/hotkeys';
 
 // Re-export hotkey scope type

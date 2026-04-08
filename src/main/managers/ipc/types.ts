@@ -12,6 +12,7 @@ import type LlmManager from '../llmManager';
 import type NotificationManager from '../notificationManager';
 import type ExportManager from '../exportManager';
 import type { Logger } from '../../types';
+import type { HotkeyAccelerators } from '../../../shared/types/hotkeys';
 
 /**
  * User preferences structure for settings store.
@@ -57,6 +58,7 @@ export interface IpcHandlerDependencies {
     store: SettingsStore<UserPreferences>;
     /** Logger instance for consistent logging */
     logger: Logger;
+    defaultHotkeyAccelerators: HotkeyAccelerators;
     /** Window manager for window operations */
     windowManager: WindowManager;
     /** Optional hotkey manager for keyboard shortcut handling */

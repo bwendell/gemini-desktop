@@ -1,12 +1,18 @@
 /**
  * Unit tests for BaseWindow.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserWindow } from 'electron';
+import { IPC_CHANNELS } from '../../../src/shared/constants/ipc-channels';
 import BaseWindow from '../../../src/main/windows/baseWindow';
 import { type BrowserWindowConstructorOptions } from 'electron';
+import { restorePlatform, stubPlatform } from '../../helpers/harness/platform';
+
+vi.mock('electron', async () => await import('./test/electron-mock'));
 
 type WindowClosedHandler = () => void;
+type BeforeInputHandler = (event: { preventDefault: () => void }, input: Electron.Input) => void;
+type SystemContextMenuHandler = (event: { preventDefault: () => void }) => void;
 
 // Concrete implementation of BaseWindow for testing
 class TestWindow extends BaseWindow {
@@ -35,6 +41,22 @@ describe('BaseWindow', () => {
         (BrowserWindow as any)._reset();
         testWindow = new TestWindow(false);
     });
+
+    afterEach(() => {
+        restorePlatform();
+    });
+
+    const getBeforeInputHandler = (win: BrowserWindow): BeforeInputHandler | undefined => {
+        return (vi.mocked(win.webContents.on).mock.calls as unknown[][]).find(
+            (call) => call[0] === 'before-input-event'
+        )?.[1] as BeforeInputHandler | undefined;
+    };
+
+    const getSystemContextMenuHandler = (win: BrowserWindow): SystemContextMenuHandler | undefined => {
+        return (vi.mocked(win.on).mock.calls as unknown[][]).find((call) => call[0] === 'system-context-menu')?.[1] as
+            | SystemContextMenuHandler
+            | undefined;
+    };
 
     describe('createWindow', () => {
         it('creates a new BrowserWindow instance', () => {
@@ -144,6 +166,77 @@ describe('BaseWindow', () => {
             }
 
             expect(removeAllListenersSpy).toHaveBeenCalled();
+        });
+
+        it('suppresses the Windows native system menu for keyboard Alt+Space', () => {
+            stubPlatform('win32');
+
+            const win = testWindow.callCreateWindow();
+            const beforeInputHandler = getBeforeInputHandler(win);
+            const systemContextMenuHandler = getSystemContextMenuHandler(win);
+            const inputEvent = { preventDefault: vi.fn() };
+            const menuEvent = { preventDefault: vi.fn() };
+
+            expect(beforeInputHandler).toBeTypeOf('function');
+            expect(systemContextMenuHandler).toBeTypeOf('function');
+
+            beforeInputHandler?.(inputEvent, {
+                type: 'keyDown',
+                key: 'Space',
+                code: 'Space',
+                alt: true,
+                control: false,
+                shift: false,
+                meta: false,
+                isAutoRepeat: false,
+            } as Electron.Input);
+
+            systemContextMenuHandler?.(menuEvent);
+
+            expect(menuEvent.preventDefault).toHaveBeenCalledTimes(1);
+        });
+
+        it('sends the recorder capture payload for Windows Alt+Space once suppression is confirmed', () => {
+            stubPlatform('win32');
+
+            const win = testWindow.callCreateWindow();
+            const beforeInputHandler = getBeforeInputHandler(win);
+            const systemContextMenuHandler = getSystemContextMenuHandler(win);
+            const menuEvent = { preventDefault: vi.fn() };
+
+            beforeInputHandler?.({ preventDefault: vi.fn() }, {
+                type: 'keyDown',
+                key: 'Space',
+                code: 'Space',
+                alt: true,
+                control: false,
+                shift: false,
+                meta: false,
+                isAutoRepeat: false,
+            } as Electron.Input);
+
+            systemContextMenuHandler?.(menuEvent);
+            systemContextMenuHandler?.({ preventDefault: vi.fn() });
+
+            expect(win.webContents.send).toHaveBeenCalledWith(IPC_CHANNELS.HOTKEY_RECORDER_KEY_CAPTURED, {
+                key: 'Alt+Space',
+                code: 'Space',
+                ctrlKey: false,
+                altKey: true,
+                shiftKey: false,
+                metaKey: false,
+            });
+            expect(win.webContents.send).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not register Windows Alt+Space suppression handlers on non-Windows platforms', () => {
+            stubPlatform('linux');
+
+            const win = testWindow.callCreateWindow();
+
+            expect(getBeforeInputHandler(win)).toBeUndefined();
+            expect(getSystemContextMenuHandler(win)).toBeUndefined();
+            expect(win.webContents.send).not.toHaveBeenCalled();
         });
     });
 });

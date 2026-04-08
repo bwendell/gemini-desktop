@@ -14,7 +14,7 @@
 
 import { memo } from 'react';
 import { CapsuleToggle } from '../common/CapsuleToggle';
-import { useIndividualHotkeys, HotkeyId, DEFAULT_ACCELERATORS } from '../../context/IndividualHotkeysContext';
+import { useIndividualHotkeys, HotkeyId } from '../../context/IndividualHotkeysContext';
 import { HotkeyAcceleratorInput } from './HotkeyAcceleratorInput';
 import './individualHotkeyToggles.css';
 
@@ -73,7 +73,7 @@ const HOTKEY_CONFIGS: HotkeyConfig[] = [
  * Renders all hotkey toggles with editable keyboard shortcuts.
  */
 export const IndividualHotkeyToggles = memo(function IndividualHotkeyToggles() {
-    const { settings, accelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
+    const { settings, accelerators, defaultAccelerators, setEnabled, setAccelerator } = useIndividualHotkeys();
 
     return (
         <div className="individual-hotkey-toggles" data-testid="individual-hotkey-toggles">
@@ -89,7 +89,7 @@ export const IndividualHotkeyToggles = memo(function IndividualHotkeyToggles() {
                             currentAccelerator={accelerators[config.id]}
                             disabled={!settings[config.id]}
                             onAcceleratorChange={setAccelerator}
-                            defaultAccelerator={DEFAULT_ACCELERATORS[config.id]}
+                            defaultAccelerator={defaultAccelerators[config.id]}
                         />
                     </div>
                     <div className="hotkey-toggle-wrapper">

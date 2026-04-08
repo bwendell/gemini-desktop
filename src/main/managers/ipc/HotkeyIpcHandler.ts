@@ -16,7 +16,6 @@ import { BaseIpcHandler } from './BaseIpcHandler';
 import { IPC_CHANNELS } from '../../utils/constants';
 import {
     HOTKEY_IDS,
-    DEFAULT_ACCELERATORS,
     type HotkeyId,
     type IndividualHotkeySettings,
     type HotkeyAccelerators,
@@ -200,7 +199,7 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
             return this._getAccelerators();
         } catch (error) {
             this.logger.error('Error getting hotkey accelerators:', error);
-            return { ...DEFAULT_ACCELERATORS };
+            return { ...this.deps.defaultHotkeyAccelerators! };
         }
     }
 
@@ -252,37 +251,56 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         try {
             const enabled = this._getIndividualSettings();
             const accelerators = this._getAccelerators();
+            const defaults = this.deps.defaultHotkeyAccelerators!;
 
             return {
                 alwaysOnTop: {
                     enabled: enabled.alwaysOnTop,
                     accelerator: accelerators.alwaysOnTop,
+                    defaultAccelerator: defaults.alwaysOnTop,
                 },
                 peekAndHide: {
                     enabled: enabled.peekAndHide,
                     accelerator: accelerators.peekAndHide,
+                    defaultAccelerator: defaults.peekAndHide,
                 },
                 quickChat: {
                     enabled: enabled.quickChat,
                     accelerator: accelerators.quickChat,
+                    defaultAccelerator: defaults.quickChat,
                 },
                 voiceChat: {
                     enabled: enabled.voiceChat,
                     accelerator: accelerators.voiceChat,
+                    defaultAccelerator: defaults.voiceChat,
                 },
                 printToPdf: {
                     enabled: enabled.printToPdf,
                     accelerator: accelerators.printToPdf,
+                    defaultAccelerator: defaults.printToPdf,
                 },
             };
         } catch (error) {
             this.logger.error('Error getting full hotkey settings:', error);
+            const defaults = this.deps.defaultHotkeyAccelerators!;
             return {
-                alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
-                peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
-                quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
-                voiceChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.voiceChat },
-                printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
+                alwaysOnTop: {
+                    enabled: true,
+                    accelerator: defaults.alwaysOnTop,
+                    defaultAccelerator: defaults.alwaysOnTop,
+                },
+                peekAndHide: {
+                    enabled: true,
+                    accelerator: defaults.peekAndHide,
+                    defaultAccelerator: defaults.peekAndHide,
+                },
+                quickChat: { enabled: true, accelerator: defaults.quickChat, defaultAccelerator: defaults.quickChat },
+                voiceChat: { enabled: true, accelerator: defaults.voiceChat, defaultAccelerator: defaults.voiceChat },
+                printToPdf: {
+                    enabled: true,
+                    accelerator: defaults.printToPdf,
+                    defaultAccelerator: defaults.printToPdf,
+                },
             };
         }
     }
@@ -328,11 +346,13 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
      */
     private _getAccelerators(): HotkeyAccelerators {
         return {
-            alwaysOnTop: this.deps.store.get('acceleratorAlwaysOnTop') ?? DEFAULT_ACCELERATORS.alwaysOnTop,
-            peekAndHide: this.deps.store.get('acceleratorPeekAndHide') ?? DEFAULT_ACCELERATORS.peekAndHide,
-            quickChat: this.deps.store.get('acceleratorQuickChat') ?? DEFAULT_ACCELERATORS.quickChat,
-            voiceChat: this.deps.store.get('acceleratorVoiceChat') ?? DEFAULT_ACCELERATORS.voiceChat,
-            printToPdf: this.deps.store.get('acceleratorPrintToPdf') ?? DEFAULT_ACCELERATORS.printToPdf,
+            alwaysOnTop:
+                this.deps.store.get('acceleratorAlwaysOnTop') ?? this.deps.defaultHotkeyAccelerators!.alwaysOnTop,
+            peekAndHide:
+                this.deps.store.get('acceleratorPeekAndHide') ?? this.deps.defaultHotkeyAccelerators!.peekAndHide,
+            quickChat: this.deps.store.get('acceleratorQuickChat') ?? this.deps.defaultHotkeyAccelerators!.quickChat,
+            voiceChat: this.deps.store.get('acceleratorVoiceChat') ?? this.deps.defaultHotkeyAccelerators!.voiceChat,
+            printToPdf: this.deps.store.get('acceleratorPrintToPdf') ?? this.deps.defaultHotkeyAccelerators!.printToPdf,
         };
     }
 

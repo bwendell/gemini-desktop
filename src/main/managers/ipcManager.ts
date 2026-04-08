@@ -39,7 +39,8 @@ import type NotificationManager from './notificationManager';
 import type ExportManager from './exportManager';
 import type { ModelStatus } from './llmManager';
 import type { ThemePreference, Logger } from '../types';
-import { DEFAULT_ACCELERATORS } from '../../shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../shared/types/hotkeys';
+import { settingsStoreFileExists } from '../store';
 
 /**
  * User preferences structure for settings store.
@@ -111,6 +112,12 @@ export default class IpcManager {
         store?: SettingsStore<UserPreferences>,
         logger?: Logger
     ) {
+        const defaultHotkeyAccelerators = getDefaultAccelerators(process.platform);
+        const isFreshInstall = !settingsStoreFileExists('user-preferences');
+        const quickChatDefaultAccelerator = isFreshInstall
+            ? defaultHotkeyAccelerators.quickChat
+            : DEFAULT_ACCELERATORS.quickChat;
+
         /* v8 ignore next 16 -- production fallback, tests always inject dependencies */
         const actualStore =
             store ||
@@ -126,7 +133,7 @@ export default class IpcManager {
                     hotkeyPrintToPdf: true,
                     acceleratorAlwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
                     acceleratorPeekAndHide: DEFAULT_ACCELERATORS.peekAndHide,
-                    acceleratorQuickChat: DEFAULT_ACCELERATORS.quickChat,
+                    acceleratorQuickChat: quickChatDefaultAccelerator,
                     acceleratorVoiceChat: DEFAULT_ACCELERATORS.voiceChat,
                     acceleratorPrintToPdf: DEFAULT_ACCELERATORS.printToPdf,
                     autoUpdateEnabled: true,
@@ -144,10 +151,15 @@ export default class IpcManager {
         this.logger = logger || createLogger('[IpcManager]');
         this.store = actualStore;
 
+        if (isFreshInstall) {
+            actualStore.set('acceleratorQuickChat', defaultHotkeyAccelerators.quickChat);
+        }
+
         // Create shared handler dependencies
         const handlerDeps: IpcHandlerDependencies = {
             store: actualStore,
             logger: this.logger,
+            defaultHotkeyAccelerators: isFreshInstall ? defaultHotkeyAccelerators : DEFAULT_ACCELERATORS,
             windowManager: windowManager,
             hotkeyManager: hotkeyManager || null,
             updateManager: updateManager || null,

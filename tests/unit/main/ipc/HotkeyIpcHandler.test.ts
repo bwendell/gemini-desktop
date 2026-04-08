@@ -9,7 +9,15 @@ import { HotkeyIpcHandler } from '../../../../src/main/managers/ipc/HotkeyIpcHan
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';
 import { IPC_CHANNELS } from '../../../../src/shared/constants/ipc-channels';
-import { DEFAULT_ACCELERATORS } from '../../../../src/shared/types/hotkeys';
+import { type HotkeyAccelerators, type HotkeySettings } from '../../../../src/shared/types/hotkeys';
+
+const INJECTED_DEFAULT_ACCELERATORS: HotkeyAccelerators = {
+    alwaysOnTop: 'CommandOrControl+Alt+P',
+    peekAndHide: 'CommandOrControl+Shift+Space',
+    quickChat: 'Alt+Space',
+    voiceChat: 'CommandOrControl+Shift+M',
+    printToPdf: 'CommandOrControl+Shift+P',
+};
 
 // Store original env
 const originalNodeEnv = process.env.NODE_ENV;
@@ -100,6 +108,7 @@ describe('HotkeyIpcHandler', () => {
             logger: mockLogger,
             windowManager: createMockWindowManager(),
             hotkeyManager: mockHotkeyManager,
+            defaultHotkeyAccelerators: INJECTED_DEFAULT_ACCELERATORS,
         } as unknown as IpcHandlerDependencies;
 
         handler = new HotkeyIpcHandler(mockDeps);
@@ -345,35 +354,48 @@ describe('HotkeyIpcHandler', () => {
             });
 
             const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
-            const result = await invokeHandler!();
+            const result = (await invokeHandler!()) as HotkeyAccelerators;
 
             expect(result).toEqual({
                 alwaysOnTop: 'Alt+Shift+A',
                 peekAndHide: 'Alt+Shift+B',
                 quickChat: 'Alt+Shift+Q',
-                voiceChat: 'CommandOrControl+Shift+M',
+                voiceChat: INJECTED_DEFAULT_ACCELERATORS.voiceChat,
                 printToPdf: 'Alt+Shift+P',
             });
         });
 
-        it('returns defaults if not set', async () => {
+        it('returns injected defaults if not set', async () => {
             mockStore.get.mockReturnValue(undefined);
 
             const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
-            const result = await invokeHandler!();
+            const result = (await invokeHandler!()) as HotkeyAccelerators;
 
-            expect(result).toEqual(DEFAULT_ACCELERATORS);
+            expect(result).toEqual(INJECTED_DEFAULT_ACCELERATORS);
         });
 
-        it('returns fallback on error', async () => {
+        it('keeps persisted quickChat accelerator authoritative over injected defaults', async () => {
+            mockStore.get.mockImplementation((key: string) => {
+                if (key === 'acceleratorQuickChat') return 'CommandOrControl+Shift+Alt+Space';
+                return undefined;
+            });
+
+            const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
+            const result = (await invokeHandler!()) as HotkeyAccelerators;
+
+            expect(result.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+            expect(result.alwaysOnTop).toBe(INJECTED_DEFAULT_ACCELERATORS.alwaysOnTop);
+        });
+
+        it('returns injected defaults on error', async () => {
             mockStore.get.mockImplementation(() => {
                 throw new Error('Store error');
             });
 
             const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);
-            const result = await invokeHandler!();
+            const result = (await invokeHandler!()) as HotkeyAccelerators;
 
-            expect(result).toEqual(DEFAULT_ACCELERATORS);
+            expect(result).toEqual(INJECTED_DEFAULT_ACCELERATORS);
             expect(mockLogger.error).toHaveBeenCalled();
         });
     });
@@ -433,7 +455,7 @@ describe('HotkeyIpcHandler', () => {
         it('broadcasts change to all windows', () => {
             mockStore.get.mockImplementation((key: string) => {
                 if (key === 'acceleratorQuickChat') return 'Alt+Space';
-                return DEFAULT_ACCELERATORS.alwaysOnTop;
+                return INJECTED_DEFAULT_ACCELERATORS.alwaysOnTop;
             });
 
             const listener = mockIpcMain._listeners.get(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET);
@@ -485,31 +507,87 @@ describe('HotkeyIpcHandler', () => {
             });
 
             const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET);
-            const result = await invokeHandler!();
+            const result = (await invokeHandler!()) as HotkeySettings;
 
             expect(result).toEqual({
-                alwaysOnTop: { enabled: true, accelerator: 'Alt+P' },
-                peekAndHide: { enabled: false, accelerator: 'Alt+H' },
-                quickChat: { enabled: true, accelerator: 'Ctrl+Space' },
-                voiceChat: { enabled: true, accelerator: 'CommandOrControl+Shift+M' },
-                printToPdf: { enabled: true, accelerator: 'Ctrl+Shift+P' },
+                alwaysOnTop: {
+                    enabled: true,
+                    accelerator: 'Alt+P',
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.alwaysOnTop,
+                },
+                peekAndHide: {
+                    enabled: false,
+                    accelerator: 'Alt+H',
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.peekAndHide,
+                },
+                quickChat: {
+                    enabled: true,
+                    accelerator: 'Ctrl+Space',
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.quickChat,
+                },
+                voiceChat: {
+                    enabled: true,
+                    accelerator: INJECTED_DEFAULT_ACCELERATORS.voiceChat,
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.voiceChat,
+                },
+                printToPdf: {
+                    enabled: true,
+                    accelerator: 'Ctrl+Shift+P',
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.printToPdf,
+                },
             });
         });
 
-        it('returns fallback on error', async () => {
+        it('preserves persisted quickChat accelerator while exposing injected defaultAccelerator', async () => {
+            mockStore.get.mockImplementation((key: string) => {
+                if (key === 'acceleratorQuickChat') return 'CommandOrControl+Shift+Alt+Space';
+                return undefined;
+            });
+
+            const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET);
+            const result = (await invokeHandler!()) as HotkeySettings;
+
+            expect(result.quickChat).toEqual({
+                enabled: true,
+                accelerator: 'CommandOrControl+Shift+Alt+Space',
+                defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.quickChat,
+            });
+        });
+
+        it('returns injected defaults with defaultAccelerator on error', async () => {
             mockStore.get.mockImplementation(() => {
                 throw new Error('Store error');
             });
 
             const invokeHandler = mockIpcMain._handlers.get(IPC_CHANNELS.HOTKEYS_FULL_SETTINGS_GET);
-            const result = await invokeHandler!();
+            const result = (await invokeHandler!()) as HotkeySettings;
 
             expect(result).toEqual({
-                alwaysOnTop: { enabled: true, accelerator: DEFAULT_ACCELERATORS.alwaysOnTop },
-                peekAndHide: { enabled: true, accelerator: DEFAULT_ACCELERATORS.peekAndHide },
-                quickChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.quickChat },
-                voiceChat: { enabled: true, accelerator: DEFAULT_ACCELERATORS.voiceChat },
-                printToPdf: { enabled: true, accelerator: DEFAULT_ACCELERATORS.printToPdf },
+                alwaysOnTop: {
+                    enabled: true,
+                    accelerator: INJECTED_DEFAULT_ACCELERATORS.alwaysOnTop,
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.alwaysOnTop,
+                },
+                peekAndHide: {
+                    enabled: true,
+                    accelerator: INJECTED_DEFAULT_ACCELERATORS.peekAndHide,
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.peekAndHide,
+                },
+                quickChat: {
+                    enabled: true,
+                    accelerator: INJECTED_DEFAULT_ACCELERATORS.quickChat,
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.quickChat,
+                },
+                voiceChat: {
+                    enabled: true,
+                    accelerator: INJECTED_DEFAULT_ACCELERATORS.voiceChat,
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.voiceChat,
+                },
+                printToPdf: {
+                    enabled: true,
+                    accelerator: INJECTED_DEFAULT_ACCELERATORS.printToPdf,
+                    defaultAccelerator: INJECTED_DEFAULT_ACCELERATORS.printToPdf,
+                },
             });
             expect(mockLogger.error).toHaveBeenCalled();
         });
@@ -665,6 +743,22 @@ describe('HotkeyIpcHandler', () => {
             handler.unregister();
 
             expect(mockIpcMain.removeHandler).toHaveBeenCalledWith(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET);
+        });
+    });
+
+    describe('defaultHotkeyAccelerators injection', () => {
+        it('initialize does not write accelerator defaults to the store', () => {
+            mockStore.get.mockReturnValue(undefined);
+            mockStore.set.mockClear();
+
+            handler.initialize();
+
+            const setCalls = (mockStore.set as ReturnType<typeof vi.fn>).mock.calls;
+            const acceleratorWrites = setCalls.filter(
+                (call: unknown[]) => typeof call[0] === 'string' && (call[0] as string).startsWith('accelerator')
+            );
+
+            expect(acceleratorWrites).toHaveLength(0);
         });
     });
 });

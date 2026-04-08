@@ -3,6 +3,12 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('electron', () => ({
+    app: {
+        getPath: vi.fn().mockReturnValue('/mock/userData'),
+    },
+}));
+
 // Mock fs module before importing store
 vi.mock('fs', () => ({
     readFileSync: vi.fn(),
@@ -11,7 +17,7 @@ vi.mock('fs', () => ({
 }));
 
 import * as fs from 'fs';
-import SettingsStore from '../../../src/main/store';
+import SettingsStore, { settingsStoreFileExists } from '../../../src/main/store';
 
 const mockFs = vi.mocked(fs);
 
@@ -91,6 +97,23 @@ describe('SettingsStore', () => {
             });
 
             expect(store._data).toEqual({ theme: 'system' });
+        });
+
+        it('reports whether a settings file already exists for a config name', () => {
+            mockFs.existsSync.mockReturnValue(true);
+
+            const exists = settingsStoreFileExists('user-preferences', mockFs);
+
+            expect(exists).toBe(true);
+            expect(mockFs.existsSync).toHaveBeenCalledWith(expect.stringContaining('user-preferences.json'));
+        });
+
+        it('returns false when the settings file does not exist', () => {
+            mockFs.existsSync.mockReturnValue(false);
+
+            const exists = settingsStoreFileExists('user-preferences', mockFs);
+
+            expect(exists).toBe(false);
         });
     });
 

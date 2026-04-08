@@ -207,7 +207,7 @@ If you are an AI assistant (like GitHub Copilot, Cursor, Windsurf, or a custom a
 ## 🌐 Domain Context
 
 - **Gemini Web App:** The app embeds `https://gemini.google.com/app` in an iframe after stripping `X-Frame-Options` headers.
-- **Quick Chat:** Spotlight-style floating window activated by global hotkey (`Ctrl+Shift+Alt+Space`) for quick prompts.
+- **Quick Chat:** Spotlight-style floating window. Fresh installs default to `Alt+Space` on all platforms. Existing installs preserve their persisted hotkey (authoritative).
 - **Peek and Hide:** Instantly hide app to system tray via hotkey (`Ctrl+Shift+Space`).
 - **Session Persistence:** Google auth sessions stored in Chromium's encrypted cookie storage via `persist:gemini` partition.
 

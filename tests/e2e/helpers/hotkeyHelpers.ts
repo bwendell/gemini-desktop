@@ -11,7 +11,7 @@
 
 import { browser } from '@wdio/globals';
 import type { E2EPlatform } from './platform';
-import { DEFAULT_ACCELERATORS } from '../../../src/shared/types/hotkeys';
+import { DEFAULT_ACCELERATORS, getDefaultAccelerators } from '../../../src/shared/types/hotkeys';
 
 /**
  * Hotkey definition for cross-platform testing.
@@ -53,9 +53,13 @@ export const REGISTERED_HOTKEYS: Record<string, HotkeyDefinition> = {
         displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.peekAndHide),
     },
     QUICK_CHAT: {
-        accelerator: DEFAULT_ACCELERATORS.quickChat,
+        accelerator: getDefaultAccelerators(process.platform).quickChat,
         description: 'Toggle Quick Chat floating window [Global]',
-        displayFormat: acceleratorToDisplayFormat(DEFAULT_ACCELERATORS.quickChat),
+        displayFormat: {
+            windows: 'Alt+Space',
+            macos: 'Alt+Space',
+            linux: 'Alt+Space',
+        },
     },
     ALWAYS_ON_TOP: {
         accelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
@@ -374,9 +378,10 @@ export async function getPlatformHotkeyStatus(): Promise<PlatformHotkeyStatus | 
 export async function checkGlobalShortcutRegistration(): Promise<GlobalShortcutRegistrationStatus | null> {
     return browser.electron.execute((_electron: typeof import('electron')) => {
         const { globalShortcut } = _electron;
+        const { getDefaultAccelerators } = require('../../../src/shared/types/hotkeys');
         try {
             return {
-                quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
+                quickChat: globalShortcut.isRegistered(getDefaultAccelerators(process.platform).quickChat),
                 peekAndHide: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
                 status: 'success',
             };

@@ -9,6 +9,8 @@ import { BrowserWindow } from 'electron';
 import type { BrowserWindowConstructorOptions } from 'electron';
 import { EventEmitter } from 'events';
 
+import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
+import type { HotkeyRecorderKeyEvent } from '../../shared/types/hotkeys';
 import { createLogger } from '../utils/logger';
 import { getPreloadPath, getDistHtmlPath } from '../utils/paths';
 import { getDevUrl } from '../utils/constants';
@@ -34,6 +36,8 @@ export default abstract class BaseWindow extends EventEmitter {
 
     /** HTML file to load (e.g., 'index.html', 'options.html') */
     protected abstract readonly htmlFile: string;
+
+    private pendingWindowsAltSpaceCapture: HotkeyRecorderKeyEvent | null = null;
 
     /**
      * Creates a new BaseWindow instance.
@@ -127,13 +131,62 @@ export default abstract class BaseWindow extends EventEmitter {
     protected setupBaseHandlers(): void {
         if (!this.window) return;
 
+        this.setupWindowsAltSpaceHandling();
+
         this.window.on('closed', () => {
             this.logger.log('Window closed');
+            this.pendingWindowsAltSpaceCapture = null;
             this.window = null;
             this.emit('closed');
             // Clean up EventEmitter listeners to prevent memory leaks
             this.removeAllListeners();
         });
+    }
+
+    private setupWindowsAltSpaceHandling(): void {
+        if (!this.window || process.platform !== 'win32') {
+            return;
+        }
+
+        this.window.webContents.on('before-input-event', (_event, input) => {
+            const pendingCapture = this.resolveWindowsAltSpaceCapture(input);
+            this.pendingWindowsAltSpaceCapture = pendingCapture;
+        });
+
+        this.window.on('system-context-menu', (event) => {
+            if (!this.pendingWindowsAltSpaceCapture) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const window = this.window;
+            if (window && !window.webContents.isDestroyed()) {
+                window.webContents.send(IPC_CHANNELS.HOTKEY_RECORDER_KEY_CAPTURED, this.pendingWindowsAltSpaceCapture);
+            }
+
+            this.pendingWindowsAltSpaceCapture = null;
+        });
+    }
+
+    private resolveWindowsAltSpaceCapture(input: Electron.Input): HotkeyRecorderKeyEvent | null {
+        if (input.type !== 'keyDown' || input.isAutoRepeat) {
+            return null;
+        }
+
+        const isAltSpace = input.alt && !input.control && !input.shift && !input.meta && input.code === 'Space';
+        if (!isAltSpace) {
+            return null;
+        }
+
+        return {
+            key: 'Alt+Space',
+            code: input.code,
+            ctrlKey: input.control,
+            altKey: input.alt,
+            shiftKey: input.shift,
+            metaKey: input.meta,
+        };
     }
 
     /**

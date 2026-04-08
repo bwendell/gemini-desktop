@@ -117,14 +117,35 @@ export function createMockElectronAPI(overrides: MockElectronAPIOverrides = {}):
             printToPdf: 'CommandOrControl+Shift+P',
         }),
         getFullHotkeySettings: vi.fn().mockResolvedValue({
-            alwaysOnTop: { enabled: true, accelerator: 'CommandOrControl+Alt+P' },
-            peekAndHide: { enabled: true, accelerator: 'CommandOrControl+Shift+Space' },
-            quickChat: { enabled: true, accelerator: 'CommandOrControl+Shift+Alt+Space' },
-            voiceChat: { enabled: true, accelerator: 'CommandOrControl+Shift+M' },
-            printToPdf: { enabled: true, accelerator: 'CommandOrControl+Shift+P' },
+            alwaysOnTop: {
+                enabled: true,
+                accelerator: 'CommandOrControl+Alt+P',
+                defaultAccelerator: 'CommandOrControl+Alt+P',
+            },
+            peekAndHide: {
+                enabled: true,
+                accelerator: 'CommandOrControl+Shift+Space',
+                defaultAccelerator: 'CommandOrControl+Shift+Space',
+            },
+            quickChat: {
+                enabled: true,
+                accelerator: 'CommandOrControl+Shift+Alt+Space',
+                defaultAccelerator: 'CommandOrControl+Shift+Alt+Space',
+            },
+            voiceChat: {
+                enabled: true,
+                accelerator: 'CommandOrControl+Shift+M',
+                defaultAccelerator: 'CommandOrControl+Shift+M',
+            },
+            printToPdf: {
+                enabled: true,
+                accelerator: 'CommandOrControl+Shift+P',
+                defaultAccelerator: 'CommandOrControl+Shift+P',
+            },
         }),
         setHotkeyAccelerator: vi.fn(),
         onHotkeyAcceleratorsChanged: vi.fn().mockReturnValue(defaultUnsubscribe),
+        onHotkeyRecorderKeyCaptured: vi.fn().mockReturnValue(defaultUnsubscribe),
 
         // =========================================================================
         // Always On Top API

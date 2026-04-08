@@ -300,22 +300,27 @@ export default class HotkeyManager {
             alwaysOnTop: {
                 enabled: this._individualSettings.alwaysOnTop,
                 accelerator: this._accelerators.alwaysOnTop,
+                defaultAccelerator: DEFAULT_ACCELERATORS.alwaysOnTop,
             },
             peekAndHide: {
                 enabled: this._individualSettings.peekAndHide,
                 accelerator: this._accelerators.peekAndHide,
+                defaultAccelerator: DEFAULT_ACCELERATORS.peekAndHide,
             },
             quickChat: {
                 enabled: this._individualSettings.quickChat,
                 accelerator: this._accelerators.quickChat,
+                defaultAccelerator: DEFAULT_ACCELERATORS.quickChat,
             },
             voiceChat: {
                 enabled: this._individualSettings.voiceChat,
                 accelerator: this._accelerators.voiceChat,
+                defaultAccelerator: DEFAULT_ACCELERATORS.voiceChat,
             },
             printToPdf: {
                 enabled: this._individualSettings.printToPdf,
                 accelerator: this._accelerators.printToPdf,
+                defaultAccelerator: DEFAULT_ACCELERATORS.printToPdf,
             },
         };
     }
