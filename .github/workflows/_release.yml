@@ -74,7 +74,7 @@ jobs:
 
             - name: Upload to GitHub Release
               if: ${{ inputs.publish }}
-              uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+              uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -150,7 +150,7 @@ jobs:
 
             - name: Upload to GitHub Release
               if: ${{ inputs.publish }}
-              uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+              uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -455,7 +455,7 @@ jobs:
 
             - name: Upload Windows release assets
               if: ${{ inputs.publish }}
-              uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+              uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -510,7 +510,7 @@ jobs:
 
             - name: Upload to GitHub Release
               if: ${{ inputs.publish }}
-              uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+              uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
