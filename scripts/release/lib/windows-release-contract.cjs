@@ -47,6 +47,7 @@ function discoverWindowsReleaseFiles(releaseDir, version) {
     const installerName = `Gemini-Desktop-${version}-installer.exe`;
     const blockmapName = `${installerName}.blockmap`;
     const archSpecificInstallers = entries.filter((entry) => /-(x64|arm64)-installer\.exe$/i.test(entry));
+    const nsisPackageNames = entries.filter((entry) => /\.(x64|arm64)\.nsis\.7z$/i.test(entry)).sort();
     const msiArtifacts = entries.filter((entry) => /\.msi$/i.test(entry));
 
     if (archSpecificInstallers.length > 0) {
@@ -73,6 +74,7 @@ function discoverWindowsReleaseFiles(releaseDir, version) {
         ...installerInfo,
         blockmapName,
         blockmapPath,
+        nsisPackageNames,
     };
 }
 
@@ -161,6 +163,7 @@ function prepareWindowsReleaseAssets({ releaseDir, version, githubOutputPath }) 
     const windowsUploadFiles = [
         installerInfo.installerName,
         installerInfo.blockmapName,
+        ...installerInfo.nsisPackageNames,
         ...WINDOWS_METADATA_FILES,
         'checksums-windows.txt',
     ].map((fileName) => toReleaseContractPath(fileName));
@@ -172,6 +175,7 @@ function prepareWindowsReleaseAssets({ releaseDir, version, githubOutputPath }) 
         promotedInstallerSha512: installerInfo.sha512,
         promotedInstallerSize: installerInfo.size,
         promotedBlockmapName: installerInfo.blockmapName,
+        nsisPackageNames: installerInfo.nsisPackageNames,
         metadataFiles: WINDOWS_METADATA_FILES,
         windowsUploadFiles,
     });

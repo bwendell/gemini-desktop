@@ -56,6 +56,15 @@ function writeBaseReleaseFiles(
     return { installerName, installerBuffer };
 }
 
+function writeNsisSidecarArchives(releaseDir: string): string[] {
+    const archives = ['Gemini-Desktop-0.12.0.x64.nsis.7z', 'Gemini-Desktop-0.12.0.arm64.nsis.7z'];
+    for (const archive of archives) {
+        fs.writeFileSync(path.join(releaseDir, archive), `${archive}-contents`, 'utf8');
+    }
+
+    return archives;
+}
+
 describe('prepare-windows-release-assets', () => {
     it('accepts exactly one promoted unified installer', () => {
         const { discoverWindowsReleaseFiles } = loadWindowsReleaseContract();
@@ -167,6 +176,32 @@ describe('prepare-windows-release-assets', () => {
         expect(result.windowsUploadFiles).toEqual([
             'release/Gemini-Desktop-0.12.0-installer.exe',
             'release/Gemini-Desktop-0.12.0-installer.exe.blockmap',
+            'release/latest.yml',
+            'release/latest-x64.yml',
+            'release/latest-arm64.yml',
+            'release/x64.yml',
+            'release/arm64.yml',
+            'release/checksums-windows.txt',
+        ]);
+    });
+
+    it('includes NSIS sidecar archives in the upload contract when present', () => {
+        const { prepareWindowsReleaseAssets } = loadWindowsReleaseContract();
+        const releaseDir = makeTempReleaseDir();
+
+        writeBaseReleaseFiles(releaseDir);
+        writeNsisSidecarArchives(releaseDir);
+
+        const result = prepareWindowsReleaseAssets({
+            releaseDir,
+            version: '0.12.0',
+        });
+
+        expect(result.windowsUploadFiles).toEqual([
+            'release/Gemini-Desktop-0.12.0-installer.exe',
+            'release/Gemini-Desktop-0.12.0-installer.exe.blockmap',
+            'release/Gemini-Desktop-0.12.0.arm64.nsis.7z',
+            'release/Gemini-Desktop-0.12.0.x64.nsis.7z',
             'release/latest.yml',
             'release/latest-x64.yml',
             'release/latest-arm64.yml',

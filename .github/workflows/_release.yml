@@ -251,6 +251,7 @@ jobs:
                   const expectedUploadFiles = [
                       `release/${manifest.promotedInstallerName}`,
                       `release/${manifest.promotedBlockmapName}`,
+                      ...(manifest.nsisPackageNames ?? []).map((fileName) => `release/${fileName}`),
                       'release/latest.yml',
                       'release/latest-x64.yml',
                       'release/latest-arm64.yml',

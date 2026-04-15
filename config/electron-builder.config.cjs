@@ -40,6 +40,9 @@ const windowsBinaryExclusions = getWindowsBinaryExclusions();
 module.exports = {
     appId: 'com.benwendell.gemini-desktop',
     productName: 'Gemini Desktop',
+    // Windows builds do not need native module rebuild for this app.
+    // Rebuild can fail on Linux-only transitive deps (e.g. dbus-next/usocket).
+    npmRebuild: !isWindowsBuild,
 
     directories: {
         output: 'release',
