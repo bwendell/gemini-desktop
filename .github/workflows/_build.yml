@@ -61,14 +61,14 @@ jobs:
 
             # Upload build outputs for use by test and release workflows
             - name: Upload Frontend Build
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
               with:
                   name: frontend-dist
                   path: dist/
                   retention-days: 1
 
             - name: Upload Electron Build
-              uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
               with:
                   name: electron-dist
                   path: dist-electron/
