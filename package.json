@@ -78,7 +78,7 @@
         "turndown-plugin-gfm": "^1.0.2"
     },
     "optionalDependencies": {
-        "node-llama-cpp": "^3.18.0"
+        "node-llama-cpp": "^3.18.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.2",
