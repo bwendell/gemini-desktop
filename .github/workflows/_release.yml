@@ -33,7 +33,7 @@ jobs:
                   ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -74,7 +74,7 @@ jobs:
 
             - name: Upload to GitHub Release
               if: ${{ inputs.publish }}
-              uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+              uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -109,7 +109,7 @@ jobs:
                   ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -150,7 +150,7 @@ jobs:
 
             - name: Upload to GitHub Release
               if: ${{ inputs.publish }}
-              uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+              uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -188,7 +188,7 @@ jobs:
                   ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -292,7 +292,7 @@ jobs:
                   ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -366,7 +366,7 @@ jobs:
                   ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -456,7 +456,7 @@ jobs:
 
             - name: Upload Windows release assets
               if: ${{ inputs.publish }}
-              uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+              uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
@@ -476,7 +476,7 @@ jobs:
                   ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -511,7 +511,7 @@ jobs:
 
             - name: Upload to GitHub Release
               if: ${{ inputs.publish }}
-              uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
+              uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
