@@ -9,27 +9,36 @@ const workflowPath = path.resolve(__dirname, '../../..', '.github/workflows/_rel
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 
 describe('Windows release workflow topology', () => {
-    it('uses build validate publish Windows jobs', () => {
-        expect(workflow).toContain('windows-build:');
+    it('uses per-architecture Windows release jobs with dedicated installer validation', () => {
+        expect(workflow).toContain('windows-x64-build:');
         expect(workflow).toContain('windows-validate-x64:');
+        expect(workflow).toContain('windows-arm64-build:');
         expect(workflow).toContain('windows-validate-arm64:');
-        expect(workflow).toContain('runs-on: windows-11-arm');
         expect(workflow).toContain('windows-publish:');
+        expect(workflow).toContain('runs-on: windows-11-arm');
+        expect(workflow).not.toContain('windows-build:');
     });
 
-    it('removes obsolete Windows release flow pieces', () => {
-        expect(workflow).not.toContain('RUN_WINDOWS_ARM64_VALIDATION');
-        expect(workflow).not.toContain('windows-release-manifest-x64.json');
-        expect(workflow).not.toContain('windows-release-manifest-arm64.json');
-        expect(workflow).not.toContain('checksums-windows-arm64.txt');
-        expect(workflow).not.toContain('Attach ARM64 validation gate reminder');
-        expect(workflow).toContain('release/windows-release-manifest.json');
+    it('restores per-architecture release metadata and checksum handling', () => {
+        expect(workflow).toContain('checksums-windows.txt');
+        expect(workflow).toContain('checksums-windows-arm64.txt');
+        expect(workflow).toContain('latest-x64.yml');
+        expect(workflow).toContain('latest-arm64.yml');
+        expect(workflow).toContain('x64.yml');
+        expect(workflow).toContain('arm64.yml');
+        expect(workflow).not.toContain('release/windows-release-manifest.json');
     });
 
-    it('fails baseline installs when Windows installer processes exit non-zero', () => {
-        expect(workflow).toContain('Start-Process -FilePath $env:BASELINE_INSTALLER_PATH');
-        expect(workflow).toContain('-PassThru');
-        expect(workflow).toContain('Baseline x64 installer exited with code');
-        expect(workflow).toContain('Baseline arm64 installer exited with code');
+    it('builds each Windows architecture with explicit dist commands', () => {
+        expect(workflow).toContain('npm run dist:win-x64');
+        expect(workflow).toContain('npm run dist:win-arm64');
+        expect(workflow).toContain('release-artifacts-windows-x64');
+        expect(workflow).toContain('release-artifacts-windows-arm64');
+        expect(workflow).toContain('Install promoted arm64 candidate');
+        expect(workflow).toContain('Install promoted x64 candidate');
+        expect(workflow).toContain('Run arm64 installer smoke spec');
+        expect(workflow).toContain('Run x64 installer smoke spec');
+        expect(workflow).toContain('Run arm64 upgrade spec');
+        expect(workflow).toContain('Run x64 upgrade spec');
     });
 });

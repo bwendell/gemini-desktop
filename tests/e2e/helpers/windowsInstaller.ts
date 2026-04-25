@@ -20,13 +20,6 @@ export function readWindowsInstallerManifest(): WindowsInstallerManifest {
     return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 }
 
-export function getPromotedWindowsInstallerPath(): string {
-    const releaseDir = getWindowsInstallerReleaseDir();
-    const manifestPath = path.join(releaseDir, 'windows-release-manifest.json');
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    return path.join(releaseDir, manifest.promotedInstallerName);
-}
-
 export function getInstalledWindowsExecutablePath(): string {
     if (process.env.INSTALLED_WINDOWS_EXE_PATH) {
         return process.env.INSTALLED_WINDOWS_EXE_PATH;

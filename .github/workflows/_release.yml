@@ -171,16 +171,15 @@ jobs:
                   retention-days: 7
                   if-no-files-found: error
 
-    windows-build:
-        name: Windows Build
+    windows-x64-build:
+        name: Windows Build (x64)
         runs-on: windows-latest
         permissions:
             contents: read
         outputs:
             release_version: ${{ steps.release_version.outputs.value }}
-            windows_upload_files: ${{ steps.prepare_windows.outputs.windows_upload_files }}
-            promoted_installer_name: ${{ steps.capture_windows.outputs.promoted_installer_name }}
-            windows_manifest_path: ${{ steps.capture_windows.outputs.windows_manifest_path }}
+        env:
+            npm_config_arch: x64
         steps:
             - name: Checkout Code
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -217,7 +216,7 @@ jobs:
                   path: dist-electron/
 
             - name: Build (without publish)
-              run: npm run dist:win
+              run: npm run dist:win-x64
               shell: bash
               env:
                   AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
@@ -228,60 +227,38 @@ jobs:
                   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
                   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-            - name: Run packaged release validation
+            - name: Run Release E2E Tests
               run: npm run test:e2e:release
               shell: bash
               timeout-minutes: 30
 
-            - name: Prepare Windows release assets
-              id: prepare_windows
+            - name: Prepare Windows update metadata (x64)
+              shell: pwsh
               run: |
-                  node scripts/release/prepare-windows-release-assets.cjs --release-dir release --version "${{ steps.release_version.outputs.value }}" --github-output "$GITHUB_OUTPUT"
-              shell: bash
+                  cd release
+                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
+                  Copy-Item -Path latest.yml -Destination latest-x64.yml -Force
+                  Copy-Item -Path latest-x64.yml -Destination x64.yml -Force
 
-            - name: Capture Windows build outputs
-              id: capture_windows
+            - name: Generate Checksums
+              shell: pwsh
               run: |
-                  node <<'EOF'
-                  const fs = require('node:fs');
-                  const path = require('node:path');
+                  cd release
+                  $files = @(Get-ChildItem -Path *.exe -File)
+                  if ($files.Count -eq 0) { throw 'No .exe files found in release/ for checksum generation.' }
+                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows.txt
 
-                  const manifestPath = path.resolve('release/windows-release-manifest.json');
-                  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-                  const expectedUploadFiles = [
-                      `release/${manifest.promotedInstallerName}`,
-                      `release/${manifest.promotedBlockmapName}`,
-                      ...(manifest.nsisPackageNames ?? []).map((fileName) => `release/${fileName}`),
-                      'release/latest.yml',
-                      'release/latest-x64.yml',
-                      'release/latest-arm64.yml',
-                      'release/x64.yml',
-                      'release/arm64.yml',
-                      'release/checksums-windows.txt',
-                  ];
-
-                  if (JSON.stringify(manifest.windowsUploadFiles) !== JSON.stringify(expectedUploadFiles)) {
-                      throw new Error(
-                          `Unexpected windowsUploadFiles order: ${JSON.stringify(manifest.windowsUploadFiles)}`,
-                      );
-                  }
-
-                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `promoted_installer_name=${manifest.promotedInstallerName}\n`);
-                  fs.appendFileSync(process.env.GITHUB_OUTPUT, 'windows_manifest_path=release/windows-release-manifest.json\n');
-                  EOF
-              shell: bash
-
-            - name: Upload Windows workflow artifacts
+            - name: Upload Build Artifacts
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
               with:
-                  name: release-artifacts-windows
+                  name: release-artifacts-windows-x64
                   path: release/
                   retention-days: 7
                   if-no-files-found: error
 
     windows-validate-x64:
         name: Windows Validate (x64)
-        needs: windows-build
+        needs: windows-x64-build
         runs-on: windows-latest
         permissions:
             contents: read
@@ -302,23 +279,30 @@ jobs:
               with:
                   command: npm ci --prefer-offline
 
-            - name: Download Windows workflow artifact
+            - name: Download Windows x64 workflow artifact
               uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
               with:
-                  name: release-artifacts-windows
+                  name: release-artifacts-windows-x64
                   path: release/
+
+            - name: Resolve promoted x64 installer
+              id: promoted_installer
+              shell: bash
+              run: |
+                  installer=$(ls release/*-x64-installer.exe)
+                  echo "installer=$installer" >> "$GITHUB_OUTPUT"
 
             - name: Resolve x64 baseline installer
               id: resolve_baseline
               run: |
-                  node scripts/release/resolve-windows-baseline-installer.cjs --lane x64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --target-version "${{ needs.windows-build.outputs.release_version }}" --download-dir release/baseline-x64 --github-output "$GITHUB_OUTPUT"
+                  node scripts/release/resolve-windows-baseline-installer.cjs --lane x64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --target-version "${{ needs.windows-x64-build.outputs.release_version }}" --download-dir release/baseline-x64 --github-output "$GITHUB_OUTPUT"
               shell: bash
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Install promoted x64 candidate
               run: |
-                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-smoke-x64 --result-path release/installer-smoke-manifest.json
+                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-smoke-x64 --result-path release/installer-smoke-manifest.json --installer "${{ steps.promoted_installer.outputs.installer }}"
               shell: bash
 
             - name: Run x64 installer smoke spec
@@ -326,7 +310,7 @@ jobs:
               shell: bash
               env:
                   EXPECTED_WINDOWS_ARCH: x64
-                  TARGET_VERSION: ${{ needs.windows-build.outputs.release_version }}
+                  TARGET_VERSION: ${{ needs.windows-x64-build.outputs.release_version }}
 
             - name: Install baseline x64 build
               shell: pwsh
@@ -342,7 +326,7 @@ jobs:
 
             - name: Upgrade x64 baseline to promoted installer
               run: |
-                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-upgrade-x64 --result-path release/installer-smoke-manifest.json
+                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-upgrade-x64 --result-path release/installer-smoke-manifest.json --installer "${{ steps.promoted_installer.outputs.installer }}"
               shell: bash
 
             - name: Run x64 upgrade spec
@@ -351,11 +335,97 @@ jobs:
               env:
                   BASELINE_INSTALLER_PATH: ${{ steps.resolve_baseline.outputs.baseline_installer }}
                   BASELINE_VERSION: ${{ steps.resolve_baseline.outputs.baseline_version }}
-                  TARGET_VERSION: ${{ needs.windows-build.outputs.release_version }}
+                  TARGET_VERSION: ${{ needs.windows-x64-build.outputs.release_version }}
+
+    windows-arm64-build:
+        name: Windows Build (arm64)
+        runs-on: windows-latest
+        permissions:
+            contents: read
+        outputs:
+            release_version: ${{ steps.release_version.outputs.value }}
+        env:
+            npm_config_arch: arm64
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                  ref: ${{ github.sha }}
+
+            - name: Setup Node.js
+              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
+
+            - name: Resolve release version
+              id: release_version
+              run: |
+                  node -e 'const packageJson = require("./package.json"); require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, `value=${packageJson.version}\n`);'
+              shell: bash
+
+            - name: Install Dependencies
+              uses: ./.github/actions/retry-command
+              with:
+                  command: npm ci --prefer-offline
+
+            - name: Download Frontend Build
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+              with:
+                  name: frontend-dist
+                  path: dist/
+
+            - name: Download Electron Build
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+              with:
+                  name: electron-dist
+                  path: dist-electron/
+
+            - name: Build (without publish)
+              run: npm run dist:win-arm64
+              shell: bash
+              env:
+                  AZURE_SIGN_ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
+                  AZURE_PUBLISHER_NAME: ${{ secrets.AZURE_PUBLISHER_NAME }}
+                  AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_ACCOUNT_NAME }}
+                  AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+                  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+            - name: Run Release E2E Tests
+              run: npm run test:e2e:release
+              shell: bash
+              timeout-minutes: 30
+
+            - name: Prepare Windows update metadata (arm64)
+              shell: pwsh
+              run: |
+                  cd release
+                  if (!(Test-Path latest.yml)) { throw 'Error: expected latest.yml to be generated, but it was not found in the release directory.' }
+                  Copy-Item -Path latest.yml -Destination latest-arm64.yml -Force
+                  Copy-Item -Path latest-arm64.yml -Destination arm64.yml -Force
+                  Remove-Item -Path latest.yml -Force
+
+            - name: Generate Checksums
+              shell: pwsh
+              run: |
+                  cd release
+                  $files = @(Get-ChildItem -Path *.exe -File)
+                  if ($files.Count -eq 0) { throw 'No .exe files found in release/ for checksum generation.' }
+                  $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File checksums-windows-arm64.txt
+
+            - name: Upload Build Artifacts
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                  name: release-artifacts-windows-arm64
+                  path: release/
+                  retention-days: 7
+                  if-no-files-found: error
 
     windows-validate-arm64:
         name: Windows Validate (arm64)
-        needs: windows-build
+        needs: windows-arm64-build
         runs-on: windows-11-arm
         permissions:
             contents: read
@@ -387,26 +457,32 @@ jobs:
             - name: Suppress Windows 11 privacy dialog host
               shell: pwsh
               run: |
-                  # The hosted windows-11-arm image can surface a first-run privacy dialog that steals focus from GUI automation.
                   Stop-Process -Name "WWAHost" -ErrorAction SilentlyContinue
 
-            - name: Download Windows workflow artifact
+            - name: Download Windows arm64 workflow artifact
               uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
               with:
-                  name: release-artifacts-windows
+                  name: release-artifacts-windows-arm64
                   path: release/
+
+            - name: Resolve promoted arm64 installer
+              id: promoted_installer
+              shell: bash
+              run: |
+                  installer=$(ls release/*-arm64-installer.exe)
+                  echo "installer=$installer" >> "$GITHUB_OUTPUT"
 
             - name: Resolve arm64 baseline installer
               id: resolve_baseline
               run: |
-                  node scripts/release/resolve-windows-baseline-installer.cjs --lane arm64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --target-version "${{ needs.windows-build.outputs.release_version }}" --download-dir release/baseline-arm64 --github-output "$GITHUB_OUTPUT"
+                  node scripts/release/resolve-windows-baseline-installer.cjs --lane arm64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --target-version "${{ needs.windows-arm64-build.outputs.release_version }}" --download-dir release/baseline-arm64 --github-output "$GITHUB_OUTPUT"
               shell: bash
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Install promoted arm64 candidate
               run: |
-                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-smoke-arm64 --result-path release/installer-smoke-manifest.json
+                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-smoke-arm64 --result-path release/installer-smoke-manifest.json --installer "${{ steps.promoted_installer.outputs.installer }}"
               shell: bash
 
             - name: Run arm64 installer smoke spec
@@ -414,7 +490,7 @@ jobs:
               shell: bash
               env:
                   EXPECTED_WINDOWS_ARCH: arm64
-                  TARGET_VERSION: ${{ needs.windows-build.outputs.release_version }}
+                  TARGET_VERSION: ${{ needs.windows-arm64-build.outputs.release_version }}
 
             - name: Install baseline arm64 build
               shell: pwsh
@@ -430,7 +506,7 @@ jobs:
 
             - name: Upgrade arm64 baseline to promoted installer
               run: |
-                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-upgrade-arm64 --result-path release/installer-smoke-manifest.json
+                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-upgrade-arm64 --result-path release/installer-smoke-manifest.json --installer "${{ steps.promoted_installer.outputs.installer }}"
               shell: bash
 
             - name: Run arm64 upgrade spec
@@ -439,28 +515,47 @@ jobs:
               env:
                   BASELINE_INSTALLER_PATH: ${{ steps.resolve_baseline.outputs.baseline_installer }}
                   BASELINE_VERSION: ${{ steps.resolve_baseline.outputs.baseline_version }}
-                  TARGET_VERSION: ${{ needs.windows-build.outputs.release_version }}
+                  TARGET_VERSION: ${{ needs.windows-arm64-build.outputs.release_version }}
 
     windows-publish:
         name: Windows Publish
-        needs: [windows-build, windows-validate-x64, windows-validate-arm64]
+        needs: [windows-x64-build, windows-validate-x64, windows-arm64-build, windows-validate-arm64]
         runs-on: windows-latest
         permissions:
             contents: write
         steps:
-            - name: Download Windows workflow artifact
+            - name: Download Windows x64 workflow artifact
               uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
               with:
-                  name: release-artifacts-windows
+                  name: release-artifacts-windows-x64
                   path: release/
 
-            - name: Upload Windows release assets
+            - name: Download Windows arm64 workflow artifact
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+              with:
+                  name: release-artifacts-windows-arm64
+                  path: release/
+
+            - name: Upload to GitHub Release
               if: ${{ inputs.publish }}
               uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
               with:
                   draft: true
                   fail_on_unmatched_files: true
-                  files: ${{ needs.windows-build.outputs.windows_upload_files }}
+                  files: |
+                      release/*-x64-installer.exe
+                      release/*-x64-installer.exe.blockmap
+                      release/*.x64.nsis.7z
+                      release/latest.yml
+                      release/latest-x64.yml
+                      release/x64.yml
+                      release/checksums-windows.txt
+                      release/*-arm64-installer.exe
+                      release/*-arm64-installer.exe.blockmap
+                      release/*.arm64.nsis.7z
+                      release/latest-arm64.yml
+                      release/arm64.yml
+                      release/checksums-windows-arm64.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
