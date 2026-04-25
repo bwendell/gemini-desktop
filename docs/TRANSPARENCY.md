@@ -114,7 +114,8 @@ To ensure you have the genuine, unaltered version of Gemini Desktop:
 
 1. **Only download** from the [Official Releases Page](https://github.com/bwendell/gemini-desktop/releases).
 2. **Check the Checksum**: We publish a checksum file for each platform with every release.
-    - **Windows (PowerShell)**: `Get-FileHash .\Gemini-Desktop-Setup.exe` — compare with `checksums-windows.txt`
+    - **Windows x64 (PowerShell)**: `Get-FileHash .\Gemini-Desktop-x.y.z-x64-installer.exe` — compare with `checksums-windows.txt`
+    - **Windows ARM64 (PowerShell)**: `Get-FileHash .\Gemini-Desktop-x.y.z-arm64-installer.exe` — compare with `checksums-windows-arm64.txt`
     - **Mac**: `shasum -a 256 Gemini-Desktop.dmg` — compare with `checksums-mac.txt`
     - **Linux**: `sha256sum Gemini-Desktop.AppImage` — compare with `checksums-linux.txt`
 
