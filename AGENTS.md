@@ -13,7 +13,7 @@ The project uses **npm** for package management and **Vitest** + **WebdriverIO**
 - `npm run electron:dev` - Start the app in development mode
 - `npm run build` - Full build (TypeScript + Vite)
 - `npm run clean` - Clean build artifacts
-- `npm run dist:win` auto-builds `dist/` and `dist-electron/` if missing before packaging.
+- `npm run dist:win` auto-builds `dist/` and `dist-electron/` if missing before packaging the default Windows x64 installer.
 
 ### Linting & Formatting
 

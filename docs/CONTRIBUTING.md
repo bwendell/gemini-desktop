@@ -74,7 +74,9 @@ All scripts below come from `package.json` and are the source of truth for contr
 | Build       | `npm run clean`                    | Remove build artifacts                            |
 | Release     | `npm run dist:mac-x64`             | Build macOS x64 release artifact                  |
 | Release     | `npm run dist:mac-arm64`           | Build macOS ARM64 release artifact                |
-| Release     | `npm run dist:win`                 | Build Windows release artifact                    |
+| Release     | `npm run dist:win`                 | Build Windows x64 release artifact                |
+| Release     | `npm run dist:win-x64`             | Build Windows x64 release artifact                |
+| Release     | `npm run dist:win-arm64`           | Build Windows ARM64 release artifact              |
 | Release     | `npm run dist:linux`               | Build Linux release artifact                      |
 | Lint/Format | `npm run lint`                     | Run ESLint across the repo                        |
 | Lint/Format | `npm run format`                   | Format files with Prettier                        |
