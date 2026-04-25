@@ -38,23 +38,16 @@ function runWindowsDist(mode) {
     ensureBuildArtifacts(env);
 
     switch (mode) {
-        case 'unified':
-            delete env.BUILD_ARCH;
-            env.BUILD_WINDOWS_UNIFIED = 'true';
-            args.push('--x64', '--arm64');
-            break;
         case 'x64':
             env.BUILD_ARCH = 'x64';
-            env.BUILD_WINDOWS_UNIFIED = 'false';
             args.push('--x64');
             break;
         case 'arm64':
             env.BUILD_ARCH = 'arm64';
-            env.BUILD_WINDOWS_UNIFIED = 'false';
             args.push('--arm64');
             break;
         default:
-            throw new Error('Expected one of: unified, x64, arm64');
+            throw new Error('Expected one of: x64, arm64');
     }
 
     const result = spawnSync('npx', args, {

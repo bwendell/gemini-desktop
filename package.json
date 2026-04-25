@@ -31,7 +31,7 @@
         "electron:build": "npm run build && npm run build:electron && electron-builder --config config/electron-builder.config.cjs",
         "dist:mac-x64": "electron-builder --mac --x64 --publish never --config config/electron-builder.config.cjs",
         "dist:mac-arm64": "electron-builder --mac --arm64 --publish never --config config/electron-builder.config.cjs",
-        "dist:win": "node scripts/release/run-windows-dist.cjs unified",
+        "dist:win": "node scripts/release/run-windows-dist.cjs x64",
         "dist:win-x64": "node scripts/release/run-windows-dist.cjs x64",
         "dist:win-arm64": "node scripts/release/run-windows-dist.cjs arm64",
         "dist:linux": "electron-builder --linux --publish never --config config/electron-builder.config.cjs",

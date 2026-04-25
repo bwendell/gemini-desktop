@@ -13,24 +13,19 @@ const packageJson = require(packageJsonPath);
 const scriptSource = fs.readFileSync(scriptPath, 'utf8');
 
 describe('Windows release metadata and build scripts', () => {
-    it('uses explicit dist entrypoints for unified and targeted Windows builds', () => {
-        expect(packageJson.scripts['dist:win']).toContain('run-windows-dist.cjs unified');
+    it('uses targeted Windows dist entrypoints without a unified default', () => {
+        expect(packageJson.scripts['dist:win']).not.toContain('unified');
         expect(packageJson.scripts['dist:win-x64']).toContain('run-windows-dist.cjs x64');
         expect(packageJson.scripts['dist:win-arm64']).toContain('run-windows-dist.cjs arm64');
     });
 
-    it('supports unified x64 and arm64 modes in the release helper', () => {
-        expect(scriptSource).toContain("case 'unified'");
+    it('supports only x64 and arm64 modes in the release helper', () => {
+        expect(scriptSource).not.toContain("case 'unified'");
         expect(scriptSource).toContain("case 'x64'");
         expect(scriptSource).toContain("case 'arm64'");
     });
 
-    it('does not force BUILD_ARCH in unified mode', () => {
-        const unifiedSection = scriptSource.slice(
-            scriptSource.indexOf("case 'unified'"),
-            scriptSource.indexOf("case 'x64'")
-        );
-        expect(unifiedSection).not.toContain("BUILD_ARCH = 'x64'");
-        expect(unifiedSection).not.toContain('BUILD_ARCH=x64');
+    it('uses x64 as the default Windows dist entrypoint', () => {
+        expect(packageJson.scripts['dist:win']).toContain('run-windows-dist.cjs x64');
     });
 });
