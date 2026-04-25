@@ -45,7 +45,7 @@ Priorities may shift based on user feedback, upstream Gemini changes, and platfo
 
 ### v0.11.2 — Windows Installer Reliability
 
-- **Unified Windows installer release validation** — automate the unified Windows installer path with hosted smoke and upgrade coverage for x64 and ARM64, plus baseline-installer resolution for safer release verification. ([#227](https://github.com/bwendell/gemini-desktop/pull/227))
+- **Per-architecture Windows installer validation** — validate x64 and ARM64 Windows installers independently, including a hosted `windows-11-arm` gate for the ARM64 installer path so release publishing is blocked if the ARM package fails to install safely, while still shipping any NSIS sidecar payloads required by the per-arch installers. ([#227](https://github.com/bwendell/gemini-desktop/pull/227))
 - **Windows installer packaging fix** — include NSIS sidecar payloads in the release contract and harden local `dist:win` packaging so Windows installs ship complete payloads. Contributor credit: [@kevinofsydney](https://github.com/kevinofsydney). ([#275](https://github.com/bwendell/gemini-desktop/pull/275), [#274](https://github.com/bwendell/gemini-desktop/issues/274))
 - **Maintenance updates** — roll forward dependency and workflow updates merged after `v0.11.1` to keep the desktop, release, and CI toolchain current. ([#250](https://github.com/bwendell/gemini-desktop/pull/250), [#258](https://github.com/bwendell/gemini-desktop/pull/258), [#261](https://github.com/bwendell/gemini-desktop/pull/261), [#270](https://github.com/bwendell/gemini-desktop/pull/270), [#271](https://github.com/bwendell/gemini-desktop/pull/271), [#273](https://github.com/bwendell/gemini-desktop/pull/273), [#276](https://github.com/bwendell/gemini-desktop/pull/276))
 

@@ -49,8 +49,8 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ### Windows
 
-- **Windows (x64 and ARM64):** `Gemini-Desktop-x.x.x-installer.exe`
-    - One installer supports both architectures and selects the correct payload at install time.
+- **Windows (x64):** `Gemini-Desktop-x.x.x-x64-installer.exe`
+- **Windows (ARM64):** `Gemini-Desktop-x.x.x-arm64-installer.exe`
 
 ### macOS
 
