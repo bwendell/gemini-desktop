@@ -19,20 +19,38 @@ describe('Windows release artifacts', () => {
         expect(targets).not.toContain('msi');
     });
 
-    it('publishes Windows assets from one explicit build output list', () => {
-        expect(workflow).not.toContain('release/*.exe');
+    it('publishes Windows assets from per-architecture release globs', () => {
+        expect(workflow).toContain('release/*-x64-installer.exe');
+        expect(workflow).toContain('release/*-x64-installer.exe.blockmap');
+        expect(workflow).toContain('release/*.x64.nsis.7z');
+        expect(workflow).toContain('release/*-arm64-installer.exe');
+        expect(workflow).toContain('release/*-arm64-installer.exe.blockmap');
+        expect(workflow).toContain('release/*.arm64.nsis.7z');
         expect(workflow).not.toContain('release/*.msi');
-        expect(workflow).not.toContain('windows-release-manifest-x64.json');
-        expect(workflow).not.toContain('windows-release-manifest-arm64.json');
         expect(workflow).toContain('release/checksums-windows.txt');
-        expect(workflow).not.toContain('release/checksums-windows-arm64.txt');
-        expect(workflow).toContain('${{ needs.windows-build.outputs.windows_upload_files }}');
+        expect(workflow).toContain('release/checksums-windows-arm64.txt');
+        expect(workflow).not.toContain('${{ needs.windows-build.outputs.windows_upload_files }}');
+        expect(workflow).not.toContain('release/windows-release-manifest.json');
     });
 
-    it('keeps unified Windows binaries explicit in builder exclusions', () => {
+    it('restores per-architecture Windows metadata aliases', () => {
+        expect(workflow).toContain('release/latest.yml');
+        expect(workflow).toContain('release/latest-x64.yml');
+        expect(workflow).toContain('release/latest-arm64.yml');
+        expect(workflow).toContain('release/x64.yml');
+        expect(workflow).toContain('release/arm64.yml');
+    });
+
+    it('removes the unified Windows installer helper assumptions', () => {
+        expect(workflow).toContain('release/checksums-windows.txt');
+        expect(workflow).not.toContain('name: release-artifacts-windows\n');
+        expect(workflow).not.toContain('windows-release-manifest.json');
+    });
+
+    it('removes unified Windows binary exclusions from builder config', () => {
         expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/linux-x64');
         expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/mac-arm64-metal');
         expect(fs.readFileSync(configPath, 'utf8')).toContain('function getWindowsBinaryExclusions()');
-        expect(fs.readFileSync(configPath, 'utf8')).toContain('if (isUnifiedWindowsBuild)');
+        expect(fs.readFileSync(configPath, 'utf8')).not.toContain('if (isUnifiedWindowsBuild)');
     });
 });
