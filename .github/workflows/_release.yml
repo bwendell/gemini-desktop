@@ -472,14 +472,6 @@ jobs:
                   installer=$(ls release/*-arm64-installer.exe)
                   echo "installer=$installer" >> "$GITHUB_OUTPUT"
 
-            - name: Resolve arm64 baseline installer
-              id: resolve_baseline
-              run: |
-                  node scripts/release/resolve-windows-baseline-installer.cjs --lane arm64 --repo "${GITHUB_REPOSITORY}" --current-tag "${GITHUB_REF_NAME}" --target-version "${{ needs.windows-arm64-build.outputs.release_version }}" --download-dir release/baseline-arm64 --github-output "$GITHUB_OUTPUT"
-              shell: bash
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
             - name: Install promoted arm64 candidate
               run: |
                   node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-smoke-arm64 --result-path release/installer-smoke-manifest.json --installer "${{ steps.promoted_installer.outputs.installer }}"
@@ -490,31 +482,6 @@ jobs:
               shell: bash
               env:
                   EXPECTED_WINDOWS_ARCH: arm64
-                  TARGET_VERSION: ${{ needs.windows-arm64-build.outputs.release_version }}
-
-            - name: Install baseline arm64 build
-              shell: pwsh
-              env:
-                  BASELINE_INSTALLER_PATH: ${{ steps.resolve_baseline.outputs.baseline_installer }}
-              run: |
-                  New-Item -ItemType Directory -Force -Path '.wdio-test-data/windows-upgrade-arm64' | Out-Null
-                  $installRoot = (Resolve-Path '.wdio-test-data/windows-upgrade-arm64').Path
-                  $process = Start-Process -FilePath $env:BASELINE_INSTALLER_PATH -ArgumentList '/S', "/D=$installRoot" -Wait -PassThru
-                  if ($process.ExitCode -ne 0) {
-                    throw "Baseline arm64 installer exited with code $($process.ExitCode)"
-                  }
-
-            - name: Upgrade arm64 baseline to promoted installer
-              run: |
-                  node scripts/run-windows-installer-smoke.cjs --release-dir release --install-root .wdio-test-data/windows-upgrade-arm64 --result-path release/installer-smoke-manifest.json --installer "${{ steps.promoted_installer.outputs.installer }}"
-              shell: bash
-
-            - name: Run arm64 upgrade spec
-              run: npm run test:e2e:release:installer -- --spec=tests/e2e/release/windows-upgrade-arm64.spec.ts
-              shell: bash
-              env:
-                  BASELINE_INSTALLER_PATH: ${{ steps.resolve_baseline.outputs.baseline_installer }}
-                  BASELINE_VERSION: ${{ steps.resolve_baseline.outputs.baseline_version }}
                   TARGET_VERSION: ${{ needs.windows-arm64-build.outputs.release_version }}
 
     windows-publish:

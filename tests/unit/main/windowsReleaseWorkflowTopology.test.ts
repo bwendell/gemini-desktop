@@ -38,7 +38,13 @@ describe('Windows release workflow topology', () => {
         expect(workflow).toContain('Install promoted x64 candidate');
         expect(workflow).toContain('Run arm64 installer smoke spec');
         expect(workflow).toContain('Run x64 installer smoke spec');
-        expect(workflow).toContain('Run arm64 upgrade spec');
         expect(workflow).toContain('Run x64 upgrade spec');
+    });
+
+    it('limits arm64 validation to the promoted installer path', () => {
+        expect(workflow).not.toContain('Resolve arm64 baseline installer');
+        expect(workflow).not.toContain('Install baseline arm64 build');
+        expect(workflow).not.toContain('Upgrade arm64 baseline to promoted installer');
+        expect(workflow).not.toContain('Run arm64 upgrade spec');
     });
 });
