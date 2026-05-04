@@ -512,14 +512,12 @@ jobs:
                   files: |
                       release/*-x64-installer.exe
                       release/*-x64-installer.exe.blockmap
-                      release/*.x64.nsis.7z
                       release/latest.yml
                       release/latest-x64.yml
                       release/x64.yml
                       release/checksums-windows.txt
                       release/*-arm64-installer.exe
                       release/*-arm64-installer.exe.blockmap
-                      release/*.arm64.nsis.7z
                       release/latest-arm64.yml
                       release/arm64.yml
                       release/checksums-windows-arm64.txt

@@ -10,22 +10,22 @@ const configPath = path.resolve(__dirname, '../../..', 'config/electron-builder.
 const workflowPath = path.resolve(__dirname, '../../..', '.github/workflows/_release.yml');
 const builderConfig = require(configPath);
 const workflow = fs.readFileSync(workflowPath, 'utf8');
+const builderConfigSource = fs.readFileSync(configPath, 'utf8');
 
 describe('Windows release artifacts', () => {
     it('keeps NSIS and removes MSI from Windows builder targets', () => {
-        const targets = builderConfig.win.target.map((target: { target: string }) => target.target);
-
-        expect(targets).toContain('nsis');
-        expect(targets).not.toContain('msi');
+        expect(builderConfig.win.target).toBe('nsis');
+        expect(builderConfigSource).not.toContain("arch: ['x64', 'arm64']");
+        expect(builderConfigSource).not.toContain('msi');
     });
 
-    it('publishes Windows assets from per-architecture release globs', () => {
+    it('publishes Windows assets from guaranteed per-architecture release globs', () => {
         expect(workflow).toContain('release/*-x64-installer.exe');
         expect(workflow).toContain('release/*-x64-installer.exe.blockmap');
-        expect(workflow).toContain('release/*.x64.nsis.7z');
+        expect(workflow).not.toContain('release/*.x64.nsis.7z');
         expect(workflow).toContain('release/*-arm64-installer.exe');
         expect(workflow).toContain('release/*-arm64-installer.exe.blockmap');
-        expect(workflow).toContain('release/*.arm64.nsis.7z');
+        expect(workflow).not.toContain('release/*.arm64.nsis.7z');
         expect(workflow).not.toContain('release/*.msi');
         expect(workflow).toContain('release/checksums-windows.txt');
         expect(workflow).toContain('release/checksums-windows-arm64.txt');
@@ -50,7 +50,7 @@ describe('Windows release artifacts', () => {
     it('removes unified Windows binary exclusions from builder config', () => {
         expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/linux-x64');
         expect(builderConfig.files).toContain('!node_modules/@node-llama-cpp/mac-arm64-metal');
-        expect(fs.readFileSync(configPath, 'utf8')).toContain('function getWindowsBinaryExclusions()');
-        expect(fs.readFileSync(configPath, 'utf8')).not.toContain('if (isUnifiedWindowsBuild)');
+        expect(builderConfigSource).toContain('function getWindowsBinaryExclusions()');
+        expect(builderConfigSource).not.toContain('if (isUnifiedWindowsBuild)');
     });
 });
