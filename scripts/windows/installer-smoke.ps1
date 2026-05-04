@@ -44,6 +44,8 @@ $uninstallSearchPaths = @(
 
 $cleanupOnFailure = $true
 $installerExitCode = $null
+$MaxInstallerAttempts = 2
+$RetryableInstallerExitCodes = @(-1073741819)
 
 try {
     if (Test-Path $InstallRoot) {
@@ -53,8 +55,28 @@ try {
     New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
     New-Item -ItemType Directory -Path ([System.IO.Path]::GetDirectoryName($ResultPath)) -Force | Out-Null
 
-    $process = Start-Process -FilePath $resolvedInstallerPath -ArgumentList @('/S', "/D=$InstallRoot") -Wait -PassThru
-    $installerExitCode = $process.ExitCode
+    for ($attempt = 1; $attempt -le $MaxInstallerAttempts; $attempt++) {
+        if (Test-Path $InstallRoot) {
+            Remove-Item -Path $InstallRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+        New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
+
+        $process = Start-Process -FilePath $resolvedInstallerPath -ArgumentList @('/S', "/D=$InstallRoot") -Wait -PassThru
+        $installerExitCode = $process.ExitCode
+
+        if ($installerExitCode -eq 0) {
+            break
+        }
+
+        $isRetryableExitCode = $RetryableInstallerExitCodes -contains $installerExitCode
+        if ($isRetryableExitCode -and $attempt -lt $MaxInstallerAttempts) {
+            Write-Warning "Installer exited with retryable code $installerExitCode on attempt $attempt of $MaxInstallerAttempts. Retrying once."
+            continue
+        }
+
+        break
+    }
 
     if ($installerExitCode -ne 0) {
         throw "Installer exited with code $installerExitCode"
