@@ -61,6 +61,9 @@ export interface ElectronAPI {
 
     restartApp: () => Promise<void>;
 
+    /** Quit the application completely */
+    quitApp: () => void;
+
     // =========================================================================
     // Platform Detection
     // =========================================================================

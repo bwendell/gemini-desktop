@@ -56,6 +56,15 @@ export class AppIpcHandler extends BaseIpcHandler {
                 throw error;
             }
         });
+
+        // Quit application
+        ipcMain.on(IPC_CHANNELS.APP_QUIT, () => {
+            try {
+                app.quit();
+            } catch (error) {
+                this.logger.error('Error quitting app:', error);
+            }
+        });
     }
 
     /** Unregister all IPC handlers. */
@@ -63,5 +72,6 @@ export class AppIpcHandler extends BaseIpcHandler {
         ipcMain.removeAllListeners(IPC_CHANNELS.OPEN_OPTIONS);
         ipcMain.removeHandler(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN);
         ipcMain.removeHandler(IPC_CHANNELS.APP_RESTART);
+        ipcMain.removeAllListeners(IPC_CHANNELS.APP_QUIT);
     }
 }

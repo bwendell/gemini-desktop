@@ -31,6 +31,7 @@ export const IPC_CHANNELS = {
     OPEN_OPTIONS: 'open-options-window',
     OPEN_GOOGLE_SIGNIN: 'open-google-signin',
     APP_RESTART: 'app:restart',
+    APP_QUIT: 'app:quit',
 
     // Quick Chat
     QUICK_CHAT_SUBMIT: 'quick-chat:submit',

@@ -164,7 +164,7 @@ export function useMenuDefinitions(): MenuDefinition[] {
                     label: 'Exit',
                     shortcut: 'Alt+F4',
                     action: () => {
-                        window.electronAPI?.closeWindow();
+                        window.electronAPI?.quitApp();
                     },
                 },
             ],

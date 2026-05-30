@@ -131,7 +131,7 @@ describe('useMenuDefinitions', () => {
             expect(fileMenu.items[7]).toEqual({ separator: true });
         });
 
-        it('Exit action calls electronAPI.closeWindow()', () => {
+        it('Exit action calls electronAPI.quitApp()', () => {
             const { result } = renderHook(() => useMenuDefinitions());
             const fileMenu = result.current[0];
             const exitItem = fileMenu.items[8];
@@ -140,7 +140,7 @@ describe('useMenuDefinitions', () => {
 
             if ('action' in exitItem && exitItem.action) {
                 exitItem.action();
-                expect(mockElectronAPI.closeWindow).toHaveBeenCalledTimes(1);
+                expect(mockElectronAPI.quitApp).toHaveBeenCalledTimes(1);
             }
         });
     });

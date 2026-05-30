@@ -17,6 +17,7 @@ export const windowAPI: Pick<
     | 'openOptions'
     | 'openGoogleSignIn'
     | 'restartApp'
+    | 'quitApp'
 > = {
     minimizeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE),
     maximizeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE),
@@ -29,4 +30,5 @@ export const windowAPI: Pick<
     openOptions: (tab?: 'settings' | 'about') => ipcRenderer.send(IPC_CHANNELS.OPEN_OPTIONS, tab),
     openGoogleSignIn: () => ipcRenderer.invoke(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN),
     restartApp: () => ipcRenderer.invoke(IPC_CHANNELS.APP_RESTART),
+    quitApp: () => ipcRenderer.send(IPC_CHANNELS.APP_QUIT),
 };
