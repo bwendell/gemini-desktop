@@ -11,6 +11,7 @@ export const windowAPI: Pick<
     | 'closeWindow'
     | 'showWindow'
     | 'isMaximized'
+    | 'isFullscreen'
     | 'toggleFullscreen'
     | 'onFullscreenChanged'
     | 'openOptions'
@@ -22,6 +23,7 @@ export const windowAPI: Pick<
     closeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE),
     showWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_SHOW),
     isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
+    isFullscreen: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_FULLSCREEN),
     toggleFullscreen: () => ipcRenderer.send(IPC_CHANNELS.FULLSCREEN_TOGGLE),
     onFullscreenChanged: createSubscription<boolean>(IPC_CHANNELS.FULLSCREEN_CHANGED),
     openOptions: (tab?: 'settings' | 'about') => ipcRenderer.send(IPC_CHANNELS.OPEN_OPTIONS, tab),

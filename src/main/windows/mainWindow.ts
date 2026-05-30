@@ -55,6 +55,9 @@ export default class MainWindow extends BaseWindow {
     /** Timestamp of the last response-complete event (for debouncing) */
     private lastResponseCompleteTime = 0;
 
+    /** Timestamp of the last fullscreen toggle (to prevent double F11 triggers) */
+    private lastFullscreenToggleTime = 0;
+
     /** Stored webRequest listener for cleanup (Task 12.8) */
     private responseDetectionListener?: (details: Electron.OnCompletedListenerDetails) => void;
 
@@ -527,13 +530,17 @@ export default class MainWindow extends BaseWindow {
         }
 
         this.window.webContents.on('before-input-event', (event, input) => {
-            this.logger.log(
-                `[before-input-event] type: ${input.type}, key: ${input.key}, shift: ${input.shift}, control: ${input.control}`
-            );
-
             // Support F11 globally (even when focus is in cross-origin iframe)
             if (input.type === 'keyDown' && input.key === 'F11') {
                 event.preventDefault();
+                if (input.isAutoRepeat) {
+                    return;
+                }
+                const now = Date.now();
+                if (now - this.lastFullscreenToggleTime < 500) {
+                    return;
+                }
+                this.lastFullscreenToggleTime = now;
                 try {
                     const isFullscreen = this.window?.isFullScreen();
                     this.window?.setFullScreen(!isFullscreen);

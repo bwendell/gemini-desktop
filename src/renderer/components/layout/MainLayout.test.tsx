@@ -104,6 +104,7 @@ describe('MainLayout', () => {
             const originalElectronAPI = (window as any).electronAPI;
             (window as any).electronAPI = {
                 ...originalElectronAPI,
+                isFullscreen: vi.fn().mockResolvedValue(false),
                 onFullscreenChanged: (cb: (f: boolean) => void) => {
                     fullscreenCallback = cb;
                     return mockUnsubscribe;

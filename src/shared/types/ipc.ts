@@ -44,6 +44,9 @@ export interface ElectronAPI {
     /** Check if the window is currently maximized */
     isMaximized: () => Promise<boolean>;
 
+    /** Check if the window is currently fullscreen */
+    isFullscreen: () => Promise<boolean>;
+
     /** Toggle fullscreen mode for the current window */
     toggleFullscreen: () => void;
 
