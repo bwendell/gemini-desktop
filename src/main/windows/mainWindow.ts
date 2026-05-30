@@ -10,7 +10,7 @@
  * @module MainWindow
  */
 
-import { BrowserWindow, session, shell, webFrameMain, type BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow, session, shell, webFrameMain, type BrowserWindowConstructorOptions } from 'electron';
 import BaseWindow from './baseWindow';
 import {
     MAIN_WINDOW_CONFIG,
@@ -530,6 +530,17 @@ export default class MainWindow extends BaseWindow {
         }
 
         this.window.webContents.on('before-input-event', (event, input) => {
+            // Support Ctrl+Q / Cmd+Q globally to quit the application (even when focus is in cross-origin iframe)
+            if (input.type === 'keyDown' && input.key.toLowerCase() === 'q' && (input.control || input.meta)) {
+                event.preventDefault();
+                try {
+                    app.quit();
+                } catch (error) {
+                    this.logger.error('Error quitting app via Ctrl+Q shortcut:', error);
+                }
+                return;
+            }
+
             // Support F11 globally (even when focus is in cross-origin iframe)
             if (input.type === 'keyDown' && input.key === 'F11') {
                 event.preventDefault();

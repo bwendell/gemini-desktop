@@ -162,7 +162,7 @@ export function useMenuDefinitions(): MenuDefinition[] {
                 {
                     id: 'menu-file-exit',
                     label: 'Exit',
-                    shortcut: 'Alt+F4',
+                    shortcut: 'Ctrl+Q',
                     action: () => {
                         window.electronAPI?.quitApp();
                     },
