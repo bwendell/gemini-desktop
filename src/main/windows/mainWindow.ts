@@ -527,6 +527,10 @@ export default class MainWindow extends BaseWindow {
         }
 
         this.window.webContents.on('before-input-event', (event, input) => {
+            this.logger.log(
+                `[before-input-event] type: ${input.type}, key: ${input.key}, shift: ${input.shift}, control: ${input.control}`
+            );
+
             // Support F11 globally (even when focus is in cross-origin iframe)
             if (input.type === 'keyDown' && input.key === 'F11') {
                 event.preventDefault();
