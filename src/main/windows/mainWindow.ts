@@ -527,6 +527,18 @@ export default class MainWindow extends BaseWindow {
         }
 
         this.window.webContents.on('before-input-event', (event, input) => {
+            // Support F11 globally (even when focus is in cross-origin iframe)
+            if (input.type === 'keyDown' && input.key === 'F11') {
+                event.preventDefault();
+                try {
+                    const isFullscreen = this.window?.isFullScreen();
+                    this.window?.setFullScreen(!isFullscreen);
+                } catch (error) {
+                    this.logger.error('Error toggling fullscreen via F11 shortcut:', error);
+                }
+                return;
+            }
+
             const shortcutPayload = this.resolveTabShortcutPayload(input);
             if (!shortcutPayload) {
                 return;
