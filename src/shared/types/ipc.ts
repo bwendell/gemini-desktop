@@ -47,6 +47,9 @@ export interface ElectronAPI {
     /** Toggle fullscreen mode for the current window */
     toggleFullscreen: () => void;
 
+    /** Listen for fullscreen state changes. Returns unsubscribe function. */
+    onFullscreenChanged: (callback: (isFullscreen: boolean) => void) => () => void;
+
     /** Open the options/settings window */
     openOptions: (tab?: 'settings' | 'about') => void;
 

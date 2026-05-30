@@ -2,6 +2,7 @@ import { ipcRenderer } from 'electron';
 
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import type { ElectronAPI } from '../../shared/types';
+import { createSubscription } from '../createSubscription';
 
 export const windowAPI: Pick<
     ElectronAPI,
@@ -11,6 +12,7 @@ export const windowAPI: Pick<
     | 'showWindow'
     | 'isMaximized'
     | 'toggleFullscreen'
+    | 'onFullscreenChanged'
     | 'openOptions'
     | 'openGoogleSignIn'
     | 'restartApp'
@@ -21,6 +23,7 @@ export const windowAPI: Pick<
     showWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_SHOW),
     isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED),
     toggleFullscreen: () => ipcRenderer.send(IPC_CHANNELS.FULLSCREEN_TOGGLE),
+    onFullscreenChanged: createSubscription<boolean>(IPC_CHANNELS.FULLSCREEN_CHANGED),
     openOptions: (tab?: 'settings' | 'about') => ipcRenderer.send(IPC_CHANNELS.OPEN_OPTIONS, tab),
     openGoogleSignIn: () => ipcRenderer.invoke(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN),
     restartApp: () => ipcRenderer.invoke(IPC_CHANNELS.APP_RESTART),

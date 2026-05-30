@@ -144,6 +144,7 @@ export default class MainWindow extends BaseWindow {
         this.setupResponseDetection();
         this.setupTabShortcutForwarding();
         this.setupFrameLoadHandler();
+        this.setupFullscreenHandlers();
 
         return win;
     }
@@ -566,6 +567,23 @@ export default class MainWindow extends BaseWindow {
             } catch (error) {
                 this.logger.error('Error in did-frame-finish-load handler:', error);
             }
+        });
+    }
+
+    /**
+     * Set up listeners for fullscreen events.
+     */
+    private setupFullscreenHandlers(): void {
+        if (!this.window) return;
+
+        this.window.on('enter-full-screen', () => {
+            this.logger.log('Window entered full screen');
+            this.window?.webContents.send(IPC_CHANNELS.FULLSCREEN_CHANGED, true);
+        });
+
+        this.window.on('leave-full-screen', () => {
+            this.logger.log('Window left full screen');
+            this.window?.webContents.send(IPC_CHANNELS.FULLSCREEN_CHANGED, false);
         });
     }
 

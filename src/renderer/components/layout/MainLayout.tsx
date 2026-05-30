@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Titlebar } from '../titlebar';
 import './layout.css';
 
@@ -18,10 +18,24 @@ interface MainLayoutProps {
  * proper sizing for the embedded webview.
  */
 export function MainLayout({ children, tabBar }: MainLayoutProps) {
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        if (!window.electronAPI?.onFullscreenChanged) return;
+
+        const unsubscribe = window.electronAPI.onFullscreenChanged((fullscreen: boolean) => {
+            setIsFullscreen(fullscreen);
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, []);
+
     return (
-        <div className="main-layout" data-testid="main-layout">
-            <Titlebar />
-            {tabBar}
+        <div className={`main-layout${isFullscreen ? ' fullscreen' : ''}`} data-testid="main-layout">
+            {!isFullscreen && <Titlebar />}
+            {!isFullscreen && tabBar}
             <main className="main-content">{children}</main>
         </div>
     );
