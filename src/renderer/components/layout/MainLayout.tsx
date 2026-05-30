@@ -21,13 +21,19 @@ export function MainLayout({ children, tabBar }: MainLayoutProps) {
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     useEffect(() => {
-        if (!window.electronAPI?.onFullscreenChanged) return;
+        console.log('[MainLayout] Subscribing to fullscreen changes...');
+        if (!window.electronAPI?.onFullscreenChanged) {
+            console.warn('[MainLayout] electronAPI.onFullscreenChanged not found!');
+            return;
+        }
 
         const unsubscribe = window.electronAPI.onFullscreenChanged((fullscreen: boolean) => {
+            console.log('[MainLayout] Fullscreen changed event received:', fullscreen);
             setIsFullscreen(fullscreen);
         });
 
         return () => {
+            console.log('[MainLayout] Unsubscribing from fullscreen changes...');
             unsubscribe();
         };
     }, []);
