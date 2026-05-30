@@ -10,7 +10,7 @@
  * @module MainWindow
  */
 
-import { BrowserWindow, session, shell, type BrowserWindowConstructorOptions } from 'electron';
+import { BrowserWindow, session, shell, webFrameMain, type BrowserWindowConstructorOptions } from 'electron';
 import BaseWindow from './baseWindow';
 import {
     MAIN_WINDOW_CONFIG,
@@ -21,7 +21,9 @@ import {
     READY_TO_SHOW_FALLBACK_MS,
     GEMINI_RESPONSE_API_PATTERN,
     IPC_CHANNELS,
+    isGeminiDomain,
 } from '../utils/constants';
+import SettingsStore from '../store';
 import { getIconPath, getDistHtmlPath } from '../utils/paths';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
 import { getPlatformAdapter } from '../platform/platformAdapterFactory';
@@ -141,6 +143,7 @@ export default class MainWindow extends BaseWindow {
         this.setupCrashHandlers();
         this.setupResponseDetection();
         this.setupTabShortcutForwarding();
+        this.setupFrameLoadHandler();
 
         return win;
     }
@@ -531,5 +534,433 @@ export default class MainWindow extends BaseWindow {
             event.preventDefault();
             this.window?.webContents.send(IPC_CHANNELS.TABS_SHORTCUT_TRIGGERED, shortcutPayload);
         });
+    }
+
+    /**
+     * Set up frame loading handler to inject Smart Enter and Scroll-to-Bottom scripts.
+     */
+    private setupFrameLoadHandler(): void {
+        if (!this.window) return;
+
+        // Pipe subframe console messages to Electron main process terminal
+        this.window.webContents.on('console-message', (_event, _level, message, line, _sourceId) => {
+            if (message.includes('[GeminiDesktop]') || message.includes('[GeminiEnter]')) {
+                this.logger.log(`[Iframe Console] ${message} (line ${line})`);
+            }
+        });
+
+        this.window.webContents.on('did-frame-finish-load', (_event, isMainFrame, frameProcessId, frameRoutingId) => {
+            try {
+                if (isMainFrame) return;
+
+                const frame = webFrameMain.fromId(frameProcessId, frameRoutingId);
+                if (!frame || frame.isDestroyed()) return;
+
+                const url = frame.url;
+                if (!url) return;
+
+                if (isGeminiDomain(url)) {
+                    this.logger.log(`Gemini frame loaded, checking script injection status for: ${url}`);
+                    this.injectGeminiScripts(frame);
+                }
+            } catch (error) {
+                this.logger.error('Error in did-frame-finish-load handler:', error);
+            }
+        });
+    }
+
+    /**
+     * Inject custom client side scripts (Smart Enter / Scroll-to-Bottom button) into the Gemini subframe.
+     * Checks user preferences from store before injecting.
+     */
+    private injectGeminiScripts(frame: Electron.WebFrameMain): void {
+        try {
+            const preferencesStore = new SettingsStore<Record<string, unknown>>({
+                configName: 'user-preferences',
+            });
+
+            const smartEnterEnabled = preferencesStore.get('smartEnterEnabled') !== false;
+            const scrollToBottomButtonEnabled = preferencesStore.get('scrollToBottomButtonEnabled') !== false;
+
+            this.logger.log('Injecting scripts into Gemini frame. Preferences:', {
+                smartEnterEnabled,
+                scrollToBottomButtonEnabled,
+            });
+
+            const injectionScript = `
+(function() {
+    'use strict';
+    
+    // Prevent duplicate injections
+    if (window.__geminiDesktopInjected) {
+        console.log('[GeminiDesktop] Scripts already injected.');
+        return;
+    }
+    window.__geminiDesktopInjected = true;
+
+    const smartEnterEnabled = ${smartEnterEnabled};
+    const scrollToBottomButtonEnabled = ${scrollToBottomButtonEnabled};
+
+    console.log('[GeminiDesktop] Smart Enter enabled:', smartEnterEnabled);
+    console.log('[GeminiDesktop] Scroll to Bottom button enabled:', scrollToBottomButtonEnabled);
+
+    // ==========================================
+    // Helper Functions (Shadow DOM Support)
+    // ==========================================
+    function querySelectorDeep(selector, root = document) {
+        const el = root.querySelector(selector);
+        if (el) return el;
+        
+        const queue = [root];
+        while (queue.length > 0) {
+            const node = queue.shift();
+            if (!node) continue;
+            
+            const found = node.querySelector(selector);
+            if (found) return found;
+            
+            if (node.children) {
+                for (let i = 0; i < node.children.length; i++) {
+                    queue.push(node.children[i]);
+                }
+            }
+            if (node.shadowRoot) {
+                queue.push(node.shadowRoot);
+            }
+        }
+        return null;
+    }
+
+    function getActiveElementDeep(root = document) {
+        let activeEl = root.activeElement;
+        if (!activeEl) return null;
+        while (activeEl.shadowRoot && activeEl.shadowRoot.activeElement) {
+            activeEl = activeEl.shadowRoot.activeElement;
+        }
+        return activeEl;
+    }
+
+    function isElementEditable(el) {
+        if (!el) return false;
+        const tagName = el.tagName;
+        if (tagName === 'TEXTAREA' || tagName === 'INPUT') return true;
+        if (el.isContentEditable) return true;
+        
+        let current = el;
+        while (current) {
+            if (current.isContentEditable) return true;
+            if (current.getAttribute && current.getAttribute('contenteditable')) return true;
+            if (current.tagName === 'GEM-MEDIA-ATTACHMENT' || current.tagName === 'G-ATTACHMENT') {
+                return true;
+            }
+            if (current.classList && (
+                current.classList.contains('xap-uploader-dropzone') ||
+                current.classList.contains('gem-media-attachment') ||
+                current.classList.contains('uploader-preview') ||
+                (typeof current.className === 'string' && (
+                    current.className.indexOf('uploader') !== -1 ||
+                    current.className.indexOf('attachment') !== -1
+                ))
+            )) {
+                return true;
+            }
+            if (current.parentNode) {
+                current = current.parentNode;
+            } else if (current.host) {
+                current = current.host;
+            } else {
+                break;
+            }
+        }
+        return false;
+    }
+
+    function isInputEmpty(container = document) {
+        const textarea = querySelectorDeep('.ql-editor', container) || 
+                         querySelectorDeep('textarea', container) || 
+                         querySelectorDeep('[contenteditable="true"][role="textbox"]', container) ||
+                         querySelectorDeep('[contenteditable]', container);
+        if (!textarea) return true;
+        if (textarea.value !== undefined) {
+            return textarea.value.trim() === '';
+        }
+        const text = textarea.textContent || '';
+        const hasImg = textarea.querySelector && textarea.querySelector('img');
+        return text.trim() === '' && !hasImg;
+    }
+
+    function findInputContainer(activeEl) {
+        if (!activeEl) return document;
+        
+        let current = activeEl;
+        while (current) {
+            const hasSend = querySelectorDeep('button[aria-label="Send message"]', current) ||
+                            querySelectorDeep('button.send-button', current) ||
+                            querySelectorDeep('.send-button-container button', current) ||
+                            querySelectorDeep('button[aria-label*="Send"]', current) ||
+                            querySelectorDeep('button[aria-label*="send"]', current);
+            if (hasSend) {
+                return current;
+            }
+            
+            if (current.parentNode) {
+                current = current.parentNode;
+            } else if (current.host) {
+                current = current.host;
+            } else {
+                break;
+            }
+        }
+        return activeEl.parentElement || document;
+    }
+
+    // ==========================================
+    // 1. Smart Enter Feature
+    // ==========================================
+    if (smartEnterEnabled) {
+        let enterQueued = false;
+
+        function findSubmitButton(container = document) {
+            const btn = querySelectorDeep('button[aria-label="Send message"]', container) ||
+                        querySelectorDeep('button.send-button', container) ||
+                        querySelectorDeep('.send-button-container button', container) ||
+                        querySelectorDeep('button[aria-label*="Send"]', container) ||
+                        querySelectorDeep('button[aria-label*="send"]', container);
+            return btn;
+        }
+
+        function hasAttachment(container = document) {
+            if (querySelectorDeep('gem-media-attachment', container)) return true;
+            if (querySelectorDeep('g-attachment', container)) return true;
+            if (querySelectorDeep('.gem-attachment-content', container)) return true;
+            if (querySelectorDeep('img[class*="attachment"]', container)) return true;
+            if (querySelectorDeep('[class*="attachment-style"]', container)) return true;
+            if (querySelectorDeep('.uploader-preview', container)) return true;
+            if (querySelectorDeep('[class*="input-area"] img', container) || querySelectorDeep('[class*="prompt"] img', container)) return true;
+            if (querySelectorDeep('.ql-editor img', container)) return true;
+            return false;
+        }
+
+        function isUploading(container = document) {
+            // Check for progress/spinner elements
+            if (querySelectorDeep('.mdc-circular-progress--indeterminate', container)) return true;
+            if (querySelectorDeep('mat-progress-spinner', container)) return true;
+            if (querySelectorDeep('mat-spinner', container)) return true;
+            if (querySelectorDeep('[role="progressbar"]', container)) return true;
+            if (querySelectorDeep('.loading-spinner', container)) return true;
+            if (querySelectorDeep('progress', container)) return true;
+            if (querySelectorDeep('.xap-uploader-dropzone', container)?.querySelector('.mdc-circular-progress--indeterminate')) return true;
+            
+            // Check for un-loaded images
+            const img = querySelectorDeep('img', container);
+            if (img && img.naturalWidth === 0) return true;
+            
+            // Check loading classes
+            if (querySelectorDeep('.loading', container)) return true;
+            if (querySelectorDeep('[class*="loading"]', container)) return true;
+            
+            // If button is disabled and there is an attachment/text, it is likely uploading
+            const btn = findSubmitButton(container);
+            if (btn && (btn.disabled || btn.getAttribute('aria-disabled') === 'true')) {
+                return true;
+            }
+            
+            return false;
+        }
+
+        function retrySubmit(container) {
+            let attempts = 0;
+            const retry = setInterval(() => {
+                attempts++;
+                if (!enterQueued) { clearInterval(retry); return; }
+                const btn = findSubmitButton(container);
+                if (btn && !btn.disabled && btn.getAttribute('aria-disabled') !== 'true') {
+                    btn.click();
+                    enterQueued = false;
+                    clearInterval(retry);
+                    console.log('[GeminiDesktop] Submitted queued message.');
+                    return;
+                }
+                if (attempts > 30) {
+                    enterQueued = false;
+                    clearInterval(retry);
+                    console.warn('[GeminiDesktop] Button stayed disabled after 30 attempts.');
+                }
+            }, 150);
+        }
+
+        function pollForUploadDone(container) {
+            let elapsed = 0;
+            const poll = setInterval(() => {
+                elapsed += 100;
+                if (!enterQueued) { clearInterval(poll); return; }
+                if (!isUploading(container)) {
+                    clearInterval(poll);
+                    console.log('[GeminiDesktop] Upload complete, triggering submission.');
+                    retrySubmit(container);
+                    return;
+                }
+                if (elapsed > 30000) { // 30s timeout
+                    enterQueued = false;
+                    clearInterval(poll);
+                    console.warn('[GeminiDesktop] Upload timed out.');
+                }
+            }, 100);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+
+            const active = getActiveElementDeep();
+            const target = e.target;
+            
+            const excludeTags = ['BUTTON', 'A', 'SELECT', 'OPTION'];
+            const excludeRoles = ['button', 'link', 'menuitem', 'tab', 'checkbox', 'radio', 'switch'];
+            const isExcluded = (el) => {
+                if (!el) return false;
+                if (excludeTags.includes(el.tagName)) return true;
+                if (el.getAttribute) {
+                    const role = el.getAttribute('role');
+                    if (role && excludeRoles.includes(role)) return true;
+                }
+                
+                // Cross Shadow DOM boundary when checking closest role="dialog"
+                let current = el;
+                while (current) {
+                    if (current.getAttribute && current.getAttribute('role') === 'dialog') {
+                        return true;
+                    }
+                    if (current.parentNode) {
+                        current = current.parentNode;
+                    } else if (current.host) {
+                        current = current.host;
+                    } else {
+                        break;
+                    }
+                }
+                return false;
+            };
+
+            const ignored = isExcluded(active) || isExcluded(target);
+
+            console.log('[GeminiDesktop] Enter KeyDown event. ' + 
+                        'Target: ' + (target ? target.tagName : 'null') + 
+                        ' (class="' + (target ? target.className : '') + '"' +
+                        ' contenteditable="' + (target ? target.getAttribute('contenteditable') : '') + '"' +
+                        ' isContentEditable=' + (target ? target.isContentEditable : 'false') + '), ' +
+                        'Active: ' + (active ? active.tagName : 'null') + 
+                        ' (class="' + (active ? active.className : '') + '"' +
+                        ' contenteditable="' + (active ? active.getAttribute('contenteditable') : '') + '"' +
+                        ' isContentEditable=' + (active ? active.isContentEditable : 'false') + '), ' +
+                        'ignored: ' + ignored);
+
+            if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) {
+                console.log('[GeminiDesktop] Modifier key pressed, ignoring.');
+                return;
+            }
+
+            if (ignored) return;
+
+            // If active element is a different editable input/textarea, ignore
+            const isPromptEditor = (el) => {
+                if (!el) return false;
+                if (el.classList && el.classList.contains('ql-editor')) return true;
+                if (el.closest && el.closest('.ql-editor')) return true;
+                return false;
+            };
+
+            const isEditable = (el) => {
+                if (!el) return false;
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return true;
+                if (el.isContentEditable) return true;
+                return false;
+            };
+
+            if (active && isEditable(active) && !isPromptEditor(active)) {
+                console.log('[GeminiDesktop] Enter pressed in another input element, ignoring.');
+                return;
+            }
+
+            // Always try to find the actual prompt editor to locate the scoped input container
+            const editor = querySelectorDeep('.ql-editor') || 
+                           querySelectorDeep('textarea') || 
+                           querySelectorDeep('[contenteditable="true"][role="textbox"]');
+            const container = (editor ? findInputContainer(editor) : null) || 
+                              findInputContainer(target) || 
+                              findInputContainer(active);
+            const empty = isInputEmpty(container);
+            const attached = hasAttachment(container);
+            const uploading = isUploading(container);
+
+            console.log('[GeminiDesktop] Queue checks:', {
+                empty,
+                attached,
+                uploading,
+                containerTagName: container ? container.tagName : 'null'
+            });
+
+            if ((!empty || attached) && uploading) {
+                console.log('[GeminiDesktop] Submission intercepted & queued.');
+                e.preventDefault();
+                e.stopPropagation();
+                if (!enterQueued) {
+                    enterQueued = true;
+                    pollForUploadDone(container);
+                }
+            } else {
+                console.log('[GeminiDesktop] Not queued. (Not uploading or input completely empty with no attachments)');
+            }
+        }, true);
+    }
+
+    // ==========================================
+    // 2. Scroll to Bottom Button Feature
+    // ==========================================
+    if (scrollToBottomButtonEnabled) {
+        function addScrollButton() {
+            if (document.getElementById('gem-scroll-btn')) return;
+            const btn = document.createElement('button');
+            btn.id = 'gem-scroll-btn';
+            btn.textContent = '▼';
+            btn.title = 'Scroll to bottom';
+            Object.assign(btn.style, {
+                position: 'fixed', bottom: '90px', right: '20px', zIndex: '999999',
+                width: '40px', height: '40px', borderRadius: '50%',
+                background: '#1a73e8', color: '#fff', border: 'none',
+                fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                lineHeight: '1', transition: 'opacity 0.2s'
+            });
+            
+            btn.addEventListener('click', () => {
+                const containers = document.querySelectorAll('*');
+                for (const el of containers) {
+                    if (el.scrollHeight > el.clientHeight + 10) {
+                        el.scrollTop = el.scrollHeight;
+                    }
+                }
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            });
+            document.body.appendChild(btn);
+            console.log('[GeminiDesktop] Scroll button added.');
+        }
+
+        const observer = new MutationObserver(() => {
+            if (document.body && !document.getElementById('gem-scroll-btn')) {
+                addScrollButton();
+            }
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        addScrollButton();
+    }
+})();
+            `;
+
+            frame.executeJavaScript(injectionScript).catch((error) => {
+                this.logger.error('Failed to execute injection script in Gemini frame:', error);
+            });
+        } catch (error) {
+            this.logger.error('Error during Gemini script injection:', error);
+        }
     }
 }

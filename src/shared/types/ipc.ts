@@ -286,6 +286,34 @@ export interface ElectronAPI {
     setResponseNotificationsEnabled: (enabled: boolean) => void;
 
     // =========================================================================
+    // Smart Enter & Chat Scroll API
+    // =========================================================================
+
+    /**
+     * Get whether Smart Enter is enabled.
+     * @returns Promise resolving to the enabled state
+     */
+    getSmartEnterEnabled: () => Promise<boolean>;
+
+    /**
+     * Set whether Smart Enter is enabled.
+     * @param enabled - Whether to enable Smart Enter
+     */
+    setSmartEnterEnabled: (enabled: boolean) => void;
+
+    /**
+     * Get whether the Scroll-to-Bottom button is enabled.
+     * @returns Promise resolving to the enabled state
+     */
+    getScrollToBottomButtonEnabled: () => Promise<boolean>;
+
+    /**
+     * Set whether the Scroll-to-Bottom button is enabled.
+     * @param enabled - Whether to enable the Scroll-to-Bottom button
+     */
+    setScrollToBottomButtonEnabled: (enabled: boolean) => void;
+
+    // =========================================================================
     // Launch at Startup API
     // =========================================================================
 

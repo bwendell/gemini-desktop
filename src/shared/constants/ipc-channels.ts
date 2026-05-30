@@ -99,6 +99,12 @@ export const IPC_CHANNELS = {
     RESPONSE_NOTIFICATIONS_GET_ENABLED: 'response-notifications:get-enabled',
     RESPONSE_NOTIFICATIONS_SET_ENABLED: 'response-notifications:set-enabled',
 
+    // Smart Enter & Chat Scroll
+    SMART_ENTER_GET_ENABLED: 'smart-enter:get-enabled',
+    SMART_ENTER_SET_ENABLED: 'smart-enter:set-enabled',
+    SCROLL_TO_BOTTOM_GET_ENABLED: 'scroll-to-bottom:get-enabled',
+    SCROLL_TO_BOTTOM_SET_ENABLED: 'scroll-to-bottom:set-enabled',
+
     // Launch at Startup
     LAUNCH_AT_STARTUP_GET: 'launch-at-startup:get',
     LAUNCH_AT_STARTUP_SET: 'launch-at-startup:set',
