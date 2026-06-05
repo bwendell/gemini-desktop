@@ -66,7 +66,7 @@ describe('WindowIpcHandler', () => {
     });
 
     describe('register', () => {
-        it('registers all 5 window IPC channels', () => {
+        it('registers all 6 window IPC channels', () => {
             handler.register();
 
             expect(mockIpcMain.on).toHaveBeenCalledWith('window-minimize', expect.any(Function));
@@ -74,6 +74,7 @@ describe('WindowIpcHandler', () => {
             expect(mockIpcMain.on).toHaveBeenCalledWith('window-close', expect.any(Function));
             expect(mockIpcMain.on).toHaveBeenCalledWith('window-show', expect.any(Function));
             expect(mockIpcMain.handle).toHaveBeenCalledWith('window-is-maximized', expect.any(Function));
+            expect(mockIpcMain.handle).toHaveBeenCalledWith('window-is-fullscreen', expect.any(Function));
         });
     });
 
@@ -347,6 +348,76 @@ describe('WindowIpcHandler', () => {
 
             expect(result).toBe(false);
             expect(mockLogger.error).toHaveBeenCalledWith('Error checking maximized state:', expect.any(Error));
+        });
+    });
+
+    describe('window-is-fullscreen handler', () => {
+        beforeEach(() => {
+            handler.register();
+        });
+
+        it('returns false for null window', async () => {
+            const windowHandler = mockIpcMain._handlers.get('window-is-fullscreen');
+            mockBrowserWindow.fromWebContents.mockReturnValue(null);
+
+            const result = await windowHandler!({ sender: {} });
+
+            expect(result).toBe(false);
+        });
+
+        it('returns false for destroyed window', async () => {
+            const windowHandler = mockIpcMain._handlers.get('window-is-fullscreen');
+            const destroyedWindow = {
+                isDestroyed: () => true,
+            };
+            mockBrowserWindow.fromWebContents.mockReturnValue(destroyedWindow);
+
+            const result = await windowHandler!({ sender: {} });
+
+            expect(result).toBe(false);
+        });
+
+        it('returns correct state for valid window when in fullscreen', async () => {
+            const windowHandler = mockIpcMain._handlers.get('window-is-fullscreen');
+            const mockWindow = {
+                isDestroyed: () => false,
+                isFullScreen: vi.fn().mockReturnValue(true),
+            };
+            mockBrowserWindow.fromWebContents.mockReturnValue(mockWindow);
+
+            const result = await windowHandler!({ sender: {} });
+
+            expect(result).toBe(true);
+            expect(mockWindow.isFullScreen).toHaveBeenCalled();
+        });
+
+        it('returns false when not in fullscreen', async () => {
+            const windowHandler = mockIpcMain._handlers.get('window-is-fullscreen');
+            const mockWindow = {
+                isDestroyed: () => false,
+                isFullScreen: vi.fn().mockReturnValue(false),
+            };
+            mockBrowserWindow.fromWebContents.mockReturnValue(mockWindow);
+
+            const result = await windowHandler!({ sender: {} });
+
+            expect(result).toBe(false);
+        });
+
+        it('returns false and logs error when isFullScreen throws', async () => {
+            const windowHandler = mockIpcMain._handlers.get('window-is-fullscreen');
+            const mockWindow = {
+                isDestroyed: () => false,
+                isFullScreen: vi.fn().mockImplementation(() => {
+                    throw new Error('Fullscreen check failed');
+                }),
+            };
+            mockBrowserWindow.fromWebContents.mockReturnValue(mockWindow);
+
+            const result = await windowHandler!({ sender: {} });
+
+            expect(result).toBe(false);
+            expect(mockLogger.error).toHaveBeenCalledWith('Error checking fullscreen state:', expect.any(Error));
         });
     });
 });

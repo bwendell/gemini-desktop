@@ -44,8 +44,14 @@ export interface ElectronAPI {
     /** Check if the window is currently maximized */
     isMaximized: () => Promise<boolean>;
 
+    /** Check if the window is currently fullscreen */
+    isFullscreen: () => Promise<boolean>;
+
     /** Toggle fullscreen mode for the current window */
     toggleFullscreen: () => void;
+
+    /** Listen for fullscreen state changes. Returns unsubscribe function. */
+    onFullscreenChanged: (callback: (isFullscreen: boolean) => void) => () => void;
 
     /** Open the options/settings window */
     openOptions: (tab?: 'settings' | 'about') => void;
@@ -54,6 +60,9 @@ export interface ElectronAPI {
     openGoogleSignIn: () => Promise<void>;
 
     restartApp: () => Promise<void>;
+
+    /** Quit the application completely */
+    quitApp: () => void;
 
     // =========================================================================
     // Platform Detection

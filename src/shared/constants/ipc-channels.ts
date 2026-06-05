@@ -18,7 +18,9 @@ export const IPC_CHANNELS = {
     WINDOW_CLOSE: 'window-close',
     WINDOW_SHOW: 'window-show',
     WINDOW_IS_MAXIMIZED: 'window-is-maximized',
+    WINDOW_IS_FULLSCREEN: 'window-is-fullscreen',
     FULLSCREEN_TOGGLE: 'window-toggle-fullscreen',
+    FULLSCREEN_CHANGED: 'window-fullscreen-changed',
 
     // Theme
     THEME_GET: 'theme:get',
@@ -29,6 +31,7 @@ export const IPC_CHANNELS = {
     OPEN_OPTIONS: 'open-options-window',
     OPEN_GOOGLE_SIGNIN: 'open-google-signin',
     APP_RESTART: 'app:restart',
+    APP_QUIT: 'app:quit',
 
     // Quick Chat
     QUICK_CHAT_SUBMIT: 'quick-chat:submit',

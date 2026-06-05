@@ -10,7 +10,7 @@
  * @module MainWindow
  */
 
-import { BrowserWindow, session, shell, webFrameMain, type BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow, session, shell, webFrameMain, type BrowserWindowConstructorOptions } from 'electron';
 import BaseWindow from './baseWindow';
 import {
     MAIN_WINDOW_CONFIG,
@@ -54,6 +54,9 @@ export default class MainWindow extends BaseWindow {
 
     /** Timestamp of the last response-complete event (for debouncing) */
     private lastResponseCompleteTime = 0;
+
+    /** Timestamp of the last fullscreen toggle (to prevent double F11 triggers) */
+    private lastFullscreenToggleTime = 0;
 
     /** Stored webRequest listener for cleanup (Task 12.8) */
     private responseDetectionListener?: (details: Electron.OnCompletedListenerDetails) => void;
@@ -144,6 +147,7 @@ export default class MainWindow extends BaseWindow {
         this.setupResponseDetection();
         this.setupTabShortcutForwarding();
         this.setupFrameLoadHandler();
+        this.setupFullscreenHandlers();
 
         return win;
     }
@@ -526,6 +530,37 @@ export default class MainWindow extends BaseWindow {
         }
 
         this.window.webContents.on('before-input-event', (event, input) => {
+            // Support Ctrl+Q / Cmd+Q globally to quit the application (even when focus is in cross-origin iframe)
+            if (input.type === 'keyDown' && input.key.toLowerCase() === 'q' && (input.control || input.meta)) {
+                event.preventDefault();
+                try {
+                    app.quit();
+                } catch (error) {
+                    this.logger.error('Error quitting app via Ctrl+Q shortcut:', error);
+                }
+                return;
+            }
+
+            // Support F11 globally (even when focus is in cross-origin iframe)
+            if (input.type === 'keyDown' && input.key === 'F11') {
+                event.preventDefault();
+                if (input.isAutoRepeat) {
+                    return;
+                }
+                const now = Date.now();
+                if (now - this.lastFullscreenToggleTime < 500) {
+                    return;
+                }
+                this.lastFullscreenToggleTime = now;
+                try {
+                    const isFullscreen = this.window?.isFullScreen();
+                    this.window?.setFullScreen(!isFullscreen);
+                } catch (error) {
+                    this.logger.error('Error toggling fullscreen via F11 shortcut:', error);
+                }
+                return;
+            }
+
             const shortcutPayload = this.resolveTabShortcutPayload(input);
             if (!shortcutPayload) {
                 return;
@@ -566,6 +601,23 @@ export default class MainWindow extends BaseWindow {
             } catch (error) {
                 this.logger.error('Error in did-frame-finish-load handler:', error);
             }
+        });
+    }
+
+    /**
+     * Set up listeners for fullscreen events.
+     */
+    private setupFullscreenHandlers(): void {
+        if (!this.window) return;
+
+        this.window.on('enter-full-screen', () => {
+            this.logger.log('Window entered full screen');
+            this.window?.webContents.send(IPC_CHANNELS.FULLSCREEN_CHANGED, true);
+        });
+
+        this.window.on('leave-full-screen', () => {
+            this.logger.log('Window left full screen');
+            this.window?.webContents.send(IPC_CHANNELS.FULLSCREEN_CHANGED, false);
         });
     }
 
