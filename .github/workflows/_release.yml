@@ -61,7 +61,7 @@ jobs:
             - name: Generate Checksums
               run: |
                   cd release
-                  shasum -a 256 *.dmg *.zip > checksums-macos-x64.txt
+                  shasum -a 256 *.dmg > checksums-macos-x64.txt
 
             - name: Prepare macOS update metadata (x64)
               run: |
@@ -80,8 +80,6 @@ jobs:
                   fail_on_unmatched_files: true
                   files: |
                       release/*.dmg
-                      release/*.zip
-                      release/*.zip.blockmap
                       release/checksums-macos-x64.txt
                       release/latest-mac-x64.yml
               env:
@@ -137,7 +135,7 @@ jobs:
             - name: Generate Checksums
               run: |
                   cd release
-                  shasum -a 256 *.dmg *.zip > checksums-macos-arm64.txt
+                  shasum -a 256 *.dmg > checksums-macos-arm64.txt
 
             - name: Prepare macOS update metadata (arm64)
               run: |
@@ -156,8 +154,6 @@ jobs:
                   fail_on_unmatched_files: true
                   files: |
                       release/*.dmg
-                      release/*.zip
-                      release/*.zip.blockmap
                       release/checksums-macos-arm64.txt
                       release/latest-mac-arm64.yml
               env:
