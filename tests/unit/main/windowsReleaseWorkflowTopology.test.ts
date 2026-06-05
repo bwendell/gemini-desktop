@@ -8,6 +8,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workflowPath = path.resolve(__dirname, '../../..', '.github/workflows/_release.yml');
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 
+const extractJobBlock = (jobName: string) => {
+    const jobStart = workflow.indexOf(`    ${jobName}:`);
+    expect(jobStart).toBeGreaterThanOrEqual(0);
+
+    const nextJobMatch = workflow.slice(jobStart + 1).match(/\n {4}[a-z0-9-]+:/);
+    const nextJobStart = nextJobMatch?.index === undefined ? -1 : jobStart + 1 + nextJobMatch.index;
+
+    return nextJobStart === -1 ? workflow.slice(jobStart) : workflow.slice(jobStart, nextJobStart);
+};
+
 describe('Windows release workflow topology', () => {
     it('uses per-architecture Windows release jobs with dedicated installer validation', () => {
         expect(workflow).toContain('windows-x64-build:');
@@ -46,5 +56,16 @@ describe('Windows release workflow topology', () => {
         expect(workflow).not.toContain('Install baseline arm64 build');
         expect(workflow).not.toContain('Upgrade arm64 baseline to promoted installer');
         expect(workflow).not.toContain('Run arm64 upgrade spec');
+    });
+
+    it('runs arm64 packaged E2E only on the arm64 validation runner', () => {
+        const arm64BuildJob = extractJobBlock('windows-arm64-build');
+        const arm64ValidationJob = extractJobBlock('windows-validate-arm64');
+
+        expect(arm64BuildJob).toContain('runs-on: windows-latest');
+        expect(arm64BuildJob).not.toContain('npm run test:e2e:release');
+        expect(arm64ValidationJob).toContain('runs-on: windows-11-arm');
+        expect(arm64ValidationJob).toContain('Run arm64 packaged release E2E tests');
+        expect(arm64ValidationJob).toContain('npm run test:e2e:release');
     });
 });

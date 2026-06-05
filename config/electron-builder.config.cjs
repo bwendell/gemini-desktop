@@ -70,12 +70,7 @@ module.exports = {
         },
     ],
     win: {
-        target: [
-            {
-                target: 'nsis',
-                arch: ['x64', 'arm64'],
-            },
-        ],
+        target: 'nsis',
         icon: 'build/icon.png',
         artifactName: 'Gemini-Desktop-${version}-${arch}.${ext}',
         ...(process.env.AZURE_SIGN_ENDPOINT &&
