@@ -18,7 +18,9 @@ export const IPC_CHANNELS = {
     WINDOW_CLOSE: 'window-close',
     WINDOW_SHOW: 'window-show',
     WINDOW_IS_MAXIMIZED: 'window-is-maximized',
+    WINDOW_IS_FULLSCREEN: 'window-is-fullscreen',
     FULLSCREEN_TOGGLE: 'window-toggle-fullscreen',
+    FULLSCREEN_CHANGED: 'window-fullscreen-changed',
 
     // Theme
     THEME_GET: 'theme:get',
@@ -29,6 +31,7 @@ export const IPC_CHANNELS = {
     OPEN_OPTIONS: 'open-options-window',
     OPEN_GOOGLE_SIGNIN: 'open-google-signin',
     APP_RESTART: 'app:restart',
+    APP_QUIT: 'app:quit',
 
     // Quick Chat
     QUICK_CHAT_SUBMIT: 'quick-chat:submit',
@@ -98,6 +101,12 @@ export const IPC_CHANNELS = {
     // Response Notifications
     RESPONSE_NOTIFICATIONS_GET_ENABLED: 'response-notifications:get-enabled',
     RESPONSE_NOTIFICATIONS_SET_ENABLED: 'response-notifications:set-enabled',
+
+    // Smart Enter & Chat Scroll
+    SMART_ENTER_GET_ENABLED: 'smart-enter:get-enabled',
+    SMART_ENTER_SET_ENABLED: 'smart-enter:set-enabled',
+    SCROLL_TO_BOTTOM_GET_ENABLED: 'scroll-to-bottom:get-enabled',
+    SCROLL_TO_BOTTOM_SET_ENABLED: 'scroll-to-bottom:set-enabled',
 
     // Launch at Startup
     LAUNCH_AT_STARTUP_GET: 'launch-at-startup:get',

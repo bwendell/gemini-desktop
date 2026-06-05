@@ -27,3 +27,4 @@ export { ResponseNotificationIpcHandler } from './ResponseNotificationIpcHandler
 export { LaunchAtStartupIpcHandler } from './LaunchAtStartupIpcHandler';
 export { ExportIpcHandler } from './ExportIpcHandler';
 export { TabStateIpcHandler } from './TabStateIpcHandler';
+export { SmartEnterIpcHandler } from './SmartEnterIpcHandler';

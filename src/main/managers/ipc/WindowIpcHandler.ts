@@ -97,6 +97,19 @@ export class WindowIpcHandler extends BaseIpcHandler {
             }
         });
 
+        // Check if window is fullscreen
+        ipcMain.handle(IPC_CHANNELS.WINDOW_IS_FULLSCREEN, (event): boolean => {
+            const win = this.getWindowFromEvent(event);
+            if (!win || win.isDestroyed()) return false;
+
+            try {
+                return win.isFullScreen();
+            } catch (error) {
+                this.logger.error('Error checking fullscreen state:', error);
+                return false;
+            }
+        });
+
         // Toggle fullscreen
         ipcMain.on(IPC_CHANNELS.FULLSCREEN_TOGGLE, (event) => {
             const win = this.getWindowFromEvent(event);
@@ -120,6 +133,7 @@ export class WindowIpcHandler extends BaseIpcHandler {
         ipcMain.removeAllListeners(IPC_CHANNELS.WINDOW_CLOSE);
         ipcMain.removeAllListeners(IPC_CHANNELS.WINDOW_SHOW);
         ipcMain.removeHandler(IPC_CHANNELS.WINDOW_IS_MAXIMIZED);
+        ipcMain.removeHandler(IPC_CHANNELS.WINDOW_IS_FULLSCREEN);
         ipcMain.removeAllListeners(IPC_CHANNELS.FULLSCREEN_TOGGLE);
     }
 }

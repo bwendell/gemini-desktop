@@ -1,8 +1,4 @@
-/**
- * Unit tests for MainLayout component.
- */
-
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MainLayout } from './MainLayout';
 
@@ -96,6 +92,65 @@ describe('MainLayout', () => {
             expect(children?.length).toBe(2);
             expect(children?.[0]).toHaveClass('titlebar');
             expect(children?.[1]).toHaveClass('main-content');
+        });
+    });
+
+    describe('fullscreen mode', () => {
+        it('hides Titlebar and tabBar when in fullscreen mode', () => {
+            let fullscreenCallback: ((fullscreen: boolean) => void) | undefined;
+            const mockUnsubscribe = vi.fn();
+
+            // Mock window.electronAPI
+            const originalElectronAPI = (window as any).electronAPI;
+            (window as any).electronAPI = {
+                ...originalElectronAPI,
+                isFullscreen: vi.fn().mockResolvedValue(false),
+                onFullscreenChanged: (cb: (f: boolean) => void) => {
+                    fullscreenCallback = cb;
+                    return mockUnsubscribe;
+                },
+            };
+
+            const { rerender } = render(
+                <MainLayout tabBar={<div className="test-tabbar">TabBar</div>}>
+                    <div>Content</div>
+                </MainLayout>
+            );
+
+            // Verify they are visible initially
+            expect(document.querySelector('header.titlebar')).toBeInTheDocument();
+            expect(document.querySelector('.test-tabbar')).toBeInTheDocument();
+
+            // Trigger fullscreen
+            if (fullscreenCallback) {
+                fullscreenCallback(true);
+            }
+            rerender(
+                <MainLayout tabBar={<div className="test-tabbar">TabBar</div>}>
+                    <div>Content</div>
+                </MainLayout>
+            );
+
+            // Verify they are hidden
+            expect(document.querySelector('header.titlebar')).not.toBeInTheDocument();
+            expect(document.querySelector('.test-tabbar')).not.toBeInTheDocument();
+
+            // Trigger exit fullscreen
+            if (fullscreenCallback) {
+                fullscreenCallback(false);
+            }
+            rerender(
+                <MainLayout tabBar={<div className="test-tabbar">TabBar</div>}>
+                    <div>Content</div>
+                </MainLayout>
+            );
+
+            // Verify they are visible again
+            expect(document.querySelector('header.titlebar')).toBeInTheDocument();
+            expect(document.querySelector('.test-tabbar')).toBeInTheDocument();
+
+            // Clean up window mock
+            (window as any).electronAPI = originalElectronAPI;
         });
     });
 });
