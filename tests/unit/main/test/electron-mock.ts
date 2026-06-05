@@ -51,6 +51,7 @@ export class BrowserWindow {
         let isDestroyed = false;
         let isMaximized = false;
         let isAlwaysOnTop = false;
+        let isFullscreen = false;
 
         const instance: any = {
             options,
@@ -98,6 +99,11 @@ export class BrowserWindow {
                 isAlwaysOnTop = flag;
             }),
             isAlwaysOnTop: vi.fn(() => isAlwaysOnTop),
+
+            setFullScreen: vi.fn((flag) => {
+                isFullscreen = flag;
+            }),
+            isFullScreen: vi.fn(() => isFullscreen),
 
             focus: vi.fn(),
             setPosition: vi.fn(),

@@ -28,7 +28,7 @@ jobs:
             npm_config_arch: x64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
               with:
                   ref: ${{ github.sha }}
 
@@ -61,7 +61,7 @@ jobs:
             - name: Generate Checksums
               run: |
                   cd release
-                  shasum -a 256 *.dmg *.zip > checksums-macos-x64.txt
+                  shasum -a 256 *.dmg > checksums-macos-x64.txt
 
             - name: Prepare macOS update metadata (x64)
               run: |
@@ -80,8 +80,6 @@ jobs:
                   fail_on_unmatched_files: true
                   files: |
                       release/*.dmg
-                      release/*.zip
-                      release/*.zip.blockmap
                       release/checksums-macos-x64.txt
                       release/latest-mac-x64.yml
               env:
@@ -104,7 +102,7 @@ jobs:
             npm_config_arch: arm64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
               with:
                   ref: ${{ github.sha }}
 
@@ -137,7 +135,7 @@ jobs:
             - name: Generate Checksums
               run: |
                   cd release
-                  shasum -a 256 *.dmg *.zip > checksums-macos-arm64.txt
+                  shasum -a 256 *.dmg > checksums-macos-arm64.txt
 
             - name: Prepare macOS update metadata (arm64)
               run: |
@@ -156,8 +154,6 @@ jobs:
                   fail_on_unmatched_files: true
                   files: |
                       release/*.dmg
-                      release/*.zip
-                      release/*.zip.blockmap
                       release/checksums-macos-arm64.txt
                       release/latest-mac-arm64.yml
               env:
@@ -182,7 +178,7 @@ jobs:
             npm_config_arch: x64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
               with:
                   ref: ${{ github.sha }}
 
@@ -264,7 +260,7 @@ jobs:
             contents: read
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
               with:
                   ref: ${{ github.sha }}
 
@@ -348,12 +344,12 @@ jobs:
             npm_config_arch: arm64
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
               with:
                   ref: ${{ github.sha }}
 
             - name: Setup Node.js
-              uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
@@ -431,7 +427,7 @@ jobs:
             contents: read
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
               with:
                   ref: ${{ github.sha }}
 
@@ -533,7 +529,7 @@ jobs:
             contents: write
         steps:
             - name: Checkout Code
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
               with:
                   ref: ${{ github.sha }}
 
