@@ -19,6 +19,7 @@ import { AboutSection } from './AboutSection';
 import { TextPredictionSettings } from './TextPredictionSettings';
 import { NotificationSettings } from './NotificationSettings';
 import { StartupSettings } from './StartupSettings';
+import { ChatBehaviorSettings } from './ChatBehaviorSettings';
 import './options-window.css';
 
 // ============================================================================
@@ -194,6 +195,11 @@ export function OptionsWindow() {
 
                             <OptionsSection title="Startup" testId="options-startup">
                                 <StartupSettings />
+                            </OptionsSection>
+
+                            {/* Chat Settings */}
+                            <OptionsSection title="Chat Settings" testId="options-chat-settings">
+                                <ChatBehaviorSettings />
                             </OptionsSection>
                         </>
                     )}

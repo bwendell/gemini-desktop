@@ -27,6 +27,7 @@ import {
     LaunchAtStartupIpcHandler,
     ExportIpcHandler,
     TabStateIpcHandler,
+    SmartEnterIpcHandler,
     IpcHandlerDependencies,
 } from './ipc/index';
 import SettingsStore from '../store';
@@ -73,6 +74,9 @@ interface UserPreferences extends Record<string, unknown> {
     // Launch at startup settings
     launchAtStartup: boolean;
     startMinimized: boolean;
+    // Smart Enter & Chat Scroll settings
+    smartEnterEnabled: boolean;
+    scrollToBottomButtonEnabled: boolean;
 }
 
 /**
@@ -138,6 +142,8 @@ export default class IpcManager {
                     responseNotificationsEnabled: true,
                     launchAtStartup: false,
                     startMinimized: false,
+                    smartEnterEnabled: true,
+                    scrollToBottomButtonEnabled: true,
                 },
             });
         /* v8 ignore next -- production fallback, tests always inject logger */
@@ -193,6 +199,7 @@ export default class IpcManager {
             // Export handler
             new ExportIpcHandler(handlerDeps),
             this.tabStateHandler,
+            new SmartEnterIpcHandler(handlerDeps),
         ];
 
         this.logger.log('Initialized');

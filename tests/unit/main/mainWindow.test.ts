@@ -289,4 +289,42 @@ describe('MainWindow', () => {
             expect(win.minimize).toHaveBeenCalled();
         });
     });
+
+    describe('before-input-event handler', () => {
+        type InputHandler = (event: { preventDefault: () => void }, input: any) => void;
+        let inputHandler: InputHandler | null;
+        let winMock: any;
+
+        beforeEach(() => {
+            mainWindow.create();
+            const instances = (BrowserWindow as any).getAllWindows();
+            winMock = instances[0];
+            const call = winMock.webContents.on.mock.calls.find(
+                (c: [string, InputHandler]) => c[0] === 'before-input-event'
+            );
+            inputHandler = call ? call[1] : null;
+        });
+
+        it('sets up before-input-event listener', () => {
+            expect(inputHandler).toBeDefined();
+        });
+
+        it('toggles fullscreen on F11 keydown', () => {
+            const event = { preventDefault: vi.fn() };
+
+            inputHandler!(event as any, { type: 'keyDown', key: 'F11' });
+
+            expect(event.preventDefault).toHaveBeenCalled();
+            expect(winMock.setFullScreen).toHaveBeenCalledWith(true);
+        });
+
+        it('does not toggle fullscreen on non-F11 keydown', () => {
+            const event = { preventDefault: vi.fn() };
+
+            inputHandler!(event as any, { type: 'keyDown', key: 'F10' });
+
+            expect(event.preventDefault).not.toHaveBeenCalled();
+            expect(winMock.setFullScreen).not.toHaveBeenCalled();
+        });
+    });
 });

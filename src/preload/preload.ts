@@ -17,6 +17,7 @@ import { toastAPI } from './api/toast';
 import { updatesAPI } from './api/updates';
 import { windowAPI } from './api/window';
 import { zoomAPI } from './api/zoom';
+import { smartEnterAPI } from './api/smartEnter';
 
 const electronAPI: ElectronAPI = {
     ...windowAPI,
@@ -35,6 +36,7 @@ const electronAPI: ElectronAPI = {
     ...notificationsAPI,
     ...startupAPI,
     ...exportAPI,
+    ...smartEnterAPI,
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
