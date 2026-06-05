@@ -5,6 +5,14 @@ Priorities may shift based on user feedback, upstream Gemini changes, and platfo
 
 ## Recently Shipped
 
+### v0.12.0 — Chat Flow & Release Reliability
+
+- **Chat workflow upgrades** — add Smart Enter's upload-aware submission queue and a floating scroll-to-bottom control, both with persisted settings toggles for smoother long-running Gemini chats. ([#321](https://github.com/bwendell/gemini-desktop/pull/321))
+- **Fullscreen and keyboard polish** — make F11 fullscreen work even while focus is inside Gemini, hide custom chrome in fullscreen, and restore reliable app quit shortcuts. ([#322](https://github.com/bwendell/gemini-desktop/pull/322))
+- **Release reliability hardening** — restore split Windows release assets and per-architecture validation, skip a hanging ARM64 baseline path, and remove the unsupported macOS ZIP artifact from release expectations. ([#288](https://github.com/bwendell/gemini-desktop/pull/288), [#294](https://github.com/bwendell/gemini-desktop/pull/294), [#296](https://github.com/bwendell/gemini-desktop/pull/296), [#330](https://github.com/bwendell/gemini-desktop/pull/330))
+- **Maintenance updates** — refresh Electron, React, Vite, Vitest/jsdom, release actions, CodeQL, and supporting dependencies merged since `v0.11.2`. ([#247](https://github.com/bwendell/gemini-desktop/pull/247), [#248](https://github.com/bwendell/gemini-desktop/pull/248), [#272](https://github.com/bwendell/gemini-desktop/pull/272), [#280](https://github.com/bwendell/gemini-desktop/pull/280), [#282](https://github.com/bwendell/gemini-desktop/pull/282), [#291](https://github.com/bwendell/gemini-desktop/pull/291), [#319](https://github.com/bwendell/gemini-desktop/pull/319), [#325](https://github.com/bwendell/gemini-desktop/pull/325), [#326](https://github.com/bwendell/gemini-desktop/pull/326), [#329](https://github.com/bwendell/gemini-desktop/pull/329))
+- **Contributor credit** — special thanks to [@digvijay-ship-it](https://github.com/digvijay-ship-it) for the Smart Enter, scroll-to-bottom, and fullscreen work in [#321](https://github.com/bwendell/gemini-desktop/pull/321) and [#322](https://github.com/bwendell/gemini-desktop/pull/322), and to [@bwendell](https://github.com/bwendell) for the Windows/macOS release hardening in [#288](https://github.com/bwendell/gemini-desktop/pull/288), [#294](https://github.com/bwendell/gemini-desktop/pull/294), [#296](https://github.com/bwendell/gemini-desktop/pull/296), and [#330](https://github.com/bwendell/gemini-desktop/pull/330).
+
 ### v0.8.0 — Chat Tabs & Release Notes
 
 - **Tabbed conversations** to keep multiple chats open at once. ([#72](https://github.com/bwendell/gemini-desktop/issues/72))
