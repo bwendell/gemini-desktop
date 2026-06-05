@@ -97,7 +97,7 @@ module.exports = {
         artifactName: 'Gemini-Desktop-${version}-${arch}-installer.${ext}',
     },
     mac: {
-        target: ['dmg'],
+        target: ['dmg', 'zip'],
         icon: 'build/icon.png',
         identity: null,
         artifactName: 'Gemini-Desktop-${version}-${arch}.${ext}',
