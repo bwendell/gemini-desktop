@@ -44,11 +44,11 @@ describe('release workflow Windows metadata aliases', () => {
 });
 
 describe('electron-builder macOS release artifacts', () => {
-    it('does not build unsupported macOS ZIP artifacts', () => {
+    it('builds macOS ZIP artifacts for update metadata', () => {
         const macTargetNames = getTargetNames(builderConfig.mac?.target);
 
         expect(macTargetNames).toContain('dmg');
-        expect(macTargetNames).not.toContain('zip');
+        expect(macTargetNames).toContain('zip');
     });
 
     it('does not publish unsupported macOS ZIP artifact globs', () => {
