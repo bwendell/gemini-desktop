@@ -13,7 +13,7 @@ To run tests on these systems, you need to install several required RPM packages
 sudo dnf install -y xorg-x11-server-Xvfb mesa-libgbm gtk3 libnotify libXScrnSaver nss atk at-spi2-atk cups-libs libdrm mesa-libGL alsa-lib
 ```
 
-> **Note:** `libappindicator-gtk3` is optional and only required if you need to run tray icon tests.
+> **Note:** `libappindicator-gtk3` is optional on RPM-based systems and only required if you need to run tray icon tests. On Debian/Ubuntu systems, use `libayatana-appindicator3-1` for modern AppIndicator support.
 
 ## Quick Start
 
@@ -57,7 +57,7 @@ npm run test:e2e:group:startup  # Run only the startup test group
 ## Troubleshooting
 
 - **DRI permission warnings**: You may see warnings about DRI permissions in the console. These are cosmetic and can be safely ignored; they are related to GPU acceleration attempts in a headless environment.
-- **Tray tests failing**: If tray icon tests fail, ensure you have installed the optional `libappindicator-gtk3` package.
+- **Tray tests failing**: If tray icon tests fail, ensure you have installed the optional `libappindicator-gtk3` package on RPM-based systems or `libayatana-appindicator3-1` on Debian/Ubuntu systems.
 - **SELinux notes**: On Oracle Linux and RHEL, the system will use SELinux. The test suite's AppArmor auto-configuration logic will detect this and skip AppArmor-specific steps without causing failures.
 - **Chromedriver download**: The ARM chromedriver is downloaded from Electron releases. Ensure outbound HTTPS is available, and that either `unzip` or `python3` is installed to extract the archive.
 
@@ -65,23 +65,23 @@ npm run test:e2e:group:startup  # Run only the startup test group
 
 The following table maps common Ubuntu CI packages to their RPM equivalents on Oracle Linux 9, RHEL 9, and Rocky Linux 9:
 
-| Ubuntu Package     | RPM Package (OL9/RHEL9) | Notes                     |
-| ------------------ | ----------------------- | ------------------------- |
-| xvfb               | xorg-x11-server-Xvfb    | Provides xvfb-run         |
-| libgbm1            | mesa-libgbm             | GPU buffer management     |
-| libgtk-3-0         | gtk3                    | GTK3 libraries            |
-| libnotify4         | libnotify               | Desktop notifications     |
-| libxss1            | libXScrnSaver           | Screensaver extension     |
-| libnss3            | nss                     | Network Security Services |
-| libatk1.0-0        | atk                     | Accessibility toolkit     |
-| libatk-bridge2.0-0 | at-spi2-atk             | ATK bridge                |
-| libcups2           | cups-libs               | Printing support          |
-| libdrm2            | libdrm                  | Direct rendering          |
-| libxkbcommon0      | libxkbcommon            | Keyboard handling         |
-| libxcomposite1     | libXcomposite           | X composite extension     |
-| libxdamage1        | libXdamage              | X damage extension        |
-| libxfixes3         | libXfixes               | X fixes extension         |
-| libxrandr2         | libXrandr               | X randr extension         |
-| libgl1             | mesa-libGL              | OpenGL                    |
-| libasound2         | alsa-lib                | Audio support             |
-| libappindicator3-1 | libappindicator-gtk3    | Optional: tray icon tests |
+| Ubuntu Package             | RPM Package (OL9/RHEL9) | Notes                     |
+| -------------------------- | ----------------------- | ------------------------- |
+| xvfb                       | xorg-x11-server-Xvfb    | Provides xvfb-run         |
+| libgbm1                    | mesa-libgbm             | GPU buffer management     |
+| libgtk-3-0                 | gtk3                    | GTK3 libraries            |
+| libnotify4                 | libnotify               | Desktop notifications     |
+| libxss1                    | libXScrnSaver           | Screensaver extension     |
+| libnss3                    | nss                     | Network Security Services |
+| libatk1.0-0                | atk                     | Accessibility toolkit     |
+| libatk-bridge2.0-0         | at-spi2-atk             | ATK bridge                |
+| libcups2                   | cups-libs               | Printing support          |
+| libdrm2                    | libdrm                  | Direct rendering          |
+| libxkbcommon0              | libxkbcommon            | Keyboard handling         |
+| libxcomposite1             | libXcomposite           | X composite extension     |
+| libxdamage1                | libXdamage              | X damage extension        |
+| libxfixes3                 | libXfixes               | X fixes extension         |
+| libxrandr2                 | libXrandr               | X randr extension         |
+| libgl1                     | mesa-libGL              | OpenGL                    |
+| libasound2                 | alsa-lib                | Audio support             |
+| libayatana-appindicator3-1 | libappindicator-gtk3    | Optional: tray icon tests |
