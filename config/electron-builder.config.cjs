@@ -136,7 +136,8 @@ module.exports = {
         executableName: 'gemini-desktop',
     },
     deb: {
-        depends: ['gconf2', 'gconf-service', 'libnotify4', 'libappindicator1', 'libxtst6', 'libnss3', 'libasound2'],
+        depends: ['libnotify4', 'libxtst6', 'libnss3', 'libasound2'],
+        recommends: ['libayatana-appindicator3-1'],
     },
     rpm: {
         depends: ['libnotify', 'libappindicator', 'libXtst', 'nss', 'alsa-lib'],
