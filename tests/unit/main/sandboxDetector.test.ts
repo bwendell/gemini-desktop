@@ -413,4 +413,69 @@ describe('sandboxDetector', () => {
             expect(shouldDisableSandbox()).toBe(true);
         });
     });
+
+    describe('getKernelMajorVersion', () => {
+        it.each([
+            ['7.0.0-15-generic', 7],
+            ['7.0.10-2-cachyos', 7],
+            ['6.18.5', 6],
+            ['5.15.0-91-generic', 5],
+            ['10.2.0-custom', 10],
+        ])('parses major version %j -> %i', async (release, expected) => {
+            const { getKernelMajorVersion } = await import('../../../src/main/utils/sandboxDetector');
+            expect(getKernelMajorVersion(release as string)).toBe(expected);
+        });
+
+        it.each([
+            ['', null],
+            ['abc', null],
+            ['v7.0', null],
+            ['.7.0', null],
+        ])('returns null for unparseable release %j', async (release, expected) => {
+            const { getKernelMajorVersion } = await import('../../../src/main/utils/sandboxDetector');
+            expect(getKernelMajorVersion(release as string)).toBe(expected);
+        });
+    });
+
+    describe('shouldDisableV8Sandbox', () => {
+        const setPlatform = (value: string) => {
+            Object.defineProperty(process, 'platform', { value, configurable: true, writable: true });
+        };
+
+        it.each(['7.0.0-15-generic', '7.0.10-2-cachyos', '8.1.0', '10.0.0'])(
+            'returns true on Linux for incompatible kernel %j',
+            async (release) => {
+                setPlatform('linux');
+                const { shouldDisableV8Sandbox } = await import('../../../src/main/utils/sandboxDetector');
+                expect(shouldDisableV8Sandbox(release)).toBe(true);
+            }
+        );
+
+        it.each(['6.18.5', '5.15.0-91-generic', '6.1.0'])(
+            'returns false on Linux for compatible kernel %j',
+            async (release) => {
+                setPlatform('linux');
+                const { shouldDisableV8Sandbox } = await import('../../../src/main/utils/sandboxDetector');
+                expect(shouldDisableV8Sandbox(release)).toBe(false);
+            }
+        );
+
+        it('returns false on Linux when the kernel release is unparseable', async () => {
+            setPlatform('linux');
+            const { shouldDisableV8Sandbox } = await import('../../../src/main/utils/sandboxDetector');
+            expect(shouldDisableV8Sandbox('not-a-version')).toBe(false);
+        });
+
+        it('returns false on macOS even for a kernel that would otherwise match', async () => {
+            setPlatform('darwin');
+            const { shouldDisableV8Sandbox } = await import('../../../src/main/utils/sandboxDetector');
+            expect(shouldDisableV8Sandbox('7.0.0')).toBe(false);
+        });
+
+        it('returns false on Windows even for a kernel that would otherwise match', async () => {
+            setPlatform('win32');
+            const { shouldDisableV8Sandbox } = await import('../../../src/main/utils/sandboxDetector');
+            expect(shouldDisableV8Sandbox('7.0.0')).toBe(false);
+        });
+    });
 });

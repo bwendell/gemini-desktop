@@ -8,7 +8,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the sandboxDetector module
 vi.mock('../../../src/main/utils/sandboxDetector', () => ({
-    shouldDisableSandbox: vi.fn(),
+    shouldDisableSandbox: vi.fn(() => false),
+    shouldDisableV8Sandbox: vi.fn(() => false),
 }));
 
 // Mock electron app
@@ -227,6 +228,75 @@ describe('sandboxInit', () => {
             const { app } = await import('electron');
             expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('no-sandbox');
             expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
+        });
+
+        it('applies --no-v8-sandbox only once when both kernel and settings would trigger it', async () => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+            const { shouldDisableSandbox, shouldDisableV8Sandbox } =
+                await import('../../../src/main/utils/sandboxDetector');
+            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
+            vi.mocked(shouldDisableV8Sandbox).mockReturnValue(true);
+
+            const { readFileSync } = await import('fs');
+            vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": true}');
+
+            await import('../../../src/main/utils/sandboxInit');
+
+            const { app } = await import('electron');
+            const v8Calls = vi
+                .mocked(app.commandLine.appendSwitch)
+                .mock.calls.filter(([flag, value]) => flag === 'js-flags' && value === '--no-v8-sandbox');
+            expect(v8Calls).toHaveLength(1);
+        });
+    });
+
+    describe('V8 sandbox mitigation (incompatible Linux kernel)', () => {
+        it('applies --no-v8-sandbox on Linux when the kernel is V8-sandbox incompatible, even if text prediction is disabled', async () => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+            const { shouldDisableSandbox, shouldDisableV8Sandbox } =
+                await import('../../../src/main/utils/sandboxDetector');
+            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
+            vi.mocked(shouldDisableV8Sandbox).mockReturnValue(true);
+
+            const { readFileSync } = await import('fs');
+            vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": false}');
+
+            await import('../../../src/main/utils/sandboxInit');
+
+            const { app } = await import('electron');
+            expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
+        });
+
+        it('does not read settings.json when the kernel already requires disabling the V8 sandbox', async () => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+            const { shouldDisableSandbox, shouldDisableV8Sandbox } =
+                await import('../../../src/main/utils/sandboxDetector');
+            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
+            vi.mocked(shouldDisableV8Sandbox).mockReturnValue(true);
+
+            const { readFileSync } = await import('fs');
+
+            await import('../../../src/main/utils/sandboxInit');
+
+            const { app } = await import('electron');
+            expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
+            expect(readFileSync).not.toHaveBeenCalled();
+        });
+
+        it('does NOT apply --no-v8-sandbox on a compatible kernel with text prediction disabled', async () => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+            const { shouldDisableSandbox, shouldDisableV8Sandbox } =
+                await import('../../../src/main/utils/sandboxDetector');
+            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
+            vi.mocked(shouldDisableV8Sandbox).mockReturnValue(false);
+
+            const { readFileSync } = await import('fs');
+            vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": false}');
+
+            await import('../../../src/main/utils/sandboxInit');
+
+            const { app } = await import('electron');
+            expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
         });
     });
 });
