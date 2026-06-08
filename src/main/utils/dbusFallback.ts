@@ -25,6 +25,17 @@ import type { HotkeyId, HotkeyRegistrationResult } from '../../shared/types/hotk
 
 const logger = createLogger('[DBusFallback]');
 
+/**
+ * Whether D-Bus global shortcuts are disabled.
+ *
+ * On Linux, dbus-next's native `usocket` transport allocates ArrayBuffers
+ * outside Electron's V8 sandbox/memory cage, causing a fatal
+ * `v8_ArrayBuffer_NewBackingStore` segfault at startup. The cage cannot be
+ * disabled at runtime, so we skip the D-Bus path entirely (never loading
+ * `usocket`) unless explicitly opted in via GEMINI_ENABLE_DBUS_SHORTCUTS=1.
+ */
+const DBUS_SHORTCUTS_DISABLED = process.platform === 'linux' && process.env.GEMINI_ENABLE_DBUS_SHORTCUTS !== '1';
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -433,6 +444,11 @@ function parseShortcutSignalPayload(msg: DBusMessage): PortalShortcutSignalPaylo
  * @returns `true` if the portal interface is available
  */
 export async function isDBusFallbackAvailable(): Promise<boolean> {
+    if (DBUS_SHORTCUTS_DISABLED) {
+        logger.log('D-Bus global shortcuts disabled (V8 sandbox/usocket incompatibility) — skipping');
+        return false;
+    }
+
     try {
         const dbusNext = await import('dbus-next');
         const bus = dbusNext.sessionBus() as DBusConnection;
@@ -485,6 +501,15 @@ export async function registerViaDBus(
     // Early exit for empty array
     if (shortcuts.length === 0) {
         return [];
+    }
+
+    if (DBUS_SHORTCUTS_DISABLED) {
+        logger.warn('D-Bus global shortcuts disabled (V8 sandbox/usocket incompatibility) — skipping registration');
+        return shortcuts.map((s) => ({
+            hotkeyId: s.id,
+            success: false,
+            error: 'Wayland global shortcuts are temporarily disabled on Linux (V8 sandbox incompatibility).',
+        }));
     }
 
     try {

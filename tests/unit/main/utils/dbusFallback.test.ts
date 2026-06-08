@@ -99,11 +99,19 @@ vi.mock('dbus-next', () => ({
 
 describe('DBusFallback', () => {
     let dbusFallback: typeof import('../../../../src/main/utils/dbusFallback');
+    let originalEnableDBusShortcuts: string | undefined;
 
     /**
      * Set up fresh mocks and module before each test.
      */
     beforeEach(async () => {
+        // The D-Bus global-shortcut path is disabled by default on Linux due to
+        // the V8 sandbox/usocket incompatibility (issue #119). Opt in via the
+        // env var so these tests can exercise the real D-Bus logic. The constant
+        // gating this is read at module load, so set it before the import below.
+        originalEnableDBusShortcuts = process.env.GEMINI_ENABLE_DBUS_SHORTCUTS;
+        process.env.GEMINI_ENABLE_DBUS_SHORTCUTS = '1';
+
         // Clear all mock call history
         vi.clearAllMocks();
         mockSessionBusCalls.length = 0;
@@ -176,6 +184,13 @@ describe('DBusFallback', () => {
             await dbusFallback.destroySession();
         } catch {
             // Ignore cleanup errors
+        }
+
+        // Restore the original env var so we don't leak state to other tests.
+        if (originalEnableDBusShortcuts === undefined) {
+            delete process.env.GEMINI_ENABLE_DBUS_SHORTCUTS;
+        } else {
+            process.env.GEMINI_ENABLE_DBUS_SHORTCUTS = originalEnableDBusShortcuts;
         }
     });
 
