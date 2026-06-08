@@ -15,14 +15,16 @@ describe('Release Build: Native Module Health', () => {
         expect(isPackaged).toBe(true);
     });
 
-    it('should have --js-flags command line switch set on Linux', async () => {
+    it('should NOT set the --js-flags switch on Linux (V8 cage left enabled, issue #119)', async () => {
         const platform = await browser.electron.execute(() => process.platform);
         if (platform !== 'linux') return;
 
+        // The startup crash is mitigated by not loading the offending native
+        // modules, NOT by a launch flag. The V8 memory cage stays enabled.
         const hasJsFlags = await browser.electron.execute((electron) => {
             return electron.app.commandLine.hasSwitch('js-flags');
         });
-        expect(hasJsFlags).toBe(true);
+        expect(hasJsFlags).toBe(false);
     });
 
     it('should NOT have --js-flags set on non-Linux platforms', async () => {

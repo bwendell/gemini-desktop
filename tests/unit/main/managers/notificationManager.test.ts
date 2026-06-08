@@ -890,4 +890,148 @@ describe('NotificationManager', () => {
             expect(failOnceStore.set).toHaveBeenCalledTimes(2);
         });
     });
+
+    // =========================================================================
+    // Generic informational notification
+    // =========================================================================
+    describe('showInfoNotification', () => {
+        it('creates and shows a notification with the given title and body', () => {
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                mockStore as any,
+                mockPlatformAdapter
+            );
+
+            manager.showInfoNotification('Title here', 'Body here');
+
+            expect(notificationSpy._instances.length).toBe(1);
+            expect(notificationSpy._instances[0].title).toBe('Title here');
+            expect(notificationSpy._instances[0].body).toBe('Body here');
+            expect(notificationSpy._instances[0].show).toHaveBeenCalled();
+        });
+
+        it('does nothing when notifications are not supported', () => {
+            notificationSpy.isSupported.mockReturnValue(false);
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                mockStore as any,
+                mockPlatformAdapter
+            );
+
+            manager.showInfoNotification('Title', 'Body');
+
+            expect(notificationSpy._instances.length).toBe(0);
+        });
+
+        it('does not throw when notification.show() fails', () => {
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                mockStore as any,
+                mockPlatformAdapter
+            );
+
+            mockNotification.mockImplementationOnce(function (this: any, options: any) {
+                this.title = options.title;
+                this.body = options.body;
+                this._listeners = new Map<string, NotificationListener>();
+                this.on = vi.fn((event: string, handler: NotificationListener) => {
+                    this._listeners.set(event, handler);
+                    return this;
+                });
+                this.show = vi.fn().mockImplementation(() => {
+                    throw new Error('Show failed');
+                });
+                notificationSpy._instances.push(this);
+                return this;
+            });
+
+            expect(() => manager.showInfoNotification('Title', 'Body')).not.toThrow();
+        });
+    });
+
+    // =========================================================================
+    // One-time Linux feature notice (issue #119)
+    // =========================================================================
+    describe('maybeShowLinuxFeatureNotice (issue #119)', () => {
+        it('shows the notice once and persists the app version', () => {
+            mockStore = createMockStore({ responseNotificationsEnabled: true });
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                mockStore as any,
+                mockPlatformAdapter
+            );
+
+            manager.maybeShowLinuxFeatureNotice({ isWayland: true, appVersion: '1.2.3' });
+
+            expect(notificationSpy._instances.length).toBe(1);
+            expect(mockStore.set).toHaveBeenCalledWith('linuxFeatureNoticeShownForVersion', '1.2.3');
+        });
+
+        it('does not show again for the same app version', () => {
+            mockStore = createMockStore({ linuxFeatureNoticeShownForVersion: '1.2.3' });
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                mockStore as any,
+                mockPlatformAdapter
+            );
+
+            manager.maybeShowLinuxFeatureNotice({ isWayland: true, appVersion: '1.2.3' });
+
+            expect(notificationSpy._instances.length).toBe(0);
+            expect(mockStore.set).not.toHaveBeenCalled();
+        });
+
+        it('shows again after the app version changes', () => {
+            mockStore = createMockStore({ linuxFeatureNoticeShownForVersion: '1.0.0' });
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                mockStore as any,
+                mockPlatformAdapter
+            );
+
+            manager.maybeShowLinuxFeatureNotice({ isWayland: true, appVersion: '2.0.0' });
+
+            expect(notificationSpy._instances.length).toBe(1);
+            expect(mockStore.set).toHaveBeenCalledWith('linuxFeatureNoticeShownForVersion', '2.0.0');
+        });
+
+        it('mentions both global hotkeys and text prediction on Wayland', () => {
+            mockStore = createMockStore({});
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                mockStore as any,
+                mockPlatformAdapter
+            );
+
+            manager.maybeShowLinuxFeatureNotice({ isWayland: true, appVersion: '1.0.0' });
+
+            const body = notificationSpy._instances[0].body as string;
+            expect(body).toContain('Global hotkeys');
+            expect(body.toLowerCase()).toContain('text prediction');
+            expect(body).toContain('#119');
+        });
+
+        it('mentions only text prediction on X11', () => {
+            mockStore = createMockStore({});
+            const manager = new NotificationManager(
+                mockMainWindow,
+                mockBadgeManager,
+                mockStore as any,
+                mockPlatformAdapter
+            );
+
+            manager.maybeShowLinuxFeatureNotice({ isWayland: false, appVersion: '1.0.0' });
+
+            const body = notificationSpy._instances[0].body as string;
+            expect(body).not.toContain('Global hotkeys');
+            expect(body.toLowerCase()).toContain('text prediction');
+        });
+    });
 });

@@ -14,10 +14,13 @@ import { TextPredictionSettings } from '../../src/renderer/components/options/Te
 import type { TextPredictionSettings as TextPredictionSettingsType } from '../../src/shared/types/text-prediction';
 import { setupMockElectronAPI } from '../helpers/mocks';
 
-// Mock platform utils
+// Mock platform utils. These coordination tests exercise the standard
+// (non-Linux) download/status UI, so isLinux() is forced false; the Linux
+// "unavailable" UI is covered by the TextPredictionSettings unit test.
 vi.mock('../../src/renderer/utils/platform', () => ({
     isDevMode: vi.fn().mockReturnValue(false),
     getIsDev: vi.fn().mockReturnValue(false),
+    isLinux: vi.fn().mockReturnValue(false),
 }));
 
 // Mock the renderer logger to avoid console noise

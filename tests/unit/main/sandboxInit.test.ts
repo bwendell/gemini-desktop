@@ -1,8 +1,14 @@
 /**
  * Unit tests for sandboxInit side-effect module.
  *
- * Tests that the sandbox initialization correctly sets the no-sandbox
+ * Tests that the sandbox initialization correctly sets the Chromium no-sandbox
  * command line switch when running on restricted Linux systems.
+ *
+ * NOTE: This module intentionally never touches the V8 sandbox / V8 memory
+ * cage. That cage is compile-time and cannot be disabled at runtime, so the
+ * old V8 js-flag mitigation has been removed (issue #119). The Linux startup
+ * crash is mitigated by not loading the offending native modules (see
+ * hotkeyManager/dbusFallback and llmManager), not by a launch flag.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -68,165 +74,22 @@ describe('sandboxInit', () => {
         expect(app.commandLine.appendSwitch).not.toHaveBeenCalled();
     });
 
-    describe('V8 sandbox mitigation (Linux text prediction)', () => {
-        it('applies --no-v8-sandbox on Linux when --test-text-prediction flag is set', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            const originalArgv = process.argv;
-            process.argv = [...originalArgv, '--test-text-prediction'];
+    it('never appends a js-flags switch on Linux (V8 cage is not touched, issue #119)', async () => {
+        Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+        const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
+        vi.mocked(shouldDisableSandbox).mockReturnValue(true);
 
-            try {
-                const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-                vi.mocked(shouldDisableSandbox).mockReturnValue(false);
+        const { readFileSync } = await import('fs');
+        // Even if settings.json says text prediction is enabled, no js-flags must be set.
+        vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": true}');
 
-                const { readFileSync } = await import('fs');
-                vi.mocked(readFileSync).mockImplementation(() => {
-                    const error = new Error('ENOENT') as NodeJS.ErrnoException;
-                    error.code = 'ENOENT';
-                    throw error;
-                });
+        await import('../../../src/main/utils/sandboxInit');
 
-                await import('../../../src/main/utils/sandboxInit');
-
-                const { app } = await import('electron');
-                expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-            } finally {
-                process.argv = originalArgv;
-            }
-        });
-
-        it('applies --no-v8-sandbox on Linux when textPredictionEnabled is true in settings', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": true}');
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
-
-        it('does NOT apply --no-v8-sandbox on macOS even when textPredictionEnabled is true', async () => {
-            Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": true}');
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
-
-        it('does NOT apply --no-v8-sandbox on Windows even when textPredictionEnabled is true', async () => {
-            Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": true}');
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
-
-        it('does NOT apply --no-v8-sandbox when textPredictionEnabled is false', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": false}');
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
-
-        it('does NOT apply --no-v8-sandbox when textPredictionEnabled is missing', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockReturnValue('{"theme": "dark"}');
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
-
-        it('handles missing settings file gracefully (ENOENT)', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockImplementation(() => {
-                const error = new Error('ENOENT') as NodeJS.ErrnoException;
-                error.code = 'ENOENT';
-                throw error;
-            });
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
-
-        it('handles corrupt settings file gracefully (invalid JSON)', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockReturnValue('not-json');
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
-
-        it('handles permission error gracefully', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(false);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockImplementation(() => {
-                const error = new Error('EACCES') as NodeJS.ErrnoException;
-                error.code = 'EACCES';
-                throw error;
-            });
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
-
-        it('applies BOTH Chromium sandbox and V8 sandbox flags when both conditions are met', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            const { shouldDisableSandbox } = await import('../../../src/main/utils/sandboxDetector');
-            vi.mocked(shouldDisableSandbox).mockReturnValue(true);
-
-            const { readFileSync } = await import('fs');
-            vi.mocked(readFileSync).mockReturnValue('{"textPredictionEnabled": true}');
-
-            await import('../../../src/main/utils/sandboxInit');
-
-            const { app } = await import('electron');
-            expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('no-sandbox');
-            expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('js-flags', '--no-v8-sandbox');
-        });
+        const { app } = await import('electron');
+        const appendCalls = vi.mocked(app.commandLine.appendSwitch).mock.calls;
+        // Chromium no-sandbox is still allowed; js-flags must never be appended.
+        expect(appendCalls.some(([flag]) => flag === 'js-flags')).toBe(false);
+        // settings.json must not even be read anymore.
+        expect(readFileSync).not.toHaveBeenCalled();
     });
 });

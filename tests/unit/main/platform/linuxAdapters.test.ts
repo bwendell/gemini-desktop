@@ -191,12 +191,17 @@ describe('LinuxWaylandAdapter', () => {
     });
 
     describe('getHotkeyRegistrationPlan()', () => {
-        it('should return mode "wayland-dbus" when portal available', () => {
+        // The Wayland D-Bus portal path depends on dbus-next/usocket, which is
+        // incompatible with Electron's V8 memory cage and crashes at startup
+        // (issue #119). The plan is force-disabled even when the portal is
+        // available, while still surfacing the real Wayland status for
+        // diagnostics and the user-facing notice.
+        it('should return mode "disabled" even when portal available (issue #119)', () => {
             mockGetWaylandPlatformStatus.mockReturnValue(WAYLAND_PORTAL_AVAILABLE);
 
             const plan = adapter.getHotkeyRegistrationPlan();
 
-            expect(plan.mode).toBe('wayland-dbus');
+            expect(plan.mode).toBe('disabled');
             expect(plan.waylandStatus).toEqual(WAYLAND_PORTAL_AVAILABLE);
         });
 
@@ -207,6 +212,14 @@ describe('LinuxWaylandAdapter', () => {
 
             expect(plan.mode).toBe('disabled');
             expect(plan.waylandStatus).toEqual(WAYLAND_PORTAL_UNAVAILABLE);
+        });
+
+        it('should never resolve to wayland-dbus on Wayland Linux (issue #119)', () => {
+            mockGetWaylandPlatformStatus.mockReturnValue(WAYLAND_PORTAL_AVAILABLE);
+
+            const plan = adapter.getHotkeyRegistrationPlan();
+
+            expect(plan.mode).not.toBe('wayland-dbus');
         });
     });
 

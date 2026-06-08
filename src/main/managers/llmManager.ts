@@ -142,13 +142,48 @@ export default class LlmManager {
         logger.log('LlmManager created');
     }
 
+    /**
+     * Message reported when text prediction is requested on a platform where it
+     * cannot run. node-llama-cpp allocates ArrayBuffer backing stores OUTSIDE
+     * Electron's V8 memory cage, which FATAL-aborts the process on Linux. There
+     * is no runtime switch to disable the cage, so the feature is turned off on
+     * Linux until the engine can be run out of the cage.
+     *
+     * @see https://github.com/bwendell/gemini-desktop/issues/119
+     */
+    static readonly UNSUPPORTED_PLATFORM_MESSAGE =
+        'Text prediction is not supported on Linux in this build. The local AI engine (node-llama-cpp) ' +
+        "is incompatible with the app's V8 memory cage, which would crash the app at startup.";
+
     private isTextPredictionTestMode(): boolean {
         return process.argv.includes('--test-text-prediction');
+    }
+
+    /**
+     * Whether the local text-prediction engine can run on the current platform.
+     *
+     * Disabled on Linux because node-llama-cpp is incompatible with Electron's
+     * V8 memory cage (issue #119). Windows and macOS are unaffected.
+     */
+    isSupportedOnPlatform(): boolean {
+        return process.platform !== 'linux';
     }
 
     ensureNativeAvailable(context: string): boolean {
         if (this.nativeAvailable !== null) {
             return this.nativeAvailable;
+        }
+
+        // Gate on platform BEFORE the test/CI bypasses so native availability
+        // accurately reflects that the feature is unavailable on Linux.
+        if (!this.isSupportedOnPlatform()) {
+            this.nativeAvailable = false;
+            this.nativeProbeError = LlmManager.UNSUPPORTED_PLATFORM_MESSAGE;
+            logger.warn('Text prediction is not supported on this platform', {
+                context,
+                platform: process.platform,
+            });
+            return false;
         }
 
         if (process.env.NODE_ENV === 'test') {
@@ -498,21 +533,23 @@ export default class LlmManager {
             });
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to load model';
-            const isV8SandboxError =
+            const isV8CageError =
                 typeof message === 'string' &&
                 (message.includes('v8_ArrayBuffer_NewBackingStore') ||
                     message.includes('V8 Sandbox') ||
                     message.includes('sandbox address space'));
 
-            if (isV8SandboxError) {
-                const v8Message =
-                    'V8 sandbox conflict detected while loading the local AI engine. ' +
-                    'On Linux, enabling text prediction requires disabling the V8 memory sandbox and restarting the app.';
+            if (isV8CageError) {
+                // The native engine allocated an ArrayBuffer outside Electron's
+                // V8 memory cage — the issue #119 crash class. There is no
+                // runtime flag that fixes this, so report it as unsupported
+                // rather than suggesting an (impossible) restart-with-flag.
+                const cageMessage = LlmManager.UNSUPPORTED_PLATFORM_MESSAGE;
                 this.nativeAvailable = false;
-                this.nativeProbeError = v8Message;
-                this.setStatus('error', v8Message);
-                logger.error('Failed to load model due to V8 sandbox conflict', { error });
-                throw new Error(v8Message);
+                this.nativeProbeError = cageMessage;
+                this.setStatus('error', cageMessage);
+                logger.error('Failed to load model: native engine incompatible with the V8 memory cage', { error });
+                throw new Error(cageMessage);
             }
 
             logger.error('Failed to load model', { error });

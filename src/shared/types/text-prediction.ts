@@ -7,7 +7,7 @@
 /**
  * Status of the local LLM model.
  */
-export type ModelStatus = 'not-downloaded' | 'downloading' | 'initializing' | 'ready' | 'error' | 'requires-restart';
+export type ModelStatus = 'not-downloaded' | 'downloading' | 'initializing' | 'ready' | 'error';
 
 /**
  * Text prediction settings and status information.
@@ -21,8 +21,6 @@ export interface TextPredictionSettings {
     status: ModelStatus;
     /** Download progress percentage (0-100), present during download */
     downloadProgress?: number;
-    requiresRestart?: boolean;
-    restartReason?: string;
     /** Error message if status is 'error' */
     errorMessage?: string;
 }

@@ -206,6 +206,8 @@ vi.mock('../../../src/main/managers/notificationManager', () => {
         default: class NotificationManager {
             dispose = vi.fn();
             onResponseComplete = vi.fn();
+            maybeShowLinuxFeatureNotice = vi.fn();
+            showInfoNotification = vi.fn();
             constructor() {
                 return;
             }

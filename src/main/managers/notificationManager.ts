@@ -22,6 +22,12 @@ const logger = createLogger('[NotificationManager]');
  */
 export interface NotificationSettings extends Record<string, unknown> {
     responseNotificationsEnabled: boolean;
+    /**
+     * App version for which the one-time "some Linux features are unavailable"
+     * notice (issue #119) was last shown. Used to show the notice at most once
+     * per app version.
+     */
+    linuxFeatureNoticeShownForVersion?: string;
 }
 
 /**
@@ -273,6 +279,105 @@ export default class NotificationManager {
             logger.log('Notification shown');
         } catch (error) {
             logger.error('Failed to show notification:', error);
+        }
+    }
+
+    /**
+     * Show a generic informational OS notification.
+     *
+     * Unlike {@link showNotification}, this is not tied to the response-complete
+     * flow or the `responseNotificationsEnabled` preference — it is for one-off
+     * informational messages (e.g. the Linux feature notice). All failures are
+     * contained so a notification problem never crashes the app.
+     *
+     * @param title - Notification title
+     * @param body - Notification body text
+     */
+    showInfoNotification(title: string, body: string): void {
+        if (!Notification.isSupported()) {
+            const hint = this.platformAdapter.getNotificationSupportHint();
+            if (hint) {
+                logger.warn(hint);
+            } else {
+                logger.log('Notifications not supported on this platform');
+            }
+            return;
+        }
+
+        let iconPath: string | undefined = getNotificationIconPath();
+        if (iconPath && !fs.existsSync(iconPath)) {
+            logger.warn(`Notification icon not found at path: ${iconPath} - notification will show without icon`);
+            iconPath = undefined;
+        }
+
+        let notification: Notification;
+        try {
+            notification = new Notification({
+                title,
+                body,
+                silent: true,
+                icon: iconPath,
+            });
+        } catch (error) {
+            logger.error('Failed to create info notification:', error);
+            return;
+        }
+
+        notification.on('click', () => {
+            this.focusMainWindow();
+        });
+
+        this.activeNotifications.add(notification);
+        notification.on('close', () => {
+            this.activeNotifications.delete(notification);
+        });
+
+        try {
+            notification.show();
+            logger.log('Info notification shown', { title });
+        } catch (error) {
+            logger.error('Failed to show info notification:', error);
+        }
+    }
+
+    /**
+     * Show the one-time "some Linux features are unavailable" notice (issue #119),
+     * at most once per app version.
+     *
+     * Global hotkeys (Wayland) and text prediction are disabled on Linux because
+     * they depend on native modules incompatible with Electron's V8 memory cage.
+     * This surfaces that to the user instead of letting them hit a startup crash.
+     *
+     * @param params.isWayland - Whether the current session is Wayland (affects copy)
+     * @param params.appVersion - Current app version, used for the once-per-version guard
+     */
+    maybeShowLinuxFeatureNotice(params: { isWayland: boolean; appVersion: string }): void {
+        const { isWayland, appVersion } = params;
+        try {
+            const shownForVersion = this.store.get('linuxFeatureNoticeShownForVersion');
+            if (shownForVersion === appVersion) {
+                logger.log('Linux feature notice already shown for this version, skipping', { appVersion });
+                return;
+            }
+
+            const title = isWayland ? 'Some Linux features are unavailable' : 'Text prediction is unavailable on Linux';
+            const body = isWayland
+                ? 'Global hotkeys and text prediction are turned off on Linux in this version because they rely ' +
+                  "on native modules that are incompatible with the app's security sandbox (Electron's V8 memory " +
+                  'cage). Keeping them off prevents a startup crash. A fix is being worked on — see issue #119.'
+                : 'Text prediction is turned off on Linux in this version because it relies on a native module ' +
+                  "that is incompatible with the app's security sandbox (Electron's V8 memory cage). Keeping it " +
+                  'off prevents a startup crash. A fix is being worked on — see issue #119.';
+
+            this.showInfoNotification(title, body);
+
+            try {
+                this.store.set('linuxFeatureNoticeShownForVersion', appVersion);
+            } catch (error) {
+                logger.error('Failed to persist linux feature notice flag:', error);
+            }
+        } catch (error) {
+            logger.error('Failed to evaluate linux feature notice:', error);
         }
     }
 

@@ -138,36 +138,4 @@ describe('Sandbox Detection Coordination', () => {
             process.argv = originalArgv;
         });
     });
-
-    describe('V8 sandbox flag independence from Chromium sandbox', () => {
-        it('V8 sandbox flag does not affect sandbox preference value', async () => {
-            app.commandLine.hasSwitch = vi.fn().mockReturnValue(false);
-            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('--no-v8-sandbox');
-            const originalArgv = process.argv;
-            process.argv = ['node', 'main.js'];
-
-            const { getBaseWebPreferences } = await import('../../src/main/utils/constants');
-            const prefs = getBaseWebPreferences();
-
-            expect(prefs!.sandbox).toBe(true);
-
-            process.argv = originalArgv;
-        });
-
-        it('both sandbox flags can coexist without weakening other security defaults', async () => {
-            app.commandLine.hasSwitch = vi.fn().mockReturnValue(true);
-            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('--no-v8-sandbox');
-            const originalArgv = process.argv;
-            process.argv = ['node', 'main.js', '--no-sandbox'];
-
-            const { getBaseWebPreferences } = await import('../../src/main/utils/constants');
-            const prefs = getBaseWebPreferences();
-
-            expect(prefs!.sandbox).toBe(false);
-            expect(prefs!.contextIsolation).toBe(true);
-            expect(prefs!.nodeIntegration).toBe(false);
-
-            process.argv = originalArgv;
-        });
-    });
 });

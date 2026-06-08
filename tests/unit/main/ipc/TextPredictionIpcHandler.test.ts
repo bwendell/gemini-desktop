@@ -210,8 +210,6 @@ describe('TextPredictionIpcHandler', () => {
             delete process.env.CI;
             originalNodeEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'production';
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('--no-v8-sandbox');
             mockLlmManager.isModelDownloaded.mockReturnValue(true);
             handler.register();
         });
@@ -439,8 +437,6 @@ describe('TextPredictionIpcHandler', () => {
             // Save and clear CI env to ensure download code path is exercised
             originalCI = process.env.CI;
             delete process.env.CI;
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('--no-v8-sandbox');
         });
 
         afterEach(() => {
@@ -554,8 +550,6 @@ describe('TextPredictionIpcHandler', () => {
 
     describe('text-prediction:get-status handler', () => {
         beforeEach(() => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('--no-v8-sandbox');
             handler.register();
         });
 
@@ -569,11 +563,7 @@ describe('TextPredictionIpcHandler', () => {
             mockLlmManager.getDownloadProgress.mockReturnValue(100);
 
             const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS);
-            const result = (await handlerFn!()) as {
-                status: string;
-                requiresRestart?: boolean;
-                restartReason?: string;
-            };
+            const result = (await handlerFn!()) as { status: string; downloadProgress?: number };
 
             expect(result).toEqual({
                 enabled: true,
@@ -582,180 +572,6 @@ describe('TextPredictionIpcHandler', () => {
                 downloadProgress: 100,
                 errorMessage: undefined,
             });
-        });
-    });
-
-    describe('Linux V8 sandbox restart flow', () => {
-        let originalPlatform: PropertyDescriptor | undefined;
-
-        beforeEach(() => {
-            originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
-            handler.register();
-        });
-
-        afterEach(() => {
-            if (originalPlatform) {
-                Object.defineProperty(process, 'platform', originalPlatform);
-            }
-        });
-
-        it('persists textPredictionEnabled = true on Linux with active V8 sandbox', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('');
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
-            await handlerFn!({}, true);
-
-            expect(mockStore.set).toHaveBeenCalledWith('textPredictionEnabled', true);
-        });
-
-        it('does not call loadModel when V8 sandbox is active', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('');
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
-            await handlerFn!({}, true);
-
-            expect(mockLlmManager.loadModel).not.toHaveBeenCalled();
-            expect(mockLlmManager.downloadModel).not.toHaveBeenCalled();
-        });
-
-        it('broadcasts requires-restart status when V8 sandbox is active', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('');
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
-            await handlerFn!({}, true);
-
-            expect(mockBrowserWindow._mockWebContents.send).toHaveBeenCalledWith(
-                IPC_CHANNELS.TEXT_PREDICTION_STATUS_CHANGED,
-                expect.objectContaining({
-                    status: 'requires-restart',
-                    requiresRestart: true,
-                })
-            );
-        });
-
-        it('proceeds with model loading when V8 sandbox is disabled', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('--no-v8-sandbox');
-            mockLlmManager.isModelDownloaded.mockReturnValue(true);
-            mockDeps.llmNativeAvailable = true;
-            process.env.NODE_ENV = 'production';
-            mockLlmManager.isModelLoaded.mockReturnValue(false);
-            delete process.env.CI;
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
-            await handlerFn!({}, true);
-
-            expect(mockLlmManager.loadModel).toHaveBeenCalled();
-        });
-
-        it('skips V8 sandbox check on macOS', async () => {
-            Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('');
-            mockLlmManager.isModelDownloaded.mockReturnValue(true);
-            mockDeps.llmNativeAvailable = true;
-            process.env.NODE_ENV = 'production';
-            mockLlmManager.isModelLoaded.mockReturnValue(false);
-            delete process.env.CI;
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
-            await handlerFn!({}, true);
-
-            expect(mockLlmManager.loadModel).toHaveBeenCalled();
-        });
-
-        it('skips V8 sandbox check on Windows', async () => {
-            Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('');
-            mockLlmManager.isModelDownloaded.mockReturnValue(true);
-            mockDeps.llmNativeAvailable = true;
-            process.env.NODE_ENV = 'production';
-            mockLlmManager.isModelLoaded.mockReturnValue(false);
-            delete process.env.CI;
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_SET_ENABLED);
-            await handlerFn!({}, true);
-
-            expect(mockLlmManager.loadModel).toHaveBeenCalled();
-        });
-
-        it('returns requires-restart on Linux when enabled and V8 sandbox active', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('');
-            mockStore.get.mockImplementation((key) => {
-                if (key === 'textPredictionEnabled') return true;
-                if (key === 'textPredictionGpuEnabled') return false;
-                if (key === 'textPredictionModelStatus') return 'not-downloaded';
-                return undefined;
-            });
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS);
-            const result = (await handlerFn!()) as {
-                status: string;
-                requiresRestart?: boolean;
-                restartReason?: string;
-            };
-
-            expect(result.status).toBe('requires-restart');
-            expect(result.requiresRestart).toBe(true);
-            expect(result.restartReason).toEqual(expect.any(String));
-        });
-
-        it('returns normal status on Linux when V8 sandbox disabled', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('--no-v8-sandbox');
-            mockStore.get.mockImplementation((key) => {
-                if (key === 'textPredictionEnabled') return true;
-                if (key === 'textPredictionGpuEnabled') return false;
-                if (key === 'textPredictionModelStatus') return 'ready';
-                return undefined;
-            });
-            mockLlmManager.getStatus.mockReturnValue('ready');
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS);
-            const result = (await handlerFn!()) as {
-                status: string;
-                requiresRestart?: boolean;
-                restartReason?: string;
-            };
-
-            expect(result.requiresRestart).not.toBe(true);
-        });
-
-        it('never returns requires-restart on macOS', async () => {
-            Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('');
-            mockStore.get.mockImplementation((key) => {
-                if (key === 'textPredictionEnabled') return true;
-                if (key === 'textPredictionGpuEnabled') return false;
-                if (key === 'textPredictionModelStatus') return 'ready';
-                return undefined;
-            });
-            mockLlmManager.getStatus.mockReturnValue('ready');
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS);
-            const result = (await handlerFn!()) as { requiresRestart?: boolean };
-
-            expect(result.requiresRestart).not.toBe(true);
-        });
-
-        it('never returns requires-restart on Windows', async () => {
-            Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
-            mockApp.commandLine.getSwitchValue.mockReturnValue('');
-            mockStore.get.mockImplementation((key) => {
-                if (key === 'textPredictionEnabled') return true;
-                if (key === 'textPredictionGpuEnabled') return false;
-                if (key === 'textPredictionModelStatus') return 'ready';
-                return undefined;
-            });
-            mockLlmManager.getStatus.mockReturnValue('ready');
-
-            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS);
-            const result = (await handlerFn!()) as { requiresRestart?: boolean };
-
-            expect(result.requiresRestart).not.toBe(true);
         });
     });
 });

@@ -14,6 +14,7 @@ describe('Release Build: Text Prediction', () => {
     });
 
     it('should return a prediction result without throwing', async () => {
+        const platform = await browser.electron.execute(() => process.platform);
         const result = await browser.execute(async () => {
             try {
                 return await (window as any).electronAPI.predictText('Hello from release');
@@ -21,6 +22,13 @@ describe('Release Build: Text Prediction', () => {
                 return { error: error?.message ?? String(error) };
             }
         });
+
+        // Text prediction is disabled on Linux (issue #119); the IPC call must
+        // still resolve cleanly (no crash) and return null rather than text.
+        if (platform === 'linux') {
+            expect(result).toBeNull();
+            return;
+        }
 
         if (typeof result === 'string') {
             expect(result.length).toBeGreaterThan(0);
@@ -30,14 +38,26 @@ describe('Release Build: Text Prediction', () => {
         throw new Error(`Prediction failed: ${result?.error ?? 'unknown error'}`);
     });
 
-    it('should have V8 sandbox disabled on Linux when text prediction is configured', async () => {
+    it('should leave the V8 cage enabled on Linux (no js-flags) and report cleanly', async () => {
         const platform = await browser.electron.execute(() => process.platform);
         if (platform !== 'linux') return;
 
+        // The V8 memory cage is intentionally left enabled (issue #119) — no
+        // js-flags launch switch is set.
         const hasJsFlags = await browser.electron.execute((electron) => {
             return electron.app.commandLine.hasSwitch('js-flags');
         });
-        expect(hasJsFlags).toBe(true);
+        expect(hasJsFlags).toBe(false);
+
+        // Querying text prediction status must not crash.
+        const status = await browser.execute(async () => {
+            try {
+                return await (window as any).electronAPI.getTextPredictionStatus();
+            } catch (error: any) {
+                return { error: error?.message ?? String(error) };
+            }
+        });
+        expect(status).toBeDefined();
     });
 
     it('should not have V8 sandbox crash errors in LlmManager', async () => {

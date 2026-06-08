@@ -4,7 +4,6 @@
  * Tests startup initialization flow (4.3.23) and full enable/disable cycle (4.3.24).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { App } from 'electron';
 import { ipcMain, BrowserWindow } from 'electron';
 import IpcManager from '../../../src/main/managers/ipcManager';
 import WindowManager from '../../../src/main/managers/windowManager';
@@ -27,14 +26,11 @@ vi.mock('electron-updater', () => ({
 describe('TextPredictionIpcHandler Coordinated Tests', () => {
     let mockStore: any;
     let mockLlmManager: any;
-    let app: App;
 
     beforeEach(async () => {
         vi.clearAllMocks();
         if ((ipcMain as any)._reset) (ipcMain as any)._reset();
         if ((BrowserWindow as any)._reset) (BrowserWindow as any)._reset();
-        const electron = await import('electron');
-        app = electron.app;
 
         const storeData: Record<string, any> = {
             textPredictionEnabled: false,
@@ -168,8 +164,6 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
         });
 
         it('should coordinate full enable -> disable cycle', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('--no-v8-sandbox');
             const windowManager = new WindowManager(false);
             const ipcManager = new IpcManager(
                 windowManager,
@@ -261,20 +255,15 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
         });
     });
 
-    describe('Linux V8 Sandbox Restart Flow (Coordinated)', () => {
-        let originalPlatform: PropertyDescriptor | undefined;
+    describe('Native module unavailable (Linux, issue #119)', () => {
         let originalCI: string | undefined;
 
         beforeEach(() => {
-            originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
             originalCI = process.env.CI;
             delete process.env.CI;
         });
 
         afterEach(() => {
-            if (originalPlatform) {
-                Object.defineProperty(process, 'platform', originalPlatform);
-            }
             if (originalCI === undefined) {
                 delete process.env.CI;
             } else {
@@ -282,9 +271,14 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
             }
         });
 
-        it('returns requires-restart status on Linux when V8 sandbox is active', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('');
+        it('persists the preference but never loads the model when native module is unavailable', async () => {
+            // Simulates the real LlmManager reporting text prediction unsupported
+            // on Linux (isSupportedOnPlatform() === false → isNativeAvailable() === false).
+            mockLlmManager.isNativeAvailable = vi.fn().mockReturnValue(false);
+            mockLlmManager.ensureNativeAvailable = vi.fn().mockReturnValue(false);
+            mockLlmManager.getNativeProbeError = vi
+                .fn()
+                .mockReturnValue('Text prediction is not supported on Linux in this build.');
 
             const windowManager = new WindowManager(false);
             const ipcManager = new IpcManager(
@@ -304,59 +298,14 @@ describe('TextPredictionIpcHandler Coordinated Tests', () => {
 
             await setEnabledHandler({}, true);
 
+            // Preference is still recorded, but no native work happens (no crash).
             expect(mockStore.set).toHaveBeenCalledWith('textPredictionEnabled', true);
             expect(mockLlmManager.loadModel).not.toHaveBeenCalled();
+            expect(mockLlmManager.downloadModel).not.toHaveBeenCalled();
 
             const statusHandler = (ipcMain as any)._handlers.get('text-prediction:get-status');
             const status = await statusHandler({});
-            expect(status.status).toBe('requires-restart');
-            expect(status.requiresRestart).toBe(true);
-        });
-
-        it('proceeds with normal flow on Linux after V8 sandbox disabled', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('--no-v8-sandbox');
-
-            const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(
-                windowManager,
-                null,
-                null,
-                null,
-                mockLlmManager,
-                null,
-                mockStore,
-                mockLogger
-            );
-            ipcManager.setupIpcHandlers();
-
-            const setEnabledHandler = (ipcMain as any)._handlers.get('text-prediction:set-enabled');
-            await setEnabledHandler({}, true);
-
-            expect(mockLlmManager.loadModel).toHaveBeenCalled();
-        });
-
-        it('does not gate enable flow on non-Linux platforms', async () => {
-            Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
-            app.commandLine.getSwitchValue = vi.fn().mockReturnValue('');
-
-            const windowManager = new WindowManager(false);
-            const ipcManager = new IpcManager(
-                windowManager,
-                null,
-                null,
-                null,
-                mockLlmManager,
-                null,
-                mockStore,
-                mockLogger
-            );
-            ipcManager.setupIpcHandlers();
-
-            const setEnabledHandler = (ipcMain as any)._handlers.get('text-prediction:set-enabled');
-            await setEnabledHandler({}, true);
-
-            expect(mockLlmManager.loadModel).toHaveBeenCalled();
+            expect(status.status).toBe('error');
         });
     });
 });

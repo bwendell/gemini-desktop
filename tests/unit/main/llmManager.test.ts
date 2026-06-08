@@ -73,10 +73,18 @@ const readFileSync = vi.mocked(readFileSyncFn);
 
 describe('LlmManager', () => {
     let llmManager: LlmManager;
+    let originalPlatform: PropertyDescriptor | undefined;
 
     beforeEach(() => {
         vi.clearAllMocks();
         useFakeTimers();
+
+        // Text prediction is unsupported on Linux (issue #119), and the test
+        // runner itself is Linux. Default these tests to a supported platform
+        // (darwin) so the existing native-availability/load/download paths are
+        // exercised; the dedicated "platform support (Linux)" block overrides it.
+        originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+        Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
 
         // Reset fs mock
         existsSync.mockReturnValue(false);
@@ -100,6 +108,9 @@ describe('LlmManager', () => {
         useRealTimers();
         if (llmManager) {
             llmManager.dispose();
+        }
+        if (originalPlatform) {
+            Object.defineProperty(process, 'platform', originalPlatform);
         }
     });
 
@@ -433,106 +444,67 @@ describe('LlmManager', () => {
             // This is handled internally by the fallback logic
         });
 
-        describe('V8 sandbox error detection', () => {
-            const originalImport = (
-                globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
-            ).__import__;
-            const originalNodeEnv = process.env.NODE_ENV;
+        it('maps a V8 memory cage error to an accurate not-supported message', async () => {
+            // On a supported platform, if the native engine ever raises the
+            // issue #119 cage error, it must be reported as unsupported (not as
+            // an impossible "disable the sandbox and restart" instruction).
+            process.env.NODE_ENV = 'test';
+            existsSync.mockReturnValue(true);
+            readFileSync.mockReturnValue('{"version":"0.0.0-test"}');
 
-            afterEach(() => {
-                process.argv = process.argv.filter((arg) => arg !== '--test-text-prediction');
-                if (originalNodeEnv === undefined) {
-                    delete process.env.NODE_ENV;
-                } else {
-                    process.env.NODE_ENV = originalNodeEnv;
-                }
-                if (originalImport === undefined) {
-                    delete (globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> })
-                        .__import__;
-                } else {
-                    (
-                        globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
-                    ).__import__ = originalImport;
-                }
-            });
+            _mockGetLlama.mockRejectedValueOnce(
+                new Error(
+                    'Fatal error in V8: v8_ArrayBuffer_NewBackingStore When the V8 Sandbox is enabled, ArrayBuffer backing stores must be allocated inside the sandbox address space.'
+                )
+            );
 
-            it('detects V8 sandbox ArrayBuffer error and provides actionable message', async () => {
-                process.env.NODE_ENV = 'test';
-                process.argv = [...process.argv, '--test-text-prediction'];
-                (
-                    globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
-                ).__import__ = async (specifier: string) => {
-                    if (specifier === 'node-llama-cpp') {
-                        return {
-                            getLlama: _mockGetLlama,
-                            LlamaCompletion: MockLlamaCompletion,
-                        };
-                    }
-                    throw new Error(`Unexpected import: ${specifier}`);
-                };
-                existsSync.mockReturnValue(true);
-                readFileSync.mockReturnValue('{"version":"0.0.0-test"}');
+            await expect(llmManager.loadModel()).rejects.toThrow(/not supported on Linux/i);
+            expect(llmManager.getStatus()).toBe('error');
+            const message = llmManager.getErrorMessage() ?? '';
+            expect(message).not.toContain('restart');
+            expect(message).not.toContain('V8 Sandbox');
+            expect(message).not.toContain('v8_ArrayBuffer');
+            expect(llmManager.isNativeAvailable()).toBe(false);
+        });
+    });
 
-                _mockGetLlama.mockRejectedValueOnce(
-                    new Error(
-                        'Fatal error in V8: v8_ArrayBuffer_NewBackingStore When the V8 Sandbox is enabled, ArrayBuffer backing stores must be allocated inside the sandbox address space.'
-                    )
-                );
+    // Text prediction is disabled on Linux because node-llama-cpp allocates
+    // ArrayBuffers outside Electron's V8 memory cage (issue #119).
+    describe('platform support (Linux)', () => {
+        beforeEach(() => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+            // Fresh instance so the native-availability cache reflects Linux.
+            llmManager = new LlmManager();
+        });
 
-                await expect(llmManager.loadModel()).rejects.toThrow('V8 sandbox');
-                expect(llmManager.getStatus()).toBe('error');
-                expect(llmManager.getErrorMessage()).toContain('V8 sandbox');
-                expect(llmManager.isNativeAvailable()).toBe(false);
-            });
+        it('isSupportedOnPlatform() returns false on Linux', () => {
+            expect(llmManager.isSupportedOnPlatform()).toBe(false);
+        });
 
-            it('detects V8 sandbox error variant and suggests restart', async () => {
-                process.env.NODE_ENV = 'test';
-                process.argv = [...process.argv, '--test-text-prediction'];
-                (
-                    globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
-                ).__import__ = async (specifier: string) => {
-                    if (specifier === 'node-llama-cpp') {
-                        return {
-                            getLlama: _mockGetLlama,
-                            LlamaCompletion: MockLlamaCompletion,
-                        };
-                    }
-                    throw new Error(`Unexpected import: ${specifier}`);
-                };
-                existsSync.mockReturnValue(true);
-                readFileSync.mockReturnValue('{"version":"0.0.0-test"}');
+        it('reports native module unavailable with an accurate Linux message', () => {
+            expect(llmManager.ensureNativeAvailable('test')).toBe(false);
+            expect(llmManager.isNativeAvailable()).toBe(false);
+            const probeError = llmManager.getNativeProbeError() ?? '';
+            expect(probeError).toContain('Linux');
+            // Must not contain the V8 cage crash strings the release E2E guards against.
+            expect(probeError).not.toContain('V8 Sandbox');
+            expect(probeError).not.toContain('v8_ArrayBuffer');
+            expect(probeError).not.toContain('sandbox address space');
+        });
 
-                _mockGetLlama.mockRejectedValueOnce(
-                    new Error('v8_ArrayBuffer_NewBackingStore: sandbox address space violation')
-                );
+        it('loadModel() rejects without ever invoking getLlama on Linux', async () => {
+            existsSync.mockReturnValue(true);
 
-                await expect(llmManager.loadModel()).rejects.toThrow('V8 sandbox');
-                expect(llmManager.getStatus()).toBe('error');
-                expect(llmManager.getErrorMessage()).toContain('restart');
-            });
+            await expect(llmManager.loadModel()).rejects.toThrow(/not supported on Linux/i);
+            expect(llmManager.getStatus()).toBe('error');
+            expect(_mockGetLlama).not.toHaveBeenCalled();
+        });
 
-            it('re-throws non-V8 errors without modification', async () => {
-                process.env.NODE_ENV = 'test';
-                process.argv = [...process.argv, '--test-text-prediction'];
-                (
-                    globalThis as typeof globalThis & { __import__?: (specifier: string) => Promise<unknown> }
-                ).__import__ = async (specifier: string) => {
-                    if (specifier === 'node-llama-cpp') {
-                        return {
-                            getLlama: _mockGetLlama,
-                            LlamaCompletion: MockLlamaCompletion,
-                        };
-                    }
-                    throw new Error(`Unexpected import: ${specifier}`);
-                };
-                existsSync.mockReturnValue(true);
-                readFileSync.mockReturnValue('{"version":"0.0.0-test"}');
+        it('downloadModel() rejects without downloading on Linux', async () => {
+            existsSync.mockReturnValue(false);
 
-                _mockGetLlama.mockRejectedValueOnce(new Error('Cannot find module'));
-
-                await expect(llmManager.loadModel()).rejects.toThrow('Cannot find module');
-                expect(llmManager.getErrorMessage()).toContain('Cannot find module');
-            });
+            await expect(llmManager.downloadModel()).rejects.toThrow(/not supported on Linux/i);
+            expect(mockCreateModelDownloader).not.toHaveBeenCalled();
         });
     });
 

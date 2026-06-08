@@ -21,6 +21,7 @@ import * as path from 'path';
 import { setupHeaderStripping, setupWebviewSecurity, setupMediaPermissions } from './utils/security';
 import { getDistHtmlPath } from './utils/paths';
 import { getPlatformAdapter } from './platform/platformAdapterFactory';
+import { detectWaylandSession } from './utils/waylandDetector';
 
 import { createLogger } from './utils/logger';
 
@@ -409,6 +410,16 @@ if (!gotTheLock) {
 
             // Inject NotificationManager into IpcManager for response notification IPC handlers
             appContext.ipcManager.setNotificationManager(notificationManager);
+
+            // One-time, per-version notice on Linux: global hotkeys (Wayland) and
+            // text prediction are disabled because their native modules are
+            // incompatible with Electron's V8 memory cage (issue #119).
+            if (process.platform === 'linux') {
+                notificationManager.maybeShowLinuxFeatureNotice({
+                    isWayland: detectWaylandSession(),
+                    appVersion: app.getVersion(),
+                });
+            }
         }
 
         // Create system tray icon (may fail on headless Linux environments)

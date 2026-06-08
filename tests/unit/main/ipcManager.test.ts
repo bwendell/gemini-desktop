@@ -1970,10 +1970,9 @@ describe('IpcManager', () => {
             expect(result).toEqual({
                 enabled: true,
                 gpuEnabled: false,
-                status: 'requires-restart',
-                requiresRestart: true,
-                restartReason:
-                    'Text prediction on Linux requires disabling the V8 memory sandbox. This is a security feature that conflicts with the local AI engine. The app needs to restart to apply this change.',
+                status: 'ready',
+                downloadProgress: 100,
+                errorMessage: undefined,
             });
         });
 

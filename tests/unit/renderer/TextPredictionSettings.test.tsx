@@ -14,12 +14,15 @@ import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { TextPredictionSettings } from '../../../src/renderer/components/options/TextPredictionSettings';
+import { isLinux } from '../../../src/renderer/utils/platform';
 import { setupMockElectronAPI } from '../../helpers/mocks';
 
-// Mock platform utils
+// Mock platform utils. isLinux defaults to false (non-Linux); the Linux block
+// overrides it to exercise the "unavailable on Linux" UI (issue #119).
 vi.mock('../../../src/renderer/utils/platform', () => ({
     isDevMode: vi.fn().mockReturnValue(false),
     getIsDev: vi.fn().mockReturnValue(false),
+    isLinux: vi.fn().mockReturnValue(false),
 }));
 
 describe('TextPredictionSettings', () => {
@@ -29,7 +32,6 @@ describe('TextPredictionSettings', () => {
     const mockSetTextPredictionGpuEnabled = vi.fn();
     const mockOnTextPredictionStatusChanged = vi.fn();
     const mockOnTextPredictionDownloadProgress = vi.fn();
-    const mockRestartApp = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -44,7 +46,9 @@ describe('TextPredictionSettings', () => {
         mockSetTextPredictionGpuEnabled.mockResolvedValue(undefined);
         mockOnTextPredictionStatusChanged.mockReturnValue(() => {});
         mockOnTextPredictionDownloadProgress.mockReturnValue(() => {});
-        mockRestartApp.mockResolvedValue(undefined);
+
+        // Default to non-Linux so the standard UI renders; Linux block overrides.
+        vi.mocked(isLinux).mockReturnValue(false);
 
         // Use shared factory with test-specific overrides
         setupMockElectronAPI({
@@ -53,7 +57,6 @@ describe('TextPredictionSettings', () => {
             setTextPredictionGpuEnabled: mockSetTextPredictionGpuEnabled,
             onTextPredictionStatusChanged: mockOnTextPredictionStatusChanged,
             onTextPredictionDownloadProgress: mockOnTextPredictionDownloadProgress,
-            restartApp: mockRestartApp,
         });
     });
 
@@ -385,110 +388,72 @@ describe('TextPredictionSettings', () => {
         });
     });
 
-    describe('Restart Notice', () => {
-        it('shows restart notice when status is requires-restart', async () => {
+    describe('Linux (text prediction unavailable, issue #119)', () => {
+        beforeEach(() => {
+            vi.mocked(isLinux).mockReturnValue(true);
+        });
+
+        afterEach(() => {
+            vi.mocked(isLinux).mockReturnValue(false);
+        });
+
+        it('shows the unavailable notice on Linux', async () => {
             mockGetTextPredictionStatus.mockResolvedValue({
-                enabled: true,
+                enabled: false,
                 gpuEnabled: false,
-                status: 'requires-restart',
-                requiresRestart: true,
-                restartReason: 'Text prediction on Linux requires disabling the V8 memory sandbox.',
+                status: 'not-downloaded',
             });
 
             render(<TextPredictionSettings />);
 
             await waitFor(() => {
-                expect(screen.getByTestId('text-prediction-restart-notice')).toBeInTheDocument();
+                expect(screen.getByTestId('text-prediction-linux-unavailable')).toBeInTheDocument();
             });
         });
 
-        it('displays the restart reason text', async () => {
-            const reason = 'Text prediction on Linux requires disabling the V8 memory sandbox.';
+        it('explains why and references the tracking issue', async () => {
+            render(<TextPredictionSettings />);
+
+            const notice = await screen.findByTestId('text-prediction-linux-unavailable');
+            expect(notice).toHaveTextContent(/Unavailable on Linux/i);
+            expect(notice).toHaveTextContent(/#119/);
+        });
+
+        it('renders the enable toggle as disabled on Linux', async () => {
+            render(<TextPredictionSettings />);
+
+            const toggle = await screen.findByTestId('text-prediction-enable-toggle-switch');
+            expect(toggle).toBeDisabled();
+        });
+
+        it('does not call setTextPredictionEnabled when the disabled toggle is clicked', async () => {
+            render(<TextPredictionSettings />);
+
+            const toggle = await screen.findByTestId('text-prediction-enable-toggle-switch');
+            fireEvent.click(toggle);
+
+            expect(mockSetTextPredictionEnabled).not.toHaveBeenCalled();
+        });
+
+        it('hides the GPU toggle and status indicator on Linux', async () => {
             mockGetTextPredictionStatus.mockResolvedValue({
                 enabled: true,
                 gpuEnabled: false,
-                status: 'requires-restart',
-                requiresRestart: true,
-                restartReason: reason,
+                status: 'ready',
             });
 
             render(<TextPredictionSettings />);
 
             await waitFor(() => {
-                expect(screen.getByText(reason)).toBeInTheDocument();
-            });
-        });
-
-        it('displays Restart Now button', async () => {
-            mockGetTextPredictionStatus.mockResolvedValue({
-                enabled: true,
-                gpuEnabled: false,
-                status: 'requires-restart',
-                requiresRestart: true,
-                restartReason: 'Needs restart',
-            });
-
-            render(<TextPredictionSettings />);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('text-prediction-restart-button')).toBeInTheDocument();
-            });
-        });
-
-        it('calls restartApp when Restart Now button is clicked', async () => {
-            mockGetTextPredictionStatus.mockResolvedValue({
-                enabled: true,
-                gpuEnabled: false,
-                status: 'requires-restart',
-                requiresRestart: true,
-                restartReason: 'Needs restart',
-            });
-
-            render(<TextPredictionSettings />);
-
-            const restartBtn = await screen.findByTestId('text-prediction-restart-button');
-            fireEvent.click(restartBtn);
-
-            expect(mockRestartApp).toHaveBeenCalled();
-        });
-
-        it('hides GPU toggle when restart is required', async () => {
-            mockGetTextPredictionStatus.mockResolvedValue({
-                enabled: true,
-                gpuEnabled: false,
-                status: 'requires-restart',
-                requiresRestart: true,
-                restartReason: 'Needs restart',
-            });
-
-            render(<TextPredictionSettings />);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('text-prediction-restart-notice')).toBeInTheDocument();
+                expect(screen.getByTestId('text-prediction-linux-unavailable')).toBeInTheDocument();
             });
 
             expect(screen.queryByTestId('text-prediction-gpu-toggle')).not.toBeInTheDocument();
-        });
-
-        it('hides status indicator when restart is required', async () => {
-            mockGetTextPredictionStatus.mockResolvedValue({
-                enabled: true,
-                gpuEnabled: false,
-                status: 'requires-restart',
-                requiresRestart: true,
-                restartReason: 'Needs restart',
-            });
-
-            render(<TextPredictionSettings />);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('text-prediction-restart-notice')).toBeInTheDocument();
-            });
-
             expect(screen.queryByTestId('text-prediction-status')).not.toBeInTheDocument();
         });
 
-        it('does NOT show restart notice for normal statuses', async () => {
+        it('does NOT show the unavailable notice on non-Linux platforms', async () => {
+            vi.mocked(isLinux).mockReturnValue(false);
             mockGetTextPredictionStatus.mockResolvedValue({
                 enabled: true,
                 gpuEnabled: false,
@@ -501,7 +466,7 @@ describe('TextPredictionSettings', () => {
                 expect(screen.getByTestId('text-prediction-settings')).toBeInTheDocument();
             });
 
-            expect(screen.queryByTestId('text-prediction-restart-notice')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('text-prediction-linux-unavailable')).not.toBeInTheDocument();
         });
     });
 

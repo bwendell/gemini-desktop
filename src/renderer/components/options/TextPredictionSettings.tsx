@@ -9,7 +9,7 @@
 
 import { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { CapsuleToggle } from '../common/CapsuleToggle';
-import { isDevMode } from '../../utils/platform';
+import { isDevMode, isLinux } from '../../utils/platform';
 import { createRendererLogger } from '../../utils';
 import type { TextPredictionSettings as TextPredictionSettingsType } from '../../../shared/types/text-prediction';
 import './TextPredictionSettings.css';
@@ -91,15 +91,11 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
         }
     }, []);
 
-    const requiresRestart = settings.requiresRestart ?? settings.status === 'requires-restart';
-
-    const handleRestart = useCallback(async () => {
-        try {
-            await window.electronAPI?.restartApp();
-        } catch (error) {
-            logger.error('Failed to restart app:', error);
-        }
-    }, []);
+    // Text prediction relies on node-llama-cpp, a native module incompatible
+    // with Electron's V8 memory cage on Linux (issue #119). The feature is
+    // disabled there, so the toggle is shown as unavailable instead of letting
+    // a user enable it and crash the app.
+    const unavailableOnPlatform = isLinux();
 
     // Handle GPU toggle change
     const handleGpuChange = useCallback(async (newEnabled: boolean) => {
@@ -160,34 +156,32 @@ export const TextPredictionSettings = memo(function TextPredictionSettings() {
 
     return (
         <div className="text-prediction-settings" data-testid="text-prediction-settings">
-            {/* Enable toggle */}
+            {/* Enable toggle (disabled on Linux — feature unavailable, issue #119) */}
             <CapsuleToggle
-                checked={settings.enabled}
+                checked={unavailableOnPlatform ? false : settings.enabled}
                 onChange={handleEnableChange}
+                disabled={unavailableOnPlatform}
                 label="Enable Text Prediction (Experimental)"
                 description="Use local AI to suggest text completions in Quick Chat"
                 testId="text-prediction-enable-toggle"
             />
 
-            {requiresRestart ? (
-                <div className="text-prediction-restart" data-testid="text-prediction-restart-notice">
-                    <div className="text-prediction-restart__icon" aria-hidden="true">
-                        ⚠️
+            {unavailableOnPlatform ? (
+                <div
+                    className="text-prediction-unavailable"
+                    data-testid="text-prediction-linux-unavailable"
+                    role="note"
+                >
+                    <div className="text-prediction-unavailable__icon" aria-hidden="true">
+                        ⓘ
                     </div>
-                    <div className="text-prediction-restart__content">
-                        <div className="text-prediction-restart__title">Restart Required</div>
-                        <div className="text-prediction-restart__message">
-                            {settings.restartReason ??
-                                'Text prediction requires a restart to apply security-related changes.'}
+                    <div className="text-prediction-unavailable__content">
+                        <div className="text-prediction-unavailable__title">Unavailable on Linux</div>
+                        <div className="text-prediction-unavailable__message">
+                            Text prediction is turned off on Linux in this version because the local AI engine relies on
+                            a native module that is incompatible with the app&apos;s security sandbox (Electron&apos;s
+                            V8 memory cage). A fix is being worked on — see issue #119.
                         </div>
-                        <button
-                            className="text-prediction-restart__button"
-                            onClick={handleRestart}
-                            type="button"
-                            data-testid="text-prediction-restart-button"
-                        >
-                            Restart Now
-                        </button>
                     </div>
                 </div>
             ) : (

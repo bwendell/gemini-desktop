@@ -17,7 +17,7 @@
  * @module ipc/TextPredictionIpcHandler
  */
 
-import { app, ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 import { BaseIpcHandler } from './BaseIpcHandler';
 import { IPC_CHANNELS } from '../../utils/constants';
 import type { TextPredictionSettings } from '../../../shared/types';
@@ -180,17 +180,10 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
             this.deps.store.set('textPredictionEnabled', enabled);
             this.logger.log(`Text prediction enabled set to: ${enabled}`);
 
-            // If enabling and LlmManager exists, trigger model download/load if needed
+            // If enabling and LlmManager exists, trigger model download/load if needed.
+            // Availability (including the Linux V8-memory-cage incompatibility, issue #119)
+            // is determined by llmManager.ensureNativeAvailable()/isNativeAvailable().
             if (enabled && this.deps.llmManager) {
-                if (process.platform === 'linux') {
-                    const jsFlags = app.commandLine.getSwitchValue('js-flags') ?? '';
-                    const v8SandboxDisabled = jsFlags.includes('--no-v8-sandbox');
-                    if (!v8SandboxDisabled) {
-                        this.logger.log('Linux: V8 sandbox still active, restart required for text prediction');
-                        this._broadcastStatusChange();
-                        return;
-                    }
-                }
                 const skipNativeOperations = process.env.CI === 'true' || process.argv.includes('--integration-test');
 
                 if (skipNativeOperations) {
@@ -365,25 +358,6 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
         const nativeAvailable = this.deps.llmNativeAvailable ?? this.deps.llmManager?.isNativeAvailable() ?? false;
         const modelStatus = this.deps.llmManager?.getStatus();
         const storedStatus = this.deps.store.get('textPredictionModelStatus') as ModelStatus | undefined;
-        let requiresRestart = false;
-
-        if (enabled && process.platform === 'linux') {
-            const jsFlags = app.commandLine.getSwitchValue('js-flags') ?? '';
-            requiresRestart = !jsFlags.includes('--no-v8-sandbox');
-        }
-
-        if (requiresRestart) {
-            return {
-                enabled,
-                gpuEnabled: this.deps.store.get('textPredictionGpuEnabled') ?? false,
-                status: 'requires-restart',
-                requiresRestart: true,
-                restartReason:
-                    'Text prediction on Linux requires disabling the V8 memory sandbox. ' +
-                    'This is a security feature that conflicts with the local AI engine. ' +
-                    'The app needs to restart to apply this change.',
-            };
-        }
 
         const status = nativeAvailable ? (modelStatus ?? storedStatus ?? 'not-downloaded') : 'error';
         const errorMessage =

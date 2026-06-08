@@ -425,6 +425,22 @@ function parseShortcutSignalPayload(msg: DBusMessage): PortalShortcutSignalPaylo
 // ============================================================================
 
 /**
+ * Defense-in-depth guard for the `dbus-next` dynamic-import sites.
+ *
+ * `dbus-next` pulls in the native `usocket` addon, which allocates ArrayBuffer
+ * backing stores OUTSIDE Electron's V8 memory cage. Importing/using it while
+ * the cage is enabled FATAL-aborts the process at startup (issue #119). The
+ * hotkey planner already forces the Wayland path to `disabled` so this code is
+ * not reached on Linux, but we additionally refuse to import `dbus-next` here
+ * as a last line of defense.
+ *
+ * @see https://github.com/bwendell/gemini-desktop/issues/119
+ */
+function isDBusTransportDisabled(): boolean {
+    return process.platform === 'linux';
+}
+
+/**
  * Check whether the D-Bus GlobalShortcuts interface is available.
  *
  * This function dynamically imports `dbus-next` so the dependency is only
@@ -433,6 +449,10 @@ function parseShortcutSignalPayload(msg: DBusMessage): PortalShortcutSignalPaylo
  * @returns `true` if the portal interface is available
  */
 export async function isDBusFallbackAvailable(): Promise<boolean> {
+    if (isDBusTransportDisabled()) {
+        logger.warn('D-Bus fallback disabled on Linux (V8 memory cage / usocket incompatibility, issue #119)');
+        return false;
+    }
     try {
         const dbusNext = await import('dbus-next');
         const bus = dbusNext.sessionBus() as DBusConnection;
@@ -485,6 +505,18 @@ export async function registerViaDBus(
     // Early exit for empty array
     if (shortcuts.length === 0) {
         return [];
+    }
+
+    // Defense-in-depth: never import dbus-next/usocket while the V8 cage is on (issue #119)
+    if (isDBusTransportDisabled()) {
+        logger.warn(
+            'Skipping D-Bus shortcut registration on Linux (V8 memory cage / usocket incompatibility, issue #119)'
+        );
+        return shortcuts.map((s) => ({
+            hotkeyId: s.id,
+            success: false,
+            error: 'Global shortcuts via the D-Bus portal are disabled on Linux in this build (issue #119)',
+        }));
     }
 
     try {

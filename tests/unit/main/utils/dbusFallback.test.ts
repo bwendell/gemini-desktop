@@ -99,6 +99,7 @@ vi.mock('dbus-next', () => ({
 
 describe('DBusFallback', () => {
     let dbusFallback: typeof import('../../../../src/main/utils/dbusFallback');
+    let originalPlatform: PropertyDescriptor | undefined;
 
     /**
      * Set up fresh mocks and module before each test.
@@ -108,6 +109,13 @@ describe('DBusFallback', () => {
         vi.clearAllMocks();
         mockSessionBusCalls.length = 0;
         busMessageHandlers = [];
+
+        // The module now refuses to import dbus-next/usocket on Linux (the V8
+        // memory cage / issue #119 guard), and the test runner is Linux. Default
+        // to a non-Linux platform so the mocked D-Bus flow is exercised; the
+        // dedicated "Linux V8 cage guard" block overrides this back to linux.
+        originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+        Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
 
         // Set up default mock implementations
         mockGetInterface.mockImplementation((iface: string) => {
@@ -177,6 +185,41 @@ describe('DBusFallback', () => {
         } catch {
             // Ignore cleanup errors
         }
+        if (originalPlatform) {
+            Object.defineProperty(process, 'platform', originalPlatform);
+        }
+    });
+
+    // ========================================================================
+    // Linux V8 cage guard (issue #119)
+    // ========================================================================
+    // dbus-next pulls in the native `usocket` addon, which allocates ArrayBuffers
+    // outside Electron's V8 memory cage and FATAL-aborts the process on Linux.
+    // The module must never import dbus-next on Linux.
+
+    describe('Linux V8 cage guard (issue #119)', () => {
+        beforeEach(() => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+        });
+
+        it('isDBusFallbackAvailable() returns false without importing dbus-next on Linux', async () => {
+            const available = await dbusFallback.isDBusFallbackAvailable();
+
+            expect(available).toBe(false);
+            // dbus-next must never be imported / sessionBus never created on Linux.
+            expect(mockSessionBusCalls.length).toBe(0);
+        });
+
+        it('registerViaDBus() reports failure without importing dbus-next on Linux', async () => {
+            const results = await dbusFallback.registerViaDBus([
+                { id: 'quickChat', accelerator: 'CommandOrControl+Shift+Space', description: 'Quick Chat' },
+            ]);
+
+            expect(mockSessionBusCalls.length).toBe(0);
+            expect(results).toHaveLength(1);
+            expect(results[0]?.success).toBe(false);
+            expect(results[0]?.error).toBeTruthy();
+        });
     });
 
     // ========================================================================

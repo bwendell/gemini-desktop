@@ -84,13 +84,25 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
     /**
      * Determine hotkey registration strategy for Wayland.
      *
-     * Returns `wayland-dbus` when the XDG Desktop Portal GlobalShortcuts
-     * interface is available, `disabled` otherwise.
+     * Global shortcuts on Wayland are registered through the XDG Desktop Portal
+     * via the `dbus-next` library, whose native `usocket` transport allocates
+     * ArrayBuffer backing stores OUTSIDE Electron's V8 memory cage. With the
+     * cage enabled (the default since Electron 21) that triggers a fatal
+     * `v8_ArrayBuffer_NewBackingStore` abort / segfault at startup on Wayland
+     * (issue #119).
+     *
+     * Until the D-Bus path is reworked to use a Node `net`-based unix-socket
+     * transport (out of scope for this hotfix), the Wayland portal path is
+     * force-disabled so `dbus-next`/`usocket` is never imported. The real
+     * Wayland status is still returned for diagnostics and the user-facing
+     * "features unavailable" notice.
+     *
+     * @see https://github.com/bwendell/gemini-desktop/issues/119
      */
     getHotkeyRegistrationPlan(): HotkeyRegistrationPlan {
         const waylandStatus = getWaylandPlatformStatus();
         return {
-            mode: waylandStatus.portalAvailable ? 'wayland-dbus' : 'disabled',
+            mode: 'disabled',
             waylandStatus,
         };
     }
