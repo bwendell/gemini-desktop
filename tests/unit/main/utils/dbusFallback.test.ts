@@ -93,6 +93,15 @@ vi.mock('dbus-next', () => ({
     },
 }));
 
+// Mock the kernel-incompatibility predicate so we can simulate kernel 7+ without
+// a real kernel. Defaults to false (compatible kernel) for all existing tests.
+const { mockIsV8SandboxIncompatibleKernel } = vi.hoisted(() => ({
+    mockIsV8SandboxIncompatibleKernel: vi.fn<() => boolean>(() => false),
+}));
+vi.mock('../../../../src/main/utils/sandboxDetector', () => ({
+    isV8SandboxIncompatibleKernel: () => mockIsV8SandboxIncompatibleKernel(),
+}));
+
 // ============================================================================
 // Test Suite
 // ============================================================================
@@ -106,6 +115,8 @@ describe('DBusFallback', () => {
     beforeEach(async () => {
         // Clear all mock call history
         vi.clearAllMocks();
+        // Default to a compatible kernel so the D-Bus path runs as normal.
+        mockIsV8SandboxIncompatibleKernel.mockReturnValue(false);
         mockSessionBusCalls.length = 0;
         busMessageHandlers = [];
 
@@ -650,6 +661,51 @@ describe('DBusFallback', () => {
                     });
                 }
             }).not.toThrow();
+        });
+    });
+
+    // ========================================================================
+    // Incompatible Linux kernel (>= 7) — dbus-next must never load
+    // ========================================================================
+
+    describe('incompatible Linux kernel (>= 7)', () => {
+        beforeEach(() => {
+            mockIsV8SandboxIncompatibleKernel.mockReturnValue(true);
+        });
+
+        const testShortcuts = [
+            {
+                id: 'quickChat' as const,
+                accelerator: 'CommandOrControl+Shift+Alt+Space',
+                description: 'Quick Chat toggle',
+            },
+            { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Hide window' },
+        ];
+
+        it('isDBusFallbackAvailable returns false without connecting to D-Bus', async () => {
+            const result = await dbusFallback.isDBusFallbackAvailable();
+
+            expect(result).toBe(false);
+            expect(mockSessionBusCalls.length).toBe(0);
+        });
+
+        it('registerViaDBus reports failure for all shortcuts without connecting to D-Bus', async () => {
+            const results = await dbusFallback.registerViaDBus(testShortcuts);
+
+            expect(results).toHaveLength(2);
+            results.forEach((result) => {
+                expect(result.success).toBe(false);
+                expect(result.error).toContain('kernel 7');
+            });
+            // dbus-next must never be loaded on an incompatible kernel
+            expect(mockSessionBusCalls.length).toBe(0);
+        });
+
+        it('registerViaDBus still short-circuits an empty shortcuts array', async () => {
+            const results = await dbusFallback.registerViaDBus([]);
+
+            expect(results).toHaveLength(0);
+            expect(mockSessionBusCalls.length).toBe(0);
         });
     });
 

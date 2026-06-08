@@ -48,6 +48,15 @@ vi.mock('node-llama-cpp', () => ({
     LlamaCompletion: MockLlamaCompletion,
 }));
 
+// Mock the kernel-incompatibility predicate so we can simulate kernel 7+ without
+// a real kernel. Defaults to false (compatible kernel) for all existing tests.
+const { mockIsV8SandboxIncompatibleKernel } = vi.hoisted(() => ({
+    mockIsV8SandboxIncompatibleKernel: vi.fn<() => boolean>(() => false),
+}));
+vi.mock('../../../src/main/utils/sandboxDetector', () => ({
+    isV8SandboxIncompatibleKernel: () => mockIsV8SandboxIncompatibleKernel(),
+}));
+
 // We need to mock the importNodeLlamaCpp function which is internal
 // For testing, we'll mock the entire node-llama-cpp module behavior
 const mockDownload = vi.fn();
@@ -77,6 +86,9 @@ describe('LlmManager', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         useFakeTimers();
+
+        // Default to a compatible kernel so the native module path runs as normal.
+        mockIsV8SandboxIncompatibleKernel.mockReturnValue(false);
 
         // Reset fs mock
         existsSync.mockReturnValue(false);
@@ -187,6 +199,28 @@ describe('LlmManager', () => {
             expect(llmManager.ensureNativeAvailable('test')).toBe(true);
             expect(llmManager.isNativeAvailable()).toBe(true);
             expect(llmManager.getNativeProbeError()).toBeNull();
+        });
+
+        it('returns false and disables the native module on an incompatible Linux kernel (>= 7)', () => {
+            process.env.NODE_ENV = 'test';
+            delete process.env.CI;
+            mockIsV8SandboxIncompatibleKernel.mockReturnValue(true);
+
+            expect(llmManager.ensureNativeAvailable('kernel')).toBe(false);
+            expect(llmManager.isNativeAvailable()).toBe(false);
+            expect(llmManager.getNativeProbeError()).toContain('kernel 7');
+        });
+
+        it('does not load node-llama-cpp on an incompatible kernel (loadModel rejects without importing)', async () => {
+            process.env.NODE_ENV = 'test';
+            delete process.env.CI;
+            mockIsV8SandboxIncompatibleKernel.mockReturnValue(true);
+            existsSync.mockReturnValue(true); // pretend the model is already on disk
+
+            await expect(llmManager.loadModel()).rejects.toThrow('kernel 7');
+            expect(llmManager.getStatus()).toBe('error');
+            // The native module must never be imported on an incompatible kernel
+            expect(_mockGetLlama).not.toHaveBeenCalled();
         });
 
         it('treats missing package.json export as non-fatal when entrypoint resolves', () => {

@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from './logger';
+import { isV8SandboxIncompatibleKernel } from './sandboxDetector';
 import type { HotkeyId, HotkeyRegistrationResult } from '../../shared/types/hotkeys';
 
 const logger = createLogger('[DBusFallback]');
@@ -433,6 +434,11 @@ function parseShortcutSignalPayload(msg: DBusMessage): PortalShortcutSignalPaylo
  * @returns `true` if the portal interface is available
  */
 export async function isDBusFallbackAvailable(): Promise<boolean> {
+    if (isV8SandboxIncompatibleKernel()) {
+        logger.log('D-Bus fallback disabled on Linux kernel 7+ (V8 sandbox/usocket incompatibility) — skipping');
+        return false;
+    }
+
     try {
         const dbusNext = await import('dbus-next');
         const bus = dbusNext.sessionBus() as DBusConnection;
@@ -485,6 +491,17 @@ export async function registerViaDBus(
     // Early exit for empty array
     if (shortcuts.length === 0) {
         return [];
+    }
+
+    if (isV8SandboxIncompatibleKernel()) {
+        logger.warn(
+            'D-Bus global shortcuts disabled on Linux kernel 7+ (V8 sandbox/usocket incompatibility) — skipping registration'
+        );
+        return shortcuts.map((s) => ({
+            hotkeyId: s.id,
+            success: false,
+            error: 'Global shortcuts are disabled on Linux kernel 7+ (V8 sandbox incompatibility).',
+        }));
     }
 
     try {

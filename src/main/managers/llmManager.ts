@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'fs';
 // Types are imported for TypeScript but the actual module is loaded dynamically
 import type { Llama, LlamaModel, LlamaContext, LlamaCompletion } from 'node-llama-cpp';
 import { createLogger } from '../utils/logger';
+import { isV8SandboxIncompatibleKernel } from '../utils/sandboxDetector';
 
 const logger = createLogger('[LlmManager]');
 
@@ -23,6 +24,11 @@ const logger = createLogger('[LlmManager]');
  * This is necessary because node-llama-cpp is ESM-only with top-level await.
  */
 async function importNodeLlamaCpp(): Promise<typeof import('node-llama-cpp')> {
+    // Never load the native module on kernels incompatible with the V8 sandbox —
+    // it allocates ArrayBuffers outside the sandbox cage and crashes at startup.
+    if (isV8SandboxIncompatibleKernel()) {
+        throw new Error('node-llama-cpp cannot be loaded on Linux kernel 7+ due to a V8 sandbox incompatibility.');
+    }
     if (process.env.NODE_ENV === 'test') {
         return import('node-llama-cpp');
     }
@@ -149,6 +155,18 @@ export default class LlmManager {
     ensureNativeAvailable(context: string): boolean {
         if (this.nativeAvailable !== null) {
             return this.nativeAvailable;
+        }
+
+        // On Linux kernels incompatible with the V8 sandbox, the native module
+        // crashes the app at startup, so we never load it (text prediction is
+        // unavailable on those kernels). Checked before the test/CI shortcuts so
+        // the probe is consistently blocked.
+        if (isV8SandboxIncompatibleKernel()) {
+            this.nativeAvailable = false;
+            this.nativeProbeError =
+                'Local AI text prediction is disabled on Linux kernel 7+ due to a V8 sandbox incompatibility.';
+            logger.warn('Native module probe skipped — incompatible Linux kernel (V8 sandbox)', { context });
+            return false;
         }
 
         if (process.env.NODE_ENV === 'test') {

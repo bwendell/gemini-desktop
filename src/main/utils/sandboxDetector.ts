@@ -171,18 +171,20 @@ export function getKernelMajorVersion(release: string): number | null {
  * Detect whether the running Linux kernel is known to be incompatible with
  * Electron's V8 sandbox.
  *
- * When true, the V8 sandbox must be disabled via `--js-flags=--no-v8-sandbox`,
- * otherwise the app segfaults at startup with a fatal
- * `v8_ArrayBuffer_NewBackingStore` error. This is scoped to affected kernels
- * (major >= {@link V8_SANDBOX_INCOMPATIBLE_KERNEL_MAJOR}) so the V8 sandbox
- * stays enabled on systems where it works correctly.
+ * On affected kernels (major >= {@link V8_SANDBOX_INCOMPATIBLE_KERNEL_MAJOR}),
+ * native addons that allocate ArrayBuffer backing stores outside the V8 sandbox
+ * cage — notably `dbus-next` (via its native `usocket` transport) and
+ * `node-llama-cpp` — trigger a fatal `v8_ArrayBuffer_NewBackingStore` crash at
+ * startup. Because the sandbox cage cannot be reliably disabled at runtime, we
+ * use this predicate to avoid loading those modules on affected kernels rather
+ * than attempting to turn the sandbox off.
  *
  * The kernel release is injectable for testing; it defaults to os.release().
  *
  * @param release - Kernel release string (defaults to os.release())
- * @returns true if the V8 sandbox should be disabled for this kernel
+ * @returns true if sandbox-incompatible native modules must not be loaded
  */
-export function shouldDisableV8Sandbox(release: string = os.release()): boolean {
+export function isV8SandboxIncompatibleKernel(release: string = os.release()): boolean {
     // Only applies to Linux — macOS and Windows are unaffected
     if (process.platform !== 'linux') {
         return false;
@@ -190,7 +192,7 @@ export function shouldDisableV8Sandbox(release: string = os.release()): boolean 
 
     const major = getKernelMajorVersion(release);
     if (major === null) {
-        // Unparseable kernel string — err on the side of leaving the sandbox on
+        // Unparseable kernel string — err on the side of treating it as compatible
         return false;
     }
 
