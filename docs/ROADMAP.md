@@ -5,6 +5,12 @@ Priorities may shift based on user feedback, upstream Gemini changes, and platfo
 
 ## Recently Shipped
 
+### v0.12.1 — Linux Stability & Maintenance
+
+- **Linux startup stability** — avoid loading V8-sandbox-incompatible native probes on affected Linux kernels so the app can launch reliably while preserving in-app keyboard shortcuts; global hotkeys and local text prediction remain unavailable on those kernel paths. ([#333](https://github.com/bwendell/gemini-desktop/pull/333))
+- **Linux package metadata refresh** — remove deprecated Debian dependencies, recommend Ayatana AppIndicator support, and document current appindicator guidance for modern Linux distributions. ([#332](https://github.com/bwendell/gemini-desktop/pull/332))
+- **Maintenance updates** — refresh post-`v0.12.0` runtime, Electron, testing, React type, YAML, CodeQL, and markdown-rendering dependencies. ([#309](https://github.com/bwendell/gemini-desktop/pull/309), [#314](https://github.com/bwendell/gemini-desktop/pull/314), [#320](https://github.com/bwendell/gemini-desktop/pull/320), [#338](https://github.com/bwendell/gemini-desktop/pull/338), [#339](https://github.com/bwendell/gemini-desktop/pull/339), [#340](https://github.com/bwendell/gemini-desktop/pull/340), [#342](https://github.com/bwendell/gemini-desktop/pull/342), [#344](https://github.com/bwendell/gemini-desktop/pull/344), [#345](https://github.com/bwendell/gemini-desktop/pull/345), [#347](https://github.com/bwendell/gemini-desktop/pull/347), [#348](https://github.com/bwendell/gemini-desktop/pull/348))
+
 ### v0.12.0 — Chat Flow & Release Reliability
 
 - **Chat workflow upgrades** — add Smart Enter's upload-aware submission queue and a floating scroll-to-bottom control, both with persisted settings toggles for smoother long-running Gemini chats. ([#321](https://github.com/bwendell/gemini-desktop/pull/321))
