@@ -120,7 +120,7 @@
         "vitest": "^4.0.15",
         "wait-on": "^9.0.3",
         "wdio-electron-service": "^9.2.1",
-        "yaml": "^2.8.2"
+        "yaml": "^2.9.0"
     },
     "lint-staged": {
         "**/*": "prettier --write --ignore-unknown",
