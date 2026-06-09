@@ -89,19 +89,6 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
             this.logger.log('Text prediction initialization skipped - no LlmManager');
             return;
         }
-        if (process.env.NODE_ENV !== 'test') {
-            this.deps.llmNativeAvailable = this.deps.llmManager.ensureNativeAvailable('initializeOnStartup');
-        }
-        if (this.deps.llmNativeAvailable === undefined) {
-            this.deps.llmNativeAvailable = this.deps.llmManager.isNativeAvailable();
-        }
-        if (!this.deps.llmNativeAvailable) {
-            this.logger.warn('Text prediction initialization skipped - native module unavailable', {
-                error: this.deps.llmManager.getNativeProbeError(),
-            });
-            this._broadcastStatusChange();
-            return;
-        }
 
         try {
             const enabled = this.deps.store.get('textPredictionEnabled') ?? false;
@@ -114,6 +101,20 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
 
             if (!enabled) {
                 this.logger.log('Text prediction disabled, skipping model load');
+                return;
+            }
+
+            if (process.env.NODE_ENV !== 'test') {
+                this.deps.llmNativeAvailable = this.deps.llmManager.ensureNativeAvailable('initializeOnStartup');
+            }
+            if (this.deps.llmNativeAvailable === undefined) {
+                this.deps.llmNativeAvailable = this.deps.llmManager.isNativeAvailable();
+            }
+            if (!this.deps.llmNativeAvailable) {
+                this.logger.warn('Text prediction initialization skipped - native module unavailable', {
+                    error: this.deps.llmManager.getNativeProbeError(),
+                });
+                this._broadcastStatusChange();
                 return;
             }
 
@@ -362,7 +363,9 @@ export class TextPredictionIpcHandler extends BaseIpcHandler {
      */
     private _getStatus(): TextPredictionSettings {
         const enabled = this.deps.store.get('textPredictionEnabled') ?? false;
-        const nativeAvailable = this.deps.llmNativeAvailable ?? this.deps.llmManager?.isNativeAvailable() ?? false;
+        const nativeAvailable = enabled
+            ? (this.deps.llmNativeAvailable ?? this.deps.llmManager?.isNativeAvailable() ?? false)
+            : true;
         const modelStatus = this.deps.llmManager?.getStatus();
         const storedStatus = this.deps.store.get('textPredictionModelStatus') as ModelStatus | undefined;
         let requiresRestart = false;

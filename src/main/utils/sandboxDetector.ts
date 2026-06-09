@@ -18,7 +18,22 @@
  */
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
+
+/**
+ * Minimum Linux kernel major version known to be incompatible with Electron's
+ * V8 sandbox.
+ *
+ * On kernel 7.x and newer (paired with newer glibc), the V8 sandbox cage cannot
+ * allocate ArrayBuffer backing stores inside the sandbox address space, so the
+ * app crashes during startup with a fatal `v8_ArrayBuffer_NewBackingStore`
+ * error — independently of whether the local text-prediction (node-llama-cpp)
+ * feature is enabled.
+ *
+ * See https://github.com/bwendell/gemini-desktop/issues/119 (and #315, #334).
+ */
+export const V8_SANDBOX_INCOMPATIBLE_KERNEL_MAJOR = 7;
 
 /**
  * Check if running as an AppImage.
@@ -130,4 +145,56 @@ export function shouldDisableSandbox(): boolean {
 
     // Neither sandbox mechanism is available — disable to prevent crash
     return true;
+}
+
+/**
+ * Parse the major version number from a Linux kernel release string.
+ *
+ * Examples:
+ *   "7.0.0-15-generic" -> 7
+ *   "7.0.10-2-cachyos" -> 7
+ *   "6.18.5"           -> 6
+ *
+ * @param release - Kernel release string (e.g. from os.release())
+ * @returns The major version as a number, or null if it can't be parsed
+ */
+export function getKernelMajorVersion(release: string): number | null {
+    const match = /^(\d+)\./.exec(release);
+    if (!match) {
+        return null;
+    }
+    const major = Number.parseInt(match[1] ?? '', 10);
+    return Number.isNaN(major) ? null : major;
+}
+
+/**
+ * Detect whether the running Linux kernel is known to be incompatible with
+ * Electron's V8 sandbox.
+ *
+ * On affected kernels (major >= {@link V8_SANDBOX_INCOMPATIBLE_KERNEL_MAJOR}),
+ * native addons that allocate ArrayBuffer backing stores outside the V8 sandbox
+ * cage — notably `dbus-next` (via its native `usocket` transport) and
+ * `node-llama-cpp` — trigger a fatal `v8_ArrayBuffer_NewBackingStore` crash at
+ * startup. Because the sandbox cage cannot be reliably disabled at runtime, we
+ * use this predicate to avoid loading those modules on affected kernels rather
+ * than attempting to turn the sandbox off.
+ *
+ * The kernel release is injectable for testing; it defaults to os.release().
+ *
+ * @param release - Kernel release string (defaults to os.release())
+ * @returns true if sandbox-incompatible native modules must not be loaded
+ */
+export function isV8SandboxIncompatibleKernel(release: string = os.release()): boolean {
+    // Only applies to Linux — macOS and Windows are unaffected
+    if (process.platform !== 'linux') {
+        return false;
+    }
+
+    const major = getKernelMajorVersion(release);
+    if (major === null) {
+        // Unparseable kernel string — err on the side of treating it as compatible
+        return false;
+    }
+
+    return major >= V8_SANDBOX_INCOMPATIBLE_KERNEL_MAJOR;
 }

@@ -500,6 +500,21 @@ describe('TextPredictionIpcHandler', () => {
             expect(mockLlmManager.loadModel).not.toHaveBeenCalled();
         });
 
+        it('does not probe native modules on startup when text prediction is disabled', async () => {
+            process.env.NODE_ENV = 'production';
+            mockDeps.llmNativeAvailable = undefined;
+            mockStore.get.mockImplementation((key) => {
+                if (key === 'textPredictionEnabled') return false;
+                return undefined;
+            });
+
+            await handler.initializeOnStartup();
+
+            expect(mockLlmManager.ensureNativeAvailable).not.toHaveBeenCalled();
+            expect(mockLlmManager.isNativeAvailable).not.toHaveBeenCalled();
+            expect(mockLlmManager.loadModel).not.toHaveBeenCalled();
+        });
+
         it('skips auto-load if model not downloaded', async () => {
             mockStore.get.mockImplementation((key) => {
                 if (key === 'textPredictionEnabled') return true;
@@ -531,6 +546,10 @@ describe('TextPredictionIpcHandler', () => {
 
         it('skips auto-load when native module unavailable', async () => {
             process.env.NODE_ENV = 'production';
+            mockStore.get.mockImplementation((key) => {
+                if (key === 'textPredictionEnabled') return true;
+                return undefined;
+            });
             mockLlmManager.ensureNativeAvailable.mockReturnValue(false);
             mockDeps.llmNativeAvailable = false;
 
@@ -582,6 +601,27 @@ describe('TextPredictionIpcHandler', () => {
                 downloadProgress: 100,
                 errorMessage: undefined,
             });
+        });
+
+        it('does not probe native modules when disabled status is requested', async () => {
+            mockDeps.llmNativeAvailable = undefined;
+            mockStore.get.mockImplementation((key) => {
+                if (key === 'textPredictionEnabled') return false;
+                if (key === 'textPredictionGpuEnabled') return false;
+                return undefined;
+            });
+
+            const handlerFn = mockIpcMain._handlers.get(IPC_CHANNELS.TEXT_PREDICTION_GET_STATUS);
+            const result = (await handlerFn!()) as { status: string; enabled: boolean };
+
+            expect(result).toEqual({
+                enabled: false,
+                gpuEnabled: false,
+                status: 'ready',
+                downloadProgress: 0,
+            });
+            expect(mockLlmManager.isNativeAvailable).not.toHaveBeenCalled();
+            expect(mockLlmManager.ensureNativeAvailable).not.toHaveBeenCalled();
         });
     });
 
