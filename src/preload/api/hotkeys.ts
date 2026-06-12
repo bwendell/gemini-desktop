@@ -2,7 +2,12 @@ import { ipcRenderer } from 'electron';
 
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels';
 import type { ElectronAPI } from '../../shared/types';
-import type { HotkeyAccelerators, HotkeyId, IndividualHotkeySettings } from '../../shared/types/hotkeys';
+import type {
+    HotkeyAccelerators,
+    HotkeyId,
+    IndividualHotkeySettings,
+    HotkeyRecorderKeyEvent,
+} from '../../shared/types/hotkeys';
 import { createSubscription } from '../createSubscription';
 
 export const hotkeysAPI: Pick<
@@ -14,6 +19,7 @@ export const hotkeysAPI: Pick<
     | 'getFullHotkeySettings'
     | 'setHotkeyAccelerator'
     | 'onHotkeyAcceleratorsChanged'
+    | 'onHotkeyRecorderKeyCaptured'
 > = {
     getIndividualHotkeys: () => ipcRenderer.invoke(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_GET),
     setIndividualHotkey: (id: HotkeyId, enabled: boolean) =>
@@ -24,4 +30,5 @@ export const hotkeysAPI: Pick<
     setHotkeyAccelerator: (id: HotkeyId, accelerator: string) =>
         ipcRenderer.send(IPC_CHANNELS.HOTKEYS_ACCELERATOR_SET, id, accelerator),
     onHotkeyAcceleratorsChanged: createSubscription<HotkeyAccelerators>(IPC_CHANNELS.HOTKEYS_ACCELERATOR_CHANGED),
+    onHotkeyRecorderKeyCaptured: createSubscription<HotkeyRecorderKeyEvent>(IPC_CHANNELS.HOTKEY_RECORDER_KEY_CAPTURED),
 };

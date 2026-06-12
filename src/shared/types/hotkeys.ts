@@ -96,6 +96,7 @@ export interface HotkeyConfig {
     enabled: boolean;
     /** The keyboard accelerator string (e.g., 'CommandOrControl+Shift+T') */
     accelerator: string;
+    defaultAccelerator: string;
 }
 
 /**
@@ -118,19 +119,43 @@ export type HotkeyAccelerators = Record<HotkeyId, string>;
 /**
  * Default accelerators for each hotkey.
  * Used when no custom accelerator is configured.
+ *
+ * Note: This represents the legacy/baseline defaults. Fresh-install cohorts
+ * may use different defaults via getDefaultAccelerators(platform).
  */
 export const DEFAULT_ACCELERATORS: HotkeyAccelerators = {
     // Ctrl+Alt+P = Pin window (always on top)
     // Note: Ctrl+Alt+T conflicts with GNOME terminal shortcut
     alwaysOnTop: 'CommandOrControl+Alt+P',
     peekAndHide: 'CommandOrControl+Shift+Space',
-    // Ctrl+Shift+Alt+Space = Quick Chat toggle
+    // Ctrl+Shift+Alt+Space = Quick Chat toggle (legacy)
     quickChat: 'CommandOrControl+Shift+Alt+Space',
     // Ctrl+Shift+M = Voice Chat toggle
     voiceChat: 'CommandOrControl+Shift+M',
     // Ctrl+Shift+P = Print to PDF
     printToPdf: 'CommandOrControl+Shift+P',
 };
+
+/**
+ * Resolves platform-specific default accelerators.
+ *
+ * This function returns the current default accelerators for a given platform.
+ * Fresh-install cohorts use Alt+Space for quickChat on all platforms,
+ * while other hotkeys use the legacy defaults.
+ *
+ * @param _platform - The target platform (e.g., 'win32', 'darwin', 'linux')
+ * @returns Platform-specific default accelerators
+ */
+export function getDefaultAccelerators(_platform: NodeJS.Platform): HotkeyAccelerators {
+    return {
+        alwaysOnTop: DEFAULT_ACCELERATORS.alwaysOnTop,
+        peekAndHide: DEFAULT_ACCELERATORS.peekAndHide,
+        // Fresh-install quickChat default: Alt+Space on all platforms
+        quickChat: 'Alt+Space',
+        voiceChat: DEFAULT_ACCELERATORS.voiceChat,
+        printToPdf: DEFAULT_ACCELERATORS.printToPdf,
+    };
+}
 
 // ==========================================================================
 // Wayland Platform Status Types
@@ -195,4 +220,23 @@ export interface PlatformHotkeyStatus {
     registrationResults: HotkeyRegistrationResult[];
     /** Whether global hotkeys are currently functional */
     globalHotkeysEnabled: boolean;
+}
+
+/**
+ * Key information captured by the hotkey recorder.
+ * Used when recording which key is pressed during hotkey configuration on Windows.
+ */
+export interface HotkeyRecorderKeyEvent {
+    /** The accelerator string representation of the key (e.g., 'Alt+Space') */
+    key: string;
+    /** The physical key code */
+    code: string;
+    /** Whether Ctrl key is pressed */
+    ctrlKey: boolean;
+    /** Whether Alt key is pressed */
+    altKey: boolean;
+    /** Whether Shift key is pressed */
+    shiftKey: boolean;
+    /** Whether Meta/Command key is pressed */
+    metaKey: boolean;
 }

@@ -9,6 +9,7 @@ import {
     isApplicationHotkey,
     HOTKEY_IDS,
     DEFAULT_ACCELERATORS,
+    getDefaultAccelerators,
     type HotkeyId,
     type IndividualHotkeySettings,
     type HotkeySettings,
@@ -395,6 +396,8 @@ describe('Hotkey Types', () => {
                         return 'aot';
                     case 'printToPdf':
                         return 'print';
+                    case 'voiceChat':
+                        return 'voice';
                 }
             };
             expect(handleHotkey('printToPdf')).toBe('print');
@@ -427,6 +430,131 @@ describe('Hotkey Types', () => {
                 .filter(([key]) => key !== 'printToPdf')
                 .map(([, value]) => value);
             expect(otherAccelerators).not.toContain(printPdfAccel);
+        });
+    });
+
+    // ==========================================================================
+    // getDefaultAccelerators Platform-Aware Defaults
+    // ==========================================================================
+
+    describe('getDefaultAccelerators', () => {
+        describe('quickChat default on all platforms', () => {
+            it('should return Alt+Space for quickChat on win32', () => {
+                const defaults = getDefaultAccelerators('win32');
+                expect(defaults.quickChat).toBe('Alt+Space');
+            });
+
+            it('should return Alt+Space for quickChat on darwin', () => {
+                const defaults = getDefaultAccelerators('darwin');
+                expect(defaults.quickChat).toBe('Alt+Space');
+            });
+
+            it('should return Alt+Space for quickChat on linux', () => {
+                const defaults = getDefaultAccelerators('linux');
+                expect(defaults.quickChat).toBe('Alt+Space');
+            });
+        });
+
+        describe('other hotkeys match DEFAULT_ACCELERATORS', () => {
+            it('should return legacy defaults for non-quickChat hotkeys on win32', () => {
+                const defaults = getDefaultAccelerators('win32');
+                expect(defaults.alwaysOnTop).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
+                expect(defaults.peekAndHide).toBe(DEFAULT_ACCELERATORS.peekAndHide);
+                expect(defaults.printToPdf).toBe(DEFAULT_ACCELERATORS.printToPdf);
+                expect(defaults.voiceChat).toBe(DEFAULT_ACCELERATORS.voiceChat);
+            });
+
+            it('should return legacy defaults for non-quickChat hotkeys on darwin', () => {
+                const defaults = getDefaultAccelerators('darwin');
+                expect(defaults.alwaysOnTop).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
+                expect(defaults.peekAndHide).toBe(DEFAULT_ACCELERATORS.peekAndHide);
+                expect(defaults.printToPdf).toBe(DEFAULT_ACCELERATORS.printToPdf);
+                expect(defaults.voiceChat).toBe(DEFAULT_ACCELERATORS.voiceChat);
+            });
+
+            it('should return legacy defaults for non-quickChat hotkeys on linux', () => {
+                const defaults = getDefaultAccelerators('linux');
+                expect(defaults.alwaysOnTop).toBe(DEFAULT_ACCELERATORS.alwaysOnTop);
+                expect(defaults.peekAndHide).toBe(DEFAULT_ACCELERATORS.peekAndHide);
+                expect(defaults.printToPdf).toBe(DEFAULT_ACCELERATORS.printToPdf);
+                expect(defaults.voiceChat).toBe(DEFAULT_ACCELERATORS.voiceChat);
+            });
+        });
+
+        describe('return type is HotkeyAccelerators', () => {
+            it('should return a complete HotkeyAccelerators object on win32', () => {
+                const defaults = getDefaultAccelerators('win32');
+                expect(defaults).toHaveProperty('quickChat');
+                expect(defaults).toHaveProperty('alwaysOnTop');
+                expect(defaults).toHaveProperty('peekAndHide');
+                expect(defaults).toHaveProperty('printToPdf');
+                expect(defaults).toHaveProperty('voiceChat');
+                expect(Object.keys(defaults).length).toBe(5);
+            });
+
+            it('should return a complete HotkeyAccelerators object on darwin', () => {
+                const defaults = getDefaultAccelerators('darwin');
+                expect(defaults).toHaveProperty('quickChat');
+                expect(defaults).toHaveProperty('alwaysOnTop');
+                expect(defaults).toHaveProperty('peekAndHide');
+                expect(defaults).toHaveProperty('printToPdf');
+                expect(defaults).toHaveProperty('voiceChat');
+                expect(Object.keys(defaults).length).toBe(5);
+            });
+
+            it('should return a complete HotkeyAccelerators object on linux', () => {
+                const defaults = getDefaultAccelerators('linux');
+                expect(defaults).toHaveProperty('quickChat');
+                expect(defaults).toHaveProperty('alwaysOnTop');
+                expect(defaults).toHaveProperty('peekAndHide');
+                expect(defaults).toHaveProperty('printToPdf');
+                expect(defaults).toHaveProperty('voiceChat');
+                expect(Object.keys(defaults).length).toBe(5);
+            });
+        });
+
+        describe('DEFAULT_ACCELERATORS.quickChat remains unchanged', () => {
+            it('should still have the legacy quickChat value in DEFAULT_ACCELERATORS', () => {
+                expect(DEFAULT_ACCELERATORS.quickChat).toBe('CommandOrControl+Shift+Alt+Space');
+            });
+
+            it('should be different from resolved default on win32', () => {
+                const defaults = getDefaultAccelerators('win32');
+                expect(defaults.quickChat).not.toBe(DEFAULT_ACCELERATORS.quickChat);
+            });
+
+            it('should be different from resolved default on darwin', () => {
+                const defaults = getDefaultAccelerators('darwin');
+                expect(defaults.quickChat).not.toBe(DEFAULT_ACCELERATORS.quickChat);
+            });
+
+            it('should be different from resolved default on linux', () => {
+                const defaults = getDefaultAccelerators('linux');
+                expect(defaults.quickChat).not.toBe(DEFAULT_ACCELERATORS.quickChat);
+            });
+        });
+
+        describe('consistent across multiple calls', () => {
+            it('should return same object shape on repeated calls for win32', () => {
+                const call1 = getDefaultAccelerators('win32');
+                const call2 = getDefaultAccelerators('win32');
+                expect(call1.quickChat).toBe(call2.quickChat);
+                expect(call1.alwaysOnTop).toBe(call2.alwaysOnTop);
+            });
+
+            it('should return same object shape on repeated calls for darwin', () => {
+                const call1 = getDefaultAccelerators('darwin');
+                const call2 = getDefaultAccelerators('darwin');
+                expect(call1.quickChat).toBe(call2.quickChat);
+                expect(call1.alwaysOnTop).toBe(call2.alwaysOnTop);
+            });
+
+            it('should return same object shape on repeated calls for linux', () => {
+                const call1 = getDefaultAccelerators('linux');
+                const call2 = getDefaultAccelerators('linux');
+                expect(call1.quickChat).toBe(call2.quickChat);
+                expect(call1.alwaysOnTop).toBe(call2.alwaysOnTop);
+            });
         });
     });
 });

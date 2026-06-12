@@ -20,9 +20,7 @@ type OWBrowser = {
     getWindowHandles(): Promise<string[]>;
     switchToWindow(handle: string): Promise<void>;
     closeWindow(): Promise<void>;
-    $(
-        selector: string
-    ): Promise<{
+    $(selector: string): Promise<{
         isExisting(): Promise<boolean>;
         waitForDisplayed(opts?: { timeout?: number; timeoutMsg?: string }): Promise<void>;
         click(): Promise<void>;

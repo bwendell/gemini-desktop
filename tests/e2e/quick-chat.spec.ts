@@ -21,8 +21,9 @@
 /// <reference path="./helpers/wdio-electron.d.ts" />
 
 import { browser, expect } from '@wdio/globals';
+import { getDefaultAccelerators } from '../../src/shared/types/hotkeys';
 import { getPlatform, E2EPlatform } from './helpers/platform';
-import { getHotkeyDisplayString, isHotkeyRegistered } from './helpers/hotkeyHelpers';
+import { isHotkeyRegistered } from './helpers/hotkeyHelpers';
 import { QuickChatPage } from './pages';
 import { waitForAppReady, waitForWindowTransition, ensureSingleWindow } from './helpers/workflows';
 
@@ -50,7 +51,7 @@ describe('Quick Chat Feature', () => {
             // Verify the hotkey is actually registered at the OS level
             // Note: Triggering the hotkey via robotjs is flaky, so we verify registration status instead.
             // This follows E2E principles by checking ACTUAL registration state, not manipulating internals.
-            const defaultAccelerator = 'CommandOrControl+Shift+Alt+Space';
+            const defaultAccelerator = getDefaultAccelerators(process.platform).quickChat;
             const isRegistered = await isHotkeyRegistered(defaultAccelerator);
 
             // In CI environments, global hotkey registration may fail due to:
@@ -67,15 +68,20 @@ describe('Quick Chat Feature', () => {
             expect(isRegistered).toBe(true);
         });
 
-        it('should display the correct platform-specific hotkey string', async () => {
-            const displayString = getHotkeyDisplayString(platform, 'QUICK_CHAT');
+        it('should expose the current resolved quickChat default accelerator for this test cohort', async () => {
+            const quickChatDefaultAccelerator = await browser.execute(() => {
+                return (
+                    window as typeof window & {
+                        electronAPI: {
+                            getFullHotkeySettings: () => Promise<{ quickChat: { defaultAccelerator: string } }>;
+                        };
+                    }
+                ).electronAPI
+                    .getFullHotkeySettings()
+                    .then((settings) => settings.quickChat.defaultAccelerator);
+            });
 
-            // Verify platform-specific display format
-            if (platform === 'macos') {
-                expect(displayString).toBe('Cmd+Shift+Alt+Space');
-            } else {
-                expect(displayString).toBe('Ctrl+Shift+Alt+Space');
-            }
+            expect(quickChatDefaultAccelerator).toBe(getDefaultAccelerators(process.platform).quickChat);
         });
     });
 
