@@ -67,7 +67,7 @@
     },
     "dependencies": {
         "dbus-next": "^0.10.2",
-        "electron-log": "^5.4.3",
+        "electron-log": "^5.4.4",
         "electron-updater": "^6.8.9",
         "framer-motion": "^12.37.0",
         "marked": "^18.0.5",
