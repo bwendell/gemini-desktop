@@ -98,7 +98,7 @@
         "@wdio/mocha-framework": "^9.27.2",
         "@wdio/spec-reporter": "^9.27.2",
         "@wdio/types": "^9.23.3",
-        "concurrently": "^9.2.1",
+        "concurrently": "^10.0.3",
         "electron": "^39.8.10",
         "electron-builder": "26.8.1",
         "eslint": "^9.39.2",
