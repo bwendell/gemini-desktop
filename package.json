@@ -74,7 +74,7 @@
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
         "semver": "^7.8.3",
-        "turndown": "^7.2.2",
+        "turndown": "^7.2.4",
         "turndown-plugin-gfm": "^1.0.2"
     },
     "optionalDependencies": {
