@@ -56,6 +56,7 @@ vi.mock('electron', () => ({
 // Mock SettingsStore
 vi.mock('../../../../src/main/store', () => ({
     default: vi.fn(),
+    settingsStoreFileExists: vi.fn().mockReturnValue(true),
 }));
 
 // Mock fs

@@ -22,7 +22,7 @@ function TestConsumer() {
             <span data-testid="peekAndHide">{settings.peekAndHide.toString()}</span>
             <span data-testid="quickChat">{settings.quickChat.toString()}</span>
             <span data-testid="voiceChat">{settings.voiceChat.toString()}</span>
-            <button onClick={() => setEnabled('quickChat', false)} data-testid="disable-quickchat">
+            <button type="button" onClick={() => setEnabled('quickChat', false)} data-testid="disable-quickchat">
                 Disable Quick Chat
             </button>
         </div>
@@ -47,7 +47,7 @@ describe('IndividualHotkeysContext', () => {
 
     describe('initialization', () => {
         it('should initialize with defaults when Electron API is unavailable', async () => {
-            window.electronAPI = undefined;
+            window.electronAPI = undefined as any;
 
             render(
                 <IndividualHotkeysProvider>
@@ -62,15 +62,19 @@ describe('IndividualHotkeysContext', () => {
             });
         });
 
-        it('should initialize from Electron API when available', async () => {
+        it('should initialize from Electron API when available (existing install baseline default)', async () => {
             window.electronAPI = {
                 ...window.electronAPI,
-                getIndividualHotkeys: vi.fn().mockResolvedValue({
-                    alwaysOnTop: false,
-                    peekAndHide: true,
-                    quickChat: false,
-                    voiceChat: false,
-                    printToPdf: true,
+                getFullHotkeySettings: vi.fn().mockResolvedValue({
+                    alwaysOnTop: { enabled: false, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
+                    peekAndHide: { enabled: true, accelerator: 'Cmd+Space', defaultAccelerator: 'Cmd+Space' },
+                    quickChat: {
+                        enabled: false,
+                        accelerator: 'CommandOrControl+Shift+Alt+Space',
+                        defaultAccelerator: 'CommandOrControl+Shift+Alt+Space',
+                    },
+                    voiceChat: { enabled: false, accelerator: 'Cmd+M', defaultAccelerator: 'Cmd+M' },
+                    printToPdf: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
                 }),
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
             } as any;
@@ -89,10 +93,45 @@ describe('IndividualHotkeysContext', () => {
             });
         });
 
+        it('should initialize from Electron API when available (fresh install default)', async () => {
+            function FreshInstallDefaultConsumer() {
+                const { defaultAccelerators } = useIndividualHotkeys();
+                return (
+                    <>
+                        <TestConsumer />
+                        <span data-testid="fresh-default-quickchat">{defaultAccelerators.quickChat}</span>
+                    </>
+                );
+            }
+
+            window.electronAPI = {
+                ...window.electronAPI,
+                getFullHotkeySettings: vi.fn().mockResolvedValue({
+                    alwaysOnTop: { enabled: false, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
+                    peekAndHide: { enabled: true, accelerator: 'Cmd+Space', defaultAccelerator: 'Cmd+Space' },
+                    quickChat: { enabled: false, accelerator: 'Alt+Space', defaultAccelerator: 'Alt+Space' },
+                    voiceChat: { enabled: false, accelerator: 'Cmd+M', defaultAccelerator: 'Cmd+M' },
+                    printToPdf: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
+                }),
+                onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
+            } as any;
+
+            render(
+                <IndividualHotkeysProvider>
+                    <FreshInstallDefaultConsumer />
+                </IndividualHotkeysProvider>
+            );
+
+            await waitFor(() => {
+                expect(screen.getByTestId('quickChat')).toHaveTextContent('false');
+                expect(screen.getByTestId('fresh-default-quickchat')).toHaveTextContent('Alt+Space');
+            });
+        });
+
         it('should handle API errors gracefully', async () => {
             window.electronAPI = {
                 ...window.electronAPI,
-                getIndividualHotkeys: vi.fn().mockRejectedValue(new Error('API error')),
+                getFullHotkeySettings: vi.fn().mockRejectedValue(new Error('API error')),
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
             } as any;
 
@@ -111,7 +150,7 @@ describe('IndividualHotkeysContext', () => {
         it('should handle invalid settings format from API', async () => {
             window.electronAPI = {
                 ...window.electronAPI,
-                getIndividualHotkeys: vi.fn().mockResolvedValue({ invalid: 'data' }),
+                getFullHotkeySettings: vi.fn().mockResolvedValue({ invalid: 'data' }),
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
             } as any;
 
@@ -135,12 +174,12 @@ describe('IndividualHotkeysContext', () => {
             const mockSetIndividualHotkey = vi.fn();
             window.electronAPI = {
                 ...window.electronAPI,
-                getIndividualHotkeys: vi.fn().mockResolvedValue({
-                    alwaysOnTop: true,
-                    peekAndHide: true,
-                    quickChat: true,
-                    voiceChat: true,
-                    printToPdf: true,
+                getFullHotkeySettings: vi.fn().mockResolvedValue({
+                    alwaysOnTop: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
+                    peekAndHide: { enabled: true, accelerator: 'Cmd+Space', defaultAccelerator: 'Cmd+Space' },
+                    quickChat: { enabled: true, accelerator: 'Alt+Space', defaultAccelerator: 'Alt+Space' },
+                    voiceChat: { enabled: true, accelerator: 'Cmd+M', defaultAccelerator: 'Cmd+M' },
+                    printToPdf: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
                 }),
                 setIndividualHotkey: mockSetIndividualHotkey,
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(() => {}),
@@ -168,12 +207,12 @@ describe('IndividualHotkeysContext', () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
             window.electronAPI = {
                 ...window.electronAPI,
-                getIndividualHotkeys: vi.fn().mockResolvedValue({
-                    alwaysOnTop: true,
-                    peekAndHide: true,
-                    quickChat: true,
-                    voiceChat: true,
-                    printToPdf: true,
+                getFullHotkeySettings: vi.fn().mockResolvedValue({
+                    alwaysOnTop: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
+                    peekAndHide: { enabled: true, accelerator: 'Cmd+Space', defaultAccelerator: 'Cmd+Space' },
+                    quickChat: { enabled: true, accelerator: 'Alt+Space', defaultAccelerator: 'Alt+Space' },
+                    voiceChat: { enabled: true, accelerator: 'Cmd+M', defaultAccelerator: 'Cmd+M' },
+                    printToPdf: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
                 }),
                 setIndividualHotkey: vi.fn().mockImplementation(() => {
                     throw new Error('Set error');
@@ -201,7 +240,7 @@ describe('IndividualHotkeysContext', () => {
         });
 
         it('should work when Electron API is unavailable', async () => {
-            window.electronAPI = undefined;
+            window.electronAPI = undefined as any;
 
             render(
                 <IndividualHotkeysProvider>
@@ -228,12 +267,12 @@ describe('IndividualHotkeysContext', () => {
 
             window.electronAPI = {
                 ...window.electronAPI,
-                getIndividualHotkeys: vi.fn().mockResolvedValue({
-                    alwaysOnTop: true,
-                    peekAndHide: true,
-                    quickChat: true,
-                    voiceChat: true,
-                    printToPdf: true,
+                getFullHotkeySettings: vi.fn().mockResolvedValue({
+                    alwaysOnTop: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
+                    peekAndHide: { enabled: true, accelerator: 'Cmd+Space', defaultAccelerator: 'Cmd+Space' },
+                    quickChat: { enabled: true, accelerator: 'Alt+Space', defaultAccelerator: 'Alt+Space' },
+                    voiceChat: { enabled: true, accelerator: 'Cmd+M', defaultAccelerator: 'Cmd+M' },
+                    printToPdf: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
                 }),
                 onIndividualHotkeysChanged: vi.fn((cb) => {
                     changeCallback = cb;
@@ -270,12 +309,12 @@ describe('IndividualHotkeysContext', () => {
 
             window.electronAPI = {
                 ...window.electronAPI,
-                getIndividualHotkeys: vi.fn().mockResolvedValue({
-                    alwaysOnTop: true,
-                    peekAndHide: true,
-                    quickChat: true,
-                    voiceChat: true,
-                    printToPdf: true,
+                getFullHotkeySettings: vi.fn().mockResolvedValue({
+                    alwaysOnTop: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
+                    peekAndHide: { enabled: true, accelerator: 'Cmd+Space', defaultAccelerator: 'Cmd+Space' },
+                    quickChat: { enabled: true, accelerator: 'Alt+Space', defaultAccelerator: 'Alt+Space' },
+                    voiceChat: { enabled: true, accelerator: 'Cmd+M', defaultAccelerator: 'Cmd+M' },
+                    printToPdf: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
                 }),
                 onIndividualHotkeysChanged: vi.fn((cb) => {
                     changeCallback = cb;
@@ -323,12 +362,12 @@ describe('IndividualHotkeysContext', () => {
             const mockCleanup = vi.fn();
             window.electronAPI = {
                 ...window.electronAPI,
-                getIndividualHotkeys: vi.fn().mockResolvedValue({
-                    alwaysOnTop: true,
-                    peekAndHide: true,
-                    quickChat: true,
-                    voiceChat: true,
-                    printToPdf: true,
+                getFullHotkeySettings: vi.fn().mockResolvedValue({
+                    alwaysOnTop: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
+                    peekAndHide: { enabled: true, accelerator: 'Cmd+Space', defaultAccelerator: 'Cmd+Space' },
+                    quickChat: { enabled: true, accelerator: 'Alt+Space', defaultAccelerator: 'Alt+Space' },
+                    voiceChat: { enabled: true, accelerator: 'Cmd+M', defaultAccelerator: 'Cmd+M' },
+                    printToPdf: { enabled: true, accelerator: 'Cmd+P', defaultAccelerator: 'Cmd+P' },
                 }),
                 onIndividualHotkeysChanged: vi.fn().mockReturnValue(mockCleanup),
             } as any;

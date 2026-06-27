@@ -9,6 +9,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { HotkeyId } from '../../context/IndividualHotkeysContext';
+import type { HotkeyRecorderKeyEvent } from '../../../shared/types/hotkeys';
 import './hotkeyAcceleratorInput.css';
 
 // ============================================================================
@@ -35,7 +36,9 @@ interface HotkeyAcceleratorInputProps {
 /**
  * Convert a keyboard event to an Electron accelerator string.
  */
-function keyEventToAccelerator(event: React.KeyboardEvent): string | null {
+function keyEventToAccelerator(
+    event: Pick<React.KeyboardEvent, 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey' | 'key' | 'code'>
+): string | null {
     const parts: string[] = [];
 
     // Must have at least one modifier
@@ -182,6 +185,22 @@ export function HotkeyAcceleratorInput({
             inputRef.current.focus();
         }
     }, [isRecording]);
+
+    useEffect(() => {
+        if (!isRecording || !window.electronAPI) return;
+
+        const unsubscribe = window.electronAPI.onHotkeyRecorderKeyCaptured((keyEvent: HotkeyRecorderKeyEvent) => {
+            const accelerator = keyEventToAccelerator(keyEvent);
+            if (accelerator) {
+                onAcceleratorChange(hotkeyId, accelerator);
+                setIsRecording(false);
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, [isRecording, hotkeyId, onAcceleratorChange]);
 
     // Handle key down during recording
     const handleKeyDown = useCallback(

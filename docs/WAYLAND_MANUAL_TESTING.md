@@ -35,7 +35,7 @@ echo "KDE Version: $KDE_SESSION_VERSION"
 
 ### 3) Functional Hotkeys
 
-- [ ] **Quick Chat** — Press `Ctrl+Shift+Alt+Space`.
+- [ ] **Quick Chat** — Press `Alt+Space` (or existing persisted shortcut if not a fresh install).
     - Expected: Quick Chat window appears centered on screen.
 - [ ] **Peek and Hide** — Press `Ctrl+Shift+Space`.
     - Expected: Main window hides to tray.

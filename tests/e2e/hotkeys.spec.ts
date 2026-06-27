@@ -1,16 +1,11 @@
 import { $, browser, expect } from '@wdio/globals';
+import { getDefaultAccelerators } from '../../src/shared/types/hotkeys';
 
 import { QuickChatPage } from './pages';
 import { clickMenuItemById } from './helpers/menuActions';
 import { waitForOptionsWindow, switchToOptionsWindow, closeOptionsWindow } from './helpers/optionsWindowActions';
 import { getPlatform, E2EPlatform, isLinux } from './helpers/platform';
-import {
-    ensureSingleWindow,
-    pressComplexShortcut,
-    switchToMainWindow,
-    waitForAppReady,
-    waitForWindowTransition,
-} from './helpers/workflows';
+import { ensureSingleWindow, switchToMainWindow, waitForAppReady, waitForWindowTransition } from './helpers/workflows';
 import { waitForUIState } from './helpers/waitUtilities';
 
 interface HotkeyTestConfig {
@@ -42,8 +37,8 @@ const HOTKEY_CONFIGS: HotkeyTestConfig[] = [
     {
         id: 'quickChat',
         label: 'Quick Chat',
-        shortcutWin: 'Ctrl+Shift+Alt+␣',
-        shortcutMac: '⌘+⇧+⌥+␣',
+        shortcutWin: 'Alt+␣',
+        shortcutMac: '⌥+␣',
         testId: 'hotkey-toggle-quickChat',
         rowTestId: 'hotkey-row-quickChat',
     },
@@ -122,7 +117,7 @@ describe('Hotkeys', () => {
 
                     try {
                         return {
-                            quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
+                            quickChat: globalShortcut.isRegistered(getDefaultAccelerators(process.platform).quickChat),
                             peekAndHide: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
                             status: 'success',
                         };
@@ -175,24 +170,7 @@ describe('Hotkeys', () => {
         });
 
         describe('Quick Chat Hotkey', () => {
-            it('should toggle Quick Chat window visibility when pressing CommandOrControl+Shift+Alt+Space', async () => {
-                const hotkeyStatus = await electronBrowser.electron.execute((_electron: ElectronModule) => {
-                    try {
-                        const { globalShortcut } = _electron;
-                        return {
-                            quickChat: globalShortcut.isRegistered('CommandOrControl+Shift+Alt+Space'),
-                        };
-                    } catch (error) {
-                        return { quickChat: false, error: (error as Error).message };
-                    }
-                });
-
-                if (!hotkeyStatus.quickChat) {
-                    console.log('⚠️  Skipping hotkey test: Quick Chat hotkey not registered in this environment');
-                    console.log('   This is expected in restricted environments (CI, certain Windows/Linux configs)');
-                    return;
-                }
-
+            it('should toggle Quick Chat window visibility when the quickChat action executes', async () => {
                 const isVisibleInitially = await quickChat.isVisible();
                 if (isVisibleInitially) {
                     await quickChat.cancel();
@@ -201,14 +179,18 @@ describe('Hotkeys', () => {
                     });
                 }
 
-                await pressComplexShortcut(['primary', 'shift', 'alt'], 'Space');
+                await browser.electron.execute(() => {
+                    (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction?.('quickChat');
+                });
                 await waitForWindowTransition();
 
                 await quickChat.waitForVisible();
                 const isVisibleAfterOpen = await quickChat.isVisible();
                 expect(isVisibleAfterOpen).toBe(true);
 
-                await pressComplexShortcut(['primary', 'shift', 'alt'], 'Space');
+                await browser.electron.execute(() => {
+                    (global as { appContext?: any }).appContext?.hotkeyManager?.executeHotkeyAction?.('quickChat');
+                });
                 await waitForWindowTransition();
 
                 await quickChat.waitForHidden();
@@ -427,6 +409,167 @@ describe('Hotkeys', () => {
                     const toggle = await $(`[data-testid="${config.testId}-switch"]`);
                     const checked = await toggle.getAttribute('aria-checked');
                     expect(checked).toBe('true');
+                });
+
+                it('should reset quickChat to the resolved Alt+Space default instead of the legacy literal', async () => {
+                    const settingsBeforeCustomizing = await browser.execute(() => {
+                        return (
+                            window as typeof window & {
+                                electronAPI: { getFullHotkeySettings: () => Promise<unknown> };
+                            }
+                        ).electronAPI.getFullHotkeySettings();
+                    });
+
+                    const quickChatSettingsBefore = settingsBeforeCustomizing as {
+                        quickChat: { accelerator: string; defaultAccelerator: string };
+                    };
+
+                    expect(quickChatSettingsBefore.quickChat.defaultAccelerator).toBe('Alt+Space');
+                    expect(quickChatSettingsBefore.quickChat.accelerator).toBeTruthy();
+
+                    const acceleratorContainer = await $(`[data-testid="${config.rowTestId}"] .keycap-container`);
+                    const initialRenderedAccelerator = await acceleratorContainer.getText();
+
+                    expect(initialRenderedAccelerator.length).toBeGreaterThan(0);
+
+                    await acceleratorContainer.click();
+                    await browser.keys(['Control', 'Shift', 'q']);
+
+                    const recordingFinished = await waitForUIState(
+                        async () => {
+                            const recordingPrompt = await $(`[data-testid="${config.rowTestId}"] .recording-prompt`);
+                            const exists = await recordingPrompt.isExisting();
+                            if (!exists) {
+                                return true;
+                            }
+                            return !(await recordingPrompt.isDisplayed());
+                        },
+                        { description: 'Quick Chat recording finished after custom accelerator capture' }
+                    );
+                    expect(recordingFinished).toBe(true);
+
+                    const changedText = await acceleratorContainer.getText();
+                    expect(changedText.includes('Q')).toBe(true);
+
+                    const customizedSettings = await browser.execute(() => {
+                        return (
+                            window as typeof window & {
+                                electronAPI: { getFullHotkeySettings: () => Promise<unknown> };
+                            }
+                        ).electronAPI.getFullHotkeySettings();
+                    });
+
+                    expect(
+                        (customizedSettings as { quickChat: { accelerator: string } }).quickChat.accelerator
+                    ).not.toBe(quickChatSettingsBefore.quickChat.defaultAccelerator);
+
+                    const resetButton = await $(`[data-testid="${config.rowTestId}"] .reset-button`);
+                    await resetButton.click();
+
+                    const resetApplied = await waitForUIState(
+                        async () => {
+                            const text = await acceleratorContainer.getText();
+                            return (
+                                !text.includes('Q') &&
+                                text.includes('␣') &&
+                                (text.includes('Alt') || text.includes('⌥'))
+                            );
+                        },
+                        {
+                            description: `Quick Chat accelerator reset to ${quickChatSettingsBefore.quickChat.defaultAccelerator}`,
+                        }
+                    );
+                    expect(resetApplied).toBe(true);
+
+                    const restoredSettings = await browser.execute(() => {
+                        return (
+                            window as typeof window & {
+                                electronAPI: { getFullHotkeySettings: () => Promise<unknown> };
+                            }
+                        ).electronAPI.getFullHotkeySettings();
+                    });
+
+                    expect((restoredSettings as { quickChat: { accelerator: string } }).quickChat.accelerator).toBe(
+                        quickChatSettingsBefore.quickChat.defaultAccelerator
+                    );
+                });
+
+                it('should preserve an existing quickChat accelerator until reset restores the resolved default', async () => {
+                    const legacyAccelerator = 'CommandOrControl+Shift+Alt+Space';
+
+                    await browser.execute((accelerator) => {
+                        return (
+                            window as typeof window & {
+                                electronAPI: { setHotkeyAccelerator: (id: string, value: string) => Promise<void> };
+                            }
+                        ).electronAPI.setHotkeyAccelerator('quickChat', accelerator);
+                    }, legacyAccelerator);
+
+                    const acceleratorContainer = await $(`[data-testid="${config.rowTestId}"] .keycap-container`);
+
+                    const legacyRendered = await waitForUIState(
+                        async () => {
+                            const text = await acceleratorContainer.getText();
+                            return (
+                                text.includes('Alt') &&
+                                text.includes('␣') &&
+                                (text.includes('Ctrl') || text.includes('⌃'))
+                            );
+                        },
+                        { description: 'Quick Chat row reflects existing legacy accelerator before reset' }
+                    );
+                    expect(legacyRendered).toBe(true);
+
+                    const legacySettings = await browser.execute(() => {
+                        return (
+                            window as typeof window & {
+                                electronAPI: { getFullHotkeySettings: () => Promise<unknown> };
+                            }
+                        ).electronAPI.getFullHotkeySettings();
+                    });
+
+                    expect(
+                        (legacySettings as { quickChat: { accelerator: string; defaultAccelerator: string } }).quickChat
+                    ).toMatchObject({
+                        accelerator: legacyAccelerator,
+                        defaultAccelerator: 'Alt+Space',
+                    });
+
+                    const resetButton = await $(`[data-testid="${config.rowTestId}"] .reset-button`);
+                    await resetButton.click();
+
+                    const resetToResolvedDefault = await waitForUIState(
+                        async () => {
+                            const text = await acceleratorContainer.getText();
+                            const expectedModifier = platform === 'macos' ? '⌥' : 'Alt';
+
+                            return (
+                                text.includes(expectedModifier) &&
+                                text.includes('␣') &&
+                                !text.includes('Ctrl') &&
+                                !text.includes('⌃') &&
+                                !text.includes('Shift') &&
+                                !text.includes('⇧')
+                            );
+                        },
+                        { description: 'Quick Chat row resets legacy accelerator to resolved default' }
+                    );
+                    expect(resetToResolvedDefault).toBe(true);
+
+                    const resetSettings = await browser.execute(() => {
+                        return (
+                            window as typeof window & {
+                                electronAPI: { getFullHotkeySettings: () => Promise<unknown> };
+                            }
+                        ).electronAPI.getFullHotkeySettings();
+                    });
+
+                    expect(
+                        (resetSettings as { quickChat: { accelerator: string; defaultAccelerator: string } }).quickChat
+                    ).toMatchObject({
+                        accelerator: 'Alt+Space',
+                        defaultAccelerator: 'Alt+Space',
+                    });
                 });
             });
 

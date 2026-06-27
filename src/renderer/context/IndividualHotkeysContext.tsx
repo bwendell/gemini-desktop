@@ -45,15 +45,11 @@ export type HotkeyAccelerators = SharedHotkeyAccelerators;
 /** Default accelerators for each hotkey */
 export const DEFAULT_ACCELERATORS: HotkeyAccelerators = SHARED_DEFAULT_ACCELERATORS;
 
-/** Individual hotkeys context value exposed to consumers */
 interface IndividualHotkeysContextType {
-    /** Current enabled state for each hotkey */
     settings: IndividualHotkeySettings;
-    /** Current accelerator for each hotkey */
     accelerators: HotkeyAccelerators;
-    /** Function to update a specific hotkey's enabled state */
+    defaultAccelerators: HotkeyAccelerators;
     setEnabled: (id: HotkeyId, enabled: boolean) => void;
-    /** Function to update a specific hotkey's accelerator */
     setAccelerator: (id: HotkeyId, accelerator: string) => void;
 }
 
@@ -136,6 +132,7 @@ function isValidAccelerators(data: unknown): data is HotkeyAccelerators {
 export function IndividualHotkeysProvider({ children }: IndividualHotkeysProviderProps) {
     const [settings, setSettingsState] = useState<IndividualHotkeySettings>(DEFAULT_SETTINGS);
     const [accelerators, setAcceleratorsState] = useState<HotkeyAccelerators>(DEFAULT_ACCELERATORS);
+    const [defaultAccelerators, setDefaultAcceleratorsState] = useState<HotkeyAccelerators>(DEFAULT_ACCELERATORS);
 
     // Initialize state from Electron on mount
     useEffect(() => {
@@ -143,38 +140,49 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
 
         const initHotkeys = async () => {
             // No Electron API - use defaults
-            if (!window.electronAPI?.getIndividualHotkeys) {
-                logger.log('No Electron API, using defaults');
+            if (!window.electronAPI?.getFullHotkeySettings) {
+                logger.log('No Electron API (getFullHotkeySettings), using defaults');
                 return;
             }
 
             try {
-                // Fetch enabled settings
-                const settingsResult = await window.electronAPI.getIndividualHotkeys();
+                const settingsResult = await window.electronAPI.getFullHotkeySettings();
 
                 /* v8 ignore next -- race condition guard for async unmount */
                 if (!isMounted) return;
 
-                if (isValidSettings(settingsResult)) {
-                    setSettingsState(settingsResult);
-                    logger.log('Individual hotkeys initialized:', settingsResult);
-                } else {
-                    logger.log('Unexpected settings format:', settingsResult);
-                }
+                if (settingsResult) {
+                    const newSettings: IndividualHotkeySettings = {
+                        alwaysOnTop: settingsResult.alwaysOnTop.enabled,
+                        peekAndHide: settingsResult.peekAndHide.enabled,
+                        quickChat: settingsResult.quickChat.enabled,
+                        voiceChat: settingsResult.voiceChat.enabled,
+                        printToPdf: settingsResult.printToPdf.enabled,
+                    };
+                    const newAccelerators: HotkeyAccelerators = {
+                        alwaysOnTop: settingsResult.alwaysOnTop.accelerator,
+                        peekAndHide: settingsResult.peekAndHide.accelerator,
+                        quickChat: settingsResult.quickChat.accelerator,
+                        voiceChat: settingsResult.voiceChat.accelerator,
+                        printToPdf: settingsResult.printToPdf.accelerator,
+                    };
+                    const newDefaultAccelerators: HotkeyAccelerators = {
+                        alwaysOnTop: settingsResult.alwaysOnTop.defaultAccelerator,
+                        peekAndHide: settingsResult.peekAndHide.defaultAccelerator,
+                        quickChat: settingsResult.quickChat.defaultAccelerator,
+                        voiceChat: settingsResult.voiceChat.defaultAccelerator,
+                        printToPdf: settingsResult.printToPdf.defaultAccelerator,
+                    };
 
-                // Fetch accelerators
-                if (window.electronAPI?.getHotkeyAccelerators) {
-                    const acceleratorsResult = await window.electronAPI.getHotkeyAccelerators();
-
-                    /* v8 ignore next -- race condition guard for async unmount */
-                    if (!isMounted) return;
-
-                    if (isValidAccelerators(acceleratorsResult)) {
-                        setAcceleratorsState(acceleratorsResult);
-                        logger.log('Accelerators initialized:', acceleratorsResult);
-                    } else {
-                        logger.log('Unexpected accelerators format:', acceleratorsResult);
-                    }
+                    setSettingsState(newSettings);
+                    setAcceleratorsState(newAccelerators);
+                    setDefaultAcceleratorsState(newDefaultAccelerators);
+                    logger.log(
+                        'Individual hotkeys initialized via full settings:',
+                        newSettings,
+                        newAccelerators,
+                        newDefaultAccelerators
+                    );
                 }
             } catch (error) {
                 logger.error('Failed to initialize individual hotkeys:', error);
@@ -248,7 +256,9 @@ export function IndividualHotkeysProvider({ children }: IndividualHotkeysProvide
     }, []);
 
     return (
-        <IndividualHotkeysContext.Provider value={{ settings, accelerators, setEnabled, setAccelerator }}>
+        <IndividualHotkeysContext.Provider
+            value={{ settings, accelerators, defaultAccelerators, setEnabled, setAccelerator }}
+        >
             {children}
         </IndividualHotkeysContext.Provider>
     );

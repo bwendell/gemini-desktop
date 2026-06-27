@@ -85,11 +85,11 @@ For full details, read the [Transparency Report](docs/TRANSPARENCY.md), [Privacy
 
 ## ⌨️ Keyboard Shortcuts
 
-- `Ctrl+Shift+Alt+Space` (`Cmd+Shift+Alt+Space` on macOS) — Toggle Quick Chat
+- `Alt+Space` — Toggle Quick Chat (fresh installs on Windows, macOS, and Linux)
 - `Ctrl+Shift+Space` (`Cmd+Shift+Space` on macOS) — Peek and Hide (toggle app visibility)
 - `Ctrl+P` (`Cmd+P` on macOS) — Print current page to PDF
 
-> 💡 You can customize hotkeys in Settings.
+> 💡 Existing users keep their previously persisted Quick Chat shortcuts (like `Ctrl+Shift+Alt+Space`) until an explicit reset in Settings.
 
 ## 🗺️ What's Next
 
