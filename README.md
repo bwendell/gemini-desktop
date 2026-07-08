@@ -1,7 +1,11 @@
 # Gemini Desktop — Native, Private AI Experience
 
+> [!IMPORTANT]
+> **Project status: on hiatus — not actively maintained** (July 2026). The app continues to work and all [releases](https://github.com/bwendell/gemini-desktop/releases) remain available, but issues and PRs may go unanswered and no new development is planned for now. Details in the [status announcement](https://github.com/bwendell/gemini-desktop/issues/389) — maintainer volunteers welcome.
+
 <div align="center">
 
+[![Project Status: Inactive](https://www.repostatus.org/badges/latest/inactive.svg)](https://www.repostatus.org/#inactive)
 [![GitHub release](https://img.shields.io/github/v/release/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/releases)
 [![GitHub last commit](https://img.shields.io/github/last-commit/bwendell/gemini-desktop?style=flat-square)](https://github.com/bwendell/gemini-desktop/commits/main)
 [![Platform](<https://img.shields.io/badge/platform-Windows%20(x64%2C%20ARM64)%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square>)](https://github.com/bwendell/gemini-desktop/releases)

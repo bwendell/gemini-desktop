@@ -2,99 +2,30 @@
 # Dependabot Configuration
 # =============================================================================
 #
-# Automatically creates pull requests to update dependencies.
-# This helps keep the project secure and up-to-date.
+# PROJECT ON HIATUS (July 2026): Dependabot VERSION-update PRs are disabled
+# via `open-pull-requests-limit: 0`, because they were accumulating with no
+# active maintainer to review and merge them.
 #
-# Best Practices:
-#   ✓ Weekly updates to avoid update fatigue
-#   ✓ Grouped updates for related packages
-#   ✓ Conventional commit prefixes for changelog generation
-#   ✓ Assignee configuration for review
+# Dependabot SECURITY alerts and security-update PRs are controlled by the
+# repository's security settings (not this file) and remain enabled.
+#
+# To resume normal version updates, restore this file from git history
+# (any revision prior to July 2026 has the full schedule/group config).
 #
 # =============================================================================
 
 version: 2
 updates:
-    # ---------------------------------------------------------------------------
-    # npm Dependencies
-    # ---------------------------------------------------------------------------
+    # npm — version updates disabled (open-pull-requests-limit: 0)
     - package-ecosystem: 'npm'
       directory: '/'
       schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '09:00'
-          timezone: 'America/Los_Angeles'
+          interval: 'monthly'
+      open-pull-requests-limit: 0
 
-      # Limit open PRs to avoid overwhelming the maintainer
-      open-pull-requests-limit: 10
-
-      # Use conventional commit format
-      commit-message:
-          prefix: 'deps'
-          include: 'scope'
-
-      # Group related dependencies together
-      groups:
-          # React ecosystem updates
-          react:
-              patterns:
-                  - 'react'
-                  - 'react-dom'
-                  - '@types/react'
-                  - '@types/react-dom'
-
-          # Testing framework updates
-          testing:
-              patterns:
-                  - 'vitest'
-                  - '@vitest/*'
-                  - '@testing-library/*'
-                  - 'jsdom'
-
-          # E2E testing updates
-          e2e-testing:
-              patterns:
-                  - '@wdio/*'
-                  - 'wdio-*'
-                  - '@playwright/*'
-                  - 'expect-webdriverio'
-
-          # Electron ecosystem
-          electron:
-              patterns:
-                  - 'electron'
-                  - 'electron-builder'
-
-          # Build tools
-          build-tools:
-              patterns:
-                  - 'vite'
-                  - '@vitejs/*'
-                  - 'typescript'
-                  - 'typedoc'
-
-      # Ignore major version updates for stability
-      # These require manual review
-      ignore:
-          - dependency-name: 'electron'
-            update-types: ['version-update:semver-major']
-          - dependency-name: 'react'
-            update-types: ['version-update:semver-major']
-          - dependency-name: 'react-dom'
-            update-types: ['version-update:semver-major']
-
-    # ---------------------------------------------------------------------------
-    # GitHub Actions Updates
-    # ---------------------------------------------------------------------------
+    # GitHub Actions — version updates disabled (open-pull-requests-limit: 0)
     - package-ecosystem: 'github-actions'
       directory: '/'
       schedule:
-          interval: 'weekly'
-          day: 'monday'
-          time: '09:00'
-          timezone: 'America/Los_Angeles'
-
-      commit-message:
-          prefix: 'ci'
-          include: 'scope'
+          interval: 'monthly'
+      open-pull-requests-limit: 0
