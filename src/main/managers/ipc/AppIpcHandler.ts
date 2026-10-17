@@ -9,7 +9,7 @@
 
 import { app, ipcMain } from 'electron';
 import { BaseIpcHandler } from './BaseIpcHandler';
-import { IPC_CHANNELS, GOOGLE_ACCOUNTS_URL } from '../../utils/constants';
+import { IPC_CHANNELS, GOOGLE_SIGNIN_URL } from '../../utils/constants';
 
 /**
  * Handler for application-level IPC operations.
@@ -35,7 +35,7 @@ export class AppIpcHandler extends BaseIpcHandler {
         // Open Google sign-in using WindowManager's createAuthWindow
         ipcMain.handle(IPC_CHANNELS.OPEN_GOOGLE_SIGNIN, async (): Promise<void> => {
             try {
-                const authWindow = this.deps.windowManager.createAuthWindow(GOOGLE_ACCOUNTS_URL);
+                const authWindow = this.deps.windowManager.createAuthWindow(GOOGLE_SIGNIN_URL);
 
                 // Return a promise that resolves when window is closed
                 return new Promise((resolve) => {

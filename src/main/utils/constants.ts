@@ -59,14 +59,9 @@ export function getBaseWebPreferences(): BrowserWindowConstructorOptions['webPre
 }
 
 /**
- * Default URL for Google sign-in.
+ * Google accounts origin. Sign-in opens GOOGLE_SIGNIN_URL, below.
  */
 export const GOOGLE_ACCOUNTS_URL = 'https://accounts.google.com' as const;
-
-/**
- * Full URL for Google sign-in page.
- */
-export const GOOGLE_SIGNIN_URL = `${GOOGLE_ACCOUNTS_URL}/signin` as const;
 
 // =========================================================================
 // External URLs
@@ -106,6 +101,12 @@ export const GOOGLE_GENAI_TERMS_URL = 'https://policies.google.com/terms/generat
  * Main Gemini application URL.
  */
 export const GEMINI_APP_URL = 'https://gemini.google.com/app' as const;
+
+/**
+ * Google sign-in page that continues to Gemini, so the auth window closes itself once the user
+ * has signed in.
+ */
+export const GOOGLE_SIGNIN_URL = `${GOOGLE_ACCOUNTS_URL}/ServiceLogin?continue=${encodeURIComponent(GEMINI_APP_URL)}`;
 
 /**
  * AI Studio domain (for checking URL).

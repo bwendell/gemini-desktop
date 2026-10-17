@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AppIpcHandler } from '../../../../src/main/managers/ipc/AppIpcHandler';
 import type { IpcHandlerDependencies } from '../../../../src/main/managers/ipc/types';
 import { createMockLogger, createMockWindowManager, createMockStore } from '../../../helpers/mocks';
+import { GOOGLE_SIGNIN_URL } from '../../../../src/main/utils/constants';
 
 // Mock Electron
 const { mockIpcMain, mockApp } = vi.hoisted(() => {
@@ -137,7 +138,7 @@ describe('AppIpcHandler', () => {
             handler.register();
         });
 
-        it('calls windowManager.createAuthWindow with Google accounts URL (3.3.6)', async () => {
+        it('calls windowManager.createAuthWindow with the Google sign-in URL (3.3.6)', async () => {
             const ipcHandler = mockIpcMain._handlers.get('open-google-signin');
 
             // Create a mock auth window with an EventEmitter-like interface
@@ -153,7 +154,7 @@ describe('AppIpcHandler', () => {
 
             await ipcHandler!({});
 
-            expect(mockWindowManager.createAuthWindow).toHaveBeenCalledWith('https://accounts.google.com');
+            expect(mockWindowManager.createAuthWindow).toHaveBeenCalledWith(GOOGLE_SIGNIN_URL);
         });
 
         it('resolves when auth window is closed (3.3.7)', async () => {

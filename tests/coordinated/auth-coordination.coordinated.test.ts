@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ipcMain } from 'electron';
 import IpcManager from '../../src/main/managers/ipcManager';
 import WindowManager from '../../src/main/managers/windowManager';
-import { GOOGLE_ACCOUNTS_URL, IPC_CHANNELS } from '../../src/main/utils/constants';
+import { GOOGLE_SIGNIN_URL, IPC_CHANNELS } from '../../src/main/utils/constants';
 import { platformAdapterPresets, useMockPlatformAdapter, resetPlatformAdapterForTests } from '../helpers/mocks';
 
 vi.mock('../../src/main/utils/logger');
@@ -63,7 +63,7 @@ describe('Auth Coordination Integration', () => {
 
             await handler();
 
-            expect(windowManager.createAuthWindow).toHaveBeenCalledWith(GOOGLE_ACCOUNTS_URL);
+            expect(windowManager.createAuthWindow).toHaveBeenCalledWith(GOOGLE_SIGNIN_URL);
         });
 
         it('should trigger auth window creation from Main Window callback', () => {
@@ -75,6 +75,35 @@ describe('Auth Coordination Integration', () => {
             callback('https://accounts.google.com/o/oauth2/v2/auth');
 
             expect(windowManager.createAuthWindow).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth');
+        });
+
+        it.each([
+            ["Gemini's Sign in button navigates", 'will-frame-navigate', 'https://gemini.google.com/app'],
+            ["Gemini's server redirects a loading", 'will-redirect', ''],
+        ])('should open sign-in in the auth window when %s tab there, and reload after', (_name, event, tabUrl) => {
+            const mainBrowserWindow = windowManager.createMainWindow() as any;
+            const handler = mainBrowserWindow.webContents.on.mock.calls.find(
+                (call: [string, unknown]) => call[0] === event
+            )[1];
+            const signInUrl = 'https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fgemini.google.com%2Fapp';
+            const details = {
+                url: signInUrl,
+                isMainFrame: false,
+                // A tab: one of the main window's iframes
+                frame: { url: tabUrl, parent: { url: 'file:///app/index.html', parent: null } },
+                preventDefault: vi.fn(),
+            };
+
+            handler(details);
+
+            expect(details.preventDefault).toHaveBeenCalled();
+            expect(windowManager.createAuthWindow).toHaveBeenCalledWith(signInUrl);
+            expect(mainBrowserWindow.reload).not.toHaveBeenCalled();
+
+            const authBrowserWindow = vi.mocked(windowManager.createAuthWindow).mock.results[0].value as any;
+            authBrowserWindow.close();
+
+            expect(mainBrowserWindow.reload).toHaveBeenCalledTimes(1);
         });
 
         it('should close auth window when main window closes', () => {

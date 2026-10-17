@@ -174,6 +174,9 @@ export function createMockWindowManager(overrides?: Partial<Omit<MockWindowManag
         on: vi.fn((event: string, handler: () => void) => {
             if (event === 'closed') handler();
         }),
+        once: vi.fn((event: string, handler: () => void) => {
+            if (event === 'closed') handler();
+        }),
     };
 
     const manager: MockWindowManager = {

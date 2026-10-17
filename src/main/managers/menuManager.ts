@@ -312,10 +312,10 @@ export default class MenuManager {
                 {
                     label: 'Sign in to Google',
                     id: 'menu-file-signin',
-                    click: async () => {
-                        await this.windowManager.createAuthWindow(GOOGLE_SIGNIN_URL);
-                        // Reload main window to capture new auth state
-                        this.windowManager.getMainWindow()?.reload();
+                    click: () => {
+                        const authWindow = this.windowManager.createAuthWindow(GOOGLE_SIGNIN_URL);
+                        // Reload the main window once sign-in is done and the window has closed
+                        authWindow.once('closed', () => this.windowManager.getMainWindow()?.reload());
                     },
                 },
                 {

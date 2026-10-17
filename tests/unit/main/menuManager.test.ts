@@ -7,6 +7,7 @@ import { WindowsAdapter } from '../../../src/main/platform/adapters/WindowsAdapt
 import { MacAdapter } from '../../../src/main/platform/adapters/MacAdapter';
 import { LinuxX11Adapter } from '../../../src/main/platform/adapters/LinuxX11Adapter';
 import type { PlatformAdapter } from '../../../src/main/platform/PlatformAdapter';
+import { GOOGLE_SIGNIN_URL } from '../../../src/main/utils/constants';
 
 // Mock electron
 vi.mock('electron', () => ({
@@ -45,7 +46,6 @@ describe('MenuManager', () => {
 
         // Mock WindowManager using shared factory
         mockWindowManager = createMockWindowManager({
-            createAuthWindow: vi.fn().mockResolvedValue(undefined),
             getMainWindow: vi.fn().mockReturnValue({
                 reload: vi.fn(),
                 isDestroyed: vi.fn().mockReturnValue(false),
@@ -263,19 +263,25 @@ describe('MenuManager', () => {
     });
 
     describe('File Menu', () => {
-        it('Sign in item calls createAuthWindow and reloads', async () => {
+        it('Sign in item opens the sign-in window and reloads after it closes', () => {
             setPlatform('darwin');
+            const authWindowListeners = new Map<string, () => void>();
+            mockWindowManager.createAuthWindow.mockReturnValue({
+                once: vi.fn((event: string, listener: () => void) => authWindowListeners.set(event, listener)),
+            });
             menuManager.buildMenu();
             const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
             const fileMenu = findMenuItem(template, 'File');
             const signInItem = findSubmenuItem(fileMenu, 'Sign in to Google');
 
             expect(signInItem).toBeTruthy();
-            await signInItem.click();
-            expect(mockWindowManager.createAuthWindow).toHaveBeenCalledWith(
-                expect.stringContaining('accounts.google.com')
-            );
-            expect(mockWindowManager.getMainWindow().reload).toHaveBeenCalled();
+            signInItem.click();
+            expect(mockWindowManager.createAuthWindow).toHaveBeenCalledWith(GOOGLE_SIGNIN_URL);
+            const mainWindow = mockWindowManager.getMainWindow();
+            expect(mainWindow.reload).not.toHaveBeenCalled();
+
+            authWindowListeners.get('closed')?.();
+            expect(mainWindow.reload).toHaveBeenCalledTimes(1);
         });
 
         it('Export as PDF item calls emit("print-to-pdf-triggered")', () => {

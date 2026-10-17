@@ -123,6 +123,10 @@ describe('Constants', () => {
             expect(GOOGLE_SIGNIN_URL).toContain(GOOGLE_ACCOUNTS_URL);
         });
 
+        it('continues GOOGLE_SIGNIN_URL to Gemini, which closes the auth window', () => {
+            expect(new URL(GOOGLE_SIGNIN_URL).searchParams.get('continue')).toBe(GEMINI_APP_URL);
+        });
+
         it('has correct GEMINI_APP_URL', () => {
             expect(GEMINI_APP_URL).toBe('https://gemini.google.com/app');
         });

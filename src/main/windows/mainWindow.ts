@@ -6,6 +6,7 @@
  * - Close-to-tray behavior
  * - Navigation security (blocking external URLs)
  * - Window open handler (OAuth interception, external links)
+ * - Sign-in from a Gemini tab (opened in the auth window)
  *
  * @module MainWindow
  */
@@ -41,13 +42,22 @@ export default class MainWindow extends BaseWindow {
     private isQuitting = false;
 
     /** Callback to create auth window for OAuth flows */
-    private createAuthWindowCallback?: (url: string) => void;
+    private createAuthWindowCallback?: (url: string) => BrowserWindow | undefined;
 
     /** Callback to close options window when closing main window */
     private closeOptionsWindowCallback?: () => void;
 
     /** Callback to close auth window when closing main window */
     private closeAuthWindowCallback?: () => void;
+
+    /** Sign-in window opened from a tab, while it is open */
+    private tabSignInWindow: BrowserWindow | null = null;
+
+    /** When a sign-in window opened from a tab last finished signing in */
+    private lastTabSignInAt = 0;
+
+    /** A tab sent to sign-in again this soon after signing in means sign-in cannot help it */
+    private static readonly TAB_SIGN_IN_LOOP_MS = 30000;
 
     /** Debounce cooldown in milliseconds for response-complete events */
     private static readonly RESPONSE_DEBOUNCE_MS = 1000;
@@ -88,9 +98,9 @@ export default class MainWindow extends BaseWindow {
 
     /**
      * Set callback for creating auth windows (OAuth flow).
-     * @param callback - Function to create auth window with URL
+     * @param callback - Function to create auth window with URL. It returns the auth window.
      */
-    setAuthWindowCallback(callback: (url: string) => void): void {
+    setAuthWindowCallback(callback: (url: string) => BrowserWindow | undefined): void {
         this.createAuthWindowCallback = callback;
     }
 
@@ -142,6 +152,7 @@ export default class MainWindow extends BaseWindow {
 
         this.setupWindowOpenHandler();
         this.setupNavigationHandler();
+        this.setupSignInFrameHandler();
         this.setupCloseHandler();
         this.setupCrashHandlers();
         this.setupResponseDetection();
@@ -252,6 +263,66 @@ export default class MainWindow extends BaseWindow {
                 event.preventDefault();
             }
         });
+    }
+
+    /**
+     * Open Google sign-in from a Gemini tab in the auth window.
+     * Google answers its sign-in pages with a 401 ("malformed request") when they load in an
+     * iframe. Gemini's Sign in button navigates a tab there, and Gemini's server can redirect a
+     * tab there while it loads, so both navigations and redirects are caught.
+     */
+    private setupSignInFrameHandler(): void {
+        if (!this.window) return;
+
+        const onTabNavigation = (details: Electron.Event<Electron.WebContentsWillRedirectEventParams>) =>
+            this.openTabSignIn(details);
+        this.window.webContents.on('will-frame-navigate', onTabNavigation);
+        this.window.webContents.on('will-redirect', onTabNavigation);
+    }
+
+    private openTabSignIn(details: Electron.Event<Electron.WebContentsWillRedirectEventParams>): void {
+        try {
+            const { frame, isMainFrame, url } = details;
+            // Only the tabs, which are the main window's own iframes, whatever page they show:
+            // a tab that is still loading has no URL yet. Main frame navigations go through
+            // will-navigate, and the hidden accounts frames Gemini adds inside a tab load in place.
+            if (isMainFrame || !frame?.parent || frame.parent.parent) return;
+            if (!isOAuthDomain(new URL(url).hostname)) return;
+
+            details.preventDefault();
+            if (this.tabSignInWindow && !this.tabSignInWindow.isDestroyed()) {
+                this.tabSignInWindow.focus();
+                return;
+            }
+            // Reopening would only repeat the sign-in that just finished, in a loop.
+            if (Date.now() - this.lastTabSignInAt < MainWindow.TAB_SIGN_IN_LOOP_MS) {
+                this.logger.error('A tab was sent to Google sign-in again right after signing in:', url);
+                return;
+            }
+            if (!this.createAuthWindowCallback) {
+                this.logger.error('Auth window callback not set');
+                return;
+            }
+
+            this.logger.log('Opening sign-in from a Gemini tab in the auth window:', url);
+            const authWindow = this.createAuthWindowCallback(url);
+            if (!authWindow) return;
+            this.tabSignInWindow = authWindow;
+            let signedIn = false;
+            authWindow.webContents.on('did-navigate', (_event, navigationUrl) => {
+                if (isGeminiDomain(navigationUrl)) signedIn = true;
+            });
+            // Reload like File > Sign in to Google does, so the tabs show the new session.
+            authWindow.once('closed', () => {
+                this.tabSignInWindow = null;
+                if (signedIn) this.lastTabSignInAt = Date.now();
+                if (this.window && !this.window.isDestroyed()) {
+                    this.window.reload();
+                }
+            });
+        } catch (error) {
+            this.logger.error('Error handling frame navigation:', error);
+        }
     }
 
     /**
