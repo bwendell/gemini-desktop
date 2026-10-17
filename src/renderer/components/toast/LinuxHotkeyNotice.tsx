@@ -4,6 +4,7 @@
  * Displays a conditional warning toast on Linux about global hotkeys.
  * Only shows toast when global hotkeys fail or are unsupported.
  * Silent success when Wayland + portal is working correctly.
+ * While the desktop still asks the user to approve the shortcuts, it waits for the answer.
  *
  * Uses the ToastContext system for theme consistency and duplicate prevention.
  *
@@ -42,6 +43,63 @@ function getDisplayName(de: DesktopEnvironment): string | null {
 }
 
 /**
+ * The warning to show for a platform hotkey status, if any.
+ *
+ * @param status - Status from the main process, or null if it could not be read
+ * @returns The toast's title and message, or null when global hotkeys work
+ */
+function getHotkeyNotice(status: PlatformHotkeyStatus | null): { title: string; message: string } | null {
+    // If global hotkeys are enabled, check for partial failures
+    if (status?.globalHotkeysEnabled) {
+        const failures = status.registrationResults.filter((r) => !r.success);
+        if (failures.length === 0) {
+            return null; // All good, no toast needed
+        }
+
+        // Partial failure — warn about specific shortcuts
+        const failedNames = failures.map((f) => f.hotkeyId).join(', ');
+        return {
+            title: 'Hotkey Registration Partial',
+            message: `Some global shortcuts could not be registered: ${failedNames}. These may conflict with other applications.`,
+        };
+    }
+
+    // Hotkeys not enabled — show appropriate message
+    const waylandStatus = status?.waylandStatus;
+    const failures = status?.registrationResults.filter((result) => !result.success) ?? [];
+    const deName = waylandStatus ? getDisplayName(waylandStatus.desktopEnvironment) : null;
+
+    let message: string;
+
+    if (failures.length > 0) {
+        const failedNames = failures.map((failure) => failure.hotkeyId).join(', ');
+        const failureDetails = Array.from(
+            new Set(failures.map((failure) => failure.error).filter((error): error is string => Boolean(error?.trim())))
+        );
+
+        if (failureDetails.length > 0) {
+            message = `Global shortcuts could not be registered: ${failedNames}. ${failureDetails.join('; ')}.`;
+        } else {
+            message = `Global shortcuts could not be registered: ${failedNames}.`;
+        }
+    } else if (waylandStatus?.isWayland) {
+        if (!waylandStatus.portalAvailable) {
+            message = deName
+                ? `Global shortcuts are not available on ${deName}. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.`
+                : 'Global shortcuts are not available. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.';
+        } else {
+            message = deName
+                ? `Global shortcuts are currently disabled on ${deName}. Enable them in Settings to register shortcuts.`
+                : 'Global shortcuts are currently disabled. Enable them in Settings to register shortcuts.';
+        }
+    } else {
+        message = deName ? `Global shortcuts are not available on ${deName}.` : 'Global shortcuts are not available.';
+    }
+
+    return { title: 'Global Hotkeys Disabled', message };
+}
+
+/**
  * Linux Hotkey Notice component
  *
  * Shows a warning toast on Linux only when global hotkeys fail or are unsupported.
@@ -58,8 +116,31 @@ export function LinuxHotkeyNotice() {
         // Prevent duplicate toasts from strict mode double-mount
         if (hasShownRef.current) return;
 
+        let settled = false;
+        let unsubscribe: (() => void) | undefined;
+
+        // Decide once the main process has an answer; a pending registration sends its result later
+        const decide = (status: PlatformHotkeyStatus | null) => {
+            if (settled || status?.registrationPending) return;
+            settled = true;
+            unsubscribe?.();
+            hasShownRef.current = true;
+
+            const notice = getHotkeyNotice(status);
+            if (notice) {
+                showWarning(notice.message, {
+                    id: TOAST_ID,
+                    title: notice.title,
+                    duration: TOAST_DURATION_MS,
+                });
+            }
+        };
+
         // Show after a delay to let the app initialize and await IPC response
         const timer = setTimeout(async () => {
+            // Listen first, so a registration that finishes during the query is not missed
+            unsubscribe = window.electronAPI?.onPlatformHotkeyStatusChanged?.(decide);
+
             // Query platform status from main process
             let status: PlatformHotkeyStatus | null = null;
             try {
@@ -68,75 +149,12 @@ export function LinuxHotkeyNotice() {
                 // If IPC fails, fall back to showing warning (defensive)
             }
 
-            hasShownRef.current = true;
-
-            // If global hotkeys are enabled, check for partial failures
-            if (status?.globalHotkeysEnabled) {
-                const failures = status.registrationResults.filter((r) => !r.success);
-                if (failures.length === 0) {
-                    return; // All good, no toast needed
-                }
-
-                // Partial failure — warn about specific shortcuts
-                const failedNames = failures.map((f) => f.hotkeyId).join(', ');
-                showWarning(
-                    `Some global shortcuts could not be registered: ${failedNames}. These may conflict with other applications.`,
-                    {
-                        id: TOAST_ID,
-                        title: 'Hotkey Registration Partial',
-                        duration: TOAST_DURATION_MS,
-                    }
-                );
-                return;
-            }
-
-            // Hotkeys not enabled — show appropriate message
-            const waylandStatus = status?.waylandStatus;
-            const failures = status?.registrationResults.filter((result) => !result.success) ?? [];
-            const deName = waylandStatus ? getDisplayName(waylandStatus.desktopEnvironment) : null;
-
-            let message: string;
-
-            if (failures.length > 0) {
-                const failedNames = failures.map((failure) => failure.hotkeyId).join(', ');
-                const failureDetails = Array.from(
-                    new Set(
-                        failures
-                            .map((failure) => failure.error)
-                            .filter((error): error is string => Boolean(error?.trim()))
-                    )
-                );
-
-                if (failureDetails.length > 0) {
-                    message = `Global shortcuts could not be registered: ${failedNames}. ${failureDetails.join('; ')}.`;
-                } else {
-                    message = `Global shortcuts could not be registered: ${failedNames}.`;
-                }
-            } else if (waylandStatus?.isWayland) {
-                if (!waylandStatus.portalAvailable) {
-                    message = deName
-                        ? `Global shortcuts are not available on ${deName}. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.`
-                        : 'Global shortcuts are not available. Portal registration is unavailable because the desktop environment is unsupported or no Wayland session bus was detected.';
-                } else {
-                    message = deName
-                        ? `Global shortcuts are currently disabled on ${deName}. Enable them in Settings to register shortcuts.`
-                        : 'Global shortcuts are currently disabled. Enable them in Settings to register shortcuts.';
-                }
-            } else {
-                message = deName
-                    ? `Global shortcuts are not available on ${deName}.`
-                    : 'Global shortcuts are not available.';
-            }
-
-            showWarning(message, {
-                id: TOAST_ID,
-                title: 'Global Hotkeys Disabled',
-                duration: TOAST_DURATION_MS,
-            });
+            decide(status);
         }, SHOW_DELAY_MS);
 
         return () => {
             clearTimeout(timer);
+            unsubscribe?.();
         };
     }, [showWarning]);
 

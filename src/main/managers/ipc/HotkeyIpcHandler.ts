@@ -7,6 +7,8 @@
  * - hotkeys:accelerator:get - Returns all hotkey accelerators
  * - hotkeys:accelerator:set - Sets a hotkey accelerator
  * - hotkeys:full-settings:get - Returns both enabled states and accelerators
+ * - platform:hotkey-status:get - Returns the platform hotkey status
+ * - platform:hotkey-status:changed - Sent to all windows when a portal registration finishes
  *
  * @module ipc/HotkeyIpcHandler
  */
@@ -35,6 +37,9 @@ const TEST_ONLY_DBUS_SIGNALS_ENABLED = process.env.NODE_ENV === 'test' || proces
  * HotkeyManager synchronization, and broadcasting changes to all windows.
  */
 export class HotkeyIpcHandler extends BaseIpcHandler {
+    /** Bound listener for windowManager platform-hotkey-status-changed events (stored for cleanup). */
+    private _boundPlatformHotkeyStatusChanged: ((status: PlatformHotkeyStatus) => void) | null = null;
+
     /**
      * Register hotkey IPC handlers with ipcMain.
      */
@@ -68,6 +73,12 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
         ipcMain.handle(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_GET, (): PlatformHotkeyStatus => {
             return this._handleGetPlatformHotkeyStatus();
         });
+
+        // Send the status to all windows when a portal registration finishes
+        this._boundPlatformHotkeyStatusChanged = (status: PlatformHotkeyStatus) => {
+            this.broadcastToAllWindows(IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_CHANGED, status);
+        };
+        this.deps.windowManager.on('platform-hotkey-status-changed', this._boundPlatformHotkeyStatusChanged);
 
         // Test-only: Register D-Bus activation signal handlers only in test/debug mode
         if (TEST_ONLY_DBUS_SIGNALS_ENABLED) {
@@ -377,6 +388,13 @@ export class HotkeyIpcHandler extends BaseIpcHandler {
 
     /** Unregister all IPC handlers. */
     unregister(): void {
+        if (this._boundPlatformHotkeyStatusChanged) {
+            this.deps.windowManager.removeListener(
+                'platform-hotkey-status-changed',
+                this._boundPlatformHotkeyStatusChanged
+            );
+            this._boundPlatformHotkeyStatusChanged = null;
+        }
         ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_GET);
         ipcMain.removeAllListeners(IPC_CHANNELS.HOTKEYS_INDIVIDUAL_SET);
         ipcMain.removeHandler(IPC_CHANNELS.HOTKEYS_ACCELERATOR_GET);

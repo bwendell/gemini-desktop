@@ -658,6 +658,39 @@ describe('HotkeyIpcHandler', () => {
         });
     });
 
+    describe('platform hotkey status changes', () => {
+        it('sends the status to all windows when a portal registration finishes', () => {
+            handler.register();
+
+            const subscription = vi
+                .mocked(mockDeps.windowManager.on)
+                .mock.calls.find(([event]) => event === 'platform-hotkey-status-changed');
+            expect(subscription).toBeDefined();
+
+            const status = { globalHotkeysEnabled: true, registrationPending: false };
+            (subscription![1] as (status: unknown) => void)(status);
+
+            expect(mockBrowserWindow._mockWebContents.send).toHaveBeenCalledWith(
+                IPC_CHANNELS.PLATFORM_HOTKEY_STATUS_CHANGED,
+                status
+            );
+        });
+
+        it('stops listening on unregister', () => {
+            handler.register();
+            const subscription = vi
+                .mocked(mockDeps.windowManager.on)
+                .mock.calls.find(([event]) => event === 'platform-hotkey-status-changed');
+
+            handler.unregister();
+
+            expect(mockDeps.windowManager.removeListener).toHaveBeenCalledWith(
+                'platform-hotkey-status-changed',
+                subscription![1]
+            );
+        });
+    });
+
     describe('unregister cleanup', () => {
         it('removes PLATFORM_HOTKEY_STATUS_GET handler', () => {
             handler.register();

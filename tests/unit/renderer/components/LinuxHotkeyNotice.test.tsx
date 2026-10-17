@@ -511,6 +511,127 @@ describe('LinuxHotkeyNotice', () => {
         });
     });
 
+    describe('waiting for the desktop to approve the shortcuts', () => {
+        const gnomeWayland: PlatformHotkeyStatus['waylandStatus'] = {
+            isWayland: true,
+            desktopEnvironment: 'gnome',
+            deVersion: '51',
+            portalAvailable: true,
+            portalMethod: 'dbus-direct',
+        };
+        const pendingStatus: PlatformHotkeyStatus = {
+            waylandStatus: gnomeWayland,
+            registrationResults: [],
+            globalHotkeysEnabled: false,
+            registrationPending: true,
+        };
+        let statusChanged: ((status: PlatformHotkeyStatus) => void) | undefined;
+        const mockUnsubscribe = vi.fn();
+
+        beforeEach(() => {
+            vi.mocked(isLinux).mockReturnValue(true);
+            statusChanged = undefined;
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockResolvedValue(pendingStatus);
+            win.electronAPI.onPlatformHotkeyStatusChanged = vi.fn((callback) => {
+                statusChanged = callback;
+                return mockUnsubscribe;
+            });
+        });
+
+        it('shows nothing while the registration is pending', async () => {
+            render(<LinuxHotkeyNotice />);
+
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, 1200));
+            });
+
+            expect(statusChanged).toBeDefined();
+            expect(mockShowWarning).not.toHaveBeenCalled();
+            expect(mockUnsubscribe).not.toHaveBeenCalled();
+        });
+
+        it('stays silent and stops listening when the shortcuts are approved', async () => {
+            render(<LinuxHotkeyNotice />);
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, 1200));
+            });
+
+            act(() => {
+                statusChanged!({
+                    waylandStatus: gnomeWayland,
+                    registrationResults: [
+                        { hotkeyId: 'quickChat', success: true },
+                        { hotkeyId: 'peekAndHide', success: true },
+                    ],
+                    globalHotkeysEnabled: true,
+                    registrationPending: false,
+                });
+            });
+
+            expect(mockShowWarning).not.toHaveBeenCalled();
+            expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+        });
+
+        it('shows the notice once when the registration fails', async () => {
+            render(<LinuxHotkeyNotice />);
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, 1200));
+            });
+
+            const failedStatus: PlatformHotkeyStatus = {
+                waylandStatus: gnomeWayland,
+                registrationResults: [{ hotkeyId: 'quickChat', success: false, error: 'Request denied by user' }],
+                globalHotkeysEnabled: false,
+                registrationPending: false,
+            };
+            act(() => {
+                statusChanged!(failedStatus);
+                statusChanged!(failedStatus);
+            });
+
+            expect(mockShowWarning).toHaveBeenCalledTimes(1);
+            expect(mockShowWarning).toHaveBeenCalledWith(
+                'Global shortcuts could not be registered: quickChat. Request denied by user.',
+                expect.objectContaining({ id: 'linux-hotkey-notice', title: 'Global Hotkeys Disabled' })
+            );
+            expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+        });
+
+        it('uses a result that arrives before the status query answers', async () => {
+            const win = globalThis.window as any;
+            win.electronAPI.getPlatformHotkeyStatus.mockImplementation(async () => {
+                statusChanged!({
+                    waylandStatus: gnomeWayland,
+                    registrationResults: [{ hotkeyId: 'quickChat', success: true }],
+                    globalHotkeysEnabled: true,
+                    registrationPending: false,
+                });
+                return pendingStatus;
+            });
+
+            render(<LinuxHotkeyNotice />);
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, 1200));
+            });
+
+            expect(mockShowWarning).not.toHaveBeenCalled();
+            expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+        });
+
+        it('stops listening when unmounted before an answer', async () => {
+            const { unmount } = render(<LinuxHotkeyNotice />);
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, 1200));
+            });
+
+            unmount();
+
+            expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+            expect(mockShowWarning).not.toHaveBeenCalled();
+        });
+    });
+
     describe('duplicate prevention', () => {
         beforeEach(() => {
             vi.mocked(isLinux).mockReturnValue(true);

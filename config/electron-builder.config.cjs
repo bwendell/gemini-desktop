@@ -35,9 +35,9 @@ const windowsBinaryExclusions = getWindowsBinaryExclusions();
 module.exports = {
     appId: 'com.benwendell.gemini-desktop',
     productName: 'Gemini Desktop',
-    // Windows builds do not need native module rebuild for this app.
-    // Rebuild can fail on Linux-only transitive deps (e.g. dbus-next/usocket).
-    npmRebuild: !isWindowsBuild,
+    // The app ships no native module that needs rebuilding for Electron: dbus-next's optional
+    // usocket, the only one, is left out of the package below.
+    npmRebuild: false,
 
     directories: {
         output: 'release',
@@ -59,6 +59,9 @@ module.exports = {
         '!node_modules/@node-llama-cpp/mac-arm64-metal',
         '!node_modules/@node-llama-cpp/mac-x64',
         ...windowsBinaryExclusions,
+        // dbus-next's optional native transport crashes the app inside the V8 sandbox on Linux
+        // kernel 7+. dbus-next connects through Node's net module instead (dbusFallback.ts).
+        '!node_modules/usocket',
     ],
     // Native .node binaries must be unpacked from asar for node-llama-cpp to load them
     asarUnpack: ['node_modules/@node-llama-cpp/**/*.node', 'node_modules/node-llama-cpp/**/*'],

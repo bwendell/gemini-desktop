@@ -195,4 +195,10 @@ export interface PlatformHotkeyStatus {
     registrationResults: HotkeyRegistrationResult[];
     /** Whether global hotkeys are currently functional */
     globalHotkeysEnabled: boolean;
+    /**
+     * Whether a registration through the desktop portal is still waiting for its answer, for
+     * example while GNOME or KDE asks the user to approve the shortcuts. The main process sends
+     * the status on PLATFORM_HOTKEY_STATUS_CHANGED once it has the answer.
+     */
+    registrationPending?: boolean;
 }

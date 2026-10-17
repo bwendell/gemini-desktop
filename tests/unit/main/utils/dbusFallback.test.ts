@@ -28,8 +28,11 @@ const mockGetInterface = vi.fn();
 // Create mock getProxyObject
 const mockGetProxyObject = vi.fn();
 
-// Track if sessionBus was called
+// Track the options sessionBus was called with
 const mockSessionBusCalls: unknown[] = [];
+
+// Low-level method calls (bus.call), such as the portal's Registry.Register
+const mockBusCall = vi.fn();
 
 // Track bus-level message listeners for simulating Response signals
 type BusMessageHandler = (msg: {
@@ -73,6 +76,7 @@ function simulatePortalResponse(requestPath: string, code: number, results: Reco
 // Factory function for creating the bus mock
 const createBusMock = () => ({
     name: ':1.42',
+    call: mockBusCall,
     getProxyObject: mockGetProxyObject,
     disconnect: mockDisconnect,
     on: mockBusOn,
@@ -81,8 +85,8 @@ const createBusMock = () => ({
 
 // Mock dbus-next at the top level
 vi.mock('dbus-next', () => ({
-    sessionBus: () => {
-        mockSessionBusCalls.push(Date.now());
+    sessionBus: (options?: unknown) => {
+        mockSessionBusCalls.push(options);
         return createBusMock();
     },
     Variant: class {
@@ -91,16 +95,13 @@ vi.mock('dbus-next', () => ({
             public value: unknown
         ) {}
     },
+    Message: class {
+        constructor(public options: Record<string, unknown>) {}
+    },
 }));
 
-// Mock the kernel-incompatibility predicate so we can simulate kernel 7+ without
-// a real kernel. Defaults to false (compatible kernel) for all existing tests.
-const { mockIsV8SandboxIncompatibleKernel } = vi.hoisted(() => ({
-    mockIsV8SandboxIncompatibleKernel: vi.fn<() => boolean>(() => false),
-}));
-vi.mock('../../../../src/main/utils/sandboxDetector', () => ({
-    isV8SandboxIncompatibleKernel: () => mockIsV8SandboxIncompatibleKernel(),
-}));
+/** The session bus address systemd gives a desktop session */
+const SESSION_BUS_ADDRESS = 'unix:path=/run/user/1000/bus';
 
 // ============================================================================
 // Test Suite
@@ -115,10 +116,12 @@ describe('DBusFallback', () => {
     beforeEach(async () => {
         // Clear all mock call history
         vi.clearAllMocks();
-        // Default to a compatible kernel so the D-Bus path runs as normal.
-        mockIsV8SandboxIncompatibleKernel.mockReturnValue(false);
+        vi.stubEnv('DBUS_SESSION_BUS_ADDRESS', SESSION_BUS_ADDRESS);
         mockSessionBusCalls.length = 0;
         busMessageHandlers = [];
+
+        // Default: the portal accepts the app id
+        mockBusCall.mockResolvedValue(null);
 
         // Set up default mock implementations
         mockGetInterface.mockImplementation((iface: string) => {
@@ -188,6 +191,7 @@ describe('DBusFallback', () => {
         } catch {
             // Ignore cleanup errors
         }
+        vi.unstubAllEnvs();
     });
 
     // ========================================================================
@@ -665,47 +669,153 @@ describe('DBusFallback', () => {
     });
 
     // ========================================================================
-    // Incompatible Linux kernel (>= 7) — dbus-next must never load
+    // Session bus connection: never through dbus-next's native usocket
     // ========================================================================
 
-    describe('incompatible Linux kernel (>= 7)', () => {
-        beforeEach(() => {
-            mockIsV8SandboxIncompatibleKernel.mockReturnValue(true);
+    describe('getSessionBusAddress', () => {
+        it.each([
+            ['unix:path=/run/user/1000/bus', 'unix:socket=/run/user/1000/bus'],
+            ['unix:path=/run/user/1000/bus,guid=0123abcd', 'unix:socket=/run/user/1000/bus'],
+            ['unix:abstract=/tmp/dbus-AbC,guid=0123abcd', 'unix:socket=\0/tmp/dbus-AbC'],
+            ['unix:path=/tmp/my%20bus', 'unix:socket=/tmp/my bus'],
+            ['tcp:host=localhost,port=4000', 'tcp:host=localhost,port=4000'],
+            ['unixexec:path=/usr/bin/dbus-bridge;unix:path=/run/user/1000/bus', 'unix:socket=/run/user/1000/bus'],
+            [
+                'unix:abstract=/tmp/dbus-AbC;unix:path=/run/user/1000/bus',
+                'unix:socket=\0/tmp/dbus-AbC;unix:socket=/run/user/1000/bus',
+            ],
+        ])('turns %s into %s', (address, expected) => {
+            expect(dbusFallback.getSessionBusAddress({ DBUS_SESSION_BUS_ADDRESS: address })).toBe(expected);
         });
 
+        it.each([
+            'unix:path=/tmp/bus%2Cwith-comma',
+            'unix:path=/tmp/bad%ZZ',
+            'unix:tmpdir=/tmp',
+            'unix:runtime=yes',
+            'not-an-address',
+        ])('leaves out %s, which dbus-next cannot open with net', (address) => {
+            expect(dbusFallback.getSessionBusAddress({ DBUS_SESSION_BUS_ADDRESS: address })).toBeNull();
+        });
+
+        it('falls back to the bus in XDG_RUNTIME_DIR', () => {
+            expect(dbusFallback.getSessionBusAddress({ XDG_RUNTIME_DIR: '/run/user/1000' })).toBe(
+                'unix:socket=/run/user/1000/bus'
+            );
+        });
+
+        it('returns null without a session bus', () => {
+            expect(dbusFallback.getSessionBusAddress({})).toBeNull();
+        });
+    });
+
+    describe('session bus connection', () => {
         const testShortcuts = [
             {
                 id: 'quickChat' as const,
                 accelerator: 'CommandOrControl+Shift+Alt+Space',
-                description: 'Quick Chat toggle',
+                description: 'Quick Chat',
             },
-            { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Hide window' },
+            { id: 'peekAndHide' as const, accelerator: 'CommandOrControl+Shift+Space', description: 'Peek and Hide' },
         ];
 
-        it('isDBusFallbackAvailable returns false without connecting to D-Bus', async () => {
-            const result = await dbusFallback.isDBusFallbackAvailable();
+        it('connects through Node net with a unix:socket= address', async () => {
+            const results = await dbusFallback.registerViaDBus(testShortcuts);
 
-            expect(result).toBe(false);
-            expect(mockSessionBusCalls.length).toBe(0);
+            expect(results.every((result) => result.success)).toBe(true);
+            expect(mockSessionBusCalls).toEqual([{ busAddress: 'unix:socket=/run/user/1000/bus' }]);
         });
 
-        it('registerViaDBus reports failure for all shortcuts without connecting to D-Bus', async () => {
+        it('isDBusFallbackAvailable connects the same way', async () => {
+            await dbusFallback.isDBusFallbackAvailable();
+
+            expect(mockSessionBusCalls).toEqual([{ busAddress: 'unix:socket=/run/user/1000/bus' }]);
+        });
+
+        it('registers the app id with the portal before any other portal call', async () => {
+            await dbusFallback.registerViaDBus(testShortcuts);
+
+            expect(mockBusCall).toHaveBeenCalledTimes(1);
+            expect(mockBusCall.mock.calls[0][0].options).toEqual({
+                destination: 'org.freedesktop.portal.Desktop',
+                path: '/org/freedesktop/portal/desktop',
+                interface: 'org.freedesktop.host.portal.Registry',
+                member: 'Register',
+                signature: 'sa{sv}',
+                body: [dbusFallback.PORTAL_APP_ID, {}],
+            });
+            expect(dbusFallback.PORTAL_APP_ID).toBe('gemini-desktop');
+            expect(mockBusCall.mock.invocationCallOrder[0]).toBeLessThan(
+                mockGetProxyObject.mock.invocationCallOrder[0]
+            );
+            expect(mockBusCall.mock.invocationCallOrder[0]).toBeLessThan(mockCreateSession.mock.invocationCallOrder[0]);
+        });
+
+        it('goes on when the portal refuses the app id', async () => {
+            mockBusCall.mockRejectedValue(
+                Object.assign(new Error('Could not register app ID: App info not found'), {
+                    type: 'org.freedesktop.portal.Error.Failed',
+                })
+            );
+
+            const results = await dbusFallback.registerViaDBus(testShortcuts);
+
+            expect(results.every((result) => result.success)).toBe(true);
+            expect(mockCreateSession).toHaveBeenCalled();
+        });
+
+        it('reports failure without connecting when there is no session bus', async () => {
+            vi.stubEnv('DBUS_SESSION_BUS_ADDRESS', '');
+            vi.stubEnv('XDG_RUNTIME_DIR', '');
+
             const results = await dbusFallback.registerViaDBus(testShortcuts);
 
             expect(results).toHaveLength(2);
             results.forEach((result) => {
                 expect(result.success).toBe(false);
-                expect(result.error).toContain('kernel 7');
+                expect(result.error).toContain('No D-Bus session bus address');
             });
-            // dbus-next must never be loaded on an incompatible kernel
-            expect(mockSessionBusCalls.length).toBe(0);
+            expect(mockSessionBusCalls).toHaveLength(0);
         });
+    });
 
-        it('registerViaDBus still short-circuits an empty shortcuts array', async () => {
-            const results = await dbusFallback.registerViaDBus([]);
+    describe('shortcut dialog', () => {
+        it('waits up to five minutes for the user to answer it', async () => {
+            vi.useFakeTimers();
+            try {
+                // The Response to BindShortcuts comes only when the user answers the dialog
+                mockBindShortcuts.mockImplementation(
+                    async (
+                        _session: string,
+                        _shortcuts: unknown[],
+                        _parent: string,
+                        options: Record<string, { value?: string }>
+                    ) => `/org/freedesktop/portal/desktop/request/1_42/${options.handle_token?.value}`
+                );
+                let settled = false;
+                const registration = dbusFallback
+                    .registerViaDBus([
+                        {
+                            id: 'quickChat' as const,
+                            accelerator: 'CommandOrControl+Shift+Alt+Space',
+                            description: 'Quick Chat',
+                        },
+                    ])
+                    .then((results) => {
+                        settled = true;
+                        return results;
+                    });
 
-            expect(results).toHaveLength(0);
-            expect(mockSessionBusCalls.length).toBe(0);
+                await vi.advanceTimersByTimeAsync(60_000);
+                expect(settled).toBe(false);
+
+                await vi.advanceTimersByTimeAsync(4 * 60_000);
+                const results = await registration;
+                expect(results[0].success).toBe(false);
+                expect(results[0].error).toContain('timed out');
+            } finally {
+                vi.useRealTimers();
+            }
         });
     });
 

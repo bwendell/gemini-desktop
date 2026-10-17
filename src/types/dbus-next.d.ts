@@ -17,9 +17,41 @@ declare module 'dbus-next' {
     }
 
     /**
+     * A D-Bus message, such as a method call built for MessageBus.call().
+     */
+    export class Message {
+        constructor(options: {
+            destination?: string;
+            path: string;
+            interface?: string;
+            member: string;
+            signature?: string;
+            body?: unknown[];
+        });
+        body: unknown[];
+    }
+
+    /**
+     * Options for connecting to a bus.
+     */
+    export interface BusOptions {
+        /** The bus address, e.g. `unix:socket=/run/user/1000/bus`. Defaults to DBUS_SESSION_BUS_ADDRESS. */
+        busAddress?: string;
+    }
+
+    /**
      * Message bus connection.
      */
     export interface MessageBus {
+        /** Unique bus name assigned by the D-Bus daemon once connected (e.g., ':1.123') */
+        name: string | null;
+
+        /**
+         * Send a method call and wait for its reply. Rejects with a DBusError for an error reply.
+         * @param message - The method call
+         */
+        call(message: Message): Promise<Message | null>;
+
         /**
          * Get a proxy object for a remote D-Bus service.
          * @param busName - The bus name (e.g., 'org.freedesktop.portal.Desktop')
@@ -60,8 +92,9 @@ declare module 'dbus-next' {
 
     /**
      * Get a connection to the session bus.
+     * @param options - Connection options, such as the bus address
      */
-    export function sessionBus(): MessageBus;
+    export function sessionBus(options?: BusOptions): MessageBus;
 
     /**
      * Get a connection to the system bus.

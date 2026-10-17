@@ -64,6 +64,13 @@ import type { WaylandStatus, HotkeyRegistrationResult, PlatformHotkeyStatus } fr
 
 const logger = createLogger('[HotkeyManager]');
 
+/** How the desktop's shortcut dialog names each global hotkey: the names the app's settings use */
+const PORTAL_SHORTCUT_DESCRIPTIONS: Partial<Record<HotkeyId, string>> = {
+    quickChat: 'Quick Chat',
+    peekAndHide: 'Peek and Hide',
+    voiceChat: 'Voice Chat',
+};
+
 // ============================================================================
 // Feature Flags
 // ============================================================================
@@ -552,10 +559,13 @@ export default class HotkeyManager {
 
             if (epoch !== this._waylandRegistrationEpoch) {
                 this._hasPendingWaylandReregistration = false;
-            } else if (this._hasPendingWaylandReregistration) {
-                const latestStatus = getPlatformAdapter().getWaylandStatus();
-                this._hasPendingWaylandReregistration = false;
-                this._requestWaylandRegistration(latestStatus);
+            } else {
+                if (this._hasPendingWaylandReregistration) {
+                    const latestStatus = getPlatformAdapter().getWaylandStatus();
+                    this._hasPendingWaylandReregistration = false;
+                    this._requestWaylandRegistration(latestStatus);
+                }
+                this._emitPlatformHotkeyStatusChanged();
             }
 
             return;
@@ -564,7 +574,7 @@ export default class HotkeyManager {
         const shortcuts = enabledGlobalHotkeys.map((id) => ({
             id,
             accelerator: this._accelerators[id],
-            description: `Gemini Desktop: ${id}`,
+            description: PORTAL_SHORTCUT_DESCRIPTIONS[id] ?? id,
         }));
 
         const actionCallbacks = this._buildActionCallbacksMap(enabledGlobalHotkeys);
@@ -597,12 +607,25 @@ export default class HotkeyManager {
 
             if (epoch !== this._waylandRegistrationEpoch) {
                 this._hasPendingWaylandReregistration = false;
-            } else if (this._hasPendingWaylandReregistration) {
-                const latestStatus = getPlatformAdapter().getWaylandStatus();
-                this._hasPendingWaylandReregistration = false;
-                this._requestWaylandRegistration(latestStatus);
+            } else {
+                if (this._hasPendingWaylandReregistration) {
+                    const latestStatus = getPlatformAdapter().getWaylandStatus();
+                    this._hasPendingWaylandReregistration = false;
+                    this._requestWaylandRegistration(latestStatus);
+                }
+                this._emitPlatformHotkeyStatusChanged();
             }
         }
+    }
+
+    /**
+     * Tell listeners that a portal registration has finished, through the window manager's
+     * 'platform-hotkey-status-changed' event. The status is still pending when a queued
+     * re-registration has started.
+     * @private
+     */
+    private _emitPlatformHotkeyStatusChanged(): void {
+        this.windowManager.emit('platform-hotkey-status-changed', this.getPlatformHotkeyStatus());
     }
 
     /**
@@ -820,6 +843,7 @@ export default class HotkeyManager {
             waylandStatus: getPlatformAdapter().getWaylandStatus(),
             registrationResults: Array.from(this._registrationResults.values()),
             globalHotkeysEnabled: this._globalHotkeysEnabled,
+            registrationPending: this._isWaylandRegistrationInFlight,
         };
     }
 }

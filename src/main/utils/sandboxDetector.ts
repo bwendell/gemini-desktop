@@ -173,11 +173,12 @@ export function getKernelMajorVersion(release: string): number | null {
  *
  * On affected kernels (major >= {@link V8_SANDBOX_INCOMPATIBLE_KERNEL_MAJOR}),
  * native addons that allocate ArrayBuffer backing stores outside the V8 sandbox
- * cage — notably `dbus-next` (via its native `usocket` transport) and
- * `node-llama-cpp` — trigger a fatal `v8_ArrayBuffer_NewBackingStore` crash at
- * startup. Because the sandbox cage cannot be reliably disabled at runtime, we
+ * cage — notably `node-llama-cpp` — trigger a fatal `v8_ArrayBuffer_NewBackingStore`
+ * crash. Because the sandbox cage cannot be reliably disabled at runtime, we
  * use this predicate to avoid loading those modules on affected kernels rather
- * than attempting to turn the sandbox off.
+ * than attempting to turn the sandbox off. dbus-next needs no guard: it connects
+ * through Node's `net` module, never through its native `usocket` module
+ * (see `getSessionBusAddress` in dbusFallback.ts).
  *
  * The kernel release is injectable for testing; it defaults to os.release().
  *

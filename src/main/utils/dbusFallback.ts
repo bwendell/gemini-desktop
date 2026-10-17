@@ -14,6 +14,11 @@
  *   reliable signal reception (portal Response and Activated signals)
  * - **XDG accelerator format**: Converts Electron accelerators to XDG spec
  *   format (CTRL+ALT+key) for KDE compatibility
+ * - **No native code**: dbus-next connects through Node's `net` module, never
+ *   through its optional native `usocket` module, which crashes the app inside
+ *   Electron's V8 sandbox on Linux kernel 7 and newer (see getSessionBusAddress)
+ * - **App id**: The connection tells the portal it belongs to `gemini-desktop`,
+ *   so the desktop's shortcut dialog names the app however it was started
  * - **Error containment**: All D-Bus errors are caught and never thrown
  *
  * @module DBusFallback
@@ -21,7 +26,6 @@
  */
 
 import { createLogger } from './logger';
-import { isV8SandboxIncompatibleKernel } from './sandboxDetector';
 import type { HotkeyId, HotkeyRegistrationResult } from '../../shared/types/hotkeys';
 
 const logger = createLogger('[DBusFallback]');
@@ -45,6 +49,8 @@ export interface DBusShortcutConfig {
 interface DBusConnection {
     /** Unique bus name assigned by the D-Bus daemon (e.g., ':1.123') */
     name?: string;
+    /** Send a method call built with dbus-next's Message class and wait for its reply */
+    call?: (message: unknown) => Promise<unknown>;
     getProxyObject: (
         busName: string,
         objectPath: string
@@ -98,6 +104,13 @@ const DEBUG_DBUS = process.env.DEBUG_DBUS === '1' || process.env.DEBUG_DBUS === 
 const PORTAL_BUS_NAME = 'org.freedesktop.portal.Desktop';
 const PORTAL_OBJECT_PATH = '/org/freedesktop/portal/desktop';
 const GLOBAL_SHORTCUTS_INTERFACE = 'org.freedesktop.portal.GlobalShortcuts';
+const HOST_REGISTRY_INTERFACE = 'org.freedesktop.host.portal.Registry';
+
+/**
+ * The app id the portal knows this app by: the name of the desktop file (`gemini-desktop.desktop`)
+ * that the deb and rpm packages install.
+ */
+export const PORTAL_APP_ID = 'gemini-desktop';
 
 /** D-Bus signal message type constant */
 const DBUS_MESSAGE_TYPE_SIGNAL = 4;
@@ -105,14 +118,17 @@ const DBUS_MESSAGE_TYPE_SIGNAL = 4;
 /** Heartbeat interval (ms) for D-Bus connection logging */
 const HEARTBEAT_INTERVAL_MS = 5000;
 
-/**
- * Timeout (ms) for portal Response signals.
- *
- * BindShortcuts on KDE Plasma 6 may show a user-approval dialog.
- * We use a generous timeout but don't block forever — the app should
- * remain functional even if the user dismisses or ignores the dialog.
- */
+/** Timeout (ms) for the portal's Response to CreateSession, which needs no user action. */
 const RESPONSE_TIMEOUT_MS = 30_000;
+
+/**
+ * Timeout (ms) for the portal's Response to BindShortcuts.
+ *
+ * GNOME and KDE Plasma 6 ask the user to approve new shortcuts in a dialog, and the Response
+ * arrives only once the user answers it. The dialog opens while the app starts, so the user
+ * gets a few minutes; the app works meanwhile, just without global shortcuts.
+ */
+const BIND_RESPONSE_TIMEOUT_MS = 5 * 60_000;
 
 // ============================================================================
 // XDG Accelerator Format Conversion
@@ -355,6 +371,119 @@ export function clearActivationSignalHistory(): void {
 }
 
 // ============================================================================
+// Session Bus Connection
+// ============================================================================
+
+/**
+ * Decode a value from a D-Bus address, where some bytes are written as %XX.
+ * @returns The decoded value, or null when it is not valid
+ */
+function decodeAddressValue(value: string): string | null {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Get the session bus address in a form that dbus-next opens with Node's own `net` module.
+ *
+ * dbus-next opens `unix:path=` and `unix:abstract=` addresses with its optional native
+ * `usocket` module, which allocates ArrayBuffer memory outside the V8 sandbox. On Linux
+ * kernel 7 and newer that crashes the app (`v8_ArrayBuffer_NewBackingStore`).
+ * dbus-next opens `unix:socket=` addresses with `net`, and `net` reaches an abstract socket
+ * when the path starts with a NUL character. TCP addresses already use `net`. Other
+ * transports are left out.
+ *
+ * @param env - Environment with DBUS_SESSION_BUS_ADDRESS, or XDG_RUNTIME_DIR for the default bus
+ * @returns The address for dbus-next, or null when there is no session bus to connect to
+ */
+export function getSessionBusAddress(env: NodeJS.ProcessEnv = process.env): string | null {
+    if (!env.DBUS_SESSION_BUS_ADDRESS) {
+        return env.XDG_RUNTIME_DIR ? `unix:socket=${env.XDG_RUNTIME_DIR}/bus` : null;
+    }
+
+    const addresses: string[] = [];
+    for (const entry of env.DBUS_SESSION_BUS_ADDRESS.split(';')) {
+        const colon = entry.indexOf(':');
+        if (colon < 0) {
+            continue;
+        }
+        const transport = entry.slice(0, colon);
+        const params = new Map<string, string>();
+        for (const pair of entry.slice(colon + 1).split(',')) {
+            const equals = pair.indexOf('=');
+            if (equals > 0) {
+                params.set(pair.slice(0, equals), pair.slice(equals + 1));
+            }
+        }
+
+        if (transport === 'tcp') {
+            addresses.push(entry);
+            continue;
+        }
+        if (transport !== 'unix') {
+            continue;
+        }
+
+        const path = params.get('path');
+        const abstract = params.get('abstract');
+        const decoded =
+            path !== undefined
+                ? decodeAddressValue(path)
+                : abstract !== undefined
+                  ? decodeAddressValue(abstract)
+                  : null;
+        // dbus-next splits its address on these characters, so a path with them cannot be passed on
+        if (!decoded || /[,;=]/.test(decoded)) {
+            continue;
+        }
+        addresses.push(`unix:socket=${path !== undefined ? decoded : `\0${decoded}`}`);
+    }
+
+    return addresses.length > 0 ? addresses.join(';') : null;
+}
+
+/**
+ * Connect to the session bus without loading dbus-next's native `usocket` module.
+ */
+function connectSessionBus(dbusNext: typeof import('dbus-next')): DBusConnection {
+    const busAddress = getSessionBusAddress();
+    if (!busAddress) {
+        throw new Error('No D-Bus session bus address to connect to');
+    }
+    return dbusNext.sessionBus({ busAddress }) as DBusConnection;
+}
+
+/**
+ * Tell the portal which app this connection belongs to, so that GNOME and KDE name the app in
+ * their shortcut dialog and keep its shortcuts across restarts. It has to come before any other
+ * call to the portal on the connection. The portal refuses it for a sandboxed app, when no desktop
+ * file of that name is installed (an AppImage that was never integrated) and before version 1.19;
+ * then it keeps its own guess at the app id and the registration goes on.
+ */
+async function registerAppId(bus: DBusConnection, dbusNext: typeof import('dbus-next')): Promise<void> {
+    try {
+        await bus.call?.(
+            new dbusNext.Message({
+                destination: PORTAL_BUS_NAME,
+                path: PORTAL_OBJECT_PATH,
+                interface: HOST_REGISTRY_INTERFACE,
+                member: 'Register',
+                signature: 'sa{sv}',
+                body: [PORTAL_APP_ID, {}],
+            })
+        );
+        logger.log(`Registered the app id "${PORTAL_APP_ID}" with the portal`);
+    } catch (error) {
+        const type = (error as { type?: unknown } | null)?.type;
+        const reason = error instanceof Error ? error.message : String(error);
+        logger.log(`The portal kept its own app id for this app (Register: ${type ? `${type}: ` : ''}${reason})`);
+    }
+}
+
+// ============================================================================
 // Internal Helpers
 // ============================================================================
 
@@ -434,14 +563,9 @@ function parseShortcutSignalPayload(msg: DBusMessage): PortalShortcutSignalPaylo
  * @returns `true` if the portal interface is available
  */
 export async function isDBusFallbackAvailable(): Promise<boolean> {
-    if (isV8SandboxIncompatibleKernel()) {
-        logger.log('D-Bus fallback disabled on Linux kernel 7+ (V8 sandbox/usocket incompatibility) — skipping');
-        return false;
-    }
-
     try {
         const dbusNext = await import('dbus-next');
-        const bus = dbusNext.sessionBus() as DBusConnection;
+        const bus = connectSessionBus(dbusNext);
 
         try {
             const proxyObj = await bus.getProxyObject(PORTAL_BUS_NAME, PORTAL_OBJECT_PATH);
@@ -493,17 +617,6 @@ export async function registerViaDBus(
         return [];
     }
 
-    if (isV8SandboxIncompatibleKernel()) {
-        logger.warn(
-            'D-Bus global shortcuts disabled on Linux kernel 7+ (V8 sandbox/usocket incompatibility) — skipping registration'
-        );
-        return shortcuts.map((s) => ({
-            hotkeyId: s.id,
-            success: false,
-            error: 'Global shortcuts are disabled on Linux kernel 7+ (V8 sandbox incompatibility).',
-        }));
-    }
-
     try {
         // Dynamically import dbus-next
         const dbusNext = await import('dbus-next');
@@ -512,8 +625,11 @@ export async function registerViaDBus(
         await destroySession();
 
         // Connect to session bus
-        connection = dbusNext.sessionBus() as DBusConnection;
+        connection = connectSessionBus(dbusNext);
         logger.log('Connected to D-Bus session bus');
+
+        // Before any other portal call on this connection
+        await registerAppId(connection, dbusNext);
 
         if (process.env.NODE_ENV === 'test' && DEBUG_DBUS && !heartbeatTimer) {
             heartbeatTimer = setInterval(() => {
@@ -652,9 +768,9 @@ export async function registerViaDBus(
         const bindRequestPath = `/org/freedesktop/portal/desktop/request/${sender}/${bindHandleToken}`;
 
         // Start listening for BindShortcuts Response BEFORE calling
-        // NOTE: On KDE Plasma 6, BindShortcuts may show a user-approval dialog.
+        // NOTE: GNOME and KDE Plasma 6 may show a user-approval dialog.
         // The Response signal arrives only after the user approves/dismisses it.
-        const bindResponsePromise = waitForPortalResponse(connection, bindRequestPath, RESPONSE_TIMEOUT_MS);
+        const bindResponsePromise = waitForPortalResponse(connection, bindRequestPath, BIND_RESPONSE_TIMEOUT_MS);
 
         logger.log(`Binding ${shortcuts.length} shortcuts via D-Bus portal...`);
         await portalInterface.BindShortcuts(

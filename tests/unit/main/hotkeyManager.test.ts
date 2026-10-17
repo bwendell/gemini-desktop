@@ -1107,6 +1107,55 @@ describe('HotkeyManager', () => {
                 expect(actionCallbacks.has('peekAndHide')).toBe(true);
             });
 
+            it('names the shortcuts in the desktop dialog as the settings do', async () => {
+                createWaylandKdeStatus();
+
+                hotkeyManager.registerShortcuts();
+
+                await vi.waitFor(() => {
+                    expect(mockDbusFallback.registerViaDBus).toHaveBeenCalled();
+                });
+
+                const [shortcuts] = mockDbusFallback.registerViaDBus.mock.calls[0];
+                expect(shortcuts.map((shortcut: { description: string }) => shortcut.description)).toEqual([
+                    'Quick Chat',
+                    'Peek and Hide',
+                    'Voice Chat',
+                ]);
+            });
+
+            it('reports the registration as pending until the portal answers, then announces the status', async () => {
+                createWaylandKdeStatus();
+                let answer: (results: Array<{ hotkeyId: string; success: boolean }>) => void = () => {};
+                mockDbusFallback.registerViaDBus.mockReturnValue(
+                    new Promise((resolve) => {
+                        answer = resolve;
+                    })
+                );
+
+                hotkeyManager.registerShortcuts();
+
+                expect(hotkeyManager.getPlatformHotkeyStatus().registrationPending).toBe(true);
+                expect(mockWindowManager.emit).not.toHaveBeenCalledWith(
+                    'platform-hotkey-status-changed',
+                    expect.anything()
+                );
+
+                answer([
+                    { hotkeyId: 'quickChat', success: true },
+                    { hotkeyId: 'peekAndHide', success: true },
+                    { hotkeyId: 'voiceChat', success: true },
+                ]);
+
+                await vi.waitFor(() => {
+                    expect(mockWindowManager.emit).toHaveBeenCalledWith(
+                        'platform-hotkey-status-changed',
+                        expect.objectContaining({ registrationPending: false, globalHotkeysEnabled: true })
+                    );
+                });
+                expect(hotkeyManager.getPlatformHotkeyStatus().registrationPending).toBe(false);
+            });
+
             it('should only register enabled hotkeys via D-Bus direct path', async () => {
                 hotkeyManager.setIndividualEnabled('quickChat', false);
                 createWaylandKdeStatus();
