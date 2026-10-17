@@ -136,6 +136,11 @@ export class WindowsAdapter implements PlatformAdapter {
         window.setSkipTaskbar(false);
     }
 
+    bringToFront(window: Electron.BrowserWindow): void {
+        window.show();
+        window.focus();
+    }
+
     // ----- Menu methods -----
 
     shouldIncludeAppMenu(): boolean {

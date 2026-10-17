@@ -67,6 +67,10 @@ export function createMockPlatformAdapter(overrides: Partial<MockPlatformAdapter
             window.focus();
             window.setSkipTaskbar(false);
         }),
+        bringToFront: vi.fn((window) => {
+            window.show();
+            window.focus();
+        }),
         shouldIncludeAppMenu: vi.fn().mockReturnValue(false),
         getSettingsMenuLabel: vi.fn().mockReturnValue('Options'),
         getWindowCloseRole: vi.fn().mockReturnValue('quit'),

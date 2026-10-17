@@ -304,6 +304,24 @@ describe('WindowsAdapter', () => {
         });
     });
 
+    describe('bringToFront()', () => {
+        it('shows and focuses the window without hiding it', () => {
+            const mockWindow = {
+                isVisible: vi.fn().mockReturnValue(true),
+                isFocused: vi.fn().mockReturnValue(false),
+                hide: vi.fn(),
+                show: vi.fn(),
+                focus: vi.fn(),
+            } as unknown as Electron.BrowserWindow;
+
+            adapter.bringToFront(mockWindow);
+
+            expect(mockWindow.hide).not.toHaveBeenCalled();
+            expect(mockWindow.show).toHaveBeenCalled();
+            expect(mockWindow.focus).toHaveBeenCalled();
+        });
+    });
+
     describe('shouldIncludeAppMenu()', () => {
         it('should return false (no macOS-style app menu)', () => {
             expect(adapter.shouldIncludeAppMenu()).toBe(false);
@@ -601,6 +619,24 @@ describe('MacAdapter', () => {
             expect(mockWindow.show).toHaveBeenCalled();
             expect(mockWindow.focus).toHaveBeenCalled();
             expect(mockWindow.setSkipTaskbar).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('bringToFront()', () => {
+        it('shows and focuses the window without hiding it', () => {
+            const mockWindow = {
+                isVisible: vi.fn().mockReturnValue(true),
+                isFocused: vi.fn().mockReturnValue(false),
+                hide: vi.fn(),
+                show: vi.fn(),
+                focus: vi.fn(),
+            } as unknown as Electron.BrowserWindow;
+
+            adapter.bringToFront(mockWindow);
+
+            expect(mockWindow.hide).not.toHaveBeenCalled();
+            expect(mockWindow.show).toHaveBeenCalled();
+            expect(mockWindow.focus).toHaveBeenCalled();
         });
     });
 

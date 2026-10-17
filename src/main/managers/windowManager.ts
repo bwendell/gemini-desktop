@@ -228,8 +228,7 @@ export default class WindowManager extends EventEmitter {
      * Focus the main window and bring to front.
      */
     focusMainWindow(): void {
-        this.mainWindow.show();
-        this.mainWindow.focus();
+        this.mainWindow.bringToFront();
         logger.log('Main window focused');
     }
 

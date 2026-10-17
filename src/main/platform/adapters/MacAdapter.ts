@@ -141,6 +141,11 @@ export class MacAdapter implements PlatformAdapter {
         window.focus();
     }
 
+    bringToFront(window: Electron.BrowserWindow): void {
+        window.show();
+        window.focus();
+    }
+
     // ----- Menu methods -----
 
     shouldIncludeAppMenu(): boolean {

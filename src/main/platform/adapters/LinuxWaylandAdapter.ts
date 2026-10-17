@@ -166,9 +166,27 @@ export class LinuxWaylandAdapter implements PlatformAdapter {
     }
 
     restoreFromTray(window: Electron.BrowserWindow): void {
+        this.bringToFront(window);
+        window.setSkipTaskbar(false);
+    }
+
+    /**
+     * A Wayland app cannot raise its own window: it asks the desktop with an activation token,
+     * and GNOME answers a token it does not accept with an "is ready" notification, leaving the
+     * window behind other apps. GNOME does put a newly shown window in front with the focus, as
+     * Peek and Hide shows, so a window that is open but not focused is hidden and shown again.
+     * A minimized window is restored first: Chromium still counts it as minimized after it is
+     * hidden, and ends the app when it shows such a window again.
+     */
+    bringToFront(window: Electron.BrowserWindow): void {
+        if (window.isMinimized()) {
+            window.restore();
+            window.hide();
+        } else if (window.isVisible() && !window.isFocused()) {
+            window.hide();
+        }
         window.show();
         window.focus();
-        window.setSkipTaskbar(false);
     }
 
     // ----- Menu methods -----

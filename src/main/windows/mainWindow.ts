@@ -375,6 +375,15 @@ export default class MainWindow extends BaseWindow {
     }
 
     /**
+     * Put the main window in front of other apps' windows, with the focus.
+     */
+    bringToFront(): void {
+        if (this.window && !this.window.isDestroyed()) {
+            this.adapter.bringToFront(this.window);
+        }
+    }
+
+    /**
      * Set the quitting state.
      * @param state - Whether the app is quitting
      */

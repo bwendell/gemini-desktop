@@ -37,6 +37,7 @@ See `src/main/managers/ipc/BaseIpcHandler.ts` and `docs/ARCHITECTURE.md` (IPC Ha
 - Using global mutable state for managers instead of DI via `ApplicationContext`
 - Forgetting `unregister()` cleanup for IPC handlers
 - Sending to destroyed windows without checking `isDestroyed()` first
+- Calling `show()` and `focus()` to bring the main window to the front: GNOME on Wayland refuses the app's request to raise a window that is already open, so it stays behind other apps. Call `windowManager.focusMainWindow()`, which goes through `PlatformAdapter.bringToFront()`; the Wayland adapter hides and shows the window again
 
 ## When You Change Files Here
 

@@ -256,6 +256,33 @@ describe('MainWindow', () => {
         });
     });
 
+    describe('bringToFront', () => {
+        it('asks the platform adapter to bring the window to the front', () => {
+            const win = mainWindow.create();
+
+            mainWindow.bringToFront();
+
+            expect(adapter.bringToFront).toHaveBeenCalledWith(win);
+            expect(win.show).toHaveBeenCalled();
+            expect(win.focus).toHaveBeenCalled();
+        });
+
+        it('does nothing when the window is not created', () => {
+            mainWindow.bringToFront();
+
+            expect(adapter.bringToFront).not.toHaveBeenCalled();
+        });
+
+        it('does nothing when the window is destroyed', () => {
+            const win = mainWindow.create();
+            vi.mocked(win.isDestroyed).mockReturnValue(true);
+
+            mainWindow.bringToFront();
+
+            expect(adapter.bringToFront).not.toHaveBeenCalled();
+        });
+    });
+
     describe('setAlwaysOnTop', () => {
         it('sets always on top and emits event', () => {
             const win = mainWindow.create();

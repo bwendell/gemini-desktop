@@ -111,6 +111,13 @@ export interface PlatformAdapter {
      */
     restoreFromTray(window: Electron.BrowserWindow): void;
 
+    /**
+     * Put the window in front of other apps' windows, with the focus.
+     * Wayland shows a window that is open behind other apps again as a new window,
+     * because a desktop like GNOME may refuse to raise it.
+     */
+    bringToFront(window: Electron.BrowserWindow): void;
+
     // ----- Menu methods -----
 
     /**
